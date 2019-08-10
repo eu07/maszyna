@@ -89,22 +89,28 @@ void scenery_scanner::parse_trainset(cParser &parser)
 
 	parser.getTokens();
 	while (parser.peek() == "node") {
-		std::string node_name, datafolder, skinfile, mmdfile, drivertype, loadtype, destination;
-		int offset, coupling, loadcount;
+		trainset.vehicles.emplace_back();
+		dynamic_desc &dyn = trainset.vehicles.back();
+
+		std::string datafolder, skinfile, mmdfile;
+		int offset;
 
 		parser.getTokens(2); // range_max, range_min
 		parser.getTokens(1, false); // name
-		parser >> node_name;
+		parser >> dyn.name;
 
 		if (!parser.expectToken("dynamic"))
 			break;
 
-		parser.getTokens(7);
-		parser >> datafolder >> skinfile >> mmdfile >> offset >> drivertype >> coupling >> loadcount;
+		parser.getTokens(7, false);
+		parser >> datafolder >> skinfile >> mmdfile >> offset >> dyn.drivertype >> dyn.coupling >> dyn.loadcount;
+
+		dyn.skin = datafolder + "/" + skinfile;
+		dyn.mmd = datafolder + "/" + mmdfile;
 
 		parser.getTokens();
 		if (parser.peek() != "enddynamic") {
-			parser >> loadtype;
+			parser >> dyn.loadtype;
 			parser.getTokens();
 		}
 

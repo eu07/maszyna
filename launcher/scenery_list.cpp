@@ -21,7 +21,7 @@ void ui::scenerylist_panel::render()
 	if (ImGui::Begin(panelname.c_str(), &is_open)) {
 		ImGui::Columns(3);
 
-		if (ImGui::BeginChild("child1", ImVec2(0, -50))) {
+		if (ImGui::BeginChild("child1", ImVec2(0, -100))) {
 			std::string prev_prefix;
 			bool collapse_open = false;
 
@@ -52,7 +52,7 @@ void ui::scenerylist_panel::render()
 
 		ImGui::NextColumn();
 
-		if (ImGui::BeginChild("child2", ImVec2(0, -50))) {
+		if (ImGui::BeginChild("child2", ImVec2(0, -100))) {
 			if (selected_scenery) {
 				ImGui::TextWrapped("%s", selected_scenery->name.c_str());
 				ImGui::TextWrapped("%s", selected_scenery->description.c_str());
@@ -77,7 +77,7 @@ void ui::scenerylist_panel::render()
 		ImGui::NextColumn();
 
 		if (selected_scenery) {
-			if (ImGui::BeginChild("child3", ImVec2(0, -50), false, ImGuiWindowFlags_NoScrollbar)) {
+			if (ImGui::BeginChild("child3", ImVec2(0, -100), false, ImGuiWindowFlags_NoScrollbar)) {
 				if (!selected_scenery->image_path.empty()) {
 					scenery_desc *desc = const_cast<scenery_desc*>(selected_scenery);
 					desc->image = GfxRenderer.Fetch_Texture(selected_scenery->image_path, true);
@@ -106,7 +106,10 @@ void ui::scenerylist_panel::render()
 
 				if (ImGui::BeginChild("child5", ImVec2(0, 0), false, ImGuiWindowFlags_HorizontalScrollbar)) {
 					for (auto const &trainset : selected_scenery->trainsets) {
-						ImGui::Selectable("trainset", false);
+						std::string z = trainset.name;
+						for (auto const &dyn_desc : trainset.vehicles)
+							z += dyn_desc.name + "+";
+						ImGui::Selectable(z.c_str(), false);
 					}
 				} ImGui::EndChild();
 

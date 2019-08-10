@@ -4,6 +4,22 @@
 #include "Texture.h"
 #include "utilities.h"
 #include "parser.h"
+#include "textures_scanner.h"
+#include "textures_scanner.h"
+
+struct dynamic_desc {
+	std::string name;
+	std::string drivertype;
+	std::string skin;
+	std::string mmd;
+
+	std::string loadtype;
+	int loadcount;
+
+	std::string coupling;
+
+//	deferred_image mini;
+};
 
 struct trainset_desc {
 	std::pair<int, int> file_bounds;
@@ -16,7 +32,7 @@ struct trainset_desc {
 	float offset { 0.f };
 	float velocity { 0.f };
 
-	std::vector<std::pair<std::string, int>> vehicles;
+	std::vector<dynamic_desc> vehicles;
 };
 
 struct scenery_desc {
