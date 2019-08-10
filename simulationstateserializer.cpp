@@ -831,9 +831,9 @@ state_serializer::deserialize_dynamic( cParser &Input, scene::scratch_data &Scra
     auto skinfile { Input.getToken<std::string>() };
     auto mmdfile { Input.getToken<std::string>() };
 
-    std::replace(datafolder.begin(), datafolder.end(), '\\', '/');
-    std::replace(skinfile.begin(), skinfile.end(), '\\', '/');
-    std::replace(mmdfile.begin(), mmdfile.end(), '\\', '/');
+	replace_slashes(datafolder);
+	replace_slashes(skinfile);
+	replace_slashes(mmdfile);
 
     auto const pathname = (
         Scratchpad.trainset.is_open ?
