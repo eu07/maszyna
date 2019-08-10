@@ -58,7 +58,7 @@ smoke_source::particle_emitter::initialize( smoke_particle &Particle ) {
 
     Particle.rotation = glm::radians( Random( 0, 360 ) );
     Particle.size = Random( size[ value_limit::min ], size[ value_limit::max ] );
-    Particle.opacity = Random( opacity[ value_limit::min ], opacity[ value_limit::max ] );
+    Particle.opacity = Random( opacity[ value_limit::min ], opacity[ value_limit::max ] ) / Global.SmokeFidelity;
     Particle.age = 0;
 }
 
@@ -112,7 +112,7 @@ smoke_source::initialize() {
     m_particles.reserve(
         // put a cap on number of particles in a single source. TBD, TODO: make it part of he source configuration?
         std::min(
-            500,
+            static_cast<int>( 500 * Global.SmokeFidelity ),
             // NOTE: given nature of the smoke we're presuming opacity decreases over time and the particle is killed when it reaches 0
             // this gives us estimate of longest potential lifespan of single particle, and how many particles total can there be at any given time
             // TBD, TODO: explicit lifespan variable as part of the source configuration?
@@ -150,10 +150,10 @@ smoke_source::update( double const Timedelta, bool const Onlydespawn ) {
         glm::dvec3{ std::numeric_limits<double>::lowest() } };
 
     m_spawncount = (
-        Onlydespawn ?
+        ( ( false == Global.Smoke ) || ( true == Onlydespawn ) ) ?
             0.f :
             std::min<float>(
-                m_spawncount + ( m_spawnrate * Timedelta ),
+                m_spawncount + ( m_spawnrate * Timedelta * Global.SmokeFidelity ),
                 m_particles.capacity() ) );
     // update spawned particles
     for( auto particleiterator { std::begin( m_particles ) }; particleiterator != std::end( m_particles ); ++particleiterator ) {
@@ -276,13 +276,14 @@ smoke_source::initialize( smoke_particle &Particle ) {
 
     if( m_ownertype == owner_type::vehicle ) {
         Particle.opacity *= m_owner.vehicle->MoverParameters->dizel_fill;
+        auto const enginerevolutionsfactor { 1.5f }; // high engine revolutions increase initial particle velocity
         switch( m_owner.vehicle->MoverParameters->EngineType ) {
             case TEngineType::DieselElectric: {
-                Particle.velocity *= 1.0 + m_owner.vehicle->MoverParameters->enrot / ( m_owner.vehicle->MoverParameters->DElist[ m_owner.vehicle->MoverParameters->MainCtrlPosNo ].RPM / 60.0 );
+                Particle.velocity *= 1.0 + enginerevolutionsfactor * m_owner.vehicle->MoverParameters->enrot / ( m_owner.vehicle->MoverParameters->DElist[ m_owner.vehicle->MoverParameters->MainCtrlPosNo ].RPM / 60.0 );
                 break;
             }
             case TEngineType::DieselEngine: {
-                Particle.velocity *= 1.0 + m_owner.vehicle->MoverParameters->enrot / m_owner.vehicle->MoverParameters->nmax;
+                Particle.velocity *= 1.0 + enginerevolutionsfactor * m_owner.vehicle->MoverParameters->enrot / m_owner.vehicle->MoverParameters->nmax;
                 break;
             }
             default: {
@@ -398,7 +399,9 @@ particle_manager::find( std::string const &Template ) {
     // ... and if it fails try to add the template to the database from a data file
     smoke_source source;
     if( source.deserialize( cParser( templatepath + templatename + ".txt", cParser::buffer_FILE ) ) ) {
-        // if deserialization didn't fail cache the source as template for future instances
+        // if deserialization didn't fail finish source setup...
+        source.m_opacitymodifier.bind( &Global.SmokeFidelity );
+        // ...then cache the source as template for future instances
         m_sourcetemplates.emplace( templatename, source );
         // should be 'safe enough' to return lookup result directly afterwards
         return &( m_sourcetemplates.find( templatename )->second );

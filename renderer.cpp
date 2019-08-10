@@ -120,6 +120,9 @@ void
 opengl_particles::update( opengl_camera const &Camera ) {
 
     m_particlevertices.clear();
+
+    if( false == Global.Smoke ) { return; }
+
     // build a list of visible smoke sources
     // NOTE: arranged by distance to camera, if we ever need sorting and/or total amount cap-based culling
     std::multimap<float, smoke_source const &> sources;
@@ -213,6 +216,7 @@ opengl_particles::update( opengl_camera const &Camera ) {
 void
 opengl_particles::render( int const Textureunit ) {
 
+    if( false == Global.Smoke ) { return; }
     if( m_buffercapacity == 0 ) { return; }
     if( m_particlevertices.empty() ) { return; }
 

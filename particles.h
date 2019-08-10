@@ -48,9 +48,15 @@ public:
     // updates state of provided variable
     void
         update( Type_ &Variable, double const Timedelta ) const;
+    void
+        bind( Type_ const *Modifier ) {
+            m_valuechangemodifier = Modifier; }
     Type_ const &
         value_change() const {
-            return m_valuechange; }
+            return (
+                m_valuechangemodifier == nullptr ?
+                    m_valuechange :
+                    m_valuechange / *( m_valuechangemodifier ) ); }
 
 private:
 //types
@@ -59,6 +65,7 @@ private:
 //    Type_ m_intialvalue { Type_( 0 ) }; // meters per second; velocity applied to freshly spawned particles
     Type_ m_valuechange { Type_( 0 ) }; // meters per second; change applied to initial velocity
     Type_ m_valuelimits[ 2 ] { Type_( std::numeric_limits<Type_>::lowest() ), Type_( std::numeric_limits<Type_>::max() ) };
+    Type_ const *m_valuechangemodifier{ nullptr }; // optional modifier applied to value change
 };
 
 
@@ -203,7 +210,11 @@ void
 fixedstep_modifier<Type_>::update( Type_ &Variable, double const Timedelta ) const {
     // HACK: float cast to avoid vec3 and double mismatch
     // TBD, TODO: replace with vector types specialization
-    Variable += ( m_valuechange * static_cast<float>( Timedelta ) );
+    auto const valuechange { (
+        m_valuechangemodifier == nullptr ?
+            m_valuechange :
+            m_valuechange / *( m_valuechangemodifier ) ) };
+    Variable += ( valuechange * static_cast<float>( Timedelta ) );
     // clamp down to allowed value range
     Variable = glm::max( Variable, m_valuelimits[ value_limit::min ] );
     Variable = glm::min( Variable, m_valuelimits[ value_limit::max ] );

@@ -175,12 +175,6 @@ global_settings::ConfigParse(cParser &Parser) {
             Parser.getTokens();
             Parser >> DisabledLogTypes;
         }
-        else if( token == "adjustscreenfreq" )
-        {
-            // McZapkie-240403 - czestotliwosc odswiezania ekranu
-            Parser.getTokens();
-            Parser >> bAdjustScreenFreq;
-        }
         else if (token == "mousescale")
         {
             // McZapkie-060503 - czulosc ruchu myszy (krecenia glowa)
@@ -366,6 +360,18 @@ global_settings::ConfigParse(cParser &Parser) {
             // shadow render toggle
             Parser.getTokens();
             Parser >> RenderCabShadowsRange;
+        }
+        else if( token == "gfx.smoke" ) {
+            // smoke visualization toggle
+            Parser.getTokens();
+            Parser >> Smoke;
+        }
+        else if( token == "gfx.smoke.fidelity" ) {
+            // smoke visualization fidelity
+            float smokefidelity;
+            Parser.getTokens();
+            Parser >> smokefidelity;
+            SmokeFidelity = clamp( smokefidelity, 1.f, 4.f );
         }
         else if (token == "smoothtraction")
         {
