@@ -444,6 +444,10 @@ geometrybank_manager::draw( gfx::geometry_handle const &Geometry ) {
 
 void geometrybank_manager::draw(const std::vector<gfx::geometry_handle>::iterator begin, const std::vector<gfx::geometry_handle>::iterator end)
 {
+	for (auto it = begin; it != end; it++) {
+		draw(*it);
+	}
+	/*
     if (begin == end)
         return;
 
@@ -464,6 +468,7 @@ void geometrybank_manager::draw(const std::vector<gfx::geometry_handle>::iterato
 
     if (run_begin != it && run_bank != 0)
         m_geometrybanks[run_bank - 1].first->draw(run_begin, it);
+		*/
 }
 
 // provides direct access to vertex data of specfied chunk
