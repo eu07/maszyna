@@ -81,6 +81,7 @@ class cParser //: public std::stringstream
     std::string Name() const;
     // returns number of currently processed line
     std::size_t Line() const;
+	bool expandIncludes = true;
 
   private:
     // methods:

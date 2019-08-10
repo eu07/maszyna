@@ -1,5 +1,6 @@
 #include "stdafx.h"
 #include "scenery_scanner.h"
+#include "Logs.h"
 
 void scenery_scanner::scan()
 {
@@ -10,24 +11,35 @@ void scenery_scanner::scan()
 			continue;
 
 		if (string_ends_with(path.string(), ".scn"))
-			scan_scn(path.string());
+			scan_scn(path);
 	}
 
 	std::sort(scenarios.begin(), scenarios.end(),
 	          [](const scenery_desc &a, const scenery_desc &b) { return a.path < b.path; });
 }
 
-void scenery_scanner::scan_scn(std::string path)
+void scenery_scanner::scan_scn(std::filesystem::path path)
 {
 	scenarios.emplace_back();
 	scenery_desc &desc = scenarios.back();
 	desc.path = path;
 
-	std::ifstream stream(path, std::ios_base::binary | std::ios_base::in);
+	cParser parser(path.string(), cParser::buffer_FILE);
+	parser.expandIncludes = false;
+	while (!parser.eof()) {
+		parser.getTokens();
+		if (parser.peek() == "trainset")
+			parse_trainset(parser);
+	}
 
+	std::ifstream stream(path.string(), std::ios_base::binary | std::ios_base::in);
+
+	int line_counter = 0;
 	std::string line;
 	while (std::getline(stream, line))
 	{
+		line_counter++;
+
 		if (line.size() < 6 || !string_starts_with(line, "//$"))
 			continue;
 
@@ -49,9 +61,34 @@ void scenery_scanner::scan_scn(std::string path)
 			desc.links.push_back(std::make_pair(file, label));
 		}
 		else if (line[3] == 'o') {
-			desc.trainsets.emplace_back();
-			trainset_desc &trainset = desc.trainsets.back();
-			trainset.name = line.substr(5);
+			for (trainset_desc &trainset : desc.trainsets) {
+				if (line_counter < trainset.file_bounds.first
+				        || line_counter > trainset.file_bounds.second)
+					continue;
+
+				trainset.description = line.substr(5);
+			}
 		}
 	}
+
+	WriteLog(path.string() + "----------");
+	for (trainset_desc &trainset : desc.trainsets) {
+		WriteLog(trainset.name + "=" + std::to_string(trainset.file_bounds.first) + ":" +  std::to_string(trainset.file_bounds.second) + "@" + trainset.description);
+	}
+}
+
+void scenery_scanner::parse_trainset(cParser &parser)
+{
+	scenery_desc &desc = scenarios.back();
+	desc.trainsets.emplace_back();
+	trainset_desc &trainset = desc.trainsets.back();
+
+	trainset.file_bounds.first = parser.Line();
+	parser.getTokens(4);
+	parser >> trainset.name >> trainset.track >> trainset.offset >> trainset.velocity;
+
+	while (parser.peek() != "endtrainset")
+		parser.getTokens();
+
+	trainset.file_bounds.second = parser.Line();
 }

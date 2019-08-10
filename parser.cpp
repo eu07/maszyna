@@ -231,7 +231,7 @@ std::string cParser::readToken( bool ToLower, const char *Break ) {
         }
     }
 
-    if( token == "include" ) {
+	if( expandIncludes && token == "include" ) {
         // launch child parser if include directive found.
         // NOTE: parameter collecting uses default set of token separators.
         std::string includefile = readToken(ToLower); // nazwa pliku

@@ -3,8 +3,11 @@
 #include <filesystem>
 #include "Texture.h"
 #include "utilities.h"
+#include "parser.h"
 
 struct trainset_desc {
+	std::pair<int, int> file_bounds;
+
 	std::string description;
 
 	std::string name;
@@ -13,8 +16,7 @@ struct trainset_desc {
 	float offset { 0.f };
 	float velocity { 0.f };
 
-	std::vector<std::string> vehicles;
-	std::vector<int> couplings;
+	std::vector<std::pair<std::string, int>> vehicles;
 };
 
 struct scenery_desc {
@@ -42,5 +44,6 @@ public:
 	void scan();
 
 private:
-	void scan_scn(std::string path);
+	void scan_scn(std::filesystem::path path);
+	void parse_trainset(cParser &parser);
 };
