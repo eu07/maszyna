@@ -109,14 +109,14 @@ smoke_source::deserialize_mapping( cParser &Input ) {
 void
 smoke_source::initialize() {
 
-    m_particles.reserve(
+	m_max_particles =
         // put a cap on number of particles in a single source. TBD, TODO: make it part of he source configuration?
         std::min(
 	        2000,
             // NOTE: given nature of the smoke we're presuming opacity decreases over time and the particle is killed when it reaches 0
             // this gives us estimate of longest potential lifespan of single particle, and how many particles total can there be at any given time
             // TBD, TODO: explicit lifespan variable as part of the source configuration?
-            static_cast<int>( m_spawnrate / std::abs( m_opacitymodifier.value_change() ) ) ) );
+	        static_cast<int>( m_spawnrate / std::abs( m_opacitymodifier.value_change() ) ) );
 }
 
 void
@@ -154,7 +154,7 @@ smoke_source::update( double const Timedelta, bool const Onlydespawn ) {
             0.f :
             std::min<float>(
                 m_spawncount + ( m_spawnrate * Timedelta ),
-                m_particles.capacity() ) );
+	            m_max_particles ) );
     // update spawned particles
     for( auto particleiterator { std::begin( m_particles ) }; particleiterator != std::end( m_particles ); ++particleiterator ) {
 
@@ -185,7 +185,7 @@ smoke_source::update( double const Timedelta, bool const Onlydespawn ) {
     }
     // spawn pending particles in remaining container slots
     while( ( m_spawncount >= 1.f )
-        && ( m_particles.size() < m_particles.capacity() ) ) {
+	    && ( m_particles.size() < m_max_particles ) ) {
 
         m_spawncount -= 1.f;
         // work with a temporary copy in case initial update renders the particle dead
