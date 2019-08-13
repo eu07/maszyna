@@ -146,6 +146,7 @@ private:
     // current state
     float m_spawncount { 0.f }; // number of particles to spawn during next update
     particle_sequence m_particles; // collection of spawned particles
+	size_t m_max_particles; // maximum number of particles existing
 /*
     smoke_sequence::iterator // helpers, iterators marking currently used part of the particle container
         m_particlehead,
