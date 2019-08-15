@@ -1,6 +1,6 @@
 #pragma once
 
-#include "Texture.h"
+#include "deferred_image.h"
 
 namespace ui {
 enum class vehicle_type {
@@ -20,23 +20,6 @@ enum class vehicle_type {
 	man,
 	animal,
 	unknown
-};
-
-class deferred_image {
-public:
-	deferred_image() = default;
-	deferred_image(const std::string &p) : path(p) { }
-	deferred_image(const deferred_image&) = delete;
-	deferred_image(deferred_image&&) = default;
-	deferred_image &operator=(deferred_image&&) = default;
-	operator bool() const;
-
-	GLuint get() const;
-	glm::ivec2 size() const;
-
-private:
-	mutable std::string path;
-	mutable texture_handle image = 0;
 };
 
 struct skin_set {

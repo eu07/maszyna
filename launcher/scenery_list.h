@@ -15,5 +15,7 @@ class scenerylist_panel : public ui_panel
 private:
 	scenery_scanner scanner;
 	scenery_desc const *selected_scenery = nullptr;
+
+	vehicles_bank &bank;
 };
 } // namespace ui

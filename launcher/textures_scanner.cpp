@@ -1,40 +1,6 @@
 #include "stdafx.h"
 #include "textures_scanner.h"
-#include "renderer.h"
 #include "utilities.h"
-
-GLuint ui::deferred_image::get() const
-{
-	if (!path.empty()) {
-		image = GfxRenderer.Fetch_Texture(path, true);
-		path.clear();
-	}
-
-	if (image != null_handle) {
-		opengl_texture &tex = GfxRenderer.Texture(image);
-		tex.create();
-
-		if (tex.is_ready)
-			return tex.id;
-	}
-
-	return -1;
-}
-
-ui::deferred_image::operator bool() const
-{
-	return image != null_handle || !path.empty();
-}
-
-glm::ivec2 ui::deferred_image::size() const
-{
-	if (image != null_handle) {
-		opengl_texture &tex = GfxRenderer.Texture(image);
-		return glm::ivec2(tex.width(), tex.height());
-	}
-	return glm::ivec2();
-}
-
 
 void ui::vehicles_bank::scan_textures()
 {
