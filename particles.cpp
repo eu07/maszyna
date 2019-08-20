@@ -21,7 +21,7 @@ smoke_source::particle_emitter::deserialize( cParser &Input ) {
 
     if( Input.getToken<std::string>() != "{" ) { return; }
 
-    std::unordered_map<std::string, float &> const variablemap{
+    std::unordered_map<std::string, float &> const variablemap {
         { "min_inclination:", inclination[ value_limit::min ] },
         { "max_inclination:", inclination[ value_limit::max ] },
         { "min_velocity:", velocity[ value_limit::min ] },
@@ -35,10 +35,22 @@ smoke_source::particle_emitter::deserialize( cParser &Input ) {
     while( ( false == ( ( key = Input.getToken<std::string>( true, "\n\r\t  ,;[]" ) ).empty() ) )
         && ( key != "}" ) ) {
 
-        auto const lookup { variablemap.find( key ) };
-        if( lookup == variablemap.end() ) { continue; }
-
-        lookup->second = Input.getToken<float>( true, "\n\r\t  ,;[]" );
+        if( key == "color:" ) {
+            // special case, vec3 attribute type
+            // TODO: variable table, if amount of vector attributes increases
+            color = Input.getToken<glm::vec3>( true, "\n\r\t  ,;[]" );
+            color =
+                glm::clamp(
+                    color / 255.f,
+                    glm::vec3{ 0.f }, glm::vec3{ 1.f } );
+        }
+        else {
+            // float type attributes
+            auto const lookup { variablemap.find( key ) };
+            if( lookup != variablemap.end() ) {
+                lookup->second = Input.getToken<float>( true, "\n\r\t  ,;[]" );
+            }
+        }
     }
 }
 
@@ -109,14 +121,14 @@ smoke_source::deserialize_mapping( cParser &Input ) {
 void
 smoke_source::initialize() {
 
-    m_particles.reserve(
+    m_max_particles =
         // put a cap on number of particles in a single source. TBD, TODO: make it part of he source configuration?
         std::min(
             static_cast<int>( 500 * Global.SmokeFidelity ),
             // NOTE: given nature of the smoke we're presuming opacity decreases over time and the particle is killed when it reaches 0
             // this gives us estimate of longest potential lifespan of single particle, and how many particles total can there be at any given time
             // TBD, TODO: explicit lifespan variable as part of the source configuration?
-            static_cast<int>( m_spawnrate / std::abs( m_opacitymodifier.value_change() ) ) ) );
+            static_cast<int>( m_spawnrate / std::abs( m_opacitymodifier.value_change() ) ) );
 }
 
 void
@@ -154,7 +166,7 @@ smoke_source::update( double const Timedelta, bool const Onlydespawn ) {
             0.f :
             std::min<float>(
                 m_spawncount + ( m_spawnrate * Timedelta * Global.SmokeFidelity ),
-                m_particles.capacity() ) );
+                m_max_particles ) );
     // update spawned particles
     for( auto particleiterator { std::begin( m_particles ) }; particleiterator != std::end( m_particles ); ++particleiterator ) {
 
@@ -185,7 +197,7 @@ smoke_source::update( double const Timedelta, bool const Onlydespawn ) {
     }
     // spawn pending particles in remaining container slots
     while( ( m_spawncount >= 1.f )
-        && ( m_particles.size() < m_particles.capacity() ) ) {
+        && ( m_particles.size() < m_max_particles ) ) {
 
         m_spawncount -= 1.f;
         // work with a temporary copy in case initial update renders the particle dead

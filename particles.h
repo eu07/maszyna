@@ -93,6 +93,9 @@ public:
     // updates state of owned particles
     void
         update( double const Timedelta, bool const Onlydespawn );
+    glm::vec3 const &
+        color() const {
+            return m_emitter.color; }
     glm::dvec3
         location() const;
     // provides access to bounding area data
@@ -116,6 +119,7 @@ private:
         float velocity[ 2 ] { 1.f, 1.f };
         float size[ 2 ] { 1.f, 1.f };
         float opacity[ 2 ] { 1.f, 1.f };
+        glm::vec3 color { 16.f / 255.f };
 
         void deserialize( cParser &Input );
         void initialize( smoke_particle &Particle );
@@ -145,19 +149,14 @@ private:
     particle_emitter m_emitter;
 //    bool m_inheritvelocity { false }; // whether spawned particle should receive velocity of its owner
     // TODO: replace modifiers with configurable interpolator item allowing keyframe-based changes over time
-//    fixedstep_modifier<glm::vec3> m_velocitymodifier; // particle velocity
     fixedstep_modifier<float> m_sizemodifier; // particle billboard size
-//    fixedstep_modifier<glm::vec4> m_colormodifier; // particle billboard color and opacity
+//    fixedstep_modifier<glm::vec3> m_colormodifier; // particle billboard color and opacity
     fixedstep_modifier<float> m_opacitymodifier;
 //    texture_handle m_texture { -1 }; // texture assigned to particle billboards
     // current state
     float m_spawncount { 0.f }; // number of particles to spawn during next update
     particle_sequence m_particles; // collection of spawned particles
-/*
-    smoke_sequence::iterator // helpers, iterators marking currently used part of the particle container
-        m_particlehead,
-        m_particletail;
-*/
+    std::size_t m_max_particles; // maximum number of particles existing
     scene::bounding_area m_area; // bounding sphere of owned particles
 };
 

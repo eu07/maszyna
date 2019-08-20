@@ -1410,7 +1410,13 @@ void TMoverParameters::PowerCouplersCheck( double const Deltatime ) {
                 break;
             }
             case TPowerSource::Main: {
-                localvoltage = ( true == Mains ? Voltage : 0.0 );
+                // HACK: main circuit can be fed through couplers, so we explicitly check pantograph supply here
+                localvoltage = (
+                    true == Mains ?
+                        std::max(
+                            PantFrontVolt,
+                            PantRearVolt ) :
+                        0.0 );
                 break;
             }
             default: {

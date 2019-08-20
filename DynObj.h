@@ -619,7 +619,7 @@ private:
             Axle1.GetTranslation() :
             Axle0.GetTranslation(); };
     // zwraca tor z aktywną osią
-    inline TTrack * RaTrackGet() const {
+    inline TTrack const * RaTrackGet() const {
         return iAxleFirst ?
             Axle1.GetTrack() :
             Axle0.GetTrack(); };
