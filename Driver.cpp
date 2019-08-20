@@ -505,7 +505,7 @@ void TController::TableTraceRoute(double fDistance, TDynamicObject *pVehicle)
             VelSignalLast = -1.0;
         }
         iTableDirection = iDirection; // ustalenie w jakim kierunku jest wypełniana tabelka względem pojazdu
-        pTrack = pVehicle->RaTrackGet(); // odcinek, na którym stoi
+        pTrack = pVehicle->GetTrack(); // odcinek, na którym stoi
         fTrackLength = pVehicle->RaTranslationGet(); // pozycja na tym torze (odległość od Point1)
         fLastDir = pVehicle->DirectionGet() * pVehicle->RaDirectionGet(); // ustalenie kierunku skanowania na torze
         if( fLastDir < 0.0 ) {
@@ -2126,20 +2126,17 @@ bool TController::CheckVehicles(TOrders user)
         p = pVehicles[0];
         while (p)
         {
-            // HACK: wagony muszą mieć baterię załączoną do otwarcia drzwi...
             if( p != pVehicle ) {
                 if( ( ( p->MoverParameters->Couplers[ end::front ].CouplingFlag & ( coupling::control ) ) == 0 )
                  && ( ( p->MoverParameters->Couplers[ end::rear ].CouplingFlag  & ( coupling::control ) ) == 0 ) ) {
-                    // NOTE: don't set battery in the occupied vehicle, let the user/ai do it explicitly
+                    // NOTE: don't set battery in controllable vehicles, let the user/ai do it explicitly
+                    // HACK: wagony muszą mieć baterię załączoną do otwarcia drzwi...
                     p->MoverParameters->BatterySwitch( true );
-                }
-            }
-            // enable heating and converter in carriages with can be heated
-            // NOTE: don't touch the controlled vehicle, let the user/ai handle it explicitly
-            if( p->MoverParameters != mvControlling ) {
-                if( p->MoverParameters->HeatingPower > 0 ) {
-                    p->MoverParameters->HeatingAllow = true;
-                    p->MoverParameters->ConverterSwitch( true, range_t::local );
+                    // enable heating and converter in carriages with can be heated
+                    if( p->MoverParameters->HeatingPower > 0 ) {
+                        p->MoverParameters->HeatingAllow = true;
+                        p->MoverParameters->ConverterSwitch( true, range_t::local );
+                    }
                 }
             }
 
@@ -6563,7 +6560,7 @@ TCommandType TController::BackwardScan()
         double scandist = scanmax; // zmodyfikuje na rzeczywiście przeskanowane
         basic_event *e = NULL; // event potencjalnie od semafora
         // opcjonalnie może być skanowanie od "wskaźnika" z przodu, np. W5, Tm=Ms1, koniec toru wg drugiej osi w kierunku ruchu
-        TTrack *scantrack = BackwardTraceRoute(scandist, scandir, pVehicles[0]->RaTrackGet(), e);
+        TTrack *scantrack = BackwardTraceRoute(scandist, scandir, pVehicles[0]->GetTrack(), e);
         auto const dir = startdir * pVehicles[0]->VectorFront(); // wektor w kierunku jazdy/szukania
         if( !scantrack ) {
             // jeśli wstecz wykryto koniec toru to raczej nic się nie da w takiej sytuacji zrobić

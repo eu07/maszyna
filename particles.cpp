@@ -167,6 +167,11 @@ smoke_source::update( double const Timedelta, bool const Onlydespawn ) {
             std::min<float>(
                 m_spawncount + ( m_spawnrate * Timedelta * Global.SmokeFidelity ),
                 m_max_particles ) );
+    // HACK: don't spawn particles in tunnels, to prevent smoke clipping through 'terrain' outside
+    if( ( m_ownertype == owner_type::vehicle )
+     && ( m_owner.vehicle->RaTrackGet()->eEnvironment == e_tunnel ) ) {
+            m_spawncount = 0.f;
+    }
     // update spawned particles
     for( auto particleiterator { std::begin( m_particles ) }; particleiterator != std::end( m_particles ); ++particleiterator ) {
 

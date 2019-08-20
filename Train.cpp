@@ -4255,9 +4255,8 @@ void TTrain::OnCommand_doortoggleleft( TTrain *Train, command_data const &Comman
     if( Command.action == GLFW_PRESS ) {
         // NOTE: test how the door state check works with consists where the occupied vehicle doesn't have opening doors
         if( false == (
-            Train->mvOccupied->ActiveCab == 1 ?
-                Train->mvOccupied->Doors.instances[side::left].is_opening || Train->mvOccupied->Doors.instances[ side::left ].is_open :
-                Train->mvOccupied->Doors.instances[side::right].is_opening || Train->mvOccupied->Doors.instances[ side::right ].is_open ) ) {
+                ( Train->ggDoorLeftButton.GetDesiredValue() > 0.5 )
+             || ( Train->ggDoorLeftOnButton.GetDesiredValue() > 0.5 ) ) ) {
             // open
             OnCommand_dooropenleft( Train, Command );
         }
@@ -4277,9 +4276,8 @@ void TTrain::OnCommand_doortoggleleft( TTrain *Train, command_data const &Comman
     else if( Command.action == GLFW_RELEASE ) {
 
         if( true == (
-            Train->mvOccupied->ActiveCab == 1 ?
-                Train->mvOccupied->Doors.instances[side::left].is_opening || Train->mvOccupied->Doors.instances[ side::left ].is_open :
-                Train->mvOccupied->Doors.instances[side::right].is_opening || Train->mvOccupied->Doors.instances[ side::right ].is_open ) ) {
+              ( Train->ggDoorLeftButton.GetDesiredValue() > 0.5 )
+           || ( Train->ggDoorLeftOnButton.GetDesiredValue() > 0.5 ) ) ) {
             // open
             if( ( Train->mvOccupied->Doors.has_autowarning )
              && ( Train->mvOccupied->DepartureSignal ) ) {
@@ -4339,7 +4337,7 @@ void TTrain::OnCommand_doorpermitleft( TTrain *Train, command_data const &Comman
         }
         else {
             // two-state switch
-            auto const newstate { !( Train->mvOccupied->Doors.instances[ side ].open_permit ) };
+            auto const newstate { !( Train->ggDoorLeftPermitButton.GetDesiredValue() > 0.5 ) };
 
             Train->mvOccupied->PermitDoors( side, newstate );
             // visual feedback
@@ -4375,7 +4373,7 @@ void TTrain::OnCommand_doorpermitright( TTrain *Train, command_data const &Comma
         }
         else {
             // two-state switch
-            auto const newstate { !( Train->mvOccupied->Doors.instances[ side ].open_permit ) };
+            auto const newstate { !( Train->ggDoorRightPermitButton.GetDesiredValue() > 0.5 ) };
 
             Train->mvOccupied->PermitDoors( side, newstate );
             // visual feedback
@@ -4514,9 +4512,8 @@ void TTrain::OnCommand_doortoggleright( TTrain *Train, command_data const &Comma
     if( Command.action == GLFW_PRESS ) {
         // NOTE: test how the door state check works with consists where the occupied vehicle doesn't have opening doors
         if( false == (
-            Train->mvOccupied->ActiveCab == 1 ?
-                Train->mvOccupied->Doors.instances[side::right].is_opening || Train->mvOccupied->Doors.instances[ side::right ].is_open :
-                Train->mvOccupied->Doors.instances[side::left].is_opening || Train->mvOccupied->Doors.instances[ side::left ].is_open ) ) {
+                ( Train->ggDoorRightButton.GetDesiredValue() > 0.5 )
+             || ( Train->ggDoorRightOnButton.GetDesiredValue() > 0.5 ) ) ) {
             // open
             OnCommand_dooropenright( Train, Command );
         }
@@ -4536,9 +4533,8 @@ void TTrain::OnCommand_doortoggleright( TTrain *Train, command_data const &Comma
     else if( Command.action == GLFW_RELEASE ) {
 
         if( true == (
-            Train->mvOccupied->ActiveCab == 1 ?
-                Train->mvOccupied->Doors.instances[side::right].is_opening || Train->mvOccupied->Doors.instances[ side::right ].is_open :
-                Train->mvOccupied->Doors.instances[side::left].is_opening || Train->mvOccupied->Doors.instances[ side::left ].is_open ) ) {
+                ( Train->ggDoorRightButton.GetDesiredValue() > 0.5 )
+             || ( Train->ggDoorRightOnButton.GetDesiredValue() > 0.5 ) ) ) {
             // open
             if( ( Train->mvOccupied->Doors.has_autowarning )
              && ( Train->mvOccupied->DepartureSignal ) ) {
