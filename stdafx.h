@@ -29,12 +29,12 @@
 #include <strsafe.h>
 #endif
 // stl
+#define _USE_MATH_DEFINES
+#include <cmath>
 #include <cstddef>
 #include <cstdlib>
 #include <cstdio>
 #include <cassert>
-#define _USE_MATH_DEFINES
-#include <cmath>
 #include <cstdint>
 #include <iostream>
 #include <iomanip>

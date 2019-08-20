@@ -51,7 +51,7 @@ public:
     void
         bind( Type_ const *Modifier ) {
             m_valuechangemodifier = Modifier; }
-    Type_ const &
+    Type_
         value_change() const {
             return (
                 m_valuechangemodifier == nullptr ?

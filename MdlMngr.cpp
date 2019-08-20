@@ -37,7 +37,7 @@ TMdlContainer::LoadModel(std::string const &Name, bool const Dynamic) {
     }
 };
 
-TModelsManager::modelcontainer_sequence TModelsManager::m_models { 1, {} };
+TModelsManager::modelcontainer_sequence TModelsManager::m_models { 1, TMdlContainer() };
 TModelsManager::stringmodelcontainerindex_map TModelsManager::m_modelsmap;
 
 // wczytanie modelu do tablicy
