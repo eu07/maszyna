@@ -76,8 +76,8 @@ void ui::vehiclepicker_panel::render()
 						continue;
 
 					for (auto const &skinset : vehicle->matching_skinsets) {
-						bool map_group_eq = (skinset.group == group);
-						bool sel_group_eq = (selected_group && skinset.group == *selected_group);
+						bool map_group_eq = (skinset->group == group);
+						bool sel_group_eq = (selected_group && skinset->group == *selected_group);
 
 						if (!model_added && map_group_eq) {
 							model_list.push_back(&group);
@@ -86,7 +86,7 @@ void ui::vehiclepicker_panel::render()
 
 						if (map_sel_eq) {
 							if (sel_group_eq)
-								skinset_list.push_back(&skinset);
+								skinset_list.push_back(skinset.get());
 						}
 						else if (model_added) {
 							can_break = true;
@@ -126,7 +126,7 @@ void ui::vehiclepicker_panel::render()
 
 				if (selected_vehicle == desc && selected_type == desc->type) {
 					for (auto &skin : desc->matching_skinsets)
-						skinset_list.push_back(&skin);
+						skinset_list.push_back(skin.get());
 				}
 			}
 
@@ -138,8 +138,8 @@ void ui::vehiclepicker_panel::render()
 
 						const deferred_image *image = nullptr;
 						for (auto const &skinset : desc->matching_skinsets) {
-							if (skinset.mini) {
-								image = &skinset.mini;
+							if (skinset->mini) {
+								image = &skinset->mini;
 								break;
 							}
 						}
@@ -160,7 +160,8 @@ void ui::vehiclepicker_panel::render()
 				for (int i = clipper.DisplayStart; i < clipper.DisplayEnd; i++) {
 					auto skin = skinset_list[i];
 
-					std::string label = skin->skins[0].stem().string();
+					//std::string label = skin->skins[0].stem().string();
+					std::string label = skin->skin;
 					if (selectable_image(label.c_str(), skin == selected_skinset, &skin->mini, true))
 						selected_skinset = skin;
 				}
@@ -170,49 +171,6 @@ void ui::vehiclepicker_panel::render()
 		ImGui::PopStyleVar();
 	}
 	ImGui::End();
-/*
-	if (!lastdef)
-		return;
-
-	ImGui::Begin("target", nullptr, ImGuiWindowFlags_HorizontalScrollbar);
-
-	int originX = ImGui::GetCursorPosX();
-
-	ImGui::SameLine(originX - 5);
-	ImGui::Dummy(ImVec2(15, 30));
-	if (ImGui::BeginDragDropTarget()) {
-		ImGui::AcceptDragDropPayload("skin");
-		ImGui::EndDragDropTarget();
-	}
-	ImGui::SameLine(originX + 5);
-
-	for (int i = 0; i < 20; i++) {
-		ImGui::PushID(i);
-
-		GLuint tex = lastdef->get();
-		if (tex != -1) {
-			glm::ivec2 size = lastdef->size();
-			float width = 30.0f / size.y * size.x;
-			ImGui::Image(reinterpret_cast<void*>(tex), ImVec2(width, 30), ImVec2(0, 1), ImVec2(1, 0));
-		}
-
-		ImGui::SameLine(0, 0);
-
-		int originX = ImGui::GetCursorPosX();
-
-		ImGui::SameLine(originX - 5);
-		ImGui::Dummy(ImVec2(15, 30));
-		if (ImGui::BeginDragDropTarget()) {
-			ImGui::AcceptDragDropPayload("skin");
-			ImGui::EndDragDropTarget();
-		}
-		ImGui::SameLine(originX + 5);
-
-		ImGui::PopID();
-	}
-
-	ImGui::End();
-	*/
 }
 
 bool ui::vehiclepicker_panel::selectable_image(const char *desc, bool selected, const deferred_image* image, bool pickable)

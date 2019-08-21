@@ -23,7 +23,8 @@ enum class vehicle_type {
 };
 
 struct skin_set {
-	std::vector<std::filesystem::path> skins;
+	std::string skin;
+	//std::vector<std::filesystem::path> skins;
 	deferred_image mini;
 	std::string group;
 };
@@ -43,9 +44,11 @@ struct vehicle_desc {
 	vehicle_type type;
 	std::filesystem::path path;
 
-	std::vector<skin_set> matching_skinsets;
+	std::vector<std::shared_ptr<skin_set>> matching_skinsets;
 	std::vector<coupling_rule> coupling_rules;
 	std::vector<texture_rule> texture_rules;
+
+	bool controllable;
 };
 
 class vehicles_bank {
@@ -60,6 +63,7 @@ public:
 private:
 	void parse_entry(const std::string &line);
 	void parse_category_entry(const std::string &param);
+	void parse_controllable_entry(const std::string &target, const std::string &param);
 	void parse_coupling_rule(const std::string &target, const std::string &param);
 	void parse_texture_rule(const std::string &target, const std::string &param);
 	void parse_texture_info(const std::string &target, const std::string &param, const std::string &comment);

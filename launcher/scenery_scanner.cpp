@@ -2,6 +2,12 @@
 #include "scenery_scanner.h"
 #include "Logs.h"
 
+scenery_scanner::scenery_scanner(ui::vehicles_bank &bank)
+    : bank(bank)
+{
+
+}
+
 void scenery_scanner::scan()
 {
 	for (auto &f : std::filesystem::directory_iterator("scenery")) {
@@ -70,11 +76,6 @@ void scenery_scanner::scan_scn(std::filesystem::path path)
 			}
 		}
 	}
-
-	WriteLog(path.string() + "----------");
-	for (trainset_desc &trainset : desc.trainsets) {
-		WriteLog(trainset.name + "=" + std::to_string(trainset.file_bounds.first) + ":" +  std::to_string(trainset.file_bounds.second) + "@" + trainset.description);
-	}
 }
 
 void scenery_scanner::parse_trainset(cParser &parser)
@@ -92,7 +93,7 @@ void scenery_scanner::parse_trainset(cParser &parser)
 		trainset.vehicles.emplace_back();
 		dynamic_desc &dyn = trainset.vehicles.back();
 
-		std::string datafolder, skinfile, mmdfile;
+		std::string datafolder, skinfile, mmdfile, params;
 		int offset;
 
 		parser.getTokens(2); // range_max, range_min
@@ -103,10 +104,43 @@ void scenery_scanner::parse_trainset(cParser &parser)
 			break;
 
 		parser.getTokens(7, false);
-		parser >> datafolder >> skinfile >> mmdfile >> offset >> dyn.drivertype >> dyn.coupling >> dyn.loadcount;
+		parser >> datafolder >> skinfile >> mmdfile >> offset >> dyn.drivertype >> params >> dyn.loadcount;
 
-		dyn.skin = datafolder + "/" + skinfile;
-		dyn.mmd = datafolder + "/" + mmdfile;
+		size_t params_pos = params.find('.');
+		if (params_pos != -1 && params_pos < params.size()) {
+			dyn.params = params.substr(params_pos + 1, -1);
+			params.erase(params_pos);
+		}
+
+		{
+			std::istringstream couplingparser(params);
+			couplingparser >> dyn.coupling;
+		}
+
+		skinfile = ToLower(skinfile);
+		erase_extension(skinfile);
+		replace_slashes(datafolder);
+		auto vehicle_path = std::filesystem::path(ToLower(datafolder)) / ToLower(mmdfile);
+
+		auto it = bank.vehicles.find(vehicle_path);
+		if (it != bank.vehicles.end()) {
+			dyn.vehicle = it->second;
+			bool found = false;
+
+			for (const std::shared_ptr<ui::skin_set> &vehicle_skin : it->second->matching_skinsets) {
+				if (vehicle_skin->skin != skinfile)
+					continue;
+
+				dyn.skin = vehicle_skin;
+				found = true;
+				break;
+			}
+			if (!found && skinfile != "none")
+				ErrorLog("skin not found: " + skinfile + ", vehicle type: " + vehicle_path.string(), logtype::file);
+		}
+		else {
+			ErrorLog("vehicle type not found: " + vehicle_path.string(), logtype::file);
+		}
 
 		parser.getTokens();
 		if (parser.peek() != "enddynamic") {

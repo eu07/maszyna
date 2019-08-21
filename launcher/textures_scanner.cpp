@@ -9,7 +9,7 @@ void ui::vehicles_bank::scan_textures()
 			continue;
 
 		std::fstream stream(f.path(), std::ios_base::binary | std::ios_base::in);
-		ctx_path = f.path().parent_path();
+		ctx_path = std::filesystem::relative(f.path().parent_path(), "dynamic/");
 
 		std::string line;
 		while (std::getline(stream, line))
@@ -47,7 +47,9 @@ void ui::vehicles_bank::parse_entry(const std::string &line)
 			parse_texture_rule(target.substr(2), param);
 		else if (line[0] == '*')
 			parse_coupling_rule(target.substr(1), param);
-		else if (line[0] != '@')
+		else if (line[0] == '@')
+			parse_controllable_entry(target.substr(1), param);
+		else
 			parse_texture_info(target, param, comments);
 	}
 }
@@ -92,6 +94,12 @@ void ui::vehicles_bank::parse_category_entry(const std::string &param)
 	category_icons.emplace(ctx_type, "textures/mini/" + ToLower(mini));
 }
 
+void ui::vehicles_bank::parse_controllable_entry(const std::string &target, const std::string &param)
+{
+	get_vehicle(target)->controllable =
+	        (param.size() >= 1 && param[0] == '1');
+}
+
 void ui::vehicles_bank::parse_texture_info(const std::string &target, const std::string &param, const std::string &comment)
 {
 	std::istringstream stream(param);
@@ -111,21 +119,25 @@ void ui::vehicles_bank::parse_texture_info(const std::string &target, const std:
 	if (!miniplus.empty())
 		set.mini = std::move(deferred_image("textures/mini/" + ToLower(miniplus)));
 
+	set.skin = ToLower(target);
+	erase_extension(set.skin);
+	/*
 	std::istringstream tex_stream(target);
 	std::string texture;
 	while (std::getline(tex_stream, texture, '|')) {
-		auto path = ctx_path;
-		path.append(texture);
-		set.skins.push_back(path);
+		set.skins.push_back(ctx_path / ToLower(texture));
 	}
+	*/
 
 	auto vehicle = get_vehicle(model);
 	group_map[set.group].insert(vehicle);
-	vehicle->matching_skinsets.push_back(std::move(set));
+	vehicle->matching_skinsets.push_back(std::make_shared<skin_set>(std::move(set)));
 }
 
 void ui::vehicles_bank::parse_coupling_rule(const std::string &target, const std::string &param)
 {
+	auto target_vehicle = get_vehicle(target);
+
 	if (param == "?")
 		return;
 
@@ -143,7 +155,7 @@ void ui::vehicles_bank::parse_coupling_rule(const std::string &target, const std
 	std::getline(stream, param2, ',');
 
 	coupling_rule rule;
-	rule.coupled_vehicle = get_vehicle(target);
+	rule.coupled_vehicle = target_vehicle;
 	rule.coupling_flag = coupling_flag;
 
 	get_vehicle(connected)->coupling_rules.push_back(rule);
@@ -151,6 +163,8 @@ void ui::vehicles_bank::parse_coupling_rule(const std::string &target, const std
 
 void ui::vehicles_bank::parse_texture_rule(const std::string &target, const std::string &param)
 {
+	auto target_vehicle = get_vehicle(target);
+
 	std::istringstream stream(param);
 
 	std::string prev;
@@ -171,14 +185,15 @@ void ui::vehicles_bank::parse_texture_rule(const std::string &target, const std:
 		rule.previous_vehicle = get_vehicle(prev);
 		rule.replace_rules.emplace_back(src, dst);
 
-		get_vehicle(target)->texture_rules.push_back(rule);
+		target_vehicle->texture_rules.push_back(rule);
 	}
 }
 
 std::shared_ptr<ui::vehicle_desc> ui::vehicles_bank::get_vehicle(const std::string &name)
 {
-	auto path = ctx_path;
-	path.append(name);
+	auto path = ctx_path / ToLower(name);
+	path = std::filesystem::path(path.generic_string());
+
 	auto it = vehicles.find(path);
 	if (it != vehicles.end()) {
 		return it->second;

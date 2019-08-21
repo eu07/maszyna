@@ -5,20 +5,19 @@
 #include "utilities.h"
 #include "parser.h"
 #include "textures_scanner.h"
-#include "textures_scanner.h"
 
 struct dynamic_desc {
 	std::string name;
 	std::string drivertype;
-	std::string skin;
-	std::string mmd;
 
 	std::string loadtype;
 	int loadcount;
 
-	std::string coupling;
+	unsigned int coupling;
+	std::string params;
 
-//	deferred_image mini;
+	std::shared_ptr<ui::vehicle_desc> vehicle;
+	std::shared_ptr<ui::skin_set> skin;
 };
 
 struct trainset_desc {
@@ -55,6 +54,8 @@ struct scenery_desc {
 
 class scenery_scanner {
 public:
+	scenery_scanner(ui::vehicles_bank &bank);
+
 	std::vector<scenery_desc> scenarios;
 
 	void scan();
@@ -62,4 +63,6 @@ public:
 private:
 	void scan_scn(std::filesystem::path path);
 	void parse_trainset(cParser &parser);
+
+	ui::vehicles_bank &bank;
 };

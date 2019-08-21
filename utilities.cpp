@@ -436,9 +436,9 @@ erase_leading_slashes( std::string &Filename ) {
 void
 replace_slashes( std::string &Filename ) {
 
-    std::replace(
-        std::begin( Filename ), std::end( Filename ),
-        '\\', '/' );
+	std::replace(
+	    std::begin( Filename ), std::end( Filename ),
+	    '\\', '/' );
 }
 
 // returns potential path part from provided file name

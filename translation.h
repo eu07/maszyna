@@ -30,7 +30,7 @@ private:
 
 extern locale Translations;
 
-#define STR(x) Translations.lookup_s(x, true)
+#define STR(x) Translations.lookup_s(x, false)
 #define STR_C(x) Translations.lookup_c(x, true)
 #define STRN(x) x
 

@@ -2,8 +2,13 @@
 #include "launcher/launcheruilayer.h"
 #include "application.h"
 
+#include "Logs.h"
 launcher_ui::launcher_ui()
+    : m_scenery_scanner(m_vehicles_bank), m_scenerylist_panel(m_scenery_scanner)
 {
+	m_vehicles_bank.scan_textures();
+	m_scenery_scanner.scan();
+
 	add_external_panel(&m_scenerylist_panel);
 	add_external_panel(&m_keymapper_panel);
 	add_external_panel(&m_vehiclepicker_panel);
