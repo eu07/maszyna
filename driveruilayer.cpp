@@ -80,8 +80,7 @@ driver_ui::on_key( int const Key, int const Action ) {
     if (ui_layer::on_key(Key, Action))
         return true;
 
-    switch( Key ) {
-
+	switch( Key ) {
 	    case GLFW_KEY_TAB:
         case GLFW_KEY_F1:
         case GLFW_KEY_F2:
@@ -183,7 +182,7 @@ driver_ui::update() {
      && ( false == Global.ControlPicking ) ) {
         set_cursor( ispaused );
     }
-    m_paused = ispaused;
+	m_paused = ispaused;
 
     set_tooltip( "" );
 
@@ -229,17 +228,13 @@ void
 driver_ui::render_() {
     // pause/quit modal
 	auto const popupheader { STR_C("Simulation Paused") };
-	if (m_paused && !m_pause_modal_opened)
-	{
-		m_pause_modal_opened = true;
-		ImGui::OpenPopup(popupheader);
-	}
-    if( ImGui::BeginPopupModal( popupheader, &m_pause_modal_opened, ImGuiWindowFlags_AlwaysAutoResize ) ) {
-        auto const popupwidth{ STR("Simulation Paused").size() * 7 };
-		if( ImGui::Button( STR_C("Resume"), ImVec2( popupwidth, 0 ) ) ) {
+
+	ImGui::SetNextWindowSize(ImVec2(-1, -1));
+	if( ImGui::BeginPopupModal( popupheader, nullptr, 0 ) ) {
+		if( ImGui::Button( STR_C("Resume"), ImVec2( 150, 0 ) ) ) {
 			m_relay.post(user_command::pausetoggle, 0.0, 0.0, GLFW_PRESS, 0);
         }
-		if( ImGui::Button( STR_C("Quit"), ImVec2( popupwidth, 0 ) ) ) {
+		if( ImGui::Button( STR_C("Quit"), ImVec2( 150, 0 ) ) ) {
 			m_relay.post(user_command::quitsimulation, 0.0, 0.0, GLFW_PRESS, 0);
         }
 		if (!m_paused)
@@ -249,4 +244,9 @@ driver_ui::render_() {
 		}
         ImGui::EndPopup();
     }
+	if (m_paused && !m_pause_modal_opened)
+	{
+		m_pause_modal_opened = true;
+		ImGui::OpenPopup(popupheader);
+	}
 }
