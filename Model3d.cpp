@@ -360,27 +360,27 @@ int TSubModel::Load( cParser &parser, TModel3d *Model, /*int Pos,*/ bool dynamic
         else if (material.find("replacableskin") != material.npos)
         { // McZapkie-060702: zmienialne skory modelu
             m_material = -1;
-            iFlags |= (Opacity < 1.0) ? 1 : 0x10; // zmienna tekstura 1
+			iFlags |= (Opacity < 0.999) ? 1 : 0x10; // zmienna tekstura 1
         }
         else if (material == "-1")
         {
-            m_material = -1;
-            iFlags |= (Opacity < 1.0) ? 1 : 0x10; // zmienna tekstura 1
+			m_material = -1;
+			iFlags |= (Opacity < 0.999) ? 1 : 0x10; // zmienna tekstura 1
         }
         else if (material == "-2")
         {
             m_material = -2;
-            iFlags |= (Opacity < 1.0) ? 2 : 0x10; // zmienna tekstura 2
+			iFlags |= (Opacity < 0.999) ? 2 : 0x10; // zmienna tekstura 2
         }
         else if (material == "-3")
         {
             m_material = -3;
-            iFlags |= (Opacity < 1.0) ? 4 : 0x10; // zmienna tekstura 3
+			iFlags |= (Opacity < 0.999) ? 4 : 0x10; // zmienna tekstura 3
         }
         else if (material == "-4")
         {
             m_material = -4;
-            iFlags |= (Opacity < 1.0) ? 8 : 0x10; // zmienna tekstura 4
+			iFlags |= (Opacity < 0.999) ? 8 : 0x10; // zmienna tekstura 4
         }
         else {
             Name_Material(material);
@@ -393,7 +393,7 @@ int TSubModel::Load( cParser &parser, TModel3d *Model, /*int Pos,*/ bool dynamic
             m_material = GfxRenderer.Fetch_Material( material );
             // renderowanie w cyklu przezroczystych tylko jeśli:
             // 1. Opacity=0 (przejściowo <1, czy tam <100)
-            iFlags |= Opacity < 1.0f ? 0x20 : 0x10 ; // 0x20-przezroczysta, 0x10-nieprzezroczysta
+			iFlags |= Opacity < 0.999f ? 0x20 : 0x10 ; // 0x20-przezroczysta, 0x10-nieprzezroczysta
         };
     }
     else if (eType == TP_STARS)
