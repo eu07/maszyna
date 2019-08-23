@@ -3,7 +3,7 @@
 #include "renderer.h"
 
 ui::vehiclepicker_panel::vehiclepicker_panel()
-    : ui_panel(STR("Select vehicle"), false)
+    : ui_panel(STR("Select vehicle"), false), placeholder_mini("textures/mini/other")
 {
 	bank.scan_textures();
 }
@@ -162,7 +162,8 @@ void ui::vehiclepicker_panel::render()
 
 					//std::string label = skin->skins[0].stem().string();
 					std::string label = skin->skin;
-					if (selectable_image(label.c_str(), skin == selected_skinset, &skin->mini, true))
+					auto mini = skin->mini ? &skin->mini : &placeholder_mini;
+					if (selectable_image(label.c_str(), skin == selected_skinset, mini, skin))
 						selected_skinset = skin;
 				}
 		}
@@ -173,7 +174,7 @@ void ui::vehiclepicker_panel::render()
 	ImGui::End();
 }
 
-bool ui::vehiclepicker_panel::selectable_image(const char *desc, bool selected, const deferred_image* image, bool pickable)
+bool ui::vehiclepicker_panel::selectable_image(const char *desc, bool selected, const deferred_image* image, const skin_set *pickable)
 {
 	bool ret = ImGui::Selectable(desc, selected, 0, ImVec2(0, 30));
 	if (pickable)
@@ -194,10 +195,10 @@ bool ui::vehiclepicker_panel::selectable_image(const char *desc, bool selected, 
 			ImGui::SameLine(ImGui::GetContentRegionAvail().x - width);
 			ImGui::InvisibleButton(desc, ImVec2(width, 30));
 
-			if (ImGui::BeginDragDropSource()) {
+			if (ImGui::BeginDragDropSource(ImGuiDragDropFlags_SourceAutoExpirePayload)) {
 				ImGui::Image(reinterpret_cast<void*>(tex), ImVec2(width, 30), ImVec2(0, 1), ImVec2(1, 0));
 
-				ImGui::SetDragDropPayload("skin", "aaaa", 5);
+				ImGui::SetDragDropPayload("vehicle_pure", &pickable, sizeof(skin_set*));
 				ImGui::EndDragDropSource();
 			}
 

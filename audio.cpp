@@ -140,7 +140,7 @@ buffer_manager::create( std::string const &Filename ) {
         return emplace( filelookup );
     }
     // if we still didn't find anything, give up
-    ErrorLog( "Bad file: failed do locate audio file \"" + Filename + "\"", logtype::file );
+	ErrorLog( "Bad file: failed to locate audio file \"" + Filename + "\"", logtype::file );
     return null_handle;
 }
 

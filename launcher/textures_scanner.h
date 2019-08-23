@@ -22,14 +22,17 @@ enum class vehicle_type {
 	unknown
 };
 
+struct vehicle_desc;
+
 struct skin_set {
+	std::weak_ptr<vehicle_desc> vehicle;
+
 	std::string skin;
 	//std::vector<std::filesystem::path> skins;
 	deferred_image mini;
 	std::string group;
 };
 
-struct vehicle_desc;
 struct texture_rule {
 	std::shared_ptr<vehicle_desc> previous_vehicle;
 	std::vector<std::pair<std::string, std::string>> replace_rules;

@@ -70,6 +70,9 @@ class cParser //: public std::stringstream
                 false == tokens.empty() ?
                     tokens.front() :
                     "" ); }
+	// inject string as internal include
+	void injectString(const std::string &str);
+
     // returns percentage of file processed so far
     int getProgress() const;
     int getFullProgress() const;
@@ -81,6 +84,8 @@ class cParser //: public std::stringstream
     std::string Name() const;
     // returns number of currently processed line
     std::size_t Line() const;
+	// returns number of currently processed line in main file, -1 if inside include
+	int LineMain() const;
 	bool expandIncludes = true;
 
   private:

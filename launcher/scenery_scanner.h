@@ -8,9 +8,10 @@
 
 struct dynamic_desc {
 	std::string name;
-	std::string drivertype;
+	std::string drivertype = "nobody";
 
-	std::string loadtype;
+	float offset;
+	std::string loadtype = "none";
 	int loadcount;
 
 	unsigned int coupling;

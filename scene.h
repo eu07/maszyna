@@ -58,7 +58,6 @@ struct scratch_data {
 
     std::string name;
     bool initialized { false };
-	//std::vector<trainset_desc> *trainsets_desc;
 };
 
 // basic element of rudimentary partitioning scheme for the section. fixed size, no further subdivision

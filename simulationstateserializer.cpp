@@ -643,14 +643,27 @@ state_serializer::deserialize_time( cParser &Input, scene::scratch_data &Scratch
 void
 state_serializer::deserialize_trainset( cParser &Input, scene::scratch_data &Scratchpad ) {
 
+	int line = Input.LineMain();
+	if (line != -1) {
+		for (const std::pair<int, std::string> &entry : Global.trainset_overrides) {
+			if (line != entry.first)
+				continue;
+
+			skip_until(Input, "endtrainset");
+			Input.injectString(entry.second);
+
+			return;
+		}
+	}
+
     if( true == Scratchpad.trainset.is_open ) {
         // shouldn't happen but if it does wrap up currently open trainset and report an error
         deserialize_endtrainset( Input, Scratchpad );
         ErrorLog( "Bad scenario: encountered nested trainset definitions in file \"" + Input.Name() + "\" (line " + std::to_string( Input.Line() ) + ")" );
     }
 
-    Scratchpad.trainset = scene::scratch_data::trainset_data();
-    Scratchpad.trainset.is_open = true;
+	Scratchpad.trainset = scene::scratch_data::trainset_data();
+	Scratchpad.trainset.is_open = true;
 
     Input.getTokens( 4 );
     Input

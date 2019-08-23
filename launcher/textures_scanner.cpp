@@ -16,6 +16,7 @@ void ui::vehicles_bank::scan_textures()
 		{
 			if (line.size() < 3)
 				continue;
+
 			if (line.back() == '\r')
 				line.pop_back();
 
@@ -41,6 +42,9 @@ void ui::vehicles_bank::parse_entry(const std::string &line)
 
 	std::string param;
 	while (std::getline(stream, param, '=')) {
+		if (param.back() == ' ')
+			param.pop_back();
+
 		if (line[0] == '!')
 			parse_category_entry(param);
 		else if (line[0] == '*' && line[1] == '*')
@@ -110,7 +114,10 @@ void ui::vehicles_bank::parse_texture_info(const std::string &target, const std:
 	std::getline(stream, mini, ',');
 	std::getline(stream, miniplus, ',');
 
+	auto vehicle = get_vehicle(model);
+
 	skin_set set;
+	set.vehicle = vehicle;
 	set.group = mini;
 
 	if (!mini.empty())
@@ -118,6 +125,8 @@ void ui::vehicles_bank::parse_texture_info(const std::string &target, const std:
 
 	if (!miniplus.empty())
 		set.mini = std::move(deferred_image("textures/mini/" + ToLower(miniplus)));
+	else if (!mini.empty())
+		set.mini = std::move(deferred_image("textures/mini/" + ToLower(mini)));
 
 	set.skin = ToLower(target);
 	erase_extension(set.skin);
@@ -129,7 +138,6 @@ void ui::vehicles_bank::parse_texture_info(const std::string &target, const std:
 	}
 	*/
 
-	auto vehicle = get_vehicle(model);
 	group_map[set.group].insert(vehicle);
 	vehicle->matching_skinsets.push_back(std::make_shared<skin_set>(std::move(set)));
 }

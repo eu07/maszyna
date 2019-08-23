@@ -293,8 +293,8 @@ bool TAnimModel::Init(std::string const &asName, std::string const &asReplacable
 
 bool TAnimModel::Load(cParser *parser, bool ter)
 { // rozpoznanie wpisu modelu i ustawienie świateł
-	std::string name = parser->getToken<std::string>();
-    std::string texture = parser->getToken<std::string>( false ); // tekstura (zmienia na małe)
+	std::string name = ToLower(parser->getToken<std::string>());
+	std::string texture = ToLower(parser->getToken<std::string>());
     replace_slashes( name );
     replace_slashes( texture );
     if (!Init( name, texture ))

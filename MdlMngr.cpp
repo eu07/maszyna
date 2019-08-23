@@ -107,7 +107,7 @@ TModelsManager::GetModel(std::string const &Name, bool const Dynamic, bool const
     else {
         // there's nothing matching in the databank nor on the disk, report failure...
         if( Logerrors ) {
-            ErrorLog( "Bad file: failed do locate 3d model file \"" + filename + "\"", logtype::file );
+			ErrorLog( "Bad file: failed to locate 3d model file \"" + filename + "\"", logtype::file );
         }
         // ...and link it with the error model slot
         m_modelsmap.emplace( filename, null_handle );

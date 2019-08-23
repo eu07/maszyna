@@ -324,6 +324,17 @@ bool cParser::trimComments(std::string &String)
     return false;
 }
 
+void cParser::injectString(const std::string &str)
+{
+	if (mIncludeParser) {
+		mIncludeParser->injectString(str);
+	}
+	else {
+		mIncludeParser = std::make_shared<cParser>( str, buffer_TEXT, "", LoadTraction );
+		mIncludeParser->autoclear( m_autoclear );
+	}
+}
+
 int cParser::getProgress() const
 {
     return static_cast<int>( mStream->rdbuf()->pubseekoff(0, std::ios_base::cur) * 100 / mSize );
@@ -373,4 +384,8 @@ cParser::Line() const {
 
     if( mIncludeParser ) { return mIncludeParser->Line(); }
     else                 { return mLine; }
+}
+
+int cParser::LineMain() const {
+	return mIncludeParser ? -1 : mLine;
 }

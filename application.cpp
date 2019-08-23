@@ -389,7 +389,22 @@ eu07_application::pop_mode() {
 bool
 eu07_application::push_mode( eu07_application::mode const Mode ) {
 
-    if( Mode >= mode::count_ ) { return false; }
+	if( Mode >= mode::count_ )
+		return false;
+
+	if (!m_modes[Mode]) {
+		if (Mode == mode::launcher)
+			m_modes[Mode] = std::make_shared<launcher_mode>();
+		if (Mode == mode::scenarioloader)
+			m_modes[Mode] = std::make_shared<scenarioloader_mode>();
+		if (Mode == mode::driver)
+			m_modes[Mode] = std::make_shared<driver_mode>();
+		if (Mode == mode::editor)
+			m_modes[Mode] = std::make_shared<editor_mode>();
+
+		if (!m_modes[Mode]->init())
+			return false;
+	}
 
     m_modes[ Mode ]->enter();
     m_modestack.push( Mode );
@@ -766,21 +781,11 @@ eu07_application::init_audio() {
 
 int
 eu07_application::init_modes() {
+	if ((!Global.network_servers.empty() || Global.network_client) && Global.SceneryFile.empty()) {
+		ErrorLog("launcher mode is currently not supported in network mode");
+		return -1;
+	}
 
-    // NOTE: we could delay creation/initialization until transition to specific mode is requested,
-    // but doing it in one go at the start saves us some error checking headache down the road
-
-    // create all application behaviour modes
-	m_modes[ mode::launcher ] = std::make_shared<launcher_mode>();
-    m_modes[ mode::scenarioloader ] = std::make_shared<scenarioloader_mode>();
-    m_modes[ mode::driver ] = std::make_shared<driver_mode>();
-    m_modes[ mode::editor ] = std::make_shared<editor_mode>();
-    // initialize the mode objects
-    for( auto &mode : m_modes ) {
-        if( false == mode->init() ) {
-            return -1;
-        }
-    }
     // activate the default mode
 	if (Global.SceneryFile.empty())
 		push_mode( mode::launcher );

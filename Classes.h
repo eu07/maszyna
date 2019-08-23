@@ -42,6 +42,8 @@ class vehicle_table;
 struct light_array;
 class particle_manager;
 struct dictionary_source;
+class trainset_desc;
+class scenery_desc;
 
 namespace scene {
 struct node_data;

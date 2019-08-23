@@ -1636,7 +1636,7 @@ TDynamicObject::Init(std::string Name, // nazwa pojazdu, np. "EU07-424"
     if (!MoverParameters->LoadFIZ(asBaseDir))
     { // jak wczytanie CHK się nie uda, to błąd
         if (ConversionError == 666)
-            ErrorLog( "Bad vehicle: failed do locate definition file \"" + BaseDir + "/" + Type_Name + ".fiz" + "\"" );
+			ErrorLog( "Bad vehicle: failed to locate definition file \"" + BaseDir + "/" + Type_Name + ".fiz" + "\"" );
         else {
             ErrorLog( "Bad vehicle: failed to load definition from file \"" + BaseDir + "/" + Type_Name + ".fiz\" (error " + to_string( ConversionError ) + ")" );
         }

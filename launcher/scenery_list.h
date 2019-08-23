@@ -14,10 +14,11 @@ class scenerylist_panel : public ui_panel
 
 private:
 	scenery_scanner &scanner;
-	scenery_desc const *selected_scenery = nullptr;
-	trainset_desc const *selected_trainset = nullptr;
+	scenery_desc *selected_scenery = nullptr;
+	trainset_desc *selected_trainset = nullptr;
+	deferred_image placeholder_mini;
 
-	void draw_trainset(const trainset_desc &trainset);
-	void draw_droptarget();
+	void draw_trainset(trainset_desc &trainset);
+	void draw_droptarget(trainset_desc &trainset, int position);
 };
 } // namespace ui

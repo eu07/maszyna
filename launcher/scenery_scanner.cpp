@@ -11,7 +11,7 @@ scenery_scanner::scenery_scanner(ui::vehicles_bank &bank)
 void scenery_scanner::scan()
 {
 	for (auto &f : std::filesystem::directory_iterator("scenery")) {
-		std::filesystem::path path(f.path());
+		std::filesystem::path path(std::filesystem::relative(f.path(), "scenery/"));
 
 		if (*(path.filename().string().begin()) == '$')
 			continue;
@@ -30,7 +30,9 @@ void scenery_scanner::scan_scn(std::filesystem::path path)
 	scenery_desc &desc = scenarios.back();
 	desc.path = path;
 
-	cParser parser(path.string(), cParser::buffer_FILE);
+	std::string file_path = "scenery/" + path.string();
+
+	cParser parser(file_path, cParser::buffer_FILE);
 	parser.expandIncludes = false;
 	while (!parser.eof()) {
 		parser.getTokens();
@@ -38,7 +40,7 @@ void scenery_scanner::scan_scn(std::filesystem::path path)
 			parse_trainset(parser);
 	}
 
-	std::ifstream stream(path.string(), std::ios_base::binary | std::ios_base::in);
+	std::ifstream stream(file_path, std::ios_base::binary | std::ios_base::in);
 
 	int line_counter = 0;
 	std::string line;
@@ -67,7 +69,7 @@ void scenery_scanner::scan_scn(std::filesystem::path path)
 			desc.links.push_back(std::make_pair(file, label));
 		}
 		else if (line[3] == 'o') {
-			for (trainset_desc &trainset : desc.trainsets) {
+			for (auto &trainset : desc.trainsets) {
 				if (line_counter < trainset.file_bounds.first
 				        || line_counter > trainset.file_bounds.second)
 					continue;
@@ -82,7 +84,7 @@ void scenery_scanner::parse_trainset(cParser &parser)
 {
 	scenery_desc &desc = scenarios.back();
 	desc.trainsets.emplace_back();
-	trainset_desc &trainset = desc.trainsets.back();
+	auto &trainset = desc.trainsets.back();
 
 	trainset.file_bounds.first = parser.Line();
 	parser.getTokens(4);
@@ -94,7 +96,6 @@ void scenery_scanner::parse_trainset(cParser &parser)
 		dynamic_desc &dyn = trainset.vehicles.back();
 
 		std::string datafolder, skinfile, mmdfile, params;
-		int offset;
 
 		parser.getTokens(2); // range_max, range_min
 		parser.getTokens(1, false); // name
@@ -104,7 +105,7 @@ void scenery_scanner::parse_trainset(cParser &parser)
 			break;
 
 		parser.getTokens(7, false);
-		parser >> datafolder >> skinfile >> mmdfile >> offset >> dyn.drivertype >> params >> dyn.loadcount;
+		parser >> datafolder >> skinfile >> mmdfile >> dyn.offset >> dyn.drivertype >> params >> dyn.loadcount;
 
 		size_t params_pos = params.find('.');
 		if (params_pos != -1 && params_pos < params.size()) {
