@@ -44,7 +44,7 @@ void ui_panel::render()
     if (size.x > 0)
         ImGui::SetNextWindowSize(ImVec2(size.x, size.y));
 	else if (size_min.x == -1)
-		ImGui::SetNextWindowSize(ImVec2(0, 0));
+		ImGui::SetNextWindowSize(ImVec2(0, 0), ImGuiCond_FirstUseEver);
 
     if (size_min.x > 0)
         ImGui::SetNextWindowSizeConstraints(ImVec2(size_min.x, size_min.y), ImVec2(size_max.x, size_max.y));

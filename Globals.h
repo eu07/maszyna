@@ -239,7 +239,7 @@ struct global_settings {
 	std::vector<std::pair<std::string, std::string>> network_servers;
 	std::optional<std::pair<std::string, std::string>> network_client;
 
-	std::vector<std::pair<int, std::string>> trainset_overrides;
+	std::unordered_map<int, std::string> trainset_overrides;
 
 // methods
     void LoadIniFile( std::string asFileName );

@@ -2,15 +2,39 @@
 
 #include "uilayer.h"
 #include "scenery_scanner.h"
+#include "widgets/popup.h"
 
 namespace ui
 {
+class dynamic_edit_popup : public popup
+{
+	dynamic_desc &dynamic;
+
+	std::array<char, 128> name_buf;
+	std::array<char, 128> load_buf;
+	std::array<char, 128> param_buf;
+
+	template <size_t n>
+	void prepare_str(std::string &str, std::array<char, n> &array) {
+		if (str.size() > array.size() - 1)
+			str.resize(array.size() - 1);
+
+		std::copy(str.begin(), str.end(), array.data());
+		array[str.size()] = 0;
+	}
+
+  public:
+	dynamic_edit_popup(ui_panel &panel, dynamic_desc &dynamic);
+
+	virtual void render_content() override;
+};
+
 class scenerylist_panel : public ui_panel
 {
   public:
 	scenerylist_panel(scenery_scanner &scanner);
 
-	void render() override;
+	void render_contents() override;
 
 private:
 	scenery_scanner &scanner;

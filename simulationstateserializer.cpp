@@ -645,13 +645,10 @@ state_serializer::deserialize_trainset( cParser &Input, scene::scratch_data &Scr
 
 	int line = Input.LineMain();
 	if (line != -1) {
-		for (const std::pair<int, std::string> &entry : Global.trainset_overrides) {
-			if (line != entry.first)
-				continue;
-
+		auto it = Global.trainset_overrides.find(line);
+		if (it != Global.trainset_overrides.end()) {
 			skip_until(Input, "endtrainset");
-			Input.injectString(entry.second);
-
+			Input.injectString(it->second);
 			return;
 		}
 	}
