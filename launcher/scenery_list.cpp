@@ -128,7 +128,7 @@ void ui::scenerylist_panel::render_contents()
 					for (auto &veh : selected_trainset->vehicles) {
 						if (veh.drivertype.size() > 0 && veh.drivertype != "nobody") {
 							Global.local_start_vehicle = ToLower(veh.name);
-							Global.SceneryFile = selected_scenery->path;
+							Global.SceneryFile = selected_scenery->path.generic_string();
 
 							std::string set = "trainset ";
 							set += selected_trainset->name + " ";
