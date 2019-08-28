@@ -37,6 +37,15 @@ class scenerylist_panel : public ui_panel
 	void render_contents() override;
 
 private:
+	struct vehicle_moved {
+		trainset_desc &source;
+		dynamic_desc &dynamic;
+		int position;
+
+		vehicle_moved(trainset_desc &source, dynamic_desc &dynamic, int position)
+		    : source(source), dynamic(dynamic), position(position) {}
+	};
+
 	scenery_scanner &scanner;
 	scenery_desc *selected_scenery = nullptr;
 	trainset_desc *selected_trainset = nullptr;

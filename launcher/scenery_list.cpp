@@ -211,7 +211,21 @@ void ui::scenerylist_panel::draw_trainset(trainset_desc &trainset)
 
 		glm::ivec2 size = mini->size();
 		float width = 30.0f / size.y * size.x;
+		float beforeX = ImGui::GetCursorPosX();
 		ImGui::Image(reinterpret_cast<void*>(mini->get()), ImVec2(width, 30), ImVec2(0, 1), ImVec2(1, 0));
+		float afterX = ImGui::GetCursorPosX();
+
+		ImGui::SameLine(beforeX);
+		ImGui::InvisibleButton(dyn_desc.name.c_str(), ImVec2(width, 30));
+		if (ImGui::BeginDragDropSource(ImGuiDragDropFlags_SourceAutoExpirePayload)) {
+			vehicle_moved data(trainset, dyn_desc, position - 1);
+
+			ImGui::Image(reinterpret_cast<void*>(mini->get()), ImVec2(width, 30), ImVec2(0, 1), ImVec2(1, 0));
+
+			ImGui::SetDragDropPayload("vehicle_set", &data, sizeof(vehicle_moved));
+			ImGui::EndDragDropSource();
+		}
+		ImGui::SameLine(afterX);
 
 		if (ImGui::IsItemClicked(1)) {
 			register_popup(std::make_unique<ui::dynamic_edit_popup>(*this, dyn_desc));
@@ -282,6 +296,23 @@ void ui::scenerylist_panel::draw_droptarget(trainset_desc &trainset, int positio
 			desc.vehicle = skin->vehicle.lock();
 			desc.skin = skin;
 
+		}
+
+		payload = ImGui::AcceptDragDropPayload("vehicle_set");
+		if (payload) {
+			vehicle_moved *moved = reinterpret_cast<vehicle_moved*>(payload->Data);
+
+			dynamic_desc desc_copy = moved->dynamic;
+			int offset = 0;
+			if (&trainset == &moved->source) {
+				trainset.vehicles.erase(trainset.vehicles.begin() + moved->position);
+				if (moved->position < position)
+					offset = -1;
+			} else {
+				desc_copy.name = desc_copy.skin->skin + "_" + std::to_string((int)LocalRandom(0.0, 10000000.0));
+			}
+
+			trainset.vehicles.insert(trainset.vehicles.begin() + position + offset, desc_copy);
 		}
 		ImGui::EndDragDropTarget();
 	}
