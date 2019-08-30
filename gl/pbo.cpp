@@ -1,3 +1,4 @@
+#include "stdafx.h"
 #include "pbo.h"
 
 void gl::pbo::request_read(int x, int y, int lx, int ly, int pixsize, GLenum format, GLenum type)

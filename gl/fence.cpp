@@ -1,3 +1,4 @@
+#include "stdafx.h"
 #include "fence.h"
 
 gl::fence::fence()

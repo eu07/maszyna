@@ -19,12 +19,6 @@
 #define _CRTDBG_MAP_ALLOC
 #include <stdlib.h>
 #include <crtdbg.h>
-#ifdef _DEBUG
-#ifndef DBG_NEW
-#define DBG_NEW new ( _NORMAL_BLOCK , __FILE__ , __LINE__ )
-#define new DBG_NEW
-#endif
-#endif  // _DEBUG
 #endif
 // operating system
 #ifdef _WIN32
@@ -109,13 +103,5 @@ int const null_handle = 0;
 #define STRINGIZE(x) STRINGIZE_DETAIL(x)
 #define glDebug(x) if (GLAD_GL_GREMEDY_string_marker) glStringMarkerGREMEDY(0, __FILE__ ":" STRINGIZE(__LINE__) ": " x);
 
-#ifdef DBG_NEW
-#pragma push_macro("new")
-#undef new
 #include "imgui/imgui.h"
-#pragma pop_macro("new")
-#else
-#include "imgui/imgui.h"
-#endif
-
 #endif

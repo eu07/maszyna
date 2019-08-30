@@ -1,3 +1,4 @@
+#include "stdafx.h"
 #include "network/message.h"
 #include "sn_utils.h"
 

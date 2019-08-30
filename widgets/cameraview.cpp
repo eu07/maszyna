@@ -1,3 +1,4 @@
+#include "stdafx.h"
 #include "widgets/cameraview.h"
 #include "stb/stb_image.h"
 #include "Globals.h"

@@ -1,3 +1,4 @@
+#include "stdafx.h"
 #include "cubemap.h"
 
 gl::cubemap::cubemap()

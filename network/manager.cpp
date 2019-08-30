@@ -1,3 +1,4 @@
+#include "stdafx.h"
 #include "network/manager.h"
 #include "simulation.h"
 

@@ -1,3 +1,4 @@
+#include "stdafx.h"
 #include "network/backend/asio.h"
 #include "sn_utils.h"
 #include "Logs.h"

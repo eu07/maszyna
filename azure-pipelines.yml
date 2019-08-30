@@ -75,6 +75,22 @@ jobs:
         artifactName: binaries_win64
       displayName: 'Publish symbols'
 
+  - job: windows_x64_dbg
+    pool:
+      vmImage: 'vs2017-win2016'
+    displayName: 'Windows VS2017 Debug'
+    steps:
+    - script: |
+        cd ref
+        git clone "https://github.com/chriskohlhoff/asio" --depth 1 --branch asio-1-12-2 -q
+      displayName: 'Download extra dependencies'
+    - script: |
+        mkdir build
+        cd build
+        cmake .. -A x64
+        cmake --build . --config Debug
+      displayName: 'Build'
+
   - job: windows_x32
     pool:
       vmImage: 'vs2017-win2016'

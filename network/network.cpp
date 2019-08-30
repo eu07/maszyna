@@ -1,3 +1,4 @@
+#include "stdafx.h"
 #include "network/network.h"
 #include "network/message.h"
 #include "Logs.h"

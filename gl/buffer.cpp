@@ -1,3 +1,4 @@
+#include "stdafx.h"
 #include "buffer.h"
 
 GLenum gl::buffer::glenum_target(gl::buffer::targets target)
