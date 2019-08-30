@@ -686,6 +686,10 @@ global_settings::ConfigParse(cParser &Parser) {
                 >> uart_conf.currentmax
                 >> uart_conf.currentuart;
         }
+		else if ( token == "uarttachoscale" ) {
+			Parser.getTokens( 1 );
+			Parser >> uart_conf.tachoscale;
+		}
         else if( token == "uartfeature" ) {
             Parser.getTokens( 4 );
             Parser
