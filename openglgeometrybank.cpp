@@ -118,7 +118,16 @@ void calculate_tangent(vertex_array &vertices, int type)
         float t1 = w2.y - w1.y;
         float t2 = w3.y - w1.y;
 
-        float r = 1.0F / (s1 * t2 - s2 * t1);
+		float ri = (s1 * t2 - s2 * t1);
+		if (ri == 0.0f) {
+			//ErrorLog("Bad model: failed to generate tangent vectors for vertices: " +
+			//         std::to_string(i1) + ", " + std::to_string(i2) + ", " + std::to_string(i3));
+			// useless error, as we don't have name of problematic model here
+			// why does it happen?
+			ri = 1.0f;
+		}
+
+		float r = 1.0f / ri;
         glm::vec3 sdir((t2 * x1 - t1 * x2) * r, (t2 * y1 - t1 * y2) * r,
             (t2 * z1 - t1 * z2) * r);
         glm::vec3 tdir((s1 * x2 - s2 * x1) * r, (s1 * y2 - s2 * y1) * r,
