@@ -26,29 +26,6 @@ jobs:
         artifactName: binaries_linux
       displayName: 'Publish binaries'
 
-  - job: macos1014
-    pool:
-      vmImage: 'macOS-10.14'
-    displayName: 'MacOS 10.14'
-    steps:
-    - script: |
-        sudo xcode-select -s /Applications/Xcode_11.app
-      displayName: 'Setup Xcode'
-    - script: |
-        HOMEBREW_NO_AUTO_UPDATE=1 brew install glew glfw python2 libpng glm luajit libserialport libsndfile asio pkg-config
-      displayName: 'Install dependencies'
-    - script: |
-        mkdir build
-        cd build
-        cmake .. -DCMAKE_BUILD_TYPE=Release -DWITH_UART=OFF
-        cmake --build .
-      displayName: 'Build'
-    - task: PublishBuildArtifacts@1
-      inputs:
-        pathtoPublish: 'build/bin'
-        artifactName: binaries_macos
-      displayName: 'Publish binaries'
-
   - job: windows_x64
     pool:
       vmImage: 'vs2017-win2016'
