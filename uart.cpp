@@ -244,7 +244,7 @@ void uart_input::poll()
 	    uint16_t current1 = (uint16_t)std::min(conf.currentuart, trainstate.hv_current[0] / conf.currentmax * conf.currentuart);
 	    uint16_t current2 = (uint16_t)std::min(conf.currentuart, trainstate.hv_current[1] / conf.currentmax * conf.currentuart);
 	    uint16_t current3 = (uint16_t)std::min(conf.currentuart, trainstate.hv_current[2] / conf.currentmax * conf.currentuart);
-		uint32_t odometer = trainstate.distance * 1000.0f;
+		uint32_t odometer = trainstate.distance * 10000.0;
 
 	    std::array<uint8_t, 31> buffer {
 			//byte 0-1

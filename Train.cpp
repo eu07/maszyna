@@ -607,7 +607,7 @@ TTrain::get_state() const {
         static_cast<float>( mvOccupied->BrakePress ),
         fHVoltage,
 		{ fHCurrent[ ( mvControlled->TrainType & dt_EZT ) ? 0 : 1 ], fHCurrent[ 2 ], fHCurrent[ 3 ] },
-		(float)mvOccupied->DistCounter
+		mvOccupied->DistCounter
     };
 }
 
