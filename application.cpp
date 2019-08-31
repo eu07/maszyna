@@ -817,9 +817,17 @@ bool eu07_application::init_network() {
 
 		// TODO: sort out this timezone mess
 		std::time_t utc_now = std::time(nullptr);
-		std::time_t local_now = utc_now + (std::mktime(std::localtime(&utc_now)) - std::mktime(std::gmtime(&utc_now)));
 
-		Global.starting_timestamp = local_now;
+		tm tm_local, tm_utc;
+		tm *tmp = std::localtime(&utc_now);
+		memcpy(&tm_local, tmp, sizeof(tm));
+		tmp = std::gmtime(&utc_now);
+		memcpy(&tm_utc, tmp, sizeof(tm));
+
+		int64_t offset = (tm_local.tm_hour * 3600 + tm_local.tm_min * 60 + tm_local.tm_sec)
+		        - (tm_utc.tm_hour * 3600 + tm_utc.tm_min * 60 + tm_utc.tm_sec);
+
+		Global.starting_timestamp = utc_now + offset;
 		Global.ready_to_load = true;
 	}
 

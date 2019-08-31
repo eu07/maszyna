@@ -6,6 +6,7 @@
 #include "Train.h"
 #include "parser.h"
 #include "Logs.h"
+#include "simulationtime.h"
 
 uart_input::uart_input()
 {
@@ -121,7 +122,7 @@ uart_input::recall_bindings() {
     return true;
 }
 
-#define SPLIT_INT16(x) (uint8_t)x, (uint8_t)(x >> 8)
+#define SPLIT_INT16(x) (uint8_t)(x), (uint8_t)((x) >> 8)
 
 void uart_input::poll()
 {
@@ -234,6 +235,7 @@ void uart_input::poll()
 	    // TODO: ugly! move it into structure like input_bits
         auto const trainstate = t->get_state();
 
+		SYSTEMTIME time = simulation::Time.data();
 		uint16_t tacho = Global.iPause ? 0 : (trainstate.velocity * conf.tachoscale);
 	    uint16_t tank_press = (uint16_t)std::min(conf.tankuart, trainstate.reservoir_pressure * 0.1f / conf.tankmax * conf.tankuart);
 	    uint16_t pipe_press = (uint16_t)std::min(conf.pipeuart, trainstate.pipe_pressure * 0.1f / conf.pipemax * conf.pipeuart);
@@ -242,6 +244,7 @@ void uart_input::poll()
 	    uint16_t current1 = (uint16_t)std::min(conf.currentuart, trainstate.hv_current[0] / conf.currentmax * conf.currentuart);
 	    uint16_t current2 = (uint16_t)std::min(conf.currentuart, trainstate.hv_current[1] / conf.currentmax * conf.currentuart);
 	    uint16_t current3 = (uint16_t)std::min(conf.currentuart, trainstate.hv_current[2] / conf.currentmax * conf.currentuart);
+		uint32_t odometer = trainstate.distance * 1000.0f;
 
 	    std::array<uint8_t, 31> buffer {
 			//byte 0-1
@@ -287,8 +290,14 @@ void uart_input::poll()
 	        SPLIT_INT16(current2),
             //byte 19-20
 	        SPLIT_INT16(current3),
-            //byte 21-30
-			0, 0, 0, 0, 0, 0, 0, 0, 0, 0
+			//byte 21-22
+			SPLIT_INT16((time.wYear - 1) * 12 + time.wMonth - 1),
+			//byte 23-24
+			SPLIT_INT16((time.wDay - 1) * 1440 + time.wHour * 60 + time.wMinute),
+			//byte 25-26
+			SPLIT_INT16(time.wSecond * 1000 + time.wMilliseconds),
+			//byte 27-30
+			SPLIT_INT16((uint16_t)odometer), SPLIT_INT16((uint16_t)(odometer >> 16))
 	    };
 
 		if (conf.debug)

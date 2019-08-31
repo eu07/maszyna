@@ -583,8 +583,8 @@ TTrain::state_t
 TTrain::get_state() const {
 
     return {
-        btLampkaSHP.GetValue(),
-        btLampkaCzuwaka.GetValue(),
+		mvOccupied->SecuritySystem.is_cabsignal_blinking(),
+		mvOccupied->SecuritySystem.is_vigilance_blinking(),
         btLampkaRadioStop.GetValue(),
         btLampkaOpory.GetValue(),
         btLampkaWylSzybki.GetValue(),
@@ -599,14 +599,15 @@ TTrain::get_state() const {
         btLampkaOgrzewanieSkladu.GetValue(),
         btHaslerBrakes.GetValue(),
         btHaslerCurrent.GetValue(),
-		mvOccupied->SecuritySystem.is_blinking(),
+		mvOccupied->SecuritySystem.is_beeping(),
         btLampkaHVoltageB.GetValue(),
         fTachoVelocity,
         static_cast<float>( mvOccupied->Compressor ),
         static_cast<float>( mvOccupied->PipePress ),
         static_cast<float>( mvOccupied->BrakePress ),
         fHVoltage,
-        { fHCurrent[ ( mvControlled->TrainType & dt_EZT ) ? 0 : 1 ], fHCurrent[ 2 ], fHCurrent[ 3 ] }
+		{ fHCurrent[ ( mvControlled->TrainType & dt_EZT ) ? 0 : 1 ], fHCurrent[ 2 ], fHCurrent[ 3 ] },
+		mvOccupied->DistCounter
     };
 }
 

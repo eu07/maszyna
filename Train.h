@@ -99,6 +99,7 @@ class TTrain
         float brake_pressure;
         float hv_voltage;
         std::array<float, 3> hv_current;
+		float distance;
     };
 	typedef std::tuple<std::string, std::shared_ptr<python_rt>, std::unique_ptr<python_screen_viewer>> screen_entry;
 	typedef std::vector<screen_entry> screen_map;

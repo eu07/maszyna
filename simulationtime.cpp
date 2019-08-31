@@ -33,8 +33,8 @@ scenario_time::init(std::time_t timestamp) {
     // cache requested elements, if any
 
 	std::tm *tms = std::gmtime(&timestamp);
-	m_time.wYear = tms->tm_year;
-	m_time.wMonth = tms->tm_mon;
+	m_time.wYear = tms->tm_year + 1900;
+	m_time.wMonth = tms->tm_mon + 1;
 	m_time.wDayOfWeek = tms->tm_wday;
 	m_time.wDay = tms->tm_mday;
 	m_time.wHour = tms->tm_hour;
@@ -53,7 +53,7 @@ scenario_time::init(std::time_t timestamp) {
     if( ( requestedhour != -1 )
      || ( requestedminute != 1 ) ) {
         m_time.wSecond = 0;
-    }
+	}
 
     m_yearday = year_day( m_time.wDay, m_time.wMonth, m_time.wYear );
 
