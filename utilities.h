@@ -149,6 +149,8 @@ void win1250_to_ascii( std::string &Input );
 // TODO: unify with win1250_to_ascii()
 std::string Bezogonkow( std::string Input, bool const Underscorestospaces = false );
 
+std::string win1250_to_utf8(const std::string &input);
+
 inline
 std::string
 extract_value( std::string const &Key, std::string const &Input ) {

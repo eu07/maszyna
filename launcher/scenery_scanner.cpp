@@ -54,9 +54,9 @@ void scenery_scanner::scan_scn(std::filesystem::path path)
 		if (line[3] == 'i')
 			desc.image_path = "scenery/images/" + line.substr(5);
 		else if (line[3] == 'n')
-			desc.name = line.substr(5);
+			desc.name = win1250_to_utf8(line.substr(5));
 		else if (line[3] == 'd')
-			desc.description += line.substr(5) + '\n';
+			desc.description += win1250_to_utf8(line.substr(5)) + '\n';
 		else if (line[3] == 'f') {
 			std::string lang;
 			std::string file;
@@ -66,7 +66,7 @@ void scenery_scanner::scan_scn(std::filesystem::path path)
 			stream >> lang >> file;
 			std::getline(stream, label);
 
-			desc.links.push_back(std::make_pair(file, label));
+			desc.links.push_back(std::make_pair(file, win1250_to_utf8(label)));
 		}
 		else if (line[3] == 'o') {
 			for (auto &trainset : desc.trainsets) {
@@ -74,7 +74,7 @@ void scenery_scanner::scan_scn(std::filesystem::path path)
 				        || line_counter > trainset.file_bounds.second)
 					continue;
 
-				trainset.description = line.substr(5);
+				trainset.description = win1250_to_utf8(line.substr(5));
 			}
 		}
 	}

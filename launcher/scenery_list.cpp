@@ -61,7 +61,7 @@ void ui::scenerylist_panel::render_contents()
 				if (ImGui::Button(link.second.c_str(), ImVec2(-1, 0))) {
 					std::string file = ToLower(link.first);
 #ifdef _WIN32
-					system(("start \"" + file + "\"").c_str());
+					system(("start \"eu07_link\" \"" + file + "\"").c_str());
 #elif __linux__
 					system(("xdg-open \"" + file + "\"").c_str());
 #elif __APPLE__
@@ -150,7 +150,6 @@ void ui::scenerylist_panel::render_contents()
 								set += "enddynamic\n";
 							}
 							set += "endtrainset\n";
-							WriteLog(set);
 
 							Global.trainset_overrides.emplace(selected_trainset->file_bounds.first, set);
 
@@ -227,7 +226,10 @@ void ui::scenerylist_panel::draw_trainset(trainset_desc &trainset)
 		}
 		ImGui::SameLine(afterX);
 
-		if (ImGui::IsItemClicked(1)) {
+		if (ImGui::IsItemDeactivated() && ImGui::IsItemHovered()) {
+			selected_trainset = &trainset;
+		}
+		else if (ImGui::IsItemClicked(1)) {
 			register_popup(std::make_unique<ui::dynamic_edit_popup>(*this, dyn_desc));
 		}
 		else if (ImGui::IsItemHovered()) {

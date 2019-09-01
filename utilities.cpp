@@ -319,15 +319,31 @@ std::string ToUpper(std::string const &text) {
 void
 win1250_to_ascii( std::string &Input ) {
 
-    std::unordered_map<char, char> const charmap {
-        { 165, 'A' }, { 198, 'C' }, { 202, 'E' }, { 163, 'L' }, { 209, 'N' }, { 211, 'O' }, { 140, 'S' }, { 143, 'Z' }, { 175, 'Z' },
-        { 185, 'a' }, { 230, 'c' }, { 234, 'e' }, { 179, 'l' }, { 241, 'n' }, { 243, 'o' }, { 156, 's' }, { 159, 'z' }, { 191, 'z' }
+	std::unordered_map<char, char> const charmap {
+		{ 165, 'A' }, { 198, 'C' }, { 202, 'E' }, { 163, 'L' }, { 209, 'N' }, { 211, 'O' }, { 140, 'S' }, { 143, 'Z' }, { 175, 'Z' },
+		{ 185, 'a' }, { 230, 'c' }, { 234, 'e' }, { 179, 'l' }, { 241, 'n' }, { 243, 'o' }, { 156, 's' }, { 159, 'z' }, { 191, 'z' }
     };
     std::unordered_map<char, char>::const_iterator lookup;
     for( auto &input : Input ) {
         if( ( lookup = charmap.find( input ) ) != charmap.end() )
             input = lookup->second;
     }
+}
+
+std::string win1250_to_utf8(const std::string &Input) {
+	std::unordered_map<char, std::string> const charmap {
+		{ 165, u8"Ą" }, { 198, u8"Ć" }, { 202, u8"Ę" }, { 163, u8"Ł" }, { 209, u8"Ń" }, { 211, u8"Ó" }, { 140, u8"Ś" }, { 143, u8"Ź" }, { 175, u8"Ż" },
+		{ 185, u8"ą" }, { 230, u8"ć" }, { 234, u8"ę" }, { 179, u8"ł" }, { 241, u8"ń" }, { 243, u8"ó" }, { 156, u8"ś" }, { 159, u8"ź" }, { 191, u8"ż" }
+	};
+	std::string output;
+	std::unordered_map<char, std::string>::const_iterator lookup;
+	for( auto &input : Input ) {
+		if( ( lookup = charmap.find( input ) ) != charmap.end() )
+			output += lookup->second;
+		else
+			output += input;
+	}
+	return output;
 }
 
 // Ra: tymczasowe rozwiązanie kwestii zagranicznych (czeskich) napisów
