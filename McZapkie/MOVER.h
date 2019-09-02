@@ -657,6 +657,7 @@ struct TCoupling {
 	double CForce = 0.0;                /*sila z jaka dzialal*/
 	double Dist = 0.0;                  /*strzalka ugiecia zderzaków*/
 	bool CheckCollision = false;     /*czy sprawdzac sile czy pedy*/
+    float stretch_duration { 0.f }; // seconds, elapsed time with excessive force applied to the coupler
 
     power_coupling power_high;
 //    power_coupling power_low; // TODO: implement this
@@ -1142,6 +1143,7 @@ public:
     /*--opis konkretnego egzemplarza taboru*/
     TLocation Loc { 0.0, 0.0, 0.0 }; //pozycja pojazdów do wyznaczenia odległości pomiędzy sprzęgami
     TRotation Rot { 0.0, 0.0, 0.0 };
+    glm::vec3 Front{};
 	std::string Name;                       /*nazwa wlasna*/
 	TCoupling Couplers[2];  //urzadzenia zderzno-sprzegowe, polaczenia miedzy wagonami
     std::array<neighbour_data, 2> Neighbours; // potential collision sources
@@ -1407,6 +1409,8 @@ public:
 	bool Attach(int ConnectNo, int ConnectToNr, TMoverParameters *ConnectTo, int CouplingType, bool Forced = false, bool Audible = true);
 	int DettachStatus(int ConnectNo);
 	bool Dettach(int ConnectNo);
+    void damage_coupler( int const End );
+    void derail( int const Reason );
 	bool DirectionForward();
     bool DirectionBackward( void );/*! kierunek ruchu*/
 	void BrakeLevelSet(double b);
@@ -1416,8 +1420,8 @@ public:
 	bool ChangeCab(int direction);
 	bool CurrentSwitch(bool const State);
 	void UpdateBatteryVoltage(double dt);
-	double ComputeMovement(double dt, double dt1, const TTrackShape &Shape, TTrackParam &Track, TTractionParam &ElectricTraction, const TLocation &NewLoc, TRotation &NewRot); //oblicza przesuniecie pojazdu
-	double FastComputeMovement(double dt, const TTrackShape &Shape, TTrackParam &Track, const TLocation &NewLoc, TRotation &NewRot); //oblicza przesuniecie pojazdu - wersja zoptymalizowana
+	double ComputeMovement(double dt, double dt1, const TTrackShape &Shape, TTrackParam &Track, TTractionParam &ElectricTraction, TLocation const &NewLoc, TRotation const &NewRot); //oblicza przesuniecie pojazdu
+	double FastComputeMovement(double dt, const TTrackShape &Shape, TTrackParam &Track, TLocation const &NewLoc, TRotation const &NewRot); //oblicza przesuniecie pojazdu - wersja zoptymalizowana
     void compute_movement_( double const Deltatime );
 	double ShowEngineRotation(int VehN);
 
@@ -1506,7 +1510,7 @@ public:
 	double BrakeForceP(double press, double velocity);
 	double BrakeForce(const TTrackParam &Track);
 	double CouplerForce(int const End, double dt);
-	void CollisionDetect(int CouplerN, double dt);
+	void CollisionDetect(int const End, double const dt);
 	/*obrot kol uwzgledniajacy poslizg*/
 	double ComputeRotatingWheel(double WForce, double dt, double n) const;
 

@@ -649,7 +649,7 @@ global_settings::ConfigParse(cParser &Parser) {
                 >> uart_conf.updatetime;
         }
         else if( token == "uarttune" ) {
-            Parser.getTokens( 14 );
+            Parser.getTokens( 16 );
             Parser
                 >> uart_conf.mainbrakemin
                 >> uart_conf.mainbrakemax
@@ -664,7 +664,9 @@ global_settings::ConfigParse(cParser &Parser) {
                 >> uart_conf.hvmax
                 >> uart_conf.hvuart
                 >> uart_conf.currentmax
-                >> uart_conf.currentuart;
+                >> uart_conf.currentuart
+                >> uart_conf.lvmax
+                >> uart_conf.lvuart;
         }
         else if( token == "uartfeature" ) {
             Parser.getTokens( 4 );

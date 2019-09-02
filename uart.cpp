@@ -242,6 +242,12 @@ void uart_input::poll()
 	    uint16_t current1 = (uint16_t)std::min(conf.currentuart, trainstate.hv_current[0] / conf.currentmax * conf.currentuart);
 	    uint16_t current2 = (uint16_t)std::min(conf.currentuart, trainstate.hv_current[1] / conf.currentmax * conf.currentuart);
 	    uint16_t current3 = (uint16_t)std::min(conf.currentuart, trainstate.hv_current[2] / conf.currentmax * conf.currentuart);
+        uint16_t lv_voltage = (uint16_t)std::min( conf.lvuart, trainstate.lv_voltage / conf.lvmax * conf.lvuart );
+
+        if( trainstate.cab > 0 ) {
+            // NOTE: moving from a cab to engine room doesn't change cab indicator
+            m_trainstatecab = trainstate.cab - 1;
+        }
 
 	    std::array<uint8_t, 31> buffer {
             //byte 0
@@ -271,7 +277,8 @@ void uart_input::poll()
               | trainstate.compressor_overload << 6),
             //byte 6
 			(uint8_t)(
-                trainstate.recorder_braking << 3
+                m_trainstatecab << 2
+              | trainstate.recorder_braking << 3
               | trainstate.recorder_power << 4
               | trainstate.radio_stop <<5
               | trainstate.alerter_sound << 7),
@@ -289,8 +296,10 @@ void uart_input::poll()
 	        SPLIT_INT16(current2),
             //byte 19-20
 	        SPLIT_INT16(current3),
-            //byte 21-30
-			0, 0, 0, 0, 0, 0, 0, 0, 0, 0
+            //byte 21-22
+            SPLIT_INT16(lv_voltage),
+            //byte 23-30
+			0, 0, 0, 0, 0, 0, 0, 0
 	    };
 
 		if (conf.debug)

@@ -56,15 +56,16 @@ basic_station::update_load( TDynamicObject *First, Mtable::TTrainParameters &Sch
             // NOTE: for the time being we're doing simple, random load change calculation
             // TODO: exchange driven by station parameters and time of the day
             auto unloadcount = static_cast<int>(
+                TestFlag( parameters.DamageFlag, dtrain_out ) ? parameters.LoadAmount :
                 laststop ? parameters.LoadAmount :
                 firststop ? 0 :
                 std::min<float>(
                     parameters.LoadAmount,
                     Random( parameters.MaxLoad * 0.15f * stationsizemodifier ) ) );
             auto loadcount = static_cast<int>(
-                laststop ?
-                    0 :
-                    Random( parameters.MaxLoad * 0.15f * stationsizemodifier ) );
+                TestFlag( parameters.DamageFlag, dtrain_out ) ? 0 :
+                laststop ? 0 :
+                Random( parameters.MaxLoad * 0.15f * stationsizemodifier ) );
             if( true == firststop ) {
                 // larger group at the initial station
                 loadcount *= 2;

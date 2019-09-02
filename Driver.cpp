@@ -1138,6 +1138,17 @@ TCommandType TController::TableUpdate(double &fVelDes, double &fDist, double &fN
                 if( sSpeedTable[ i ].fDist > 0.0 ) {
                     // check signals ahead
                     if( sSpeedTable[ i ].IsProperSemaphor( OrderCurrentGet() ) ) {
+
+                        if( ( mvOccupied->CategoryFlag & 2 )
+                         && ( sSpeedTable[ i ].fVelNext != -1.0 )
+                         && ( sSpeedTable[ i ].fVelNext  <  1.0 )
+                         && ( sSpeedTable[ i ].fDist < -0.5 + std::min( fBrakeDist * 0.2, mvOccupied->Vel * 0.2 ) ) ) {
+                            // special rule for cars: ignore stop signals at distance too short to come to a stop
+                            // as trying to stop in such situation is likely to place the car on train tracks
+                            sSpeedTable[ i ].iFlags &= ~spEnabled;
+                            continue;
+                        }
+
                         if( SemNextIndex == -1 ) {
                             // jeśli jest mienięty poprzedni semafor a wcześniej
                             // byl nowy to go dorzucamy do zmiennej, żeby cały czas widział najbliższy
@@ -5907,7 +5918,7 @@ TController::UpdateSituation(double dt) {
                                     /* mvOccupied->BrakeLevelSet( mvOccupied->Handle->GetPos( bh_FS ) ); GBH */
                                     BrakeLevelSet( gbh_FS );
                                     // don't charge the brakes too often, or we risk overcharging
-                                    BrakeChargingCooldown = -120.0;
+                                    BrakeChargingCooldown = -1 * clamp( iVehicleCount * 3, 30, 90 );
                                 }
                             }
 /*

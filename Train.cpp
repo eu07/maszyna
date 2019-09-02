@@ -500,7 +500,7 @@ dictionary_source *TTrain::GetTrainState() {
     // induction motor state data
     char const *TXTT[ 10 ] = { "fd", "fdt", "fdb", "pd", "pdt", "pdb", "itothv", "1", "2", "3" };
     char const *TXTC[ 10 ] = { "fr", "frt", "frb", "pr", "prt", "prb", "im", "vm", "ihv", "uhv" };
-	char const *TXTD[ 10 ] = { "enrot", "nrot", "fill_des", "fill_real", "clutch_des", "clutch_real", "water_temp", "oil_press", "res1", "res2" };
+	char const *TXTD[ 10 ] = { "enrot", "nrot", "fill_des", "fill_real", "clutch_des", "clutch_real", "water_temp", "oil_press", "engine_temp", "res1" };
     char const *TXTP[ 3 ] = { "bc", "bp", "sp" };
     for( int j = 0; j < 10; ++j )
         dict->insert( ( "eimp_t_" + std::string( TXTT[ j ] ) ), fEIMParams[ 0 ][ j ] );
@@ -588,6 +588,7 @@ TTrain::get_state() const {
         btLampkaNadmWent.GetValue(),
         btLampkaWysRozr.GetValue(),
         btLampkaOgrzewanieSkladu.GetValue(),
+        static_cast<std::uint8_t>( iCabn ),
         btHaslerBrakes.GetValue(),
         btHaslerCurrent.GetValue(),
         ( TestFlag( mvOccupied->SecuritySystem.Status, s_CAalarm ) || TestFlag( mvOccupied->SecuritySystem.Status, s_SHPalarm ) ),
@@ -597,7 +598,8 @@ TTrain::get_state() const {
         static_cast<float>( mvOccupied->PipePress ),
         static_cast<float>( mvOccupied->BrakePress ),
         fHVoltage,
-        { fHCurrent[ ( mvControlled->TrainType & dt_EZT ) ? 0 : 1 ], fHCurrent[ 2 ], fHCurrent[ 3 ] }
+        { fHCurrent[ ( mvControlled->TrainType & dt_EZT ) ? 0 : 1 ], fHCurrent[ 2 ], fHCurrent[ 3 ] },
+        ggLVoltage.GetValue()
     };
 }
 
@@ -5375,7 +5377,9 @@ bool TTrain::Update( double const Deltatime )
                     in++;
                     iPowerNo = in;
                 }
-				if ((in < 8) && (p->MoverParameters->EngineType==TEngineType::DieselEngine))
+				if ((in < 8)
+                 && ((p->MoverParameters->EngineType==TEngineType::DieselEngine)
+                   ||(p->MoverParameters->EngineType==TEngineType::DieselElectric)))
 				{
 					fDieselParams[1 + in][0] = p->MoverParameters->enrot*60;
 					fDieselParams[1 + in][1] = p->MoverParameters->nrot;
@@ -5385,7 +5389,7 @@ bool TTrain::Update( double const Deltatime )
 					fDieselParams[1 + in][5] = p->MoverParameters->dizel_engage;
 					fDieselParams[1 + in][6] = p->MoverParameters->dizel_heat.Twy;
 					fDieselParams[1 + in][7] = p->MoverParameters->OilPump.pressure;
-					//fDieselParams[1 + in][8] = p->MoverParameters->
+					fDieselParams[1 + in][8] = p->MoverParameters->dizel_heat.Ts;
 					//fDieselParams[1 + in][9] = p->MoverParameters->
 					bMains[in] = p->MoverParameters->Mains;
 					fCntVol[in] = p->MoverParameters->BatteryVoltage;

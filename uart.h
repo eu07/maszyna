@@ -27,6 +27,8 @@ public:
         float hvuart = 65535.0f;
         float currentmax = 10000.0f;
         float currentuart = 65535.0f;
+        float lvmax = 150.0f;
+        float lvuart = 65535.0f;
 
         bool mainenable = true;
         bool scndenable = true;
@@ -66,4 +68,5 @@ private:
     std::chrono::time_point<std::chrono::high_resolution_clock> last_update;
     conf_t conf;
 	bool data_pending = false;
+    std::uint8_t m_trainstatecab { 0 }; // helper, keeps track of last active cab. 0: front cab, 1: rear cab
 };

@@ -69,8 +69,10 @@ public:
         find( TSubModel const *Control ) const;
 };
 
-class TTrain
-{
+class TTrain {
+
+    friend class drivingaid_panel;
+
   public:
 // types
     struct state_t {
@@ -88,6 +90,7 @@ class TTrain
         std::uint8_t ventilator_overload;
         std::uint8_t motor_overload_threshold;
         std::uint8_t train_heating;
+        std::uint8_t cab;
         std::uint8_t recorder_braking;
         std::uint8_t recorder_power;
         std::uint8_t alerter_sound;
@@ -98,6 +101,7 @@ class TTrain
         float brake_pressure;
         float hv_voltage;
         std::array<float, 3> hv_current;
+        float lv_voltage;
     };
 
 // methods
@@ -626,7 +630,7 @@ public: // reszta może by?publiczna
 */
     // McZapkie: opis kabiny - obszar poruszania sie mechanika oraz zajetosc
     std::array<TCab, maxcab + 1> Cabine; // przedzial maszynowy, kabina 1 (A), kabina 2 (B)
-    int iCabn { 0 };
+    int iCabn { 0 }; // 0: mid, 1: front, 2: rear
     // McZapkie: do poruszania sie po kabinie
     Math3D::vector3 pMechSittingPosition; // ABu 180404
     Math3D::vector3 MirrorPosition( bool lewe );

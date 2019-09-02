@@ -61,9 +61,9 @@ smoke_source::particle_emitter::initialize( smoke_particle &Particle ) {
     auto const azimuthalangle { glm::radians( Random( -180, 180 ) ) }; // phi
     // convert spherical coordinates to opengl coordinates
     auto const launchvector { glm::vec3(
-        std::sin( polarangle ) * std::sin( azimuthalangle ),
+        std::sin( polarangle ) * std::sin( azimuthalangle ) * -1,
         std::cos( polarangle ),
-        std::sin( polarangle ) * std::cos( azimuthalangle ) * -1 ) };
+        std::sin( polarangle ) * std::cos( azimuthalangle ) ) };
         auto const launchvelocity { static_cast<float>( Random( velocity[ value_limit::min ], velocity[ value_limit::max ] ) ) };
     
     Particle.velocity = launchvector * launchvelocity;

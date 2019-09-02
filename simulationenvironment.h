@@ -40,6 +40,9 @@ public:
     glm::vec3 const &
         wind() const {
             return m_wind.vector; }
+    float const &
+        wind_azimuth() const {
+            return m_wind.azimuth; }
 
 private:
 // types
