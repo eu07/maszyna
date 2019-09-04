@@ -5,6 +5,12 @@
 #pragma warning (disable: 4091)
 #include <dbghelp.h>
 
+extern "C"
+{
+__declspec(dllexport) DWORD NvOptimusEnablement = 0x00000001;
+__declspec(dllexport) DWORD AmdPowerXpressRequestHighPerformance = 0x00000001;
+}
+
 LONG CALLBACK unhandled_handler(::EXCEPTION_POINTERS* e)
 {
 	auto hDbgHelp = ::LoadLibraryA("dbghelp");
