@@ -861,6 +861,30 @@ private:
         float temperatura2 { 40.0 };
     };
 
+	struct spring_brake {
+		std::shared_ptr<TReservoir> Cylinder;
+		bool Activate { false }; //Input: switching brake on/off in exploitation - main valve/switch
+		bool ShuttOff { true }; //Input: shutting brake off during failure - valve in pneumatic container
+		bool Release { false }; //Input: emergency releasing rod
+
+		bool IsReady{ false }; //Output: readyness to braking - cylinder is armed, spring is tentioned
+		bool IsActive{ false }; //Output: brake is working
+
+		bool PNBrakeConnection{ false }; //Conf: connection to pneumatic brake cylinders
+		double MaxSetPressure { 0.0 }; //Conf: Maximal pressure for switched off brake
+		double ResetPressure{ 0.0 }; //Conf: Pressure for arming brake cylinder
+		double MinForcePressure{ 0.1 }; //Conf: Minimal pressure for zero force
+		double MaxBrakeForce{ 0.0 }; //Conf: Maximal tension for brake pads/shoes
+		double PressureOn{ -2.0 }; //Conf: Pressure changing ActiveFlag to "On"
+		double PressureOff{ -1.0 }; //Conf: Pressure changing ActiveFlag to "Off"
+		double ValveOffArea{ 0.0 }; //Conf: Area of filling valve
+		double ValveOnArea{ 0.0 }; //Conf: Area of dumping valve
+		double ValvePNBrakeArea{ 0.0 }; //Conf: Area of bypass to brake cylinders
+
+		int MultiTractionCoupler{ 127 }; //Conf: Coupling flag necessary for transmitting the command
+
+	};
+
 public:
 
 	double dMoveLen = 0.0;
@@ -920,6 +944,7 @@ public:
 	std::shared_ptr<TDriverHandle> LocHandle;
 	std::shared_ptr<TReservoir> Pipe;
 	std::shared_ptr<TReservoir> Pipe2;
+	spring_brake SpringBrake;
 
 	TLocalBrake LocalBrake = TLocalBrake::NoBrake;  /*rodzaj hamulca indywidualnego*/
 	TBrakePressureTable BrakePressureTable; /*wyszczegolnienie cisnien w rurze*/
@@ -1471,6 +1496,9 @@ public:
 
 	bool BatterySwitch(bool State);
 	bool EpFuseSwitch(bool State);
+	bool SpringBrakeActivate(bool State);
+	bool SpringBrakeShutOff(bool State);
+	bool SpringBrakeRelease();
 
 	/*! stopnie hamowania - hamulec zasadniczy*/
 	bool IncBrakeLevelOld(void);
@@ -1500,6 +1528,7 @@ public:
 	void CompressorCheck(double dt);/*wlacza, wylacza kompresor, laduje zbiornik*/
 	void UpdatePantVolume(double dt);             //Ra
 	void UpdateScndPipePressure(double dt);
+	void UpdateSpringBrake(double dt);
 	double GetDVc(double dt);
 
 	/*funkcje obliczajace sily*/
@@ -1617,6 +1646,7 @@ private:
     void LoadFIZ_Cntrl( std::string const &line );
 	void LoadFIZ_Blending(std::string const &line);
 	void LoadFIZ_DCEMUED(std::string const &line);
+	void LoadFIZ_SpringBrake(std::string const &line);
     void LoadFIZ_Light( std::string const &line );
     void LoadFIZ_Security( std::string const &line );
     void LoadFIZ_Clima( std::string const &line );

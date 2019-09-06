@@ -222,6 +222,13 @@ enum class user_command {
     motorblowersdisableall,
     coolingfanstoggle,
     tempomattoggle,
+	springbraketoggle,
+	springbrakeenable,
+	springbrakedisable,
+	springbrakeshutofftoggle,
+	springbrakeshutoffenable,
+	springbrakeshutoffdisable,
+	springbrakerelease,
 
     none = -1
 };

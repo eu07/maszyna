@@ -2568,6 +2568,57 @@ bool TMoverParameters::EpFuseSwitch(bool State)
 }
 
 // *************************************************************************************************
+// yB: 20190906
+// włączenie / wyłączenie hamulca sprezynowego
+// *************************************************************************************************
+bool TMoverParameters::SpringBrakeActivate(bool State)
+{
+	if (Battery)
+	{
+		SendCtrlToNext("SpringBrakeActivate", int(State), CabNo, SpringBrake.MultiTractionCoupler);
+
+		if (SpringBrake.Activate != State)
+		{
+			SpringBrake.Activate = State;
+			return true;
+		}
+	}
+	return false;
+}
+
+// *************************************************************************************************
+// yB: 20190906
+// włączenie / wyłączenie odciecia hamulca sprezynowego
+// *************************************************************************************************
+bool TMoverParameters::SpringBrakeShutOff(bool State)
+{
+	if (SpringBrake.ShuttOff != State)
+	{
+		SpringBrake.ShuttOff = State;
+		return true;
+	}
+	else
+		return false;
+
+}
+
+// *************************************************************************************************
+// yB: 20190906
+// wyluzowanie hamulca sprezynowego
+// *************************************************************************************************
+bool TMoverParameters::SpringBrakeRelease()
+{
+	if (SpringBrake.IsReady && SpringBrake.Cylinder->P() < SpringBrake.MinForcePressure)
+	{
+		SpringBrake.IsReady = false;
+		return true;
+	}
+	else
+		return false;
+
+}
+
+// *************************************************************************************************
 // Q: 20160710
 // kierunek do tyłu
 // *************************************************************************************************
@@ -3980,6 +4031,8 @@ void TMoverParameters::UpdateScndPipePressure(double dt)
     TMoverParameters *c;
     double dv1, dv2, dV;
 
+	UpdateSpringBrake(dt);
+
     dv1 = 0;
     dv2 = 0;
 
@@ -4030,6 +4083,34 @@ void TMoverParameters::UpdateScndPipePressure(double dt)
         Pipe2->CreatePress(-1);
         Pipe2->Act();
     }
+}
+
+
+// *************************************************************************************************
+// yB: 20190906
+// Aktualizacja ciśnienia w hamulcu sprezynowym
+// *************************************************************************************************
+void TMoverParameters::UpdateSpringBrake(double dt)
+{
+	double SBP = SpringBrake.Cylinder->P();
+	double BP = SpringBrake.PNBrakeConnection ? BrakePress : 0;
+	double MSP = SpringBrake.ShuttOff ? 0 : SpringBrake.MaxSetPressure;
+	if (!SpringBrake.Activate)
+	{
+		double desired_press = std::min(std::max(MSP, BP), Pipe2->P());
+		double dv = PF(desired_press, SBP, SpringBrake.ValveOffArea);
+		SpringBrake.Cylinder->Flow(-dv);
+		Pipe2->Flow(std::max(dv,0.0));
+	}
+	else
+	{
+		double dv = PF(BP, SBP, SpringBrake.ValveOnArea);
+		SpringBrake.Cylinder->Flow(-dv);
+	}
+	if (SBP > SpringBrake.ResetPressure)
+		SpringBrake.IsReady = true;
+	SpringBrake.Release = false;
+	SpringBrake.Cylinder->Act();
 }
 
 // *************************************************************************************************
@@ -4372,6 +4453,9 @@ double TMoverParameters::BrakeForce( TTrackParam const &Track ) {
     {
         K = MaxBrakeForce * ManualBrakeRatio();
     }
+
+	if (SpringBrake.IsReady)
+		K += std::max(0.0, SpringBrake.MinForcePressure - SpringBrake.Cylinder->P()) * SpringBrake.MaxBrakeForce;
 
     u = ((BrakePress * P2FTrans) - BrakeCylSpring) * BrakeCylMult[0] - BrakeSlckAdj;
     if (u * BrakeRigEff > Ntotal) // histereza na nacisku klockow
@@ -8314,7 +8398,7 @@ bool TMoverParameters::LoadFIZ(std::string chkpath)
 
 		if (issection("Blending:", inputline)) {
 
-			startBPT = true; LISTLINE = 0;
+			startBPT = false; LISTLINE = 0;
 			fizlines.emplace( "Blending", inputline);
 			LoadFIZ_Blending( inputline );
 			continue;
@@ -8322,9 +8406,17 @@ bool TMoverParameters::LoadFIZ(std::string chkpath)
 
 		if (issection("DCEMUED:", inputline)) {
 
-			startBPT = true; LISTLINE = 0;
+			startBPT = false; LISTLINE = 0;
 			fizlines.emplace("DCEMUED", inputline);
 			LoadFIZ_DCEMUED(inputline);
+			continue;
+		}
+
+		if (issection("SpringBrake:", inputline)) {
+
+			startBPT = false; LISTLINE = 0;
+			fizlines.emplace("SpringBrake", inputline);
+			LoadFIZ_SpringBrake(inputline);
 			continue;
 		}
 
@@ -9195,6 +9287,30 @@ void TMoverParameters::LoadFIZ_DCEMUED(std::string const &line) {
 
 }
 
+
+void TMoverParameters::LoadFIZ_SpringBrake(std::string const &line) {
+
+	double vol;
+	extract_value(vol, "Volume", line, "1");
+	if (!SpringBrake.Cylinder)
+		SpringBrake.Cylinder = std::make_shared<TReservoir>();
+	SpringBrake.Cylinder->CreateCap(vol);
+	extract_value(SpringBrake.MaxBrakeForce, "MBF", line, "");
+	extract_value(SpringBrake.MaxSetPressure, "MaxSP", line, "");
+	extract_value(SpringBrake.ResetPressure, "ResetP", line, "");
+	extract_value(SpringBrake.MinForcePressure, "MinFP", line, "");
+	extract_value(SpringBrake.PressureOff, "PressOff", line, "");
+	extract_value(SpringBrake.PressureOn, "PressOn", line, "");
+	extract_value(SpringBrake.ValveOffArea, "ValveOnArea", line, "");
+	extract_value(SpringBrake.ValveOnArea, "ValveOffArea", line, "");
+	extract_value(SpringBrake.ValvePNBrakeArea, "ValvePNBArea", line, "");
+	SpringBrake.PNBrakeConnection = SpringBrake.ValvePNBrakeArea > 0;
+	extract_value(SpringBrake.MultiTractionCoupler, "MTC", line, "");
+	SpringBrake.ShuttOff = false;
+	SpringBrake.Activate = false;
+	SpringBrake.IsReady = true;
+}
+
 void TMoverParameters::LoadFIZ_Light( std::string const &line ) {
 
     LightPowerSource.SourceType = LoadFIZ_SourceDecode( extract_value( "Light", line ) );
@@ -9929,6 +10045,11 @@ bool TMoverParameters::CheckLocomotiveParameters(bool ReadyFlag, int Dir)
     Pipe2 = std::make_shared<TReservoir>(); // zabezpieczenie, bo sie PG wywala... :(
     Pipe->CreateCap( ( std::max( Dim.L, 14.0 ) + 0.5 ) * Spg * 1 ); // dlugosc x przekroj x odejscia i takie tam
     Pipe2->CreateCap( ( std::max( Dim.L, 14.0 ) + 0.5 ) * Spg * 1 );
+	if (!SpringBrake.Cylinder)
+	{
+		SpringBrake.Cylinder = std::make_shared<TReservoir>();
+		SpringBrake.Cylinder->CreateCap(1);
+	}
 
     if( LightsPosNo > 0 )
         LightsPos = LightsDefPos;
@@ -10699,6 +10820,16 @@ bool TMoverParameters::RunCommand( std::string Command, double CValue1, double C
 		if ((EngineType == TEngineType::ElectricInductionMotor))
 				ScndCtrlActualPos = static_cast<int>(round(CValue1));
 		OK = SendCtrlToNext(Command, CValue1, CValue2, Couplertype);
+	}
+	else if (Command == "SpringBrakeActivate")
+	{
+		if (Battery)
+		{
+			SpringBrake.Activate = CValue1 > 0;
+			OK = SendCtrlToNext(Command, CValue1, CValue2, Couplertype);
+		}
+		else
+			OK = true;
 	}
 
 	return OK; // dla true komenda będzie usunięta, dla false wykonana ponownie
