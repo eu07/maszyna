@@ -259,6 +259,13 @@ commanddescription_sequence Commands_descriptions = {
     { "spawntrainset", command_target::simulation, command_mode::oneoff },
     { "destroytrainset", command_target::simulation, command_mode::oneoff },
     { "quitsimulation", command_target::simulation, command_mode::oneoff },
+    { "springbraketoggle", command_target::vehicle, command_mode::oneoff },
+    { "springbrakeenable", command_target::vehicle, command_mode::oneoff },
+    { "springbrakedisable", command_target::vehicle, command_mode::oneoff },
+    { "springbrakeshutofftoggle", command_target::vehicle, command_mode::oneoff },
+    { "springbrakeshutoffenable", command_target::vehicle, command_mode::oneoff },
+    { "springbrakeshutoffdisable", command_target::vehicle, command_mode::oneoff },
+    { "springbrakerelease", command_target::vehicle }
 };
 
 } // simulation
