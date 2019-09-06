@@ -6207,17 +6207,20 @@ void TMoverParameters::CheckEIMIC(double dt)
 		}
 		break;
 	case 3:
-		if ((UniCtrlList[MainCtrlPos].mode != BrakeCtrlPos) && (MainCtrlActualPos == MainCtrlPos)) //there was no move of controller, but brake only
+		if (UniCtrlIntegratedBrakePNCtrl)
 		{
-			if (BrakeCtrlPos < UniCtrlList[MainCtrlPosNo].mode) 
-				BrakeLevelSet(UniCtrlList[MainCtrlPosNo].mode); //bottom clamping
-			if (BrakeCtrlPos > UniCtrlList[0].mode)
-				BrakeLevelSet(UniCtrlList[0].mode); //top clamping
-			while (BrakeCtrlPos > UniCtrlList[MainCtrlPos].mode) DecMainCtrl(1); //find nearest position
-			while (BrakeCtrlPos < UniCtrlList[MainCtrlPos].mode) IncMainCtrl(1); //find nearest position
+			if ((UniCtrlList[MainCtrlPos].mode != BrakeCtrlPos) && (MainCtrlActualPos == MainCtrlPos)) //there was no move of controller, but brake only
+			{
+				if (BrakeCtrlPos < UniCtrlList[MainCtrlPosNo].mode)
+					BrakeLevelSet(UniCtrlList[MainCtrlPosNo].mode); //bottom clamping
+				if (BrakeCtrlPos > UniCtrlList[0].mode)
+					BrakeLevelSet(UniCtrlList[0].mode); //top clamping
+				while (BrakeCtrlPos > UniCtrlList[MainCtrlPos].mode) DecMainCtrl(1); //find nearest position
+				while (BrakeCtrlPos < UniCtrlList[MainCtrlPos].mode) IncMainCtrl(1); //find nearest position
+			}
+			else //controller was moved
+				BrakeLevelSet(UniCtrlList[MainCtrlPos].mode);
 		}
-		else //controller was moved
-			BrakeLevelSet(UniCtrlList[MainCtrlPos].mode);
 
 		if ((MainCtrlActualPos != MainCtrlPos) || (LastRelayTime>InitialCtrlDelay))
 		{
@@ -6234,6 +6237,10 @@ void TMoverParameters::CheckEIMIC(double dt)
 		}
 		if (Hamulec->GetEDBCP() > 0.3 && eimic < 0) //when braking with pneumatic brake
 			eimic = 0; //shut off retarder
+		if (UniCtrlIntegratedBrakeCtrl == false)
+		{
+			eimic = (LocalBrakeRatio() > 0.01 ? -LocalBrakeRatio() : eimic);
+		}
 
 	}
     auto const eimicpowerenabled {
@@ -9399,6 +9406,8 @@ void TMoverParameters::LoadFIZ_RList( std::string const &Input ) {
 void TMoverParameters::LoadFIZ_UCList(std::string const &Input) {
 
 	extract_value(UniCtrlListSize, "Size", Input, "");
+	UniCtrlIntegratedBrakeCtrl = (extract_value("IntegratedBrake", Input) == "Yes");
+	UniCtrlIntegratedBrakePNCtrl = (extract_value("IntegratedBrakePN", Input) == "Yes");
 
 }
 
