@@ -350,7 +350,14 @@ TTrain::commandhandler_map const TTrain::m_commandhandlers = {
     { user_command::generictoggle6, &TTrain::OnCommand_generictoggle },
     { user_command::generictoggle7, &TTrain::OnCommand_generictoggle },
     { user_command::generictoggle8, &TTrain::OnCommand_generictoggle },
-    { user_command::generictoggle9, &TTrain::OnCommand_generictoggle }
+    { user_command::generictoggle9, &TTrain::OnCommand_generictoggle },
+	{ user_command::springbraketoggle, &TTrain::OnCommand_springbraketoggle },
+	{ user_command::springbrakeenable, &TTrain::OnCommand_springbrakeenable },
+	{ user_command::springbrakedisable, &TTrain::OnCommand_springbrakedisable },
+	{ user_command::springbrakeshutofftoggle, &TTrain::OnCommand_springbrakeshutofftoggle },
+	{ user_command::springbrakeshutoffenable, &TTrain::OnCommand_springbrakeshutoffenable },
+	{ user_command::springbrakeshutoffdisable, &TTrain::OnCommand_springbrakeshutoffdisable },
+	{ user_command::springbrakerelease, &TTrain::OnCommand_springbrakerelease }
 };
 
 std::vector<std::string> const TTrain::fPress_labels = {
@@ -4217,6 +4224,73 @@ void TTrain::OnCommand_generictoggle( TTrain *Train, command_data const &Command
         }
     }
 }
+
+void TTrain::OnCommand_springbraketoggle(TTrain *Train, command_data const &Command) {
+
+	if (Command.action == GLFW_PRESS) {
+		// only reacting to press, so the switch doesn't flip back and forth if key is held down
+		if (false == Train->mvOccupied->SpringBrake.Activate) {
+			// turn on
+			OnCommand_springbrakeenable(Train, Command);
+		}
+		else {
+			//turn off
+			OnCommand_springbrakedisable(Train, Command);
+		}
+	}
+};
+
+void TTrain::OnCommand_springbrakeenable(TTrain *Train, command_data const &Command) {
+	if (Command.action == GLFW_PRESS) {
+		// only reacting to press, so the switch doesn't flip back and forth if key is held down
+		Train->mvOccupied->SpringBrakeActivate(true);
+	}
+};
+
+void TTrain::OnCommand_springbrakedisable(TTrain *Train, command_data const &Command) {
+	if (Command.action == GLFW_PRESS) {
+		// only reacting to press, so the switch doesn't flip back and forth if key is held down
+		Train->mvOccupied->SpringBrakeActivate(false);
+	}
+};
+void TTrain::OnCommand_springbrakeshutofftoggle(TTrain *Train, command_data const &Command) {
+
+	if (Command.action == GLFW_PRESS) {
+		// only reacting to press, so the switch doesn't flip back and forth if key is held down
+		if (false == Train->mvOccupied->SpringBrake.ShuttOff) {
+			// turn on
+			OnCommand_springbrakeshutoffenable(Train, Command);
+		}
+		else {
+			//turn off
+			OnCommand_springbrakeshutoffdisable(Train, Command);
+		}
+	}
+};
+
+void TTrain::OnCommand_springbrakeshutoffenable(TTrain *Train, command_data const &Command) {
+	if (Command.action == GLFW_PRESS) {
+		// only reacting to press, so the switch doesn't flip back and forth if key is held down
+		Train->mvOccupied->SpringBrakeShutOff(true);
+	}
+};
+
+void TTrain::OnCommand_springbrakeshutoffdisable(TTrain *Train, command_data const &Command) {
+	if (Command.action == GLFW_PRESS) {
+		// only reacting to press, so the switch doesn't flip back and forth if key is held down
+		Train->mvOccupied->SpringBrakeShutOff(false);
+	}
+};
+
+void TTrain::OnCommand_springbrakerelease(TTrain *Train, command_data const &Command) {
+	if (Command.action == GLFW_PRESS) {
+		// only reacting to press, so the switch doesn't flip back and forth if key is held down
+		
+		auto *vehicle{ Train->find_nearest_consist_vehicle() };
+		if (vehicle == nullptr) { return; }
+		Train->mvOccupied->SpringBrakeRelease();
+	}
+};
 
 void TTrain::OnCommand_doorlocktoggle( TTrain *Train, command_data const &Command ) {
 

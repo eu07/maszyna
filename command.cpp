@@ -227,7 +227,14 @@ commanddescription_sequence Commands_descriptions = {
     { "motorblowerstogglerear", command_target::vehicle },
     { "motorblowersdisableall", command_target::vehicle },
     { "coolingfanstoggle", command_target::vehicle },
-    { "tempomattoggle", command_target::vehicle }
+    { "tempomattoggle", command_target::vehicle },
+	{ "springbraketoggle", command_target::vehicle },
+	{ "springbrakeenable", command_target::vehicle },
+	{ "springbrakedisable", command_target::vehicle },
+	{ "springbrakeshutofftoggle", command_target::vehicle },
+	{ "springbrakeshutoffenable", command_target::vehicle },
+	{ "springbrakeshutoffdisable", command_target::vehicle },
+	{ "springbrakerelease", command_target::vehicle }
 
 };
 
