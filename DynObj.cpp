@@ -848,15 +848,18 @@ void TDynamicObject::ABuLittleUpdate(double ObjSqrDist)
             //*************************************************************/// koniec
             // wezykow
             // uginanie zderzakow
-            for (int i = 0; i < 2; i++)
-            {
-                double dist = MoverParameters->Couplers[i].Dist / 2.0;
-                if (smBuforLewy[i])
-                    if (dist < 0)
-                        smBuforLewy[i]->SetTranslate( Math3D::vector3(dist, 0, 0));
-                if (smBuforPrawy[i])
-                    if (dist < 0)
-                        smBuforPrawy[i]->SetTranslate( Math3D::vector3(dist, 0, 0));
+            for (int i = 0; i < 2; ++i) {
+
+                auto const dist { clamp( MoverParameters->Couplers[ i ].Dist / 2.0, -MoverParameters->Couplers[ i ].DmaxB, 0.0 ) };
+
+                if( dist >= 0.0 ) { continue; }
+
+                if( smBuforLewy[ i ] ) {
+                    smBuforLewy[ i ]->SetTranslate( Math3D::vector3( dist, 0, 0 ) );
+                }
+                if( smBuforPrawy[ i ] ) {
+                    smBuforPrawy[ i ]->SetTranslate( Math3D::vector3( dist, 0, 0 ) );
+                }
             }
         } // vehicle within 50m
 
@@ -1644,6 +1647,7 @@ TDynamicObject::Init(std::string Name, // nazwa pojazdu, np. "EU07-424"
     }
     // load the cargo now that we know whether the vehicle will allow it
     MoverParameters->AssignLoad( LoadType, Load );
+    MoverParameters->ComputeMass();
 
     bool driveractive = (fVel != 0.0); // jeśli prędkość niezerowa, to aktywujemy ruch
     if (!MoverParameters->CheckLocomotiveParameters(
@@ -2221,12 +2225,9 @@ void TDynamicObject::Move(double fDistance)
         // Ra 2F1J: to nie jest stabilne (powoduje rzucanie taborem) i wymaga
         // dopracowania
         fAdjustment = vFront.Length() - fAxleDist; // na łuku będzie ujemny
-        // if (fabs(fAdjustment)>0.02) //jeśli jest zbyt dużo, to rozłożyć na kilka
-        // przeliczeń
-        // (wygasza drgania?)
+        // if (fabs(fAdjustment)>0.02) //jeśli jest zbyt dużo, to rozłożyć na kilka przeliczeń (wygasza drgania?)
         //{//parę centymetrów trzeba by już skorygować; te błędy mogą się też
-        // generować na ostrych
-        //łukach
+        // generować na ostrych łukach
         // fAdjustment*=0.5; //w jednym kroku korygowany jest ułamek błędu
         //}
         // else
@@ -2449,6 +2450,7 @@ void TDynamicObject::update_exchange( double const Deltatime ) {
                 m_exchange.unload_count -= exchangesize;
                 MoverParameters->LoadStatus = 1;
                 MoverParameters->LoadAmount = std::max( 0.f, MoverParameters->LoadAmount - exchangesize );
+                MoverParameters->ComputeMass();
                 update_load_visibility();
             }
             if( m_exchange.unload_count < 0.01 ) {
@@ -2463,6 +2465,7 @@ void TDynamicObject::update_exchange( double const Deltatime ) {
                     m_exchange.load_count -= exchangesize;
                     MoverParameters->LoadStatus = 2;
                     MoverParameters->LoadAmount = std::min( MoverParameters->MaxLoad, MoverParameters->LoadAmount + exchangesize ); // std::max not strictly needed but, eh
+                    MoverParameters->ComputeMass();
                     update_load_visibility();
                 }
             }
@@ -2799,8 +2802,8 @@ bool TDynamicObject::Update(double dt, double dt1)
             auto Frj { 0.0 };
             auto osie { 0 };
 			// 0a. ustal aktualna nastawe zadania sily napedowej i hamowania 
-			if (MoverParameters->Power < 1)
-			{
+			if( ( MoverParameters->Power < 1 )
+             && ( ctOwner != nullptr ) ) {
 				MoverParameters->MainCtrlPos = ctOwner->Controlling()->MainCtrlPos*MoverParameters->MainCtrlPosNo / std::max(1, ctOwner->Controlling()->MainCtrlPosNo);
 				MoverParameters->ScndCtrlActualPos = ctOwner->Controlling()->ScndCtrlActualPos;
 			}
@@ -3141,7 +3144,10 @@ bool TDynamicObject::Update(double dt, double dt1)
         -vPosition.x,
          vPosition.z,
          vPosition.y };
-    TRotation r { 0.0, 0.0, 0.0 };
+    TRotation const r {
+        0.0,
+        0.0,
+        modelRot.z };
     // McZapkie-260202 - dMoveLen przyda sie przy stukocie kol
     dDOMoveLen = GetdMoveLen() + MoverParameters->ComputeMovement(dt, dt1, ts, tp, tmpTraction, l, r);
     if( Mechanik )
@@ -3671,7 +3677,10 @@ bool TDynamicObject::FastUpdate(double dt)
         -vPosition.x,
          vPosition.z,
          vPosition.y };
-    TRotation r { 0.0, 0.0, 0.0 };
+    TRotation const r {
+        0.0,
+        0.0,
+        modelRot.z };
     // McZapkie: parametry powinny byc pobierane z toru
     // ts.R=MyTrack->fRadius;
     // ts.Len= Max0R(MoverParameters->BDist,MoverParameters->ADist);
@@ -3955,7 +3964,7 @@ void TDynamicObject::RenderSounds() {
     }
     // NBMX sygnal odjazdu
     if( MoverParameters->Doors.has_warning ) {
-        for( auto &door : m_doorsounds ) {
+        for( auto &departuresignalsound : m_departuresignalsounds ) {
             // TBD, TODO: per-location door state triggers?
             if( ( MoverParameters->DepartureSignal )
 /*
@@ -3966,10 +3975,10 @@ void TDynamicObject::RenderSounds() {
                  ) {
                 // for the autonomous doors play the warning automatically whenever a door is closing
                 // MC: pod warunkiem ze jest zdefiniowane w chk
-                door.sDepartureSignal.play( sound_flags::exclusive | sound_flags::looping );
+                departuresignalsound.play( sound_flags::exclusive | sound_flags::looping );
             }
             else {
-                door.sDepartureSignal.stop();
+                departuresignalsound.stop();
             }
         }
     }
@@ -4278,12 +4287,7 @@ void TDynamicObject::RenderSounds() {
     if( MoverParameters->EventFlag ) {
         // McZapkie: w razie wykolejenia
         if( true == TestFlag( MoverParameters->DamageFlag, dtrain_out ) ) {
-            if( GetVelocity() > 0 ) {
-                rsDerailment.play();
-            }
-            else {
-                rsDerailment.stop();
-            }
+            rsDerailment.play( sound_flags::exclusive );
         }
 
         MoverParameters->EventFlag = false;
@@ -5290,11 +5294,11 @@ void TDynamicObject::LoadMMediaFile( std::string const &TypeName, std::string co
                     sound_source soundtemplate { sound_placement::general, 25.f };
                     soundtemplate.deserialize( parser, sound_type::multipart, sound_parameters::range );
                     soundtemplate.owner( this );
-                    for( auto &door : m_doorsounds ) {
+                    for( auto &departuresignalsound : m_departuresignalsounds ) {
                         // apply configuration to all defined doors, but preserve their individual offsets
-                        auto const dooroffset { door.lock.offset() };
-                        door.sDepartureSignal = soundtemplate;
-                        door.sDepartureSignal.offset( dooroffset );
+                        auto const soundoffset { departuresignalsound.offset() };
+                        departuresignalsound = soundtemplate;
+                        departuresignalsound.offset( soundoffset );
                     }
                 }
 
@@ -5448,7 +5452,6 @@ void TDynamicObject::LoadMMediaFile( std::string const &TypeName, std::string co
                             // left...
                             auto const location { glm::vec3 { MoverParameters->Dim.W * 0.5f, MoverParameters->Dim.H * 0.5f, offset } };
                             door.placement = side::left;
-                            door.sDepartureSignal.offset( location );
                             door.rsDoorClose.offset( location );
                             door.rsDoorOpen.offset( location );
                             door.lock.offset( location );
@@ -5460,9 +5463,8 @@ void TDynamicObject::LoadMMediaFile( std::string const &TypeName, std::string co
                         if( ( sides == "both" )
                          || ( sides == "right" ) ) {
                             // ...and right
-                            auto const location { glm::vec3 { MoverParameters->Dim.W * -0.5f, MoverParameters->Dim.H * 0.5f, offset } };
+                            auto const location { glm::vec3 { MoverParameters->Dim.W * -0.5f, 2.f, offset } };
                             door.placement = side::right;
-                            door.sDepartureSignal.offset( location );
                             door.rsDoorClose.offset( location );
                             door.rsDoorOpen.offset( location );
                             door.lock.offset( location );
@@ -5471,6 +5473,10 @@ void TDynamicObject::LoadMMediaFile( std::string const &TypeName, std::string co
                             door.step_open.offset( location );
                             m_doorsounds.emplace_back( door );
                         }
+                        // potential departure sound, one per door (pair) on vehicle centreline
+                        sound_source departuresignalsound { sound_placement::general, 25.f };
+                        departuresignalsound.offset( glm::vec3{ 0.f, 3.f, offset } );
+                        m_departuresignalsounds.emplace_back( departuresignalsound );
                     }
                 }
 

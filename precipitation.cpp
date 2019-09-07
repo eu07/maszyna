@@ -127,7 +127,8 @@ basic_precipitation::update() {
 
     m_camerapos = Global.pCamera.Pos;
 
-    // intercept sudden user-induced camera jumps
+    // intercept sudden user-induced camera jumps...
+    // ...from free fly mode change
     if( m_freeflymode != FreeFlyModeFlag ) {
         m_freeflymode = FreeFlyModeFlag;
         if( true == m_freeflymode ) {
@@ -142,14 +143,17 @@ basic_precipitation::update() {
         }
         cameramove = glm::dvec3{ 0.0 };
     }
+    // ...from jump between cab and window/mirror view
     if( m_windowopen != Global.CabWindowOpen ) {
         m_windowopen = Global.CabWindowOpen;
         cameramove = glm::dvec3{ 0.0 };
     }
+    // ... from cab change
     if( ( simulation::Train != nullptr ) && ( simulation::Train->iCabn != m_activecab ) ) {
         m_activecab = simulation::Train->iCabn;
         cameramove = glm::dvec3{ 0.0 };
     }
+    // ... from camera jump to another location
     if( glm::length( cameramove ) > 100.0 ) {
         cameramove = glm::dvec3{ 0.0 };
     }

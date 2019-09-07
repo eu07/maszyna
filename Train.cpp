@@ -515,7 +515,7 @@ dictionary_source *TTrain::GetTrainState() {
     // induction motor state data
     char const *TXTT[ 10 ] = { "fd", "fdt", "fdb", "pd", "pdt", "pdb", "itothv", "1", "2", "3" };
     char const *TXTC[ 10 ] = { "fr", "frt", "frb", "pr", "prt", "prb", "im", "vm", "ihv", "uhv" };
-	char const *TXTD[ 10 ] = { "enrot", "nrot", "fill_des", "fill_real", "clutch_des", "clutch_real", "water_temp", "oil_press", "res1", "res2" };
+	char const *TXTD[ 10 ] = { "enrot", "nrot", "fill_des", "fill_real", "clutch_des", "clutch_real", "water_temp", "oil_press", "engine_temp", "res1" };
     char const *TXTP[ 3 ] = { "bc", "bp", "sp" };
     for( int j = 0; j < 10; ++j )
         dict->insert( ( "eimp_t_" + std::string( TXTT[ j ] ) ), fEIMParams[ 0 ][ j ] );
@@ -603,6 +603,7 @@ TTrain::get_state() const {
         btLampkaNadmWent.GetValue(),
         btLampkaWysRozr.GetValue(),
         btLampkaOgrzewanieSkladu.GetValue(),
+        static_cast<std::uint8_t>( iCabn ),
         btHaslerBrakes.GetValue(),
         btHaslerCurrent.GetValue(),
 		mvOccupied->SecuritySystem.is_beeping(),
@@ -612,8 +613,9 @@ TTrain::get_state() const {
         static_cast<float>( mvOccupied->PipePress ),
         static_cast<float>( mvOccupied->BrakePress ),
         fHVoltage,
-		{ fHCurrent[ ( mvControlled->TrainType & dt_EZT ) ? 0 : 1 ], fHCurrent[ 2 ], fHCurrent[ 3 ] },
-		mvOccupied->DistCounter
+        { fHCurrent[ ( mvControlled->TrainType & dt_EZT ) ? 0 : 1 ], fHCurrent[ 2 ], fHCurrent[ 3 ] },
+        ggLVoltage.GetValue(),
+        mvOccupied->DistCounter
     };
 }
 
@@ -4326,9 +4328,8 @@ void TTrain::OnCommand_doortoggleleft( TTrain *Train, command_data const &Comman
     if( Command.action == GLFW_PRESS ) {
         // NOTE: test how the door state check works with consists where the occupied vehicle doesn't have opening doors
         if( false == (
-            Train->mvOccupied->ActiveCab == 1 ?
-                Train->mvOccupied->Doors.instances[side::left].is_opening || Train->mvOccupied->Doors.instances[ side::left ].is_open :
-                Train->mvOccupied->Doors.instances[side::right].is_opening || Train->mvOccupied->Doors.instances[ side::right ].is_open ) ) {
+                ( Train->ggDoorLeftButton.GetDesiredValue() > 0.5 )
+             || ( Train->ggDoorLeftOnButton.GetDesiredValue() > 0.5 ) ) ) {
             // open
             OnCommand_dooropenleft( Train, Command );
         }
@@ -4348,9 +4349,8 @@ void TTrain::OnCommand_doortoggleleft( TTrain *Train, command_data const &Comman
     else if( Command.action == GLFW_RELEASE ) {
 
         if( true == (
-            Train->mvOccupied->ActiveCab == 1 ?
-                Train->mvOccupied->Doors.instances[side::left].is_opening || Train->mvOccupied->Doors.instances[ side::left ].is_open :
-                Train->mvOccupied->Doors.instances[side::right].is_opening || Train->mvOccupied->Doors.instances[ side::right ].is_open ) ) {
+              ( Train->ggDoorLeftButton.GetDesiredValue() > 0.5 )
+           || ( Train->ggDoorLeftOnButton.GetDesiredValue() > 0.5 ) ) ) {
             // open
             if( ( Train->mvOccupied->Doors.has_autowarning )
              && ( Train->mvOccupied->DepartureSignal ) ) {
@@ -4410,7 +4410,7 @@ void TTrain::OnCommand_doorpermitleft( TTrain *Train, command_data const &Comman
         }
         else {
             // two-state switch
-            auto const newstate { !( Train->mvOccupied->Doors.instances[ side ].open_permit ) };
+            auto const newstate { !( Train->ggDoorLeftPermitButton.GetDesiredValue() > 0.5 ) };
 
             Train->mvOccupied->PermitDoors( side, newstate );
             // visual feedback
@@ -4446,7 +4446,7 @@ void TTrain::OnCommand_doorpermitright( TTrain *Train, command_data const &Comma
         }
         else {
             // two-state switch
-            auto const newstate { !( Train->mvOccupied->Doors.instances[ side ].open_permit ) };
+            auto const newstate { !( Train->ggDoorRightPermitButton.GetDesiredValue() > 0.5 ) };
 
             Train->mvOccupied->PermitDoors( side, newstate );
             // visual feedback
@@ -4585,9 +4585,8 @@ void TTrain::OnCommand_doortoggleright( TTrain *Train, command_data const &Comma
     if( Command.action == GLFW_PRESS ) {
         // NOTE: test how the door state check works with consists where the occupied vehicle doesn't have opening doors
         if( false == (
-            Train->mvOccupied->ActiveCab == 1 ?
-                Train->mvOccupied->Doors.instances[side::right].is_opening || Train->mvOccupied->Doors.instances[ side::right ].is_open :
-                Train->mvOccupied->Doors.instances[side::left].is_opening || Train->mvOccupied->Doors.instances[ side::left ].is_open ) ) {
+                ( Train->ggDoorRightButton.GetDesiredValue() > 0.5 )
+             || ( Train->ggDoorRightOnButton.GetDesiredValue() > 0.5 ) ) ) {
             // open
             OnCommand_dooropenright( Train, Command );
         }
@@ -4607,9 +4606,8 @@ void TTrain::OnCommand_doortoggleright( TTrain *Train, command_data const &Comma
     else if( Command.action == GLFW_RELEASE ) {
 
         if( true == (
-            Train->mvOccupied->ActiveCab == 1 ?
-                Train->mvOccupied->Doors.instances[side::right].is_opening || Train->mvOccupied->Doors.instances[ side::right ].is_open :
-                Train->mvOccupied->Doors.instances[side::left].is_opening || Train->mvOccupied->Doors.instances[ side::left ].is_open ) ) {
+                ( Train->ggDoorRightButton.GetDesiredValue() > 0.5 )
+             || ( Train->ggDoorRightOnButton.GetDesiredValue() > 0.5 ) ) ) {
             // open
             if( ( Train->mvOccupied->Doors.has_autowarning )
              && ( Train->mvOccupied->DepartureSignal ) ) {
@@ -5467,7 +5465,9 @@ bool TTrain::Update( double const Deltatime )
                     in++;
                     iPowerNo = in;
                 }
-				if ((in < 8) && (p->MoverParameters->EngineType==TEngineType::DieselEngine))
+				if ((in < 8)
+                 && ((p->MoverParameters->EngineType==TEngineType::DieselEngine)
+                   ||(p->MoverParameters->EngineType==TEngineType::DieselElectric)))
 				{
 					fDieselParams[1 + in][0] = p->MoverParameters->enrot*60;
 					fDieselParams[1 + in][1] = p->MoverParameters->nrot;
@@ -5477,7 +5477,7 @@ bool TTrain::Update( double const Deltatime )
 					fDieselParams[1 + in][5] = p->MoverParameters->dizel_engage;
 					fDieselParams[1 + in][6] = p->MoverParameters->dizel_heat.Twy;
 					fDieselParams[1 + in][7] = p->MoverParameters->OilPump.pressure;
-					//fDieselParams[1 + in][8] = p->MoverParameters->
+					fDieselParams[1 + in][8] = p->MoverParameters->dizel_heat.Ts;
 					//fDieselParams[1 + in][9] = p->MoverParameters->
 					bMains[in] = p->MoverParameters->Mains;
 					fCntVol[in] = p->MoverParameters->BatteryVoltage;

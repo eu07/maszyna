@@ -127,6 +127,8 @@ struct global_settings {
     GLint iMaxTextureSize{ 4096 }; // maksymalny rozmiar tekstury
     int iMultisampling{ 2 }; // tryb antyaliasingu: 0=brak,1=2px,2=4px,3=8px,4=16px
     float SplineFidelity{ 1.f }; // determines segment size during conversion of splines to geometry
+    bool Smoke{ true }; // toggles smoke simulation and visualization
+    float SmokeFidelity{ 1.f }; // determines amount of generated smoke particles
     bool ResourceSweep{ true }; // gfx resource garbage collection
     bool ResourceMove{ false }; // gfx resources are moved between cpu and gpu side instead of sending a copy
     bool compress_tex{ true }; // all textures are compressed on gpu side

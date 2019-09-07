@@ -244,9 +244,14 @@ void uart_input::poll()
 	    uint16_t current1 = (uint16_t)std::min(conf.currentuart, trainstate.hv_current[0] / conf.currentmax * conf.currentuart);
 	    uint16_t current2 = (uint16_t)std::min(conf.currentuart, trainstate.hv_current[1] / conf.currentmax * conf.currentuart);
 	    uint16_t current3 = (uint16_t)std::min(conf.currentuart, trainstate.hv_current[2] / conf.currentmax * conf.currentuart);
-		uint32_t odometer = trainstate.distance * 10000.0;
+	    uint32_t odometer = trainstate.distance * 10000.0;
+        uint16_t lv_voltage = (uint16_t)std::min( conf.lvuart, trainstate.lv_voltage / conf.lvmax * conf.lvuart );
+        if( trainstate.cab > 0 ) {
+            // NOTE: moving from a cab to engine room doesn't change cab indicator
+            m_trainstatecab = trainstate.cab - 1;
+        }
 
-	    std::array<uint8_t, 31> buffer {
+	    std::array<uint8_t, 48> buffer {
 			//byte 0-1
 			SPLIT_INT16(tacho),
             //byte 2
@@ -272,7 +277,8 @@ void uart_input::poll()
               | trainstate.compressor_overload << 6),
             //byte 6
 			(uint8_t)(
-                trainstate.recorder_braking << 3
+                m_trainstatecab << 2
+              | trainstate.recorder_braking << 3
               | trainstate.recorder_power << 4
               | trainstate.radio_stop <<5
               | trainstate.alerter_sound << 7),
@@ -297,7 +303,11 @@ void uart_input::poll()
 			//byte 25-26
 			SPLIT_INT16(time.wSecond * 1000 + time.wMilliseconds),
 			//byte 27-30
-			SPLIT_INT16((uint16_t)odometer), SPLIT_INT16((uint16_t)(odometer >> 16))
+			SPLIT_INT16((uint16_t)odometer), SPLIT_INT16((uint16_t)(odometer >> 16)),
+			//byte 31-32
+			SPLIT_INT16(lv_voltage),
+			//byte 33-48
+			0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
 	    };
 
 		if (conf.debug)
