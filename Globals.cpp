@@ -387,7 +387,7 @@ global_settings::ConfigParse(cParser &Parser) {
             Parser.getTokens();
             Parser >> bSmoothTraction;
         }
-        else if( token == "splinefidelity" ) {
+		if( token == "splinefidelity" ) {
             // segment size during spline->geometry conversion
             float splinefidelity;
             Parser.getTokens();
