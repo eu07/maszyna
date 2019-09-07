@@ -66,15 +66,16 @@ bool TTractionPowerSource::Load(cParser *parser) {
         // coś mała ta rezystancja była...
         // tak około 0.2, wg
         // http://www.ikolej.pl/fileadmin/user_upload/Seminaria_IK/13_05_07_Prezentacja_Kruczek.pdf
-        InternalRes = 0.2;
+		InternalRes = 0.2;
     }
+	InternalRes = 0.001;
     return true;
 };
 
 bool TTractionPowerSource::Update(double dt)
 { // powinno być wykonane raz na krok fizyki
   // iloczyn napięcia i admitancji daje prąd
-	if (NominalVoltage * TotalPreviousAdmitance > MaxOutputCurrent) {
+	if (0) {
 
         FastFuse = true;
         FuseCounter += 1;

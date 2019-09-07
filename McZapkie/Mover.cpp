@@ -1191,7 +1191,7 @@ void TMoverParameters::CollisionDetect(int const End, double const dt)
 
 void
 TMoverParameters::damage_coupler( int const End ) {
-
+return;
     if( SetFlag( DamageFlag, dtrain_coupling ) )
         EventFlag = true;
 
