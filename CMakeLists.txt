@@ -160,6 +160,8 @@ if (WIN32)
 	set(libserialport_LIBRARY ${LIBSERIALPORT_LIBRARY} "${DEPS_DIR}/libserialport/lib/${ARCH}/libserialport-0.lib")
 endif()
 
+set(GLM_INCLUDE_DIR ${GLM_INCLUDE_DIR} "${DEPS_DIR}/glm/")
+
 if (${CMAKE_CXX_COMPILER_ID} STREQUAL MSVC)
 	set(SOURCES ${SOURCES} "eu07.rc")
 	set(SOURCES ${SOURCES} "eu07.ico")
