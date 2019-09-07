@@ -578,6 +578,8 @@ public: // reszta może by?publiczna
     TButton btLampkaBrakeProfileG; // cargo train brake acting speed
     TButton btLampkaBrakeProfileP; // passenger train brake acting speed
     TButton btLampkaBrakeProfileR; // rapid brake acting speed
+	TButton btLampkaSpringBrakeActive;
+	TButton btLampkaSpringBrakeInactive;
     // KURS90
     TButton btLampkaBoczniki;
     TButton btLampkaMaxSila;
