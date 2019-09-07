@@ -24,6 +24,7 @@ void trainingcard_panel::clear()
 {
 	start_time_wall.reset();
 	state.store(0);
+	recording_timestamp.clear();
 
 	place.clear();
 	trainee_name.clear();
@@ -53,10 +54,7 @@ void trainingcard_panel::save_thread_func()
 	tm = std::localtime(&now);
 	std::string to = std::to_string(tm->tm_hour) + ":" + std::to_string(tm->tm_min);
 
-	std::string rep = std::to_string(tm->tm_year + 1900) + std::to_string(tm->tm_mon + 1) + std::to_string(tm->tm_mday)
-	        + std::to_string(tm->tm_hour) + std::to_string(tm->tm_min) + "_" + std::string(trainee_name.c_str()) + "_" + std::string(instructor_name.c_str());
-
-	std::fstream temp("reports/" + rep + ".html", std::ios_base::out | std::ios_base::binary);
+	std::fstream temp("reports/" + recording_timestamp + ".html", std::ios_base::out | std::ios_base::binary);
 	std::fstream input("report_template.html", std::ios_base::in | std::ios_base::binary);
 
 	std::string in_line;
@@ -82,7 +80,7 @@ void trainingcard_panel::save_thread_func()
 	input.close();
 	temp.close();
 
-	state.store(EndRecording(rep));
+	state.store(EndRecording(recording_timestamp));
 }
 
 void trainingcard_panel::render_contents()
@@ -151,6 +149,9 @@ void trainingcard_panel::render_contents()
 	if (!start_time_wall) {
 		if (ImGui::Button("Rozpocznij szkolenie")) {
 			start_time_wall = std::time(nullptr);
+			std::tm *tm = std::localtime(&(*start_time_wall));
+			recording_timestamp = std::to_string(tm->tm_year + 1900) + std::to_string(tm->tm_mon + 1) + std::to_string(tm->tm_mday)
+			    + std::to_string(tm->tm_hour) + std::to_string(tm->tm_min) + "_" + std::string(trainee_name.c_str()) + "_" + std::string(instructor_name.c_str());
 
 			int ret = StartRecording();
 			if (ret != 1) {
@@ -171,4 +172,12 @@ void trainingcard_panel::render_contents()
 			ImGui::OpenPopup("Zapisywanie danych");
 		}
 	}
+}
+
+const std::string *trainingcard_panel::is_recording()
+{
+	if (!start_time_wall)
+		return nullptr;
+
+	return &recording_timestamp;
 }

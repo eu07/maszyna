@@ -33,7 +33,7 @@ drivingaid_panel::update() {
 
     if( false == is_open ) { return; }
 
-    text_lines.clear();
+	text_lines.clear();
 
     auto const *train { simulation::Train };
     auto const *controlled { ( train ? train->Dynamic() : nullptr ) };

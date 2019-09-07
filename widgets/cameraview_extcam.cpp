@@ -27,13 +27,19 @@ ui::cameraview_panel::~cameraview_panel() {
 
 void ui::cameraview_panel::render()
 {
-	if (!is_open)
+	if (!is_open) {
 		exit_thread = true;
+		return;
+	}
 
-	if (is_open)
-		ImGui::SetNextWindowSizeConstraints(ImVec2(200, 200), ImVec2(2500, 2500), cameraview_window_callback);
+	ImGui::SetNextWindowSizeConstraints(ImVec2(200, 200), ImVec2(2500, 2500), cameraview_window_callback);
 
-	ui_panel::render();
+	auto const panelname{(title.empty() ? m_name : title) + "###" + m_name};
+	if (ImGui::Begin(panelname.c_str())) {
+		render_contents();
+	}
+
+	ImGui::End();
 }
 
 void ui::cameraview_panel::render_contents()
@@ -82,7 +88,16 @@ void ui::cameraview_panel::render_contents()
 
 void ui::cameraview_panel::workthread_func()
 {
-	piped_proc proc(Global.extcam_cmd);
+	std::string cmdline = Global.extcam_cmd;
+
+	if (!rec_name.empty()) {
+		const std::string magic{"{RECORD}"};
+		size_t pos = cmdline.find(magic);
+		if (pos != -1)
+			cmdline.replace(pos, magic.size(), rec_name);
+	}
+
+	piped_proc proc(cmdline);
 
 	size_t frame_size = Global.extcam_res.x * Global.extcam_res.y * 3;
 	uint8_t *read_buffer = new uint8_t[frame_size];

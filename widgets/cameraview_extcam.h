@@ -27,5 +27,7 @@ class cameraview_panel : public ui_panel
 
 	void render() override;
 	void render_contents() override;
+
+	std::string rec_name;
 };
 } // namespace ui
