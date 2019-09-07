@@ -187,6 +187,11 @@ struct global_settings {
     bool captureonstart = true;
 	bool render_cab = true;
 
+#ifdef USE_EXTCAM_CAMERA
+	std::string extcam_cmd;
+	glm::ivec2 extcam_res{800, 600};
+#endif
+
 	std::chrono::duration<float> minframetime {0.0f};
 
 	std::string fullscreen_monitor;

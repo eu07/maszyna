@@ -1,8 +1,13 @@
+/* This Source Code Form is subject to the terms of the Mozilla Public
+* License, v. 2.0. If a copy of the MPL was not distributed with this
+* file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
 #include "stdafx.h"
-#include "widgets/cameraview.h"
+#include "widgets/cameraview_extcam.h"
 #include "stb/stb_image.h"
 #include "Globals.h"
 #include "Logs.h"
+#include "extras/piped_proc.h"
 
 ui::cameraview_panel::cameraview_panel()
     : ui_panel(STR_C("Camera preview"), false)
@@ -11,34 +16,19 @@ ui::cameraview_panel::cameraview_panel()
 }
 
 void cameraview_window_callback(ImGuiSizeCallbackData *data) {
-	data->DesiredSize.y = data->DesiredSize.x * 9.0f / 16.0f;
+	data->DesiredSize.y = data->DesiredSize.x * (float)Global.extcam_res.y / (float)Global.extcam_res.x;
 }
 
 ui::cameraview_panel::~cameraview_panel() {
-	if (!exit_thread) {
-		exit_thread = true;
-		{
-			std::lock_guard<std::mutex> lock(mutex);
-			stbi_image_free(image_ptr);
-			image_ptr = nullptr;
-		}
-		cv.notify_all();
-	}
+	exit_thread = true;
 	if (workthread.joinable())
-		workthread.join();
+		workthread.detach();
 }
 
 void ui::cameraview_panel::render()
 {
-	if (!is_open && !exit_thread) {
+	if (!is_open)
 		exit_thread = true;
-		{
-			std::lock_guard<std::mutex> lock(mutex);
-			stbi_image_free(image_ptr);
-			image_ptr = nullptr;
-		}
-		cv.notify_all();
-	}
 
 	if (is_open)
 		ImGui::SetNextWindowSizeConstraints(ImVec2(200, 200), ImVec2(2500, 2500), cameraview_window_callback);
@@ -52,7 +42,8 @@ void ui::cameraview_panel::render_contents()
 		if (workthread.joinable())
 			workthread.join();
 		exit_thread = false;
-		workthread = std::thread(&cameraview_panel::workthread_func, this);
+		if (!Global.extcam_cmd.empty())
+			workthread = std::thread(&cameraview_panel::workthread_func, this);
 	}
 
 	if (!texture) {
@@ -71,10 +62,9 @@ void ui::cameraview_panel::render_contents()
 			glTexImage2D(
 			    GL_TEXTURE_2D, 0,
 			    GL_SRGB8_ALPHA8,
-			    image_w, image_h, 0,
-			    GL_RGBA, GL_UNSIGNED_BYTE, image_ptr);
-
-			stbi_image_free(image_ptr);
+			    Global.extcam_res.x, Global.extcam_res.y, 0,
+			    GL_RGB, GL_UNSIGNED_BYTE, image_ptr);
+			image_ptr = nullptr;
 
 			if (Global.python_mipmaps) {
 				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
@@ -83,11 +73,8 @@ void ui::cameraview_panel::render_contents()
 			else {
 				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 			}
-
-			image_ptr = nullptr;
 		}
 	}
-	cv.notify_all();
 
 	ImVec2 surface_size = ImGui::GetContentRegionAvail();
 	ImGui::Image(reinterpret_cast<void*>(texture->id), surface_size);
@@ -95,31 +82,24 @@ void ui::cameraview_panel::render_contents()
 
 void ui::cameraview_panel::workthread_func()
 {
-	if (!device)
-		device = std::make_unique<VSDev>();
+	piped_proc proc(Global.extcam_cmd);
+
+	size_t frame_size = Global.extcam_res.x * Global.extcam_res.y * 3;
+	uint8_t *read_buffer = new uint8_t[frame_size];
+	uint8_t *active_buffer = new uint8_t[frame_size];
 
 	while (!exit_thread) {
-		uint8_t *buffer = nullptr;
-		size_t len = device->GetFrameFromStream((char**)&buffer);
+		if (proc.read(read_buffer, frame_size) != frame_size)
+			break;
 
-		if (buffer) {
-			int w, h;
-			stbi_set_flip_vertically_on_load(0);
-			uint8_t *image = stbi_load_from_memory(buffer, len, &w, &h, nullptr, 4);
-			if (!image)
-				ErrorLog(std::string(stbi_failure_reason()));
-
-			device->FreeFrameBuffer((char*)buffer);
-
-			std::unique_lock<std::mutex> lock(mutex);
-			if (image_ptr)
-				cv.wait(lock, [this]{return !image_ptr;});
-
-			image_w = w;
-			image_h = h;
-			image_ptr = image;
-		}
-		else
-			std::this_thread::sleep_for(std::chrono::milliseconds(5));
+		std::lock_guard<std::mutex> lock(mutex);
+		image_ptr = read_buffer;
+		read_buffer = active_buffer;
+		active_buffer = image_ptr;
 	}
+
+	std::lock_guard<std::mutex> lock(mutex);
+	image_ptr = nullptr;
+	delete[] read_buffer;
+	delete[] active_buffer;
 }

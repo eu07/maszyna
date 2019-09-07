@@ -29,7 +29,8 @@ file(GLOB HEADERS "*.h"
 "network/*.h"
 "network/backend/*.h"
 "widgets/*.h"
-"launcher/*.h")
+"launcher/*.h"
+"extras/*.h")
 
 if (APPLE)
 	set (CMAKE_EXE_LINKER_FLAGS "-pagezero_size 10000 -image_base 100000000")
@@ -37,6 +38,7 @@ endif()
 
 option(USE_IMGUI_GL3 "Use OpenGL3+ imgui implementation" ON)
 option(WITH_UART "Compile with libserialport" ON)
+option(USE_VSDEV_CAMERA "Use VS_Dev camera preview implementation" OFF)
 
 set(SOURCES
 "Texture.cpp"
@@ -140,7 +142,6 @@ set(SOURCES
 "widgets/vehicleparams.cpp"
 "widgets/trainingcard.cpp"
 "widgets/perfgraphs.cpp"
-"widgets/cameraview.cpp"
 
 "ref/glad/src/glad.c"
 
@@ -163,7 +164,6 @@ set(SOURCES
 "imgui/imgui_impl_glfw.cpp"
 
 "stb/stb_image.c"
-"extras/VS_Dev.cpp"
 
 "launcher/launchermode.cpp"
 "launcher/scenery_list.cpp"
@@ -184,6 +184,14 @@ endif()
 if (WITH_UART)
 	add_definitions(-DWITH_UART)
 	set(SOURCES ${SOURCES} "uart.cpp")
+endif()
+
+if (USE_VSDEV_CAMERA)
+	add_definitions(-DUSE_VSDEV_CAMERA)
+	set(SOURCES ${SOURCES} "extras/VS_Dev.cpp" "widgets/cameraview_vsdev.cpp")
+else()
+	add_definitions(-DUSE_EXTCAM_CAMERA)
+	set(SOURCES ${SOURCES} "extras/piped_proc.cpp" "widgets/cameraview_extcam.cpp")
 endif()
 
 set (PREFIX "")

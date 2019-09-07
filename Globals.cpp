@@ -703,6 +703,16 @@ global_settings::ConfigParse(cParser &Parser) {
             Parser >> uart_conf.debug;
         }
 #endif
+#ifdef USE_EXTCAM_CAMERA
+		else if( token == "extcam.cmd" ) {
+			Parser.getTokens( 1 );
+			Parser >> extcam_cmd;
+		}
+		else if( token == "extcam.res" ) {
+			Parser.getTokens( 2 );
+			Parser >> extcam_res.x >> extcam_res.y;
+		}
+#endif
 		else if (token == "loadinglog") {
             Parser.getTokens( 1 );
             Parser >> loading_log;
