@@ -615,7 +615,8 @@ TTrain::get_state() const {
         fHVoltage,
         { fHCurrent[ ( mvControlled->TrainType & dt_EZT ) ? 0 : 1 ], fHCurrent[ 2 ], fHCurrent[ 3 ] },
         ggLVoltage.GetValue(),
-        mvOccupied->DistCounter
+        mvOccupied->DistCounter,
+        iRadioChannel
     };
 }
 

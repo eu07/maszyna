@@ -306,8 +306,10 @@ void uart_input::poll()
 			SPLIT_INT16((uint16_t)odometer), SPLIT_INT16((uint16_t)(odometer >> 16)),
 			//byte 31-32
 			SPLIT_INT16(lv_voltage),
-			//byte 33-48
-			0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
+			//byte 33
+			(uint8_t)trainstate.radio_channel,
+			//byte 34-48
+			0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
 	    };
 
 		if (conf.debug)
