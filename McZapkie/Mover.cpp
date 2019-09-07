@@ -1051,7 +1051,10 @@ void TMoverParameters::CollisionDetect(int const End, double const dt)
 
     if( velocitydifference > safevelocitylimit ) {
         // HACK: crude estimation for potential derail, will take place with velocity difference > 15 km/h adjusted for vehicle mass ratio
-        WriteLog( "Bad driving: " + Name + " and " + othervehicle->Name + " collided with velocity " + to_string( velocitydifference, 0 ) + " km/h" );
+        if( ( false == TestFlag( DamageFlag, dtrain_out ) )
+         || ( false == TestFlag( othervehicle->DamageFlag, dtrain_out ) ) ) {
+            WriteLog( "Bad driving: " + Name + " and " + othervehicle->Name + " collided with velocity " + to_string( velocitydifference, 0 ) + " km/h" );
+        }
 
         if( velocitydifference > safevelocitylimit * ( TotalMass / othervehicle->TotalMass ) ) {
             derail( 5 );
@@ -1084,12 +1087,14 @@ void TMoverParameters::CollisionDetect(int const End, double const dt)
 void
 TMoverParameters::damage_coupler( int const End ) {
 
+    auto &coupler{ Couplers[ End ] };
+
+    if( coupler.CouplerType == TCouplerType::Articulated ) { return; } // HACK: don't break articulated couplings no matter what
+
     if( SetFlag( DamageFlag, dtrain_coupling ) )
         EventFlag = true;
 
-    auto &coupler { Couplers[ End ] };
-
-    if( ( coupler.CouplingFlag & ctrain_pneumatic ) == ctrain_pneumatic ) {
+    if( ( coupler.CouplingFlag & coupling::brakehose ) == coupling::brakehose ) {
         // hamowanie nagle - zerwanie przewodow hamulcowych
         AlarmChainFlag = true;
     }
@@ -1100,11 +1105,11 @@ TMoverParameters::damage_coupler( int const End ) {
         switch( End ) {
             // break connection with other vehicle, if there's any
             case 0: {
-                coupler.Connected->Couplers[ end::rear ].CouplingFlag = 0;
+                coupler.Connected->Couplers[ end::rear ].CouplingFlag = coupling::faux;
                 break;
             }
             case 1: {
-                coupler.Connected->Couplers[ end::front ].CouplingFlag = 0;
+                coupler.Connected->Couplers[ end::front ].CouplingFlag = coupling::faux;
                 break;
             }
             default: {
@@ -2301,7 +2306,7 @@ bool TMoverParameters::CabDeactivisation(void)
         CabNo = 0;
         DirAbsolute = ActiveDir * CabNo;
         DepartureSignal = false; // nie buczeć z nieaktywnej kabiny
-        SecuritySystem.Status = 0; // deactivate alerter TODO: make it part of control based cab selection
+        SecuritySystem.Status = s_off; // deactivate alerter TODO: make it part of control based cab selection
 
         SendCtrlToNext("CabActivisation", 0, ActiveCab); // CabNo==0!
     }
@@ -2446,7 +2451,7 @@ void TMoverParameters::SecuritySystemCheck(double dt)
 		RadiostopSwitch(false);
 
     if ((SecuritySystem.SystemType > 0)
-     && (SecuritySystem.Status > 0)
+     && (SecuritySystem.Status != s_off)
      && (Battery)) // Ra: EZT ma teraz czuwak w rozrządczym
     {
         // CA
@@ -2537,8 +2542,8 @@ bool TMoverParameters::BatterySwitch(bool State)
         SendCtrlToNext("BatterySwitch", 0, CabNo);
     BS = true;
 
-    if ((Battery) && (ActiveCab != 0)) /*|| (TrainType==dt_EZT)*/
-        SecuritySystem.Status = (SecuritySystem.Status | s_waiting); // aktywacja czuwaka
+    if ((Battery) && (ActiveCab != 0))
+        SecuritySystem.Status |= s_waiting; // aktywacja czuwaka
     else
         SecuritySystem.Status = 0; // wyłączenie czuwaka
 
@@ -10397,10 +10402,13 @@ bool TMoverParameters::RunCommand( std::string Command, double CValue1, double C
             Battery = true;
         else if ((CValue1 == 0))
             Battery = false;
-        if ((Battery) && (ActiveCab != 0) /*or (TrainType=dt_EZT)*/)
+        /*
+        // TBD: makes no sense to activate alerters in entire consist
+        if ((Battery) && (ActiveCab != 0) )
             SecuritySystem.Status = SecuritySystem.Status | s_waiting; // aktywacja czuwaka
         else
             SecuritySystem.Status = 0; // wyłączenie czuwaka
+        */
         OK = SendCtrlToNext( Command, CValue1, CValue2, Couplertype );
     }
     //   else if command='EpFuseSwitch' then         {NBMX}

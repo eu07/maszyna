@@ -672,7 +672,7 @@ state_serializer::deserialize_endtrainset( cParser &Input, scene::scratch_data &
     for( auto *vehicle : Scratchpad.trainset.vehicles ) {
         // go through list of vehicles in the trainset, coupling them together and checking for potential driver
         if( ( vehicle->Mechanik != nullptr )
-         && ( vehicle->Mechanik->Primary() ) ) {
+         && ( vehicle->Mechanik->primary() ) ) {
             // primary driver will receive the timetable for this trainset
             Scratchpad.trainset.driver = vehicle;
             // they'll also receive assignment data if there's any

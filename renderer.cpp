@@ -179,16 +179,17 @@ opengl_particles::update( opengl_camera const &Camera ) {
     if( m_buffercapacity < m_particlevertices.size() ) {
         // allocate gpu side buffer big enough to hold the data
         m_buffercapacity = 0;
-        if( m_buffer != -1 ) {
+        if( m_buffer != (GLuint)-1 ) {
             // get rid of the old buffer
             ::glDeleteBuffers( 1, &m_buffer );
+            m_buffer = (GLuint)-1;
         }
         ::glGenBuffers( 1, &m_buffer );
-        ::glBindBuffer( GL_ARRAY_BUFFER, m_buffer );
-        if( m_buffer > 0 ) {
+        if( ( m_buffer > 0 ) && ( m_buffer != (GLuint)-1 ) ) {
             // if we didn't get a buffer we'll try again during the next draw call
             // NOTE: we match capacity instead of current size to reduce number of re-allocations
             auto const particlecount { m_particlevertices.capacity() };
+            ::glBindBuffer( GL_ARRAY_BUFFER, m_buffer );
             ::glBufferData(
                 GL_ARRAY_BUFFER,
                 particlecount * sizeof( particle_vertex ),
@@ -198,7 +199,7 @@ opengl_particles::update( opengl_camera const &Camera ) {
                 // TBD: throw a bad_alloc?
                 ErrorLog( "openGL error: out of memory; failed to create a geometry buffer" );
                 ::glDeleteBuffers( 1, &m_buffer );
-                m_buffer = -1;
+                m_buffer = (GLuint)-1;
             }
             else {
                 m_buffercapacity = particlecount;
@@ -206,7 +207,7 @@ opengl_particles::update( opengl_camera const &Camera ) {
         }
     }
     // ...send the data...
-    if( m_buffer > 0 ) {
+    if( ( m_buffer > 0 ) && ( m_buffer != (GLuint)-1 ) ) {
         // if the buffer exists at this point it's guaranteed to be big enough to hold our data
         ::glBindBuffer( GL_ARRAY_BUFFER, m_buffer );
         ::glBufferSubData(
@@ -225,6 +226,7 @@ opengl_particles::render( int const Textureunit ) {
     if( false == Global.Smoke ) { return; }
     if( m_buffercapacity == 0 ) { return; }
     if( m_particlevertices.empty() ) { return; }
+    if( ( m_buffer == 0 ) || ( m_buffer == (GLuint)-1 ) ) { return; }
 
     // setup...
     ::glPushClientAttrib( GL_CLIENT_VERTEX_ARRAY_BIT );
@@ -239,6 +241,10 @@ opengl_particles::render( int const Textureunit ) {
     // ...draw...
     ::glDrawArrays( GL_QUADS, 0, m_particlevertices.size() );
     // ...and cleanup
+    ::glBindBuffer( GL_ARRAY_BUFFER, 0 );
+    if( Global.bUseVBO ) {
+        gfx::opengl_vbogeometrybank::reset();
+    }
     ::glPopClientAttrib();
 }
 
@@ -3163,10 +3169,6 @@ opengl_renderer::Render_particles() {
 
     Bind_Texture( m_smoketexture );
     m_particlerenderer.render( m_diffusetextureunit );
-    if( Global.bUseVBO ) {
-        // shouldn't be strictly necessary but, eh
-        gfx::opengl_vbogeometrybank::reset();
-    }
 
     ::glDepthMask( GL_TRUE );
     ::glEnable( GL_LIGHTING );

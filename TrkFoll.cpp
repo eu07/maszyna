@@ -116,7 +116,7 @@ bool TTrackFollower::Move(double fDistance, bool bPrimary)
             if( false == ismoving ) {
                 //McZapkie-140602: wyzwalanie zdarzenia gdy pojazd stoi
                 if( ( Owner->Mechanik != nullptr )
-                 && ( Owner->Mechanik->Primary() ) ) {
+                 && ( Owner->Mechanik->primary() ) ) {
                     // tylko dla jednego członu
                     pCurrentTrack->QueueEvents( pCurrentTrack->m_events0, Owner );
                 }
@@ -127,7 +127,7 @@ bool TTrackFollower::Move(double fDistance, bool bPrimary)
                 if( SetFlag( iEventFlag, -1 ) ) {
                     // zawsze zeruje flagę sprawdzenia, jak mechanik dosiądzie, to się nie wykona
                     if( ( Owner->Mechanik != nullptr )
-                     && ( Owner->Mechanik->Primary() ) ) {
+                     && ( Owner->Mechanik->primary() ) ) {
                         // tylko dla jednego członu
                         // McZapkie-280503: wyzwalanie event tylko dla pojazdow z obsada
                         pCurrentTrack->QueueEvents( pCurrentTrack->m_events1, Owner );
@@ -143,7 +143,7 @@ bool TTrackFollower::Move(double fDistance, bool bPrimary)
                 if( SetFlag( iEventFlag, -2 ) ) {
                     // zawsze ustawia flagę sprawdzenia, jak mechanik dosiądzie, to się nie wykona
                     if( ( Owner->Mechanik != nullptr )
-                     && ( Owner->Mechanik->Primary() ) ) {
+                     && ( Owner->Mechanik->primary() ) ) {
                         // tylko dla jednego członu
                          pCurrentTrack->QueueEvents( pCurrentTrack->m_events2, Owner );
                     }

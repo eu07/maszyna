@@ -43,6 +43,9 @@ http://mozilla.org/MPL/2.0/.
 #pragma comment (lib, "dbghelp.lib")
 #pragma comment (lib, "version.lib")
 
+extern "C" { _declspec( dllexport ) DWORD AmdPowerXpressRequestHighPerformance = 0x00000001; }
+extern "C" { _declspec( dllexport ) DWORD NvOptimusEnablement = 0x00000001; }
+
 eu07_application Application;
 
 ui_layer uilayerstaticinitializer;

@@ -204,6 +204,7 @@ static int const dbrake_automatic = 8;
 
 /*status czuwaka/SHP*/
 //hunter-091012: rozdzielenie alarmow, dodanie testu czuwaka
+static int const s_off = 0; //disabled
 static int const s_waiting = 1; //działa
 static int const s_aware = 2;   //czuwak miga
 static int const s_active = 4;  //SHP świeci

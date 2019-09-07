@@ -194,9 +194,13 @@ public:
 public:
     void UpdateSituation(double dt); // uruchamiac przynajmniej raz na sekundę
     void MoveTo(TDynamicObject *to);
-    void TakeControl(bool yes);
+    void TakeControl(bool const Aidriver, bool const Forcevehiclecheck = false);
     inline
-    bool Primary() const {
+    bool primary( bool const Primary ) {
+        SetFlag( iDrivigFlags, ( Primary ? movePrimary : -movePrimary ) );
+        return primary(); }
+    inline
+    bool primary() const {
         return ( ( iDrivigFlags & movePrimary ) != 0 ); };
     inline
     TMoverParameters const *Controlling() const {
@@ -210,8 +214,11 @@ public:
     inline
     int Direction() const {
         return iDirection; }
+    inline
+    TAction & action() {
+        return eAction; }
     inline 
-    TAction GetAction() {
+    TAction const & action() const {
         return eAction; }
 private:
     void Activation(); // umieszczenie obsady w odpowiednim członie

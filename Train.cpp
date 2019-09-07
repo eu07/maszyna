@@ -5667,7 +5667,7 @@ bool TTrain::Update( double const Deltatime )
                 }
             }
             // McZapkie-141102: SHP i czuwak, TODO: sygnalizacja kabinowa
-            if( mvOccupied->SecuritySystem.Status > 0 ) {
+            if( mvOccupied->SecuritySystem.Status != s_off ) {
                 if( fBlinkTimer >  fCzuwakBlink )
                     fBlinkTimer = -fCzuwakBlink;
                 else
@@ -5695,7 +5695,7 @@ bool TTrain::Update( double const Deltatime )
                     false ) );
             btLampkaWylSzybkiOff.Turn(
                 ( ( ( mvControlled->MainsInitTimeCountdown > 0.0 )
-                 || ( fHVoltage == 0.0 )
+//                 || ( fHVoltage == 0.0 )
                  || ( m_linebreakerstate == 2 )
                  || ( true == mvControlled->Mains ) ) ?
                     false :
@@ -5928,7 +5928,10 @@ bool TTrain::Update( double const Deltatime )
                     auto const *mover { tmp->MoverParameters };
 
                     btLampkaWylSzybkiB.Turn( mover->Mains );
-                    btLampkaWylSzybkiBOff.Turn( ( false == mover->Mains ) && ( mover->MainsInitTimeCountdown <= 0.0 ) && ( fHVoltage != 0.0 ) );
+                    btLampkaWylSzybkiBOff.Turn(
+                        ( false == mover->Mains )
+                     && ( mover->MainsInitTimeCountdown <= 0.0 )
+                   /*&& ( fHVoltage != 0.0 )*/ );
 
                     btLampkaOporyB.Turn(mover->ResistorsFlagCheck());
                     btLampkaBezoporowaB.Turn(
@@ -6528,7 +6531,7 @@ TTrain::update_sounds( double const Deltatime ) {
     }
 
     // McZapkie-141102: SHP i czuwak, TODO: sygnalizacja kabinowa
-    if (mvOccupied->SecuritySystem.Status > 0) {
+    if (mvOccupied->SecuritySystem.Status != s_off ) {
         // hunter-091012: rozdzielenie alarmow
         if( TestFlag( mvOccupied->SecuritySystem.Status, s_CAalarm )
          || TestFlag( mvOccupied->SecuritySystem.Status, s_SHPalarm ) ) {

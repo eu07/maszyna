@@ -2110,12 +2110,18 @@ bool TController::CheckVehicles(TOrders user)
     { // sprawdzanie, czy jest głównym sterującym, żeby nie było konfliktu
         if (p->Mechanik) // jeśli ma obsadę
             if (p->Mechanik != this) // ale chodzi o inny pojazd, niż aktualnie sprawdzający
-                if (p->Mechanik->iDrivigFlags & movePrimary) // a tamten ma priorytet
-                    if ((iDrivigFlags & movePrimary) && (mvOccupied->DirAbsolute) &&
-                        (mvOccupied->BrakeCtrlPos >= -1)) // jeśli rządzi i ma kierunek
-                        p->Mechanik->iDrivigFlags &= ~movePrimary; // dezaktywuje tamtego
-                    else
+                if( p->Mechanik->iDrivigFlags & movePrimary ) {
+                    // a tamten ma priorytet
+                    if( ( iDrivigFlags & movePrimary )
+                     && ( mvOccupied->DirAbsolute )
+                     && ( mvOccupied->BrakeCtrlPos >= -1 ) ) {
+                        // jeśli rządzi i ma kierunek
+                        p->Mechanik->primary( false ); // dezaktywuje tamtego
+                    }
+                    else {
                         main = false; // nici z rządzenia
+                    }
+                }
         ++iVehicles; // jest jeden pojazd więcej
         pVehicles[1] = p; // zapamiętanie ostatniego
         fLength += p->MoverParameters->Dim.L; // dodanie długości pojazdu
@@ -4763,7 +4769,7 @@ TController::UpdateSituation(double dt) {
                 // rozpoznaj komende bo lokomotywa jej nie rozpoznaje
                 RecognizeCommand(); // samo czyta komendę wstawioną do pojazdu?
             }
-        if( mvOccupied->SecuritySystem.Status > 1 ) {
+        if( mvOccupied->SecuritySystem.Status != s_off ) {
             // jak zadziałało CA/SHP
             if( !mvOccupied->SecuritySystemReset() ) { // to skasuj
                 if( ( /*mvOccupied->BrakeCtrlPos*/BrakeCtrlPosition == 0 )
@@ -6759,43 +6765,56 @@ void TController::UpdateDelayFlag() {
 
 //-----------koniec skanowania semaforow
 
-void TController::TakeControl(bool yes)
+void TController::TakeControl( bool const Aidriver, bool const Forcevehiclecheck )
 { // przejęcie kontroli przez AI albo oddanie
-    if (AIControllFlag == yes)
+    if (AIControllFlag == Aidriver)
         return; // już jest jak ma być
-    if (yes) //żeby nie wykonywać dwa razy
+    if (Aidriver) //żeby nie wykonywać dwa razy
     { // teraz AI prowadzi
         AIControllFlag = AIdriver;
         pVehicle->Controller = AIdriver;
         iDirection = 0; // kierunek jazdy trzeba dopiero zgadnąć
-        // gdy zgaszone światła, flaga podjeżdżania pod semafory pozostaje bez zmiany
-        // conditional below disabled to get around the situation where the AI train does nothing ever
-        // because it is waiting for orders which don't come until the engine is engaged, i.e. effectively never
-        if (OrderCurrentGet()) // jeśli coś robi
-            PrepareEngine(); // niech sprawdzi stan silnika
-        else // jeśli nic nie robi
-        if (pVehicle->iLights[ ( mvOccupied->CabNo < 0 ?
-                end::rear :
-                end::front ) ]
-            & (light::headlight_left | light::headlight_right | light::headlight_upper)) // któreś ze świateł zapalone?
-        { // od wersji 357 oczekujemy podania komend dla AI przez scenerię
-            OrderNext(Prepare_engine);
-            if (pVehicle->iLights[mvOccupied->CabNo < 0 ? end::rear : end::front] & light::headlight_upper) // górne światło zapalone
-                OrderNext(Obey_train); // jazda pociągowa
-            else
-                OrderNext(Shunt); // jazda manewrowa
-            if (mvOccupied->Vel >= 1.0) // jeśli jedzie (dla 0.1 ma stać)
-                iDrivigFlags &= ~moveStopHere; // to ma nie czekać na sygnał, tylko jechać
-            else
-                iDrivigFlags |= moveStopHere; // a jak stoi, to niech czeka
-        }
-        CheckVehicles(); // ustawienie świateł
         TableClear(); // ponowne utworzenie tabelki, bo człowiek mógł pojechać niezgodnie z sygnałami
+        if( action() != TAction::actSleep ) {
+            // gdy zgaszone światła, flaga podjeżdżania pod semafory pozostaje bez zmiany
+            // conditional below disabled to get around the situation where the AI train does nothing ever
+            // because it is waiting for orders which don't come until the engine is engaged, i.e. effectively never
+            if( OrderCurrentGet() ) {
+                // jeśli coś robi
+                PrepareEngine(); // niech sprawdzi stan silnika
+            }
+            else {
+                // jeśli nic nie robi
+                if( pVehicle->iLights[ ( mvOccupied->CabNo < 0 ?
+                        end::rear :
+                        end::front ) ]
+                    & ( light::headlight_left | light::headlight_right | light::headlight_upper ) ) // któreś ze świateł zapalone?
+                { // od wersji 357 oczekujemy podania komend dla AI przez scenerię
+                    OrderNext( Prepare_engine );
+                    if( pVehicle->iLights[ mvOccupied->CabNo < 0 ? end::rear : end::front ] & light::headlight_upper ) // górne światło zapalone
+                        OrderNext( Obey_train ); // jazda pociągowa
+                    else
+                        OrderNext( Shunt ); // jazda manewrowa
+                    if( mvOccupied->Vel >= 1.0 ) // jeśli jedzie (dla 0.1 ma stać)
+                        iDrivigFlags &= ~moveStopHere; // to ma nie czekać na sygnał, tylko jechać
+                    else
+                        iDrivigFlags |= moveStopHere; // a jak stoi, to niech czeka
+                }
+            }
+            CheckVehicles(); // ustawienie świateł
+        }
     }
     else
     { // a teraz użytkownik
         AIControllFlag = Humandriver;
         pVehicle->Controller = Humandriver;
+        if( eAction == TAction::actSleep ) {
+            eAction = TAction::actUnknown;
+        }
+        if( Forcevehiclecheck ) {
+            // update consist ownership and other consist data
+            CheckVehicles();
+        }
     }
 };
 
