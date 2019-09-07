@@ -162,7 +162,7 @@ openal_source::sync_with( sound_properties const &State ) {
          || ( false == is_in_range ) ) {
             // if the emitter is outside of its nominal hearing range or was outside of it during last check
             // adjust the volume to a suitable fraction of nominal value
-            auto const fadedistance { sound_range * 0.75 };
+            auto const fadedistance { sound_range * 0.75f };
             auto const rangefactor {
                 interpolate(
                     1.f, 0.f,

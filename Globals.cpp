@@ -179,12 +179,6 @@ global_settings::ConfigParse(cParser &Parser) {
             Parser.getTokens();
             Parser >> DisabledLogTypes;
         }
-        else if( token == "adjustscreenfreq" )
-        {
-            // McZapkie-240403 - czestotliwosc odswiezania ekranu
-            Parser.getTokens();
-            Parser >> bAdjustScreenFreq;
-        }
         else if (token == "mousescale")
         {
             // McZapkie-060503 - czulosc ruchu myszy (krecenia glowa)
@@ -374,6 +368,18 @@ global_settings::ConfigParse(cParser &Parser) {
             // shadow render toggle
             Parser.getTokens();
             Parser >> RenderCabShadowsRange;
+        }
+        else if( token == "gfx.smoke" ) {
+            // smoke visualization toggle
+            Parser.getTokens();
+            Parser >> Smoke;
+        }
+        else if( token == "gfx.smoke.fidelity" ) {
+            // smoke visualization fidelity
+            float smokefidelity;
+            Parser.getTokens();
+            Parser >> smokefidelity;
+            SmokeFidelity = clamp( smokefidelity, 1.f, 4.f );
         }
         else if (token == "smoothtraction")
         {
@@ -668,7 +674,7 @@ global_settings::ConfigParse(cParser &Parser) {
                 >> uart_conf.updatetime;
         }
         else if( token == "uarttune" ) {
-            Parser.getTokens( 14 );
+            Parser.getTokens( 16 );
             Parser
                 >> uart_conf.mainbrakemin
                 >> uart_conf.mainbrakemax
@@ -683,7 +689,9 @@ global_settings::ConfigParse(cParser &Parser) {
                 >> uart_conf.hvmax
                 >> uart_conf.hvuart
                 >> uart_conf.currentmax
-                >> uart_conf.currentuart;
+                >> uart_conf.currentuart
+                >> uart_conf.lvmax
+                >> uart_conf.lvuart;
         }
         else if( token == "uartfeature" ) {
             Parser.getTokens( 4 );

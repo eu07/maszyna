@@ -194,12 +194,16 @@ world_environment::update_wind() {
 
     m_wind.change_time -= timedelta;
     if( m_wind.change_time < 0 ) {
-        m_wind.change_time = Random( 5, 30 );
-        m_wind.velocity_change = Random( -1, 1 );
-        if( Random() < 0.2 ) {
+        m_wind.change_time = Random( 5, 15 );
+        m_wind.velocity_change = Random( -0.2, 0.2 );
+        if( Random() < 0.05 ) {
             // changes in wind direction should be less frequent than changes in wind speed
             // TBD, TODO: configuration-driven direction change frequency
             m_wind.azimuth_change = Random( -5, 5 );
+        }
+        else {
+            // keep direction change periods short, to avoid too drastic changes in direction
+            m_wind.azimuth_change = 0.0;
         }
     }
     // TBD, TODO: wind configuration
@@ -213,9 +217,9 @@ world_environment::update_wind() {
     m_wind.vector =
         std::max( 0.f, m_wind.velocity )
         *  glm::vec3(
-            std::sin( polarangle ) * std::sin( azimuthalangle ),
+            std::sin( polarangle ) * std::sin( azimuthalangle ) * -1,
             std::cos( polarangle ),
-            std::sin( polarangle ) * std::cos( azimuthalangle ) * -1 );
+            std::sin( polarangle ) * std::cos( azimuthalangle ) );
 }
 
 void

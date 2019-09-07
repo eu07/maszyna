@@ -120,6 +120,9 @@ void
 opengl_particles::update( opengl_camera const &Camera ) {
 
     m_particlevertices.clear();
+
+    if( false == Global.Smoke ) { return; }
+
     // build a list of visible smoke sources
     // NOTE: arranged by distance to camera, if we ever need sorting and/or total amount cap-based culling
     std::multimap<float, smoke_source const &> sources;
@@ -139,6 +142,12 @@ opengl_particles::update( opengl_camera const &Camera ) {
     particle_vertex vertex;
     for( auto const &source : sources ) {
 
+        auto const particlecolor {
+            glm::clamp(
+                source.second.color()
+                * ( glm::vec3 { Global.DayLight.ambient } + 0.35f * glm::vec3{ Global.DayLight.diffuse } )
+                * 255.f,
+                glm::vec3{ 0.f }, glm::vec3{ 255.f } ) };
         auto const &particles { source.second.sequence() };
         // TODO: put sanity cap on the overall amount of particles that can be drawn
         auto const sizestep { 256.0 * billboard_vertices.size() };
@@ -146,9 +155,9 @@ opengl_particles::update( opengl_camera const &Camera ) {
             sizestep * std::ceil( m_particlevertices.size() + ( particles.size() * billboard_vertices.size() ) / sizestep ) );
         for( auto const &particle : particles ) {
             // TODO: particle color support
-            vertex.color[ 0 ] =
-            vertex.color[ 1 ] =
-            vertex.color[ 2 ] = static_cast<std::uint8_t>( Global.fLuminance * 32 );
+            vertex.color[ 0 ] = static_cast<std::uint_fast8_t>( particlecolor.r );
+            vertex.color[ 1 ] = static_cast<std::uint_fast8_t>( particlecolor.g );
+            vertex.color[ 2 ] = static_cast<std::uint_fast8_t>( particlecolor.b );
             vertex.color[ 3 ] = clamp<std::uint8_t>( particle.opacity * 255, 0, 255 );
 
             auto const offset { glm::vec3{ particle.position - Camera.position() } };
@@ -213,6 +222,7 @@ opengl_particles::update( opengl_camera const &Camera ) {
 void
 opengl_particles::render( int const Textureunit ) {
 
+    if( false == Global.Smoke ) { return; }
     if( m_buffercapacity == 0 ) { return; }
     if( m_particlevertices.empty() ) { return; }
 
@@ -3177,6 +3187,7 @@ opengl_renderer::Render_particles() {
 
     Bind_Texture( m_smoketexture );
     m_particlerenderer.render( m_diffusetextureunit );
+	gfx::opengl_vbogeometrybank::reset();
 
     ::glDepthMask( GL_TRUE );
     ::glEnable( GL_LIGHTING );

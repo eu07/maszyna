@@ -34,7 +34,7 @@ public:
             if( true == mapping.second ) {
                 return true;
             }
-            // cell with this name already exists; update mapping to point to the new one, for backward compatibility
+            // item with this name already exists; update mapping to point to the new one, for backward compatibility
             mapping.first->second = itemhandle;
             return false; }
 	bool insert (Type_ *Item)

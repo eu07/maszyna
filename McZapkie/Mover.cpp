@@ -995,68 +995,140 @@ double TMoverParameters::PipeRatio(void)
 // Q: 20160716
 // Wykrywanie kolizji
 // *************************************************************************************************
-void TMoverParameters::CollisionDetect(int CouplerN, double dt)
+void TMoverParameters::CollisionDetect(int const End, double const dt)
 {
-    double CCF, Vprev, VprevC;
-    bool VirtualCoupling;
+    if( Neighbours[ End ].vehicle == nullptr ) { return;  } // shouldn't normally happen but, eh
 
-    CCF = 0;
-    //   with Couplers[CouplerN] do
-    auto &coupler = Couplers[ CouplerN ];
+    auto &coupler { Couplers[ End ] };
+    auto *othervehicle { Neighbours[ End ].vehicle->MoverParameters };
+    auto const otherend { Neighbours[ End ].vehicle_end };
+    auto &othercoupler { othervehicle->Couplers[ otherend ] };
 
-    if (coupler.Connected != nullptr)
-    {
-        VirtualCoupling = (coupler.CouplingFlag == ctrain_virtual);
-        Vprev = V;
-        VprevC = coupler.Connected->V;
-        switch (CouplerN)
-        {
-        case 0:
+    auto velocity { V };
+    auto othervehiclevelocity { othervehicle->V };
+    // calculate collision force and new velocities for involved vehicles
+    auto const VirtualCoupling { ( coupler.CouplingFlag == coupling::faux ) };
+    auto CCF { 0.0 };
+
+    switch( End ) {
+        case 0: {
             CCF =
                 ComputeCollision(
-                    V,
-                    coupler.Connected->V,
-                    TotalMass,
-                    coupler.Connected->TotalMass,
-                    (coupler.beta + coupler.Connected->Couplers[coupler.ConnectedNr].beta) / 2.0,
-                    VirtualCoupling)
-                / (dt);
+                    velocity, othervehiclevelocity,
+                    TotalMass, othervehicle->TotalMass,
+                    ( coupler.beta + othercoupler.beta ) / 2.0,
+                    VirtualCoupling )
+                / ( dt );
             break; // yB: ej ej ej, a po
-        case 1:
+        }
+        case 1: {
             CCF =
                 ComputeCollision(
-                    coupler.Connected->V,
-                    V,
-                    coupler.Connected->TotalMass,
-                    TotalMass,
-                    (coupler.beta + coupler.Connected->Couplers[coupler.ConnectedNr].beta) / 2.0,
-                    VirtualCoupling)
-                / (dt);
-            break; // czemu tu jest +0.01??
+                    othervehiclevelocity, velocity,
+                    othervehicle->TotalMass, TotalMass,
+                    ( coupler.beta + othercoupler.beta ) / 2.0,
+                    VirtualCoupling )
+                / ( dt );
+            break;
         }
-        AccS = AccS + (V - Vprev) / dt; // korekta przyspieszenia o siły wynikające ze zderzeń?
-        coupler.Connected->AccS += (coupler.Connected->V - VprevC) / dt;
-        if ((coupler.Dist > 0) && (!VirtualCoupling))
-            if (FuzzyLogic(abs(CCF), 5.0 * (coupler.FmaxC + 1.0), p_coupldmg))
-            { //! zerwanie sprzegu
-                if (SetFlag(DamageFlag, dtrain_coupling))
-                    EventFlag = true;
+        default: {
+            break;
+        }
+    }
 
-                if ((coupler.CouplingFlag & ctrain_pneumatic) == ctrain_pneumatic)
-                    AlarmChainFlag = true; // hamowanie nagle - zerwanie przewodow hamulcowych
-                coupler.CouplingFlag = 0;
+    if( ( coupler.Dist < 0 )
+     && ( FuzzyLogic( std::abs( CCF ), 5.0 * ( coupler.FmaxC + 1.0 ), p_coupldmg ) ) ) {
+        // small chance to smash the coupler if it's hit with excessive force
+        damage_coupler( End );
+    }
 
-                switch (CouplerN) // wyzerowanie flag podlaczenia ale ciagle sa wirtualnie polaczone
-                {
-                case 0:
-                    coupler.Connected->Couplers[1].CouplingFlag = 0;
-                    break;
-                case 1:
-                    coupler.Connected->Couplers[0].CouplingFlag = 0;
-                    break;
-                }
-                WriteLog( "Bad driving: " + Name + " broke a coupler" );
+    auto const safevelocitylimit { 15.0 };
+    auto const velocitydifference {
+        glm::length(
+            glm::angleAxis( Rot.Rz, glm::dvec3{ 0, 1, 0 } ) * V
+          - glm::angleAxis( othervehicle->Rot.Rz, glm::dvec3{ 0, 1, 0 } ) * othervehicle->V )
+        * 3.6 }; // m/s -> km/h
+
+    if( velocitydifference > safevelocitylimit ) {
+        // HACK: crude estimation for potential derail, will take place with velocity difference > 15 km/h adjusted for vehicle mass ratio
+        WriteLog( "Bad driving: " + Name + " and " + othervehicle->Name + " collided with velocity " + to_string( velocitydifference, 0 ) + " km/h" );
+
+        if( velocitydifference > safevelocitylimit * ( TotalMass / othervehicle->TotalMass ) ) {
+            derail( 5 );
+        }
+        if( velocitydifference > safevelocitylimit * ( othervehicle->TotalMass / TotalMass ) ) {
+            othervehicle->derail( 5 );
+        }
+    }
+  
+    // adjust velocity and acceleration of affected vehicles
+    if( false == TestFlag( DamageFlag, dtrain_out ) ) {
+        auto const accelerationchange{ ( velocity - V ) / dt };
+ //       if( accelerationchange / AccS < 1.0 ) {
+            // HACK: prevent excessive vehicle pinball cases
+            AccS += accelerationchange;
+ //           AccS = clamp( AccS, -2.0, 2.0 );
+            V = velocity;
+//        }
+    }
+    if( false == TestFlag( othervehicle->DamageFlag, dtrain_out ) ) {
+        auto const othervehicleaccelerationchange{ ( othervehiclevelocity - othervehicle->V ) / dt };
+//        if( othervehicleaccelerationchange / othervehicle->AccS < 1.0 ) {
+            // HACK: prevent excessive vehicle pinball cases
+            othervehicle->AccS += othervehicleaccelerationchange;
+            othervehicle->V = othervehiclevelocity;
+//        }
+    }
+}
+
+void
+TMoverParameters::damage_coupler( int const End ) {
+
+    if( SetFlag( DamageFlag, dtrain_coupling ) )
+        EventFlag = true;
+
+    auto &coupler { Couplers[ End ] };
+
+    if( ( coupler.CouplingFlag & ctrain_pneumatic ) == ctrain_pneumatic ) {
+        // hamowanie nagle - zerwanie przewodow hamulcowych
+        AlarmChainFlag = true;
+    }
+
+    coupler.CouplingFlag = 0;
+
+    if( coupler.Connected != nullptr ) {
+        switch( End ) {
+            // break connection with other vehicle, if there's any
+            case 0: {
+                coupler.Connected->Couplers[ end::rear ].CouplingFlag = 0;
+                break;
             }
+            case 1: {
+                coupler.Connected->Couplers[ end::front ].CouplingFlag = 0;
+                break;
+            }
+            default: {
+                break;
+            }
+        }
+    }
+
+    WriteLog( "Bad driving: " + Name + " broke a coupler" );
+}
+
+void 
+TMoverParameters::derail( int const Reason ) {
+
+    if( SetFlag( DamageFlag, dtrain_out ) ) {
+
+        DerailReason = Reason; // TODO: enum derail causes
+        EventFlag = true;
+        MainSwitch( false, range_t::local );
+
+        AccS *= 0.65;
+        V *= 0.65;
+
+        WriteLog( "Bad driving: " + Name + " derailed" );
     }
 }
 
@@ -1065,7 +1137,7 @@ void TMoverParameters::CollisionDetect(int CouplerN, double dt)
 // *************************************************************************************************
 double TMoverParameters::ComputeMovement(double dt, double dt1, const TTrackShape &Shape,
                                          TTrackParam &Track, TTractionParam &ElectricTraction,
-                                         const TLocation &NewLoc, TRotation &NewRot)
+                                         TLocation const &NewLoc, TRotation const &NewRot)
 {
     const double Vepsilon = 1e-5;
     const double  Aepsilon = 1e-3; // ASBSpeed=0.8;
@@ -1099,9 +1171,6 @@ double TMoverParameters::ComputeMovement(double dt, double dt1, const TTrackShap
     // TODO: investigate, seems supplied NewRot is always 0 although the code here suggests some actual values are expected
     Loc = NewLoc;
     Rot = NewRot;
-    NewRot.Rx = 0;
-    NewRot.Ry = 0;
-    NewRot.Rz = 0;
 
     if (dL == 0) // oblicz przesuniecie}
     {
@@ -1230,17 +1299,14 @@ double TMoverParameters::ComputeMovement(double dt, double dt1, const TTrackShap
 // *************************************************************************************************
 
 double TMoverParameters::FastComputeMovement(double dt, const TTrackShape &Shape,
-                                             TTrackParam &Track, const TLocation &NewLoc,
-                                             TRotation &NewRot)
+                                             TTrackParam &Track, TLocation const &NewLoc,
+                                             TRotation const &NewRot)
 {
     int b;
     // T_MoverParameters::FastComputeMovement(dt, Shape, Track, NewLoc, NewRot);
 
     Loc = NewLoc;
     Rot = NewRot;
-    NewRot.Rx = 0.0;
-    NewRot.Ry = 0.0;
-    NewRot.Rz = 0.0;
 
     if (dL == 0) // oblicz przesuniecie
     {
@@ -1410,7 +1476,13 @@ void TMoverParameters::PowerCouplersCheck( double const Deltatime ) {
                 break;
             }
             case TPowerSource::Main: {
-                localvoltage = ( true == Mains ? Voltage : 0.0 );
+                // HACK: main circuit can be fed through couplers, so we explicitly check pantograph supply here
+                localvoltage = (
+                    true == Mains ?
+                        std::max(
+                            PantFrontVolt,
+                            PantRearVolt ) :
+                        0.0 );
                 break;
             }
             default: {
@@ -1710,7 +1782,7 @@ void TMoverParameters::OilPumpCheck( double const Timestep ) {
         OilPump.pressure =
             std::max<float>(
                 OilPump.pressure_target,
-                OilPump.pressure - 0.01 * Timestep );
+                OilPump.pressure - ( enrot > 5.0 ? 0.05 : 0.035 ) * 0.5 * Timestep );
     }
     OilPump.pressure = clamp( OilPump.pressure, 0.f, 1.5f );
 }
@@ -4020,7 +4092,6 @@ void TMoverParameters::ComputeConstans(void)
     double BearingF, RollF, HideModifier;
     double Curvature; // Ra 2014-07: odwrotność promienia
 
-    TotalMass = ComputeMass();
     TotalMassxg = TotalMass * g; // TotalMass*g
     BearingF = 2.0 * (DamageFlag && dtrain_bearing);
 
@@ -4071,29 +4142,28 @@ void TMoverParameters::ComputeConstans(void)
 // Q: 20160713
 // Oblicza masę ładunku
 // *************************************************************************************************
-double TMoverParameters::ComputeMass(void)
+void TMoverParameters::ComputeMass()
 {
-    double M { 0.0 };
-    // TODO: unit weight table, pulled from external data file
-    if( LoadAmount > 0 ) {
-
-        if (ToLower(LoadQuantity) == "tonns")
-            M = LoadAmount * 1000;
-        else if (LoadType.name == "passengers")
-            M = LoadAmount * 80;
-        else if (LoadType.name == "luggage")
-            M = LoadAmount * 100;
-        else if (LoadType.name == "cars")
-            M = LoadAmount * 1200; // 800 kilo to miał maluch
-        else if (LoadType.name == "containers")
-            M = LoadAmount * 8000;
-        else if (LoadType.name == "transformers")
-            M = LoadAmount * 50000;
-        else
-            M = LoadAmount * 1000;
-    }
     // Ra: na razie tak, ale nie wszędzie masy wirujące się wliczają
-    return Mass + M + Mred;
+    TotalMass = Mass + Mred;
+
+    if( LoadAmount == 0 ) { return; }
+
+    // include weight of carried load
+    auto loadtypeunitweight { 0.f };
+
+    if( ToLower( LoadQuantity ) == "tonns" ) {
+        loadtypeunitweight = 1000;
+    }
+    else {
+        auto const lookup { simulation::Weights.find( LoadType.name ) };
+        loadtypeunitweight = (
+            lookup != simulation::Weights.end() ?
+                lookup->second :
+                1000.f ); // legacy default unit weight value
+    }
+
+    TotalMass += LoadAmount * loadtypeunitweight;
 }
 
 // *************************************************************************************************
@@ -4135,6 +4205,11 @@ void TMoverParameters::ComputeTotalForce(double dt) {
 
     // juz zoptymalizowane:
     FStand = FrictionForce(RunningShape.R, RunningTrack.DamageFlag); // siła oporów ruchu
+    if( true == TestFlag( DamageFlag, dtrain_out ) ) {
+        // HACK: crude way to reduce speed after derailment
+        // TBD, TODO: more accurate approach?
+        FStand *= 1e20;
+    }
 	double old_nrot = abs(nrot);
     nrot = v2n(); // przeliczenie prędkości liniowej na obrotową
 
@@ -4424,15 +4499,13 @@ double TMoverParameters::CouplerForce( int const End, double dt ) {
     auto &othercoupler { othervehicle->Couplers[ otherend ] };
 
     auto const othervehiclemove { ( othervehicle->dMoveLen * DirPatch( End, otherend ) ) };
+    auto const initialdistance { Neighbours[ End ].distance }; // odległość od sprzęgu sąsiada
     auto const distancedelta { (
         End == end::front ?
             othervehiclemove - dMoveLen :
             dMoveLen - othervehiclemove ) };
-    auto const initialdistance { Neighbours[ End ].distance }; // odległość od sprzęgu sąsiada
 
-    auto const newdistance =
-        initialdistance
-      + 10.0 * distancedelta;
+    auto const newdistance { initialdistance + 10.0 * distancedelta };
 
     auto const dV { V - ( othervehicle->V * DirPatch( End, otherend ) ) };
     auto const absdV { std::abs( dV ) };
@@ -4462,10 +4535,14 @@ double TMoverParameters::CouplerForce( int const End, double dt ) {
     }
 
     coupler.CheckCollision = false;
+    coupler.Dist = 0.0;
+
     double CF { 0.0 };
 
     if( ( coupler.CouplingFlag != coupling::faux )
      || ( initialdistance < 0 ) ) {
+
+        coupler.Dist = clamp( newdistance, -coupler.DmaxB, coupler.DmaxC );
 
         double BetaAvg = 0;
         double Fmax = 0;
@@ -4481,8 +4558,8 @@ double TMoverParameters::CouplerForce( int const End, double dt ) {
             Fmax = 0.5 * ( coupler.FmaxC + coupler.FmaxB + othercoupler.FmaxC + othercoupler.FmaxB ) * CouplerTune;
         }
         auto const distDelta { std::abs( newdistance ) - std::abs( coupler.Dist ) }; // McZapkie-191103: poprawka na histereze
-        coupler.Dist = newdistance;
-        if (coupler.Dist > 0) {
+
+        if (newdistance > 0) {
 
             if( distDelta > 0 ) {
                 CF = ( -( coupler.SpringKC + othercoupler.SpringKC ) * coupler.Dist / 2.0 ) * DirF( End )
@@ -4493,12 +4570,25 @@ double TMoverParameters::CouplerForce( int const End, double dt ) {
                     - Fmax * dV * BetaAvg;
             }
             // liczenie sily ze sprezystosci sprzegu
-            if( coupler.Dist > ( coupler.DmaxC + othercoupler.DmaxC ) ) {
+            if( newdistance > ( coupler.DmaxC + othercoupler.DmaxC ) ) {
                 // zderzenie
                 coupler.CheckCollision = true;
             }
+            if( std::abs( CF ) > coupler.FmaxC ) {
+                // coupler is stretched with excessive force, may break
+                coupler.stretch_duration += dt;
+                // give coupler 1 sec of leeway to account for simulation glitches, before checking whether it breaks
+                // (arbitrary) chance to break grows from 10-100% over 10 sec period
+                if( ( coupler.stretch_duration > 1.f )
+                 && ( Random() < ( coupler.stretch_duration * 0.1f * dt ) ) ) {
+                    damage_coupler( End );
+                }
+            }
+            else {
+                coupler.stretch_duration = 0.f;
+            }
         }
-        if( coupler.Dist < 0 ) {
+        if( newdistance < 0 ) {
 
             if( distDelta > 0 ) {
                 CF = ( -( coupler.SpringKB + othercoupler.SpringKB ) * coupler.Dist / 2.0 ) * DirF( End )
@@ -4509,7 +4599,7 @@ double TMoverParameters::CouplerForce( int const End, double dt ) {
                     - Fmax * dV * BetaAvg;
             }
             // liczenie sily ze sprezystosci zderzaka
-            if( -coupler.Dist > ( coupler.DmaxB + othercoupler.DmaxB ) ) {
+            if( -newdistance > ( coupler.DmaxB + othercoupler.DmaxB ) ) {
                 // zderzenie
                 coupler.CheckCollision = true;
                 if( ( coupler.CouplerType == TCouplerType::Automatic )
@@ -5408,25 +5498,19 @@ double TMoverParameters::TractionForce( double dt ) {
 
                 eimv[eimv_ks] = eimv[eimv_Fr] / eimv[eimv_FMAXMAX];
                 eimv[eimv_df] = eimv[eimv_ks] * eimc[eimc_s_dfmax];
-                eimv[eimv_fp] = DirAbsolute * enrot * eimc[eimc_s_p] +
-                                eimv[eimv_df]; // do przemyslenia dzialanie pp z tmpV
+                eimv[eimv_fp] = DirAbsolute * enrot * eimc[eimc_s_p] + eimv[eimv_df]; // do przemyslenia dzialanie pp z tmpV
                 //         eimv[eimv_U]:=Max0R(eimv[eimv_Uzsmax],Min0R(eimc[eimc_f_cfu]*eimv[eimv_fp],eimv[eimv_Uzsmax]));
                 //         eimv[eimv_pole]:=eimv[eimv_U]/(eimv[eimv_fp]*eimc[eimc_s_cfu]);
                 if ((abs(eimv[eimv_fp]) <= eimv[eimv_fkr]))
                     eimv[eimv_pole] = eimc[eimc_f_cfu] / eimc[eimc_s_cfu];
                 else
-                    eimv[eimv_pole] =
-                        eimv[eimv_Uzsmax] / eimc[eimc_s_cfu] / abs(eimv[eimv_fp]);
+                    eimv[eimv_pole] = eimv[eimv_Uzsmax] / eimc[eimc_s_cfu] / abs(eimv[eimv_fp]);
                 eimv[eimv_U] = eimv[eimv_pole] * eimv[eimv_fp] * eimc[eimc_s_cfu];
-                eimv[eimv_Ic] = (eimv[eimv_fp] - DirAbsolute * enrot * eimc[eimc_s_p]) *
-                                eimc[eimc_s_dfic] * eimv[eimv_pole];
+                eimv[eimv_Ic] = (eimv[eimv_fp] - DirAbsolute * enrot * eimc[eimc_s_p]) * eimc[eimc_s_dfic] * eimv[eimv_pole];
                 eimv[eimv_If] = eimv[eimv_Ic] * eimc[eimc_s_icif];
                 eimv[eimv_M] = eimv[eimv_pole] * eimv[eimv_Ic] * eimc[eimc_s_cim];
-                eimv[eimv_Ipoj] = (eimv[eimv_Ic] * NPoweredAxles * eimv[eimv_U]) /
-                                      (Voltage - eimc[eimc_f_DU]) +
-                                  eimc[eimc_f_I0];
-                eimv[eimv_Pm] =
-                    ActiveDir * eimv[eimv_M] * NPoweredAxles * enrot * Pirazy2 / 1000;
+                eimv[eimv_Ipoj] = (eimv[eimv_Ic] * NPoweredAxles * eimv[eimv_U]) / (Voltage - eimc[eimc_f_DU]) + eimc[eimc_f_I0];
+                eimv[eimv_Pm] = ActiveDir * eimv[eimv_M] * NPoweredAxles * enrot * Pirazy2 / 1000;
                 eimv[eimv_Pe] = eimv[eimv_Ipoj] * Voltage / 1000;
                 eimv[eimv_eta] = eimv[eimv_Pm] / eimv[eimv_Pe];
 
@@ -5447,7 +5531,7 @@ double TMoverParameters::TractionForce( double dt ) {
 
                 if( ( RlistSize > 0 )
                  && ( ( std::abs( eimv[ eimv_If ] ) > 1.0 )
-                   || ( tmpV > 0.1 ) ) ) {
+                   && ( tmpV > 0.1 ) ) ) {
 
                     int i = 0;
                     while( ( i < RlistSize - 1 )
@@ -7079,6 +7163,7 @@ TMoverParameters::AssignLoad( std::string const &Name, float const Amount ) {
         if( Name == loadattributes.name ) {
             LoadType = loadattributes;
             LoadAmount = clamp( Amount, 0.f, MaxLoad ) ;
+            ComputeMass();
             return true;
         }
     }
@@ -7098,7 +7183,7 @@ bool TMoverParameters::LoadingDone(double const LSpeed, std::string const &Loadn
         return true;
     }
 
-    if( Loadname.empty() )             { return ( LoadStatus >= 4 ); } 
+    if( Loadname.empty() )          { return ( LoadStatus >= 4 ); } 
     if( Loadname != LoadType.name ) { return ( LoadStatus >= 4 ); }
 
     // test zakończenia załadunku/rozładunku
@@ -7121,6 +7206,7 @@ bool TMoverParameters::LoadingDone(double const LSpeed, std::string const &Loadn
             if( LoadAmount == 0.f ) {
                 AssignLoad(""); // jak nic nie ma, to nie ma też nazwy
             }
+            ComputeMass();
         }
     }
     else if( LSpeed > 0 ) {
@@ -7135,6 +7221,7 @@ bool TMoverParameters::LoadingDone(double const LSpeed, std::string const &Loadn
                 LoadStatus = 4; // skończony załadunek
                 LoadAmount = std::min<float>( MaxLoad * ( 1.0 + OverLoadFactor ), LoadAmount );
             }
+            ComputeMass();
         }
     }
 
@@ -10681,3 +10768,9 @@ double TMoverParameters::ShowCurrentP(int AmpN) const
         return current;
     }
 }
+
+namespace simulation {
+
+weights_table Weights;
+
+} // simulation
