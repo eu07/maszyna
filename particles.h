@@ -48,9 +48,15 @@ public:
     // updates state of provided variable
     void
         update( Type_ &Variable, double const Timedelta ) const;
-    Type_ const &
+    void
+        bind( Type_ const *Modifier ) {
+            m_valuechangemodifier = Modifier; }
+    Type_
         value_change() const {
-            return m_valuechange; }
+            return (
+                m_valuechangemodifier == nullptr ?
+                    m_valuechange :
+                    m_valuechange / *( m_valuechangemodifier ) ); }
 
 private:
 //types
@@ -59,6 +65,7 @@ private:
 //    Type_ m_intialvalue { Type_( 0 ) }; // meters per second; velocity applied to freshly spawned particles
     Type_ m_valuechange { Type_( 0 ) }; // meters per second; change applied to initial velocity
     Type_ m_valuelimits[ 2 ] { Type_( std::numeric_limits<Type_>::lowest() ), Type_( std::numeric_limits<Type_>::max() ) };
+    Type_ const *m_valuechangemodifier{ nullptr }; // optional modifier applied to value change
 };
 
 
@@ -86,6 +93,9 @@ public:
     // updates state of owned particles
     void
         update( double const Timedelta, bool const Onlydespawn );
+    glm::vec3 const &
+        color() const {
+            return m_emitter.color; }
     glm::dvec3
         location() const;
     // provides access to bounding area data
@@ -109,6 +119,7 @@ private:
         float velocity[ 2 ] { 1.f, 1.f };
         float size[ 2 ] { 1.f, 1.f };
         float opacity[ 2 ] { 1.f, 1.f };
+        glm::vec3 color { 16.f / 255.f };
 
         void deserialize( cParser &Input );
         void initialize( smoke_particle &Particle );
@@ -138,20 +149,14 @@ private:
     particle_emitter m_emitter;
 //    bool m_inheritvelocity { false }; // whether spawned particle should receive velocity of its owner
     // TODO: replace modifiers with configurable interpolator item allowing keyframe-based changes over time
-//    fixedstep_modifier<glm::vec3> m_velocitymodifier; // particle velocity
     fixedstep_modifier<float> m_sizemodifier; // particle billboard size
-//    fixedstep_modifier<glm::vec4> m_colormodifier; // particle billboard color and opacity
+//    fixedstep_modifier<glm::vec3> m_colormodifier; // particle billboard color and opacity
     fixedstep_modifier<float> m_opacitymodifier;
 //    texture_handle m_texture { -1 }; // texture assigned to particle billboards
     // current state
     float m_spawncount { 0.f }; // number of particles to spawn during next update
     particle_sequence m_particles; // collection of spawned particles
 	size_t m_max_particles; // maximum number of particles existing
-/*
-    smoke_sequence::iterator // helpers, iterators marking currently used part of the particle container
-        m_particlehead,
-        m_particletail;
-*/
     scene::bounding_area m_area; // bounding sphere of owned particles
 };
 
@@ -204,7 +209,11 @@ void
 fixedstep_modifier<Type_>::update( Type_ &Variable, double const Timedelta ) const {
     // HACK: float cast to avoid vec3 and double mismatch
     // TBD, TODO: replace with vector types specialization
-    Variable += ( m_valuechange * static_cast<float>( Timedelta ) );
+    auto const valuechange { (
+        m_valuechangemodifier == nullptr ?
+            m_valuechange :
+            m_valuechange / *( m_valuechangemodifier ) ) };
+    Variable += ( valuechange * static_cast<float>( Timedelta ) );
     // clamp down to allowed value range
     Variable = glm::max( Variable, m_valuelimits[ value_limit::min ] );
     Variable = glm::min( Variable, m_valuelimits[ value_limit::max ] );

@@ -39,6 +39,8 @@
 #include <sys/stat.h>
 #endif
 // stl
+#define _USE_MATH_DEFINES
+#include <cmath>
 #include <cstddef>
 #include <cstdlib>
 #include <cstdio>

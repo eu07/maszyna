@@ -16,6 +16,7 @@ http://mozilla.org/MPL/2.0/.
 #include "Globals.h"
 #include "simulation.h"
 #include "Train.h"
+#include "dictionary.h"
 #include "sceneeditor.h"
 #include "renderer.h"
 #include "uilayer.h"
@@ -127,6 +128,9 @@ eu07_application::init( int Argc, char *Argv[] ) {
     }
     init_callbacks();
     if( ( result = init_audio() ) != 0 ) {
+        return result;
+    }
+    if( ( result = init_data() ) != 0 ) {
         return result;
     }
     m_taskqueue.init();
@@ -749,6 +753,23 @@ eu07_application::init_audio() {
         Global.bSoundEnabled &= audio::renderer.init();
     }
     // NOTE: lack of audio isn't deemed a failure serious enough to throw in the towel
+    return 0;
+}
+
+int
+eu07_application::init_data() {
+
+    // HACK: grab content of the first {} block in load_unit_weights using temporary parser, then parse it normally. on any error our weight list will be empty string
+    auto loadweights { cParser( cParser( "data/load_weights.txt", cParser::buffer_FILE ).getToken<std::string>( true, "{}" ), cParser::buffer_TEXT ) };
+    while( true == loadweights.getTokens( 2 ) ) {
+        std::pair<std::string, float> weightpair;
+        loadweights
+            >> weightpair.first
+            >> weightpair.second;
+        weightpair.first.erase( weightpair.first.end() - 1 ); // trim trailing ':' from the key
+        simulation::Weights.emplace( weightpair.first, weightpair.second );
+    }
+
     return 0;
 }
 

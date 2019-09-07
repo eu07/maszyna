@@ -21,7 +21,7 @@ smoke_source::particle_emitter::deserialize( cParser &Input ) {
 
     if( Input.getToken<std::string>() != "{" ) { return; }
 
-    std::unordered_map<std::string, float &> const variablemap{
+    std::unordered_map<std::string, float &> const variablemap {
         { "min_inclination:", inclination[ value_limit::min ] },
         { "max_inclination:", inclination[ value_limit::max ] },
         { "min_velocity:", velocity[ value_limit::min ] },
@@ -35,10 +35,22 @@ smoke_source::particle_emitter::deserialize( cParser &Input ) {
     while( ( false == ( ( key = Input.getToken<std::string>( true, "\n\r\t  ,;[]" ) ).empty() ) )
         && ( key != "}" ) ) {
 
-        auto const lookup { variablemap.find( key ) };
-        if( lookup == variablemap.end() ) { continue; }
-
-        lookup->second = Input.getToken<float>( true, "\n\r\t  ,;[]" );
+        if( key == "color:" ) {
+            // special case, vec3 attribute type
+            // TODO: variable table, if amount of vector attributes increases
+            color = Input.getToken<glm::vec3>( true, "\n\r\t  ,;[]" );
+            color =
+                glm::clamp(
+                    color / 255.f,
+                    glm::vec3{ 0.f }, glm::vec3{ 1.f } );
+        }
+        else {
+            // float type attributes
+            auto const lookup { variablemap.find( key ) };
+            if( lookup != variablemap.end() ) {
+                lookup->second = Input.getToken<float>( true, "\n\r\t  ,;[]" );
+            }
+        }
     }
 }
 
@@ -49,16 +61,16 @@ smoke_source::particle_emitter::initialize( smoke_particle &Particle ) {
     auto const azimuthalangle { glm::radians( Random( -180, 180 ) ) }; // phi
     // convert spherical coordinates to opengl coordinates
     auto const launchvector { glm::vec3(
-        std::sin( polarangle ) * std::sin( azimuthalangle ),
+        std::sin( polarangle ) * std::sin( azimuthalangle ) * -1,
         std::cos( polarangle ),
-        std::sin( polarangle ) * std::cos( azimuthalangle ) * -1 ) };
+        std::sin( polarangle ) * std::cos( azimuthalangle ) ) };
         auto const launchvelocity { static_cast<float>( Random( velocity[ value_limit::min ], velocity[ value_limit::max ] ) ) };
     
     Particle.velocity = launchvector * launchvelocity;
 
     Particle.rotation = glm::radians( Random( 0, 360 ) );
     Particle.size = Random( size[ value_limit::min ], size[ value_limit::max ] );
-    Particle.opacity = Random( opacity[ value_limit::min ], opacity[ value_limit::max ] );
+    Particle.opacity = Random( opacity[ value_limit::min ], opacity[ value_limit::max ] ) / Global.SmokeFidelity;
     Particle.age = 0;
 }
 
@@ -109,14 +121,14 @@ smoke_source::deserialize_mapping( cParser &Input ) {
 void
 smoke_source::initialize() {
 
-	m_max_particles =
+    m_max_particles =
         // put a cap on number of particles in a single source. TBD, TODO: make it part of he source configuration?
         std::min(
-	        2000,
+            static_cast<int>( 500 * Global.SmokeFidelity ),
             // NOTE: given nature of the smoke we're presuming opacity decreases over time and the particle is killed when it reaches 0
             // this gives us estimate of longest potential lifespan of single particle, and how many particles total can there be at any given time
             // TBD, TODO: explicit lifespan variable as part of the source configuration?
-	        static_cast<int>( m_spawnrate / std::abs( m_opacitymodifier.value_change() ) ) );
+            static_cast<int>( m_spawnrate / std::abs( m_opacitymodifier.value_change() ) ) );
 }
 
 void
@@ -150,11 +162,16 @@ smoke_source::update( double const Timedelta, bool const Onlydespawn ) {
         glm::dvec3{ std::numeric_limits<double>::lowest() } };
 
     m_spawncount = (
-        Onlydespawn ?
+        ( ( false == Global.Smoke ) || ( true == Onlydespawn ) ) ?
             0.f :
             std::min<float>(
-                m_spawncount + ( m_spawnrate * Timedelta ),
-	            m_max_particles ) );
+                m_spawncount + ( m_spawnrate * Timedelta * Global.SmokeFidelity ),
+                m_max_particles ) );
+    // HACK: don't spawn particles in tunnels, to prevent smoke clipping through 'terrain' outside
+    if( ( m_ownertype == owner_type::vehicle )
+     && ( m_owner.vehicle->RaTrackGet()->eEnvironment == e_tunnel ) ) {
+            m_spawncount = 0.f;
+    }
     // update spawned particles
     for( auto particleiterator { std::begin( m_particles ) }; particleiterator != std::end( m_particles ); ++particleiterator ) {
 
@@ -185,7 +202,7 @@ smoke_source::update( double const Timedelta, bool const Onlydespawn ) {
     }
     // spawn pending particles in remaining container slots
     while( ( m_spawncount >= 1.f )
-	    && ( m_particles.size() < m_max_particles ) ) {
+        && ( m_particles.size() < m_max_particles ) ) {
 
         m_spawncount -= 1.f;
         // work with a temporary copy in case initial update renders the particle dead
@@ -276,13 +293,14 @@ smoke_source::initialize( smoke_particle &Particle ) {
 
     if( m_ownertype == owner_type::vehicle ) {
         Particle.opacity *= m_owner.vehicle->MoverParameters->dizel_fill;
+        auto const enginerevolutionsfactor { 1.5f }; // high engine revolutions increase initial particle velocity
         switch( m_owner.vehicle->MoverParameters->EngineType ) {
             case TEngineType::DieselElectric: {
-                Particle.velocity *= 1.0 + m_owner.vehicle->MoverParameters->enrot / ( m_owner.vehicle->MoverParameters->DElist[ m_owner.vehicle->MoverParameters->MainCtrlPosNo ].RPM / 60.0 );
+                Particle.velocity *= 1.0 + enginerevolutionsfactor * m_owner.vehicle->MoverParameters->enrot / ( m_owner.vehicle->MoverParameters->DElist[ m_owner.vehicle->MoverParameters->MainCtrlPosNo ].RPM / 60.0 );
                 break;
             }
             case TEngineType::DieselEngine: {
-                Particle.velocity *= 1.0 + m_owner.vehicle->MoverParameters->enrot / m_owner.vehicle->MoverParameters->nmax;
+                Particle.velocity *= 1.0 + enginerevolutionsfactor * m_owner.vehicle->MoverParameters->enrot / m_owner.vehicle->MoverParameters->nmax;
                 break;
             }
             default: {
@@ -398,8 +416,10 @@ particle_manager::find( std::string const &Template ) {
     // ... and if it fails try to add the template to the database from a data file
     smoke_source source;
 	cParser parser( templatepath + templatename + ".txt", cParser::buffer_FILE );
-	if( source.deserialize( parser ) ) {
-        // if deserialization didn't fail cache the source as template for future instances
+    if( source.deserialize( parser ) ) {
+        // if deserialization didn't fail finish source setup...
+        source.m_opacitymodifier.bind( &Global.SmokeFidelity );
+        // ...then cache the source as template for future instances
         m_sourcetemplates.emplace( templatename, source );
         // should be 'safe enough' to return lookup result directly afterwards
         return &( m_sourcetemplates.find( templatename )->second );

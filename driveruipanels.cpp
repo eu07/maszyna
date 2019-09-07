@@ -136,7 +136,7 @@ drivingaid_panel::update() {
 			}
 		}
 		std::string textline =
-		    ( true == TestFlag( mover->SecuritySystem.Status, s_aware ) ?
+		    ( (true == TestFlag( mover->SecuritySystem.Status, s_aware ) && train != nullptr && train->fBlinkTimer > 0) ?
 		        locale::strings[ locale::string::driver_aid_alerter ] :
 		        "          " );
 		textline +=
@@ -958,6 +958,14 @@ debug_panel::update_section_scenario( std::vector<text_line> &Output ) {
 	textline = "Cloud cover: " + to_string( Global.Overcast, 3 );
 	textline += "\nLight level: " + to_string( Global.fLuminance, 3 );
 	if( Global.FakeLight ) { textline += "(*)"; }
+	textline +=
+	    "\nWind: azimuth "
+	    + to_string( simulation::Environment.wind_azimuth(), 0 ) // ma być azymut, czyli 0 na północy i rośnie na wschód
+	    + " "
+	    + std::string( "N NEE SES SWW NW" )
+	    .substr( 0 + 2 * std::floor( std::fmod( 8 + ( glm::radians( simulation::Environment.wind_azimuth() ) + 0.5 * M_PI_4 ) / M_PI_4, 8 ) ), 2 )
+	    + ", " + to_string( glm::length( simulation::Environment.wind() ), 1 ) + " m/s";
+
 	textline += "\nAir temperature: " + to_string( Global.AirTemperature, 1 ) + " deg C";
 
 	Output.emplace_back( textline, Global.UITextColor );

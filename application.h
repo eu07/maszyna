@@ -98,6 +98,7 @@ private:
     void init_callbacks();
     int  init_gfx();
     int  init_audio();
+    int  init_data();
     int  init_modes();
 	bool init_network();
 
