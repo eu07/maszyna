@@ -57,6 +57,11 @@ jobs:
       vmImage: 'vs2017-win2016'
     displayName: 'Windows VS2017 Debug'
     steps:
+    - task: PublishBuildArtifacts@1
+      inputs:
+        pathtoPublish: 'shaders'
+        artifactName: shaders
+      displayName: 'Publish shaders'
     - script: |
         cd ref
         git clone "https://github.com/chriskohlhoff/asio" --depth 1 --branch asio-1-12-2 -q
