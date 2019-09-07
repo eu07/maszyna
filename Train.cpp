@@ -5853,6 +5853,8 @@ bool TTrain::Update( double const Deltatime )
             btLampkaBrakeProfileG.Turn( TestFlag( mvOccupied->BrakeDelayFlag, bdelay_G ) );
             btLampkaBrakeProfileP.Turn( TestFlag( mvOccupied->BrakeDelayFlag, bdelay_P ) );
             btLampkaBrakeProfileR.Turn( TestFlag( mvOccupied->BrakeDelayFlag, bdelay_R ) );
+			btLampkaSpringBrakeActive.Turn( mvOccupied->SpringBrake.IsActive );
+			btLampkaSpringBrakeInactive.Turn( !mvOccupied->SpringBrake.IsActive );
             // light indicators
             // NOTE: sides are hardcoded to deal with setups where single cab is equipped with all indicators
             btLampkaUpperLight.Turn( ( mvOccupied->iLights[ end::front ] & light::headlight_upper ) != 0 );
@@ -5901,6 +5903,8 @@ bool TTrain::Update( double const Deltatime )
             btLampkaBrakeProfileG.Turn( false );
             btLampkaBrakeProfileP.Turn( false );
             btLampkaBrakeProfileR.Turn( false );
+			btLampkaSpringBrakeActive.Turn( false );
+			btLampkaSpringBrakeInactive.Turn( false );
             btLampkaMaxSila.Turn( false );
             btLampkaPrzekrMaxSila.Turn( false );
             btLampkaRadio.Turn( false );
@@ -7521,6 +7525,8 @@ void TTrain::clear_cab_controls()
     btLampkaBrakeProfileG.Clear();
     btLampkaBrakeProfileP.Clear();
     btLampkaBrakeProfileR.Clear();
+	btLampkaSpringBrakeActive.Clear();
+	btLampkaSpringBrakeInactive.Clear();
     btLampkaSprezarka.Clear();
     btLampkaSprezarkaB.Clear();
     btLampkaSprezarkaOff.Clear();
@@ -7928,6 +7934,8 @@ bool TTrain::initialize_button(cParser &Parser, std::string const &Label, int co
         { "i-brakeprofileg:", btLampkaBrakeProfileG },
         { "i-brakeprofilep:", btLampkaBrakeProfileP },
         { "i-brakeprofiler:", btLampkaBrakeProfileR },
+		{ "i-springbrakeactive:", btLampkaSpringBrakeActive },
+		{ "i-springbrakeinactive:", btLampkaSpringBrakeInactive },
         { "i-braking-ezt:", btLampkaHamowanie1zes },
         { "i-braking-ezt2:", btLampkaHamowanie2zes },
         { "i-compressor:", btLampkaSprezarka },
@@ -8282,6 +8290,13 @@ bool TTrain::initialize_gauge(cParser &Parser, std::string const &Label, int con
         gauge.Load(Parser, DynamicObject, 0.1);
         gauge.AssignDouble(&mvControlled->PantPress);
     }
+	else if (Label == "springbrakepress:")
+	{
+		// manometr cylindra hamulca sprężynowego
+		auto &gauge = Cabine[Cabindex].Gauge(-1); // pierwsza wolna gałka
+		gauge.Load(Parser, DynamicObject, 0.1);
+		gauge.AssignDouble(&mvOccupied->SpringBrake.SBP);
+	}
     else if ((Label == "compressor:") || (Label == "compressorb:"))
     {
         // manometr sprezarki/zbiornika glownego

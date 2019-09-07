@@ -3978,25 +3978,28 @@ void TMoverParameters::UpdateScndPipePressure(double dt)
 // *************************************************************************************************
 void TMoverParameters::UpdateSpringBrake(double dt)
 {
-	double SBP = SpringBrake.Cylinder->P();
 	double BP = SpringBrake.PNBrakeConnection ? BrakePress : 0;
 	double MSP = SpringBrake.ShuttOff ? 0 : SpringBrake.MaxSetPressure;
 	if (!SpringBrake.Activate)
 	{
 		double desired_press = std::min(std::max(MSP, BP), Pipe2->P());
-		double dv = PF(desired_press, SBP, SpringBrake.ValveOffArea);
+		double dv = PF(desired_press, SpringBrake.SBP, SpringBrake.ValveOffArea);
 		SpringBrake.Cylinder->Flow(-dv);
 		Pipe2->Flow(std::max(dv,0.0));
 	}
 	else
 	{
-		double dv = PF(BP, SBP, SpringBrake.ValveOnArea);
+		double dv = PF(BP, SpringBrake.SBP, SpringBrake.ValveOnArea);
 		SpringBrake.Cylinder->Flow(-dv);
 	}
-	if (SBP > SpringBrake.ResetPressure)
+	if (SpringBrake.SBP > SpringBrake.ResetPressure)
 		SpringBrake.IsReady = true;
+	
+	SpringBrake.IsActive = SpringBrake.SBP < (SpringBrake.IsActive ? SpringBrake.PressureOff : SpringBrake.PressureOn);
+
 	SpringBrake.Release = false;
 	SpringBrake.Cylinder->Act();
+	SpringBrake.SBP = SpringBrake.Cylinder->P();
 }
 
 // *************************************************************************************************
