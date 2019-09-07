@@ -869,6 +869,7 @@ private:
 
 		bool IsReady{ false }; //Output: readyness to braking - cylinder is armed, spring is tentioned
 		bool IsActive{ false }; //Output: brake is working
+		double SBP{ 0.0 }; //Output: pressure in spring brake cylinder
 
 		bool PNBrakeConnection{ false }; //Conf: connection to pneumatic brake cylinders
 		double MaxSetPressure { 0.0 }; //Conf: Maximal pressure for switched off brake
