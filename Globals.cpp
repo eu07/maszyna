@@ -370,7 +370,7 @@ global_settings::ConfigParse(cParser &Parser) {
             Parser >> smokefidelity;
             SmokeFidelity = clamp( smokefidelity, 1.f, 4.f );
         }
-        else if( token == "splinefidelity" ) {
+        if( token == "splinefidelity" ) {
             // segment size during spline->geometry conversion
             float splinefidelity;
             Parser.getTokens();
