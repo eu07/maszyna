@@ -2441,6 +2441,24 @@ bool TMoverParameters::Sandbox( bool const State, range_t const Notify )
     return result;
 }
 
+// *************************************************************************************************
+// yB: 20190909
+// włączenie / wyłączenie automatycznej piasecznicy
+// *************************************************************************************************
+bool TMoverParameters::SandboxAutoAllow(bool State)
+{
+	//SendCtrlToNext("SandboxAutoAllow", int(State), CabNo, ctrain_controll);
+
+	if (SandDoseAutoAllow != State)
+	{
+		SandDoseAutoAllow = State;
+		return true;
+	}
+	else
+		return false;
+	
+}
+
 void TMoverParameters::SSReset(void)
 { // funkcja pomocnicza dla SecuritySystemReset - w Delphi Reset()
     SecuritySystem.SystemTimer = 0;
