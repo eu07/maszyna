@@ -67,15 +67,14 @@ bool TTractionPowerSource::Load(cParser *parser) {
         // tak około 0.2, wg
         // http://www.ikolej.pl/fileadmin/user_upload/Seminaria_IK/13_05_07_Prezentacja_Kruczek.pdf
 		InternalRes = 0.2;
-    }
-	InternalRes = 0.001;
+	}
     return true;
 };
 
 bool TTractionPowerSource::Update(double dt)
 { // powinno być wykonane raz na krok fizyki
   // iloczyn napięcia i admitancji daje prąd
-	if (0) {
+	if (NominalVoltage * TotalPreviousAdmitance > MaxOutputCurrent) {
 
         FastFuse = true;
         FuseCounter += 1;
