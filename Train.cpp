@@ -408,9 +408,12 @@ TTrain::TTrain() {
 			fDieselParams[i][j] = 0.0;
 		}
 
-    for( int i = 0; i < 20; ++i )
-        for( int j = 0; j < 3; ++j )
-            fPress[ i ][ j ] = 0.0;
+	for ( int i = 0; i < 20; ++i )
+	{
+		for ( int j = 0; j < 3; ++j )
+			fPress[i][j] = 0.0;
+		bBrakes[i][0] = bBrakes[i][1] = 0.0;
+	}
 }
 
 TTrain::~TTrain()
@@ -517,6 +520,7 @@ dictionary_source *TTrain::GetTrainState() {
     char const *TXTC[ 10 ] = { "fr", "frt", "frb", "pr", "prt", "prb", "im", "vm", "ihv", "uhv" };
 	char const *TXTD[ 10 ] = { "enrot", "nrot", "fill_des", "fill_real", "clutch_des", "clutch_real", "water_temp", "oil_press", "engine_temp", "res1" };
     char const *TXTP[ 3 ] = { "bc", "bp", "sp" };
+	char const *TXTB[ 2 ] = { "spring_active", "spring_shutoff" };
     for( int j = 0; j < 10; ++j )
         dict->insert( ( "eimp_t_" + std::string( TXTT[ j ] ) ), fEIMParams[ 0 ][ j ] );
     for( int i = 0; i < 8; ++i ) {
@@ -542,6 +546,9 @@ dictionary_source *TTrain::GetTrainState() {
         for( int j = 0; j < 3; ++j ) {
             dict->insert( ( "eimp_pn" + std::to_string( i + 1 ) + "_" + TXTP[ j ] ), fPress[ i ][ j ] );
         }
+		for ( int j = 0; j < 2; ++j)  {
+			dict->insert( ( "brakes_" + std::to_string( i + 1 ) + "_" + TXTB[ j ] ), bBrakes[ i ][ j ] );
+		}
     }
     // multi-unit state data
     dict->insert( "car_no", iCarNo );
@@ -5425,6 +5432,8 @@ bool TTrain::Update( double const Deltatime )
                 fPress[i][0] = p->MoverParameters->BrakePress;
                 fPress[i][1] = p->MoverParameters->PipePress;
                 fPress[i][2] = p->MoverParameters->ScndPipePress;
+				bBrakes[i][0] = p->MoverParameters->SpringBrake.IsActive;
+				bBrakes[i][1] = p->MoverParameters->SpringBrake.ShuttOff;
                 bDoors[i][1] = ( p->MoverParameters->Doors.instances[ side::left ].position > 0.f );
                 bDoors[i][2] = ( p->MoverParameters->Doors.instances[ side::right ].position > 0.f );
                 bDoors[i][3] = ( p->MoverParameters->Doors.instances[ side::left ].step_position > 0.f );
@@ -5508,6 +5517,9 @@ bool TTrain::Update( double const Deltatime )
                 = bDoors[i][3]
                 = bDoors[i][4]
                 = false;
+				bBrakes[i][0]
+				= bBrakes[i][1]
+				= false;
 				bSlip[i] = false;
                 iUnits[i] = 0;
                 cCode[i] = 0; //'0';
