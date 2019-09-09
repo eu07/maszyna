@@ -2342,6 +2342,63 @@ bool TMoverParameters::AddPulseForce(int Multipler)
 }
 
 // *************************************************************************************************
+// yB: 20190909
+// sypanie piasku reczne
+// *************************************************************************************************
+bool TMoverParameters::SandboxManual(bool const State, range_t const Notify)
+{
+	bool result{ false };
+
+	if (SandDoseManual != State) {
+		if (SandDoseManual == false) {
+			// switch on
+			if (Sand > 0) {
+				SandDoseManual = true;
+				result = true;
+			}
+		}
+		else {
+			// switch off
+			SandDoseManual = false;
+			result = true;
+		}
+	}
+
+	Sandbox(SandDoseManual || SandDoseAuto, Notify);
+
+	return result;
+}
+
+// *************************************************************************************************
+// yB: 20190909
+// sypanie piasku automatyczne
+// *************************************************************************************************
+bool TMoverParameters::SandboxAuto(bool const State, range_t const Notify)
+{
+	bool result{ false };
+	bool NewState = State && SandDoseAutoAllow;
+	if (SandDoseAuto != NewState) {
+		if (SandDoseAuto == false) {
+			// switch on
+			if (Sand > 0) {
+				SandDoseAuto = true;
+				result = true;
+			}
+		}
+		else {
+			// switch off
+			SandDoseAuto = false;
+			result = true;
+		}
+	}
+
+	Sandbox(SandDoseManual || SandDoseAuto, Notify);
+
+	return result;
+}
+
+
+// *************************************************************************************************
 // Q: 20160713
 // sypanie piasku
 // *************************************************************************************************
@@ -5507,11 +5564,11 @@ double TMoverParameters::TractionForce( double dt ) {
                 if( ( SlippingWheels ) ) {
                     PosRatio = 0;
                     tmp = 10;
-                    Sandbox( true, range_t::unit );
+                    SandboxAuto( true, range_t::unit );
                 } // przeciwposlizg
                 else {
                     // switch sandbox off
-                    Sandbox( false, range_t::unit );
+                    SandboxAuto( false, range_t::unit );
                 }
 
 				eimv_pr += Max0R(Min0R(PosRatio - eimv_pr, 0.02), -0.02) * 12 *

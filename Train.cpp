@@ -1437,13 +1437,13 @@ void TTrain::OnCommand_sandboxactivate( TTrain *Train, command_data const &Comma
         // visual feedback
         Train->ggSandButton.UpdateValue( 1.0, Train->dsbSwitch );
 
-        Train->mvControlled->Sandbox( true );
+        Train->mvControlled->SandboxManual( true );
     }
     else if( Command.action == GLFW_RELEASE) {
         // visual feedback
         Train->ggSandButton.UpdateValue( 0.0 );
 
-        Train->mvControlled->Sandbox( false );
+        Train->mvControlled->SandboxManual( false );
     }
 }
 

@@ -1197,6 +1197,9 @@ public:
 	double UnitBrakeForce = 0.0;               /*!s siła hamowania przypadająca na jeden element*/
 	double Ntotal = 0.0;               /*!s siła nacisku klockow*/
 	bool SlippingWheels = false; bool SandDose = false;   /*! poslizg kol, sypanie piasku*/
+	bool SandDoseManual = false; /*piaskowanie reczne*/
+	bool SandDoseAuto = false; /*piaskowanie automatyczne*/
+	bool SandDoseAutoAllow = true; /*zezwolenie na automatyczne piaskowanie*/
 	double Sand = 0.0;                         /*ilosc piasku*/
 	double BrakeSlippingTimer = 0.0;            /*pomocnicza zmienna do wylaczania przeciwposlizgu*/
 	double dpBrake = 0.0; double dpPipe = 0.0; double dpMainValve = 0.0; double dpLocalValve = 0.0;
@@ -1488,6 +1491,8 @@ public:
 
 	bool AddPulseForce(int Multipler);/*dla drezyny*/
 
+	bool SandboxManual( bool const State, range_t const Notify = range_t::consist );/*wlacza/wylacza sypanie piasku*/
+	bool SandboxAuto( bool const State, range_t const Notify = range_t::consist );/*wlacza/wylacza sypanie piasku*/
     bool Sandbox( bool const State, range_t const Notify = range_t::consist );/*wlacza/wylacza sypanie piasku*/
 
 						  /*! zbijanie czuwaka/SHP*/
