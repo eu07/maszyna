@@ -1441,6 +1441,37 @@ void TTrain::OnCommand_sandboxactivate( TTrain *Train, command_data const &Comma
     }
 }
 
+void TTrain::OnCommand_autosandboxtoggle(TTrain *Train, command_data const &Command) {
+
+	if (Command.action == GLFW_PRESS) {
+		// only reacting to press, so the switch doesn't flip back and forth if key is held down
+		if (false == Train->mvOccupied->SandDoseAutoAllow) {
+			// turn on
+			OnCommand_autosandboxactivate(Train, Command);
+		}
+		else {
+			//turn off
+			OnCommand_autosandboxdeactivate(Train, Command);
+		}
+	}
+};
+
+void TTrain::OnCommand_autosandboxactivate(TTrain *Train, command_data const &Command) {
+	if (Command.action == GLFW_PRESS) {
+		// only reacting to press, so the switch doesn't flip back and forth if key is held down
+		Train->mvOccupied->SandboxAutoAllow(true);
+		Train->ggAutoSandAllow.UpdateValue(1.0, Train->dsbSwitch);
+	}
+};
+
+void TTrain::OnCommand_autosandboxdeactivate(TTrain *Train, command_data const &Command) {
+	if (Command.action == GLFW_PRESS) {
+		// only reacting to press, so the switch doesn't flip back and forth if key is held down
+		Train->mvOccupied->SandboxAutoAllow(false);
+		Train->ggAutoSandAllow.UpdateValue(0.0, Train->dsbSwitch);
+	}
+};
+
 void TTrain::OnCommand_epbrakecontroltoggle( TTrain *Train, command_data const &Command ) {
 
     if( Command.action == GLFW_PRESS ) {
@@ -8070,6 +8101,7 @@ bool TTrain::initialize_gauge(cParser &Parser, std::string const &Label, int con
         { "security_reset_bt:", ggSecurityResetButton },
         { "releaser_bt:", ggReleaserButton },
         { "sand_bt:", ggSandButton },
+		{ "autosandallow_sw:", ggAutoSandAllow },
         { "antislip_bt:", ggAntiSlipButton },
         { "horn_bt:", ggHornButton },
         { "hornlow_bt:", ggHornLowButton },

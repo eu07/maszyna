@@ -1484,9 +1484,10 @@ public:
 
 	bool AddPulseForce(int Multipler);/*dla drezyny*/
 
-	bool SandboxManual( bool const State, range_t const Notify = range_t::consist );/*wlacza/wylacza sypanie piasku*/
-	bool SandboxAuto( bool const State, range_t const Notify = range_t::consist );/*wlacza/wylacza sypanie piasku*/
+	bool SandboxManual( bool const State, range_t const Notify = range_t::consist );/*wlacza/wylacza reczne sypanie piasku*/
+	bool SandboxAuto( bool const State, range_t const Notify = range_t::consist );/*wlacza/wylacza automatyczne sypanie piasku*/
     bool Sandbox( bool const State, range_t const Notify = range_t::consist );/*wlacza/wylacza sypanie piasku*/
+	bool SandboxAutoAllow(bool const State);/*wlacza/wylacza zezwolenie na automatyczne sypanie piasku*/
 
 						  /*! zbijanie czuwaka/SHP*/
 	void SSReset(void);

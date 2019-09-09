@@ -196,6 +196,9 @@ class TTrain
     static void OnCommand_alarmchaintoggle( TTrain *Train, command_data const &Command );
     static void OnCommand_wheelspinbrakeactivate( TTrain *Train, command_data const &Command );
     static void OnCommand_sandboxactivate( TTrain *Train, command_data const &Command );
+	static void OnCommand_autosandboxtoggle(TTrain *Train, command_data const &Command);
+	static void OnCommand_autosandboxactivate(TTrain *Train, command_data const &Command);
+	static void OnCommand_autosandboxdeactivate(TTrain *Train, command_data const &Command);
     static void OnCommand_epbrakecontroltoggle( TTrain *Train, command_data const &Command );
 	static void OnCommand_trainbrakeoperationmodeincrease(TTrain *Train, command_data const &Command);
 	static void OnCommand_trainbrakeoperationmodedecrease(TTrain *Train, command_data const &Command);
@@ -408,6 +411,7 @@ public: // reszta może by?publiczna
     TGauge ggSecurityResetButton;
     TGauge ggReleaserButton;
     TGauge ggSandButton; // guzik piasecznicy
+	TGauge ggAutoSandAllow; // przełącznik piasecznicy
     TGauge ggAntiSlipButton;
     TGauge ggFuseButton;
     TGauge ggConverterFuseButton; // hunter-261211: przycisk odblokowania nadmiarowego przetwornic i ogrzewania
