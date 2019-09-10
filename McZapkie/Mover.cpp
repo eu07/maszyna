@@ -6408,7 +6408,8 @@ void TMoverParameters::CheckEIMIC(double dt)
     auto const eimicpowerenabled {
         ( ( true == Mains ) || ( Power == 0.0 ) )
      && ( ( Doors.instances[ side::left  ].open_permit == false )
-       && ( Doors.instances[ side::right ].open_permit == false ) ) };
+       && ( Doors.instances[ side::right ].open_permit == false ) )
+	   && ( !SpringBrake.IsActive ) };
 	eimic = clamp(eimic, -1.0, eimicpowerenabled ? 1.0 : 0.0);
 }
 
