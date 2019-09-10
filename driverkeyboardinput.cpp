@@ -231,6 +231,13 @@ driverkeyboard_input::default_bindings() {
         { user_command::motorblowersdisableall, GLFW_KEY_M | keymodifier::control }
         // coolingfanstoggle
         // tempomattoggle
+        // springbraketoggle
+        // springbrakeenable
+        // springbrakedisable
+        // springbrakeshutofftoggle
+        // springbrakeshutoffenable
+        // springbrakeshutoffdisable
+        // springbrakerelease
     };
 }
 

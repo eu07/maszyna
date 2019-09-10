@@ -5157,6 +5157,7 @@ void TTrain::OnCommand_cabchangebackward( TTrain *Train, command_data const &Com
                     1 :
                    -1 ) };
         if( false == Train->CabChange( movedirection ) ) {
+            // current vehicle doesn't extend any farther in this direction, check if we there's one connected we can move to
             auto const exitdirection { (
                 movedirection > 0 ?
                     end::front :
@@ -8035,7 +8036,7 @@ bool TTrain::initialize_button(cParser &Parser, std::string const &Label, int co
         }
     }
     // TODO: move viable dedicated lights to the automatic light array
-    std::unordered_map<std::string, bool *> const autolights = {
+    std::unordered_map<std::string, bool const *> const autolights = {
         { "i-doorpermit_left:",  &mvOccupied->Doors.instances[ ( mvOccupied->ActiveCab == 1 ? side::left : side::right ) ].open_permit },
         { "i-doorpermit_right:", &mvOccupied->Doors.instances[ ( mvOccupied->ActiveCab == 1 ? side::right : side::left ) ].open_permit },
         { "i-doorstep:", &mvOccupied->Doors.step_enabled }
