@@ -1784,6 +1784,7 @@ void TController::Activation()
         auto const localbrakelevel { mvOccupied->LocalBrakePosA };
         ZeroSpeed();
         ZeroDirection();
+		mvOccupied->SpringBrakeActivate(true);
         if (TestFlag(d->MoverParameters->Couplers[iDirectionOrder < 0 ? 1 : 0].CouplingFlag, ctrain_controll)) {
             mvControlling->MainSwitch( false); // dezaktywacja czuwaka, jeśli przejście do innego członu
             mvOccupied->DecLocalBrakeLevel(LocalBrakePosNo); // zwolnienie hamulca w opuszczanym pojeździe
@@ -2684,6 +2685,7 @@ bool TController::ReleaseEngine() {
             }
             // gasimy światła
             Lights( 0, 0 );
+			mvOccupied->SpringBrakeActivate(true);
             mvOccupied->BatterySwitch( false );
         }
     }
@@ -2991,6 +2993,9 @@ bool TController::IncSpeed()
         // zamykanie drzwi - tutaj wykonuje tylko AI (zmienia fActionTime)
         Doors( false );
     }
+	if (mvOccupied->SpringBrake.IsActive && mvOccupied->SpringBrake.Activate) {
+		mvOccupied->SpringBrakeActivate(false);
+	}
     if( fActionTime < 0.0 ) {
         // gdy jest nakaz poczekać z jazdą, to nie ruszać
         return false;
