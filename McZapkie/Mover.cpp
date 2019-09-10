@@ -420,6 +420,12 @@ ActiveCab( Cab )
         for (int k = 0; k < 17; ++k)
             Lights[b][k] = 0;
 
+	for (int b = 0; b < 4; ++b)
+		for (int k = 1; k < 9; ++k)
+			CompressorList[ b ][ k ] = 0;
+	CompressorList[0][0] = 0.0;
+	CompressorList[1][0] = CompressorList[2][0] = CompressorList[3][0] = 1.0;
+
     for (int b = -1; b <= MainBrakeMaxPos; ++b)
     {
         BrakePressureTable[b].PipePressureVal = 0.0;
@@ -3529,12 +3535,31 @@ void TMoverParameters::UpdateBrakePressure(double dt)
 // TODO: clean the method up, a lot of the code is redundant
 void TMoverParameters::CompressorCheck(double dt)
 {
+
+	double MaxCompressorF = CompressorList[TCompressorList::cl_MaxFactor][CompressorListPos] * MaxCompressor;
+	double MinCompressorF = CompressorList[TCompressorList::cl_MinFactor][CompressorListPos] * MinCompressor;
+	double CompressorSpeedF = CompressorList[TCompressorList::cl_SpeedFactor][CompressorListPos] * CompressorSpeed;
+	double AllowFactor = CompressorList[TCompressorList::cl_Allow][CompressorListPos];
+
+	//checking the impact on the compressor allowance
+	if (AllowFactor > 0.5) {
+		CompressorAllow = AllowFactor > 1.5;
+	}
+	
     if( VeselVolume == 0.0 ) { return; }
+
+	//EmergencyValve
+	EmergencyValveOpen = (Compressor > (EmergencyValveOpen ? EmergencyValveOff : EmergencyValveOn));
+	if (EmergencyValveOpen) {
+		float dV = PF(0, Compressor, EmergencyValveArea)* dt;
+		CompressedVolume -= dV;
+	}
+
 
     CompressedVolume = std::max( 0.0, CompressedVolume - dt * AirLeakRate * 0.1 ); // nieszczelności: 0.001=1l/s
 
     if( ( true == CompressorGovernorLock )
-     && ( Compressor < MinCompressor ) ) {
+     && ( Compressor < MinCompressorF ) ) {
         // if the pressure drops below the cut-in level, we can reset compressor governor
         // TBD, TODO: don't operate the lock without battery power?
         CompressorGovernorLock = false;
@@ -3544,25 +3569,25 @@ void TMoverParameters::CompressorCheck(double dt)
         CompressorAllow = ConverterAllow;
     }
 
-    if (MaxCompressor - MinCompressor < 0.0001) {
+    if (MaxCompressorF - MinCompressorF < 0.0001) {
         // TODO: investigate purpose of this branch and whether it can be removed as it duplicates later code
         if( ( true == CompressorAllow )
          && ( true == CompressorAllowLocal )
          && ( true == Mains )
          && ( MainCtrlPowerPos() > 0 ) ) {
-            if( Compressor < MaxCompressor ) {
+            if( Compressor < MaxCompressorF ) {
                 if( ( EngineType == TEngineType::DieselElectric )
                  && ( CompressorPower > 0 ) ) {
                     CompressedVolume +=
-                        CompressorSpeed
-                        * ( 2.0 * MaxCompressor - Compressor ) / MaxCompressor
+                        CompressorSpeedF
+                        * ( 2.0 * MaxCompressorF - Compressor ) / MaxCompressorF
                         * ( ( 60.0 * std::abs( enrot ) ) / DElist[ MainCtrlPosNo ].RPM )
                         * dt;
                 }
                 else {
                     CompressedVolume +=
-                        CompressorSpeed
-                        * ( 2.0 * MaxCompressor - Compressor ) / MaxCompressor
+                        CompressorSpeedF
+                        * ( 2.0 * MaxCompressorF - Compressor ) / MaxCompressorF
                         * dt;
                     TotalCurrent += 0.0015 * Voltage; // tymczasowo tylko obciążenie sprężarki, tak z 5A na sprężarkę
                 }
@@ -3614,7 +3639,7 @@ void TMoverParameters::CompressorCheck(double dt)
                      || ( CompressorPower == 0 )
                      || ( CompressorPower == 3 ) ) );
 
-            if( Compressor > MaxCompressor ) {
+            if( Compressor > MaxCompressorF ) {
                 // wyłącznik ciśnieniowy jest niezależny od sposobu zasilania
                 // TBD, TODO: don't operate the lock without battery power?
                 if( CompressorPower == 3 ) {
@@ -3650,8 +3675,8 @@ void TMoverParameters::CompressorCheck(double dt)
         else {
             // jeśli nie załączona
             if( ( LastSwitchingTime > CtrlDelay )
-             && ( ( Compressor < MinCompressor )
-               || ( ( Compressor < MaxCompressor )
+             && ( ( Compressor < MinCompressorF )
+               || ( ( Compressor < MaxCompressorF )
                  && ( false == CompressorGovernorLock ) ) ) ) {
                     // załączenie przy małym ciśnieniu
                     // jeśli nie załączona, a ciśnienie za małe
@@ -3726,7 +3751,7 @@ void TMoverParameters::CompressorCheck(double dt)
                         1.0 ) }; // shouldn't ever get here but, eh
                     CompressedVolume +=
                         CompressorSpeed
-                        * ( 2.0 * MaxCompressor - Compressor ) / MaxCompressor
+                        * ( 2.0 * MaxCompressorF - Compressor ) / MaxCompressorF
                         * enginefactor
                         * dt;
                 }
@@ -3740,8 +3765,8 @@ void TMoverParameters::CompressorCheck(double dt)
             else {
                 // the compressor is a stand-alone device, working at steady pace
                 CompressedVolume +=
-                    CompressorSpeed
-                    * ( 2.0 * MaxCompressor - Compressor ) / MaxCompressor
+                    CompressorSpeedF
+                    * ( 2.0 * MaxCompressorF - Compressor ) / MaxCompressorF
                     * dt;
 
                 if( ( CompressorPower == 5 ) && ( Couplers[ 1 ].Connected != NULL ) ) {
@@ -7802,6 +7827,7 @@ bool startMPT, startMPT0;
 bool startRLIST, startUCLIST;
 bool startDLIST, startFFLIST, startWWLIST;
 bool startLIGHTSLIST;
+bool startCOMPRESSORLIST;
 int LISTLINE;
 
 bool issection( std::string const &Name, std::string const &Input ) {
@@ -8101,10 +8127,31 @@ bool TMoverParameters::readLightsList( std::string const &Input ) {
         return false;
     }
     parser
-        >> Lights[ 0 ][ idx ]
-        >> Lights[ 1 ][ idx ];
+		>> Lights[0][idx]
+		>> Lights[1][idx];
 
     return true;
+}
+
+bool TMoverParameters::readCompressorList(std::string const &Input) {
+
+	cParser parser(Input);
+	if (false == parser.getTokens(4, false)) {
+		WriteLog("Read CompressorList: arguments missing in line " + std::to_string(LISTLINE + 1));
+		return false;
+	}
+	int idx = LISTLINE++;
+	if (idx > 8) {
+		WriteLog("Read CompressorList: number of entries exceeded capacity of the data table");
+		return false;
+	}
+	parser
+		>> CompressorList[ 0 ][ idx + 1 ]
+		>> CompressorList[ 1 ][ idx + 1 ]
+		>> CompressorList[ 2 ][ idx + 1 ]
+		>> CompressorList[ 3 ][ idx + 1 ]; 
+
+	return true;
 }
 
 // *************************************************************************************************
@@ -8213,6 +8260,7 @@ bool TMoverParameters::LoadFIZ(std::string chkpath)
     startFFLIST = false;
     startWWLIST = false;
     startLIGHTSLIST = false;
+	startCOMPRESSORLIST = false;
     std::string file = chkpath + TypeName + ".fiz";
 
     WriteLog("LOAD FIZ FROM " + file);
@@ -8301,6 +8349,11 @@ bool TMoverParameters::LoadFIZ(std::string chkpath)
             startLIGHTSLIST = false;
             continue;
         }
+		if ( issection( "endCL", inputline ) ) {
+			startBPT = false;
+			startCOMPRESSORLIST = false;
+			continue;
+		}
         // ...then all recognized sections...
         if( issection( "Param.", inputline ) )
         {
@@ -8532,6 +8585,14 @@ bool TMoverParameters::LoadFIZ(std::string chkpath)
             continue;
         }
 
+		if (issection("CompressorList:", inputline)) {
+			startBPT = false;
+			fizlines.emplace("CompressorList", inputline);
+			startCOMPRESSORLIST = true; LISTLINE = 0;
+			LoadFIZ_CompressorList( inputline );
+			continue;
+		}
+
         // ...and finally, table parsers.
         // NOTE: once table parsing is enabled it lasts until switched off, when another section is recognized
         if( true == startBPT ) {
@@ -8570,6 +8631,10 @@ bool TMoverParameters::LoadFIZ(std::string chkpath)
             readLightsList( inputline );
             continue;
         }
+		if (true == startCOMPRESSORLIST) {
+			readCompressorList(inputline);
+			continue;
+		}
     } // while line
 /*
     in.close();
@@ -8811,6 +8876,9 @@ void TMoverParameters::LoadFIZ_Brake( std::string const &line ) {
     extract_value( MinCompressor, "MinCP", line, "" );
     extract_value( MaxCompressor, "MaxCP", line, "" );
     extract_value( CompressorSpeed, "CompressorSpeed", line, "" );
+	extract_value( EmergencyValveOff, "MinEVP", line, "" );
+	extract_value( EmergencyValveOn, "MaxEVP", line, "" );
+	extract_value( EmergencyValveArea, "EVArea", line, "" );
     {
         std::map<std::string, int> compressorpowers{
             { "Main", 0 },
@@ -9664,6 +9732,13 @@ void TMoverParameters::LoadFIZ_LightsList( std::string const &Input ) {
     extract_value( LightsDefPos, "Default", Input, "" );
 }
 
+void TMoverParameters::LoadFIZ_CompressorList(std::string const &Input) {
+
+	extract_value( CompressorListPosNo, "Size", Input, "" );
+	extract_value( CompressorListWrap, "Wrap", Input, "" );
+	extract_value( CompressorListDefPos, "Default", Input, "" );
+}
+
 void TMoverParameters::LoadFIZ_PowerParamsDecode( TPowerParameters &Powerparameters, std::string const Prefix, std::string const &Line ) {
 
     switch( Powerparameters.SourceType ) {
@@ -10030,6 +10105,8 @@ bool TMoverParameters::CheckLocomotiveParameters(bool ReadyFlag, int Dir)
 
     if( LightsPosNo > 0 )
         LightsPos = LightsDefPos;
+	if (CompressorListPosNo > 0)
+		CompressorListPos = CompressorListDefPos;
 
     // NOTE: legacy compatibility behaviour for vehicles without defined heating power source
     if( ( EnginePowerSource.SourceType == TPowerSource::CurrentCollector )

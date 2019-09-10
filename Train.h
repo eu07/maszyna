@@ -272,6 +272,9 @@ class TTrain {
     static void OnCommand_compressorenable( TTrain *Train, command_data const &Command );
     static void OnCommand_compressordisable( TTrain *Train, command_data const &Command );
     static void OnCommand_compressortogglelocal( TTrain *Train, command_data const &Command );
+	static void OnCommand_compressorpresetactivatenext( TTrain *Train, command_data const &Command );
+	static void OnCommand_compressorpresetactivateprevious( TTrain *Train, command_data const &Command );
+	static void OnCommand_compressorpresetactivatedefault(TTrain *Train, command_data const &Command);
     static void OnCommand_motorblowerstogglefront( TTrain *Train, command_data const &Command );
     static void OnCommand_motorblowersenablefront( TTrain *Train, command_data const &Command );
     static void OnCommand_motorblowersdisablefront( TTrain *Train, command_data const &Command );
@@ -454,6 +457,7 @@ public: // reszta może by?publiczna
 
     TGauge ggCompressorButton;
     TGauge ggCompressorLocalButton; // controls only compressor of its own unit (et42-specific)
+	TGauge ggCompressorListButton; // controls compressors with various settings
     TGauge ggConverterButton;
     TGauge ggConverterLocalButton; // controls only converter of its own unit (et42-specific)
     TGauge ggConverterOffButton;

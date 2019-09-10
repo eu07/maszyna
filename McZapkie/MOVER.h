@@ -295,6 +295,14 @@ enum TProblem // lista problemów taboru, które uniemożliwiają jazdę
 	pr_Ostatni = 0x80000000 // ostatnia flaga bitowa
 };
 
+enum TCompressorList // lista parametrów w programatorze sprężarek
+{ // pozycje kolejne
+	cl_Allow = 0, // zezwolenie na pracę sprężarek
+	cl_SpeedFactor = 1, // mnożnik wydajności
+	cl_MinFactor = 2, // mnożnik progu załącznika ciśnieniowego
+	cl_MaxFactor = 3 // mnożnik progu wyłącznika ciśnieniowego
+};
+
 /*ogolne*/
 /*lokacja*/
 struct TLocation
@@ -1003,6 +1011,14 @@ public:
 	double MinCompressor = 0.0;
     double MaxCompressor = 0.0;
     double CompressorSpeed = 0.0;
+	int CompressorList[4][9]; // pozycje świateł, przód - tył, 1 .. 16
+	double EmergencyValveOn = 0.0;
+	double EmergencyValveOff = 0.0;
+	bool EmergencyValveOpen = false;
+	double EmergencyValveArea = 0.0;
+	int CompressorListPosNo = 0;
+	int CompressorListDefPos = 1;
+	bool CompressorListWrap = false;
 	/*cisnienie wlaczania, zalaczania sprezarki, wydajnosc sprezarki*/
 	TBrakeDelayTable BrakeDelay; /*opoznienie hamowania/odhamowania t/o*/
     double AirLeakRate{ 0.01 }; // base rate of air leak from brake system components ( 0.001 = 1 l/sec )
@@ -1297,7 +1313,8 @@ public:
     double MainsInitTimeCountdown{ 0.0 }; // current state of main circuit initialization, remaining time (in seconds) until it's ready
 	int MainCtrlPos = 0; /*polozenie glownego nastawnika*/
 	int ScndCtrlPos = 0; /*polozenie dodatkowego nastawnika*/
-	int LightsPos = 0;
+	int LightsPos = 0; /*polozenie przelacznika wielopozycyjnego swiatel*/
+	int CompressorListPos = 0; /*polozenie przelacznika wielopozycyjnego sprezarek*/
 	int ActiveDir = 0; //czy lok. jest wlaczona i w ktorym kierunku:
 				   //względem wybranej kabiny: -1 - do tylu, +1 - do przodu, 0 - wylaczona
     int MaxMainCtrlPosNoDirChange { 0 }; // can't change reverser state with master controller set above this position
@@ -1674,6 +1691,7 @@ private:
     void LoadFIZ_DList( std::string const &Input );
     void LoadFIZ_FFList( std::string const &Input );
     void LoadFIZ_LightsList( std::string const &Input );
+	void LoadFIZ_CompressorList(std::string const &Input);
     void LoadFIZ_PowerParamsDecode( TPowerParameters &Powerparameters, std::string const Prefix, std::string const &Input );
     TPowerType LoadFIZ_PowerDecode( std::string const &Power );
     TPowerSource LoadFIZ_SourceDecode( std::string const &Source );
@@ -1690,6 +1708,7 @@ private:
     bool readFFList( std::string const &line );
     bool readWWList( std::string const &line );
     bool readLightsList( std::string const &Input );
+	bool readCompressorList(std::string const &Input);
     void BrakeValveDecode( std::string const &s );                                                            //Q 20160719
 	void BrakeSubsystemDecode();                                                                     //Q 20160719
     bool EIMDirectionChangeAllow( void );

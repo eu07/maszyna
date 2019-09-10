@@ -689,6 +689,9 @@ drivermouse_input::default_bindings() {
         { "compressorlocal_sw:", {
             user_command::compressortogglelocal,
             user_command::none } },
+		{ "compressorlist_sw:", {
+			user_command::compressorpresetactivatenext,
+			user_command::compressorpresetactivateprevious } },
         { "converter_sw:", {
             user_command::convertertoggle,
             user_command::none } },
