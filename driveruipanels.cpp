@@ -533,6 +533,13 @@ debug_panel::render() {
 			        &GfxRenderer.settings.traction_debug );
 		}
 		render_section( "Camera", m_cameralines );
+		if (m_input.vehicle && ImGui::CollapsingHeader(STR_C("Normal forces graph"))) {
+			ImGui::Text("Normal acceleration: %.2f m/s^2", AccN_acc_graph.last_val);
+			AccN_acc_graph.render();
+
+			ImGui::Text("Normal jerk: %.2f m/s^3", AccN_jerk_graph.last_val);
+			AccN_jerk_graph.render();
+		}
 		render_section( "Gfx Renderer", m_rendererlines );
 		// toggles
 		ImGui::Separator();
@@ -673,13 +680,7 @@ debug_panel::update_section_vehicle( std::vector<text_line> &Output ) {
         textline += m_buffer.data();
     }
 
-    Output.emplace_back( textline, Global.UITextColor );
-
-    if( tprev != simulation::Time.data().wSecond ) {
-        tprev = simulation::Time.data().wSecond;
-        Acc = ( mover.Vel - VelPrev ) / 3.6;
-        VelPrev = mover.Vel;
-    }
+	Output.emplace_back( textline, Global.UITextColor );
 
     std::snprintf(
         m_buffer.data(), m_buffer.size(),
@@ -690,8 +691,8 @@ debug_panel::update_section_vehicle( std::vector<text_line> &Output ) {
         mover.Adhesive( mover.RunningTrack.friction ),
         ( mover.SlippingWheels ? " (!)" : "" ),
         // acceleration
-        Acc,
-        mover.AccN + 0.001f,
+	    mover.AccSVBased,
+	    mover.AccN,
         std::string( std::abs( mover.RunningShape.R ) > 10000.0 ? "~0" : to_string( mover.RunningShape.R, 0 ) ).c_str(),
         // velocity
         vehicle.GetVelocity(),
@@ -703,6 +704,31 @@ debug_panel::update_section_vehicle( std::vector<text_line> &Output ) {
 
     Output.emplace_back( m_buffer.data(), Global.UITextColor );
 
+	if (!std::isnan(last_time)) {
+		double dt = Timer::GetTime() - last_time;
+		AccN_jerk_graph.update((mover.AccN - last_AccN) / dt);
+		AccN_acc_graph.update(mover.AccN);
+	}
+
+	last_AccN = mover.AccN;
+	last_time = Timer::GetTime();
+}
+
+void debug_panel::graph_data::update(float val) {
+	data[pos] = val;
+
+	pos++;
+	if (pos >= data.size())
+		pos = 0;
+
+	last_val = val;
+}
+
+void debug_panel::graph_data::render() {
+	ImGui::PushID(this);
+	ImGui::SliderFloat(STR_C("##Range"), &range, 0.5f, 60.0f, "%.1f");
+	ImGui::PlotLines("##plot", data.data(), data.size(), pos, nullptr, 0.0f, range, ImVec2(0, 100));
+	ImGui::PopID();
 }
 
 std::string

@@ -188,6 +188,7 @@ struct global_settings {
 	bool dds_upper_origin = false;
     bool captureonstart = true;
 	bool render_cab = true;
+	bool crash_damage = true;
 
 #ifdef USE_EXTCAM_CAMERA
 	std::string extcam_cmd;

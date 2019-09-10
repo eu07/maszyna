@@ -106,9 +106,23 @@ private:
         m_eventqueuelines,
         m_powergridlines,
         m_rendererlines;
-    int tprev { 0 }; // poprzedni czas
-    double VelPrev { 0.0 }; // poprzednia prędkość
-    double Acc { 0.0 }; // przyspieszenie styczne
+
+	double last_time = std::numeric_limits<double>::quiet_NaN();
+
+	struct graph_data
+	{
+		double last_val = 0.0;
+		std::array<float, 150> data = { 0.0f };
+		size_t pos = 0;
+		float range = 25.0f;
+
+		void update(float data);
+		void render();
+	};
+	graph_data AccN_jerk_graph;
+	graph_data AccN_acc_graph;
+	float last_AccN;
+
     bool m_eventqueueactivevehicleonly { false };
 };
 

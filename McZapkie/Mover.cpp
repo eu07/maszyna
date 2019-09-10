@@ -1144,31 +1144,33 @@ void TMoverParameters::CollisionDetect(int const End, double const dt)
         }
     }
 
-    if( ( coupler.Dist < 0 )
-     && ( FuzzyLogic( std::abs( CCF ), 5.0 * ( coupler.FmaxC + 1.0 ), p_coupldmg ) ) ) {
-        // small chance to smash the coupler if it's hit with excessive force
-        damage_coupler( End );
-    }
+	if (Global.crash_damage) {
+		if( ( coupler.Dist < 0 )
+		 && ( FuzzyLogic( std::abs( CCF ), 5.0 * ( coupler.FmaxC + 1.0 ), p_coupldmg ) ) ) {
+			// small chance to smash the coupler if it's hit with excessive force
+			damage_coupler( End );
+		}
 
-    auto const safevelocitylimit { 15.0 };
-    auto const velocitydifference {
-        glm::length(
-            glm::angleAxis( Rot.Rz, glm::dvec3{ 0, 1, 0 } ) * V
-          - glm::angleAxis( othervehicle->Rot.Rz, glm::dvec3{ 0, 1, 0 } ) * othervehicle->V )
-        * 3.6 }; // m/s -> km/h
+		auto const safevelocitylimit { 15.0 };
+		auto const velocitydifference {
+			glm::length(
+			    glm::angleAxis( Rot.Rz, glm::dvec3{ 0, 1, 0 } ) * V
+			  - glm::angleAxis( othervehicle->Rot.Rz, glm::dvec3{ 0, 1, 0 } ) * othervehicle->V )
+			* 3.6 }; // m/s -> km/h
 
-    if( velocitydifference > safevelocitylimit ) {
-        // HACK: crude estimation for potential derail, will take place with velocity difference > 15 km/h adjusted for vehicle mass ratio
-        WriteLog( "Bad driving: " + Name + " and " + othervehicle->Name + " collided with velocity " + to_string( velocitydifference, 0 ) + " km/h" );
+		if( velocitydifference > safevelocitylimit ) {
+			// HACK: crude estimation for potential derail, will take place with velocity difference > 15 km/h adjusted for vehicle mass ratio
+			WriteLog( "Bad driving: " + Name + " and " + othervehicle->Name + " collided with velocity " + to_string( velocitydifference, 0 ) + " km/h" );
 
-        if( velocitydifference > safevelocitylimit * ( TotalMass / othervehicle->TotalMass ) ) {
-            derail( 5 );
-        }
-        if( velocitydifference > safevelocitylimit * ( othervehicle->TotalMass / TotalMass ) ) {
-            othervehicle->derail( 5 );
-        }
-    }
-  
+			if( velocitydifference > safevelocitylimit * ( TotalMass / othervehicle->TotalMass ) ) {
+				derail( 5 );
+			}
+			if( velocitydifference > safevelocitylimit * ( othervehicle->TotalMass / TotalMass ) ) {
+				othervehicle->derail( 5 );
+			}
+		}
+	}
+
     // adjust velocity and acceleration of affected vehicles
     if( false == TestFlag( DamageFlag, dtrain_out ) ) {
         auto const accelerationchange{ ( velocity - V ) / dt };
@@ -1191,8 +1193,8 @@ void TMoverParameters::CollisionDetect(int const End, double const dt)
 
 void
 TMoverParameters::damage_coupler( int const End ) {
-    if( SetFlag( DamageFlag, dtrain_coupling ) )
-        EventFlag = true;
+	if( SetFlag( DamageFlag, dtrain_coupling ) )
+		EventFlag = true;
 
     auto &coupler { Couplers[ End ] };
 
@@ -1201,8 +1203,6 @@ TMoverParameters::damage_coupler( int const End ) {
         AlarmChainFlag = true;
     }
 
-	// M7TMP: disable coupler breaking because consist cannot be teleported to starting place in one piece
-	/*
     coupler.CouplingFlag = 0;
 
     if( coupler.Connected != nullptr ) {
@@ -1221,7 +1221,6 @@ TMoverParameters::damage_coupler( int const End ) {
             }
         }
     }
-    */
 
     WriteLog( "Bad driving: " + Name + " broke a coupler" );
 }
@@ -4647,7 +4646,7 @@ double TMoverParameters::CouplerForce( int const End, double dt ) {
                 coupler.stretch_duration += dt;
                 // give coupler 1 sec of leeway to account for simulation glitches, before checking whether it breaks
                 // (arbitrary) chance to break grows from 10-100% over 10 sec period
-                if( ( coupler.stretch_duration > 1.f )
+				if( Global.crash_damage && ( coupler.stretch_duration > 1.f )
                  && ( Random() < ( coupler.stretch_duration * 0.1f * dt ) ) ) {
                     damage_coupler( End );
                 }

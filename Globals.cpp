@@ -928,6 +928,10 @@ global_settings::ConfigParse(cParser &Parser) {
 			Parser >> exec_on_exit;
 			std::replace(std::begin(exec_on_exit), std::end(exec_on_exit), '_', ' ');
 		}
+		else if (token == "crashdamage") {
+			Parser.getTokens(1);
+			Parser >> crash_damage;
+		}
     } while ((token != "") && (token != "endconfig")); //(!Parser->EndOfFile)
     // na koniec trochę zależności
     if (!bLoadTraction) // wczytywanie drutów i słupów
