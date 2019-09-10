@@ -261,6 +261,9 @@ TTrain::commandhandler_map const TTrain::m_commandhandlers = {
     { user_command::compressorenable, &TTrain::OnCommand_compressorenable },
     { user_command::compressordisable, &TTrain::OnCommand_compressordisable },
     { user_command::compressortogglelocal, &TTrain::OnCommand_compressortogglelocal },
+	{ user_command::compressorpresetactivatenext, &TTrain::OnCommand_compressorpresetactivatenext },
+	{ user_command::compressorpresetactivateprevious, &TTrain::OnCommand_compressorpresetactivateprevious },
+	{ user_command::compressorpresetactivatedefault, &TTrain::OnCommand_compressorpresetactivatedefault },
     { user_command::motorblowerstogglefront, &TTrain::OnCommand_motorblowerstogglefront },
     { user_command::motorblowerstogglerear, &TTrain::OnCommand_motorblowerstogglerear },
     { user_command::motorblowersdisableall, &TTrain::OnCommand_motorblowersdisableall },
@@ -2954,6 +2957,77 @@ void TTrain::OnCommand_compressortogglelocal( TTrain *Train, command_data const 
             Train->mvOccupied->CompressorAllowLocal = false;
         }
     }
+}
+
+void TTrain::OnCommand_compressorpresetactivatenext(TTrain *Train, command_data const &Command) {
+
+	if (Train->mvOccupied->CompressorListPosNo == 0) {
+		// lights are controlled by preset selector
+		return;
+	}
+	if (Command.action != GLFW_PRESS) {
+		// one change per key press
+		return;
+	}
+
+	if ((Train->mvOccupied->CompressorListPos < Train->mvOccupied->CompressorListPosNo)
+		|| (true == Train->mvOccupied->CompressorListWrap)) {
+		// active light preset is stored as value in range 1-LigthPosNo
+		Train->mvOccupied->CompressorListPos = (
+			Train->mvOccupied->CompressorListPos < Train->mvOccupied->CompressorListPosNo ?
+			Train->mvOccupied->CompressorListPos + 1 :
+			1); // wrap mode
+
+		// visual feedback
+		if (Train->ggCompressorListButton.SubModel != nullptr) {
+			Train->ggCompressorListButton.UpdateValue(Train->mvOccupied->CompressorListPos - 1, Train->dsbSwitch);
+		}
+	}
+}
+
+void TTrain::OnCommand_compressorpresetactivateprevious(TTrain *Train, command_data const &Command) {
+
+	if (Train->mvOccupied->CompressorListPosNo == 0) {
+		// lights are controlled by preset selector
+		return;
+	}
+	if (Command.action != GLFW_PRESS) {
+		// one change per key press
+		return;
+	}
+
+	if ((Train->mvOccupied->CompressorListPos > 1)
+		|| (true == Train->mvOccupied->CompressorListWrap)) {
+		// active light preset is stored as value in range 1-LigthPosNo
+		Train->mvOccupied->CompressorListPos = (
+			Train->mvOccupied->CompressorListPos > 1 ?
+			Train->mvOccupied->CompressorListPos - 1 :
+			Train->mvOccupied->CompressorListPosNo); // wrap mode
+
+		// visual feedback
+		if (Train->ggCompressorListButton.SubModel != nullptr) {
+			Train->ggCompressorListButton.UpdateValue(Train->mvOccupied->CompressorListPos - 1, Train->dsbSwitch);
+		}
+	}
+}
+
+void TTrain::OnCommand_compressorpresetactivatedefault(TTrain *Train, command_data const &Command) {
+
+	if (Train->mvOccupied->CompressorListPosNo == 0) {
+		// lights are controlled by preset selector
+		return;
+	}
+	if (Command.action != GLFW_PRESS) {
+		// one change per key press
+		return;
+	}
+
+	Train->mvOccupied->CompressorListPos = Train->mvOccupied->CompressorListDefPos;
+
+													 // visual feedback
+	if (Train->ggCompressorListButton.SubModel != nullptr) {
+			Train->ggCompressorListButton.UpdateValue(Train->mvOccupied->CompressorListPos - 1, Train->dsbSwitch);
+	}
 }
 
 void TTrain::OnCommand_motorblowerstogglefront( TTrain *Train, command_data const &Command ) {
@@ -6214,6 +6288,7 @@ bool TTrain::Update( double const Deltatime )
         // NBMX dzwignia sprezarki
         ggCompressorButton.Update();
         ggCompressorLocalButton.Update();
+		ggCompressorListButton.Update();
 
         //---------
         // hunter-080812: poprawka na ogrzewanie w elektrykach - usuniete uzaleznienie od przetwornicy
@@ -7722,6 +7797,7 @@ void TTrain::set_cab_controls( int const Cab ) {
         mvControlled->CompressorAllowLocal ?
             1.f :
             0.f );
+	ggCompressorListButton.PutValue(mvOccupied->CompressorListPos - 1);
     // motor overload relay threshold / shunt mode
     ggMaxCurrentCtrl.PutValue(
         ( true == mvControlled->ShuntModeAllow ?
@@ -8137,6 +8213,7 @@ bool TTrain::initialize_gauge(cParser &Parser, std::string const &Label, int con
         { "rearrightend_sw:",  ggRearRightEndLightButton },
         { "compressor_sw:", ggCompressorButton },
         { "compressorlocal_sw:", ggCompressorLocalButton },
+		{ "compressorlist_sw:", ggCompressorListButton },
         { "converter_sw:", ggConverterButton },
         { "converterlocal_sw:", ggConverterLocalButton },
         { "converteroff_sw:", ggConverterOffButton },
