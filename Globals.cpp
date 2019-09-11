@@ -410,10 +410,7 @@ global_settings::ConfigParse(cParser &Parser) {
         else if( token == "gfx.reflections.framerate" ) {
 
             auto const updatespersecond { std::abs( Parser.getToken<double>() ) };
-            ReflectionUpdatesPerSecond = (
-                updatespersecond > 0 ?
-                    1000 / std::min( 30.0, updatespersecond ) :
-                    0 );
+			ReflectionUpdateInterval = 1.0 / updatespersecond;
         }
         else if (token == "timespeed")
         {

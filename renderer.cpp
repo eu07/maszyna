@@ -1027,13 +1027,12 @@ void opengl_renderer::Render_pass(viewport_config &vp, rendermode const Mode)
 // creates dynamic environment cubemap
 bool opengl_renderer::Render_reflections(viewport_config &vp)
 {
-	if (Global.ReflectionUpdatesPerSecond == 0)
+	if (Global.ReflectionUpdateInterval == 0.0)
 		return false;
 
-	auto const &time = simulation::Time.data();
-	auto const timestamp = time.wMilliseconds + time.wSecond * 1000 + time.wMinute * 1000 * 60 + time.wHour * 1000 * 60 * 60;
+	auto const timestamp = Timer::GetTime();
 
-	if ((timestamp - m_environmentupdatetime < Global.ReflectionUpdatesPerSecond)
+	if ((timestamp - m_environmentupdatetime < Global.ReflectionUpdateInterval)
 	        && (glm::length(m_renderpass.pass_camera.position() - m_environmentupdatelocation) < 1000.0))
 	{
 		// run update every 5+ mins of simulation time, or at least 1km from the last location

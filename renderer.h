@@ -372,7 +372,7 @@ class opengl_renderer
 	glm::mat4 m_cabshadowtexturematrix; // conversion from cab-centric world space to light-centric clip space
 
 	int m_environmentcubetextureface{0}; // helper, currently processed cube map face
-	int m_environmentupdatetime{0}; // time of the most recent environment map update
+	double m_environmentupdatetime{0}; // time of the most recent environment map update
 	glm::dvec3 m_environmentupdatelocation; // coordinates of most recent environment map update
 	opengl_particles m_particlerenderer; // particle visualization subsystem
 
