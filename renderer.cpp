@@ -878,9 +878,6 @@ void opengl_renderer::Render_pass(viewport_config &vp, rendermode const Mode)
 
 		glDebug("rendermode::shadows");
 
-		glPolygonOffset(1.0f, 1.0f);
-		glEnable(GL_POLYGON_OFFSET_FILL);
-
 		glEnable(GL_DEPTH_TEST);
 
 		glViewport(0, 0, m_shadowbuffersize, m_shadowbuffersize);
@@ -894,13 +891,7 @@ void opengl_renderer::Render_pass(viewport_config &vp, rendermode const Mode)
 		scene_ubo->update(scene_ubs);
 		Render(simulation::Region);
 
-		// setup_drawing(true);
-		// glDepthMask(GL_TRUE);
-		// Render_Alpha(simulation::Region);
-
 		m_shadowpass = m_renderpass;
-
-		glDisable(GL_POLYGON_OFFSET_FILL);
 
 		m_shadow_fb->unbind();
 
@@ -912,9 +903,6 @@ void opengl_renderer::Render_pass(viewport_config &vp, rendermode const Mode)
 	case rendermode::cabshadows:
 	{
 		glDebug("rendermode::cabshadows");
-
-		glEnable(GL_POLYGON_OFFSET_FILL);
-		glPolygonOffset(1.0f, 1.0f);
 
 		glEnable(GL_DEPTH_TEST);
 
@@ -931,8 +919,6 @@ void opengl_renderer::Render_pass(viewport_config &vp, rendermode const Mode)
 		Render_cab(simulation::Train->Dynamic(), 0.0f, false);
 		Render_cab(simulation::Train->Dynamic(), 0.0f, true);
 		m_cabshadowpass = m_renderpass;
-
-		glDisable(GL_POLYGON_OFFSET_FILL);
 
 		m_cabshadows_fb->unbind();
 
