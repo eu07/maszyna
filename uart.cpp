@@ -40,7 +40,7 @@ uart_input::uart_input()
 
 uart_input::~uart_input()
 {
-	std::array<std::uint8_t, 31> buffer = { 0 };
+	std::array<std::uint8_t, 48> buffer = { 0 };
 	sp_blocking_write(port, (void*)buffer.data(), buffer.size(), 0);
 	sp_drain(port);
 
