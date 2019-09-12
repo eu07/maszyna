@@ -64,9 +64,11 @@ openal_buffer::openal_buffer( std::string const &Filename ) :
 
 	alGenBuffers(1, &id);
 	if (id != null_resource && alIsBuffer(id)) {
+		alGetError();
 		alBufferData(id, AL_FORMAT_MONO16, buf, si.frames * 2, rate);
 	}
 	else {
+		id = null_resource;
 		ErrorLog("sound: failed to create AL buffer");
 	}
 

@@ -175,7 +175,7 @@ openal_source::bind( sound_source *Controller, uint32_sequence Sounds, Iterator_
         First, Last,
         [&]( audio::buffer_handle const &bufferhandle ) {
             auto const &buffer { audio::renderer.buffer( bufferhandle ) };
-            buffers.emplace_back( buffer.id ); } );
+			if (buffer.id != null_resource) buffers.emplace_back( buffer.id ); } );
 
     if( id != audio::null_resource ) {
         ::alSourceQueueBuffers( id, static_cast<ALsizei>( buffers.size() ), buffers.data() );
