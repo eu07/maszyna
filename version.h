@@ -1,1 +1,1 @@
-#define VERSION_INFO "M7 7.09.2019"
+#define VERSION_INFO "M7 12.09.2019"
