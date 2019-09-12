@@ -62,12 +62,15 @@ openal_buffer::openal_buffer( std::string const &Filename ) :
 		buf[i] = val;
 	}
 
-	id = 0;
 	alGenBuffers(1, &id);
-	if (!id)
-		throw std::runtime_error("sound: cannot generate buffer");
-
-	alBufferData(id, AL_FORMAT_MONO16, buf, si.frames * 2, rate);
+	if (id != null_resource && alIsBuffer(id)) {
+		alGetError();
+		alBufferData(id, AL_FORMAT_MONO16, buf, si.frames * 2, rate);
+	}
+	else {
+		id = null_resource;
+		ErrorLog("sound: failed to create AL buffer");
+	}
 
 	delete[] buf;
 	delete[] fbuf;
