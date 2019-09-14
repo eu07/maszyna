@@ -1300,7 +1300,9 @@ double TLSt::GetPF( double const PP, double const dt, double const Vel )
         SoundFlag |= sf_CylU;
     }
     // equivalent of checkreleaser() in the base class?
-    if( ( BrakeStatus & b_rls ) == b_rls ) {
+	bool is_releasing = ( ( BrakeStatus & b_rls)
+						|| ( UniversalFlag & TUniversalBrake::ub_Release ) );
+    if ( is_releasing ) {
         if( CVP < 0.0 ) {
             BrakeStatus &= ~b_rls;
         }
@@ -1373,9 +1375,12 @@ double TLSt::GetPF( double const PP, double const dt, double const Vel )
     temp = 1 - RapidTemp;
     if (EDFlag > 0.2)
         temp = 10000;
-
+	double tempasb = 0;
+	if ( ( (UniversalFlag & TUniversalBrake::ub_AntiSlipBrake) > 0)
+		|| ( (BrakeStatus & b_asb_unbrake) == b_asb_unbrake ) )
+		tempasb = ASBP;
     // powtarzacz — podwojny zawor zwrotny
-    temp = Max0R(((CVP - BCP) * BVM + ASBP * int((BrakeStatus & b_asb_unbrake) == b_asb_unbrake)) / temp, LBP);
+    temp = Max0R( ( (CVP - BCP) * BVM + tempasb ) / temp, LBP );
     // luzowanie CH
     if ((BrakeCyl->P() > temp + 0.005) || (temp < 0.28))
         //   dV:=PF(0,BrakeCyl->P(),0.0015*3*sizeBC)*dt
@@ -1556,6 +1561,10 @@ double TEStED::GetPF( double const PP, double const dt, double const Vel )
 
     // powtarzacz — podwojny zawor zwrotny
     temp = Max0R(LoadC * BCP / temp * Min0R(Max0R(1 - EDFlag, 0), 1), LBP);
+	
+	if ( ( UniversalFlag & TUniversalBrake::ub_AntiSlipBrake ) > 0 )
+		temp = std::max(temp, ASBP);
+
 	double speed = 1;
 	if ((ASBP < 0.1) && ((BrakeStatus & b_asb_unbrake) == b_asb_unbrake))
 	{
@@ -2292,6 +2301,11 @@ void TDriverHandle::OvrldButton(bool Active)
 {
 	ManualOvrldActive = Active;
 }
+
+void TDriverHandle::SetUniversalFlag(int flag)
+{
+	UniversalFlag = flag;
+}
 //---FV4a---
 
 double TFV4a::GetPF(double i_bcp, double PP, double HP, double dt, double ep)
@@ -2576,7 +2590,7 @@ double TMHZ_EN57::GetPF( double i_bcp, double PP, double HP, double dt, double e
 
     i_bcp = Max0R(Min0R(i_bcp, 9.999), -0.999); // na wszelki wypadek, zeby nie wyszlo poza zakres
 
-    if ((TP > 0))
+    if ((TP > 0)&&(CP > 4.9))
     {
         DP = 0.045;
         if (EQ(i_bcp, 0))
@@ -2591,8 +2605,13 @@ double TMHZ_EN57::GetPF( double i_bcp, double PP, double HP, double dt, double e
     LimPP = Min0R(LPP_RP(i_bcp) + TP * 0.08 + RedAdj, HP); // pozycja + czasowy lub zasilanie
     ActFlowSpeed = 4;
 
-    if ((EQ(i_bcp, -1)))
-        pom = Min0R(HP, 5.4 + RedAdj);
+	double uop = UnbrakeOverPressure; //unbrake over pressure in actual state
+	ManualOvrldActive = (UniversalFlag & TUniversalBrake::ub_HighPressure); //button is pressed
+	if (ManualOvrld && !ManualOvrldActive) //no overpressure for not pressed button if it does not exists
+		uop = 0;
+
+    if ( ( EQ( i_bcp, -1 ) ) && ( uop > 0 ) )
+        pom = Min0R(HP, 5.4 + RedAdj + uop);
     else
         pom = Min0R(CP, HP);
 
@@ -2602,9 +2621,9 @@ double TMHZ_EN57::GetPF( double i_bcp, double PP, double HP, double dt, double e
         CP = CP + 13 * Min0R(abs(LimPP - CP), 0.05) * PR(CP, LimPP) * dt; // zbiornik sterujacy
 
     LimPP = pom; // cp
-    if (EQ(i_bcp, -1))
-        dpPipe = HP;
-    else
+    //if (EQ(i_bcp, -1))
+ //       dpPipe = HP;
+ //   else
         dpPipe = Min0R(HP, LimPP);
 
     if (dpPipe > PP)
@@ -2612,7 +2631,8 @@ double TMHZ_EN57::GetPF( double i_bcp, double PP, double HP, double dt, double e
     else
         dpMainValve = PFVd(PP, 0, ActFlowSpeed / LBDelay, dpPipe, 0.4);
 
-    if (EQ(i_bcp, -1))
+    if ( ( EQ(i_bcp, -1) && ( AutoOvrld ) )
+		||(i_bcp<0.5 && (UniversalFlag & TUniversalBrake::ub_Overload)))
     {
         if ((TP < 5))
             TP = TP + dt; // 5/10
@@ -2691,6 +2711,15 @@ double TMHZ_EN57::LPP_RP(double pos) // cisnienie z zaokraglonej pozycji;
         return 5.0;
 }
 
+void TMHZ_EN57::SetParams(bool AO, bool MO, double OverP, double)
+{
+	AutoOvrld = AO;
+	ManualOvrld = MO;
+	UnbrakeOverPressure = std::max(0.0, OverP);
+	Fala = (OverP > 0.01);
+
+}
+
 bool TMHZ_EN57::EQ(double pos, double i_pos)
 {
     return (pos <= i_pos + 0.5) && (pos > i_pos - 0.5);
@@ -2716,7 +2745,7 @@ double TMHZ_K5P::GetPF(double i_bcp, double PP, double HP, double dt, double ep)
 
 	i_bcp = Max0R(Min0R(i_bcp, 2.999), -0.999); // na wszelki wypadek, zeby nie wyszlo poza zakres
 
-	if ((TP > 0))
+	if ((TP > 0)&&(CP>4.9))
 	{
 		DP = 0.004;
 		TP = TP - DP * dt;
@@ -2749,7 +2778,7 @@ double TMHZ_K5P::GetPF(double i_bcp, double PP, double HP, double dt, double ep)
 	else
 		dpMainValve = PFVd(PP, 0, ActFlowSpeed / LBDelay, dpPipe, 0.4);
 
-	if ((EQ(i_bcp, -1)&&(AutoOvrld))||(ManualOvrld && ManualOvrldActive))
+	if ((EQ(i_bcp, -1)&&(AutoOvrld))||(i_bcp<0.5 && ManualOvrldActive ))
 	{
 		if ((TP < 1))
 			TP = TP + 0.03  * dt;
@@ -2836,7 +2865,7 @@ double TMHZ_6P::GetPF(double i_bcp, double PP, double HP, double dt, double ep) 
 
 	i_bcp = Max0R(Min0R(i_bcp, 3.999), -0.999); // na wszelki wypadek, zeby nie wyszlo poza zakres
 
-	if ((TP > 0))
+	if ((TP > 0)&&(CP>4.9))
 	{
 		DP = 0.004;
 		TP = TP - DP * dt;
@@ -2864,9 +2893,14 @@ double TMHZ_6P::GetPF(double i_bcp, double PP, double HP, double dt, double ep) 
 
 	dpPipe = Min0R(HP, CP + TP + RedAdj);
 
+	double uop = UnbrakeOverPressure; //unbrake over pressure in actual state
+	ManualOvrldActive = (UniversalFlag & TUniversalBrake::ub_HighPressure); //button is pressed
+	if (ManualOvrld && !ManualOvrldActive) //no overpressure for not pressed button if it does not exists
+		uop = 0;
+
 	if (Fala && EQ(i_bcp, -1))
 	{
-		dpPipe = 5.0 + TP + RedAdj + UnbrakeOverPressure;
+		dpPipe = 5.0 + TP + RedAdj + uop;
 		ActFlowSpeed = 12;
 	}
 
@@ -2875,7 +2909,7 @@ double TMHZ_6P::GetPF(double i_bcp, double PP, double HP, double dt, double ep) 
 	else
 		dpMainValve = PFVd(PP, 0, ActFlowSpeed / LBDelay, dpPipe, 0.4);
 
-	if ((EQ(i_bcp, -1) && (AutoOvrld)) || (ManualOvrld && ManualOvrldActive))
+	if ((EQ(i_bcp, -1) && (AutoOvrld)) || ((i_bcp<0.5) && (UniversalFlag & TUniversalBrake::ub_Overload)))
 	{
 		if ((TP < 1))
 			TP = TP + 0.03  * dt;

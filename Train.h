@@ -181,6 +181,9 @@ class TTrain {
     static void OnCommand_independentbrakedecreasefast( TTrain *Train, command_data const &Command );
     static void OnCommand_independentbrakeset( TTrain *Train, command_data const &Command );
     static void OnCommand_independentbrakebailoff( TTrain *Train, command_data const &Command );
+	static void OnCommand_universalbrakebutton1(TTrain *Train, command_data const &Command);
+	static void OnCommand_universalbrakebutton2(TTrain *Train, command_data const &Command);
+	static void OnCommand_universalbrakebutton3(TTrain *Train, command_data const &Command);
     static void OnCommand_trainbrakeincrease( TTrain *Train, command_data const &Command );
     static void OnCommand_trainbrakedecrease( TTrain *Train, command_data const &Command );
     static void OnCommand_trainbrakeset( TTrain *Train, command_data const &Command );
@@ -418,6 +421,9 @@ public: // reszta może by?publiczna
     TGauge ggMainButton; // EZT
     TGauge ggSecurityResetButton;
     TGauge ggReleaserButton;
+	TGauge ggUniveralBrakeButton1;
+	TGauge ggUniveralBrakeButton2;
+	TGauge ggUniveralBrakeButton3;
     TGauge ggSandButton; // guzik piasecznicy
 	TGauge ggAutoSandAllow; // przełącznik piasecznicy
     TGauge ggAntiSlipButton;

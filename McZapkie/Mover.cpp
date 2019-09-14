@@ -3441,6 +3441,37 @@ bool TMoverParameters::BrakeReleaser(int state)
 }
 
 // *************************************************************************************************
+// yB: 20160711
+// włączenie / wyłączenie uniwersalnego przycisku hamulcowego
+// *************************************************************************************************
+bool TMoverParameters::UniversalBrakeButton(int button, int state)
+{
+	bool OK = true; //false tylko jeśli nie uda się wysłać, GF 20161124
+	UniversalBrakeButtonActive[button] = state > 0;
+	int flag = 0;
+	if (Battery) {
+		for (int i = 0; i < 3; i++) {
+			flag = flag | (UniversalBrakeButtonActive[i] ? UniversalBrakeButtonFlag[i] : 0);
+		}
+	}
+
+	Hamulec->SetUniversalFlag(flag);
+	Handle->SetUniversalFlag(flag);
+	LocHandle->SetUniversalFlag(flag);
+	UnlockPipe = (flag & TUniversalBrake::ub_UnlockPipe) > 0;
+
+	//if the releaser can be activated by switch
+	if ( TestFlag ( UniversalBrakeButtonFlag[0] & UniversalBrakeButtonFlag[1] & UniversalBrakeButtonFlag[2],
+				  TUniversalBrake::ub_Release ) )
+	{
+		Hamulec->Releaser( int ( TestFlag ( flag, TUniversalBrake::ub_Release ) ));
+		if (CabNo != 0) // rekurencyjne wysłanie do następnego
+			OK = SendCtrlToNext("BrakeReleaser", state, CabNo);
+	}
+	return OK;
+}
+
+// *************************************************************************************************
 // Q: 20160711
 // włączenie / wyłączenie hamulca elektro-pneumatycznego
 // *************************************************************************************************
@@ -3898,11 +3929,17 @@ void TMoverParameters::UpdatePipePressure(double dt)
 			dpLocalValve = LocHandle->GetPF(std::max(LocalBrakePosA, LocalBrakePosAEIM), Hamulec->GetBCP(), ScndPipePress, dt, 0);
 		else
 			dpLocalValve = LocHandle->GetPF(LocalBrakePosAEIM, Hamulec->GetBCP(), ScndPipePress, dt, 0);
-        if( ( BrakeHandle == TBrakeHandle::FV4a )
-         && ( ( PipePress < 2.75 )
-           && ( ( Hamulec->GetStatus() & b_rls ) == 0 ) )
-         && ( BrakeSubsystem == TBrakeSubSystem::ss_LSt )
-         && ( TrainType != dt_EZT ) ) {
+
+		LockPipe = PipePress < (LockPipe ? LockPipeOff : LockPipeOn);
+		bool lock_new = (LockPipe && !UnlockPipe && (BrakeCtrlPosR > HandleUnlock)); //new simple codition based on .fiz
+		bool lock_old = ((BrakeHandle == TBrakeHandle::FV4a) //old complex condition based on assumptions
+			&& ((PipePress < 2.75)
+				&& ((Hamulec->GetStatus() & b_rls) == 0))
+			&& (BrakeSubsystem == TBrakeSubSystem::ss_LSt)
+			&& (TrainType != dt_EZT)
+			&& (!UnlockPipe));
+
+        if( ( lock_old ) || ( lock_new ) ) {
             temp = PipePress + 0.00001;
         }
         else {
@@ -8964,6 +9001,12 @@ void TMoverParameters::LoadFIZ_Brake( std::string const &line ) {
 	extract_value( EmergencyValveOff, "MinEVP", line, "" );
 	extract_value( EmergencyValveOn, "MaxEVP", line, "" );
 	extract_value( EmergencyValveArea, "EVArea", line, "" );
+	extract_value( UniversalBrakeButtonFlag[0], "UBB1", line, "");
+	extract_value( UniversalBrakeButtonFlag[1], "UBB2", line, "");
+	extract_value( UniversalBrakeButtonFlag[2], "UBB3", line, "");
+	extract_value( LockPipeOn, "LPOn", line, "-1");
+	extract_value( LockPipeOff, "LPOff", line, "-1");
+	extract_value( HandleUnlock, "HandlePipeUnlockPos", line, "-3");
     {
         std::map<std::string, int> compressorpowers{
             { "Main", 0 },
