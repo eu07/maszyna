@@ -421,6 +421,9 @@ public: // reszta może by?publiczna
     TGauge ggMainButton; // EZT
     TGauge ggSecurityResetButton;
     TGauge ggReleaserButton;
+	TGauge ggSpringBrakeToggleButton;
+	TGauge ggSpringBrakeOnButton;
+	TGauge ggSpringBrakeOffButton;
 	TGauge ggUniveralBrakeButton1;
 	TGauge ggUniveralBrakeButton2;
 	TGauge ggUniveralBrakeButton3;

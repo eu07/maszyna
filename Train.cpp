@@ -4415,12 +4415,27 @@ void TTrain::OnCommand_springbraketoggle(TTrain *Train, command_data const &Comm
 			OnCommand_springbrakedisable(Train, Command);
 		}
 	}
+	else if (Command.action == GLFW_RELEASE) {
+		// release
+		// visual feedback
+		Train->ggSpringBrakeOffButton.UpdateValue(0.0, Train->dsbSwitch);
+		Train->ggSpringBrakeOnButton.UpdateValue(0.0, Train->dsbSwitch);
+	}
 };
 
 void TTrain::OnCommand_springbrakeenable(TTrain *Train, command_data const &Command) {
 	if (Command.action == GLFW_PRESS) {
 		// only reacting to press, so the switch doesn't flip back and forth if key is held down
 		Train->mvOccupied->SpringBrakeActivate(true);
+		// visual feedback
+		Train->ggSpringBrakeOnButton.UpdateValue(1.0, Train->dsbSwitch);
+		Train->ggSpringBrakeToggleButton.UpdateValue(1.0, Train->dsbSwitch);
+		Train->ggSpringBrakeOffButton.UpdateValue(0.0, Train->dsbSwitch);
+	}
+	else if (Command.action == GLFW_RELEASE) {
+		// release
+		// visual feedback
+		Train->ggSpringBrakeOnButton.UpdateValue(0.0, Train->dsbSwitch);
 	}
 };
 
@@ -4428,6 +4443,15 @@ void TTrain::OnCommand_springbrakedisable(TTrain *Train, command_data const &Com
 	if (Command.action == GLFW_PRESS) {
 		// only reacting to press, so the switch doesn't flip back and forth if key is held down
 		Train->mvOccupied->SpringBrakeActivate(false);
+		// visual feedback
+		Train->ggSpringBrakeOffButton.UpdateValue(1.0, Train->dsbSwitch);
+		Train->ggSpringBrakeToggleButton.UpdateValue(0.0, Train->dsbSwitch);
+		Train->ggSpringBrakeOnButton.UpdateValue(0.0, Train->dsbSwitch);
+	}
+	else if (Command.action == GLFW_RELEASE) {
+		// release
+		// visual feedback
+		Train->ggSpringBrakeOffButton.UpdateValue(0.0, Train->dsbSwitch);
 	}
 };
 void TTrain::OnCommand_springbrakeshutofftoggle(TTrain *Train, command_data const &Command) {
@@ -6431,6 +6455,9 @@ bool TTrain::Update( double const Deltatime )
         ggMainButton.Update();
         ggSecurityResetButton.Update();
         ggReleaserButton.Update();
+		ggSpringBrakeToggleButton.Update();
+		ggSpringBrakeOnButton.Update();
+		ggSpringBrakeOffButton.Update();
 		ggUniveralBrakeButton1.Update();
 		ggUniveralBrakeButton2.Update();
 		ggUniveralBrakeButton3.Update();
@@ -7628,6 +7655,9 @@ void TTrain::clear_cab_controls()
     ggMainOnButton.Clear();
     ggSecurityResetButton.Clear();
     ggReleaserButton.Clear();
+	ggSpringBrakeToggleButton.Clear();
+	ggSpringBrakeOnButton.Clear();
+	ggSpringBrakeOffButton.Clear();
 	ggUniveralBrakeButton1.Clear();
 	ggUniveralBrakeButton2.Clear();
 	ggUniveralBrakeButton3.Clear();
@@ -8293,6 +8323,9 @@ bool TTrain::initialize_gauge(cParser &Parser, std::string const &Label, int con
         { "main_on_bt:", ggMainOnButton },
         { "security_reset_bt:", ggSecurityResetButton },
         { "releaser_bt:", ggReleaserButton },
+		{ "springbraketoggle_bt:", ggSpringBrakeToggleButton },
+		{ "springbrakeon_bt:", ggSpringBrakeOnButton },
+		{ "springbrakeoff_bt:", ggSpringBrakeOffButton },
 		{ "universalbrake1_bt:", ggUniveralBrakeButton1 },
 		{ "universalbrake2_bt:", ggUniveralBrakeButton2 },
 		{ "universalbrake3_bt:", ggUniveralBrakeButton3 },
