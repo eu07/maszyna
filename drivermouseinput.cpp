@@ -570,6 +570,15 @@ drivermouse_input::default_bindings() {
         { "releaser_bt:", {
             user_command::independentbrakebailoff,
             user_command::none } },
+		{ "springbraketoggle_bt:",{
+			user_command::springbraketoggle,
+			user_command::none } },
+		{ "springbrakeon_bt:",{
+			user_command::springbrakeenable,
+			user_command::none } },
+		{ "springbrakeoff_bt:",{
+			user_command::springbrakedisable,
+			user_command::none } },
 		{ "universalbrake1_bt:",{
 			user_command::universalbrakebutton1,
 			user_command::none } },
