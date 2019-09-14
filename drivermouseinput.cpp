@@ -570,6 +570,15 @@ drivermouse_input::default_bindings() {
         { "releaser_bt:", {
             user_command::independentbrakebailoff,
             user_command::none } },
+		{ "universalbrake1_bt:",{
+			user_command::universalbrakebutton1,
+			user_command::none } },
+		{ "universalbrake2_bt:",{
+			user_command::universalbrakebutton2,
+			user_command::none } },
+		{ "universalbrake3_bt:",{
+			user_command::universalbrakebutton3,
+			user_command::none } },
         { "sand_bt:", {
             user_command::sandboxactivate,
             user_command::none } },

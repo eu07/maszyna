@@ -957,6 +957,7 @@ public:
 	TBrakePressureTable BrakePressureTable; /*wyszczegolnienie cisnien w rurze*/
 	TBrakePressure BrakePressureActual; //wartości ważone dla aktualnej pozycji kranu
 	int ASBType = 0;            /*0: brak hamulca przeciwposlizgowego, 1: reczny, 2: automat*/
+	int UniversalBrakeButtonFlag[3] = { 0, 0, 0 }; /* mozliwe działania przycisków hamulcowych */
 	int TurboTest = 0;
 	double MaxBrakeForce = 0.0;      /*maksymalna sila nacisku hamulca*/
 	double MaxBrakePress[5]; //pomocniczy, proz, sred, lad, pp
@@ -999,6 +1000,9 @@ public:
 	double EmergencyValveOff = 0.0;
 	bool EmergencyValveOpen = false;
 	double EmergencyValveArea = 0.0;
+	double LockPipeOn = -1.0;
+	double LockPipeOff = -1.0;
+	double HandleUnlock = -3.0;
 	int CompressorListPosNo = 0;
 	int CompressorListDefPos = 1;
 	bool CompressorListWrap = false;
@@ -1256,11 +1260,14 @@ public:
 	int ManualBrakePos = 0;                 /*nastawa hamulca recznego*/
 	double LocalBrakePosA = 0.0;   /*nastawa hamulca pomocniczego*/
 	double LocalBrakePosAEIM = 0.0;  /*pozycja hamulca pomocniczego ep dla asynchronicznych ezt*/
+	bool UniversalBrakeButtonActive[3] = { false, false, false }; /* brake button pressed */
 /*
 	int BrakeStatus = b_off; //0 - odham, 1 - ham., 2 - uszk., 4 - odluzniacz, 8 - antyposlizg, 16 - uzyte EP, 32 - pozycja R, 64 - powrot z R
 */
     bool AlarmChainFlag = false;    // manual emergency brake
 	bool RadioStopFlag = false;        /*hamowanie nagle*/
+	bool LockPipe = false;			/*locking brake pipe in emergency state*/
+	bool UnlockPipe = false;			/*unlockig brake pipe button pressed*/
 	int BrakeDelayFlag = 0;               /*nastawa opoznienia ham. osob/towar/posp/exp 0/1/2/4*/
 	int BrakeDelays = 0;                   /*nastawy mozliwe do uzyskania*/
 	int BrakeOpModeFlag = 0;               /*nastawa trybu pracy PS/PN/EP/MED 1/2/4/8*/
@@ -1530,6 +1537,7 @@ public:
     bool AlarmChainSwitch( bool const State );
 	bool AntiSlippingBrake(void);
 	bool BrakeReleaser(int state);
+	bool UniversalBrakeButton(int button, int state); /*uniwersalny przycisk hamulca*/
 	bool SwitchEPBrake(int state);
 	bool AntiSlippingButton(void); /*! reczny wlacznik urzadzen antyposlizgowych*/
 

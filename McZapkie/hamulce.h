@@ -133,6 +133,16 @@ static double const BPT_394[7][2] = { {13 , 10.0} , {5 , 5.0} , {0 , -1} , {5 , 
 static int const i_bcpno = 6;
 // static double const pi = 3.141592653589793; //definicja w mctools
 
+enum TUniversalBrake // możliwe działania uniwersalnego przycisku hamulca
+{ // kolejne flagi
+	ub_Release = 0x01, // odluźniacz - ZR
+	ub_UnlockPipe = 0x02, // odblok PG / mostkowanie hamulca bezpieczeństwa - POJAZD
+	ub_HighPressure = 0x04, // impuls wysokiego ciśnienia - ZM
+	ub_Overload = 0x08, // przycisk asymilacji / kontrolowanego przeładowania - ZM
+	ub_AntiSlipBrake = 0x10, // przycisk przyhamowania przeciwposlizgowego - ZR
+	ub_Ostatni = 0x80000000 // ostatnia flaga bitowa
+};
+
 //klasa obejmujaca pojedyncze zbiorniki
 class TReservoir {
 
@@ -183,6 +193,7 @@ class TBrake {
 		double SizeBC = 0.0; //rozmiar^2 CH (w stosunku do 14")
 		bool DCV = false; //podwojny zawor zwrotny
 		double ASBP = 0.0; //cisnienie hamulca pp
+		int UniversalFlag = 0; //flaga wcisnietych przyciskow uniwersalnych
 
         int BrakeStatus{ b_off }; //flaga stanu
 		int SoundFlag = 0;
@@ -220,6 +231,7 @@ class TBrake {
     int GetBrakeStatus() const { return BrakeStatus; }
     void SetBrakeStatus( int const Status ) { BrakeStatus = Status; }
     virtual void SetED( double const EDstate ) {}; //stan hamulca ED do luzowania
+	virtual void SetUniversalFlag(int flag) { UniversalFlag = flag; } //przycisk uniwersalny
 };
 
 class TWest : public TBrake {
@@ -520,6 +532,7 @@ class TDriverHandle {
 	  bool AutoOvrld = false; //czy jest asymilacja automatyczna na pozycji -1
 	  bool ManualOvrld = false; //czy jest asymilacja reczna przyciskiem
 	  bool ManualOvrldActive = false; //czy jest wcisniety przycisk asymilacji
+	  int UniversalFlag = 0; //flaga wcisnietych przyciskow uniwersalnych
   public:
 		bool Time = false;
 		bool TimeEP = false;
@@ -534,7 +547,7 @@ class TDriverHandle {
     virtual double GetEP(double pos); //pobranie sily hamulca ep
 	virtual void SetParams(bool AO, bool MO, double, double) {}; //ustawianie jakichs parametrów dla zaworu
 	virtual void OvrldButton(bool Active);  //przycisk recznego przeladowania/asymilacji
-
+	virtual void SetUniversalFlag(int flag); //przycisk uniwersalny
     inline TDriverHandle() { memset( Sounds, 0, sizeof( Sounds ) ); }
 };
 
@@ -589,6 +602,7 @@ class TMHZ_EN57 : public TDriverHandle {
 		double RP = 0.0; //zbiornik redukcyjny
 		double RedAdj = 0.0; //dostosowanie reduktora cisnienia (krecenie kapturkiem)
 		bool Fala = false;
+		double UnbrakeOverPressure = 0.0;
 		static double const pos_table[11]; //= { -2, 10, -1, 0, 0, 2, 9, 10, 0, 0, 0 };
 
     double LPP_RP(double pos);
@@ -602,7 +616,7 @@ class TMHZ_EN57 : public TDriverHandle {
 		double GetPos(int i)/*override*/;
 		double GetCP()/*override*/;
     double GetEP(double pos);
-
+		void SetParams(bool AO, bool MO, double OverP, double);
 		inline TMHZ_EN57(void) :
 			TDriverHandle()
 		{}

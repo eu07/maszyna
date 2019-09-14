@@ -179,6 +179,9 @@ TTrain::commandhandler_map const TTrain::m_commandhandlers = {
     { user_command::independentbrakedecreasefast, &TTrain::OnCommand_independentbrakedecreasefast },
     { user_command::independentbrakeset, &TTrain::OnCommand_independentbrakeset },
     { user_command::independentbrakebailoff, &TTrain::OnCommand_independentbrakebailoff },
+	{ user_command::universalbrakebutton1, &TTrain::OnCommand_universalbrakebutton1 },
+	{ user_command::universalbrakebutton2, &TTrain::OnCommand_universalbrakebutton2 },
+	{ user_command::universalbrakebutton3, &TTrain::OnCommand_universalbrakebutton3 },
     { user_command::trainbrakeincrease, &TTrain::OnCommand_trainbrakeincrease },
     { user_command::trainbrakedecrease, &TTrain::OnCommand_trainbrakedecrease },
     { user_command::trainbrakeset, &TTrain::OnCommand_trainbrakeset },
@@ -1156,6 +1159,60 @@ void TTrain::OnCommand_independentbrakebailoff( TTrain *Train, command_data cons
             }
         }
     }
+}
+
+void TTrain::OnCommand_universalbrakebutton1(TTrain *Train, command_data const &Command) {
+
+			if (Command.action == GLFW_PRESS) {
+				// press or hold
+				// visual feedback
+				Train->ggUniveralBrakeButton1.UpdateValue(1.0, Train->dsbSwitch);
+
+				Train->mvOccupied->UniversalBrakeButton(0,1);
+			}
+			else if (Command.action == GLFW_RELEASE) {
+				// release
+				// visual feedback
+				Train->ggUniveralBrakeButton1.UpdateValue(0.0, Train->dsbSwitch);
+
+				Train->mvOccupied->UniversalBrakeButton(0,0);
+			}
+}
+
+void TTrain::OnCommand_universalbrakebutton2(TTrain *Train, command_data const &Command) {
+
+	if (Command.action == GLFW_PRESS) {
+		// press or hold
+		// visual feedback
+		Train->ggUniveralBrakeButton2.UpdateValue(1.0, Train->dsbSwitch);
+
+		Train->mvOccupied->UniversalBrakeButton(1, 1);
+	}
+	else if (Command.action == GLFW_RELEASE) {
+		// release
+		// visual feedback
+		Train->ggUniveralBrakeButton2.UpdateValue(0.0, Train->dsbSwitch);
+
+		Train->mvOccupied->UniversalBrakeButton(1, 0);
+	}
+}
+
+void TTrain::OnCommand_universalbrakebutton3(TTrain *Train, command_data const &Command) {
+
+	if (Command.action == GLFW_PRESS) {
+		// press or hold
+		// visual feedback
+		Train->ggUniveralBrakeButton3.UpdateValue(1.0, Train->dsbSwitch);
+
+		Train->mvOccupied->UniversalBrakeButton(2, 1);
+	}
+	else if (Command.action == GLFW_RELEASE) {
+		// release
+		// visual feedback
+		Train->ggUniveralBrakeButton3.UpdateValue(0.0, Train->dsbSwitch);
+
+		Train->mvOccupied->UniversalBrakeButton(2, 0);
+	}
 }
 
 void TTrain::OnCommand_trainbrakeincrease( TTrain *Train, command_data const &Command ) {
@@ -6322,6 +6379,9 @@ bool TTrain::Update( double const Deltatime )
         ggMainButton.Update();
         ggSecurityResetButton.Update();
         ggReleaserButton.Update();
+		ggUniveralBrakeButton1.Update();
+		ggUniveralBrakeButton2.Update();
+		ggUniveralBrakeButton3.Update();
         ggAntiSlipButton.Update();
         ggSandButton.Update();
         ggFuseButton.Update();
@@ -7515,6 +7575,9 @@ void TTrain::clear_cab_controls()
     ggMainOnButton.Clear();
     ggSecurityResetButton.Clear();
     ggReleaserButton.Clear();
+	ggUniveralBrakeButton1.Clear();
+	ggUniveralBrakeButton2.Clear();
+	ggUniveralBrakeButton3.Clear();
     ggSandButton.Clear();
     ggAntiSlipButton.Clear();
     ggHornButton.Clear();
@@ -8176,6 +8239,9 @@ bool TTrain::initialize_gauge(cParser &Parser, std::string const &Label, int con
         { "main_on_bt:", ggMainOnButton },
         { "security_reset_bt:", ggSecurityResetButton },
         { "releaser_bt:", ggReleaserButton },
+		{ "universalbrake1_bt:", ggUniveralBrakeButton1 },
+		{ "universalbrake2_bt:", ggUniveralBrakeButton2 },
+		{ "universalbrake3_bt:", ggUniveralBrakeButton3 },
         { "sand_bt:", ggSandButton },
 		{ "autosandallow_sw:", ggAutoSandAllow },
         { "antislip_bt:", ggAntiSlipButton },
