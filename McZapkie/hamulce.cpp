@@ -2771,14 +2771,19 @@ double TMHZ_K5P::GetPF(double i_bcp, double PP, double HP, double dt, double ep)
 	else
 		CP = CP + 9 * Min0R(abs(LimCP - CP), 0.05) * PR(CP, LimCP) * dt; // zbiornik sterujacy
 
-    dpPipe = Min0R(HP, CP + TP + RedAdj);
+	double uop = UnbrakeOverPressure; //unbrake over pressure in actual state
+	ManualOvrldActive = (UniversalFlag & TUniversalBrake::ub_HighPressure); //button is pressed
+	if (ManualOvrld && !ManualOvrldActive) //no overpressure for not pressed button if it does not exists
+		uop = 0;
+
+	dpPipe = Min0R(HP, CP + TP + RedAdj);
 
 	if (dpPipe > PP)
 		dpMainValve = -PFVa(HP, PP, ActFlowSpeed / LBDelay, dpPipe, 0.4);
 	else
 		dpMainValve = PFVd(PP, 0, ActFlowSpeed / LBDelay, dpPipe, 0.4);
 
-	if ((EQ(i_bcp, -1)&&(AutoOvrld))||(i_bcp<0.5 && ManualOvrldActive ))
+	if ((EQ(i_bcp, -1) && (AutoOvrld)) || ((i_bcp<0.5) && (UniversalFlag & TUniversalBrake::ub_Overload)))
 	{
 		if ((TP < 1))
 			TP = TP + 0.03  * dt;
@@ -2834,10 +2839,13 @@ double TMHZ_K5P::GetCP()
 	return CP;
 }
 
-void TMHZ_K5P::SetParams(bool AO, bool MO, double, double)
+void TMHZ_K5P::SetParams(bool AO, bool MO, double OverP, double)
 {
 	AutoOvrld = AO;
 	ManualOvrld = MO;
+	UnbrakeOverPressure = std::max(0.0, OverP);
+	Fala = (OverP > 0.01);
+
 }
 
 bool TMHZ_K5P::EQ(double pos, double i_pos)

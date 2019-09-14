@@ -630,6 +630,7 @@ private:
 	double RP = 0.0; //zbiornik redukcyjny
 	double RedAdj = 0.0; //dostosowanie reduktora cisnienia (krecenie kapturkiem)
 	bool Fala = false; //czy jest napelnianie uderzeniowe
+	double UnbrakeOverPressure = 0.0;
 	static double const pos_table[11]; //= { -2, 10, -1, 0, 0, 2, 9, 10, 0, 0, 0 };
 
 	bool EQ(double pos, double i_pos);
