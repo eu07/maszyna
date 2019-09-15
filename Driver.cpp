@@ -3650,6 +3650,18 @@ void TController::SetTimeControllers()
 			}
 		}
 	}
+	//6. UniversalBrakeButtons
+	//6.1. Checking flags for Over pressure
+	if (std::abs(BrakeCtrlPosition - gbh_FS)<0.5) {
+		UniversalBrakeButtons |= (TUniversalBrake::ub_HighPressure | TUniversalBrake::ub_Overload);
+	}
+	else {
+		UniversalBrakeButtons &= ~(TUniversalBrake::ub_HighPressure | TUniversalBrake::ub_Overload);
+	}
+	//6.2. Setting buttons
+	for (int i = 0; i < 3; i++) {
+		mvOccupied->UniversalBrakeButton(i, (UniversalBrakeButtons & mvOccupied->UniversalBrakeButtonFlag[i]));
+	}
 };
 
 void TController::CheckTimeControllers()
@@ -5888,6 +5900,8 @@ TController::UpdateSituation(double dt) {
                     // napełnianie uderzeniowe
                     if( ( mvOccupied->BrakeHandle == TBrakeHandle::FV4a )
                      || ( mvOccupied->BrakeHandle == TBrakeHandle::MHZ_6P )
+					 || (mvOccupied->BrakeHandle == TBrakeHandle::MHZ_K5P)
+					 || (mvOccupied->BrakeHandle == TBrakeHandle::MHZ_K8P)
                      || ( mvOccupied->BrakeHandle == TBrakeHandle::M394 ) ) {
 
                         if( /*GBH mvOccupied->BrakeCtrlPos*/BrakeCtrlPosition == -2 ) {
@@ -5948,6 +5962,14 @@ TController::UpdateSituation(double dt) {
                         }
                     }
                 }
+				// unlocking main pipe
+				if ((AccDesired > -0.03)
+					&& (true == mvOccupied->LockPipe)) {
+					UniversalBrakeButtons |= TUniversalBrake::ub_UnlockPipe;
+				}
+				else if (false == mvOccupied->LockPipe) {
+					UniversalBrakeButtons &= ~TUniversalBrake::ub_UnlockPipe;
+				}
 #if LOGVELOCITY
                 WriteLog("Dist=" + FloatToStrF(ActualProximityDist, ffFixed, 7, 1) +
                             ", VelDesired=" + FloatToStrF(VelDesired, ffFixed, 7, 1) +
