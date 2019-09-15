@@ -578,6 +578,24 @@ drivermouse_input::default_bindings() {
         { "releaser_bt:", {
             user_command::independentbrakebailoff,
             user_command::none } },
+		{ "springbraketoggle_bt:",{
+			user_command::springbraketoggle,
+			user_command::none } },
+		{ "springbrakeon_bt:",{
+			user_command::springbrakeenable,
+			user_command::none } },
+		{ "springbrakeoff_bt:",{
+			user_command::springbrakedisable,
+			user_command::none } },
+		{ "universalbrake1_bt:",{
+			user_command::universalbrakebutton1,
+			user_command::none } },
+		{ "universalbrake2_bt:",{
+			user_command::universalbrakebutton2,
+			user_command::none } },
+		{ "universalbrake3_bt:",{
+			user_command::universalbrakebutton3,
+			user_command::none } },
         { "sand_bt:", {
             user_command::sandboxactivate,
             user_command::none } },
@@ -689,6 +707,9 @@ drivermouse_input::default_bindings() {
         { "compressorlocal_sw:", {
             user_command::compressortogglelocal,
             user_command::none } },
+		{ "compressorlist_sw:", {
+			user_command::compressorpresetactivatenext,
+			user_command::compressorpresetactivateprevious } },
         { "converter_sw:", {
             user_command::convertertoggle,
             user_command::none } },

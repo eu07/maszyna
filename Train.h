@@ -183,6 +183,9 @@ class TTrain {
     static void OnCommand_independentbrakedecreasefast( TTrain *Train, command_data const &Command );
     static void OnCommand_independentbrakeset( TTrain *Train, command_data const &Command );
     static void OnCommand_independentbrakebailoff( TTrain *Train, command_data const &Command );
+	static void OnCommand_universalbrakebutton1(TTrain *Train, command_data const &Command);
+	static void OnCommand_universalbrakebutton2(TTrain *Train, command_data const &Command);
+	static void OnCommand_universalbrakebutton3(TTrain *Train, command_data const &Command);
     static void OnCommand_trainbrakeincrease( TTrain *Train, command_data const &Command );
     static void OnCommand_trainbrakedecrease( TTrain *Train, command_data const &Command );
     static void OnCommand_trainbrakeset( TTrain *Train, command_data const &Command );
@@ -202,6 +205,9 @@ class TTrain {
     static void OnCommand_alarmchaintoggle( TTrain *Train, command_data const &Command );
     static void OnCommand_wheelspinbrakeactivate( TTrain *Train, command_data const &Command );
     static void OnCommand_sandboxactivate( TTrain *Train, command_data const &Command );
+	static void OnCommand_autosandboxtoggle(TTrain *Train, command_data const &Command);
+	static void OnCommand_autosandboxactivate(TTrain *Train, command_data const &Command);
+	static void OnCommand_autosandboxdeactivate(TTrain *Train, command_data const &Command);
     static void OnCommand_epbrakecontroltoggle( TTrain *Train, command_data const &Command );
 	static void OnCommand_trainbrakeoperationmodeincrease(TTrain *Train, command_data const &Command);
 	static void OnCommand_trainbrakeoperationmodedecrease(TTrain *Train, command_data const &Command);
@@ -265,6 +271,9 @@ class TTrain {
     static void OnCommand_compressorenable( TTrain *Train, command_data const &Command );
     static void OnCommand_compressordisable( TTrain *Train, command_data const &Command );
     static void OnCommand_compressortogglelocal( TTrain *Train, command_data const &Command );
+	static void OnCommand_compressorpresetactivatenext( TTrain *Train, command_data const &Command );
+	static void OnCommand_compressorpresetactivateprevious( TTrain *Train, command_data const &Command );
+	static void OnCommand_compressorpresetactivatedefault(TTrain *Train, command_data const &Command);
     static void OnCommand_motorblowerstogglefront( TTrain *Train, command_data const &Command );
     static void OnCommand_motorblowersenablefront( TTrain *Train, command_data const &Command );
     static void OnCommand_motorblowersdisablefront( TTrain *Train, command_data const &Command );
@@ -355,6 +364,13 @@ class TTrain {
 	static void OnCommand_vehiclemoveforwards( TTrain *Train, command_data const &Command );
 	static void OnCommand_vehiclemovebackwards( TTrain *Train, command_data const &Command );
 	static void OnCommand_vehicleboost( TTrain *Train, command_data const &Command );
+	static void OnCommand_springbraketoggle(TTrain *Train, command_data const &Command);
+	static void OnCommand_springbrakeenable(TTrain *Train, command_data const &Command);
+	static void OnCommand_springbrakedisable(TTrain *Train, command_data const &Command);
+	static void OnCommand_springbrakeshutofftoggle(TTrain *Train, command_data const &Command);
+	static void OnCommand_springbrakeshutoffenable(TTrain *Train, command_data const &Command);
+	static void OnCommand_springbrakeshutoffdisable(TTrain *Train, command_data const &Command);
+	static void OnCommand_springbrakerelease(TTrain *Train, command_data const &Command);
 
 
 // members
@@ -411,7 +427,14 @@ public: // reszta może by?publiczna
     TGauge ggMainButton; // EZT
     TGauge ggSecurityResetButton;
     TGauge ggReleaserButton;
+	TGauge ggSpringBrakeToggleButton;
+	TGauge ggSpringBrakeOnButton;
+	TGauge ggSpringBrakeOffButton;
+	TGauge ggUniveralBrakeButton1;
+	TGauge ggUniveralBrakeButton2;
+	TGauge ggUniveralBrakeButton3;
     TGauge ggSandButton; // guzik piasecznicy
+	TGauge ggAutoSandAllow; // przełącznik piasecznicy
     TGauge ggAntiSlipButton;
     TGauge ggFuseButton;
     TGauge ggConverterFuseButton; // hunter-261211: przycisk odblokowania nadmiarowego przetwornic i ogrzewania
@@ -442,6 +465,7 @@ public: // reszta może by?publiczna
 
     TGauge ggCompressorButton;
     TGauge ggCompressorLocalButton; // controls only compressor of its own unit (et42-specific)
+	TGauge ggCompressorListButton; // controls compressors with various settings
     TGauge ggConverterButton;
     TGauge ggConverterLocalButton; // controls only converter of its own unit (et42-specific)
     TGauge ggConverterOffButton;
@@ -567,6 +591,8 @@ public: // reszta może by?publiczna
     TButton btLampkaBrakeProfileG; // cargo train brake acting speed
     TButton btLampkaBrakeProfileP; // passenger train brake acting speed
     TButton btLampkaBrakeProfileR; // rapid brake acting speed
+	TButton btLampkaSpringBrakeActive;
+	TButton btLampkaSpringBrakeInactive;
     // KURS90
     TButton btLampkaBoczniki;
     TButton btLampkaMaxSila;
@@ -686,6 +712,7 @@ private:
 
   public:
     float fPress[20][3]; // cisnienia dla wszystkich czlonow
+	float bBrakes[20][2]; // zalaczenie i dzialanie hamulcow
     static std::vector<std::string> const fPress_labels;
     float fEIMParams[9][10]; // parametry dla silnikow asynchronicznych
 	float fDieselParams[9][10]; // parametry dla silnikow asynchronicznych
