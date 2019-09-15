@@ -4387,7 +4387,7 @@ void TMoverParameters::ComputeTotalForce(double dt) {
 			Fb *= factor;
 			FTrain *= factor;
 		}
-		if (nrot < 0.1)
+		if (std::abs(nrot < 0.1))
 		{
 			WheelFlat = sqrt(square(WheelFlat) + abs(Fwheels) / NAxles*Vel*0.000002);
 		}
