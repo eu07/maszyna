@@ -40,6 +40,9 @@ commanddescription_sequence Commands_descriptions = {
     { "independentbrakedecreasefast", command_target::vehicle, command_mode::oneoff },
     { "independentbrakeset", command_target::vehicle, command_mode::oneoff },
     { "independentbrakebailoff", command_target::vehicle, command_mode::oneoff },
+    { "universalbrakebutton1", command_target::vehicle, command_mode::oneoff },
+    { "universalbrakebutton2", command_target::vehicle, command_mode::oneoff },
+    { "universalbrakebutton3", command_target::vehicle, command_mode::oneoff },
     { "trainbrakeincrease", command_target::vehicle, command_mode::continuous },
     { "trainbrakedecrease", command_target::vehicle, command_mode::continuous },
     { "trainbrakeset", command_target::vehicle, command_mode::oneoff },
@@ -59,6 +62,9 @@ commanddescription_sequence Commands_descriptions = {
     { "alarmchaintoggle", command_target::vehicle, command_mode::oneoff },
     { "wheelspinbrakeactivate", command_target::vehicle, command_mode::oneoff },
     { "sandboxactivate", command_target::vehicle, command_mode::oneoff },
+    { "autosandboxtoggle", command_target::vehicle, command_mode::oneoff },
+    { "autosandboxactivate", command_target::vehicle, command_mode::oneoff },
+    { "autosandboxdeactivate", command_target::vehicle, command_mode::oneoff },
     { "reverserincrease", command_target::vehicle, command_mode::oneoff },
     { "reverserdecrease", command_target::vehicle, command_mode::oneoff },
     { "reverserforwardhigh", command_target::vehicle, command_mode::oneoff },
@@ -98,6 +104,9 @@ commanddescription_sequence Commands_descriptions = {
     { "compressorenable", command_target::vehicle, command_mode::oneoff },
     { "compressordisable", command_target::vehicle, command_mode::oneoff },
     { "compressortogglelocal", command_target::vehicle, command_mode::oneoff },
+    { "compressorpresetactivatenext", command_target::vehicle, command_mode::oneoff },
+    { "compressorpresetactivateprevious", command_target::vehicle, command_mode::oneoff },
+    { "compressorpresetactivatedefault", command_target::vehicle, command_mode::oneoff },
     { "motoroverloadrelaythresholdtoggle", command_target::vehicle, command_mode::oneoff },
     { "motoroverloadrelaythresholdsetlow", command_target::vehicle, command_mode::oneoff },
     { "motoroverloadrelaythresholdsethigh", command_target::vehicle, command_mode::oneoff },
@@ -229,6 +238,14 @@ commanddescription_sequence Commands_descriptions = {
     { "motorblowersdisableall", command_target::vehicle, command_mode::oneoff },
     { "coolingfanstoggle", command_target::vehicle, command_mode::oneoff },
     { "tempomattoggle", command_target::vehicle, command_mode::oneoff },
+    { "springbraketoggle", command_target::vehicle, command_mode::oneoff },
+    { "springbrakeenable", command_target::vehicle, command_mode::oneoff },
+    { "springbrakedisable", command_target::vehicle, command_mode::oneoff },
+    { "springbrakeshutofftoggle", command_target::vehicle, command_mode::oneoff },
+    { "springbrakeshutoffenable", command_target::vehicle, command_mode::oneoff },
+    { "springbrakeshutoffdisable", command_target::vehicle, command_mode::oneoff },
+    { "springbrakerelease", command_target::vehicle, command_mode::oneoff }
+
 };
 
 } // simulation

@@ -295,6 +295,12 @@ ActiveCab( Cab )
         for (int k = 0; k < 17; ++k)
             Lights[b][k] = 0;
 
+	for (int b = 0; b < 4; ++b)
+		for (int k = 1; k < 9; ++k)
+			CompressorList[ b ][ k ] = 0;
+	CompressorList[0][0] = 0.0;
+	CompressorList[1][0] = CompressorList[2][0] = CompressorList[3][0] = 1.0;
+
     for (int b = -1; b <= MainBrakeMaxPos; ++b)
     {
         BrakePressureTable[b].PipePressureVal = 0.0;
@@ -1051,7 +1057,10 @@ void TMoverParameters::CollisionDetect(int const End, double const dt)
 
     if( velocitydifference > safevelocitylimit ) {
         // HACK: crude estimation for potential derail, will take place with velocity difference > 15 km/h adjusted for vehicle mass ratio
-        WriteLog( "Bad driving: " + Name + " and " + othervehicle->Name + " collided with velocity " + to_string( velocitydifference, 0 ) + " km/h" );
+        if( ( false == TestFlag( DamageFlag, dtrain_out ) )
+         || ( false == TestFlag( othervehicle->DamageFlag, dtrain_out ) ) ) {
+            WriteLog( "Bad driving: " + Name + " and " + othervehicle->Name + " collided with velocity " + to_string( velocitydifference, 0 ) + " km/h" );
+        }
 
         if( velocitydifference > safevelocitylimit * ( TotalMass / othervehicle->TotalMass ) ) {
             derail( 5 );
@@ -1084,12 +1093,14 @@ void TMoverParameters::CollisionDetect(int const End, double const dt)
 void
 TMoverParameters::damage_coupler( int const End ) {
 
+    auto &coupler{ Couplers[ End ] };
+
+    if( coupler.CouplerType == TCouplerType::Articulated ) { return; } // HACK: don't break articulated couplings no matter what
+
     if( SetFlag( DamageFlag, dtrain_coupling ) )
         EventFlag = true;
 
-    auto &coupler { Couplers[ End ] };
-
-    if( ( coupler.CouplingFlag & ctrain_pneumatic ) == ctrain_pneumatic ) {
+    if( ( coupler.CouplingFlag & coupling::brakehose ) == coupling::brakehose ) {
         // hamowanie nagle - zerwanie przewodow hamulcowych
         AlarmChainFlag = true;
     }
@@ -1100,11 +1111,11 @@ TMoverParameters::damage_coupler( int const End ) {
         switch( End ) {
             // break connection with other vehicle, if there's any
             case 0: {
-                coupler.Connected->Couplers[ end::rear ].CouplingFlag = 0;
+                coupler.Connected->Couplers[ end::rear ].CouplingFlag = coupling::faux;
                 break;
             }
             case 1: {
-                coupler.Connected->Couplers[ end::front ].CouplingFlag = 0;
+                coupler.Connected->Couplers[ end::front ].CouplingFlag = coupling::faux;
                 break;
             }
             default: {
@@ -2311,7 +2322,7 @@ bool TMoverParameters::CabDeactivisation(void)
         CabNo = 0;
         DirAbsolute = ActiveDir * CabNo;
         DepartureSignal = false; // nie buczeć z nieaktywnej kabiny
-        SecuritySystem.Status = 0; // deactivate alerter TODO: make it part of control based cab selection
+        SecuritySystem.Status = s_off; // deactivate alerter TODO: make it part of control based cab selection
 
         SendCtrlToNext("CabActivisation", 0, ActiveCab); // CabNo==0!
     }
@@ -2345,6 +2356,63 @@ bool TMoverParameters::AddPulseForce(int Multipler)
         APF = false;
     return APF;
 }
+
+// *************************************************************************************************
+// yB: 20190909
+// sypanie piasku reczne
+// *************************************************************************************************
+bool TMoverParameters::SandboxManual(bool const State, range_t const Notify)
+{
+	bool result{ false };
+
+	if (SandDoseManual != State) {
+		if (SandDoseManual == false) {
+			// switch on
+			if (Sand > 0) {
+				SandDoseManual = true;
+				result = true;
+			}
+		}
+		else {
+			// switch off
+			SandDoseManual = false;
+			result = true;
+		}
+	}
+
+	Sandbox(SandDoseManual || SandDoseAuto, Notify);
+
+	return result;
+}
+
+// *************************************************************************************************
+// yB: 20190909
+// sypanie piasku automatyczne
+// *************************************************************************************************
+bool TMoverParameters::SandboxAuto(bool const State, range_t const Notify)
+{
+	bool result{ false };
+	bool NewState = State && SandDoseAutoAllow;
+	if (SandDoseAuto != NewState) {
+		if (SandDoseAuto == false) {
+			// switch on
+			if (Sand > 0) {
+				SandDoseAuto = true;
+				result = true;
+			}
+		}
+		else {
+			// switch off
+			SandDoseAuto = false;
+			result = true;
+		}
+	}
+
+	Sandbox(SandDoseManual || SandDoseAuto, Notify);
+
+	return result;
+}
+
 
 // *************************************************************************************************
 // Q: 20160713
@@ -2387,6 +2455,24 @@ bool TMoverParameters::Sandbox( bool const State, range_t const Notify )
     }
 
     return result;
+}
+
+// *************************************************************************************************
+// yB: 20190909
+// włączenie / wyłączenie automatycznej piasecznicy
+// *************************************************************************************************
+bool TMoverParameters::SandboxAutoAllow(bool State)
+{
+	//SendCtrlToNext("SandboxAutoAllow", int(State), CabNo, ctrain_controll);
+
+	if (SandDoseAutoAllow != State)
+	{
+		SandDoseAutoAllow = State;
+		return true;
+	}
+	else
+		return false;
+	
 }
 
 void TMoverParameters::SSReset(void)
@@ -2456,7 +2542,7 @@ void TMoverParameters::SecuritySystemCheck(double dt)
 		RadiostopSwitch(false);
 
     if ((SecuritySystem.SystemType > 0)
-     && (SecuritySystem.Status > 0)
+     && (SecuritySystem.Status != s_off)
      && (Battery)) // Ra: EZT ma teraz czuwak w rozrządczym
     {
         // CA
@@ -2547,8 +2633,8 @@ bool TMoverParameters::BatterySwitch(bool State)
         SendCtrlToNext("BatterySwitch", 0, CabNo);
     BS = true;
 
-    if ((Battery) && (ActiveCab != 0)) /*|| (TrainType==dt_EZT)*/
-        SecuritySystem.Status = (SecuritySystem.Status | s_waiting); // aktywacja czuwaka
+    if ((Battery) && (ActiveCab != 0))
+        SecuritySystem.Status |= s_waiting; // aktywacja czuwaka
     else
         SecuritySystem.Status = 0; // wyłączenie czuwaka
 
@@ -2570,6 +2656,57 @@ bool TMoverParameters::EpFuseSwitch(bool State)
         return false;
     // if (EpFuse == true) SendCtrlToNext("EpFuseSwitch", 1, CabNo)
     //  else SendCtrlToNext("EpFuseSwitch", 0, CabNo);
+}
+
+// *************************************************************************************************
+// yB: 20190906
+// włączenie / wyłączenie hamulca sprezynowego
+// *************************************************************************************************
+bool TMoverParameters::SpringBrakeActivate(bool State)
+{
+	if (Battery)
+	{
+		SendCtrlToNext("SpringBrakeActivate", int(State), CabNo, SpringBrake.MultiTractionCoupler);
+
+		if (SpringBrake.Activate != State)
+		{
+			SpringBrake.Activate = State;
+			return true;
+		}
+	}
+	return false;
+}
+
+// *************************************************************************************************
+// yB: 20190906
+// włączenie / wyłączenie odciecia hamulca sprezynowego
+// *************************************************************************************************
+bool TMoverParameters::SpringBrakeShutOff(bool State)
+{
+	if (SpringBrake.ShuttOff != State)
+	{
+		SpringBrake.ShuttOff = State;
+		return true;
+	}
+	else
+		return false;
+
+}
+
+// *************************************************************************************************
+// yB: 20190906
+// wyluzowanie hamulca sprezynowego
+// *************************************************************************************************
+bool TMoverParameters::SpringBrakeRelease()
+{
+	if (SpringBrake.IsReady && SpringBrake.Cylinder->P() < SpringBrake.MinForcePressure)
+	{
+		SpringBrake.IsReady = false;
+		return true;
+	}
+	else
+		return false;
+
 }
 
 // *************************************************************************************************
@@ -3314,6 +3451,37 @@ bool TMoverParameters::BrakeReleaser(int state)
 }
 
 // *************************************************************************************************
+// yB: 20160711
+// włączenie / wyłączenie uniwersalnego przycisku hamulcowego
+// *************************************************************************************************
+bool TMoverParameters::UniversalBrakeButton(int button, int state)
+{
+	bool OK = true; //false tylko jeśli nie uda się wysłać, GF 20161124
+	UniversalBrakeButtonActive[button] = state > 0;
+	int flag = 0;
+	if (Battery) {
+		for (int i = 0; i < 3; i++) {
+			flag = flag | (UniversalBrakeButtonActive[i] ? UniversalBrakeButtonFlag[i] : 0);
+		}
+	}
+
+	Hamulec->SetUniversalFlag(flag);
+	Handle->SetUniversalFlag(flag);
+	LocHandle->SetUniversalFlag(flag);
+	UnlockPipe = (flag & TUniversalBrake::ub_UnlockPipe) > 0;
+
+	//if the releaser can be activated by switch
+	if ( TestFlag ( UniversalBrakeButtonFlag[0] & UniversalBrakeButtonFlag[1] & UniversalBrakeButtonFlag[2],
+				  TUniversalBrake::ub_Release ) )
+	{
+		Hamulec->Releaser( int ( TestFlag ( flag, TUniversalBrake::ub_Release ) ));
+		if (CabNo != 0) // rekurencyjne wysłanie do następnego
+			OK = SendCtrlToNext("BrakeReleaser", state, CabNo);
+	}
+	return OK;
+}
+
+// *************************************************************************************************
 // Q: 20160711
 // włączenie / wyłączenie hamulca elektro-pneumatycznego
 // *************************************************************************************************
@@ -3491,12 +3659,31 @@ void TMoverParameters::UpdateBrakePressure(double dt)
 // TODO: clean the method up, a lot of the code is redundant
 void TMoverParameters::CompressorCheck(double dt)
 {
+
+	double MaxCompressorF = CompressorList[TCompressorList::cl_MaxFactor][CompressorListPos] * MaxCompressor;
+	double MinCompressorF = CompressorList[TCompressorList::cl_MinFactor][CompressorListPos] * MinCompressor;
+	double CompressorSpeedF = CompressorList[TCompressorList::cl_SpeedFactor][CompressorListPos] * CompressorSpeed;
+	double AllowFactor = CompressorList[TCompressorList::cl_Allow][CompressorListPos];
+
+	//checking the impact on the compressor allowance
+	if (AllowFactor > 0.5) {
+		CompressorAllow = AllowFactor > 1.5;
+	}
+	
     if( VeselVolume == 0.0 ) { return; }
+
+	//EmergencyValve
+	EmergencyValveOpen = (Compressor > (EmergencyValveOpen ? EmergencyValveOff : EmergencyValveOn));
+	if (EmergencyValveOpen) {
+		float dV = PF(0, Compressor, EmergencyValveArea)* dt;
+		CompressedVolume -= dV;
+	}
+
 
     CompressedVolume = std::max( 0.0, CompressedVolume - dt * AirLeakRate * 0.1 ); // nieszczelności: 0.001=1l/s
 
     if( ( true == CompressorGovernorLock )
-     && ( Compressor < MinCompressor ) ) {
+     && ( Compressor < MinCompressorF ) ) {
         // if the pressure drops below the cut-in level, we can reset compressor governor
         // TBD, TODO: don't operate the lock without battery power?
         CompressorGovernorLock = false;
@@ -3506,25 +3693,25 @@ void TMoverParameters::CompressorCheck(double dt)
         CompressorAllow = ConverterAllow;
     }
 
-    if (MaxCompressor - MinCompressor < 0.0001) {
+    if (MaxCompressorF - MinCompressorF < 0.0001) {
         // TODO: investigate purpose of this branch and whether it can be removed as it duplicates later code
         if( ( true == CompressorAllow )
          && ( true == CompressorAllowLocal )
          && ( true == Mains )
          && ( MainCtrlPowerPos() > 0 ) ) {
-            if( Compressor < MaxCompressor ) {
+            if( Compressor < MaxCompressorF ) {
                 if( ( EngineType == TEngineType::DieselElectric )
                  && ( CompressorPower > 0 ) ) {
                     CompressedVolume +=
-                        CompressorSpeed
-                        * ( 2.0 * MaxCompressor - Compressor ) / MaxCompressor
+                        CompressorSpeedF
+                        * ( 2.0 * MaxCompressorF - Compressor ) / MaxCompressorF
                         * ( ( 60.0 * std::abs( enrot ) ) / DElist[ MainCtrlPosNo ].RPM )
                         * dt;
                 }
                 else {
                     CompressedVolume +=
-                        CompressorSpeed
-                        * ( 2.0 * MaxCompressor - Compressor ) / MaxCompressor
+                        CompressorSpeedF
+                        * ( 2.0 * MaxCompressorF - Compressor ) / MaxCompressorF
                         * dt;
                     TotalCurrent += 0.0015 * Voltage; // tymczasowo tylko obciążenie sprężarki, tak z 5A na sprężarkę
                 }
@@ -3576,7 +3763,7 @@ void TMoverParameters::CompressorCheck(double dt)
                      || ( CompressorPower == 0 )
                      || ( CompressorPower == 3 ) ) );
 
-            if( Compressor > MaxCompressor ) {
+            if( Compressor > MaxCompressorF ) {
                 // wyłącznik ciśnieniowy jest niezależny od sposobu zasilania
                 // TBD, TODO: don't operate the lock without battery power?
                 if( CompressorPower == 3 ) {
@@ -3612,8 +3799,8 @@ void TMoverParameters::CompressorCheck(double dt)
         else {
             // jeśli nie załączona
             if( ( LastSwitchingTime > CtrlDelay )
-             && ( ( Compressor < MinCompressor )
-               || ( ( Compressor < MaxCompressor )
+             && ( ( Compressor < MinCompressorF )
+               || ( ( Compressor < MaxCompressorF )
                  && ( false == CompressorGovernorLock ) ) ) ) {
                     // załączenie przy małym ciśnieniu
                     // jeśli nie załączona, a ciśnienie za małe
@@ -3688,7 +3875,7 @@ void TMoverParameters::CompressorCheck(double dt)
                         1.0 ) }; // shouldn't ever get here but, eh
                     CompressedVolume +=
                         CompressorSpeed
-                        * ( 2.0 * MaxCompressor - Compressor ) / MaxCompressor
+                        * ( 2.0 * MaxCompressorF - Compressor ) / MaxCompressorF
                         * enginefactor
                         * dt;
                 }
@@ -3702,8 +3889,8 @@ void TMoverParameters::CompressorCheck(double dt)
             else {
                 // the compressor is a stand-alone device, working at steady pace
                 CompressedVolume +=
-                    CompressorSpeed
-                    * ( 2.0 * MaxCompressor - Compressor ) / MaxCompressor
+                    CompressorSpeedF
+                    * ( 2.0 * MaxCompressorF - Compressor ) / MaxCompressorF
                     * dt;
 
                 if( ( CompressorPower == 5 ) && ( Couplers[ 1 ].Connected != NULL ) ) {
@@ -3752,11 +3939,17 @@ void TMoverParameters::UpdatePipePressure(double dt)
 			dpLocalValve = LocHandle->GetPF(std::max(LocalBrakePosA, LocalBrakePosAEIM), Hamulec->GetBCP(), ScndPipePress, dt, 0);
 		else
 			dpLocalValve = LocHandle->GetPF(LocalBrakePosAEIM, Hamulec->GetBCP(), ScndPipePress, dt, 0);
-        if( ( BrakeHandle == TBrakeHandle::FV4a )
-         && ( ( PipePress < 2.75 )
-           && ( ( Hamulec->GetStatus() & b_rls ) == 0 ) )
-         && ( BrakeSubsystem == TBrakeSubSystem::ss_LSt )
-         && ( TrainType != dt_EZT ) ) {
+
+		LockPipe = PipePress < (LockPipe ? LockPipeOff : LockPipeOn);
+		bool lock_new = (LockPipe && !UnlockPipe && (BrakeCtrlPosR > HandleUnlock)); //new simple codition based on .fiz
+		bool lock_old = ((BrakeHandle == TBrakeHandle::FV4a) //old complex condition based on assumptions
+			&& ((PipePress < 2.75)
+				&& ((Hamulec->GetStatus() & b_rls) == 0))
+			&& (BrakeSubsystem == TBrakeSubSystem::ss_LSt)
+			&& (TrainType != dt_EZT)
+			&& (!UnlockPipe));
+
+        if( ( lock_old ) || ( lock_new ) ) {
             temp = PipePress + 0.00001;
         }
         else {
@@ -3985,6 +4178,8 @@ void TMoverParameters::UpdateScndPipePressure(double dt)
     TMoverParameters *c;
     double dv1, dv2, dV;
 
+	UpdateSpringBrake(dt);
+
     dv1 = 0;
     dv2 = 0;
 
@@ -4035,6 +4230,37 @@ void TMoverParameters::UpdateScndPipePressure(double dt)
         Pipe2->CreatePress(-1);
         Pipe2->Act();
     }
+}
+
+
+// *************************************************************************************************
+// yB: 20190906
+// Aktualizacja ciśnienia w hamulcu sprezynowym
+// *************************************************************************************************
+void TMoverParameters::UpdateSpringBrake(double dt)
+{
+	double BP = SpringBrake.PNBrakeConnection ? BrakePress : 0;
+	double MSP = SpringBrake.ShuttOff ? 0 : SpringBrake.MaxSetPressure;
+	if (!SpringBrake.Activate)
+	{
+		double desired_press = std::min(std::max(MSP, BP), Pipe2->P());
+		double dv = PF(desired_press, SpringBrake.SBP, SpringBrake.ValveOffArea);
+		SpringBrake.Cylinder->Flow(-dv);
+		Pipe2->Flow(std::max(dv,0.0));
+	}
+	else
+	{
+		double dv = PF(BP, SpringBrake.SBP, SpringBrake.ValveOnArea);
+		SpringBrake.Cylinder->Flow(-dv);
+	}
+	if (SpringBrake.SBP > SpringBrake.ResetPressure)
+		SpringBrake.IsReady = true;
+	
+	SpringBrake.IsActive = SpringBrake.SBP < (SpringBrake.IsActive ? SpringBrake.PressureOff : SpringBrake.PressureOn);
+
+	SpringBrake.Release = false;
+	SpringBrake.Cylinder->Act();
+	SpringBrake.SBP = SpringBrake.Cylinder->P();
 }
 
 // *************************************************************************************************
@@ -4377,6 +4603,9 @@ double TMoverParameters::BrakeForce( TTrackParam const &Track ) {
     {
         K = MaxBrakeForce * ManualBrakeRatio();
     }
+
+	if (SpringBrake.IsReady)
+		K += std::max(0.0, SpringBrake.MinForcePressure - SpringBrake.Cylinder->P()) * SpringBrake.MaxBrakeForce;
 
     u = ((BrakePress * P2FTrans) - BrakeCylSpring) * BrakeCylMult[0] - BrakeSlckAdj;
     if (u * BrakeRigEff > Ntotal) // histereza na nacisku klockow
@@ -5425,11 +5654,11 @@ double TMoverParameters::TractionForce( double dt ) {
                 if( ( SlippingWheels ) ) {
                     PosRatio = 0;
                     tmp = 10;
-                    Sandbox( true, range_t::unit );
+                    SandboxAuto( true, range_t::unit );
                 } // przeciwposlizg
                 else {
                     // switch sandbox off
-                    Sandbox( false, range_t::unit );
+                    SandboxAuto( false, range_t::unit );
                 }
 
 				eimv_pr += Max0R(Min0R(PosRatio - eimv_pr, 0.02), -0.02) * 12 *
@@ -6341,17 +6570,20 @@ void TMoverParameters::CheckEIMIC(double dt)
 		}
 		break;
 	case 3:
-		if ((UniCtrlList[MainCtrlPos].mode != BrakeCtrlPos) && (MainCtrlActualPos == MainCtrlPos)) //there was no move of controller, but brake only
+		if (UniCtrlIntegratedBrakePNCtrl)
 		{
-			if (BrakeCtrlPos < UniCtrlList[MainCtrlPosNo].mode) 
-				BrakeLevelSet(UniCtrlList[MainCtrlPosNo].mode); //bottom clamping
-			if (BrakeCtrlPos > UniCtrlList[0].mode)
-				BrakeLevelSet(UniCtrlList[0].mode); //top clamping
-			while (BrakeCtrlPos > UniCtrlList[MainCtrlPos].mode) DecMainCtrl(1); //find nearest position
-			while (BrakeCtrlPos < UniCtrlList[MainCtrlPos].mode) IncMainCtrl(1); //find nearest position
+			if ((UniCtrlList[MainCtrlPos].mode != BrakeCtrlPos) && (MainCtrlActualPos == MainCtrlPos)) //there was no move of controller, but brake only
+			{
+				if (BrakeCtrlPos < UniCtrlList[MainCtrlPosNo].mode)
+					BrakeLevelSet(UniCtrlList[MainCtrlPosNo].mode); //bottom clamping
+				if (BrakeCtrlPos > UniCtrlList[0].mode)
+					BrakeLevelSet(UniCtrlList[0].mode); //top clamping
+				while (BrakeCtrlPos > UniCtrlList[MainCtrlPos].mode) DecMainCtrl(1); //find nearest position
+				while (BrakeCtrlPos < UniCtrlList[MainCtrlPos].mode) IncMainCtrl(1); //find nearest position
+			}
+			else //controller was moved
+				BrakeLevelSet(UniCtrlList[MainCtrlPos].mode);
 		}
-		else //controller was moved
-			BrakeLevelSet(UniCtrlList[MainCtrlPos].mode);
 
 		if ((MainCtrlActualPos != MainCtrlPos) || (LastRelayTime>InitialCtrlDelay))
 		{
@@ -6368,12 +6600,17 @@ void TMoverParameters::CheckEIMIC(double dt)
 		}
 		if (Hamulec->GetEDBCP() > 0.3 && eimic < 0) //when braking with pneumatic brake
 			eimic = 0; //shut off retarder
+		if (UniCtrlIntegratedBrakeCtrl == false)
+		{
+			eimic = (LocalBrakeRatio() > 0.01 ? -LocalBrakeRatio() : eimic);
+		}
 
 	}
     auto const eimicpowerenabled {
         ( ( true == Mains ) || ( Power == 0.0 ) )
      && ( ( Doors.instances[ side::left  ].open_permit == false )
-       && ( Doors.instances[ side::right ].open_permit == false ) ) };
+       && ( Doors.instances[ side::right ].open_permit == false ) )
+	   && ( !SpringBrake.IsActive ) };
 	eimic = clamp(eimic, -1.0, eimicpowerenabled ? 1.0 : 0.0);
 }
 
@@ -7727,6 +7964,7 @@ bool startMPT, startMPT0;
 bool startRLIST, startUCLIST;
 bool startDLIST, startFFLIST, startWWLIST;
 bool startLIGHTSLIST;
+bool startCOMPRESSORLIST;
 int LISTLINE;
 
 bool issection( std::string const &Name, std::string const &Input ) {
@@ -8026,10 +8264,31 @@ bool TMoverParameters::readLightsList( std::string const &Input ) {
         return false;
     }
     parser
-        >> Lights[ 0 ][ idx ]
-        >> Lights[ 1 ][ idx ];
+		>> Lights[0][idx]
+		>> Lights[1][idx];
 
     return true;
+}
+
+bool TMoverParameters::readCompressorList(std::string const &Input) {
+
+	cParser parser(Input);
+	if (false == parser.getTokens(4, false)) {
+		WriteLog("Read CompressorList: arguments missing in line " + std::to_string(LISTLINE + 1));
+		return false;
+	}
+	int idx = LISTLINE++;
+	if (idx > 8) {
+		WriteLog("Read CompressorList: number of entries exceeded capacity of the data table");
+		return false;
+	}
+	parser
+		>> CompressorList[ 0 ][ idx + 1 ]
+		>> CompressorList[ 1 ][ idx + 1 ]
+		>> CompressorList[ 2 ][ idx + 1 ]
+		>> CompressorList[ 3 ][ idx + 1 ]; 
+
+	return true;
 }
 
 // *************************************************************************************************
@@ -8138,6 +8397,7 @@ bool TMoverParameters::LoadFIZ(std::string chkpath)
     startFFLIST = false;
     startWWLIST = false;
     startLIGHTSLIST = false;
+	startCOMPRESSORLIST = false;
     std::string file = chkpath + TypeName + ".fiz";
 
     WriteLog("LOAD FIZ FROM " + file);
@@ -8226,6 +8486,11 @@ bool TMoverParameters::LoadFIZ(std::string chkpath)
             startLIGHTSLIST = false;
             continue;
         }
+		if ( issection( "endCL", inputline ) ) {
+			startBPT = false;
+			startCOMPRESSORLIST = false;
+			continue;
+		}
         // ...then all recognized sections...
         if( issection( "Param.", inputline ) )
         {
@@ -8317,7 +8582,7 @@ bool TMoverParameters::LoadFIZ(std::string chkpath)
 
 		if (issection("Blending:", inputline)) {
 
-			startBPT = true; LISTLINE = 0;
+			startBPT = false; LISTLINE = 0;
 			fizlines.emplace( "Blending", inputline);
 			LoadFIZ_Blending( inputline );
 			continue;
@@ -8325,9 +8590,17 @@ bool TMoverParameters::LoadFIZ(std::string chkpath)
 
 		if (issection("DCEMUED:", inputline)) {
 
-			startBPT = true; LISTLINE = 0;
+			startBPT = false; LISTLINE = 0;
 			fizlines.emplace("DCEMUED", inputline);
 			LoadFIZ_DCEMUED(inputline);
+			continue;
+		}
+
+		if (issection("SpringBrake:", inputline)) {
+
+			startBPT = false; LISTLINE = 0;
+			fizlines.emplace("SpringBrake", inputline);
+			LoadFIZ_SpringBrake(inputline);
 			continue;
 		}
 
@@ -8449,6 +8722,14 @@ bool TMoverParameters::LoadFIZ(std::string chkpath)
             continue;
         }
 
+		if (issection("CompressorList:", inputline)) {
+			startBPT = false;
+			fizlines.emplace("CompressorList", inputline);
+			startCOMPRESSORLIST = true; LISTLINE = 0;
+			LoadFIZ_CompressorList( inputline );
+			continue;
+		}
+
         // ...and finally, table parsers.
         // NOTE: once table parsing is enabled it lasts until switched off, when another section is recognized
         if( true == startBPT ) {
@@ -8487,6 +8768,10 @@ bool TMoverParameters::LoadFIZ(std::string chkpath)
             readLightsList( inputline );
             continue;
         }
+		if (true == startCOMPRESSORLIST) {
+			readCompressorList(inputline);
+			continue;
+		}
     } // while line
 /*
     in.close();
@@ -8728,6 +9013,15 @@ void TMoverParameters::LoadFIZ_Brake( std::string const &line ) {
     extract_value( MinCompressor, "MinCP", line, "" );
     extract_value( MaxCompressor, "MaxCP", line, "" );
     extract_value( CompressorSpeed, "CompressorSpeed", line, "" );
+	extract_value( EmergencyValveOff, "MinEVP", line, "" );
+	extract_value( EmergencyValveOn, "MaxEVP", line, "" );
+	extract_value( EmergencyValveArea, "EVArea", line, "" );
+	extract_value( UniversalBrakeButtonFlag[0], "UBB1", line, "");
+	extract_value( UniversalBrakeButtonFlag[1], "UBB2", line, "");
+	extract_value( UniversalBrakeButtonFlag[2], "UBB3", line, "");
+	extract_value( LockPipeOn, "LPOn", line, "-1");
+	extract_value( LockPipeOff, "LPOff", line, "-1");
+	extract_value( HandleUnlock, "HandlePipeUnlockPos", line, "-3");
     {
         std::map<std::string, int> compressorpowers{
             { "Main", 0 },
@@ -9198,6 +9492,30 @@ void TMoverParameters::LoadFIZ_DCEMUED(std::string const &line) {
 
 }
 
+
+void TMoverParameters::LoadFIZ_SpringBrake(std::string const &line) {
+
+	double vol;
+	extract_value(vol, "Volume", line, "1");
+	if (!SpringBrake.Cylinder)
+		SpringBrake.Cylinder = std::make_shared<TReservoir>();
+	SpringBrake.Cylinder->CreateCap(vol);
+	extract_value(SpringBrake.MaxBrakeForce, "MBF", line, "");
+	extract_value(SpringBrake.MaxSetPressure, "MaxSP", line, "");
+	extract_value(SpringBrake.ResetPressure, "ResetP", line, "");
+	extract_value(SpringBrake.MinForcePressure, "MinFP", line, "");
+	extract_value(SpringBrake.PressureOff, "PressOff", line, "");
+	extract_value(SpringBrake.PressureOn, "PressOn", line, "");
+	extract_value(SpringBrake.ValveOffArea, "ValveOnArea", line, "");
+	extract_value(SpringBrake.ValveOnArea, "ValveOffArea", line, "");
+	extract_value(SpringBrake.ValvePNBrakeArea, "ValvePNBArea", line, "");
+	SpringBrake.PNBrakeConnection = SpringBrake.ValvePNBrakeArea > 0;
+	extract_value(SpringBrake.MultiTractionCoupler, "MTC", line, "");
+	SpringBrake.ShuttOff = false;
+	SpringBrake.Activate = false;
+	SpringBrake.IsReady = true;
+}
+
 void TMoverParameters::LoadFIZ_Light( std::string const &line ) {
 
     LightPowerSource.SourceType = LoadFIZ_SourceDecode( extract_value( "Light", line ) );
@@ -9543,6 +9861,8 @@ void TMoverParameters::LoadFIZ_RList( std::string const &Input ) {
 void TMoverParameters::LoadFIZ_UCList(std::string const &Input) {
 
 	extract_value(UniCtrlListSize, "Size", Input, "");
+	UniCtrlIntegratedBrakeCtrl = (extract_value("IntegratedBrake", Input) == "Yes");
+	UniCtrlIntegratedBrakePNCtrl = (extract_value("IntegratedBrakePN", Input) == "Yes");
 
 }
 
@@ -9571,6 +9891,13 @@ void TMoverParameters::LoadFIZ_LightsList( std::string const &Input ) {
     extract_value( LightsPosNo, "Size", Input, "" );
     extract_value( LightsWrap, "Wrap", Input, "" );
     extract_value( LightsDefPos, "Default", Input, "" );
+}
+
+void TMoverParameters::LoadFIZ_CompressorList(std::string const &Input) {
+
+	extract_value( CompressorListPosNo, "Size", Input, "" );
+	extract_value( CompressorListWrap, "Wrap", Input, "" );
+	extract_value( CompressorListDefPos, "Default", Input, "" );
 }
 
 void TMoverParameters::LoadFIZ_PowerParamsDecode( TPowerParameters &Powerparameters, std::string const Prefix, std::string const &Line ) {
@@ -9930,9 +10257,16 @@ bool TMoverParameters::CheckLocomotiveParameters(bool ReadyFlag, int Dir)
     Pipe2 = std::make_shared<TReservoir>(); // zabezpieczenie, bo sie PG wywala... :(
     Pipe->CreateCap( ( std::max( Dim.L, 14.0 ) + 0.5 ) * Spg * 1 ); // dlugosc x przekroj x odejscia i takie tam
     Pipe2->CreateCap( ( std::max( Dim.L, 14.0 ) + 0.5 ) * Spg * 1 );
+	if (!SpringBrake.Cylinder)
+	{
+		SpringBrake.Cylinder = std::make_shared<TReservoir>();
+		SpringBrake.Cylinder->CreateCap(1);
+	}
 
     if( LightsPosNo > 0 )
         LightsPos = LightsDefPos;
+	if (CompressorListPosNo > 0)
+		CompressorListPos = CompressorListDefPos;
 
     // NOTE: legacy compatibility behaviour for vehicles without defined heating power source
     if( ( EnginePowerSource.SourceType == TPowerSource::CurrentCollector )
@@ -10412,10 +10746,13 @@ bool TMoverParameters::RunCommand( std::string Command, double CValue1, double C
             Battery = true;
         else if ((CValue1 == 0))
             Battery = false;
-        if ((Battery) && (ActiveCab != 0) /*or (TrainType=dt_EZT)*/)
+        /*
+        // TBD: makes no sense to activate alerters in entire consist
+        if ((Battery) && (ActiveCab != 0) )
             SecuritySystem.Status = SecuritySystem.Status | s_waiting; // aktywacja czuwaka
         else
             SecuritySystem.Status = 0; // wyłączenie czuwaka
+        */
         OK = SendCtrlToNext( Command, CValue1, CValue2, Couplertype );
     }
     //   else if command='EpFuseSwitch' then         {NBMX}
@@ -10697,6 +11034,16 @@ bool TMoverParameters::RunCommand( std::string Command, double CValue1, double C
 		if ((EngineType == TEngineType::ElectricInductionMotor))
 				ScndCtrlActualPos = static_cast<int>(round(CValue1));
 		OK = SendCtrlToNext(Command, CValue1, CValue2, Couplertype);
+	}
+	else if (Command == "SpringBrakeActivate")
+	{
+		if (Battery)
+		{
+			SpringBrake.Activate = CValue1 > 0;
+			OK = SendCtrlToNext(Command, CValue1, CValue2, Couplertype);
+		}
+		else
+			OK = true;
 	}
 
 	return OK; // dla true komenda będzie usunięta, dla false wykonana ponownie

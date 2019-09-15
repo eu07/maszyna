@@ -204,6 +204,7 @@ static int const dbrake_automatic = 8;
 
 /*status czuwaka/SHP*/
 //hunter-091012: rozdzielenie alarmow, dodanie testu czuwaka
+static int const s_off = 0; //disabled
 static int const s_waiting = 1; //działa
 static int const s_aware = 2;   //czuwak miga
 static int const s_active = 4;  //SHP świeci
@@ -303,6 +304,14 @@ enum TProblem // lista problemów taboru, które uniemożliwiają jazdę
 	pr_Hamuje = 1, // pojazd ma załączony hamulec lub zatarte osie
 	pr_Pantografy = 2, // pojazd wymaga napompowania pantografów
 	pr_Ostatni = 0x80000000 // ostatnia flaga bitowa
+};
+
+enum TCompressorList // lista parametrów w programatorze sprężarek
+{ // pozycje kolejne
+	cl_Allow = 0, // zezwolenie na pracę sprężarek
+	cl_SpeedFactor = 1, // mnożnik wydajności
+	cl_MinFactor = 2, // mnożnik progu załącznika ciśnieniowego
+	cl_MaxFactor = 3 // mnożnik progu wyłącznika ciśnieniowego
 };
 
 /*ogolne*/
@@ -861,6 +870,31 @@ private:
         float temperatura2 { 40.0 };
     };
 
+	struct spring_brake {
+		std::shared_ptr<TReservoir> Cylinder;
+		bool Activate { false }; //Input: switching brake on/off in exploitation - main valve/switch
+		bool ShuttOff { true }; //Input: shutting brake off during failure - valve in pneumatic container
+		bool Release { false }; //Input: emergency releasing rod
+
+		bool IsReady{ false }; //Output: readyness to braking - cylinder is armed, spring is tentioned
+		bool IsActive{ false }; //Output: brake is working
+		double SBP{ 0.0 }; //Output: pressure in spring brake cylinder
+
+		bool PNBrakeConnection{ false }; //Conf: connection to pneumatic brake cylinders
+		double MaxSetPressure { 0.0 }; //Conf: Maximal pressure for switched off brake
+		double ResetPressure{ 0.0 }; //Conf: Pressure for arming brake cylinder
+		double MinForcePressure{ 0.1 }; //Conf: Minimal pressure for zero force
+		double MaxBrakeForce{ 0.0 }; //Conf: Maximal tension for brake pads/shoes
+		double PressureOn{ -2.0 }; //Conf: Pressure changing ActiveFlag to "On"
+		double PressureOff{ -1.0 }; //Conf: Pressure changing ActiveFlag to "Off"
+		double ValveOffArea{ 0.0 }; //Conf: Area of filling valve
+		double ValveOnArea{ 0.0 }; //Conf: Area of dumping valve
+		double ValvePNBrakeArea{ 0.0 }; //Conf: Area of bypass to brake cylinders
+
+		int MultiTractionCoupler{ 127 }; //Conf: Coupling flag necessary for transmitting the command
+
+	};
+
 public:
 
 	double dMoveLen = 0.0;
@@ -920,11 +954,13 @@ public:
 	std::shared_ptr<TDriverHandle> LocHandle;
 	std::shared_ptr<TReservoir> Pipe;
 	std::shared_ptr<TReservoir> Pipe2;
+	spring_brake SpringBrake;
 
 	TLocalBrake LocalBrake = TLocalBrake::NoBrake;  /*rodzaj hamulca indywidualnego*/
 	TBrakePressureTable BrakePressureTable; /*wyszczegolnienie cisnien w rurze*/
 	TBrakePressure BrakePressureActual; //wartości ważone dla aktualnej pozycji kranu
 	int ASBType = 0;            /*0: brak hamulca przeciwposlizgowego, 1: reczny, 2: automat*/
+	int UniversalBrakeButtonFlag[3] = { 0, 0, 0 }; /* mozliwe działania przycisków hamulcowych */
 	int TurboTest = 0;
 	double MaxBrakeForce = 0.0;      /*maksymalna sila nacisku hamulca*/
 	double MaxBrakePress[5]; //pomocniczy, proz, sred, lad, pp
@@ -962,6 +998,17 @@ public:
 	double MinCompressor = 0.0;
     double MaxCompressor = 0.0;
     double CompressorSpeed = 0.0;
+	int CompressorList[4][9]; // pozycje świateł, przód - tył, 1 .. 16
+	double EmergencyValveOn = 0.0;
+	double EmergencyValveOff = 0.0;
+	bool EmergencyValveOpen = false;
+	double EmergencyValveArea = 0.0;
+	double LockPipeOn = -1.0;
+	double LockPipeOff = -1.0;
+	double HandleUnlock = -3.0;
+	int CompressorListPosNo = 0;
+	int CompressorListDefPos = 1;
+	bool CompressorListWrap = false;
 	/*cisnienie wlaczania, zalaczania sprezarki, wydajnosc sprezarki*/
 	TBrakeDelayTable BrakeDelay; /*opoznienie hamowania/odhamowania t/o*/
     double AirLeakRate{ 0.01 }; // base rate of air leak from brake system components ( 0.001 = 1 l/sec )
@@ -979,6 +1026,8 @@ public:
 	TSecuritySystem SecuritySystem;
 	TUniversalCtrlTable UniCtrlList;     /*lista pozycji uniwersalnego nastawnika*/
 	int UniCtrlListSize = 0;	/*wielkosc listy pozycji uniwersalnego nastawnika*/
+	bool UniCtrlIntegratedBrakePNCtrl = false; /*zintegrowany nastawnik JH obsluguje hamulec PN*/
+	bool UniCtrlIntegratedBrakeCtrl = false; /*zintegrowany nastawnik JH obsluguje hamowanie*/
 
 	/*-sekcja parametrow dla lokomotywy elektrycznej*/
 	TSchemeTable RList;     /*lista rezystorow rozruchowych i polaczen silnikow, dla dizla: napelnienia*/
@@ -1169,6 +1218,9 @@ public:
 	double UnitBrakeForce = 0.0;               /*!s siła hamowania przypadająca na jeden element*/
 	double Ntotal = 0.0;               /*!s siła nacisku klockow*/
 	bool SlippingWheels = false; bool SandDose = false;   /*! poslizg kol, sypanie piasku*/
+	bool SandDoseManual = false; /*piaskowanie reczne*/
+	bool SandDoseAuto = false; /*piaskowanie automatyczne*/
+	bool SandDoseAutoAllow = true; /*zezwolenie na automatyczne piaskowanie*/
 	double Sand = 0.0;                         /*ilosc piasku*/
 	double BrakeSlippingTimer = 0.0;            /*pomocnicza zmienna do wylaczania przeciwposlizgu*/
 	double dpBrake = 0.0; double dpPipe = 0.0; double dpMainValve = 0.0; double dpLocalValve = 0.0;
@@ -1212,11 +1264,14 @@ public:
 	int ManualBrakePos = 0;                 /*nastawa hamulca recznego*/
 	double LocalBrakePosA = 0.0;   /*nastawa hamulca pomocniczego*/
 	double LocalBrakePosAEIM = 0.0;  /*pozycja hamulca pomocniczego ep dla asynchronicznych ezt*/
+	bool UniversalBrakeButtonActive[3] = { false, false, false }; /* brake button pressed */
 /*
 	int BrakeStatus = b_off; //0 - odham, 1 - ham., 2 - uszk., 4 - odluzniacz, 8 - antyposlizg, 16 - uzyte EP, 32 - pozycja R, 64 - powrot z R
 */
     bool AlarmChainFlag = false;    // manual emergency brake
 	bool RadioStopFlag = false;        /*hamowanie nagle*/
+	bool LockPipe = false;			/*locking brake pipe in emergency state*/
+	bool UnlockPipe = false;			/*unlockig brake pipe button pressed*/
 	int BrakeDelayFlag = 0;               /*nastawa opoznienia ham. osob/towar/posp/exp 0/1/2/4*/
 	int BrakeDelays = 0;                   /*nastawy mozliwe do uzyskania*/
 	int BrakeOpModeFlag = 0;               /*nastawa trybu pracy PS/PN/EP/MED 1/2/4/8*/
@@ -1254,7 +1309,8 @@ public:
     double MainsInitTimeCountdown{ 0.0 }; // current state of main circuit initialization, remaining time (in seconds) until it's ready
 	int MainCtrlPos = 0; /*polozenie glownego nastawnika*/
 	int ScndCtrlPos = 0; /*polozenie dodatkowego nastawnika*/
-	int LightsPos = 0;
+	int LightsPos = 0; /*polozenie przelacznika wielopozycyjnego swiatel*/
+	int CompressorListPos = 0; /*polozenie przelacznika wielopozycyjnego sprezarek*/
 	int ActiveDir = 0; //czy lok. jest wlaczona i w ktorym kierunku:
 				   //względem wybranej kabiny: -1 - do tylu, +1 - do przodu, 0 - wylaczona
     int MaxMainCtrlPosNoDirChange { 0 }; // can't change reverser state with master controller set above this position
@@ -1460,7 +1516,10 @@ public:
 
 	bool AddPulseForce(int Multipler);/*dla drezyny*/
 
+	bool SandboxManual( bool const State, range_t const Notify = range_t::consist );/*wlacza/wylacza reczne sypanie piasku*/
+	bool SandboxAuto( bool const State, range_t const Notify = range_t::consist );/*wlacza/wylacza automatyczne sypanie piasku*/
     bool Sandbox( bool const State, range_t const Notify = range_t::consist );/*wlacza/wylacza sypanie piasku*/
+	bool SandboxAutoAllow(bool const State);/*wlacza/wylacza zezwolenie na automatyczne sypanie piasku*/
 
 						  /*! zbijanie czuwaka/SHP*/
 	void SSReset(void);
@@ -1469,6 +1528,9 @@ public:
 
 	bool BatterySwitch(bool State);
 	bool EpFuseSwitch(bool State);
+	bool SpringBrakeActivate(bool State);
+	bool SpringBrakeShutOff(bool State);
+	bool SpringBrakeRelease();
 
 	/*! stopnie hamowania - hamulec zasadniczy*/
 	bool IncBrakeLevelOld(void);
@@ -1483,6 +1545,7 @@ public:
     bool AlarmChainSwitch( bool const State );
 	bool AntiSlippingBrake(void);
 	bool BrakeReleaser(int state);
+	bool UniversalBrakeButton(int button, int state); /*uniwersalny przycisk hamulca*/
 	bool SwitchEPBrake(int state);
 	bool AntiSlippingButton(void); /*! reczny wlacznik urzadzen antyposlizgowych*/
 
@@ -1498,6 +1561,7 @@ public:
 	void CompressorCheck(double dt);/*wlacza, wylacza kompresor, laduje zbiornik*/
 	void UpdatePantVolume(double dt);             //Ra
 	void UpdateScndPipePressure(double dt);
+	void UpdateSpringBrake(double dt);
 	double GetDVc(double dt);
 
 	/*funkcje obliczajace sily*/
@@ -1615,6 +1679,7 @@ private:
     void LoadFIZ_Cntrl( std::string const &line );
 	void LoadFIZ_Blending(std::string const &line);
 	void LoadFIZ_DCEMUED(std::string const &line);
+	void LoadFIZ_SpringBrake(std::string const &line);
     void LoadFIZ_Light( std::string const &line );
     void LoadFIZ_Security( std::string const &line );
     void LoadFIZ_Clima( std::string const &line );
@@ -1628,6 +1693,7 @@ private:
     void LoadFIZ_DList( std::string const &Input );
     void LoadFIZ_FFList( std::string const &Input );
     void LoadFIZ_LightsList( std::string const &Input );
+	void LoadFIZ_CompressorList(std::string const &Input);
     void LoadFIZ_PowerParamsDecode( TPowerParameters &Powerparameters, std::string const Prefix, std::string const &Input );
     TPowerType LoadFIZ_PowerDecode( std::string const &Power );
     TPowerSource LoadFIZ_SourceDecode( std::string const &Source );
@@ -1644,6 +1710,7 @@ private:
     bool readFFList( std::string const &line );
     bool readWWList( std::string const &line );
     bool readLightsList( std::string const &Input );
+	bool readCompressorList(std::string const &Input);
     void BrakeValveDecode( std::string const &s );                                                            //Q 20160719
 	void BrakeSubsystemDecode();                                                                     //Q 20160719
     bool EIMDirectionChangeAllow( void );
