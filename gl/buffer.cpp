@@ -3,7 +3,7 @@
 
 GLenum gl::buffer::glenum_target(gl::buffer::targets target)
 {
-    GLenum mapping[13] =
+	static GLenum mapping[13] =
     {
         GL_ARRAY_BUFFER,
         GL_ATOMIC_COUNTER_BUFFER,

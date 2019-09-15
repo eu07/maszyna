@@ -406,6 +406,9 @@ bool opengl_renderer::Init(GLFWwindow *Window)
 			return false;
 	}
 
+	m_timequery.emplace(gl::query::TIME_ELAPSED);
+	m_timequery->begin();
+
 	WriteLog("picking objects created");
 
 	WriteLog("renderer initialization finished!");
@@ -540,24 +543,13 @@ bool opengl_renderer::Render()
 {
 	Timer::subsystem.gfx_total.start();
 
-	GLuint gl_time_ready;
 	if (!Global.gfx_usegles)
 	{
-		gl_time_ready = 0;
-		if (m_gltimequery)
-		{
-			glGetQueryObjectuiv(m_gltimequery, GL_QUERY_RESULT_AVAILABLE, &gl_time_ready);
-			if (gl_time_ready)
-				glGetQueryObjectui64v(m_gltimequery, GL_QUERY_RESULT, &m_gllasttime);
+		std::optional<int64_t> result = m_timequery->result();
+		if (result) {
+			m_gllasttime = *result;
+			m_timequery->begin();
 		}
-		else
-		{
-			glGenQueries(1, &m_gltimequery);
-			gl_time_ready = 1;
-		}
-
-		if (gl_time_ready)
-			glBeginQuery(GL_TIME_ELAPSED, m_gltimequery);
 	}
 
 	// fetch simulation data
@@ -588,8 +580,7 @@ bool opengl_renderer::Render()
 
 	if (!Global.gfx_usegles)
 	{
-		if (gl_time_ready)
-			glEndQuery(GL_TIME_ELAPSED);
+		m_timequery->end();
 
 		if (m_gllasttime)
 			m_debugtimestext += "gpu: " + to_string((double)(m_gllasttime / 1000ULL) / 1000.0, 3) + "ms";
@@ -2639,97 +2630,6 @@ void opengl_renderer::Render(TSubModel *Submodel)
 				}
 			}
 		}
-		else if (Submodel->eType == TP_FREESPOTLIGHT)
-		{
-
-			switch (m_renderpass.draw_mode)
-			{
-			// spotlights are only rendered in colour mode(s)
-			case rendermode::color:
-			case rendermode::reflections:
-			{
-				auto const &modelview = OpenGLMatrices.data(GL_MODELVIEW);
-				auto const lightcenter = modelview * interpolate(glm::vec4(0.f, 0.f, -0.05f, 1.f), glm::vec4(0.f, 0.f, -0.25f, 1.f),
-				                                                 static_cast<float>(TSubModel::fSquareDist / Submodel->fSquareMaxDist)); // pozycja punktu świecącego względem kamery
-				Submodel->fCosViewAngle = glm::dot(glm::normalize(modelview * glm::vec4(0.f, 0.f, -1.f, 1.f) - lightcenter), glm::normalize(-lightcenter));
-
-				if (Submodel->fCosViewAngle > Submodel->fCosFalloffAngle)
-				{
-					// kąt większy niż maksymalny stożek swiatła
-					float lightlevel = 1.f; // TODO, TBD: parameter to control light strength
-					// view angle attenuation
-					float const anglefactor = clamp((Submodel->fCosViewAngle - Submodel->fCosFalloffAngle) / (Submodel->fCosHotspotAngle - Submodel->fCosFalloffAngle), 0.f, 1.f);
-					lightlevel *= anglefactor;
-
-					// distance attenuation. NOTE: since it's fixed pipeline with built-in gamma correction we're using linear attenuation
-					// we're capping how much effect the distance attenuation can have, otherwise the lights get too tiny at regular distances
-					float const distancefactor{std::max(0.5f, (Submodel->fSquareMaxDist - TSubModel::fSquareDist) / Submodel->fSquareMaxDist)};
-					auto const pointsize{std::max(3.f, 5.f * distancefactor * anglefactor)};
-					auto const resolutionratio { Global.iWindowHeight / 1080.f };
-					// additionally reduce light strength for farther sources in rain or snow
-					if (Global.Overcast > 0.75f)
-					{
-						float const precipitationfactor{interpolate(interpolate(1.f, 0.25f, clamp(Global.Overcast * 0.75f - 0.5f, 0.f, 1.f)), 1.f, distancefactor)};
-						lightlevel *= precipitationfactor;
-					}
-
-					if (lightlevel > 0.f)
-					{
-						::glEnable(GL_BLEND);
-
-						::glPushMatrix();
-						::glLoadIdentity();
-						::glTranslatef(lightcenter.x, lightcenter.y, lightcenter.z); // początek układu zostaje bez zmian
-
-						// material configuration:
-						// limit impact of dense fog on the lights
-						auto const lightrange { std::max<float>( 500, m_fogrange * 2 ) }; // arbitrary, visibility at least 750m
-						model_ubs.fog_density = 1.0 / lightrange;
-
-						// main draw call
-						model_ubs.emission = 1.0f;
-
-						auto const lightcolor = glm::vec3(Submodel->DiffuseOverride.r < 0.f ? // -1 indicates no override
-						                           Submodel->f4Diffuse :
-						                           Submodel->DiffuseOverride);
-
-						m_freespot_shader->bind();
-
-						if (Global.Overcast > 1.0f)
-						{
-							// fake fog halo
-							float const fogfactor{interpolate(2.f, 1.f, clamp<float>(Global.fFogEnd / 2000, 0.f, 1.f)) * std::max(1.f, Global.Overcast)};
-							model_ubs.param[1].x = pointsize * resolutionratio * fogfactor * 2.0f;
-							model_ubs.param[0] = glm::vec4(glm::vec3(lightcolor), Submodel->fVisible * std::min(1.f, lightlevel) * 0.5f);
-
-							glDepthMask(GL_FALSE);
-							draw(Submodel->m_geometry);
-
-							if (!m_blendingenabled)
-								glDepthMask(GL_TRUE);
-						}
-						model_ubs.param[1].x = pointsize * resolutionratio * 2.0f;
-						model_ubs.param[0] = glm::vec4(glm::vec3(lightcolor), Submodel->fVisible * std::min(1.f, lightlevel));
-
-						draw(Submodel->m_geometry);
-
-						// post-draw reset
-						model_ubs.emission = 0.0f;
-						model_ubs.fog_density = 1.0f / m_fogrange;
-
-						glDisable(GL_BLEND);
-
-						::glPopMatrix();
-					}
-				}
-				break;
-			}
-			default:
-			{
-				break;
-			}
-			}
-		}
 		else if (Submodel->eType == TP_STARS)
 		{
 
@@ -3504,15 +3404,15 @@ void opengl_renderer::Render_Alpha(TSubModel *Submodel)
 		}
 		else if (Submodel->eType == TP_FREESPOTLIGHT)
 		{
+			// NOTE: we're forced here to redo view angle calculations etc, because this data isn't instanced but stored along with the single mesh
+			// TODO: separate instance data from reusable geometry
+			auto const &modelview = OpenGLMatrices.data(GL_MODELVIEW);
+			auto const lightcenter = modelview * interpolate(glm::vec4(0.f, 0.f, -0.05f, 1.f), glm::vec4(0.f, 0.f, -0.25f, 1.f),
+			                                                 static_cast<float>(TSubModel::fSquareDist / Submodel->fSquareMaxDist)); // pozycja punktu świecącego względem kamery
+			Submodel->fCosViewAngle = glm::dot(glm::normalize(modelview * glm::vec4(0.f, 0.f, -1.f, 1.f) - lightcenter), glm::normalize(-lightcenter));
+
 			if (Global.fLuminance < Submodel->fLight || Global.Overcast > 1.0f)
 			{
-				// NOTE: we're forced here to redo view angle calculations etc, because this data isn't instanced but stored along with the single mesh
-				// TODO: separate instance data from reusable geometry
-				auto const &modelview = OpenGLMatrices.data(GL_MODELVIEW);
-				auto const lightcenter = modelview * interpolate(glm::vec4(0.f, 0.f, -0.05f, 1.f), glm::vec4(0.f, 0.f, -0.10f, 1.f),
-				                                                 static_cast<float>(TSubModel::fSquareDist / Submodel->fSquareMaxDist)); // pozycja punktu świecącego względem kamery
-				Submodel->fCosViewAngle = glm::dot(glm::normalize(modelview * glm::vec4(0.f, 0.f, -1.f, 1.f) - lightcenter), glm::normalize(-lightcenter));
-
 				if (Submodel->fCosViewAngle > Submodel->fCosFalloffAngle)
 				{
 					// only bother if the viewer is inside the visibility cone
@@ -3527,7 +3427,7 @@ void opengl_renderer::Render_Alpha(TSubModel *Submodel)
 
 					if (glarelevel > 0.0f)
 					{
-						glDepthMask(GL_FALSE);
+						glDisable(GL_DEPTH_TEST);
 						glBlendFunc(GL_SRC_ALPHA, GL_ONE);
 
 						::glPushMatrix();
@@ -3544,14 +3444,87 @@ void opengl_renderer::Render_Alpha(TSubModel *Submodel)
 						model_ubs.param[0] = glm::vec4(glm::vec3(lightcolor), Submodel->fVisible * glarelevel);
 
 						// main draw call
-						draw(m_billboardgeometry);
+						if (Submodel->occlusion_query) {
+							glBeginConditionalRender(*Submodel->occlusion_query, GL_QUERY_WAIT);
+							draw(m_billboardgeometry);
+							glEndConditionalRender();
+						}
+						else
+							draw(m_billboardgeometry);
 
-						if (!m_blendingenabled)
-							glDepthMask(GL_TRUE);
+						glEnable(GL_DEPTH_TEST);
 						glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
 						::glPopMatrix();
 					}
+				}
+			}
+
+			if (Submodel->fCosViewAngle > Submodel->fCosFalloffAngle)
+			{
+				// kąt większy niż maksymalny stożek swiatła
+				float lightlevel = 1.f; // TODO, TBD: parameter to control light strength
+				// view angle attenuation
+				float const anglefactor = clamp((Submodel->fCosViewAngle - Submodel->fCosFalloffAngle) / (Submodel->fCosHotspotAngle - Submodel->fCosFalloffAngle), 0.f, 1.f);
+				lightlevel *= anglefactor;
+
+				// distance attenuation. NOTE: since it's fixed pipeline with built-in gamma correction we're using linear attenuation
+				// we're capping how much effect the distance attenuation can have, otherwise the lights get too tiny at regular distances
+				float const distancefactor{std::max(0.5f, (Submodel->fSquareMaxDist - TSubModel::fSquareDist) / Submodel->fSquareMaxDist)};
+				auto const pointsize{std::max(3.f, 5.f * distancefactor * anglefactor)};
+				auto const resolutionratio { Global.iWindowHeight / 1080.f };
+				// additionally reduce light strength for farther sources in rain or snow
+				if (Global.Overcast > 0.75f)
+				{
+					float const precipitationfactor{interpolate(interpolate(1.f, 0.25f, clamp(Global.Overcast * 0.75f - 0.5f, 0.f, 1.f)), 1.f, distancefactor)};
+					lightlevel *= precipitationfactor;
+				}
+
+				if (lightlevel > 0.f)
+				{
+					::glPushMatrix();
+					::glLoadIdentity();
+					::glTranslatef(lightcenter.x, lightcenter.y, lightcenter.z); // początek układu zostaje bez zmian
+
+					// material configuration:
+					// limit impact of dense fog on the lights
+					auto const lightrange { std::max<float>( 500, m_fogrange * 2 ) }; // arbitrary, visibility at least 750m
+					model_ubs.fog_density = 1.0 / lightrange;
+
+					// main draw call
+					model_ubs.emission = 1.0f;
+
+					auto const lightcolor = glm::vec3(Submodel->DiffuseOverride.r < 0.f ? // -1 indicates no override
+					                           Submodel->f4Diffuse :
+					                           Submodel->DiffuseOverride);
+
+					m_freespot_shader->bind();
+
+					if (Global.Overcast > 1.0f)
+					{
+						// fake fog halo
+						float const fogfactor{interpolate(2.f, 1.f, clamp<float>(Global.fFogEnd / 2000, 0.f, 1.f)) * std::max(1.f, Global.Overcast)};
+						model_ubs.param[1].x = pointsize * resolutionratio * fogfactor * 2.0f;
+						model_ubs.param[0] = glm::vec4(glm::vec3(lightcolor), Submodel->fVisible * std::min(1.f, lightlevel) * 0.5f);
+
+						draw(Submodel->m_geometry);
+					}
+					model_ubs.param[1].x = pointsize * resolutionratio * 2.0f;
+					model_ubs.param[0] = glm::vec4(glm::vec3(lightcolor), Submodel->fVisible * std::min(1.f, lightlevel));
+
+					if (!Submodel->occlusion_query)
+						Submodel->occlusion_query.emplace(gl::query::ANY_SAMPLES_PASSED);
+					Submodel->occlusion_query->begin();
+
+					draw(Submodel->m_geometry);
+
+					Submodel->occlusion_query->end();
+
+					// post-draw reset
+					model_ubs.emission = 0.0f;
+					model_ubs.fog_density = 1.0f / m_fogrange;
+
+					::glPopMatrix();
 				}
 			}
 		}

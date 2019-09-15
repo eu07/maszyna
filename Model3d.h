@@ -14,6 +14,7 @@ http://mozilla.org/MPL/2.0/.
 #include "Float3d.h"
 #include "openglgeometrybank.h"
 #include "material.h"
+#include "gl/query.h"
 
 // Ra: specjalne typy submodeli, poza tym GL_TRIANGLES itp.
 const int TP_ROTATOR = 256;
@@ -217,6 +218,7 @@ public:
 		return m_material; }
 	void ParentMatrix(float4x4 *m) const;
 	float MaxY( float4x4 const &m );
+	std::optional<gl::query> occlusion_query;
     glm::mat4 future_transform;
 
 	void deserialize(std::istream&);

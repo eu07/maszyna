@@ -28,6 +28,7 @@ http://mozilla.org/MPL/2.0/.
 #include "gl/cubemap.h"
 #include "gl/glsl_common.h"
 #include "gl/pbo.h"
+#include "gl/query.h"
 
 struct opengl_light : public basic_light
 {
@@ -406,7 +407,8 @@ class opengl_renderer
 #ifdef EU07_USE_DEBUG_CAMERA
 	renderpass_config m_worldcamera; // debug item
 #endif
-	GLuint m_gltimequery = 0;
+
+	std::optional<gl::query> m_timequery;
 	GLuint64 m_gllasttime = 0;
 
     double m_precipitationrotation;

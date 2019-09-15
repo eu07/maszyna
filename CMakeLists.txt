@@ -156,6 +156,7 @@ set(SOURCES
 "gl/buffer.cpp"
 "gl/fence.cpp"
 "gl/pbo.cpp"
+"gl/query.cpp"
 
 "imgui/imgui.cpp"
 "imgui/imgui_demo.cpp"
