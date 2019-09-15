@@ -979,8 +979,8 @@ void TDynamicObject::ABuLittleUpdate(double ObjSqrDist)
         
 		if( ( false == bDisplayCab ) // edge case, lowpoly may act as a stand-in for the hi-fi cab, so make sure not to show the driver when inside
          && ( Mechanik != nullptr )
-         && ( ( Mechanik->GetAction() != TAction::actSleep )
-           || ( MoverParameters->Battery ) ) ) {
+         && ( ( Mechanik->action() != TAction::actSleep )
+           /* || ( MoverParameters->Battery ) */ ) ) {
             // rysowanie figurki mechanika
             btMechanik1.Turn( MoverParameters->ActiveCab > 0 );
             btMechanik2.Turn( MoverParameters->ActiveCab < 0 );
@@ -2780,14 +2780,14 @@ bool TDynamicObject::Update(double dt, double dt1)
     if (Mechanik)
     { // Ra 2F3F: do Driver.cpp to przenieść?
         MoverParameters->EqvtPipePress = GetEPP(); // srednie cisnienie w PG
-		if ((Mechanik->Primary())
+		if ((Mechanik->primary())
 			&& (MoverParameters->EngineType == TEngineType::DieselEngine)
 			&& (MoverParameters->EIMCtrlType > 0)) {
 			MoverParameters->CheckEIMIC(dt1);
 			MoverParameters->eimic_real = MoverParameters->eimic;
 			MoverParameters->SendCtrlToNext("EIMIC", MoverParameters->eimic, MoverParameters->CabNo);
 		}
-		if( ( Mechanik->Primary() )
+		if( ( Mechanik->primary() )
          && ( MoverParameters->EngineType == TEngineType::ElectricInductionMotor ) ) {
             // jesli glowny i z asynchronami, to niech steruje hamulcem i napedem lacznie dla calego pociagu/ezt
 			auto const kier = (DirectionGet() * MoverParameters->ActiveCab > 0);

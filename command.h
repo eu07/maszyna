@@ -35,6 +35,9 @@ enum class user_command {
     independentbrakedecreasefast,
     independentbrakeset,
     independentbrakebailoff,
+	universalbrakebutton1,
+	universalbrakebutton2,
+	universalbrakebutton3,
     trainbrakeincrease,
     trainbrakedecrease,
     trainbrakeset,
@@ -237,7 +240,6 @@ enum class user_command {
 	springbrakeshutoffenable,
 	springbrakeshutoffdisable,
 	springbrakerelease,
-
 	radiostop,
 	timejump,
 	timejumplarge,

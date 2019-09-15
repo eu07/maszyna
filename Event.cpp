@@ -897,7 +897,7 @@ whois_event::run_() {
                 // jeśli typ pojazdu
                 // TODO: define and recognize individual request types
                 auto const owner { (
-                    ( ( m_activator->Mechanik != nullptr ) && ( m_activator->Mechanik->Primary() ) ) ?
+                    ( ( m_activator->Mechanik != nullptr ) && ( m_activator->Mechanik->primary() ) ) ?
                         m_activator->Mechanik :
                         m_activator->ctOwner ) };
                 auto const consistbrakelevel { (
@@ -952,7 +952,7 @@ whois_event::run_() {
         }
         // +0
         else if( m_activator->Mechanik ) {
-            if( m_activator->Mechanik->Primary() ) { // tylko jeśli ktoś tam siedzi - nie powinno dotyczyć pasażera!
+            if( m_activator->Mechanik->primary() ) { // tylko jeśli ktoś tam siedzi - nie powinno dotyczyć pasażera!
                 targetcell->UpdateValues(
                     m_activator->Mechanik->TrainName(),
                     m_activator->Mechanik->StationCount() - m_activator->Mechanik->StationIndex(), // ile przystanków do końca

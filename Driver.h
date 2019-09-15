@@ -203,9 +203,13 @@ public:
 public:
     void UpdateSituation(double dt); // uruchamiac przynajmniej raz na sekundę
     void MoveTo(TDynamicObject *to);
-    void TakeControl(bool yes);
+    void TakeControl(bool const Aidriver, bool const Forcevehiclecheck = false);
     inline
-    bool Primary() const {
+    bool primary( bool const Primary ) {
+        SetFlag( iDrivigFlags, ( Primary ? movePrimary : -movePrimary ) );
+        return primary(); }
+    inline
+    bool primary() const {
         return ( ( iDrivigFlags & movePrimary ) != 0 ); };
     inline
     TMoverParameters const *Controlling() const {
@@ -219,8 +223,11 @@ public:
     inline
     int Direction() const {
         return iDirection; }
+    inline
+    TAction & action() {
+        return eAction; }
     inline 
-    TAction GetAction() {
+    TAction const & action() const {
         return eAction; }
 private:
     void Activation(); // umieszczenie obsady w odpowiednim członie
@@ -265,6 +272,7 @@ public:
     int iOverheadZero = 0; // suma bitowa jezdy bezprądowej, bity ustawiane przez pojazdy z podniesionymi pantografami
     int iOverheadDown = 0; // suma bitowa opuszczenia pantografów, bity ustawiane przez pojazdy z podniesionymi pantografami
     double BrakeCtrlPosition = 0.0; // intermediate position of main brake controller 
+	int UniversalBrakeButtons = 0.0; // flag of which universal buttons need to be pressed
 	int DizelPercentage = 0; // oczekiwane procenty jazdy/hamowania szynobusem
 	int DizelPercentage_Speed = 0; // oczekiwane procenty jazdy/hamowania szynobusem w związku z osiąganiem VelDesired
 private:

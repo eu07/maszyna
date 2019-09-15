@@ -1199,12 +1199,12 @@ void TMoverParameters::CollisionDetect(int const End, double const dt)
 
 void
 TMoverParameters::damage_coupler( int const End ) {
-	if( SetFlag( DamageFlag, dtrain_coupling ) )
-		EventFlag = true;
+	auto &coupler{ Couplers[ End ] };
 
-    auto &coupler { Couplers[ End ] };
+    if( SetFlag( DamageFlag, dtrain_coupling ) )
+        EventFlag = true;
 
-    if( ( coupler.CouplingFlag & ctrain_pneumatic ) == ctrain_pneumatic ) {
+    if( ( coupler.CouplingFlag & coupling::brakehose ) == coupling::brakehose ) {
         // hamowanie nagle - zerwanie przewodow hamulcowych
         AlarmChainFlag = true;
     }
@@ -1215,11 +1215,11 @@ TMoverParameters::damage_coupler( int const End ) {
         switch( End ) {
             // break connection with other vehicle, if there's any
             case 0: {
-                coupler.Connected->Couplers[ end::rear ].CouplingFlag = 0;
+                coupler.Connected->Couplers[ end::rear ].CouplingFlag = coupling::faux;
                 break;
             }
             case 1: {
-                coupler.Connected->Couplers[ end::front ].CouplingFlag = 0;
+                coupler.Connected->Couplers[ end::front ].CouplingFlag = coupling::faux;
                 break;
             }
             default: {
@@ -2463,6 +2463,63 @@ bool TMoverParameters::AddPulseForce(int Multipler)
 }
 
 // *************************************************************************************************
+// yB: 20190909
+// sypanie piasku reczne
+// *************************************************************************************************
+bool TMoverParameters::SandboxManual(bool const State, range_t const Notify)
+{
+	bool result{ false };
+
+	if (SandDoseManual != State) {
+		if (SandDoseManual == false) {
+			// switch on
+			if (Sand > 0) {
+				SandDoseManual = true;
+				result = true;
+			}
+		}
+		else {
+			// switch off
+			SandDoseManual = false;
+			result = true;
+		}
+	}
+
+	Sandbox(SandDoseManual || SandDoseAuto, Notify);
+
+	return result;
+}
+
+// *************************************************************************************************
+// yB: 20190909
+// sypanie piasku automatyczne
+// *************************************************************************************************
+bool TMoverParameters::SandboxAuto(bool const State, range_t const Notify)
+{
+	bool result{ false };
+	bool NewState = State && SandDoseAutoAllow;
+	if (SandDoseAuto != NewState) {
+		if (SandDoseAuto == false) {
+			// switch on
+			if (Sand > 0) {
+				SandDoseAuto = true;
+				result = true;
+			}
+		}
+		else {
+			// switch off
+			SandDoseAuto = false;
+			result = true;
+		}
+	}
+
+	Sandbox(SandDoseManual || SandDoseAuto, Notify);
+
+	return result;
+}
+
+
+// *************************************************************************************************
 // Q: 20160713
 // sypanie piasku
 // *************************************************************************************************
@@ -2503,6 +2560,24 @@ bool TMoverParameters::Sandbox( bool const State, range_t const Notify )
     }
 
     return result;
+}
+
+// *************************************************************************************************
+// yB: 20190909
+// włączenie / wyłączenie automatycznej piasecznicy
+// *************************************************************************************************
+bool TMoverParameters::SandboxAutoAllow(bool State)
+{
+	//SendCtrlToNext("SandboxAutoAllow", int(State), CabNo, ctrain_controll);
+
+	if (SandDoseAutoAllow != State)
+	{
+		SandDoseAutoAllow = State;
+		return true;
+	}
+	else
+		return false;
+	
 }
 
 // *****************************************************************************
@@ -3358,6 +3433,37 @@ bool TMoverParameters::BrakeReleaser(int state)
 }
 
 // *************************************************************************************************
+// yB: 20160711
+// włączenie / wyłączenie uniwersalnego przycisku hamulcowego
+// *************************************************************************************************
+bool TMoverParameters::UniversalBrakeButton(int button, int state)
+{
+	bool OK = true; //false tylko jeśli nie uda się wysłać, GF 20161124
+	UniversalBrakeButtonActive[button] = state > 0;
+	int flag = 0;
+	if (Battery) {
+		for (int i = 0; i < 3; i++) {
+			flag = flag | (UniversalBrakeButtonActive[i] ? UniversalBrakeButtonFlag[i] : 0);
+		}
+	}
+
+	Hamulec->SetUniversalFlag(flag);
+	Handle->SetUniversalFlag(flag);
+	LocHandle->SetUniversalFlag(flag);
+	UnlockPipe = (flag & TUniversalBrake::ub_UnlockPipe) > 0;
+
+	//if the releaser can be activated by switch
+	if ( TestFlag ( UniversalBrakeButtonFlag[0] & UniversalBrakeButtonFlag[1] & UniversalBrakeButtonFlag[2],
+				  TUniversalBrake::ub_Release ) )
+	{
+		Hamulec->Releaser( int ( TestFlag ( flag, TUniversalBrake::ub_Release ) ));
+		if (CabNo != 0) // rekurencyjne wysłanie do następnego
+			OK = SendCtrlToNext("BrakeReleaser", state, CabNo);
+	}
+	return OK;
+}
+
+// *************************************************************************************************
 // Q: 20160711
 // włączenie / wyłączenie hamulca elektro-pneumatycznego
 // *************************************************************************************************
@@ -3815,11 +3921,17 @@ void TMoverParameters::UpdatePipePressure(double dt)
 			dpLocalValve = LocHandle->GetPF(std::max(LocalBrakePosA, LocalBrakePosAEIM), Hamulec->GetBCP(), ScndPipePress, dt, 0);
 		else
 			dpLocalValve = LocHandle->GetPF(LocalBrakePosAEIM, Hamulec->GetBCP(), ScndPipePress, dt, 0);
-        if( ( BrakeHandle == TBrakeHandle::FV4a )
-         && ( ( PipePress < 2.75 )
-           && ( ( Hamulec->GetStatus() & b_rls ) == 0 ) )
-         && ( BrakeSubsystem == TBrakeSubSystem::ss_LSt )
-         && ( TrainType != dt_EZT ) ) {
+
+		LockPipe = PipePress < (LockPipe ? LockPipeOff : LockPipeOn);
+		bool lock_new = (LockPipe && !UnlockPipe && (BrakeCtrlPosR > HandleUnlock)); //new simple codition based on .fiz
+		bool lock_old = ((BrakeHandle == TBrakeHandle::FV4a) //old complex condition based on assumptions
+			&& ((PipePress < 2.75)
+				&& ((Hamulec->GetStatus() & b_rls) == 0))
+			&& (BrakeSubsystem == TBrakeSubSystem::ss_LSt)
+			&& (TrainType != dt_EZT)
+			&& (!UnlockPipe));
+
+        if( ( lock_old ) || ( lock_new ) ) {
             temp = PipePress + 0.00001;
         }
         else {
@@ -5517,11 +5629,11 @@ double TMoverParameters::TractionForce( double dt ) {
                 if( ( SlippingWheels ) ) {
                     PosRatio = 0;
                     tmp = 10;
-                    Sandbox( true, range_t::unit );
+                    SandboxAuto( true, range_t::unit );
                 } // przeciwposlizg
                 else {
                     // switch sandbox off
-                    Sandbox( false, range_t::unit );
+                    SandboxAuto( false, range_t::unit );
                 }
 
 				eimv_pr += Max0R(Min0R(PosRatio - eimv_pr, 0.02), -0.02) * 12 *
@@ -8879,6 +8991,12 @@ void TMoverParameters::LoadFIZ_Brake( std::string const &line ) {
 	extract_value( EmergencyValveOff, "MinEVP", line, "" );
 	extract_value( EmergencyValveOn, "MaxEVP", line, "" );
 	extract_value( EmergencyValveArea, "EVArea", line, "" );
+	extract_value( UniversalBrakeButtonFlag[0], "UBB1", line, "");
+	extract_value( UniversalBrakeButtonFlag[1], "UBB2", line, "");
+	extract_value( UniversalBrakeButtonFlag[2], "UBB3", line, "");
+	extract_value( LockPipeOn, "LPOn", line, "-1");
+	extract_value( LockPipeOff, "LPOff", line, "-1");
+	extract_value( HandleUnlock, "HandlePipeUnlockPos", line, "-3");
     {
         std::map<std::string, int> compressorpowers{
             { "Main", 0 },

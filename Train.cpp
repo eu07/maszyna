@@ -180,6 +180,9 @@ TTrain::commandhandler_map const TTrain::m_commandhandlers = {
     { user_command::independentbrakedecreasefast, &TTrain::OnCommand_independentbrakedecreasefast },
     { user_command::independentbrakeset, &TTrain::OnCommand_independentbrakeset },
     { user_command::independentbrakebailoff, &TTrain::OnCommand_independentbrakebailoff },
+	{ user_command::universalbrakebutton1, &TTrain::OnCommand_universalbrakebutton1 },
+	{ user_command::universalbrakebutton2, &TTrain::OnCommand_universalbrakebutton2 },
+	{ user_command::universalbrakebutton3, &TTrain::OnCommand_universalbrakebutton3 },
     { user_command::trainbrakeincrease, &TTrain::OnCommand_trainbrakeincrease },
     { user_command::trainbrakedecrease, &TTrain::OnCommand_trainbrakedecrease },
     { user_command::trainbrakeset, &TTrain::OnCommand_trainbrakeset },
@@ -476,6 +479,8 @@ dictionary_source *TTrain::GetTrainState() {
     dict->insert( "converter", mvControlled->ConverterFlag );
     dict->insert( "converter_overload", mvControlled->ConvOvldFlag );
     dict->insert( "compress", mvControlled->CompressorFlag );
+    dict->insert( "lights_front", mvOccupied->iLights[ end::front ] );
+    dict->insert( "lights_rear", mvOccupied->iLights[ end::rear ] );
     // reverser
     dict->insert( "direction", mover->ActiveDir );
     // throttle
@@ -1175,6 +1180,60 @@ void TTrain::OnCommand_independentbrakebailoff( TTrain *Train, command_data cons
     }
 }
 
+void TTrain::OnCommand_universalbrakebutton1(TTrain *Train, command_data const &Command) {
+
+			if (Command.action == GLFW_PRESS) {
+				// press or hold
+				// visual feedback
+				Train->ggUniveralBrakeButton1.UpdateValue(1.0, Train->dsbSwitch);
+
+				Train->mvOccupied->UniversalBrakeButton(0,1);
+			}
+			else if (Command.action == GLFW_RELEASE) {
+				// release
+				// visual feedback
+				Train->ggUniveralBrakeButton1.UpdateValue(0.0, Train->dsbSwitch);
+
+				Train->mvOccupied->UniversalBrakeButton(0,0);
+			}
+}
+
+void TTrain::OnCommand_universalbrakebutton2(TTrain *Train, command_data const &Command) {
+
+	if (Command.action == GLFW_PRESS) {
+		// press or hold
+		// visual feedback
+		Train->ggUniveralBrakeButton2.UpdateValue(1.0, Train->dsbSwitch);
+
+		Train->mvOccupied->UniversalBrakeButton(1, 1);
+	}
+	else if (Command.action == GLFW_RELEASE) {
+		// release
+		// visual feedback
+		Train->ggUniveralBrakeButton2.UpdateValue(0.0, Train->dsbSwitch);
+
+		Train->mvOccupied->UniversalBrakeButton(1, 0);
+	}
+}
+
+void TTrain::OnCommand_universalbrakebutton3(TTrain *Train, command_data const &Command) {
+
+	if (Command.action == GLFW_PRESS) {
+		// press or hold
+		// visual feedback
+		Train->ggUniveralBrakeButton3.UpdateValue(1.0, Train->dsbSwitch);
+
+		Train->mvOccupied->UniversalBrakeButton(2, 1);
+	}
+	else if (Command.action == GLFW_RELEASE) {
+		// release
+		// visual feedback
+		Train->ggUniveralBrakeButton3.UpdateValue(0.0, Train->dsbSwitch);
+
+		Train->mvOccupied->UniversalBrakeButton(2, 0);
+	}
+}
+
 void TTrain::OnCommand_trainbrakeincrease( TTrain *Train, command_data const &Command ) {
 	if (Command.action == GLFW_REPEAT && Train->mvOccupied->BrakeHandle == TBrakeHandle::FV4a)
 		Train->mvOccupied->BrakeLevelAdd( Global.brake_speed * Command.time_delta * Train->mvOccupied->BrakeCtrlPosNo );
@@ -1439,15 +1498,46 @@ void TTrain::OnCommand_sandboxactivate( TTrain *Train, command_data const &Comma
         // visual feedback
         Train->ggSandButton.UpdateValue( 1.0, Train->dsbSwitch );
 
-        Train->mvControlled->Sandbox( true );
+        Train->mvControlled->SandboxManual( true );
     }
     else if( Command.action == GLFW_RELEASE) {
         // visual feedback
         Train->ggSandButton.UpdateValue( 0.0 );
 
-        Train->mvControlled->Sandbox( false );
+        Train->mvControlled->SandboxManual( false );
     }
 }
+
+void TTrain::OnCommand_autosandboxtoggle(TTrain *Train, command_data const &Command) {
+
+	if (Command.action == GLFW_PRESS) {
+		// only reacting to press, so the switch doesn't flip back and forth if key is held down
+		if (false == Train->mvOccupied->SandDoseAutoAllow) {
+			// turn on
+			OnCommand_autosandboxactivate(Train, Command);
+		}
+		else {
+			//turn off
+			OnCommand_autosandboxdeactivate(Train, Command);
+		}
+	}
+};
+
+void TTrain::OnCommand_autosandboxactivate(TTrain *Train, command_data const &Command) {
+	if (Command.action == GLFW_PRESS) {
+		// only reacting to press, so the switch doesn't flip back and forth if key is held down
+		Train->mvOccupied->SandboxAutoAllow(true);
+		Train->ggAutoSandAllow.UpdateValue(1.0, Train->dsbSwitch);
+	}
+};
+
+void TTrain::OnCommand_autosandboxdeactivate(TTrain *Train, command_data const &Command) {
+	if (Command.action == GLFW_PRESS) {
+		// only reacting to press, so the switch doesn't flip back and forth if key is held down
+		Train->mvOccupied->SandboxAutoAllow(false);
+		Train->ggAutoSandAllow.UpdateValue(0.0, Train->dsbSwitch);
+	}
+};
 
 void TTrain::OnCommand_epbrakecontroltoggle( TTrain *Train, command_data const &Command ) {
 
@@ -4324,12 +4414,27 @@ void TTrain::OnCommand_springbraketoggle(TTrain *Train, command_data const &Comm
 			OnCommand_springbrakedisable(Train, Command);
 		}
 	}
+	else if (Command.action == GLFW_RELEASE) {
+		// release
+		// visual feedback
+		Train->ggSpringBrakeOffButton.UpdateValue(0.0, Train->dsbSwitch);
+		Train->ggSpringBrakeOnButton.UpdateValue(0.0, Train->dsbSwitch);
+	}
 };
 
 void TTrain::OnCommand_springbrakeenable(TTrain *Train, command_data const &Command) {
 	if (Command.action == GLFW_PRESS) {
 		// only reacting to press, so the switch doesn't flip back and forth if key is held down
 		Train->mvOccupied->SpringBrakeActivate(true);
+		// visual feedback
+		Train->ggSpringBrakeOnButton.UpdateValue(1.0, Train->dsbSwitch);
+		Train->ggSpringBrakeToggleButton.UpdateValue(1.0, Train->dsbSwitch);
+		Train->ggSpringBrakeOffButton.UpdateValue(0.0, Train->dsbSwitch);
+	}
+	else if (Command.action == GLFW_RELEASE) {
+		// release
+		// visual feedback
+		Train->ggSpringBrakeOnButton.UpdateValue(0.0, Train->dsbSwitch);
 	}
 };
 
@@ -4337,6 +4442,15 @@ void TTrain::OnCommand_springbrakedisable(TTrain *Train, command_data const &Com
 	if (Command.action == GLFW_PRESS) {
 		// only reacting to press, so the switch doesn't flip back and forth if key is held down
 		Train->mvOccupied->SpringBrakeActivate(false);
+		// visual feedback
+		Train->ggSpringBrakeOffButton.UpdateValue(1.0, Train->dsbSwitch);
+		Train->ggSpringBrakeToggleButton.UpdateValue(0.0, Train->dsbSwitch);
+		Train->ggSpringBrakeOnButton.UpdateValue(0.0, Train->dsbSwitch);
+	}
+	else if (Command.action == GLFW_RELEASE) {
+		// release
+		// visual feedback
+		Train->ggSpringBrakeOffButton.UpdateValue(0.0, Train->dsbSwitch);
 	}
 };
 void TTrain::OnCommand_springbrakeshutofftoggle(TTrain *Train, command_data const &Command) {
@@ -5237,6 +5351,7 @@ void TTrain::OnCommand_cabchangebackward( TTrain *Train, command_data const &Com
                     1 :
                    -1 ) };
         if( false == Train->CabChange( movedirection ) ) {
+            // current vehicle doesn't extend any farther in this direction, check if we there's one connected we can move to
             auto const exitdirection { (
                 movedirection > 0 ?
                     end::front :
@@ -5858,7 +5973,7 @@ bool TTrain::Update( double const Deltatime )
                     false ) );
             btLampkaWylSzybkiOff.Turn(
                 ( ( ( mvControlled->MainsInitTimeCountdown > 0.0 )
-                 || ( fHVoltage == 0.0 )
+//                 || ( fHVoltage == 0.0 )
                  || ( m_linebreakerstate == 2 )
                  || ( true == mvControlled->Mains ) ) ?
                     false :
@@ -6095,7 +6210,10 @@ bool TTrain::Update( double const Deltatime )
                     auto const *mover { tmp->MoverParameters };
 
                     btLampkaWylSzybkiB.Turn( mover->Mains );
-                    btLampkaWylSzybkiBOff.Turn( ( false == mover->Mains ) && ( mover->MainsInitTimeCountdown <= 0.0 ) && ( fHVoltage != 0.0 ) );
+                    btLampkaWylSzybkiBOff.Turn(
+                        ( false == mover->Mains )
+                     && ( mover->MainsInitTimeCountdown <= 0.0 )
+                   /*&& ( fHVoltage != 0.0 )*/ );
 
                     btLampkaOporyB.Turn(mover->ResistorsFlagCheck());
                     btLampkaBezoporowaB.Turn(
@@ -6340,6 +6458,12 @@ bool TTrain::Update( double const Deltatime )
         ggMainButton.Update();
         ggSecurityResetButton.Update();
         ggReleaserButton.Update();
+		ggSpringBrakeToggleButton.Update();
+		ggSpringBrakeOnButton.Update();
+		ggSpringBrakeOffButton.Update();
+		ggUniveralBrakeButton1.Update();
+		ggUniveralBrakeButton2.Update();
+		ggUniveralBrakeButton3.Update();
         ggAntiSlipButton.Update();
         ggSandButton.Update();
         ggFuseButton.Update();
@@ -7674,6 +7798,12 @@ void TTrain::clear_cab_controls()
     ggMainOnButton.Clear();
     ggSecurityResetButton.Clear();
     ggReleaserButton.Clear();
+	ggSpringBrakeToggleButton.Clear();
+	ggSpringBrakeOnButton.Clear();
+	ggSpringBrakeOffButton.Clear();
+	ggUniveralBrakeButton1.Clear();
+	ggUniveralBrakeButton2.Clear();
+	ggUniveralBrakeButton3.Clear();
     ggSandButton.Clear();
     ggAntiSlipButton.Clear();
     ggHornButton.Clear();
@@ -8263,7 +8393,7 @@ bool TTrain::initialize_button(cParser &Parser, std::string const &Label, int co
         }
     }
     // TODO: move viable dedicated lights to the automatic light array
-    std::unordered_map<std::string, bool *> const autolights = {
+    std::unordered_map<std::string, bool const *> const autolights = {
         { "i-doorpermit_left:",  &mvOccupied->Doors.instances[ ( mvOccupied->ActiveCab == 1 ? side::left : side::right ) ].open_permit },
         { "i-doorpermit_right:", &mvOccupied->Doors.instances[ ( mvOccupied->ActiveCab == 1 ? side::right : side::left ) ].open_permit },
         { "i-doorstep:", &mvOccupied->Doors.step_enabled }
@@ -8336,7 +8466,14 @@ bool TTrain::initialize_gauge(cParser &Parser, std::string const &Label, int con
         { "main_on_bt:", ggMainOnButton },
         { "security_reset_bt:", ggSecurityResetButton },
         { "releaser_bt:", ggReleaserButton },
+		{ "springbraketoggle_bt:", ggSpringBrakeToggleButton },
+		{ "springbrakeon_bt:", ggSpringBrakeOnButton },
+		{ "springbrakeoff_bt:", ggSpringBrakeOffButton },
+		{ "universalbrake1_bt:", ggUniveralBrakeButton1 },
+		{ "universalbrake2_bt:", ggUniveralBrakeButton2 },
+		{ "universalbrake3_bt:", ggUniveralBrakeButton3 },
         { "sand_bt:", ggSandButton },
+		{ "autosandallow_sw:", ggAutoSandAllow },
         { "antislip_bt:", ggAntiSlipButton },
         { "horn_bt:", ggHornButton },
         { "hornlow_bt:", ggHornLowButton },

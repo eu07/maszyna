@@ -230,7 +230,13 @@ driverkeyboard_input::default_bindings() {
 	    { user_command::motorblowersdisableall, GLFW_KEY_M | keymodifier::control },
         // coolingfanstoggle
         // tempomattoggle
-
+        // springbraketoggle
+        // springbrakeenable
+        // springbrakedisable
+        // springbrakeshutofftoggle
+        // springbrakeshutoffenable
+        // springbrakeshutoffdisable
+        // springbrakerelease
 	    // admin_timejump,
 	    { user_command::timejumplarge, GLFW_KEY_F1 | keymodifier::control },
 	    { user_command::timejumpsmall, GLFW_KEY_F1 | keymodifier::shift },

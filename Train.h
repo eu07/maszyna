@@ -189,6 +189,9 @@ class TTrain {
     static void OnCommand_independentbrakedecreasefast( TTrain *Train, command_data const &Command );
     static void OnCommand_independentbrakeset( TTrain *Train, command_data const &Command );
     static void OnCommand_independentbrakebailoff( TTrain *Train, command_data const &Command );
+	static void OnCommand_universalbrakebutton1(TTrain *Train, command_data const &Command);
+	static void OnCommand_universalbrakebutton2(TTrain *Train, command_data const &Command);
+	static void OnCommand_universalbrakebutton3(TTrain *Train, command_data const &Command);
     static void OnCommand_trainbrakeincrease( TTrain *Train, command_data const &Command );
     static void OnCommand_trainbrakedecrease( TTrain *Train, command_data const &Command );
     static void OnCommand_trainbrakeset( TTrain *Train, command_data const &Command );
@@ -208,6 +211,9 @@ class TTrain {
     static void OnCommand_alarmchaintoggle( TTrain *Train, command_data const &Command );
     static void OnCommand_wheelspinbrakeactivate( TTrain *Train, command_data const &Command );
     static void OnCommand_sandboxactivate( TTrain *Train, command_data const &Command );
+	static void OnCommand_autosandboxtoggle(TTrain *Train, command_data const &Command);
+	static void OnCommand_autosandboxactivate(TTrain *Train, command_data const &Command);
+	static void OnCommand_autosandboxdeactivate(TTrain *Train, command_data const &Command);
     static void OnCommand_epbrakecontroltoggle( TTrain *Train, command_data const &Command );
 	static void OnCommand_trainbrakeoperationmodeincrease(TTrain *Train, command_data const &Command);
 	static void OnCommand_trainbrakeoperationmodedecrease(TTrain *Train, command_data const &Command);
@@ -426,7 +432,14 @@ public: // reszta może by?publiczna
     TGauge ggMainButton; // EZT
     TGauge ggSecurityResetButton;
     TGauge ggReleaserButton;
+	TGauge ggSpringBrakeToggleButton;
+	TGauge ggSpringBrakeOnButton;
+	TGauge ggSpringBrakeOffButton;
+	TGauge ggUniveralBrakeButton1;
+	TGauge ggUniveralBrakeButton2;
+	TGauge ggUniveralBrakeButton3;
     TGauge ggSandButton; // guzik piasecznicy
+	TGauge ggAutoSandAllow; // przełącznik piasecznicy
     TGauge ggAntiSlipButton;
     TGauge ggFuseButton;
     TGauge ggConverterFuseButton; // hunter-261211: przycisk odblokowania nadmiarowego przetwornic i ogrzewania

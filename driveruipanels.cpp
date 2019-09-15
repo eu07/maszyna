@@ -164,7 +164,7 @@ scenario_panel::update() {
         std::get<TDynamicObject *>( simulation::Region->find_vehicle( camera.Pos, 20, false, false ) ) ); // w trybie latania lokalizujemy wg mapy
     if( m_nearest == nullptr ) { return; }
     auto const *owner { (
-        ( ( m_nearest->Mechanik != nullptr ) && ( m_nearest->Mechanik->Primary() ) ) ?
+        ( ( m_nearest->Mechanik != nullptr ) && ( m_nearest->Mechanik->primary() ) ) ?
             m_nearest->Mechanik :
             m_nearest->ctOwner ) };
     if( owner == nullptr ) { return; }
@@ -202,7 +202,7 @@ scenario_panel::render() {
     if( true == ImGui::Begin( panelname.c_str(), &is_open, flags ) ) {
         // potential assignment section
         auto const *owner { (
-            ( ( m_nearest->Mechanik != nullptr ) && ( m_nearest->Mechanik->Primary() ) ) ?
+            ( ( m_nearest->Mechanik != nullptr ) && ( m_nearest->Mechanik->primary() ) ) ?
                 m_nearest->Mechanik :
                 m_nearest->ctOwner ) };
         if( owner != nullptr ) {
@@ -255,7 +255,7 @@ timetable_panel::update() {
 	if( vehicle == nullptr ) { return; }
 	// if the nearest located vehicle doesn't have a direct driver, try to query its owner
 	auto const *owner = (
-	    ( ( vehicle->Mechanik != nullptr ) && ( vehicle->Mechanik->Primary() ) ) ?
+	    ( ( vehicle->Mechanik != nullptr ) && ( vehicle->Mechanik->primary() ) ) ?
 	        vehicle->Mechanik :
 	        vehicle->ctOwner );
 	if( owner == nullptr ) { return; }
@@ -557,7 +557,7 @@ debug_panel::update_section_vehicle( std::vector<text_line> &Output ) {
     auto const &vehicle { *m_input.vehicle };
     auto const &mover { *m_input.mover };
 
-    auto const isowned { ( vehicle.Mechanik == nullptr ) && ( vehicle.ctOwner != nullptr ) };
+    auto const isowned { ( vehicle.ctOwner != nullptr ) && ( vehicle.ctOwner->Vehicle() != m_input.vehicle )};
     auto const isplayervehicle { ( m_input.train != nullptr ) && ( m_input.train->Dynamic() == m_input.vehicle ) };
     auto const isdieselenginepowered { ( mover.EngineType == TEngineType::DieselElectric ) || ( mover.EngineType == TEngineType::DieselEngine ) };
     auto const isdieselinshuntmode { mover.ShuntMode && mover.EngineType == TEngineType::DieselElectric };
