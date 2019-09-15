@@ -943,12 +943,7 @@ opengl_renderer::Render_reflections() {
 
     if( Global.ReflectionUpdatesPerSecond == 0 ) { return false; }
 
-    auto const &time = simulation::Time.data();
-    auto const timestamp =
-        time.wMilliseconds
-        + time.wSecond * 1000
-        + time.wMinute * 1000 * 60
-        + time.wHour * 1000 * 60 * 60;
+    auto const timestamp { static_cast<int>( Timer::GetTime() * 1000 ) };
     if( ( timestamp - m_environmentupdatetime < Global.ReflectionUpdatesPerSecond )
      && ( glm::length( m_renderpass.camera.position() - m_environmentupdatelocation ) < 1000.0 ) ) {
         // run update every 5+ mins of simulation time, or at least 1km from the last location

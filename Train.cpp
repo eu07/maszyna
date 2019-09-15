@@ -468,6 +468,8 @@ dictionary_source *TTrain::GetTrainState() {
     dict->insert( "converter", mvControlled->ConverterFlag );
     dict->insert( "converter_overload", mvControlled->ConvOvldFlag );
     dict->insert( "compress", mvControlled->CompressorFlag );
+    dict->insert( "lights_front", mvOccupied->iLights[ end::front ] );
+    dict->insert( "lights_rear", mvOccupied->iLights[ end::rear ] );
     // reverser
     dict->insert( "direction", mover->ActiveDir );
     // throttle
