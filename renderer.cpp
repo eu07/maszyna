@@ -105,9 +105,8 @@ opengl_particles::update( opengl_camera const &Camera ) {
 		auto const particlecolor {
 			glm::clamp(
 			    source.second.color()
-			    * ( glm::vec3 { Global.DayLight.ambient } + 0.35f * glm::vec3{ Global.DayLight.diffuse } )
-			    * 255.f,
-			    glm::vec3{ 0.f }, glm::vec3{ 255.f } ) };
+			    * ( glm::vec3 { Global.DayLight.ambient } + 0.35f * glm::vec3{ Global.DayLight.diffuse } ),
+			    glm::vec3{ 0.f }, glm::vec3{ 1.f } ) };
 		auto const &particles { source.second.sequence() };
 		// TODO: put sanity cap on the overall amount of particles that can be drawn
 		auto const sizestep { 256.0 * billboard_vertices.size() };
@@ -115,9 +114,9 @@ opengl_particles::update( opengl_camera const &Camera ) {
 		    sizestep * std::ceil( m_particlevertices.size() + ( particles.size() * billboard_vertices.size() ) / sizestep ) );
 		for( auto const &particle : particles ) {
 			// TODO: particle color support
-			vertex.color[ 0 ] = static_cast<std::uint8_t>( particlecolor.r );
-			vertex.color[ 1 ] = static_cast<std::uint8_t>( particlecolor.g );
-			vertex.color[ 2 ] = static_cast<std::uint8_t>( particlecolor.b );
+			vertex.color[ 0 ] = particlecolor.r;
+			vertex.color[ 1 ] = particlecolor.g;
+			vertex.color[ 2 ] = particlecolor.b;
 			vertex.color.a = std::clamp(particle.opacity, 0.0f, 1.0f);
 
 			auto const offset { glm::vec3{ particle.position - Camera.position() } };
