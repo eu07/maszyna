@@ -383,7 +383,8 @@ void python_taskqueue::run( GLFWwindow *Context, rendertask_sequence &Tasks, upl
 						std::lock_guard<std::mutex> lock(Upload_Tasks.mutex);
 						Upload_Tasks.data.push_back(task);
 					}
-                    error();
+					if( PyErr_Occurred() != nullptr )
+						error();
                 }
                 // clear the thread state
                 PyEval_SaveThread();
@@ -414,8 +415,6 @@ void python_taskqueue::update()
 
 void
 python_taskqueue::error() {
-
-    if( PyErr_Occurred() == nullptr ) { return; }
 
     if( m_stderr != nullptr ) {
         // std err pythona jest buforowane

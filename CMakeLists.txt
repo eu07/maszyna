@@ -303,6 +303,9 @@ if (WIN32)
 	target_link_libraries(${PROJECT_NAME} ws2_32)
 endif()
 
+#target_compile_options(${PROJECT_NAME} PRIVATE -flto)
+#target_link_libraries(${PROJECT_NAME} -flto)
+
 set_target_properties(${PROJECT_NAME} PROPERTIES COTIRE_CXX_PREFIX_HEADER_INIT "stdafx.h")
 set_target_properties(${PROJECT_NAME} PROPERTIES COTIRE_ADD_UNITY_BUILD FALSE)
 cotire(${PROJECT_NAME})
