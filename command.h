@@ -238,6 +238,7 @@ enum class user_command {
 	springbrakeshutoffenable,
 	springbrakeshutoffdisable,
 	springbrakerelease,
+    distancecounteractivate,
 
     none = -1
 };

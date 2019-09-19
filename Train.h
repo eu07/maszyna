@@ -104,11 +104,12 @@ class TTrain {
         float lv_voltage;
     };
 
+// constructors
+    TTrain();
 // methods
     bool CabChange(int iDirection);
     bool ShowNextCurrent; // pokaz przd w podlaczonej lokomotywie (ET41)
     bool InitializeCab(int NewCabNo, std::string const &asFileName);
-    TTrain();
     // McZapkie-010302
     bool Init(TDynamicObject *NewDynamicObject, bool e3d = false);
 
@@ -117,6 +118,7 @@ class TTrain {
     inline std::string GetLabel( TSubModel const *Control ) const { return m_controlmapper.find( Control ); }
     void UpdateCab();
     bool Update( double const Deltatime );
+    void add_distance( double const Distance );
     void SetLights();
     // McZapkie-310302: ladowanie parametrow z pliku
     bool LoadMMediaFile(std::string const &asFileName);
@@ -365,7 +367,7 @@ class TTrain {
 	static void OnCommand_springbrakeshutoffenable(TTrain *Train, command_data const &Command);
 	static void OnCommand_springbrakeshutoffdisable(TTrain *Train, command_data const &Command);
 	static void OnCommand_springbrakerelease(TTrain *Train, command_data const &Command);
-
+    static void OnCommand_distancecounteractivate( TTrain *Train, command_data const &Command );
 
 // members
     TDynamicObject *DynamicObject { nullptr }; // przestawia zmiana pojazdu [F5]
@@ -522,6 +524,8 @@ public: // reszta może by?publiczna
     TGauge ggMotorBlowersRearButton; // rear traction motor fan switch
     TGauge ggMotorBlowersAllOffButton; // motor fans shutdown switch
 
+    TGauge ggDistanceCounterButton; // distance meter activation button
+
     TButton btLampkaPoslizg;
     TButton btLampkaStyczn;
     TButton btLampkaNadmPrzetw;
@@ -617,6 +621,7 @@ public: // reszta może by?publiczna
     TButton btLampkaMotorBlowers;
     TButton btLampkaCoolingFans;
     TButton btLampkaTempomat;
+    TButton btLampkaDistanceCounter;
 
     TButton btCabLight; // hunter-171012: lampa oswietlajaca kabine
     // Ra 2013-12: wirtualne "lampki" do odbijania na haslerze w PoKeys
@@ -649,6 +654,7 @@ public: // reszta może by?publiczna
     sound_source m_radiosound { sound_placement::internal, 2 * EU07_SOUND_CABCONTROLSCUTOFFRANGE }; // cached template for radio messages
     std::vector<std::pair<int, std::shared_ptr<sound_source>>> m_radiomessages; // list of currently played radio messages
     sound_source m_radiostop { sound_placement::internal, EU07_SOUND_CABCONTROLSCUTOFFRANGE };
+    sound_source m_distancecounterclear { sound_placement::internal, EU07_SOUND_CABCONTROLSCUTOFFRANGE }; // distance meter 'good to go' alert
 /*
     int iCabLightFlag; // McZapkie:120503: oswietlenie kabiny (0: wyl, 1: przyciemnione, 2: pelne)
     bool bCabLight; // hunter-091012: czy swiatlo jest zapalone?
@@ -702,6 +708,7 @@ private:
     float m_mastercontrollerreturndelay { 0.f };
     int iRadioChannel { 1 }; // numer aktualnego kana?u radiowego
     std::vector<std::pair<std::string, texture_handle>> m_screens;
+    float m_distancecounter { -1.f }; // distance traveled since meter was activated or -1 if inactive
 
   public:
     float fPress[20][3]; // cisnienia dla wszystkich czlonow

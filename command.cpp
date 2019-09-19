@@ -244,7 +244,8 @@ commanddescription_sequence Commands_descriptions = {
 	{ "springbrakeshutofftoggle", command_target::vehicle },
 	{ "springbrakeshutoffenable", command_target::vehicle },
 	{ "springbrakeshutoffdisable", command_target::vehicle },
-	{ "springbrakerelease", command_target::vehicle }
+	{ "springbrakerelease", command_target::vehicle },
+    { "distancecounteractivate", command_target::vehicle }
 
 };
 

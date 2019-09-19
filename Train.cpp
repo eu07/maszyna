@@ -365,7 +365,8 @@ TTrain::commandhandler_map const TTrain::m_commandhandlers = {
 	{ user_command::springbrakeshutofftoggle, &TTrain::OnCommand_springbrakeshutofftoggle },
 	{ user_command::springbrakeshutoffenable, &TTrain::OnCommand_springbrakeshutoffenable },
 	{ user_command::springbrakeshutoffdisable, &TTrain::OnCommand_springbrakeshutoffdisable },
-	{ user_command::springbrakerelease, &TTrain::OnCommand_springbrakerelease }
+	{ user_command::springbrakerelease, &TTrain::OnCommand_springbrakerelease },
+    { user_command::distancecounteractivate, &TTrain::OnCommand_distancecounteractivate }
 };
 
 std::vector<std::string> const TTrain::fPress_labels = {
@@ -471,6 +472,7 @@ dictionary_source *TTrain::GetTrainState() {
     dict->insert( "converter", mvControlled->ConverterFlag );
     dict->insert( "converter_overload", mvControlled->ConvOvldFlag );
     dict->insert( "compress", mvControlled->CompressorFlag );
+    dict->insert( "pant_compressor", mvControlled->PantCompFlag );
     dict->insert( "lights_front", mvOccupied->iLights[ end::front ] );
     dict->insert( "lights_rear", mvOccupied->iLights[ end::rear ] );
     // reverser
@@ -500,6 +502,7 @@ dictionary_source *TTrain::GetTrainState() {
     // other controls
     dict->insert( "ca", TestFlag( mvOccupied->SecuritySystem.Status, s_aware ) );
     dict->insert( "shp", TestFlag( mvOccupied->SecuritySystem.Status, s_active ) );
+    dict->insert( "distance_counter", m_distancecounter );
     dict->insert( "pantpress", std::abs( mvControlled->PantPress ) );
     dict->insert( "universal3", InstrumentLightActive );
     dict->insert( "radio_channel", iRadioChannel );
@@ -581,6 +584,7 @@ dictionary_source *TTrain::GetTrainState() {
     driver->TrainTimetable()->serialize( dict );
     dict->insert( "train_stationstart", driver->iStationStart );
     dict->insert( "train_atpassengerstop", driver->IsAtPassengerStop );
+    dict->insert( "train_length", driver->fLength );
     // world state data
     dict->insert( "scenario", Global.SceneryFile );
     dict->insert( "hours", static_cast<int>( simulation::Time.data().wHour ) );
@@ -985,6 +989,20 @@ void TTrain::OnCommand_tempomattoggle( TTrain *Train, command_data const &Comman
             // visual feedback
             Train->ggScndCtrlButton.UpdateValue( 0.0, Train->dsbSwitch );
         }
+    }
+}
+
+void TTrain::OnCommand_distancecounteractivate( TTrain *Train, command_data const &Command ) {
+    // NOTE: distance meter activation button is presumed to be of impulse type
+    if( Command.action == GLFW_PRESS ) {
+        // visual feedback
+        Train->ggDistanceCounterButton.UpdateValue( 1.0, Train->dsbSwitch );
+        // activate or start anew
+        Train->m_distancecounter = 0.f;
+    }
+    else if( Command.action == GLFW_RELEASE ) {
+        // visual feedback
+        Train->ggDistanceCounterButton.UpdateValue( 0.0, Train->dsbSwitch );
     }
 }
 
@@ -5989,18 +6007,18 @@ bool TTrain::Update( double const Deltatime )
                 ( true == mvControlled->ResistorsFlagCheck() )
              || ( mvControlled->MainCtrlActualPos == 0 ) ); // do EU04
 
-            if( mvControlled->StLinFlag ) {
-                btLampkaStyczn.Turn( false );
+            btLampkaStyczn.Turn(
+                mvControlled->StLinFlag ?
+                    false :
+                    mvOccupied->BrakePress < 1.0 ); // mozna prowadzic rozruch
+
+            if( ( ( mvControlled->ActiveCab ==  1 ) && ( TestFlag( mvControlled->Couplers[ end::rear  ].CouplingFlag, coupling::control ) ) )
+             || ( ( mvControlled->ActiveCab == -1 ) && ( TestFlag( mvControlled->Couplers[ end::front ].CouplingFlag, coupling::control ) ) ) ) {
+                btLampkaUkrotnienie.Turn( true );
             }
             else {
-                // mozna prowadzic rozruch
-                btLampkaStyczn.Turn( mvOccupied->BrakePress < 1.0 );
-            }
-            if( ( ( TestFlag( mvControlled->Couplers[ end::rear ].CouplingFlag, coupling::control ) ) && ( mvControlled->CabNo == 1 ) )
-             || ( ( TestFlag( mvControlled->Couplers[ end::front ].CouplingFlag, coupling::control ) ) && ( mvControlled->CabNo == -1 ) ) )
-                btLampkaUkrotnienie.Turn( true );
-            else
                 btLampkaUkrotnienie.Turn( false );
+            }
 
             //         if
             //         ((TestFlag(mvControlled->BrakeStatus,+b_Rused+b_Ractive)))//Lampka drugiego stopnia hamowania
@@ -6119,6 +6137,7 @@ bool TTrain::Update( double const Deltatime )
             btLampkaMotorBlowers.Turn( ( mvControlled->MotorBlowers[ end::front ].is_active ) && ( mvControlled->MotorBlowers[ end::rear ].is_active ) );
             btLampkaCoolingFans.Turn( mvControlled->RventRot > 1.0 );
             btLampkaTempomat.Turn( mvControlled->ScndCtrlPos > 0 );
+            btLampkaDistanceCounter.Turn( m_distancecounter >= 0.f );
             // universal devices state indicators
             for( auto idx = 0; idx < btUniversals.size(); ++idx ) {
                 btUniversals[ idx ].Turn( ggUniversals[ idx ].GetValue() > 0.5 );
@@ -6183,6 +6202,7 @@ bool TTrain::Update( double const Deltatime )
             btLampkaMotorBlowers.Turn( false );
             btLampkaCoolingFans.Turn( false );
             btLampkaTempomat.Turn( false );
+            btLampkaDistanceCounter.Turn( false );
             // universal devices state indicators
             for( auto &universal : btUniversals ) {
                 universal.Turn( false );
@@ -6325,6 +6345,7 @@ bool TTrain::Update( double const Deltatime )
             ggScndCtrl.Update();
         }
         ggScndCtrlButton.Update();
+        ggDistanceCounterButton.Update();
         if (ggDirKey.SubModel) {
             if (mvControlled->TrainType != dt_EZT)
                 ggDirKey.UpdateValue(
@@ -6860,6 +6881,24 @@ TTrain::update_sounds( double const Deltatime ) {
     else if( fTachoCount < 1.f ) {
         dsbHasler.stop();
     }
+
+    // power-reliant sounds
+    if( mvControlled->Battery || mvControlled->ConverterFlag ) {
+        // distance meter alert
+        if( m_distancecounter > Dynamic()->ctOwner->fLength ) {
+            // play assigned sound if the train travelled its full length since meter activation
+            // TBD: check all combinations of directions and active cab
+            m_distancecounter = -1.f; // turn off the meter after its task is done
+            m_distancecounterclear
+                .pitch( m_distancecounterclear.m_frequencyoffset + m_distancecounterclear.m_frequencyfactor )
+                .gain( m_distancecounterclear.m_amplitudeoffset + m_distancecounterclear.m_amplitudefactor )
+                .play( sound_flags::exclusive );
+        }
+    }
+    else {
+        // stop power-reliant sounds if power is cut
+        m_distancecounterclear.stop();
+    }
 }
 
 void TTrain::update_sounds_runningnoise( sound_source &Sound ) {
@@ -6945,6 +6984,14 @@ void TTrain::update_sounds_radio() {
     else {
         m_radiostop.stop();
     }
+}
+
+void TTrain::add_distance( double const Distance ) {
+
+    auto const meterenabled { ( true == ( m_distancecounter >= 0 ) ) && ( mvControlled->Battery || mvControlled->ConverterFlag ) };
+
+    if( true == meterenabled ) { m_distancecounter += Distance * Occupied()->ActiveCab; }
+    else                       { m_distancecounter  = -1.f; }
 }
 
 bool TTrain::CabChange(int iDirection)
@@ -7035,6 +7082,12 @@ bool TTrain::LoadMMediaFile(std::string const &asFileName)
                 // Bombardier 011010: alarm przy poslizgu:
                 dsbSlipAlarm.deserialize( parser, sound_type::single );
                 dsbSlipAlarm.owner( DynamicObject );
+            }
+            else if (token == "distancecounter:")
+            {
+                // distance meter 'good to go' sound
+                m_distancecounterclear.deserialize( parser, sound_type::single );
+                m_distancecounterclear.owner( DynamicObject );
             }
             else if (token == "tachoclock:")
             {
@@ -7161,7 +7214,7 @@ bool TTrain::InitializeCab(int NewCabNo, std::string const &asFileName)
         &dsbSwitch, &dsbPneumaticSwitch,
         &rsHiss, &rsHissU, &rsHissE, &rsHissX, &rsHissT, &rsSBHiss, &rsSBHissU,
         &rsFadeSound, &rsRunningNoise, &rsHuntingNoise,
-        &dsbHasler, &dsbBuzzer, &dsbSlipAlarm, &m_radiosound, &m_radiostop
+        &dsbHasler, &dsbBuzzer, &dsbSlipAlarm, &m_distancecounterclear, &m_radiosound, &m_radiostop
     };
     for( auto sound : sounds ) {
         sound->offset( nullvector );
@@ -7421,6 +7474,10 @@ bool TTrain::InitializeCab(int NewCabNo, std::string const &asFileName)
         if( dsbBuzzer.offset() == nullvector ) {
             dsbBuzzer.offset( btLampkaCzuwaka.model_offset() );
         }
+        // HACK: alerter is likely to be located somewhere near computer displays
+        if( m_distancecounterclear.offset() == nullvector ) {
+            m_distancecounterclear.offset( btLampkaCzuwaka.model_offset() );
+        }
         // radio has two potential items which can provide the position
         if( m_radiosound.offset() == nullvector ) {
             m_radiosound.offset( btLampkaRadio.model_offset() );
@@ -7641,6 +7698,7 @@ void TTrain::clear_cab_controls()
     ggMainCtrlAct.Clear();
     ggScndCtrl.Clear();
     ggScndCtrlButton.Clear();
+    ggDistanceCounterButton.Clear();
     ggDirKey.Clear();
     ggBrakeCtrl.Clear();
     ggLocalBrake.Clear();
@@ -7824,6 +7882,7 @@ void TTrain::clear_cab_controls()
     btLampkaMotorBlowers.Clear();
     btLampkaCoolingFans.Clear();
     btLampkaTempomat.Clear();
+    btLampkaDistanceCounter.Clear();
 
     ggLeftLightButton.Clear();
     ggRightLightButton.Clear();
@@ -8181,6 +8240,7 @@ bool TTrain::initialize_button(cParser &Parser, std::string const &Label, int co
         { "i-motorblowers:", btLampkaMotorBlowers },
         { "i-coolingfans:", btLampkaCoolingFans },
         { "i-tempomat:", btLampkaTempomat },
+        { "i-distancecounter:", btLampkaDistanceCounter },
         { "i-trainheating:", btLampkaOgrzewanieSkladu },
         { "i-security_aware:", btLampkaCzuwaka },
         { "i-security_cabsignal:", btLampkaSHP },
@@ -8410,6 +8470,7 @@ bool TTrain::initialize_gauge(cParser &Parser, std::string const &Label, int con
         { "cablightdim_sw:", ggCabLightDimButton },
         { "battery_sw:", ggBatteryButton },
         { "tempomat_sw:", ggScndCtrlButton },
+        { "distancecounter_sw:", ggDistanceCounterButton },
         { "universal0:", ggUniversals[ 0 ] },
         { "universal1:", ggUniversals[ 1 ] },
         { "universal2:", ggUniversals[ 2 ] },

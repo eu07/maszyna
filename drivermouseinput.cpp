@@ -774,6 +774,9 @@ drivermouse_input::default_bindings() {
         { "nextcurrent_sw:", {
             user_command::mucurrentindicatorothersourceactivate,
             user_command::none } },
+        { "distancecounter_sw:", {
+            user_command::distancecounteractivate,
+            user_command::none } },
         { "instrumentlight_sw:", {
             user_command::instrumentlighttoggle,
             user_command::none } },

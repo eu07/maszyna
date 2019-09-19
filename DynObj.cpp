@@ -3132,8 +3132,16 @@ bool TDynamicObject::Update(double dt, double dt1)
         modelRot.z };
     // McZapkie-260202 - dMoveLen przyda sie przy stukocie kol
     dDOMoveLen = GetdMoveLen() + MoverParameters->ComputeMovement(dt, dt1, ts, tp, tmpTraction, l, r);
-    if( Mechanik )
-        Mechanik->MoveDistanceAdd( dDOMoveLen ); // dodanie aktualnego przemieszczenia
+    if( Mechanik ) {
+        // dodanie aktualnego przemieszczenia
+        Mechanik->MoveDistanceAdd( dDOMoveLen );
+    }
+    if( ( simulation::Train != nullptr )
+     && ( simulation::Train->Dynamic() == this ) ) {
+        // update distance meter in user-controlled cab
+        // TBD: place the meter on mover logic level?
+        simulation::Train->add_distance( dDOMoveLen );
+    }
     Move(dDOMoveLen);
     if (!bEnabled) // usuwane pojazdy nie mają toru
     { // pojazd do usunięcia

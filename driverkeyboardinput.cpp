@@ -45,6 +45,9 @@ driverkeyboard_input::default_bindings() {
         { user_command::independentbrakedecreasefast, GLFW_KEY_KP_7 | keymodifier::shift },
         // independentbrakeset,
         { user_command::independentbrakebailoff, GLFW_KEY_KP_4 },
+        // universalbrakebutton1,
+        // universalbrakebutton2,
+        // universalbrakebutton3,
         { user_command::trainbrakeincrease, GLFW_KEY_KP_3 },
         { user_command::trainbrakedecrease, GLFW_KEY_KP_9 },
         // trainbrakeset,
@@ -64,6 +67,9 @@ driverkeyboard_input::default_bindings() {
         { user_command::alarmchaintoggle, GLFW_KEY_B | keymodifier::shift | keymodifier::control },
         { user_command::wheelspinbrakeactivate, GLFW_KEY_KP_ENTER },
         { user_command::sandboxactivate, GLFW_KEY_S | keymodifier::shift },
+        // autosandboxtoggle,
+        // autosandboxactivate,
+        // autosandboxdeactivate,
         { user_command::reverserincrease, GLFW_KEY_D },
         { user_command::reverserdecrease, GLFW_KEY_R },
         // reverserforwardhigh,
@@ -103,6 +109,9 @@ driverkeyboard_input::default_bindings() {
         // compressorenable,
         // compressordisable,
         { user_command::compressortogglelocal, GLFW_KEY_C | keymodifier::shift },
+        // compressorpresetactivatenext,
+        // compressorpresetactivateprevious,
+        // compressorpresetactivatedefault,
         { user_command::motoroverloadrelaythresholdtoggle, GLFW_KEY_F | keymodifier::control },
         // motoroverloadrelaythresholdsetlow,
         // motoroverloadrelaythresholdsethigh,
@@ -229,15 +238,16 @@ driverkeyboard_input::default_bindings() {
         { user_command::motorblowerstogglefront, GLFW_KEY_N | keymodifier::shift },
         { user_command::motorblowerstogglerear, GLFW_KEY_M | keymodifier::shift },
         { user_command::motorblowersdisableall, GLFW_KEY_M | keymodifier::control }
-        // coolingfanstoggle
-        // tempomattoggle
-        // springbraketoggle
-        // springbrakeenable
-        // springbrakedisable
-        // springbrakeshutofftoggle
-        // springbrakeshutoffenable
-        // springbrakeshutoffdisable
-        // springbrakerelease
+        // coolingfanstoggle,
+        // tempomattoggle,
+        // springbraketoggle,
+        // springbrakeenable,
+        // springbrakedisable,
+        // springbrakeshutofftoggle,
+        // springbrakeshutoffenable,
+        // springbrakeshutoffdisable,
+        // springbrakerelease,
+        // distancecounteractivate
     };
 }
 

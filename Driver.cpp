@@ -981,9 +981,14 @@ TCommandType TController::TableUpdate(double &fVelDes, double &fDist, double &fN
                                 UpdateDelayFlag();
 
                                 // perform loading/unloading
-                                auto const platformside = static_cast<int>( std::floor( std::abs( sSpeedTable[ i ].evEvent->input_value( 2 ) ) ) ) % 10;
-                                auto const exchangetime = simulation::Station.update_load( pVehicles[ 0 ], *TrainParams, platformside );
-                                WaitingSet( exchangetime );
+                                // HACK: manual check if we didn't already do load exchange at this stop
+                                // TODO: remove the check once the station system is in place
+                                if( m_lastexchangestop != asNextStop ) {
+                                    auto const platformside = static_cast<int>( std::floor( std::abs( sSpeedTable[ i ].evEvent->input_value( 2 ) ) ) ) % 10;
+                                    auto const exchangetime = simulation::Station.update_load( pVehicles[ 0 ], *TrainParams, platformside );
+                                    WaitingSet( exchangetime );
+                                    m_lastexchangestop = asNextStop;
+                                }
 
                                 if (TrainParams->DirectionChange()) {
                                     // jeśli "@" w rozkładzie, to wykonanie dalszych komend
@@ -3891,6 +3896,7 @@ bool TController::PutCommand( std::string NewCommand, double NewValue1, double N
         else
             TrainParams->NewName(NewCommand); // czyści tabelkę przystanków
         tsGuardSignal = sound_source { sound_placement::internal, 2 * EU07_SOUND_CABCONTROLSCUTOFFRANGE }; // wywalenie kierownika
+        m_lastexchangestop.clear();
         if (NewCommand != "none")
         {
             if (!TrainParams->LoadTTfile(

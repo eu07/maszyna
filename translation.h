@@ -74,6 +74,7 @@ enum string {
     cab_scndctrl,
     cab_shuntmodepower,
     cab_tempomat,
+    cab_distancecounter,
     cab_dirkey,
     cab_brakectrl,
     cab_localbrake,
