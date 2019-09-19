@@ -1713,8 +1713,6 @@ void basic_region::create_map_geometry()
             if (s)
                 s->create_map_geometry(m_map_geometrybank);
         }
-
-	update_poi_geometry();
 }
 
 void basic_region::update_poi_geometry()

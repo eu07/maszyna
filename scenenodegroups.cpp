@@ -71,6 +71,7 @@ node_groups::update_map()
 				map::Objects.entries.push_back(sem_info);
 
 				sem_info->location = node->location();
+				sem_info->memcell = static_cast<TMemCell*>(node);
 				sem_info->name = sem_name;
 
 				for (basic_event *event : group.events) {

@@ -14,7 +14,7 @@ struct map_object
 
 	virtual ~map_object() = default;
 	virtual gfx::basic_vertex vertex() {
-		return gfx::basic_vertex(location, glm::vec3(), glm::vec2(0.0f, 0.25f));
+		return gfx::basic_vertex(location, glm::vec3(), glm::vec2(0.0f, 0.20f));
 	}
 };
 
@@ -26,9 +26,12 @@ struct semaphore : public map_object
 {
 	std::vector<TAnimModel *> models;
 	std::vector<basic_event *> events;
+	TMemCell *memcell = nullptr;
 
 	virtual gfx::basic_vertex vertex() override {
-		return gfx::basic_vertex(location, glm::vec3(), glm::vec2(0.0f, 0.25f));
+		bool stop_signal = memcell->IsVelocity() && (memcell->Value1() == 0.0);
+		return gfx::basic_vertex(location, glm::vec3(),
+		    (!stop_signal) ? glm::vec2(0.0f, 0.2f) : glm::vec2(0.2f, 0.4f));
 	}
 };
 
@@ -45,7 +48,7 @@ struct launcher : public map_object
 
 	virtual gfx::basic_vertex vertex() {
 		return gfx::basic_vertex(location, glm::vec3(),
-		    type == track_switch ? glm::vec2(0.25f, 0.5f) : glm::vec2(0.5f, 0.75f));
+		    type == track_switch ? glm::vec2(0.4f, 0.6f) : glm::vec2(0.6f, 0.8f));
 	}
 };
 
@@ -55,7 +58,7 @@ struct obstacle : public map_object
 	std::string model_name;
 
 	virtual gfx::basic_vertex vertex() {
-		return gfx::basic_vertex(location, glm::vec3(), glm::vec2(0.75f, 1.0f));
+		return gfx::basic_vertex(location, glm::vec3(), glm::vec2(0.8f, 1.0f));
 	}
 };
 
@@ -68,6 +71,7 @@ struct vehicle : public map_object
 struct objects
 {
 	std::vector<std::shared_ptr<map_object>> entries;
+	bool poi_dirty = true;
 
 	// returns objects in range from vec3, NaN in Y ignores it
 	sorted_object_list find_in_range(glm::vec3 from, float distance);

@@ -143,6 +143,11 @@ void ui::map_panel::render_map_texture(glm::mat4 transform, glm::vec2 surface_si
 		scene_ubs.scene_extra = glm::vec3(1.0f / (surface_size / 200.0f), 1.0f);
 	}
 
+	if (map::Objects.poi_dirty) {
+		map::Objects.poi_dirty = false;
+		simulation::Region->update_poi_geometry();
+	}
+
 	scene_ubo->update(scene_ubs);
 	GfxRenderer.Draw_Geometry(simulation::Region->get_map_poi_geometry());
 
@@ -537,7 +542,7 @@ void ui::obstacle_remove_window::render_content()
 			}
 		}
 
-		simulation::Region->update_poi_geometry();
+		map::Objects.poi_dirty = true;
 
 		ImGui::CloseCurrentPopup();
 	}
