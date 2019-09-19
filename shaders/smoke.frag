@@ -1,5 +1,6 @@
 in vec4 f_color;
 in vec2 f_coord;
+in vec4 f_pos;
 
 in vec4 f_clip_pos;
 in vec4 f_clip_future_pos;
@@ -8,6 +9,7 @@ in vec4 f_clip_future_pos;
 uniform sampler2D tex1;
 
 #include <common>
+#include <apply_fog.glsl>
 #include <tonemapping.glsl>
 
 layout(location = 0) out vec4 out_color;
