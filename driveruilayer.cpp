@@ -50,6 +50,11 @@ driver_ui::driver_ui() {
     m_transcriptspanel.title = STR("Transcripts");
     m_transcriptspanel.size_min = { 435, 85 };
     m_transcriptspanel.size_max = { Global.iWindowWidth * 0.95, Global.iWindowHeight * 0.95 };
+
+	if (Global.gui_defaultwindows) {
+		m_aidpanel.is_open = true;
+		m_scenariopanel.is_open = true;
+	}
 }
 
 void driver_ui::render_menu_contents() {
@@ -58,6 +63,7 @@ void driver_ui::render_menu_contents() {
 	if (ImGui::BeginMenu(STR_C("Mode windows")))
     {
         ImGui::MenuItem(m_aidpanel.title.c_str(), "F1", &m_aidpanel.is_open);
+		ImGui::MenuItem(m_scenariopanel.title.c_str(), "F1", &m_aidpanel.is_open);
 		ImGui::MenuItem(STR_C("Timetable"), "F2", &m_timetablepanel.is_open);
 		ImGui::MenuItem(m_debugpanel.name().c_str(), "F12", &m_debugpanel.is_open);
 		ImGui::MenuItem(m_mappanel.name().c_str(), "Tab", &m_mappanel.is_open);

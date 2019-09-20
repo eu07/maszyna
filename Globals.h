@@ -189,6 +189,7 @@ struct global_settings {
     bool captureonstart = true;
 	bool render_cab = true;
 	bool crash_damage = true;
+	bool gui_defaultwindows = true;
 
 #ifdef USE_EXTCAM_CAMERA
 	std::string extcam_cmd;

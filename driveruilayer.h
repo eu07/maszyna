@@ -57,8 +57,8 @@ private:
         render_() override;
 
 // members
-    drivingaid_panel m_aidpanel { "Driving Aid", true };
-    scenario_panel m_scenariopanel { "Scenario", true };
+	drivingaid_panel m_aidpanel { "Driving Aid", false };
+	scenario_panel m_scenariopanel { "Scenario", false };
     timetable_panel m_timetablepanel { "Timetable", false };
     debug_panel m_debugpanel { "Debug Data", false };
     transcripts_panel m_transcriptspanel { "Transcripts", true }; // voice transcripts

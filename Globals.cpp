@@ -738,6 +738,10 @@ global_settings::ConfigParse(cParser &Parser) {
             Parser.getTokens( 1 );
             Parser >> captureonstart;
         }
+		else if (token == "gui.defaultwindows") {
+			Parser.getTokens(1);
+			Parser >> gui_defaultwindows;
+		}
         else if (token == "gfx.framebuffer.width")
         {
             Parser.getTokens(1, false);
