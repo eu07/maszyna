@@ -21,8 +21,13 @@ python_screen_viewer::python_screen_viewer(std::shared_ptr<python_rt> rt, std::s
 			conf->size = viewport.size;
 			conf->offset = viewport.offset;
 			conf->scale = viewport.scale;
+
+			GLFWmonitor *monitor = Application.find_monitor(viewport.monitor);
+			if (!monitor && viewport.monitor != "window")
+				continue;
+
 			conf->window = Application.window(-1, true, conf->size.x, conf->size.y,
-			                                 Application.find_monitor(viewport.monitor), false, Global.python_sharectx);
+			                                 monitor, false, Global.python_sharectx);
 
 			glfwSetWindowUserPointer(conf->window, this);
 			glfwSetFramebufferSizeCallback(conf->window, texture_window_fb_resize);
@@ -31,13 +36,15 @@ python_screen_viewer::python_screen_viewer(std::shared_ptr<python_rt> rt, std::s
 		}
 	}
 
-	m_renderthread = std::make_unique<std::thread>(&python_screen_viewer::threadfunc, this);
+	if (!m_windows.empty())
+		m_renderthread = std::make_unique<std::thread>(&python_screen_viewer::threadfunc, this);
 }
 
 python_screen_viewer::~python_screen_viewer()
 {
 	m_exit = true;
-	m_renderthread->join();
+	if (m_renderthread)
+		m_renderthread->join();
 }
 
 void python_screen_viewer::threadfunc()
