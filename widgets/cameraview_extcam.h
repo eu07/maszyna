@@ -11,11 +11,21 @@ namespace ui
 {
 class cameraview_panel : public ui_panel
 {
+public:
+	enum state_e {
+		IDLE,
+		PREVIEW,
+		RECORDING
+	};
+
+private:
 	std::atomic_bool exit_thread = true;
 	std::thread workthread;
 
 	uint8_t* image_ptr = nullptr;
 	std::mutex mutex;
+
+	state_e state = IDLE;
 
 	std::optional<opengl_texture> texture;
 
@@ -27,6 +37,7 @@ class cameraview_panel : public ui_panel
 
 	void render() override;
 	void render_contents() override;
+	bool set_state(state_e e);
 
 	std::string rec_name;
 };

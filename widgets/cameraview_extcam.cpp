@@ -27,31 +27,44 @@ ui::cameraview_panel::~cameraview_panel() {
 
 void ui::cameraview_panel::render()
 {
-	if (!is_open) {
+	if (!is_open && state != RECORDING) {
 		exit_thread = true;
-		return;
 	}
+
+	if (exit_thread) {
+		if (workthread.joinable())
+			workthread.join();
+		exit_thread = false;
+		if (state != IDLE && !Global.extcam_cmd.empty())
+			workthread = std::thread(&cameraview_panel::workthread_func, this);
+	}
+
+	if (!is_open)
+		return;
 
 	ImGui::SetNextWindowSizeConstraints(ImVec2(200, 200), ImVec2(2500, 2500), cameraview_window_callback);
 
 	auto const panelname{(title.empty() ? m_name : title) + "###" + m_name};
-	if (ImGui::Begin(panelname.c_str())) {
+	if (ImGui::Begin(panelname.c_str(), &is_open)) {
 		render_contents();
 	}
 
 	ImGui::End();
 }
 
+bool ui::cameraview_panel::set_state(state_e e)
+{
+	if (state != e) {
+		exit_thread = true;
+		state = e;
+		is_open = (state != IDLE);
+		return true;
+	}
+	return false;
+}
+
 void ui::cameraview_panel::render_contents()
 {
-	if (exit_thread) {
-		if (workthread.joinable())
-			workthread.join();
-		exit_thread = false;
-		if (!Global.extcam_cmd.empty())
-			workthread = std::thread(&cameraview_panel::workthread_func, this);
-	}
-
 	if (!texture) {
 		texture.emplace();
 		texture->make_stub();
@@ -89,6 +102,8 @@ void ui::cameraview_panel::render_contents()
 void ui::cameraview_panel::workthread_func()
 {
 	std::string cmdline = Global.extcam_cmd;
+	if (state == RECORDING)
+		cmdline += " " + Global.extcam_rec;
 
 	if (!rec_name.empty()) {
 		const std::string magic{"{RECORD}"};

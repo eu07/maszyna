@@ -192,6 +192,7 @@ struct global_settings {
 
 #ifdef USE_EXTCAM_CAMERA
 	std::string extcam_cmd;
+	std::string extcam_rec;
 	glm::ivec2 extcam_res{800, 600};
 #endif
 

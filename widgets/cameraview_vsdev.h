@@ -7,6 +7,14 @@ namespace ui
 {
 class cameraview_panel : public ui_panel
 {
+public:
+	enum state_e {
+		IDLE,
+		PREVIEW,
+		RECORDING
+	};
+
+private:
 	std::atomic_bool exit_thread = true;
 	std::thread workthread;
 
@@ -28,5 +36,6 @@ class cameraview_panel : public ui_panel
 
 	void render() override;
 	void render_contents() override;
+	bool set_state(state_e e);
 };
 } // namespace ui

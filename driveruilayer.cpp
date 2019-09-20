@@ -63,6 +63,7 @@ void driver_ui::render_menu_contents() {
 		ImGui::MenuItem(m_mappanel.name().c_str(), "Tab", &m_mappanel.is_open);
 		ImGui::MenuItem(m_vehiclelist.name().c_str(), nullptr, &m_vehiclelist.is_open);
 		ImGui::MenuItem(m_trainingcardpanel.name().c_str(), nullptr, &m_trainingcardpanel.is_open);
+		ImGui::MenuItem(m_cameraviewpanel.name().c_str(), nullptr, &m_cameraviewpanel.is_open);
 		if (DebugModeFlag)
 			ImGui::MenuItem(m_perfgraphpanel.name().c_str(), nullptr, &m_perfgraphpanel.is_open);
 
@@ -226,9 +227,12 @@ driver_ui::set_cursor( bool const Visible ) {
 void
 driver_ui::render_() {
 	const std::string *rec_name = m_trainingcardpanel.is_recording();
-	if (rec_name && !m_cameraviewpanel.is_open)
+	if (rec_name && m_cameraviewpanel.set_state(ui::cameraview_panel::RECORDING)) {
 		m_cameraviewpanel.rec_name = *rec_name;
-	m_cameraviewpanel.is_open = !!rec_name;
+	} else if (!rec_name && m_cameraviewpanel.is_open)
+		m_cameraviewpanel.set_state(ui::cameraview_panel::PREVIEW);
+	else if (!rec_name)
+		m_cameraviewpanel.set_state(ui::cameraview_panel::IDLE);
 
     // pause/quit modal
 	auto const popupheader { STR_C("Simulation Paused") };

@@ -46,6 +46,16 @@ void ui::cameraview_panel::render()
 	ui_panel::render();
 }
 
+bool ui::cameraview_panel::set_state(state_e e)
+{
+	if (state != e) {
+		state = e;
+		is_open = (state != IDLE);
+		return true;
+	}
+	return false;
+}
+
 void ui::cameraview_panel::render_contents()
 {
 	if (exit_thread) {
