@@ -15,6 +15,7 @@ http://mozilla.org/MPL/2.0/.
 #include "translation.h"
 #include "Logs.h"
 #include "Globals.h"
+#include "MOVER.h"
 
 void locale::init()
 {
@@ -283,6 +284,31 @@ std::string locale::label_cab_control(std::string const &Label)
 	    it != cabcontrols_labels.end() ?
 	        lookup_s(it->second) :
             "" );
+}
+
+const std::string& locale::coupling_name(int c)
+{
+	static std::unordered_map<coupling, std::string> coupling_names =
+	{
+	    { coupling::faux, STRN("faux") },
+	    { coupling::coupler, STRN("coupler") },
+	    { coupling::brakehose, STRN("brake hose") },
+	    { coupling::control, STRN("control") },
+	    { coupling::highvoltage, STRN("high voltage") },
+	    { coupling::gangway, STRN("gangway") },
+	    { coupling::mainhose, STRN("main hose") },
+	    { coupling::heating, STRN("heating") },
+	    { coupling::permanent, STRN("permanent") },
+	    { coupling::uic, STRN("uic") }
+	};
+
+	static std::string unknown(STRN("unknown"));
+
+	auto it = coupling_names.find(static_cast<coupling>(c));
+	if (it != coupling_names.end())
+		return lookup_s(it->second);
+	else
+		return lookup_s(unknown);
 }
 
 locale Translations;

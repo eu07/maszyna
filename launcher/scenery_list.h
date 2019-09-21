@@ -51,6 +51,16 @@ private:
 	trainset_desc *selected_trainset = nullptr;
 	deferred_image placeholder_mini;
 
+	void draw_scenery_list();
+	void draw_scenery_info();
+	void draw_scenery_image();
+	void draw_launch_box();
+	void draw_trainset_box();
+	bool launch_simulation();
+	void add_replace_entry(const trainset_desc &trainset);
+	void draw_summary_tooltip(const dynamic_desc &dyn_desc);
+
+	void open_link(const std::string &link);
 	void draw_trainset(trainset_desc &trainset);
 	void draw_droptarget(trainset_desc &trainset, int position);
 };

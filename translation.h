@@ -16,6 +16,7 @@ class locale {
 public:
 	void init();
 	std::string label_cab_control(const std::string &Label);
+	const std::string &coupling_name(int c);
 
 	const char* lookup_c(const char *msg, bool constant = false);
 	const std::string& lookup_s(const std::string &msg, bool constant = false);
