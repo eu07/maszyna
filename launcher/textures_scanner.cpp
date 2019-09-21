@@ -28,11 +28,11 @@ void ui::vehicles_bank::scan_textures()
 void ui::vehicles_bank::parse_entry(const std::string &line)
 {
 	std::string content;
-	std::string comments;
+	std::shared_ptr<skin_meta> meta;
 
 	size_t pos = line.find("//");
 	if (pos != -1)
-		comments = line.substr(pos);
+		meta = parse_meta(line.substr(pos));
 	content = line.substr(0, pos);
 
 	std::istringstream stream(content);
@@ -54,7 +54,7 @@ void ui::vehicles_bank::parse_entry(const std::string &line)
 		else if (line[0] == '@')
 			parse_controllable_entry(target.substr(1), param);
 		else
-			parse_texture_info(target, param, comments);
+			parse_texture_info(target, param, meta);
 	}
 }
 
@@ -104,7 +104,7 @@ void ui::vehicles_bank::parse_controllable_entry(const std::string &target, cons
 	        (param.size() >= 1 && param[0] == '1');
 }
 
-void ui::vehicles_bank::parse_texture_info(const std::string &target, const std::string &param, const std::string &comment)
+void ui::vehicles_bank::parse_texture_info(const std::string &target, const std::string &param, std::shared_ptr<skin_meta> meta)
 {
 	std::istringstream stream(param);
 
@@ -119,6 +119,7 @@ void ui::vehicles_bank::parse_texture_info(const std::string &target, const std:
 	skin_set set;
 	set.vehicle = vehicle;
 	set.group = mini;
+	set.meta = meta;
 
 	if (!mini.empty())
 		group_icons.emplace(mini, std::move(deferred_image("textures/mini/" + ToLower(mini))));
@@ -140,6 +141,43 @@ void ui::vehicles_bank::parse_texture_info(const std::string &target, const std:
 
 	group_map[set.group].insert(vehicle);
 	vehicle->matching_skinsets.push_back(std::make_shared<skin_set>(std::move(set)));
+}
+
+std::shared_ptr<ui::skin_meta> ui::vehicles_bank::parse_meta(const std::string &str)
+{
+	std::istringstream stream(str);
+
+	auto meta = std::make_shared<skin_meta>();
+
+	std::string version;
+	std::getline(stream, version, ',');
+	std::getline(stream, meta->name, ',');
+	std::getline(stream, meta->short_id, ',');
+	std::getline(stream, meta->location, ',');
+	std::getline(stream, meta->rev_date, ',');
+	std::getline(stream, meta->rev_company, ',');
+	std::getline(stream, meta->texture_author, ',');
+	std::getline(stream, meta->photo_author, ',');
+
+	meta->name = win1250_to_utf8(meta->name);
+	meta->short_id = win1250_to_utf8(meta->short_id);
+	meta->location = win1250_to_utf8(meta->location);
+	meta->rev_date = win1250_to_utf8(meta->rev_date);
+	meta->rev_company = win1250_to_utf8(meta->rev_company);
+	meta->texture_author = win1250_to_utf8(meta->texture_author);
+	meta->photo_author = win1250_to_utf8(meta->photo_author);
+
+	if (!meta->rev_date.empty() && meta->rev_date != "?") {
+		std::istringstream stream(meta->rev_date);
+		std::string day, month;
+
+		std::getline(stream, day, '.');
+		std::getline(stream, month, '.');
+
+		stream >> meta->rev_year;
+	}
+
+	return meta;
 }
 
 void ui::vehicles_bank::parse_coupling_rule(const std::string &target, const std::string &param)

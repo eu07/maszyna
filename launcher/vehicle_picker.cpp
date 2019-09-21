@@ -154,6 +154,16 @@ void ui::vehiclepicker_panel::render()
 		ImGui::EndChild();
 		ImGui::NextColumn();
 
+		ImGui::SetNextItemWidth(-1);
+		ImGui::InputText("##search", search_query.data(), search_query.size());
+		skinset_list.erase(std::remove_if(skinset_list.begin(), skinset_list.end(), [this](const skin_set* skin)
+		{
+			std::string query_str(search_query.data());
+			if (query_str.empty())
+				return false;
+			return skin->skin.find(query_str) == -1;
+		}), skinset_list.end());
+
 		if (ImGui::BeginChild("box3")) {
 			ImGuiListClipper clipper(skinset_list.size());
 			while (clipper.Step())
@@ -161,10 +171,26 @@ void ui::vehiclepicker_panel::render()
 					auto skin = skinset_list[i];
 
 					//std::string label = skin->skins[0].stem().string();
-					std::string label = skin->skin;
+					std::string label = skin->meta->name;
+					if (label.empty() || label == "?")
+						label = skin->skin;
+
 					auto mini = skin->mini ? &skin->mini : &placeholder_mini;
 					if (selectable_image(label.c_str(), skin == selected_skinset, mini, skin))
 						selected_skinset = skin;
+
+					if (ImGui::IsItemHovered()) {
+						ImGui::BeginTooltip();
+						ImGui::TextUnformatted(skin->skin.c_str());
+						ImGui::TextUnformatted(skin->vehicle.lock()->path.string().c_str());
+						ImGui::TextUnformatted(skin->meta->short_id.c_str());
+						ImGui::TextUnformatted(skin->meta->location.c_str());
+						ImGui::TextUnformatted(skin->meta->rev_date.c_str());
+						ImGui::TextUnformatted(skin->meta->rev_company.c_str());
+						ImGui::TextUnformatted(skin->meta->texture_author.c_str());
+						ImGui::TextUnformatted(skin->meta->photo_author.c_str());
+						ImGui::EndTooltip();
+					}
 				}
 		}
 		ImGui::EndChild();
@@ -176,6 +202,8 @@ void ui::vehiclepicker_panel::render()
 
 bool ui::vehiclepicker_panel::selectable_image(const char *desc, bool selected, const deferred_image* image, const skin_set *pickable)
 {
+	ImGui::PushID(pickable);
+
 	bool ret = ImGui::Selectable(desc, selected, 0, ImVec2(0, 30));
 	if (pickable)
 		ImGui::SetItemAllowOverlap();
@@ -205,6 +233,8 @@ bool ui::vehiclepicker_panel::selectable_image(const char *desc, bool selected, 
 			ImGui::PopID();
 		}
 	}
+
+	ImGui::PopID();
 
 	return ret;
 }

@@ -21,6 +21,7 @@ private:
 	const skin_set *selected_skinset = nullptr;
 	bool display_by_groups = false;
 	deferred_image placeholder_mini;
+	std::array<char, 128> search_query = { 0 };
 
 	vehicles_bank bank;
 };

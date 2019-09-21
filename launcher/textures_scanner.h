@@ -24,9 +24,23 @@ enum class vehicle_type {
 
 struct vehicle_desc;
 
+struct skin_meta {
+	std::string name;
+	std::string short_id;
+	std::string location;
+
+	std::string rev_date;
+	int rev_year = -1;
+
+	std::string rev_company;
+	std::string texture_author;
+	std::string photo_author;
+};
+
 struct skin_set {
 	std::weak_ptr<vehicle_desc> vehicle;
 
+	std::shared_ptr<skin_meta> meta;
 	std::string skin;
 	//std::vector<std::filesystem::path> skins;
 	deferred_image mini;
@@ -69,8 +83,9 @@ private:
 	void parse_controllable_entry(const std::string &target, const std::string &param);
 	void parse_coupling_rule(const std::string &target, const std::string &param);
 	void parse_texture_rule(const std::string &target, const std::string &param);
-	void parse_texture_info(const std::string &target, const std::string &param, const std::string &comment);
+	void parse_texture_info(const std::string &target, const std::string &param, std::shared_ptr<skin_meta> meta);
 
+	std::shared_ptr<skin_meta> parse_meta(const std::string &str);
 	std::shared_ptr<vehicle_desc> get_vehicle(const std::string &name);
 
 	vehicle_type ctx_type = vehicle_type::unknown;
