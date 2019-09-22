@@ -35,6 +35,8 @@ struct skin_meta {
 	std::string rev_company;
 	std::string texture_author;
 	std::string photo_author;
+
+	std::string search_lowered;
 };
 
 struct skin_set {

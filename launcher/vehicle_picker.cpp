@@ -156,13 +156,11 @@ void ui::vehiclepicker_panel::render()
 
 		ImGui::SetNextItemWidth(-1);
 		ImGui::InputText("##search", search_query.data(), search_query.size());
-		skinset_list.erase(std::remove_if(skinset_list.begin(), skinset_list.end(), [this](const skin_set* skin)
-		{
-			std::string query_str(search_query.data());
-			if (query_str.empty())
-				return false;
-			return skin->skin.find(query_str) == -1;
-		}), skinset_list.end());
+		auto query_info = parse_search_query(search_query.data());
+		if (!query_info.empty())
+			skinset_list.erase(std::remove_if(skinset_list.begin(), skinset_list.end(),
+			                                  std::bind(&vehiclepicker_panel::skin_filter, this, std::placeholders::_1, query_info)),
+			                   skinset_list.end());
 
 		if (ImGui::BeginChild("box3")) {
 			ImGuiListClipper clipper(skinset_list.size());
@@ -199,6 +197,88 @@ void ui::vehiclepicker_panel::render()
 		ImGui::PopStyleVar();
 	}
 	ImGui::End();
+}
+
+std::vector<ui::vehiclepicker_panel::search_info> ui::vehiclepicker_panel::parse_search_query(const std::string &str)
+{
+	std::vector<search_info> info_list;
+	std::istringstream query_stream(ToLower(str));
+
+	std::string term;
+	while (std::getline(query_stream, term, ' ')) {
+		size_t offset = 0;
+		search_info info;
+		if (offset < term.size() && term[offset] == '|') {
+			info.alternative = true;
+			offset++;
+		}
+		if (offset < term.size() && term[offset] == '!') {
+			info.negation = true;
+			offset++;
+		}
+		if (offset < term.size() && term[offset] == '<') {
+			info.mode = search_info::YEAR_MAX;
+			offset++;
+		}
+		if (offset < term.size() && term[offset] == '>') {
+			info.mode = search_info::YEAR_MIN;
+			offset++;
+		}
+
+		term = term.substr(offset);
+		if (term.empty())
+			continue;
+
+		if (info.mode == search_info::TEXT) {
+			info.text = term;
+		}
+		else {
+			std::istringstream num_parser(term);
+			num_parser >> info.number;
+		}
+
+		info_list.push_back(info);
+	}
+
+	return info_list;
+}
+
+bool ui::vehiclepicker_panel::skin_filter(const skin_set *skin, std::vector<search_info> &info_list)
+{
+	bool any = false;
+	bool alternative_present = false;
+
+	for (auto const &term : info_list) {
+		alternative_present |= term.alternative;
+		bool found = false;
+
+		if (term.mode == search_info::TEXT) {
+			if (skin->skin.find(term.text) != -1)
+				found = true;
+
+			if (skin->meta && skin->meta->search_lowered.find(term.text) != -1)
+				found = true;
+		} else if (skin->meta && skin->meta->rev_year != -1) {
+			if (term.mode == search_info::YEAR_MIN) {
+				if (skin->meta->rev_year >= term.number)
+					found = true;
+			} else if (term.mode == search_info::YEAR_MAX) {
+				if (skin->meta->rev_year <= term.number)
+					found = true;
+			}
+		}
+
+		if (term.negation)
+			found = !found;
+
+		if (found && term.alternative)
+			any = true;
+
+		if (!found && !term.alternative)
+			return true;
+	}
+
+	return alternative_present ? (!any) : false;
 }
 
 bool ui::vehiclepicker_panel::selectable_image(const char *desc, bool selected, const deferred_image* image, const skin_set *pickable)

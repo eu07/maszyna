@@ -24,5 +24,23 @@ private:
 	std::array<char, 128> search_query = { 0 };
 
 	vehicles_bank bank;
+
+	struct search_info
+	{
+		enum
+		{
+			TEXT,
+			YEAR_MIN,
+			YEAR_MAX
+		} mode = TEXT;
+		bool alternative = false;
+		bool negation = false;
+
+		std::string text;
+		int number;
+	};
+
+	std::vector<search_info> parse_search_query(const std::string &str);
+	bool skin_filter(const skin_set *skin, std::vector<search_info> &info_list);
 };
 } // namespace ui

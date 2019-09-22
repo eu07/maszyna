@@ -182,6 +182,10 @@ std::shared_ptr<ui::skin_meta> ui::vehicles_bank::parse_meta(const std::string &
 		stream >> meta->rev_year;
 	}
 
+	meta->search_lowered +=
+	        ToLower(meta->name + meta->short_id + meta->location +
+	                meta->rev_date + meta->rev_company + meta->texture_author + meta->photo_author);
+
 	return meta;
 }
 
