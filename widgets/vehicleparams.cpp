@@ -11,6 +11,11 @@ ui::vehicleparams_panel::vehicleparams_panel(const std::string &vehicle)
 
 }
 
+void screen_window_callback(ImGuiSizeCallbackData *data) {
+	auto config = static_cast<const global_settings::pythonviewport_config*>(data->UserData);
+	data->DesiredSize.y = data->DesiredSize.x * (float)config->size.y / (float)config->size.x;
+}
+
 void ui::vehicleparams_panel::render_contents()
 {
 	TDynamicObject *vehicle_ptr = simulation::Vehicles.find(m_vehicle_name);
@@ -28,16 +33,22 @@ void ui::vehicleparams_panel::render_contents()
 				if (std::get<std::string>(entry) != viewport.surface)
 					continue;
 
-				float aspect = (float)viewport.size.y / viewport.size.x;
+				std::string window_name = STR("Screen") + "##" + viewport.surface;
+				ImGui::SetNextWindowSizeConstraints(ImVec2(200, 200), ImVec2(2500, 2500), screen_window_callback,
+				                                    const_cast<global_settings::pythonviewport_config*>(&viewport));
+				if (ImGui::Begin(window_name.c_str())) {
+					float aspect = (float)viewport.size.y / viewport.size.x;
 
-				glm::mat3 proj = glm::translate(glm::scale(glm::mat3(), 1.0f / viewport.scale), viewport.offset);
+					glm::mat3 proj = glm::translate(glm::scale(glm::mat3(), 1.0f / viewport.scale), viewport.offset);
 
-				glm::vec2 uv0 = glm::vec2(proj * glm::vec3(0.0f, 1.0f, 1.0f));
-				glm::vec2 uv1 = glm::vec2(proj * glm::vec3(1.0f, 0.0f, 1.0f));
+					glm::vec2 uv0 = glm::vec2(proj * glm::vec3(0.0f, 1.0f, 1.0f));
+					glm::vec2 uv1 = glm::vec2(proj * glm::vec3(1.0f, 0.0f, 1.0f));
 
-				glm::vec2 size = glm::vec2(500.0f, 500.0f * aspect) * Global.gui_screensscale;
+					ImVec2 size = ImGui::GetContentRegionAvail();
 
-				ImGui::Image(reinterpret_cast<void*>(std::get<1>(entry)->shared_tex), ImVec2(size.x, size.y), ImVec2(uv0.x, uv0.y), ImVec2(uv1.x, uv1.y));
+					ImGui::Image(reinterpret_cast<void*>(std::get<1>(entry)->shared_tex), size, ImVec2(uv0.x, uv0.y), ImVec2(uv1.x, uv1.y));
+				}
+				ImGui::End();
 			}
 		}
 	}

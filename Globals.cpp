@@ -924,10 +924,6 @@ global_settings::ConfigParse(cParser &Parser) {
 			Parser.getTokens(1);
 			Parser >> map_highlight_distance;
 		}
-		else if (token == "gui.screensscale") {
-			Parser.getTokens(1);
-			Parser >> gui_screensscale;
-		}
 		else if (token == "execonexit") {
 			Parser.getTokens(1);
 			Parser >> exec_on_exit;

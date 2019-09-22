@@ -223,7 +223,6 @@ struct global_settings {
     bool gfx_usegles = false;
 
 	float map_highlight_distance = 3000.0f;
-	float gui_screensscale = 0.5f;
 
 	std::string exec_on_exit;
 
