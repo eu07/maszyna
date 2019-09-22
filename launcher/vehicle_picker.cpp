@@ -255,8 +255,7 @@ bool ui::vehiclepicker_panel::skin_filter(const skin_set *skin, std::vector<sear
 		if (term.mode == search_info::TEXT) {
 			if (skin->skin.find(term.text) != -1)
 				found = true;
-
-			if (skin->meta && skin->meta->search_lowered.find(term.text) != -1)
+			else if (skin->meta && skin->meta->search_lowered.find(term.text) != -1)
 				found = true;
 		} else if (skin->meta && skin->meta->rev_year != -1) {
 			if (term.mode == search_info::YEAR_MIN) {
