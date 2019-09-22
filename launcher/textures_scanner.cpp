@@ -167,6 +167,10 @@ std::shared_ptr<ui::skin_meta> ui::vehicles_bank::parse_meta(const std::string &
 	meta->texture_author = win1250_to_utf8(meta->texture_author);
 	meta->photo_author = win1250_to_utf8(meta->photo_author);
 
+	meta->search_lowered +=
+	        ToLower("name:" + meta->name + ",id:" + meta->short_id + ",depot:" + meta->location +
+	                ",revdate:" + meta->rev_date + ",revcompany:" + meta->rev_company + ",texture:" + meta->texture_author + ",photo:" + meta->photo_author);
+
 	std::replace(std::begin(meta->location), std::end(meta->location), '_', ' ');
 	std::replace(std::begin(meta->rev_company), std::end(meta->rev_company), '_', ' ');
 	std::replace(std::begin(meta->texture_author), std::end(meta->texture_author), '_', ' ');
@@ -181,10 +185,6 @@ std::shared_ptr<ui::skin_meta> ui::vehicles_bank::parse_meta(const std::string &
 
 		stream >> meta->rev_year;
 	}
-
-	meta->search_lowered +=
-	        ToLower(meta->name + meta->short_id + meta->location +
-	                meta->rev_date + meta->rev_company + meta->texture_author + meta->photo_author);
 
 	return meta;
 }
