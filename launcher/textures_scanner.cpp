@@ -167,6 +167,11 @@ std::shared_ptr<ui::skin_meta> ui::vehicles_bank::parse_meta(const std::string &
 	meta->texture_author = win1250_to_utf8(meta->texture_author);
 	meta->photo_author = win1250_to_utf8(meta->photo_author);
 
+	std::replace(std::begin(meta->location), std::end(meta->location), '_', ' ');
+	std::replace(std::begin(meta->rev_company), std::end(meta->rev_company), '_', ' ');
+	std::replace(std::begin(meta->texture_author), std::end(meta->texture_author), '_', ' ');
+	std::replace(std::begin(meta->photo_author), std::end(meta->photo_author), '_', ' ');
+
 	if (!meta->rev_date.empty() && meta->rev_date != "?") {
 		std::istringstream stream(meta->rev_date);
 		std::string day, month;

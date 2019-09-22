@@ -145,6 +145,11 @@ void ui::scenerylist_panel::add_replace_entry(const trainset_desc &trainset)
 	set += std::to_string(trainset.offset) + " ";
 	set += std::to_string(trainset.velocity) + "\n";
 	for (const auto &veh : trainset.vehicles) {
+		if (!veh.skin) {
+			ErrorLog("trainset contains invalid vehicle " + veh.name);
+			continue;
+		}
+
 		set += "node -1 0 " + veh.name + " dynamic ";
 		set += veh.vehicle->path.parent_path().generic_string() + " ";
 		set += veh.skin->skin + " ";

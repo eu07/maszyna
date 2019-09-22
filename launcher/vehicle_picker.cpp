@@ -171,24 +171,25 @@ void ui::vehiclepicker_panel::render()
 					auto skin = skinset_list[i];
 
 					//std::string label = skin->skins[0].stem().string();
-					std::string label = skin->meta->name;
-					if (label.empty() || label == "?")
-						label = skin->skin;
+					std::string label = skin->skin;
+					if (skin->meta && !skin->meta->name.empty() && skin->meta->name != "?")
+						label = skin->meta->name;
 
 					auto mini = skin->mini ? &skin->mini : &placeholder_mini;
 					if (selectable_image(label.c_str(), skin == selected_skinset, mini, skin))
 						selected_skinset = skin;
 
-					if (ImGui::IsItemHovered()) {
+					if (skin->meta && ImGui::IsItemHovered()) {
 						ImGui::BeginTooltip();
-						ImGui::TextUnformatted(skin->skin.c_str());
-						ImGui::TextUnformatted(skin->vehicle.lock()->path.string().c_str());
-						ImGui::TextUnformatted(skin->meta->short_id.c_str());
-						ImGui::TextUnformatted(skin->meta->location.c_str());
-						ImGui::TextUnformatted(skin->meta->rev_date.c_str());
-						ImGui::TextUnformatted(skin->meta->rev_company.c_str());
-						ImGui::TextUnformatted(skin->meta->texture_author.c_str());
-						ImGui::TextUnformatted(skin->meta->photo_author.c_str());
+						ImGui::Text(STR_C("Skin: %s\nType: %s\nCarrier code: %s\nDepot: %s\nMaintenance: %s, by %s\nSkin author: %s\nPhoto author: %s"),
+						            skin->skin.c_str(),
+						            skin->vehicle.lock()->path.string().c_str(),
+						            skin->meta->short_id.c_str(),
+						            skin->meta->location.c_str(),
+						            skin->meta->rev_date.c_str(),
+						            skin->meta->rev_company.c_str(),
+						            skin->meta->texture_author.c_str(),
+						            skin->meta->photo_author.c_str());
 						ImGui::EndTooltip();
 					}
 				}
@@ -208,8 +209,10 @@ bool ui::vehiclepicker_panel::selectable_image(const char *desc, bool selected, 
 	if (pickable)
 		ImGui::SetItemAllowOverlap();
 
-	if (!image)
+	if (!image) {
+		ImGui::PopID();
 		return ret;
+	}
 
 	GLuint tex = image->get();
 	if (tex != -1) {
@@ -235,6 +238,5 @@ bool ui::vehiclepicker_panel::selectable_image(const char *desc, bool selected, 
 	}
 
 	ImGui::PopID();
-
 	return ret;
 }
