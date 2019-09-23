@@ -118,9 +118,19 @@ void ui::cameraview_panel::workthread_func()
 	uint8_t *read_buffer = new uint8_t[frame_size];
 	uint8_t *active_buffer = new uint8_t[frame_size];
 
+	size_t bufpos = 0;
 	while (!exit_thread) {
-		if (proc.read(read_buffer, frame_size) != frame_size)
+		size_t read = 0;
+		read = proc.read(read_buffer + bufpos, frame_size - bufpos);
+
+		if (!read)
 			break;
+		bufpos += read;
+
+		if (bufpos != frame_size)
+			continue;
+
+		bufpos = 0;
 
 		std::lock_guard<std::mutex> lock(mutex);
 		image_ptr = read_buffer;
