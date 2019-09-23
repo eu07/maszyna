@@ -8,7 +8,7 @@
 ui::vehicleparams_panel::vehicleparams_panel(const std::string &vehicle)
     : ui_panel(std::string(STR("Vehicle parameters")) + ": " + vehicle, false), m_vehicle_name(vehicle)
 {
-
+	vehicle_mini = GfxRenderer.Fetch_Texture("vehicle_mini");
 }
 
 void screen_window_callback(ImGuiSizeCallbackData *data) {
@@ -196,6 +196,14 @@ void ui::vehicleparams_panel::render_contents()
 	    vehicle.GetPosition().z );
 
 	ImGui::TextUnformatted(buffer.data());
+
+	if (vehicle_mini != null_handle) {
+		opengl_texture &tex = GfxRenderer.Texture(vehicle_mini);
+		tex.create();
+
+		ImVec2 size = ImGui::GetContentRegionAvail();
+		ImGui::Image(reinterpret_cast<void*>(tex.id), ImVec2(size.x, size.x * ((float)tex.height() / tex.width())), ImVec2(0, 1), ImVec2(1, 0));
+	}
 
 	if (ImGui::Button(STR_C("Radiostop")))
 		m_relay.post(user_command::radiostop, 0.0, 0.0, GLFW_PRESS, 0, vehicle_ptr->GetPosition());
