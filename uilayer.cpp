@@ -122,6 +122,11 @@ ui_layer::ui_layer()
     m_logpanel.size = { 700, 400 };
 }
 
+void ui_layer::imgui_style()
+{
+	ImGui::StyleColorsDark();
+}
+
 bool ui_layer::init(GLFWwindow *Window)
 {
     m_window = Window;
@@ -145,7 +150,7 @@ bool ui_layer::init(GLFWwindow *Window)
 
     m_imguiio->Fonts->AddFontFromFileTTF("fonts/dejavusansmono.ttf", 13.0f, nullptr, &ranges[0]);
 
-	ImGui::StyleColorsDark();
+	imgui_style();
     ImGui_ImplGlfw_InitForOpenGL(m_window);
 #ifdef EU07_USEIMGUIIMPLOPENGL2
 	ImGui_ImplOpenGL2_Init();

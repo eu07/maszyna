@@ -868,7 +868,7 @@ sound_source::update_counter( sound_handle const Sound, int const Value ) {
             ui::Transcripts.Add( buffer.caption );
         }
     }
-    assert( sound( Sound ).playing >= 0 );
+	assert( sound( Sound ).playing >= 0 );
 }
 
 void

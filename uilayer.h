@@ -83,6 +83,10 @@ public:
     bool
         init( GLFWwindow *Window );
 
+	static
+	void
+	    imgui_style();
+
     // assign texturing hardware unit
     static
     void

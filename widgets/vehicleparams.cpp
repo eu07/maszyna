@@ -202,7 +202,85 @@ void ui::vehicleparams_panel::render_contents()
 		tex.create();
 
 		ImVec2 size = ImGui::GetContentRegionAvail();
-		ImGui::Image(reinterpret_cast<void*>(tex.id), ImVec2(size.x, size.x * ((float)tex.height() / tex.width())), ImVec2(0, 1), ImVec2(1, 0));
+		float x = size.x;
+		float y = x * ((float)tex.height() / tex.width());
+		float sx = size.x / 512.0f;
+		float sy = y / 118.0f;
+
+		ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.0f, 0.0f, 0.0f, 1.0f));
+		ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(1.0f, 1.0f, 0.0f, 1.0f));
+		ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(1.0f, 1.0f, 0.0f, 1.0f));
+		ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(1.0f, 1.0f, 0.0f, 1.0f));
+
+		if (ImGui::BeginChild("mini", ImVec2(x, y)))
+		{
+			ImGui::Image(reinterpret_cast<void*>(tex.id), ImVec2(x, y), ImVec2(0, 1), ImVec2(1, 0));
+
+			if (mover.PantRearUp) {
+				ImGui::SetCursorPos(ImVec2(sx * 110, sy * 2));
+				ImGui::Button(u8"╨╨╨");
+			}
+			if (mover.PantFrontUp) {
+				ImGui::SetCursorPos(ImVec2(sx * 280, sy * 2));
+				ImGui::Button(u8"╨╨╨");
+			}
+
+			ImGui::SetCursorPos(ImVec2(sx * 100, sy * 40));
+			if (mover.Battery) {
+				ImGui::Button(u8"BAT.");
+				ImGui::SameLine();
+			}
+			if (mover.Mains) {
+				ImGui::Button(u8"WS");
+				ImGui::SameLine();
+			}
+			if (mover.ConverterFlag) {
+				ImGui::Button(u8"PRZETW.");
+				ImGui::SameLine();
+			}
+			if (mover.CompressorFlag) {
+				ImGui::Button(u8"SPRĘŻ.");
+			}
+
+			ImGui::SetCursorPos(ImVec2(sx * 355, sy * 5));
+			if (mover.WarningSignal) {
+				ImGui::Button(u8"SYRENA");
+			}
+
+			ImGui::SetCursorPos(ImVec2(sx * 438, sy * 68));
+			if (mover.iLights[end::front] & light::redmarker_left) {
+				ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(1.0f, 0.0f, 0.0f, 1.0f));
+				ImGui::Button(u8"o");
+				ImGui::PopStyleColor();
+			}
+			else if (mover.iLights[end::front] & light::headlight_left) {
+				ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(1.0f, 1.0f, 1.0f, 1.0f));
+				ImGui::Button(u8"O");
+				ImGui::PopStyleColor();
+			}
+
+			ImGui::SetCursorPos(ImVec2(sx * 484, sy * 68));
+			if (mover.iLights[end::front] & light::redmarker_right) {
+				ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(1.0f, 0.0f, 0.0f, 1.0f));
+				ImGui::Button(u8"o");
+				ImGui::PopStyleColor();
+			}
+			else if (mover.iLights[end::front] & light::headlight_right) {
+				ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(1.0f, 1.0f, 1.0f, 1.0f));
+				ImGui::Button(u8"O");
+				ImGui::PopStyleColor();
+			}
+
+			ImGui::SetCursorPos(ImVec2(sx * 460, sy * 15));
+			if (mover.iLights[end::front] & light::headlight_upper) {
+				ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(1.0f, 1.0f, 1.0f, 1.0f));
+				ImGui::Button(u8"O");
+				ImGui::PopStyleColor();
+			}
+		}
+		ImGui::EndChild();
+
+		ImGui::PopStyleColor(4);
 	}
 
 	if (ImGui::Button(STR_C("Radiostop")))
