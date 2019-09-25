@@ -407,6 +407,8 @@ timetable_panel::render() {
     if( false == is_open ) { return; }
     if( true  == text_lines.empty() ) { return; }
 
+	ImGui::PushFont(ui_layer::font_mono);
+
     auto flags =
         ImGuiWindowFlags_NoFocusOnAppearing
         | ImGuiWindowFlags_NoCollapse
@@ -436,6 +438,8 @@ timetable_panel::render() {
         }
     }
     ImGui::End();
+
+	ImGui::PopFont();
 }
 
 void
@@ -494,6 +498,8 @@ debug_panel::render() {
 
     if( false == is_open ) { return; }
 
+	ImGui::PushFont(ui_layer::font_mono);
+
     auto flags =
         ImGuiWindowFlags_NoFocusOnAppearing
         | ImGuiWindowFlags_NoCollapse
@@ -546,6 +552,8 @@ debug_panel::render() {
 		ImGui::Checkbox( "Debug Mode", &DebugModeFlag );
 	}
 	ImGui::End();
+
+	ImGui::PopFont();
 }
 
 void

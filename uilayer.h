@@ -70,6 +70,7 @@ class ui_log_panel : public ui_panel {
 	void render_contents() override;
 };
 
+class ImFont;
 class ui_layer {
 
 public:
@@ -145,6 +146,8 @@ public:
     static bool scroll_callback(double xoffset, double yoffset);
     static bool mouse_button_callback(int button, int action, int mods);
 
+	static ImFont *font_default;
+	static ImFont *font_mono;
 
 protected:
 // members

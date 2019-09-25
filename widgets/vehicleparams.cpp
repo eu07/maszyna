@@ -16,6 +16,86 @@ void screen_window_callback(ImGuiSizeCallbackData *data) {
 	data->DesiredSize.y = data->DesiredSize.x * (float)config->size.y / (float)config->size.x;
 }
 
+void ui::vehicleparams_panel::draw_infobutton(const char *str, ImVec2 pos, const ImVec4 color)
+{
+	if (pos.x != -1.0f) {
+		ImVec2 window_size = ImGui::GetWindowSize();
+
+		ImGuiStyle &style = ImGui::GetStyle();
+		ImVec2 text_size = ImGui::CalcTextSize(str);
+		ImVec2 button_size = ImVec2(
+		             text_size.x + style.FramePadding.x * 2.0f,
+		             text_size.y + style.FramePadding.y * 2.0f);
+
+		pos.x = pos.x * window_size.x / 512.0f - button_size.x / 2.0f;
+		pos.y = pos.y * window_size.y / 118.0f - button_size.y / 2.0f;
+
+		ImGui::SetCursorPos(pos);
+	}
+
+	if ((color.x + color.y + color.z) / 3.0f < 0.5f)
+		ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.0f, 1.0f, 1.0f, 1.0f));
+	else
+		ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.0f, 0.0f, 0.0f, 1.0f));
+	ImGui::PushStyleColor(ImGuiCol_Button, color);
+	ImGui::PushStyleColor(ImGuiCol_ButtonActive, color);
+	ImGui::PushStyleColor(ImGuiCol_ButtonHovered, color);
+
+	ImGui::Button(str);
+	ImGui::SameLine();
+
+	ImGui::PopStyleColor(4);
+}
+
+void ui::vehicleparams_panel::draw_mini(const TMoverParameters &mover)
+{
+	if (vehicle_mini == null_handle)
+		return;
+
+	opengl_texture &tex = GfxRenderer.Texture(vehicle_mini);
+	tex.create();
+
+	ImVec2 size = ImGui::GetContentRegionAvail();
+	float x = size.x;
+	float y = x * ((float)tex.height() / tex.width());
+
+	if (ImGui::BeginChild("mini", ImVec2(x, y)))
+	{
+		ImGui::Image(reinterpret_cast<void*>(tex.id), ImVec2(x, y), ImVec2(0, 1), ImVec2(1, 0));
+
+		if (mover.PantRearUp)
+			draw_infobutton(u8"╨╨╨", ImVec2(126, 10));
+		if (mover.PantFrontUp)
+			draw_infobutton(u8"╨╨╨", ImVec2(290, 10));
+
+		if (mover.Battery)
+			draw_infobutton(STR_C("bat."), ImVec2(120, 55));
+		if (mover.Mains)
+			draw_infobutton(STR_C("main."));
+		if (mover.ConverterFlag)
+			draw_infobutton(STR_C("conv."));
+		if (mover.CompressorFlag)
+			draw_infobutton(STR_C("comp."));
+
+		if (mover.WarningSignal)
+			draw_infobutton(STR_C("horn"), ImVec2(361, 11));
+
+		if (mover.iLights[end::front] & light::redmarker_left)
+			draw_infobutton("o", ImVec2(490, 71), ImVec4(1.0f, 0.0f, 0.0f, 1.0f));
+		else if (mover.iLights[end::front] & light::headlight_left)
+			draw_infobutton("O", ImVec2(490, 71), ImVec4(1.0f, 1.0f, 1.0f, 1.0f));
+
+		if (mover.iLights[end::front] & light::redmarker_right)
+			draw_infobutton("o", ImVec2(443, 71), ImVec4(1.0f, 0.0f, 0.0f, 1.0f));
+		else if (mover.iLights[end::front] & light::headlight_right)
+			draw_infobutton("O", ImVec2(443, 71), ImVec4(1.0f, 1.0f, 1.0f, 1.0f));
+
+		if (mover.iLights[end::front] & light::headlight_upper)
+			draw_infobutton("O", ImVec2(467, 18), ImVec4(1.0f, 1.0f, 1.0f, 1.0f));
+	}
+	ImGui::EndChild();
+}
+
 void ui::vehicleparams_panel::render_contents()
 {
 	TDynamicObject *vehicle_ptr = simulation::Vehicles.find(m_vehicle_name);
@@ -197,91 +277,7 @@ void ui::vehicleparams_panel::render_contents()
 
 	ImGui::TextUnformatted(buffer.data());
 
-	if (vehicle_mini != null_handle) {
-		opengl_texture &tex = GfxRenderer.Texture(vehicle_mini);
-		tex.create();
-
-		ImVec2 size = ImGui::GetContentRegionAvail();
-		float x = size.x;
-		float y = x * ((float)tex.height() / tex.width());
-		float sx = size.x / 512.0f;
-		float sy = y / 118.0f;
-
-		ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.0f, 0.0f, 0.0f, 1.0f));
-		ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(1.0f, 1.0f, 0.0f, 1.0f));
-		ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(1.0f, 1.0f, 0.0f, 1.0f));
-		ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(1.0f, 1.0f, 0.0f, 1.0f));
-
-		if (ImGui::BeginChild("mini", ImVec2(x, y)))
-		{
-			ImGui::Image(reinterpret_cast<void*>(tex.id), ImVec2(x, y), ImVec2(0, 1), ImVec2(1, 0));
-
-			if (mover.PantRearUp) {
-				ImGui::SetCursorPos(ImVec2(sx * 110, sy * 2));
-				ImGui::Button(u8"╨╨╨");
-			}
-			if (mover.PantFrontUp) {
-				ImGui::SetCursorPos(ImVec2(sx * 280, sy * 2));
-				ImGui::Button(u8"╨╨╨");
-			}
-
-			ImGui::SetCursorPos(ImVec2(sx * 100, sy * 40));
-			if (mover.Battery) {
-				ImGui::Button(u8"BAT.");
-				ImGui::SameLine();
-			}
-			if (mover.Mains) {
-				ImGui::Button(u8"WS");
-				ImGui::SameLine();
-			}
-			if (mover.ConverterFlag) {
-				ImGui::Button(u8"PRZETW.");
-				ImGui::SameLine();
-			}
-			if (mover.CompressorFlag) {
-				ImGui::Button(u8"SPRĘŻ.");
-			}
-
-			ImGui::SetCursorPos(ImVec2(sx * 355, sy * 5));
-			if (mover.WarningSignal) {
-				ImGui::Button(u8"SYRENA");
-			}
-
-			ImGui::SetCursorPos(ImVec2(sx * 438, sy * 68));
-			if (mover.iLights[end::front] & light::redmarker_left) {
-				ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(1.0f, 0.0f, 0.0f, 1.0f));
-				ImGui::Button(u8"o");
-				ImGui::PopStyleColor();
-			}
-			else if (mover.iLights[end::front] & light::headlight_left) {
-				ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(1.0f, 1.0f, 1.0f, 1.0f));
-				ImGui::Button(u8"O");
-				ImGui::PopStyleColor();
-			}
-
-			ImGui::SetCursorPos(ImVec2(sx * 484, sy * 68));
-			if (mover.iLights[end::front] & light::redmarker_right) {
-				ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(1.0f, 0.0f, 0.0f, 1.0f));
-				ImGui::Button(u8"o");
-				ImGui::PopStyleColor();
-			}
-			else if (mover.iLights[end::front] & light::headlight_right) {
-				ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(1.0f, 1.0f, 1.0f, 1.0f));
-				ImGui::Button(u8"O");
-				ImGui::PopStyleColor();
-			}
-
-			ImGui::SetCursorPos(ImVec2(sx * 460, sy * 15));
-			if (mover.iLights[end::front] & light::headlight_upper) {
-				ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(1.0f, 1.0f, 1.0f, 1.0f));
-				ImGui::Button(u8"O");
-				ImGui::PopStyleColor();
-			}
-		}
-		ImGui::EndChild();
-
-		ImGui::PopStyleColor(4);
-	}
+	draw_mini(mover);
 
 	if (ImGui::Button(STR_C("Radiostop")))
 		m_relay.post(user_command::radiostop, 0.0, 0.0, GLFW_PRESS, 0, vehicle_ptr->GetPosition());
