@@ -50,20 +50,24 @@ class cParser //: public std::stringstream
     bool
         expectToken( std::string const &Value ) {
             return readToken() == Value; };
+    inline
     bool
         eof() {
             return mStream->eof(); };
+    inline
     bool
         ok() {
-            return !mStream->fail(); };
+            return ( !mStream->fail() ); };
     cParser &
         autoclear( bool const Autoclear );
+    inline
     bool
         autoclear() const {
             return m_autoclear; }
     bool
         getTokens( unsigned int Count = 1, bool ToLower = true, char const *Break = "\n\r\t ;" );
     // returns next incoming token, if any, without removing it from the set
+    inline
     std::string
         peek() const {
             return (

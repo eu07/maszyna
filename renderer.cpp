@@ -2393,7 +2393,12 @@ opengl_renderer::Render( TDynamicObject *Dynamic ) {
                 }
             }
             if( Dynamic->mdModel ) {
+                // main model
                 Render( Dynamic->mdModel, Dynamic->Material(), squaredistance );
+            }
+            // optional attached models
+            for( auto *attachment : Dynamic->mdAttachments ) {
+                Render( attachment, Dynamic->Material(), squaredistance );
             }
             // post-render cleanup
             m_renderspecular = false;
@@ -2411,10 +2416,18 @@ opengl_renderer::Render( TDynamicObject *Dynamic ) {
                     Render( Dynamic->mdLowPolyInt, Dynamic->Material(), squaredistance );
 //                }
             }
-            if( Dynamic->mdModel )
+            if( Dynamic->mdModel ) {
+                // main model
                 Render( Dynamic->mdModel, Dynamic->Material(), squaredistance );
-            if( Dynamic->mdLoad ) // renderowanie nieprzezroczystego ładunku
+            }
+            // optional attached models
+            for( auto *attachment : Dynamic->mdAttachments ) {
+                Render( attachment, Dynamic->Material(), squaredistance );
+            }
+            if( Dynamic->mdLoad ) {
+                // renderowanie nieprzezroczystego ładunku
                 Render( Dynamic->mdLoad, Dynamic->Material(), squaredistance, { 0.f, Dynamic->LoadOffset, 0.f }, {} );
+            }
             // post-render cleanup
             break;
         }
@@ -3523,11 +3536,18 @@ opengl_renderer::Render_Alpha( TDynamicObject *Dynamic ) {
 //        }
     }
 
-    if( Dynamic->mdModel )
+    if( Dynamic->mdModel ) {
+        // main model
         Render_Alpha( Dynamic->mdModel, Dynamic->Material(), squaredistance );
-
-    if( Dynamic->mdLoad ) // renderowanie nieprzezroczystego ładunku
+    }
+    // optional attached models
+    for( auto *attachment : Dynamic->mdAttachments ) {
+        Render_Alpha( attachment, Dynamic->Material(), squaredistance );
+    }
+    if( Dynamic->mdLoad ) {
+        // renderowanie nieprzezroczystego ładunku
         Render_Alpha( Dynamic->mdLoad, Dynamic->Material(), squaredistance, { 0.f, Dynamic->LoadOffset, 0.f }, {} );
+    }
 
     // post-render cleanup
     m_renderspecular = false;

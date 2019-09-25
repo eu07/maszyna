@@ -2009,12 +2009,18 @@ TDynamicObject::Init(std::string Name, // nazwa pojazdu, np. "EU07-424"
                 smBuforPrawy[ i ]->WillBeAnimated();
         }
     }
-    for( auto &axle : m_axlesounds ) {
-        // wyszukiwanie osi (0 jest na końcu, dlatego dodajemy długość?)
-        axle.distance = (
-            Reversed ?
-                 -axle.offset :
-                ( axle.offset + MoverParameters->Dim.L ) ) + fDist;
+    if( Track->fSoundDistance > 0.f ) {
+        for( auto &axle : m_axlesounds ) {
+            // wyszukiwanie osi (0 jest na końcu, dlatego dodajemy długość?)
+            axle.distance =
+                clamp_circular<double>(
+                    ( Reversed ?
+                        -axle.offset :
+                         axle.offset )
+                        - 0.5 * MoverParameters->Dim.L
+                        + fDist,
+                    Track->fSoundDistance );
+        }
     }
     // McZapkie-250202 end.
     Track->AddDynamicObject(this); // wstawiamy do toru na pozycję 0, a potem przesuniemy
@@ -3155,12 +3161,19 @@ bool TDynamicObject::Update(double dt, double dt1)
     if( MyTrack->fSoundDistance != -1 ) {
 
         if( MyTrack->fSoundDistance != dRailLength ) {
-            dRailLength = MyTrack->fSoundDistance;
-            for( auto &axle : m_axlesounds ) {
-                axle.distance = axle.offset + MoverParameters->Dim.L;
+            if( dRailLength > 0.0 ) {
+                for( auto &axle : m_axlesounds ) {
+                    axle.distance =
+                        clamp_circular<double>(
+                            axle.distance - dRailLength
+                            + axle.offset
+                            /* - 0.5 * MoverParameters->Dim.L */,
+                            MyTrack->fSoundDistance );
+                }
             }
+            dRailLength = MyTrack->fSoundDistance;
         }
-        if( dRailLength != -1 ) {
+        if( dRailLength > 0.0 ) {
             if( MoverParameters->Vel > 0 ) {
                 // TODO: track quality and/or environment factors as separate subroutine
                 auto volume =
@@ -3182,35 +3195,37 @@ bool TDynamicObject::Update(double dt, double dt1)
                         break;
                     }
                 }
-
-                auto axleindex { 0 };
-                for( auto &axle : m_axlesounds ) {
-                    axle.distance -= dDOMoveLen * Sign( dDOMoveLen );
-                    if( axle.distance < 0 ) {
-                        axle.distance += dRailLength;
-                        if( MoverParameters->Vel > 2.5 ) {
-                            // NOTE: for combined clatter sound we supply 1/100th of actual value, as the sound module converts does the opposite, converting received (typically) 0-1 values to 0-100 range
-                            auto const frequency = (
-                                true == axle.clatter.is_combined() ?
-                                    MoverParameters->Vel * 0.01 :
-                                    1.0 );
-                            axle.clatter
-                                .pitch( frequency )
-                                .gain( volume )
-                                .play();
-                            // crude bump simulation, drop down on even axles, move back up on the odd ones
-                            MoverParameters->AccVert +=
-                                interpolate(
-                                    0.01, 0.05,
-                                    clamp(
-                                        GetVelocity() / ( 1 + MoverParameters->Vmax ),
-                                        0.0, 1.0 ) )
-                                * ( ( axleindex % 2 ) != 0 ?
-                                     1 :
-                                    -1 );
+                if( dRailLength > 0.0 ) {
+                    auto axleindex { 0 };
+                    for( auto &axle : m_axlesounds ) {
+                        axle.distance += dDOMoveLen * DirectionGet();
+                        if( ( axle.distance < 0 )
+                         || ( axle.distance > dRailLength ) ) {
+                            axle.distance = clamp_circular( axle.distance, dRailLength );
+                            if( MoverParameters->Vel > 0.1 ) {
+                                // NOTE: for combined clatter sound we supply 1/100th of actual value, as the sound module converts does the opposite, converting received (typically) 0-1 values to 0-100 range
+                                auto const frequency = (
+                                    true == axle.clatter.is_combined() ?
+                                        MoverParameters->Vel * 0.01 :
+                                        1.0 );
+                                axle.clatter
+                                    .pitch( frequency )
+                                    .gain( volume )
+                                    .play();
+                                // crude bump simulation, drop down on even axles, move back up on the odd ones
+                                MoverParameters->AccVert +=
+                                    interpolate(
+                                        0.01, 0.05,
+                                        clamp(
+                                            GetVelocity() / ( 1 + MoverParameters->Vmax ),
+                                            0.0, 1.0 ) )
+                                    * ( ( axleindex % 2 ) != 0 ?
+                                         1 :
+                                        -1 );
+                            }
                         }
+                        ++axleindex;
                     }
-                    ++axleindex;
                 }
             }
         }
@@ -4268,11 +4283,24 @@ void TDynamicObject::LoadMMediaFile( std::string const &TypeName, std::string co
     std::string asAnimName;
     bool Stop_InternalData = false;
     pants = NULL; // wskaźnik pierwszego obiektu animującego dla pantografów
-	cParser parser( TypeName + ".mmd", cParser::buffer_FILE, asBaseDir );
-    if( false == parser.ok() ) {
-        ErrorLog( "Failed to load appearance data for vehicle " + MoverParameters->Name );
-        return;
+    {
+        // preliminary check whether the file exists
+        cParser parser( TypeName + ".mmd", cParser::buffer_FILE, asBaseDir );
+        if( false == parser.ok() ) {
+            ErrorLog( "Failed to load appearance data for vehicle " + MoverParameters->Name );
+            return;
+        }
     }
+    // use #include wrapper to access the appearance data file
+    // this allows us to provide the file content with user-defined parameters
+    cParser parser(
+        "include " + TypeName + ".mmd"
+        + " " + asName // (p1)
+        + " " + TypeName // (p2)
+        + " " + ReplacableSkin // (p3)
+        + " end",
+        cParser::buffer_TEXT,
+        asBaseDir );
 	std::string token;
     do {
 		token = "";
@@ -4430,13 +4458,28 @@ void TDynamicObject::LoadMMediaFile( std::string const &TypeName, std::string co
 					parser.getTokens();
 					parser >> asModel;
                     replace_slashes( asModel );
-                    if( asModel[ 0 ] == '/' ) {
-                        // filename can potentially begin with a slash, and we don't need it
-                        asModel.erase( 0, 1 );
-                    }
+                    erase_leading_slashes( asModel );
                     asModel = asBaseDir + asModel; // McZapkie-200702 - dynamics maja swoje modele w dynamic/basedir
                     Global.asCurrentTexturePath = asBaseDir; // biezaca sciezka do tekstur to dynamic/...
                     mdLowPolyInt = TModelsManager::GetModel(asModel, true);
+                }
+
+                else if(token == "attachments:") {
+					// additional 3d models attached to main body
+                    // content provided as a series of values together enclosed in "{}"
+                    // each value is a name of additional 3d model
+                    // value can be optionally set of values enclosed in "[]" in which case one value will be picked randomly
+                    // TBD: reconsider something more yaml-compliant and/or ability to define offset and rotation
+                    while( ( ( token = parser.getToken<std::string>() ) != "" )
+                        && ( token != "}" ) ) {
+                            auto attachmentmodelname { deserialize_random_set( parser ) };
+                            replace_slashes( attachmentmodelname );
+                            Global.asCurrentTexturePath = asBaseDir; // biezaca sciezka do tekstur to dynamic/...
+                            auto *attachmentmodel { TModelsManager::GetModel( asBaseDir + attachmentmodelname, true ) };
+                            if( attachmentmodel != nullptr ) {
+                                mdAttachments.emplace_back( attachmentmodel );
+                            }
+                    }
                 }
 
                 else if(token == "loads:") {
@@ -4982,18 +5025,18 @@ void TDynamicObject::LoadMMediaFile( std::string const &TypeName, std::string co
                         // add another axle entry to the list
                         axle_sounds axle {
                             0,
-                            std::atof( token.c_str() ),
+                            std::atof( token.c_str() ) * -1.0, // for axle locations negative value means ahead of centre but vehicle faces +Z in 'its' space
                             { sound_placement::external, static_cast<float>( dSDist ) } };
                         axle.clatter.deserialize( parser, sound_type::single );
                         axle.clatter.owner( this );
-                        axle.clatter.offset( { 0, 0, -axle.offset } ); // vehicle faces +Z in 'its' space, for axle locations negative value means ahead of centre
+                        axle.clatter.offset( { 0, 0, axle.offset } );
                         m_axlesounds.emplace_back( axle );
                     }
                     // arrange the axles in case they're listed out of order
                     std::sort(
                         std::begin( m_axlesounds ), std::end( m_axlesounds ),
                         []( axle_sounds const &Left, axle_sounds const &Right ) {
-                            return ( Left.offset < Right.offset ); } );
+                            return ( Left.offset > Right.offset ); } );
                 }
 
 				else if( ( token == "engine:" )

@@ -78,25 +78,6 @@ bool TEventLauncher::Load(cParser *parser)
     }
     parser->getTokens();
     *parser >> DeltaTime;
-    if (DeltaTime < 0)
-        DeltaTime = -DeltaTime; // dla ujemnego zmieniamy na dodatni
-    else if (DeltaTime > 0)
-    { // wartość dodatnia oznacza wyzwalanie o określonej godzinie
-        iMinute = int(DeltaTime) % 100; // minuty są najmłodszymi cyframi dziesietnymi
-        iHour = int(DeltaTime - iMinute) / 100; // godzina to setki
-        DeltaTime = 0; // bez powtórzeń
-        // potentially shift the provided time by requested offset
-        auto const timeoffset { static_cast<int>( Global.ScenarioTimeOffset * 60 ) };
-        if( timeoffset != 0 ) {
-            auto const adjustedtime { clamp_circular( iHour * 60 + iMinute + timeoffset, 24 * 60 ) };
-            iHour = ( adjustedtime / 60 ) % 24;
-            iMinute = adjustedtime % 60;
-        }
-        WriteLog(
-            "EventLauncher at "
-            + std::to_string( iHour ) + ":"
-            + ( iMinute < 10 ? "0" : "" ) + to_string( iMinute ) ); // wyświetlenie czasu
-    }
     parser->getTokens();
     *parser >> token;
     asEvent1Name = token; // pierwszy event
@@ -144,6 +125,29 @@ bool TEventLauncher::Load(cParser *parser)
             fVal2 = 0;
         parser->getTokens(); // słowo zamykające
         *parser >> token;
+    }
+
+    if( DeltaTime < 0 )
+        DeltaTime = -DeltaTime; // dla ujemnego zmieniamy na dodatni
+    else if( DeltaTime > 0 ) { // wartość dodatnia oznacza wyzwalanie o określonej godzinie
+        iMinute = int( DeltaTime ) % 100; // minuty są najmłodszymi cyframi dziesietnymi
+        iHour = int( DeltaTime - iMinute ) / 100; // godzina to setki
+        DeltaTime = 0; // bez powtórzeń
+        // potentially shift the provided time by requested offset
+        auto const timeoffset{ static_cast<int>( Global.ScenarioTimeOffset * 60 ) };
+        if( timeoffset != 0 ) {
+            auto const adjustedtime{ clamp_circular( iHour * 60 + iMinute + timeoffset, 24 * 60 ) };
+            iHour = ( adjustedtime / 60 ) % 24;
+            iMinute = adjustedtime % 60;
+        }
+
+        WriteLog(
+            "EventLauncher at "
+            + std::to_string( iHour ) + ":"
+            + ( iMinute < 10 ? "0" : "" ) + to_string( iMinute )
+            + " (" + asEvent1Name
+            + ( asEvent2Name != "none" ? " / " + asEvent2Name : "" )
+            + ")" ); // wyświetlenie czasu
     }
     return true;
 }

@@ -244,7 +244,7 @@ bool TTrackFollower::Move(double fDistance, bool bPrimary)
         { // gdy zostaje na tym samym torze (przesuwanie już nie zmienia toru)
             if (bPrimary)
             { // tylko gdy początkowe ustawienie, dodajemy eventy stania do kolejki
-                if (Owner->MoverParameters->CabNo != 0) {
+                if (Owner->MoverParameters->ActiveCab != 0) {
 
                     pCurrentTrack->QueueEvents( pCurrentTrack->m_events1, Owner, -1.0 );
                     pCurrentTrack->QueueEvents( pCurrentTrack->m_events2, Owner, -1.0 );

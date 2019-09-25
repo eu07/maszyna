@@ -44,6 +44,7 @@ drivingaid_panel::update() {
 
     auto const *mover = controlled->MoverParameters;
     auto const *driver = controlled->Mechanik;
+    auto const *owner = ( controlled->ctOwner != nullptr ? controlled->ctOwner : controlled->Mechanik );
 
     { // throttle, velocity, speed limits and grade
         std::string expandedtext;
@@ -60,8 +61,8 @@ drivingaid_panel::update() {
                 gradetext = m_buffer.data();
             }
             // next speed limit
-            auto const speedlimit { static_cast<int>( std::floor( driver->VelDesired ) ) };
-            auto const nextspeedlimit { static_cast<int>( std::floor( driver->VelNext ) ) };
+            auto const speedlimit { static_cast<int>( std::floor( owner->VelDesired ) ) };
+            auto const nextspeedlimit { static_cast<int>( std::floor( owner->VelNext ) ) };
             std::string nextspeedlimittext;
             if( nextspeedlimit != speedlimit ) {
                 std::snprintf(
@@ -117,7 +118,7 @@ drivingaid_panel::update() {
     { // alerter, hints
         std::string expandedtext;
         if( is_expanded ) {
-            auto const stoptime { static_cast<int>( std::ceil( -1.0 * controlled->Mechanik->fStopTime ) ) };
+            auto const stoptime { static_cast<int>( std::ceil( -1.0 * owner->fStopTime ) ) };
             if( stoptime > 0 ) {
                 std::snprintf(
                     m_buffer.data(), m_buffer.size(),
@@ -126,7 +127,7 @@ drivingaid_panel::update() {
                 expandedtext = m_buffer.data();
             }
             else {
-                auto const trackblockdistance{ std::abs( controlled->Mechanik->TrackBlock() ) };
+                auto const trackblockdistance{ std::abs( owner->TrackBlock() ) };
                 if( trackblockdistance <= 75.0 ) {
                     std::snprintf(
                         m_buffer.data(), m_buffer.size(),

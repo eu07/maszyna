@@ -1784,8 +1784,7 @@ void TController::OrdersClear()
 
 void TController::Activation()
 { // umieszczenie obsady w odpowiednim członie, wykonywane wyłącznie gdy steruje AI
-    iDirection = iDirectionOrder; // kierunek (względem sprzęgów pojazdu z AI) właśnie został
-    // ustalony (zmieniony)
+    iDirection = iDirectionOrder; // kierunek (względem sprzęgów pojazdu z AI) właśnie został ustalony (zmieniony)
     if (iDirection)
     { // jeśli jest ustalony kierunek
         TDynamicObject *old = pVehicle, *d = pVehicle; // w tym siedzi AI
@@ -1794,7 +1793,7 @@ void TController::Activation()
         ZeroSpeed();
         ZeroDirection();
 		mvOccupied->SpringBrakeActivate(true);
-        if (TestFlag(d->MoverParameters->Couplers[iDirectionOrder < 0 ? 1 : 0].CouplingFlag, ctrain_controll)) {
+        if (TestFlag(d->MoverParameters->Couplers[iDirectionOrder < 0 ? end::rear : end::front].CouplingFlag, ctrain_controll)) {
             mvControlling->MainSwitch( false); // dezaktywacja czuwaka, jeśli przejście do innego członu
             mvOccupied->DecLocalBrakeLevel(LocalBrakePosNo); // zwolnienie hamulca w opuszczanym pojeździe
             //   mvOccupied->BrakeLevelSet((mvOccupied->BrakeHandle==FVel6)?4:-2); //odcięcie na
@@ -1806,20 +1805,17 @@ void TController::Activation()
         mvOccupied->ActiveCab = mvOccupied->CabNo; // użytkownik moze zmienić ActiveCab wychodząc
         mvOccupied->CabDeactivisation(); // tak jest w Train.cpp
         // przejście AI na drugą stronę EN57, ET41 itp.
-        while (TestFlag(d->MoverParameters->Couplers[iDirection < 0 ? 1 : 0].CouplingFlag, ctrain_controll))
+        while (TestFlag(d->MoverParameters->Couplers[iDirection < 0 ? end::rear : end::front].CouplingFlag, ctrain_controll))
         { // jeśli pojazd z przodu jest ukrotniony, to przechodzimy do niego
             d = iDirection * d->DirectionGet() < 0 ? d->Next() :
                                                      d->Prev(); // przechodzimy do następnego członu
             if (d)
             {
-                drugi = d->Mechanik; // zapamiętanie tego, co ewentualnie tam siedzi, żeby w razie
-                // dwóch zamienić miejscami
+                drugi = d->Mechanik; // zapamiętanie tego, co ewentualnie tam siedzi, żeby w razie dwóch zamienić miejscami
                 d->Mechanik = this; // na razie bilokacja
-                d->MoverParameters->SetInternalCommand(
-                    "", 0, 0); // usunięcie ewentualnie zalegającej komendy (Change_direction?)
+                d->MoverParameters->SetInternalCommand("", 0, 0); // usunięcie ewentualnie zalegającej komendy (Change_direction?)
                 if (d->DirectionGet() != pVehicle->DirectionGet()) // jeśli są przeciwne do siebie
-                    iDirection = -iDirection; // to będziemy jechać w drugą stronę względem
-                // zasiedzianego pojazdu
+                    iDirection = -iDirection; // to będziemy jechać w drugą stronę względem zasiedzianego pojazdu
                 pVehicle->Mechanik = drugi; // wsadzamy tego, co ewentualnie był (podwójna trakcja)
                 pVehicle->MoverParameters->CabNo = 0; // wyłączanie kabin po drodze
                 pVehicle->MoverParameters->ActiveCab = 0; // i zaznaczenie, że nie ma tam nikogo
