@@ -456,14 +456,14 @@ bool TTrain::Init(TDynamicObject *NewDynamicObject, bool e3d)
 
 dictionary_source *TTrain::GetTrainState() {
 
-    auto const *mover = DynamicObject->MoverParameters;
-    if( mover == nullptr ) { return nullptr; }
+    if( ( mvOccupied   == nullptr )
+     || ( mvControlled == nullptr ) ) { return nullptr; }
 
     auto *dict { new dictionary_source };
     if( dict == nullptr ) { return nullptr; }
 
     dict->insert( "name", DynamicObject->asName );
-    dict->insert( "cab", mover->ActiveCab );
+    dict->insert( "cab", mvOccupied->ActiveCab );
     // basic systems state data
     dict->insert( "battery", mvControlled->Battery );
     dict->insert( "linebreaker", mvControlled->Mains );
@@ -476,13 +476,13 @@ dictionary_source *TTrain::GetTrainState() {
     dict->insert( "lights_front", mvOccupied->iLights[ end::front ] );
     dict->insert( "lights_rear", mvOccupied->iLights[ end::rear ] );
     // reverser
-    dict->insert( "direction", mover->ActiveDir );
+    dict->insert( "direction", mvOccupied->ActiveDir );
     // throttle
     dict->insert( "mainctrl_pos", mvControlled->MainCtrlPos );
     dict->insert( "main_ctrl_actual_pos", mvControlled->MainCtrlActualPos );
     dict->insert( "scndctrl_pos", mvControlled->ScndCtrlPos );
     dict->insert( "scnd_ctrl_actual_pos", mvControlled->ScndCtrlActualPos );
-	dict->insert( "new_speed", mover->NewSpeed);
+	dict->insert( "new_speed", mvOccupied->NewSpeed);
     // brakes
     dict->insert( "manual_brake", ( mvOccupied->ManualBrakePos > 0 ) );
     bool const bEP = ( mvControlled->LocHandle->GetCP() > 0.2 ) || ( fEIMParams[ 0 ][ 2 ] > 0.01 );
@@ -508,10 +508,10 @@ dictionary_source *TTrain::GetTrainState() {
     dict->insert( "radio_channel", iRadioChannel );
     dict->insert( "door_lock", mvOccupied->Doors.lock_enabled );
     // movement data
-    dict->insert( "velocity", std::abs( mover->Vel ) );
-    dict->insert( "tractionforce", std::abs( mover->Ft ) );
-    dict->insert( "slipping_wheels", mover->SlippingWheels );
-    dict->insert( "sanding", mover->SandDose );
+    dict->insert( "velocity", std::abs( mvOccupied->Vel ) );
+    dict->insert( "tractionforce", std::abs( mvOccupied->Ft ) );
+    dict->insert( "slipping_wheels", mvOccupied->SlippingWheels );
+    dict->insert( "sanding", mvOccupied->SandDose );
     // electric current data
     dict->insert( "traction_voltage", std::abs( mvControlled->RunningTraction.TractionVoltage ) );
     dict->insert( "voltage", std::abs( mvControlled->Voltage ) );
@@ -571,7 +571,10 @@ dictionary_source *TTrain::GetTrainState() {
         dict->insert( ( "slip_" + caridx ), bSlip[ i ] );
     }
     // ai state data
-    auto const *driver = DynamicObject->Mechanik;
+    auto const *driver { (
+        DynamicObject->ctOwner != nullptr ?
+            DynamicObject->ctOwner :
+            DynamicObject->Mechanik ) };
 
     dict->insert( "velocity_desired", driver->VelDesired );
     dict->insert( "velroad", driver->VelRoad );
@@ -2194,7 +2197,7 @@ void TTrain::OnCommand_pantographcompressorvalvetoggle( TTrain *Train, command_d
 
     if( ( Train->mvControlled->TrainType == dt_EZT ?
         ( Train->mvControlled != Train->mvOccupied ) :
-        ( Train->mvOccupied->ActiveCab != 0 ) ) ) {
+        ( Train->iCabn != 0 ) ) ) {
         // tylko w maszynowym
         return;
     }
@@ -2220,7 +2223,7 @@ void TTrain::OnCommand_pantographcompressoractivate( TTrain *Train, command_data
 
     if( ( Train->mvControlled->TrainType == dt_EZT ?
             ( Train->mvControlled != Train->mvOccupied ) :
-            ( Train->mvOccupied->ActiveCab != 0 ) ) ) {
+            ( Train->iCabn != 0 ) ) ) {
         // tylko w maszynowym
         return;
     }
@@ -3372,7 +3375,7 @@ void TTrain::OnCommand_motordisconnect( TTrain *Train, command_data const &Comma
 
     if( ( Train->mvControlled->TrainType == dt_EZT ?
             ( Train->mvControlled != Train->mvOccupied ) :
-            ( Train->mvOccupied->ActiveCab != 0 ) ) ) {
+            ( Train->iCabn != 0 ) ) ) {
         // tylko w maszynowym
         return;
     }
@@ -3498,14 +3501,11 @@ void TTrain::OnCommand_lightspresetactivateprevious( TTrain *Train, command_data
 
 void TTrain::OnCommand_headlighttoggleleft( TTrain *Train, command_data const &Command ) {
 
-    int const vehicleside =
-        ( Train->mvOccupied->ActiveCab == 1 ?
-            end::front :
-            end::rear );
+    auto const vehicleend { Train->cab_to_end() };
 
     if( Command.action == GLFW_PRESS ) {
         // only reacting to press, so the switch doesn't flip back and forth if key is held down
-        if( ( Train->DynamicObject->iLights[ vehicleside ] & light::headlight_left ) == 0 ) {
+        if( ( Train->DynamicObject->iLights[ vehicleend ] & light::headlight_left ) == 0 ) {
             // turn on
             OnCommand_headlightenableleft( Train, Command );
         }
@@ -3524,20 +3524,17 @@ void TTrain::OnCommand_headlightenableleft( TTrain *Train, command_data const &C
     }
 
     if( Command.action == GLFW_PRESS ) {
-        // only reacting to press, so the switch doesn't flip back and forth if key is held down
-        int const vehicleside =
-            ( Train->mvOccupied->ActiveCab == 1 ?
-                end::front :
-                end::rear );
-
-        if( ( Train->DynamicObject->iLights[ vehicleside ] & light::headlight_left ) != 0 ) { return; } // already enabled
-
-        Train->DynamicObject->iLights[ vehicleside ] ^= light::headlight_left;
         // visual feedback
         Train->ggLeftLightButton.UpdateValue( 1.0, Train->dsbSwitch );
+        // implementation
+        auto const vehicleend { Train->cab_to_end() };
+
+        if( ( Train->DynamicObject->iLights[ vehicleend ] & light::headlight_left ) == 0 ) {
+            Train->DynamicObject->iLights[ vehicleend ] ^= light::headlight_left;
+        }
         // if the light is controlled by 3-way switch, disable marker light
         if( Train->ggLeftEndLightButton.SubModel == nullptr ) {
-            Train->DynamicObject->iLights[ vehicleside ] &= ~light::redmarker_left;
+            Train->DynamicObject->iLights[ vehicleend ] &= ~light::redmarker_left;
         }
     }
 }
@@ -3551,14 +3548,11 @@ void TTrain::OnCommand_headlightdisableleft( TTrain *Train, command_data const &
 
     if( Command.action == GLFW_PRESS ) {
         // only reacting to press, so the switch doesn't flip back and forth if key is held down
-        int const vehicleside =
-            ( Train->mvOccupied->ActiveCab == 1 ?
-                end::front :
-                end::rear );
+        int const vehicleend { Train->cab_to_end() };
 
-        if( ( Train->DynamicObject->iLights[ vehicleside ] & light::headlight_left ) == 0 ) { return; } // already disabled
+        if( ( Train->DynamicObject->iLights[ vehicleend ] & light::headlight_left ) == 0 ) { return; } // already disabled
 
-        Train->DynamicObject->iLights[ vehicleside ] ^= light::headlight_left;
+        Train->DynamicObject->iLights[ vehicleend ] ^= light::headlight_left;
         // visual feedback
         Train->ggLeftLightButton.UpdateValue( 0.0, Train->dsbSwitch );
     }
@@ -3566,14 +3560,11 @@ void TTrain::OnCommand_headlightdisableleft( TTrain *Train, command_data const &
 
 void TTrain::OnCommand_headlighttoggleright( TTrain *Train, command_data const &Command ) {
 
-    int const vehicleside =
-        ( Train->mvOccupied->ActiveCab == 1 ?
-            end::front :
-            end::rear );
+    auto const vehicleend { Train->cab_to_end() };
 
     if( Command.action == GLFW_PRESS ) {
         // only reacting to press, so the switch doesn't flip back and forth if key is held down
-        if( ( Train->DynamicObject->iLights[ vehicleside ] & light::headlight_right ) == 0 ) {
+        if( ( Train->DynamicObject->iLights[ vehicleend ] & light::headlight_right ) == 0 ) {
             // turn on
             OnCommand_headlightenableright( Train, Command );
         }
@@ -3592,20 +3583,17 @@ void TTrain::OnCommand_headlightenableright( TTrain *Train, command_data const &
     }
 
     if( Command.action == GLFW_PRESS ) {
-        // only reacting to press, so the switch doesn't flip back and forth if key is held down
-        int const vehicleside =
-            ( Train->mvOccupied->ActiveCab == 1 ?
-                end::front :
-                end::rear );
-
-        if( ( Train->DynamicObject->iLights[ vehicleside ] & light::headlight_right ) != 0 ) { return; } // already enabled
-
-        Train->DynamicObject->iLights[ vehicleside ] ^= light::headlight_right;
         // visual feedback
         Train->ggRightLightButton.UpdateValue( 1.0, Train->dsbSwitch );
+        // implementation
+        auto const vehicleend { Train->cab_to_end() };
+
+        if( ( Train->DynamicObject->iLights[ vehicleend ] & light::headlight_right ) == 0 ) {
+            Train->DynamicObject->iLights[ vehicleend ] ^= light::headlight_right;
+        }
         // if the light is controlled by 3-way switch, disable marker light
         if( Train->ggRightEndLightButton.SubModel == nullptr ) {
-            Train->DynamicObject->iLights[ vehicleside ] &= ~light::redmarker_right;
+            Train->DynamicObject->iLights[ vehicleend ] &= ~light::redmarker_right;
         }
     }
 }
@@ -3619,14 +3607,11 @@ void TTrain::OnCommand_headlightdisableright( TTrain *Train, command_data const 
 
     if( Command.action == GLFW_PRESS ) {
         // only reacting to press, so the switch doesn't flip back and forth if key is held down
-        int const vehicleside =
-            ( Train->mvOccupied->ActiveCab == 1 ?
-                end::front :
-                end::rear );
+        auto const vehicleend { Train->cab_to_end() };
 
-        if( ( Train->DynamicObject->iLights[ vehicleside ] & light::headlight_right ) == 0 ) { return; } // already disabled
+        if( ( Train->DynamicObject->iLights[ vehicleend ] & light::headlight_right ) == 0 ) { return; } // already disabled
 
-        Train->DynamicObject->iLights[ vehicleside ] ^= light::headlight_right;
+        Train->DynamicObject->iLights[ vehicleend ] ^= light::headlight_right;
         // visual feedback
         Train->ggRightLightButton.UpdateValue( 0.0, Train->dsbSwitch );
     }
@@ -3634,14 +3619,11 @@ void TTrain::OnCommand_headlightdisableright( TTrain *Train, command_data const 
 
 void TTrain::OnCommand_headlighttoggleupper( TTrain *Train, command_data const &Command ) {
 
-    int const vehicleside =
-        ( Train->mvOccupied->ActiveCab == 1 ?
-            end::front :
-            end::rear );
+    auto const vehicleend { Train->cab_to_end() };
 
     if( Command.action == GLFW_PRESS ) {
         // only reacting to press, so the switch doesn't flip back and forth if key is held down
-        if( ( Train->DynamicObject->iLights[ vehicleside ] & light::headlight_upper ) == 0 ) {
+        if( ( Train->DynamicObject->iLights[ vehicleend ] & light::headlight_upper ) == 0 ) {
             // turn on
             OnCommand_headlightenableupper( Train, Command );
         }
@@ -3661,14 +3643,11 @@ void TTrain::OnCommand_headlightenableupper( TTrain *Train, command_data const &
 
     if( Command.action == GLFW_PRESS ) {
         // only reacting to press, so the switch doesn't flip back and forth if key is held down
-        int const vehicleside =
-            ( Train->mvOccupied->ActiveCab == 1 ?
-                end::front :
-                end::rear );
+        auto const vehicleend { Train->cab_to_end() };
 
-        if( ( Train->DynamicObject->iLights[ vehicleside ] & light::headlight_upper ) != 0 ) { return; } // already enabled
+        if( ( Train->DynamicObject->iLights[ vehicleend ] & light::headlight_upper ) != 0 ) { return; } // already enabled
 
-        Train->DynamicObject->iLights[ vehicleside ] ^= light::headlight_upper;
+        Train->DynamicObject->iLights[ vehicleend ] ^= light::headlight_upper;
         // visual feedback
         Train->ggUpperLightButton.UpdateValue( 1.0, Train->dsbSwitch );
     }
@@ -3683,14 +3662,11 @@ void TTrain::OnCommand_headlightdisableupper( TTrain *Train, command_data const 
 
     if( Command.action == GLFW_PRESS ) {
         // only reacting to press, so the switch doesn't flip back and forth if key is held down
-        int const vehicleside =
-            ( Train->mvOccupied->ActiveCab == 1 ?
-                end::front :
-                end::rear );
+        auto const vehicleend { Train->cab_to_end() };
 
-        if( ( Train->DynamicObject->iLights[ vehicleside ] & light::headlight_upper ) == 0 ) { return; } // already disabled
+        if( ( Train->DynamicObject->iLights[ vehicleend ] & light::headlight_upper ) == 0 ) { return; } // already disabled
 
-        Train->DynamicObject->iLights[ vehicleside ] ^= light::headlight_upper;
+        Train->DynamicObject->iLights[ vehicleend ] ^= light::headlight_upper;
         // visual feedback
         Train->ggUpperLightButton.UpdateValue( 0.0, Train->dsbSwitch );
     }
@@ -3700,12 +3676,9 @@ void TTrain::OnCommand_redmarkertoggleleft( TTrain *Train, command_data const &C
 
     if( Command.action == GLFW_PRESS ) {
         // only reacting to press, so the switch doesn't flip back and forth if key is held down
-        int const vehicleside =
-            ( Train->mvOccupied->ActiveCab == 1 ?
-                end::front :
-                end::rear );
+        auto const vehicleend { Train->cab_to_end() };
 
-        if( ( Train->DynamicObject->iLights[ vehicleside ] & light::redmarker_left ) == 0 ) {
+        if( ( Train->DynamicObject->iLights[ vehicleend ] & light::redmarker_left ) == 0 ) {
             // turn on
             OnCommand_redmarkerenableleft( Train, Command );
         }
@@ -3725,14 +3698,11 @@ void TTrain::OnCommand_redmarkerenableleft( TTrain *Train, command_data const &C
 
     if( Command.action == GLFW_PRESS ) {
         // only reacting to press, so the switch doesn't flip back and forth if key is held down
-        int const vehicleside =
-            ( Train->mvOccupied->ActiveCab == 1 ?
-                end::front :
-                end::rear );
+        auto const vehicleend { Train->cab_to_end() };
 
-        if( ( Train->DynamicObject->iLights[ vehicleside ] & light::redmarker_left ) != 0 ) { return; } // already enabled
+        if( ( Train->DynamicObject->iLights[ vehicleend ] & light::redmarker_left ) != 0 ) { return; } // already enabled
 
-        Train->DynamicObject->iLights[ vehicleside ] ^= light::redmarker_left;
+        Train->DynamicObject->iLights[ vehicleend ] ^= light::redmarker_left;
         // visual feedback
         if( Train->ggLeftEndLightButton.SubModel != nullptr ) {
             Train->ggLeftEndLightButton.UpdateValue( 1.0, Train->dsbSwitch );
@@ -3742,7 +3712,7 @@ void TTrain::OnCommand_redmarkerenableleft( TTrain *Train, command_data const &C
             // this is crude, but for now will do
             Train->ggLeftLightButton.UpdateValue( -1.0, Train->dsbSwitch );
             // if the light is controlled by 3-way switch, disable the headlight
-            Train->DynamicObject->iLights[ vehicleside ] &= ~light::headlight_left;
+            Train->DynamicObject->iLights[ vehicleend ] &= ~light::headlight_left;
         }
     }
 }
@@ -3756,14 +3726,11 @@ void TTrain::OnCommand_redmarkerdisableleft( TTrain *Train, command_data const &
 
     if( Command.action == GLFW_PRESS ) {
         // only reacting to press, so the switch doesn't flip back and forth if key is held down
-        int const vehicleside =
-            ( Train->mvOccupied->ActiveCab == 1 ?
-                end::front :
-                end::rear );
+        auto const vehicleend { Train->cab_to_end() };
 
-        if( ( Train->DynamicObject->iLights[ vehicleside ] & light::redmarker_left ) == 0 ) { return; } // already disabled
+        if( ( Train->DynamicObject->iLights[ vehicleend ] & light::redmarker_left ) == 0 ) { return; } // already disabled
 
-        Train->DynamicObject->iLights[ vehicleside ] ^= light::redmarker_left;
+        Train->DynamicObject->iLights[ vehicleend ] ^= light::redmarker_left;
         // visual feedback
         if( Train->ggLeftEndLightButton.SubModel != nullptr ) {
             Train->ggLeftEndLightButton.UpdateValue( 0.0, Train->dsbSwitch );
@@ -3780,12 +3747,9 @@ void TTrain::OnCommand_redmarkertoggleright( TTrain *Train, command_data const &
 
     if( Command.action == GLFW_PRESS ) {
         // only reacting to press, so the switch doesn't flip back and forth if key is held down
-        int const vehicleside =
-            ( Train->mvOccupied->ActiveCab == 1 ?
-                end::front :
-                end::rear );
+        auto const vehicleend { Train->cab_to_end() };
 
-        if( ( Train->DynamicObject->iLights[ vehicleside ] & light::redmarker_right ) == 0 ) {
+        if( ( Train->DynamicObject->iLights[ vehicleend ] & light::redmarker_right ) == 0 ) {
             // turn on
             OnCommand_redmarkerenableright( Train, Command );
         }
@@ -3805,14 +3769,11 @@ void TTrain::OnCommand_redmarkerenableright( TTrain *Train, command_data const &
 
     if( Command.action == GLFW_PRESS ) {
         // only reacting to press, so the switch doesn't flip back and forth if key is held down
-        int const vehicleside =
-            ( Train->mvOccupied->ActiveCab == 1 ?
-                end::front :
-                end::rear );
+        auto const vehicleend { Train->cab_to_end() };
 
-        if( ( Train->DynamicObject->iLights[ vehicleside ] & light::redmarker_right ) != 0 ) { return; } // already enabled
+        if( ( Train->DynamicObject->iLights[ vehicleend ] & light::redmarker_right ) != 0 ) { return; } // already enabled
 
-        Train->DynamicObject->iLights[ vehicleside ] ^= light::redmarker_right;
+        Train->DynamicObject->iLights[ vehicleend ] ^= light::redmarker_right;
         // visual feedback
         if( Train->ggRightEndLightButton.SubModel != nullptr ) {
             Train->ggRightEndLightButton.UpdateValue( 1.0, Train->dsbSwitch );
@@ -3822,7 +3783,7 @@ void TTrain::OnCommand_redmarkerenableright( TTrain *Train, command_data const &
             // this is crude, but for now will do
             Train->ggRightLightButton.UpdateValue( -1.0, Train->dsbSwitch );
             // if the light is controlled by 3-way switch, disable the headlight
-            Train->DynamicObject->iLights[ vehicleside ] &= ~light::headlight_right;
+            Train->DynamicObject->iLights[ vehicleend ] &= ~light::headlight_right;
         }
     }
 }
@@ -3836,14 +3797,11 @@ void TTrain::OnCommand_redmarkerdisableright( TTrain *Train, command_data const 
 
     if( Command.action == GLFW_PRESS ) {
         // only reacting to press, so the switch doesn't flip back and forth if key is held down
-        int const vehicleside =
-            ( Train->mvOccupied->ActiveCab == 1 ?
-                end::front :
-                end::rear );
+        auto const vehicleend { Train->cab_to_end() };
 
-        if( ( Train->DynamicObject->iLights[ vehicleside ] & light::redmarker_right ) == 0 ) { return; } // already disabled
+        if( ( Train->DynamicObject->iLights[ vehicleend ] & light::redmarker_right ) == 0 ) { return; } // already disabled
 
-        Train->DynamicObject->iLights[ vehicleside ] ^= light::redmarker_right;
+        Train->DynamicObject->iLights[ vehicleend ] ^= light::redmarker_right;
         // visual feedback
         if( Train->ggRightEndLightButton.SubModel != nullptr ) {
             Train->ggRightEndLightButton.UpdateValue( 0.0, Train->dsbSwitch );
@@ -3863,23 +3821,22 @@ void TTrain::OnCommand_headlighttogglerearleft( TTrain *Train, command_data cons
         return;
     }
 
-    int const vehicleside =
-        ( Train->mvOccupied->ActiveCab == 1 ?
-            end::rear :
-            end::front );
-
     if( Command.action == GLFW_PRESS ) {
         // NOTE: we toggle the light on opposite side, as 'rear right' is 'front left' on the rear end etc
+        auto const vehicleotherend { (
+            Train->cab_to_end() == end::front ?
+                end::rear :
+                end::front ) };
         // only reacting to press, so the switch doesn't flip back and forth if key is held down
-        if( ( Train->DynamicObject->iLights[ vehicleside ] & light::headlight_right ) == 0 ) {
+        if( ( Train->DynamicObject->iLights[ vehicleotherend ] & light::headlight_right ) == 0 ) {
             // turn on
-            Train->DynamicObject->iLights[ vehicleside ] ^= light::headlight_right;
+            Train->DynamicObject->iLights[ vehicleotherend ] ^= light::headlight_right;
             // visual feedback
             Train->ggRearLeftLightButton.UpdateValue( 1.0, Train->dsbSwitch );
         }
         else {
             //turn off
-            Train->DynamicObject->iLights[ vehicleside ] ^= light::headlight_right;
+            Train->DynamicObject->iLights[ vehicleotherend ] ^= light::headlight_right;
             // visual feedback
             Train->ggRearLeftLightButton.UpdateValue( 0.0, Train->dsbSwitch );
         }
@@ -3893,23 +3850,22 @@ void TTrain::OnCommand_headlighttogglerearright( TTrain *Train, command_data con
         return;
     }
 
-    int const vehicleside =
-        ( Train->mvOccupied->ActiveCab == 1 ?
-            end::rear :
-            end::front );
-
     if( Command.action == GLFW_PRESS ) {
         // NOTE: we toggle the light on opposite side, as 'rear right' is 'front left' on the rear end etc
+        auto const vehicleotherend { (
+            Train->cab_to_end() == end::front ?
+                end::rear :
+                end::front ) };
         // only reacting to press, so the switch doesn't flip back and forth if key is held down
-        if( ( Train->DynamicObject->iLights[ vehicleside ] & light::headlight_left ) == 0 ) {
+        if( ( Train->DynamicObject->iLights[ vehicleotherend ] & light::headlight_left ) == 0 ) {
             // turn on
-            Train->DynamicObject->iLights[ vehicleside ] ^= light::headlight_left;
+            Train->DynamicObject->iLights[ vehicleotherend ] ^= light::headlight_left;
             // visual feedback
             Train->ggRearRightLightButton.UpdateValue( 1.0, Train->dsbSwitch );
         }
         else {
             //turn off
-            Train->DynamicObject->iLights[ vehicleside ] ^= light::headlight_left;
+            Train->DynamicObject->iLights[ vehicleotherend ] ^= light::headlight_left;
             // visual feedback
             Train->ggRearRightLightButton.UpdateValue( 0.0, Train->dsbSwitch );
         }
@@ -3923,22 +3879,21 @@ void TTrain::OnCommand_headlighttogglerearupper( TTrain *Train, command_data con
         return;
     }
 
-    int const vehicleside =
-        ( Train->mvOccupied->ActiveCab == 1 ?
-            end::rear :
-            end::front );
-
     if( Command.action == GLFW_PRESS ) {
         // only reacting to press, so the switch doesn't flip back and forth if key is held down
-        if( ( Train->DynamicObject->iLights[ vehicleside ] & light::headlight_upper ) == 0 ) {
+        auto const vehicleotherend { (
+            Train->cab_to_end() == end::front ?
+                end::rear :
+                end::front ) };
+        if( ( Train->DynamicObject->iLights[ vehicleotherend ] & light::headlight_upper ) == 0 ) {
             // turn on
-            Train->DynamicObject->iLights[ vehicleside ] ^= light::headlight_upper;
+            Train->DynamicObject->iLights[ vehicleotherend ] ^= light::headlight_upper;
             // visual feedback
             Train->ggRearUpperLightButton.UpdateValue( 1.0, Train->dsbSwitch );
         }
         else {
             //turn off
-            Train->DynamicObject->iLights[ vehicleside ] ^= light::headlight_upper;
+            Train->DynamicObject->iLights[ vehicleotherend ] ^= light::headlight_upper;
             // visual feedback
             Train->ggRearUpperLightButton.UpdateValue( 0.0, Train->dsbSwitch );
         }
@@ -3952,23 +3907,22 @@ void TTrain::OnCommand_redmarkertogglerearleft( TTrain *Train, command_data cons
         return;
     }
 
-    int const vehicleside =
-        ( Train->mvOccupied->ActiveCab == 1 ?
-            end::rear :
-            end::front );
-
     if( Command.action == GLFW_PRESS ) {
         // NOTE: we toggle the light on opposite side, as 'rear right' is 'front left' on the rear end etc
+        auto const vehicleotherend { (
+            Train->cab_to_end() == end::front ?
+                end::rear :
+                end::front ) };
         // only reacting to press, so the switch doesn't flip back and forth if key is held down
-        if( ( Train->DynamicObject->iLights[ vehicleside ] & light::redmarker_right ) == 0 ) {
+        if( ( Train->DynamicObject->iLights[ vehicleotherend ] & light::redmarker_right ) == 0 ) {
             // turn on
-            Train->DynamicObject->iLights[ vehicleside ] ^= light::redmarker_right;
+            Train->DynamicObject->iLights[ vehicleotherend ] ^= light::redmarker_right;
             // visual feedback
             Train->ggRearLeftEndLightButton.UpdateValue( 1.0, Train->dsbSwitch );
         }
         else {
             //turn off
-            Train->DynamicObject->iLights[ vehicleside ] ^= light::redmarker_right;
+            Train->DynamicObject->iLights[ vehicleotherend ] ^= light::redmarker_right;
             // visual feedback
             Train->ggRearLeftEndLightButton.UpdateValue( 0.0, Train->dsbSwitch );
         }
@@ -3982,23 +3936,22 @@ void TTrain::OnCommand_redmarkertogglerearright( TTrain *Train, command_data con
         return;
     }
 
-    int const vehicleside =
-        ( Train->mvOccupied->ActiveCab == 1 ?
-            end::rear :
-            end::front );
-
     if( Command.action == GLFW_PRESS ) {
         // NOTE: we toggle the light on opposite side, as 'rear right' is 'front left' on the rear end etc
+        auto const vehicleotherend { (
+            Train->cab_to_end() == end::front ?
+                end::rear :
+                end::front ) };
         // only reacting to press, so the switch doesn't flip back and forth if key is held down
-        if( ( Train->DynamicObject->iLights[ vehicleside ] & light::redmarker_left ) == 0 ) {
+        if( ( Train->DynamicObject->iLights[ vehicleotherend ] & light::redmarker_left ) == 0 ) {
             // turn on
-            Train->DynamicObject->iLights[ vehicleside ] ^= light::redmarker_left;
+            Train->DynamicObject->iLights[ vehicleotherend ] ^= light::redmarker_left;
             // visual feedback
             Train->ggRearRightEndLightButton.UpdateValue( 1.0, Train->dsbSwitch );
         }
         else {
             //turn off
-            Train->DynamicObject->iLights[ vehicleside ] ^= light::redmarker_left;
+            Train->DynamicObject->iLights[ vehicleotherend ] ^= light::redmarker_left;
             // visual feedback
             Train->ggRearRightEndLightButton.UpdateValue( 0.0, Train->dsbSwitch );
         }
@@ -4614,7 +4567,7 @@ void TTrain::OnCommand_doorpermitleft( TTrain *Train, command_data const &Comman
     if( Command.action == GLFW_PRESS ) {
 
         auto const side { (
-            Train->mvOccupied->ActiveCab == 1 ?
+            Train->cab_to_end() == end::front ?
                 side::left :
                 side::right ) };
 
@@ -4650,7 +4603,7 @@ void TTrain::OnCommand_doorpermitright( TTrain *Train, command_data const &Comma
     if( Command.action == GLFW_PRESS ) {
 
         auto const side { (
-            Train->mvOccupied->ActiveCab == 1 ?
+            Train->cab_to_end() == end::front ?
                 side::right :
                 side::left ) };
 
@@ -4716,7 +4669,7 @@ void TTrain::OnCommand_dooropenleft( TTrain *Train, command_data const &Command 
 
     if( Command.action == GLFW_PRESS ) {
         Train->mvOccupied->OperateDoors(
-            ( Train->mvOccupied->ActiveCab == 1 ?
+            ( Train->cab_to_end() == end::front ?
                 side::left :
                 side::right ),
             true );
@@ -4762,7 +4715,7 @@ void TTrain::OnCommand_doorcloseleft( TTrain *Train, command_data const &Command
         else {
             // TODO: move door opening/closing to the update, so the switch animation doesn't hinge on door working
             Train->mvOccupied->OperateDoors(
-                ( Train->mvOccupied->ActiveCab == 1 ?
+                ( Train->cab_to_end() == end::front ?
                     side::left :
                     side::right ),
                 false );
@@ -4784,7 +4737,7 @@ void TTrain::OnCommand_doorcloseleft( TTrain *Train, command_data const &Command
             Train->mvOccupied->signal_departure( false );
             // now we can actually close the door
             Train->mvOccupied->OperateDoors(
-                ( Train->mvOccupied->ActiveCab == 1 ?
+                ( Train->cab_to_end() == end::front ?
                     side::left :
                     side::right ),
                 false );
@@ -4881,7 +4834,7 @@ void TTrain::OnCommand_dooropenright( TTrain *Train, command_data const &Command
     if( Command.action == GLFW_PRESS ) {
 
         Train->mvOccupied->OperateDoors(
-            ( Train->mvOccupied->ActiveCab == 1 ?
+            ( Train->cab_to_end() == end::front ?
                 side::right :
                 side::left ),
             true );
@@ -4926,7 +4879,7 @@ void TTrain::OnCommand_doorcloseright( TTrain *Train, command_data const &Comman
         }
         else {
             Train->mvOccupied->OperateDoors(
-                ( Train->mvOccupied->ActiveCab == 1 ?
+                ( Train->cab_to_end() == end::front ?
                     side::right :
                     side::left ),
                 false );
@@ -4948,7 +4901,7 @@ void TTrain::OnCommand_doorcloseright( TTrain *Train, command_data const &Comman
             Train->mvOccupied->signal_departure( false );
             // now we can actually close the door
             Train->mvOccupied->OperateDoors(
-                ( Train->mvOccupied->ActiveCab == 1 ?
+                ( Train->cab_to_end() == end::front ?
                     side::right :
                     side::left ),
                 false );
@@ -5334,10 +5287,11 @@ void TTrain::OnCommand_radiocall3send( TTrain *Train, command_data const &Comman
 void TTrain::OnCommand_cabchangeforward( TTrain *Train, command_data const &Command ) {
 
     if( Command.action == GLFW_PRESS ) {
-        auto const movedirection {
-            1 * ( Train->DynamicObject->ctOwner->Vehicle( end::front )->DirectionGet() == Train->DynamicObject->DirectionGet() ?
-                    1 :
-                   -1 ) };
+        auto const *owner { (
+            Train->DynamicObject->ctOwner != nullptr ?
+                Train->DynamicObject->ctOwner :
+                Train->DynamicObject->Mechanik ) };
+        auto const movedirection { 1 };
         if( false == Train->CabChange( movedirection ) ) {
             auto const exitdirection { (
                 movedirection > 0 ?
@@ -5365,10 +5319,11 @@ void TTrain::OnCommand_cabchangeforward( TTrain *Train, command_data const &Comm
 void TTrain::OnCommand_cabchangebackward( TTrain *Train, command_data const &Command ) {
 
     if( Command.action == GLFW_PRESS ) {
-        auto const movedirection {
-            -1 * ( Train->DynamicObject->ctOwner->Vehicle( end::front )->DirectionGet() == Train->DynamicObject->DirectionGet() ?
-                    1 :
-                   -1 ) };
+        auto const *owner { (
+            Train->DynamicObject->ctOwner != nullptr ?
+                Train->DynamicObject->ctOwner :
+                Train->DynamicObject->Mechanik ) };
+        auto const movedirection { -1 };
         if( false == Train->CabChange( movedirection ) ) {
             // current vehicle doesn't extend any farther in this direction, check if we there's one connected we can move to
             auto const exitdirection { (
@@ -5790,14 +5745,13 @@ bool TTrain::Update( double const Deltatime )
 
         // youBy - prad w drugim czlonie: galaz lub calosc
         {
-            TDynamicObject *tmp;
-            tmp = NULL;
+            TDynamicObject *tmp { nullptr };
             if (DynamicObject->NextConnected())
-                if ((TestFlag(mvControlled->Couplers[1].CouplingFlag, ctrain_controll)) &&
+                if ((TestFlag(mvControlled->Couplers[end::rear].CouplingFlag, ctrain_controll)) &&
                     (mvOccupied->ActiveCab == 1))
                     tmp = DynamicObject->NextConnected();
             if (DynamicObject->PrevConnected())
-                if ((TestFlag(mvControlled->Couplers[0].CouplingFlag, ctrain_controll)) &&
+                if ((TestFlag(mvControlled->Couplers[end::front].CouplingFlag, ctrain_controll)) &&
                     (mvOccupied->ActiveCab == -1))
                     tmp = DynamicObject->PrevConnected();
             if( tmp ) {
@@ -6105,8 +6059,8 @@ bool TTrain::Update( double const Deltatime )
             btLampkaRadioStop.Turn( mvOccupied->Radio && mvOccupied->RadioStopFlag );
             btLampkaHamulecReczny.Turn(mvOccupied->ManualBrakePos > 0);
             // NBMX wrzesien 2003 - drzwi oraz sygnał odjazdu
-            btLampkaDoorLeft.Turn( DynamicObject->Mechanik->IsAnyDoorOpen[ ( mvOccupied->ActiveCab == 1 ? side::left : side::right ) ] );
-            btLampkaDoorRight.Turn( DynamicObject->Mechanik->IsAnyDoorOpen[ ( mvOccupied->ActiveCab == 1 ? side::right : side::left ) ] );
+            btLampkaDoorLeft.Turn( DynamicObject->Mechanik->IsAnyDoorOpen[ ( cab_to_end() == end::front ? side::left : side::right ) ] );
+            btLampkaDoorRight.Turn( DynamicObject->Mechanik->IsAnyDoorOpen[ ( cab_to_end() == end::front ? side::right : side::left ) ] );
             btLampkaDoors.Turn( DynamicObject->Mechanik->IsAnyDoorOpen[ side::right ] || DynamicObject->Mechanik->IsAnyDoorOpen[ side::left ] );
             btLampkaBlokadaDrzwi.Turn( mvOccupied->Doors.is_locked );
             btLampkaDoorLockOff.Turn( false == mvOccupied->Doors.lock_enabled );
@@ -6210,10 +6164,8 @@ bool TTrain::Update( double const Deltatime )
         }
 
         { // yB - wskazniki drugiego czlonu
-            TDynamicObject *tmp; //=mvControlled->mvSecond; //Ra 2014-07: trzeba to
-            // jeszcze wyjąć z kabiny...
+            TDynamicObject *tmp { nullptr }; //=mvControlled->mvSecond; //Ra 2014-07: trzeba to jeszcze wyjąć z kabiny...
             // Ra 2014-07: no nie ma potrzeby szukać tego w każdej klatce
-            tmp = NULL;
             if ((TestFlag(mvControlled->Couplers[1].CouplingFlag, ctrain_controll)) &&
                 (mvOccupied->ActiveCab > 0))
                 tmp = DynamicObject->NextConnected();
@@ -6885,7 +6837,11 @@ TTrain::update_sounds( double const Deltatime ) {
     // power-reliant sounds
     if( mvControlled->Battery || mvControlled->ConverterFlag ) {
         // distance meter alert
-        if( m_distancecounter > Dynamic()->ctOwner->fLength ) {
+        auto const *owner { (
+            DynamicObject->ctOwner != nullptr ?
+                DynamicObject->ctOwner :
+                DynamicObject->Mechanik ) };
+        if( m_distancecounter > owner->fLength ) {
             // play assigned sound if the train travelled its full length since meter activation
             // TBD: check all combinations of directions and active cab
             m_distancecounter = -1.f; // turn off the meter after its task is done
@@ -8016,21 +7972,18 @@ void TTrain::set_cab_controls( int const Cab ) {
     // lights
     ggLightsButton.PutValue( mvOccupied->LightsPos - 1 );
 
-    int const vehicleside =
-        ( mvOccupied->ActiveCab == 1 ?
-            end::front :
-            end::rear );
+    auto const vehicleend { cab_to_end() };
 
-    if( ( DynamicObject->iLights[ vehicleside ] & light::headlight_left ) != 0 ) {
+    if( ( DynamicObject->iLights[ vehicleend ] & light::headlight_left ) != 0 ) {
         ggLeftLightButton.PutValue( 1.f );
     }
-    if( ( DynamicObject->iLights[ vehicleside ] & light::headlight_right ) != 0 ) {
+    if( ( DynamicObject->iLights[ vehicleend ] & light::headlight_right ) != 0 ) {
         ggRightLightButton.PutValue( 1.f );
     }
-    if( ( DynamicObject->iLights[ vehicleside ] & light::headlight_upper ) != 0 ) {
+    if( ( DynamicObject->iLights[ vehicleend ] & light::headlight_upper ) != 0 ) {
         ggUpperLightButton.PutValue( 1.f );
     }
-    if( ( DynamicObject->iLights[ vehicleside ] & light::redmarker_left ) != 0 ) {
+    if( ( DynamicObject->iLights[ vehicleend ] & light::redmarker_left ) != 0 ) {
         if( ggLeftEndLightButton.SubModel != nullptr ) {
             ggLeftEndLightButton.PutValue( 1.f );
         }
@@ -8038,7 +7991,7 @@ void TTrain::set_cab_controls( int const Cab ) {
             ggLeftLightButton.PutValue( -1.f );
         }
     }
-    if( ( DynamicObject->iLights[ vehicleside ] & light::redmarker_right ) != 0 ) {
+    if( ( DynamicObject->iLights[ vehicleend ] & light::redmarker_right ) != 0 ) {
         if( ggRightEndLightButton.SubModel != nullptr ) {
             ggRightEndLightButton.PutValue( 1.f );
         }
@@ -8071,15 +8024,15 @@ void TTrain::set_cab_controls( int const Cab ) {
             0.f ) );
     // doors permits
     if( ggDoorLeftPermitButton.type() != TGaugeType::push ) {
-        ggDoorLeftPermitButton.PutValue( mvOccupied->Doors.instances[ ( mvOccupied->ActiveCab == 1 ? side::left : side::right ) ].open_permit ? 1.f : 0.f );
+        ggDoorLeftPermitButton.PutValue( mvOccupied->Doors.instances[ ( cab_to_end() == end::front ? side::left : side::right ) ].open_permit ? 1.f : 0.f );
     }
     if( ggDoorRightPermitButton.type() != TGaugeType::push ) {
-        ggDoorRightPermitButton.PutValue( mvOccupied->Doors.instances[ ( mvOccupied->ActiveCab == 1 ? side::right : side::left ) ].open_permit ? 1.f : 0.f );
+        ggDoorRightPermitButton.PutValue( mvOccupied->Doors.instances[ ( cab_to_end() == end::front ? side::right : side::left ) ].open_permit ? 1.f : 0.f );
     }
     ggDoorPermitPresetButton.PutValue( mvOccupied->Doors.permit_preset );
     // door controls
-    ggDoorLeftButton.PutValue( mvOccupied->Doors.instances[ ( mvOccupied->ActiveCab == 1 ? side::left : side::right ) ].is_closed ? 0.f : 1.f );
-    ggDoorRightButton.PutValue( mvOccupied->Doors.instances[ ( mvOccupied->ActiveCab == 1 ? side::right : side::left ) ].is_closed ? 0.f : 1.f );
+    ggDoorLeftButton.PutValue( mvOccupied->Doors.instances[ ( cab_to_end() == end::front ? side::left : side::right ) ].is_closed ? 0.f : 1.f );
+    ggDoorRightButton.PutValue( mvOccupied->Doors.instances[ ( cab_to_end() == end::front ? side::right : side::left ) ].is_closed ? 0.f : 1.f );
     // door lock
     ggDoorSignallingButton.PutValue(
         mvOccupied->Doors.lock_enabled ?
@@ -8311,8 +8264,8 @@ bool TTrain::initialize_button(cParser &Parser, std::string const &Label, int co
     }
     // TODO: move viable dedicated lights to the automatic light array
     std::unordered_map<std::string, bool const *> const autolights = {
-        { "i-doorpermit_left:",  &mvOccupied->Doors.instances[ ( mvOccupied->ActiveCab == 1 ? side::left : side::right ) ].open_permit },
-        { "i-doorpermit_right:", &mvOccupied->Doors.instances[ ( mvOccupied->ActiveCab == 1 ? side::right : side::left ) ].open_permit },
+        { "i-doorpermit_left:",  &mvOccupied->Doors.instances[ ( cab_to_end() == end::front ? side::left : side::right ) ].open_permit },
+        { "i-doorpermit_right:", &mvOccupied->Doors.instances[ ( cab_to_end() == end::front ? side::right : side::left ) ].open_permit },
         { "i-doorstep:", &mvOccupied->Doors.step_enabled }
     };
     {
