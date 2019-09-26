@@ -1071,7 +1071,7 @@ void TSubModel::RaAnimation(glm::mat4 &m, TAnimType a)
 		float3 gdzie = float3(mat[3][0], mat[3][1], mat[3][2]); // początek układu współrzędnych submodelu względem kamery
 		m = glm::mat4(1.0f);
 		m = glm::translate(m, glm::vec3(gdzie.x, gdzie.y, gdzie.z)); // początek układu zostaje bez zmian
-		m = glm::rotate(m, (float)atan2(gdzie.x, gdzie.y), glm::vec3(0.0f, 1.0f, 0.0f)); // jedynie obracamy w pionie o kąt
+		m = glm::rotate(m, (float)atan2(gdzie.x, gdzie.z), glm::vec3(0.0f, 1.0f, 0.0f)); // jedynie obracamy w pionie o kąt
 	}
 	break;
 	case TAnimType::at_Wind: // ruch pod wpływem wiatru (wiatr będziemy liczyć potem...)
