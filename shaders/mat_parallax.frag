@@ -104,14 +104,16 @@ void main()
 }
 vec2 ParallaxMapping(vec2 f_coord, vec3 viewDir)
 {
-#if ENVMAP_ENABLED
+	float pos_len = length(f_pos.xyz);
+
+	if (pos_len > 100.0) {
+		return f_coord;
+	}
+
+#if EXTRAEFFECTS_ENABLED
 	const float minLayers = 8.0;
 	const float maxLayers = 32.0;
-	float LayersWeight = 1.0;
-	if (length(f_pos.xyz) > 20.0)
-		LayersWeight = 1.0;
-	else
-		LayersWeight = (length(f_pos.xyz) / 20.0);
+	float LayersWeight = pos_len / 20.0;
 	vec2  currentTexCoords = f_coord;
 	float currentDepthMapValue = texture(normalmap, currentTexCoords).b;
 	LayersWeight = min(abs(dot(vec3(0.0, 0.0, 1.0), viewDir)),LayersWeight);
@@ -140,7 +142,7 @@ vec2 ParallaxMapping(vec2 f_coord, vec3 viewDir)
 	return finalTexCoords;
 #else
 	float height = texture(normalmap, f_coord).b;
-	vec2 p = viewDir.xy / viewDir.z * (height * param[2].y - param[2].z);
+	vec2 p = viewDir.xy / viewDir.z * (height * (param[2].y - param[2].z) * 0.2);
 	return f_coord - p;
 #endif
 } 

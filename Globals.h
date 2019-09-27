@@ -219,6 +219,7 @@ struct global_settings {
     GLenum gfx_format_color = GL_RGB16F;
     GLenum gfx_format_depth = GL_DEPTH_COMPONENT32F;
     bool gfx_skippipeline = false;
+    bool gfx_extraeffects = true;
     bool gfx_shadergamma = false;
     bool gfx_usegles = false;
 

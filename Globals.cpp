@@ -827,6 +827,11 @@ global_settings::ConfigParse(cParser &Parser) {
             Parser.getTokens(1);
             Parser >> gfx_skippipeline;
         }
+        else if (token == "gfx.extraeffects")
+        {
+            Parser.getTokens(1);
+            Parser >> gfx_extraeffects;
+        }
         else if (token == "gfx.usegles")
         {
             Parser.getTokens(1);
