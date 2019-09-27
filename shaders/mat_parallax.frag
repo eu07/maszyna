@@ -115,7 +115,7 @@ vec2 ParallaxMapping(vec2 f_coord, vec3 viewDir)
 	vec2  currentTexCoords = f_coord;
 	float currentDepthMapValue = texture(normalmap, currentTexCoords).b;
 	LayersWeight = min(abs(dot(vec3(0.0, 0.0, 1.0), viewDir)),LayersWeight);
-	float numLayers = mix(maxLayers, minLayers, LayersWeight); // number of depth layers
+	float numLayers = mix(maxLayers, minLayers, clamp(LayersWeight, 0.0, 1.0)); // number of depth layers
 	float layerDepth = 1.0 / numLayers; // calculate the size of each layer
 	float currentLayerDepth = 0.0; // depth of current layer
 	vec2 P = viewDir.xy * param[2].y; // the amount to shift the texture coordinates per layer (from vector P)
