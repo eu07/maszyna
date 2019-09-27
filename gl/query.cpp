@@ -1,5 +1,6 @@
 #include "stdafx.h"
 #include "query.h"
+#include "Globals.h"
 
 gl::query::query(targets target)
     : target(target)
@@ -35,9 +36,13 @@ std::optional<int64_t> gl::query::result()
 {
 	GLuint ready;
 	glGetQueryObjectuiv(*this, GL_QUERY_RESULT_AVAILABLE, &ready);
-	int64_t value;
+	int64_t value = 0;
 	if (ready) {
-		glGetQueryObjecti64v(*this, GL_QUERY_RESULT, &value);
+		if (!Global.gfx_usegles)
+			glGetQueryObjecti64v(*this, GL_QUERY_RESULT, &value);
+		else
+			glGetQueryObjectuiv(*this, GL_QUERY_RESULT, reinterpret_cast<GLuint*>(&value));
+
 		return std::optional<int64_t>(value);
 	}
 	return std::nullopt;

@@ -220,11 +220,11 @@ gl::shader::shader(const std::string &filename)
     }
     else
     {
-		if (type == GL_GEOMETRY_SHADER) {
+		if (GLAD_GL_ES_VERSION_3_1) {
 			str += "#version 310 es\n";
-			str += "#extension EXT_geometry_shader : require\n";
-		}
-		else {
+			if (type == GL_GEOMETRY_SHADER)
+				str += "#extension GL_EXT_geometry_shader : require\n";
+		} else {
 			str += "#version 300 es\n";
 		}
         str += "precision highp float;\n";

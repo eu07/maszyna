@@ -47,7 +47,7 @@ void main()
 		discard;
 
 	normal.xy = (texture(normalmap, f_coord).rg * 2.0 - 1.0);
-	normal.z = sqrt(1 - clamp((dot(normal.xy, normal.xy)), 0.0, 1.0));
+	normal.z = sqrt(1.0 - clamp((dot(normal.xy, normal.xy)), 0.0, 1.0));
 	normal = normalize(f_tbn * normalize(normal.xyz));
 	//vec3 normal = normalize(f_tbn * normalize(texture(normalmap, f_coord).rgb * 2.0 - 1.0));
 	vec3 refvec = reflect(f_pos.xyz, normal);

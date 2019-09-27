@@ -54,7 +54,7 @@ void main()
 		discard;
 	vec3 normal;
 	normal.xy = (texture(normalmap, f_coord_p).rg * 2.0 - 1.0);
-	normal.z = sqrt(1 - clamp((dot(normal.xy, normal.xy)), 0.0, 1.0));
+	normal.z = sqrt(1.0 - clamp((dot(normal.xy, normal.xy)), 0.0, 1.0));
 	normal_p = normalize(f_tbn * normalize(normal.xyz));
 	vec3 refvec = reflect(f_pos.xyz, normal_p);
 #if ENVMAP_ENABLED
@@ -107,11 +107,11 @@ vec2 ParallaxMapping(vec2 f_coord, vec3 viewDir)
 #if ENVMAP_ENABLED
 	const float minLayers = 8.0;
 	const float maxLayers = 32.0;
-	float LayersWeight = 1;
-	if (length(f_pos.xyz) > 20)
-		LayersWeight = 1;
+	float LayersWeight = 1.0;
+	if (length(f_pos.xyz) > 20.0)
+		LayersWeight = 1.0;
 	else
-		LayersWeight = (length(f_pos.xyz) / 20);
+		LayersWeight = (length(f_pos.xyz) / 20.0);
 	vec2  currentTexCoords = f_coord;
 	float currentDepthMapValue = texture(normalmap, currentTexCoords).b;
 	LayersWeight = min(abs(dot(vec3(0.0, 0.0, 1.0), viewDir)),LayersWeight);

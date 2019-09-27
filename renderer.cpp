@@ -3444,9 +3444,16 @@ void opengl_renderer::Render_Alpha(TSubModel *Submodel)
 
 						// main draw call
 						if (Submodel->occlusion_query) {
-							glBeginConditionalRender(*Submodel->occlusion_query, GL_QUERY_WAIT);
-							draw(m_billboardgeometry);
-							glEndConditionalRender();
+							if (!Global.gfx_usegles) {
+								glBeginConditionalRender(*Submodel->occlusion_query, GL_QUERY_WAIT);
+								draw(m_billboardgeometry);
+								glEndConditionalRender();
+							}
+							else {
+								auto result = Submodel->occlusion_query->result();
+								if (result && *result)
+									draw(m_billboardgeometry);
+							}
 						}
 						else
 							draw(m_billboardgeometry);

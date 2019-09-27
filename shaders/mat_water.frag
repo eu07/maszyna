@@ -38,7 +38,7 @@ uniform samplerCube envmap;
 #endif
 
 //wave distortion variables
-float move_factor = 0;
+float move_factor = 0.0;
 vec3 normal_d;
 
 #define WATER
@@ -49,7 +49,7 @@ void main()
 {
 //wave distortion
 	move_factor += (param[2].z * time);
-	move_factor = mod(move_factor, 1);
+	move_factor = mod(move_factor, 1.0);
 	vec2 texture_coords = f_coord;
 	vec2 distorted_tex_coord = texture(dudvmap, vec2(texture_coords.x + move_factor, texture_coords.y)).rg * 0.1;
 	distorted_tex_coord = texture_coords + vec2(distorted_tex_coord.x , distorted_tex_coord.y + move_factor);
@@ -58,7 +58,7 @@ void main()
 
 	vec3 normal;
 	normal.xy = (texture(normalmap, texture_coords).rg * 2.0 - 1.0);
-	normal.z = sqrt(1 - clamp((dot(normal.xy, normal.xy)), 0.0, 1.0));
+	normal.z = sqrt(1.0 - clamp((dot(normal.xy, normal.xy)), 0.0, 1.0));
 	normal_d = normalize(f_tbn * normalize(normal.xyz));
 	vec3 refvec = reflect(f_pos.xyz, normal_d);
 #if ENVMAP_ENABLED
