@@ -186,7 +186,8 @@ scenario_time::julian_day() const {
 }
 
 void scenario_time::set_time(int yearday, int minute) {
-	daymonth(m_time.wDay, m_time.wMonth, m_time.wYear, yearday);
+	m_yearday = yearday;
+	daymonth(m_time.wDay, m_time.wMonth, m_time.wYear, m_yearday);
 	m_time.wHour = minute / 60;
 	m_time.wMinute = minute % 60;
 }
