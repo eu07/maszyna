@@ -174,11 +174,11 @@ void ui_layer::imgui_style()
 	colors[ImGuiCol_PlotHistogram] = ImVec4(0.40f, 0.16f, 0.47f, 1.00f);
 	colors[ImGuiCol_PlotHistogramHovered] = ImVec4(0.39f, 0.18f, 0.52f, 1.00f);
 	colors[ImGuiCol_TextSelectedBg] = ImVec4(0.42f, 0.64f, 0.23f, 0.35f);
-	colors[ImGuiCol_DragDropTarget] = ImVec4(0.52f, 0.18f, 0.52f, 0.90f);
-	colors[ImGuiCol_NavHighlight] = ImVec4(0.42f, 0.64f, 0.23f, 1.00f);
+	colors[ImGuiCol_DragDropTarget] = ImVec4(1.00f, 1.00f, 0.00f, 0.90f);
+	colors[ImGuiCol_NavHighlight] = ImVec4(0.26f, 0.59f, 0.98f, 1.00f);
 	colors[ImGuiCol_NavWindowingHighlight] = ImVec4(1.00f, 1.00f, 1.00f, 0.70f);
-	colors[ImGuiCol_NavWindowingDimBg] = ImVec4(0.56f, 0.56f, 0.56f, 0.20f);
-	colors[ImGuiCol_ModalWindowDimBg] = ImVec4(0.56f, 0.56f, 0.56f, 0.35f);
+	colors[ImGuiCol_NavWindowingDimBg] = ImVec4(0.80f, 0.80f, 0.80f, 0.20f);
+	colors[ImGuiCol_ModalWindowDimBg] = ImVec4(0.80f, 0.80f, 0.80f, 0.35f);
 
 	colors[ImGuiCol_Separator] = colors[ImGuiCol_Border];
 	colors[ImGuiCol_Tab] = imvec_lerp(colors[ImGuiCol_Header], colors[ImGuiCol_TitleBgActive], 0.80f);
