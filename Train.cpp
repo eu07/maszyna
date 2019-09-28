@@ -466,8 +466,7 @@ dictionary_source *TTrain::GetTrainState() {
     auto const *mover = DynamicObject->MoverParameters;
     if( mover == nullptr ) { return nullptr; }
 
-    auto *dict { new dictionary_source };
-    if( dict == nullptr ) { return nullptr; }
+	auto *dict { new dictionary_source };
 
     dict->insert( "name", DynamicObject->asName );
     dict->insert( "cab", mover->ActiveCab );
@@ -7418,11 +7417,6 @@ bool TTrain::InitializeCab(int NewCabNo, std::string const &asFileName)
 					tex->make_stub();
 				}
 
-				if (!tex) {
-					WriteLog( "Python Screen: missing texture in screen " + submodelname + " - Ignoring screen" );
-					continue;
-				}
-
 				tex->create();
 
 				const std::string rendererpath {
@@ -8271,7 +8265,7 @@ void TTrain::set_cab_controls( int const Cab ) {
     if( ggMotorBlowersAllOffButton.type() != TGaugeType::push ) {
         ggMotorBlowersAllOffButton.PutValue(
             ( mvControlled->MotorBlowers[end::front].is_disabled
-           || mvControlled->MotorBlowers[ end::front ].is_disabled ) ?
+		   || mvControlled->MotorBlowers[end::rear].is_disabled ) ?
                 1.f :
                 0.f );
     }

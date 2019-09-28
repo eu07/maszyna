@@ -50,8 +50,6 @@ bool TAnimContainer::Init(TSubModel *pNewSubModel)
 
 void TAnimContainer::SetRotateAnim( Math3D::vector3 vNewRotateAngles, double fNewRotateSpeed)
 {
-    if (!this)
-        return; // wywoływane z eventu, gdy brak modelu
     vDesiredAngles = vNewRotateAngles;
     fRotateSpeed = fNewRotateSpeed;
     iAnim |= 1;
@@ -72,8 +70,6 @@ void TAnimContainer::SetRotateAnim( Math3D::vector3 vNewRotateAngles, double fNe
 
 void TAnimContainer::SetTranslateAnim( Math3D::vector3 vNewTranslate, double fNewSpeed)
 {
-    if (!this)
-        return; // wywoływane z eventu, gdy brak modelu
     vTranslateTo = vNewTranslate;
     fTranslateSpeed = fNewSpeed;
     iAnim |= 2;

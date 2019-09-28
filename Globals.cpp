@@ -328,7 +328,7 @@ global_settings::ConfigParse(cParser &Parser) {
 			std::string token;
 			Parser >> token;
 			std::istringstream stream(token);
-			if (token.find(':')) {
+			if (token.find(':') != -1) {
 				float a, b;
 				char s;
 				stream >> a >> s >> b;

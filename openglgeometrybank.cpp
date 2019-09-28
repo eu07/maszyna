@@ -290,11 +290,11 @@ void opengl_vbogeometrybank::setup_buffer()
     {
 		m_vao.emplace();
 
-		m_vao->setup_attrib(*m_buffer, 0, 3, GL_FLOAT, sizeof(basic_vertex), 0 * sizeof(GL_FLOAT));
+		m_vao->setup_attrib(*m_buffer, 0, 3, GL_FLOAT, sizeof(basic_vertex), 0 * sizeof(float));
         // NOTE: normal and color streams share the data
-		m_vao->setup_attrib(*m_buffer, 1, 3, GL_FLOAT, sizeof(basic_vertex), 3 * sizeof(GL_FLOAT));
-		m_vao->setup_attrib(*m_buffer, 2, 2, GL_FLOAT, sizeof(basic_vertex), 6 * sizeof(GL_FLOAT));
-		m_vao->setup_attrib(*m_buffer, 3, 4, GL_FLOAT, sizeof(basic_vertex), 8 * sizeof(GL_FLOAT));
+		m_vao->setup_attrib(*m_buffer, 1, 3, GL_FLOAT, sizeof(basic_vertex), 3 * sizeof(float));
+		m_vao->setup_attrib(*m_buffer, 2, 2, GL_FLOAT, sizeof(basic_vertex), 6 * sizeof(float));
+		m_vao->setup_attrib(*m_buffer, 3, 4, GL_FLOAT, sizeof(basic_vertex), 8 * sizeof(float));
 
 		m_buffer->unbind(gl::buffer::ARRAY_BUFFER);
         m_vao->unbind();

@@ -21,6 +21,7 @@ class ui_panel {
 public:
 // constructor
     ui_panel( std::string const &Identifier, bool const Isopen );
+	virtual ~ui_panel() = default;
 // methods
     virtual void update() {};
 	virtual void render();

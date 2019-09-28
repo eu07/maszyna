@@ -296,8 +296,7 @@ opengl_texture::make_request() {
 
     auto const components { Split( name, '?' ) };
 
-    auto *dictionary { new dictionary_source( components.back() ) };
-    if( dictionary == nullptr ) { return; }
+	auto *dictionary { new dictionary_source( components.back() ) };
 
 	auto rt = std::make_shared<python_rt>();
 	rt->shared_tex = id;
