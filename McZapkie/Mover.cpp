@@ -6593,7 +6593,7 @@ bool TMoverParameters::dizel_AutoGearCheck(void)
 		{
 			if (dizel_automaticgearstatus == 0)
 			{
-				if ((hydro_TC && hydro_TC_Fill > 0.01) || (eimic_real > 0.0))
+				if ((hydro_TC && hydro_TC_Fill > 0.01) || (eimic_real > 0.005))
 					dizel_EngageSwitch(1.0);
 				else
 					if (Vel > hydro_R_EngageVel && hydro_R && hydro_R_Fill > 0.01)
@@ -6768,7 +6768,7 @@ double TMoverParameters::dizel_fillcheck(int mcp, double dt)
 			if (EIMCtrlType > 0)
 			{
 				realfill = std::max(0.0, eimic_real);
-				if (eimic_real>0 && !hydro_TC_Lockup)
+				if (eimic_real>0.005 && !hydro_TC_Lockup)
 				{
 					dizel_nreg_min = std::min(dizel_nreg_min + 2.5 * dt, dizel_nmin_hdrive + eimic_real * dizel_nmin_hdrive_factor);
 				}
@@ -6787,7 +6787,7 @@ double TMoverParameters::dizel_fillcheck(int mcp, double dt)
         {
             auto nreg { 0.0 };
 			if (EIMCtrlType > 0)
-				nreg = (eimic_real > 0 ? dizel_nmax : dizel_nmin);
+				nreg = (eimic_real > 0.005 ? dizel_nmax : dizel_nmin);
 			else
             switch (RList[MainCtrlPos].Mn)
             {
@@ -6872,7 +6872,7 @@ double TMoverParameters::dizel_Momentum(double dizel_fill, double n, double dt)
 	if (hydro_TC) //jesli przetwornik momentu
 	{
 		//napelnianie przetwornika
-		bool IsPower = (EIMCtrlType > 0 ? eimic_real > 0 : MainCtrlPowerPos() > 0);
+		bool IsPower = (EIMCtrlType > 0 ? eimic_real > 0.005 : MainCtrlPowerPos() > 0);
 		if ((IsPower) && (Mains) && (enrot>dizel_nmin*0.9))
 			hydro_TC_Fill += hydro_TC_FillRateInc * dt;
 		//oproznianie przetwornika
