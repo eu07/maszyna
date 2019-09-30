@@ -6244,10 +6244,13 @@ bool TTrain::Update( double const Deltatime )
         if( ggJointCtrl.SubModel != nullptr ) {
             // joint master controller moves forward to adjust power and backward to adjust brakes
             auto const brakerangemultiplier {
+                /* NOTE: scaling disabled as it was conflicting with associating sounds with control positions
                 ( mvControlled->CoupledCtrl ?
                     mvControlled->MainCtrlPosNo + mvControlled->ScndCtrlPosNo :
                     mvControlled->MainCtrlPosNo )
-                / static_cast<double>(LocalBrakePosNo) };
+                / static_cast<double>(LocalBrakePosNo)
+                */
+                1 };
             ggJointCtrl.UpdateValue(
                 ( mvOccupied->LocalBrakePosA > 0.0 ? mvOccupied->LocalBrakePosA * LocalBrakePosNo * -1 * brakerangemultiplier :
                   mvControlled->CoupledCtrl ? double( mvControlled->MainCtrlPos + mvControlled->ScndCtrlPos ) :

@@ -3163,12 +3163,7 @@ bool TDynamicObject::Update(double dt, double dt1)
         if( MyTrack->fSoundDistance != dRailLength ) {
             if( dRailLength > 0.0 ) {
                 for( auto &axle : m_axlesounds ) {
-                    axle.distance =
-                        clamp_circular<double>(
-                            axle.distance - dRailLength
-                            + axle.offset
-                            /* - 0.5 * MoverParameters->Dim.L */,
-                            MyTrack->fSoundDistance );
+                    axle.distance = axle.offset;
                 }
             }
             dRailLength = MyTrack->fSoundDistance;
@@ -3197,8 +3192,14 @@ bool TDynamicObject::Update(double dt, double dt1)
                 }
                 if( dRailLength > 0.0 ) {
                     auto axleindex { 0 };
+                    auto const directioninconsist { (
+                        ctOwner == nullptr ?
+                            1 :
+                            ( ctOwner->Vehicle()->DirectionGet() == DirectionGet() ?
+                                1 :
+                               -1 ) ) };
                     for( auto &axle : m_axlesounds ) {
-                        axle.distance += dDOMoveLen * DirectionGet();
+                        axle.distance += dDOMoveLen * directioninconsist;
                         if( ( axle.distance < 0 )
                          || ( axle.distance > dRailLength ) ) {
                             axle.distance = clamp_circular( axle.distance, dRailLength );
@@ -4470,15 +4471,15 @@ void TDynamicObject::LoadMMediaFile( std::string const &TypeName, std::string co
                     // each value is a name of additional 3d model
                     // value can be optionally set of values enclosed in "[]" in which case one value will be picked randomly
                     // TBD: reconsider something more yaml-compliant and/or ability to define offset and rotation
-                    while( ( ( token = parser.getToken<std::string>() ) != "" )
+                    while( ( ( token = deserialize_random_set( parser ) ) != "" )
                         && ( token != "}" ) ) {
-                            auto attachmentmodelname { deserialize_random_set( parser ) };
-                            replace_slashes( attachmentmodelname );
-                            Global.asCurrentTexturePath = asBaseDir; // biezaca sciezka do tekstur to dynamic/...
-                            auto *attachmentmodel { TModelsManager::GetModel( asBaseDir + attachmentmodelname, true ) };
-                            if( attachmentmodel != nullptr ) {
-                                mdAttachments.emplace_back( attachmentmodel );
-                            }
+                        if( token == "{" ) { continue; }
+                        replace_slashes( token );
+                        Global.asCurrentTexturePath = asBaseDir; // biezaca sciezka do tekstur to dynamic/...
+                        auto *attachmentmodel { TModelsManager::GetModel( asBaseDir + token, true ) };
+                        if( attachmentmodel != nullptr ) {
+                            mdAttachments.emplace_back( attachmentmodel );
+                        }
                     }
                 }
 
@@ -5770,6 +5771,9 @@ void TDynamicObject::LoadMMediaFile( std::string const &TypeName, std::string co
         mdLoad->Init();
     if (mdLowPolyInt)
         mdLowPolyInt->Init();
+    for( auto *attachment : mdAttachments ) {
+        attachment->Init();
+    }
 
     Global.asCurrentTexturePath = szTexturePath; // kiedyś uproszczone wnętrze mieszało tekstury nieba
     Global.asCurrentDynamicPath = "";
