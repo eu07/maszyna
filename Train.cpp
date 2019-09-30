@@ -512,7 +512,7 @@ dictionary_source *TTrain::GetTrainState() {
     // induction motor state data
     char const *TXTT[ 10 ] = { "fd", "fdt", "fdb", "pd", "pdt", "pdb", "itothv", "1", "2", "3" };
     char const *TXTC[ 10 ] = { "fr", "frt", "frb", "pr", "prt", "prb", "im", "vm", "ihv", "uhv" };
-	char const *TXTD[ 10 ] = { "enrot", "nrot", "fill_des", "fill_real", "clutch_des", "clutch_real", "water_temp", "oil_press", "res1", "res2" };
+	char const *TXTD[ 10 ] = { "enrot", "nrot", "fill_des", "fill_real", "clutch_des", "clutch_real", "water_temp", "oil_press", "retarder_fill", "res2" };
     char const *TXTP[ 3 ] = { "bc", "bp", "sp" };
 	char const *TXTB[ 2 ] = { "spring_active", "spring_shutoff" };
     for( int j = 0; j < 10; ++j )
@@ -5613,7 +5613,7 @@ bool TTrain::Update( double const Deltatime )
 					fDieselParams[1 + in][5] = p->MoverParameters->dizel_engage;
 					fDieselParams[1 + in][6] = p->MoverParameters->dizel_heat.Twy;
 					fDieselParams[1 + in][7] = p->MoverParameters->OilPump.pressure;
-					//fDieselParams[1 + in][8] = p->MoverParameters->
+					fDieselParams[1 + in][8] = p->MoverParameters->hydro_R_Fill;
 					//fDieselParams[1 + in][9] = p->MoverParameters->
 					bMains[in] = p->MoverParameters->Mains;
 					fCntVol[in] = p->MoverParameters->BatteryVoltage;
