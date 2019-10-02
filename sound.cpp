@@ -509,7 +509,9 @@ sound_source::update_basic( audio::openal_source &Source ) {
                 // when it happens update active sample counters, and potentially activate the looping
                 update_counter( sound_id::begin, -1 );
                 update_counter( soundhandle, 1 );
-                Source.loop( TestFlag( m_flags, sound_flags::looping ) );
+                if( soundhandle == sound_id::main ) {
+                    Source.loop( TestFlag( m_flags, sound_flags::looping ) );
+                }
             }
         }
 
@@ -574,7 +576,12 @@ sound_source::update_basic( audio::openal_source &Source ) {
         }
         else {
             // the emitter is either all done or was terminated early
+            /*
             update_counter( Source.sounds[ Source.sound_index - 1 ], -1 );
+            */
+            for( auto &soundchunk : m_soundchunks ) {
+                soundchunk.first.playing = 0;
+            }
         }
     }
 }

@@ -202,6 +202,9 @@ TTrain::commandhandler_map const TTrain::m_commandhandlers = {
     { user_command::alarmchaintoggle, &TTrain::OnCommand_alarmchaintoggle },
     { user_command::wheelspinbrakeactivate, &TTrain::OnCommand_wheelspinbrakeactivate },
     { user_command::sandboxactivate, &TTrain::OnCommand_sandboxactivate },
+    { user_command::autosandboxtoggle, &TTrain::OnCommand_autosandboxtoggle },
+    { user_command::autosandboxactivate, &TTrain::OnCommand_autosandboxactivate },
+    { user_command::autosandboxdeactivate, &TTrain::OnCommand_autosandboxdeactivate },
     { user_command::epbrakecontroltoggle, &TTrain::OnCommand_epbrakecontroltoggle },
 	{ user_command::trainbrakeoperationmodeincrease, &TTrain::OnCommand_trainbrakeoperationmodeincrease },
 	{ user_command::trainbrakeoperationmodedecrease, &TTrain::OnCommand_trainbrakeoperationmodedecrease },
@@ -1549,7 +1552,7 @@ void TTrain::OnCommand_autosandboxactivate(TTrain *Train, command_data const &Co
 	if (Command.action == GLFW_PRESS) {
 		// only reacting to press, so the switch doesn't flip back and forth if key is held down
 		Train->mvOccupied->SandboxAutoAllow(true);
-		Train->ggAutoSandAllow.UpdateValue(1.0, Train->dsbSwitch);
+		Train->ggAutoSandButton.UpdateValue(1.0, Train->dsbSwitch);
 	}
 };
 
@@ -1557,7 +1560,7 @@ void TTrain::OnCommand_autosandboxdeactivate(TTrain *Train, command_data const &
 	if (Command.action == GLFW_PRESS) {
 		// only reacting to press, so the switch doesn't flip back and forth if key is held down
 		Train->mvOccupied->SandboxAutoAllow(false);
-		Train->ggAutoSandAllow.UpdateValue(0.0, Train->dsbSwitch);
+		Train->ggAutoSandButton.UpdateValue(0.0, Train->dsbSwitch);
 	}
 };
 
@@ -6439,6 +6442,7 @@ bool TTrain::Update( double const Deltatime )
 		ggUniveralBrakeButton3.Update();
         ggAntiSlipButton.Update();
         ggSandButton.Update();
+        ggAutoSandButton.Update();
         ggFuseButton.Update();
         ggConverterFuseButton.Update();
         ggStLinOffButton.Update();
@@ -7679,6 +7683,7 @@ void TTrain::clear_cab_controls()
 	ggUniveralBrakeButton2.Clear();
 	ggUniveralBrakeButton3.Clear();
     ggSandButton.Clear();
+    ggAutoSandButton.Clear();
     ggAntiSlipButton.Clear();
     ggHornButton.Clear();
     ggHornLowButton.Clear();
@@ -8153,7 +8158,14 @@ void TTrain::set_cab_controls( int const Cab ) {
                 1.f :
                 0.f );
     }
-    
+    // sandbox
+    if( ggAutoSandButton.type() != TGaugeType::push ) {
+        ggAutoSandButton.PutValue(
+            mvControlled->SandDoseAutoAllow ?
+                1.f :
+                0.f );
+     }
+       
     // we reset all indicators, as they're set during the update pass
     // TODO: when cleaning up break setting indicator state into a separate function, so we can reuse it
 }
@@ -8346,7 +8358,7 @@ bool TTrain::initialize_gauge(cParser &Parser, std::string const &Label, int con
 		{ "universalbrake2_bt:", ggUniveralBrakeButton2 },
 		{ "universalbrake3_bt:", ggUniveralBrakeButton3 },
         { "sand_bt:", ggSandButton },
-		{ "autosandallow_sw:", ggAutoSandAllow },
+		{ "autosandallow_sw:", ggAutoSandButton },
         { "antislip_bt:", ggAntiSlipButton },
         { "horn_bt:", ggHornButton },
         { "hornlow_bt:", ggHornLowButton },

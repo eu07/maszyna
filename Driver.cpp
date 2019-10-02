@@ -6072,7 +6072,10 @@ TController::UpdateSituation(double dt) {
                             // jeśli opóźnienie większe od wymaganego (z histerezą) luzowanie, gdy za dużo
                             // TBD: check if the condition isn't redundant with the DecBrake() code
                             if( /*GBH mvOccupied->BrakeCtrlPos*/BrakeCtrlPosition >= 0 ) {
-                                DecBrake(); // tutaj zmniejszało o 1 przy odczepianiu
+                                if( VelDesired > 0.0 ) {
+                                    // sanity check to prevent unintended brake release on sharp slopes
+                                    DecBrake(); // tutaj zmniejszało o 1 przy odczepianiu
+                                }
                             }
                         }
                         else if( mvOccupied->Handle->TimeEP ) {
@@ -6115,7 +6118,10 @@ TController::UpdateSituation(double dt) {
                         // yB: luzuje hamulec dopiero przy różnicy opóźnień rzędu 0.2
                         if( OrderCurrentGet() != Disconnect ) {
                             // przy odłączaniu nie zwalniamy tu hamulca
-                            DecBrake(); // tutaj zmniejszało o 1 przy odczepianiu
+                            if( VelDesired > 0.0 ) {
+                                // sanity check to prevent unintended brake release on sharp slopes
+                                DecBrake(); // tutaj zmniejszało o 1 przy odczepianiu
+                            }
                         }
                         fBrakeTime = (
                             mvOccupied->BrakeDelayFlag > bdelay_G ?

@@ -436,7 +436,7 @@ public: // reszta może by?publiczna
 	TGauge ggUniveralBrakeButton2;
 	TGauge ggUniveralBrakeButton3;
     TGauge ggSandButton; // guzik piasecznicy
-	TGauge ggAutoSandAllow; // przełącznik piasecznicy
+	TGauge ggAutoSandButton; // przełącznik piasecznicy
     TGauge ggAntiSlipButton;
     TGauge ggFuseButton;
     TGauge ggConverterFuseButton; // hunter-261211: przycisk odblokowania nadmiarowego przetwornic i ogrzewania

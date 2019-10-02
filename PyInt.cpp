@@ -111,7 +111,7 @@ auto python_taskqueue::init() -> bool {
     // release the lock, save the state for future use
     m_mainthread = PyEval_SaveThread();
 
-    WriteLog( "Python Interpreter setup complete" );
+    WriteLog( "Python Interpreter: setup complete" );
 
     // init workers
     for( auto &worker : m_workers ) {
@@ -319,6 +319,7 @@ void python_taskqueue::run( GLFWwindow *Context, rendertask_sequence &Tasks, thr
 void
 python_taskqueue::error() {
 
+    ErrorLog( "Python Interpreter: encountered error" );
     if( m_stderr != nullptr ) {
         // std err pythona jest buforowane
         PyErr_Print();
