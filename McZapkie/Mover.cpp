@@ -87,15 +87,17 @@ void TSecuritySystem::set_enabled(bool e) {
 void TSecuritySystem::acknowledge_press() {
 	pressed = true;
 
+	if (vigilance_timer > AwareDelay) {
+		alert_timer = 0.0;
+		vigilance_timer = 0.0;
+		return;
+	}
+	vigilance_timer = 0.0;
+
 	if (!separate_acknowledge && cabsignal_active) {
 		cabsignal_active = false;
 		alert_timer = 0.0;
-		return;
 	}
-
-	if (vigilance_timer > AwareDelay)
-		alert_timer = 0.0;
-	vigilance_timer = 0.0;
 }
 
 void TSecuritySystem::acknowledge_release() {
@@ -170,7 +172,7 @@ bool TSecuritySystem::is_cabsignal_beeping() const {
 
 bool TSecuritySystem::is_braking() const {
 	return alert_timer > SoundSignalDelay + EmergencyBrakeDelay
-	        && velocity > AwareMinSpeed;
+	        && (velocity > AwareMinSpeed || pressed);
 }
 
 bool TSecuritySystem::radiostop_available() const {

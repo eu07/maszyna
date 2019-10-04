@@ -604,8 +604,8 @@ TTrain::state_t
 TTrain::get_state() const {
 
     return {
-		mvOccupied->SecuritySystem.is_cabsignal_blinking(),
-		mvOccupied->SecuritySystem.is_vigilance_blinking(),
+		btLampkaSHP.GetValue(),
+		btLampkaCzuwaka.GetValue(),
         btLampkaRadioStop.GetValue(),
         btLampkaOpory.GetValue(),
         btLampkaWylSzybki.GetValue(),
