@@ -154,6 +154,9 @@ struct material_data {
     int textures_alpha{ 0x30300030 }; // maska przezroczystości tekstur. default: tekstury wymienne nie mają przezroczystości
     material_handle replacable_skins[ 5 ] = { null_handle, null_handle, null_handle, null_handle, null_handle }; // McZapkie:zmienialne nadwozie
     int multi_textures{ 0 }; //<0 tekstury wskazane wpisem, >0 tekstury z przecinkami, =0 jedna
+
+    // assigns specified texture or a group of textures to replacable texture slots
+    void assign( std::string const &Replacableskin );
 };
 
 class TDynamicObject { // klasa pojazdu

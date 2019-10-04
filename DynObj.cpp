@@ -162,6 +162,65 @@ void TAnim::Parovoz(){
 */
 
 
+// assigns specified texture or a group of textures to replacable texture slots
+void
+material_data::assign( std::string const &Replacableskin ) {
+
+    // check for the pipe method first
+    if( Replacableskin.find( '|' ) != std::string::npos ) {
+        cParser nameparser( Replacableskin );
+        nameparser.getTokens( 4, true, "|" );
+        int skinindex = 0;
+        std::string texturename; nameparser >> texturename;
+        while( ( texturename != "" ) && ( skinindex < 4 ) ) {
+            replacable_skins[ skinindex + 1 ] = GfxRenderer.Fetch_Material( texturename );
+            ++skinindex;
+            texturename = ""; nameparser >> texturename;
+        }
+        multi_textures = skinindex;
+    }
+    else {
+        // otherwise try the basic approach
+        int skinindex = 0;
+        do {
+            // test quietly for file existence so we don't generate tons of false errors in the log
+            // NOTE: this means actual missing files won't get reported which is hardly ideal, but still somewhat better
+            auto const material { TextureTest( ToLower( Replacableskin + "," + std::to_string( skinindex + 1 ) ) ) };
+            if( true == material.empty() ) { break; }
+
+            replacable_skins[ skinindex + 1 ] = GfxRenderer.Fetch_Material( material );
+            ++skinindex;
+        } while( skinindex < 4 );
+        multi_textures = skinindex;
+        if( multi_textures == 0 ) {
+            // zestaw nie zadziałał, próbujemy normanie
+            replacable_skins[ 1 ] = GfxRenderer.Fetch_Material( Replacableskin );
+        }
+    }
+    if( replacable_skins[ 1 ] == null_handle ) {
+        // last ditch attempt, check for single replacable skin texture
+        replacable_skins[ 1 ] = GfxRenderer.Fetch_Material( Replacableskin );
+    }
+
+    textures_alpha = (
+        GfxRenderer.Material( replacable_skins[ 1 ] ).has_alpha ?
+            0x31310031 :  // tekstura -1 z kanałem alfa - nie renderować w cyklu nieprzezroczystych
+            0x30300030 ); // wszystkie tekstury nieprzezroczyste - nie renderować w cyklu przezroczystych
+    if( GfxRenderer.Material( replacable_skins[ 2 ] ).has_alpha ) {
+        // tekstura -2 z kanałem alfa - nie renderować w cyklu nieprzezroczystych
+        textures_alpha |= 0x02020002;
+    }
+    if( GfxRenderer.Material( replacable_skins[ 3 ] ).has_alpha ) {
+        // tekstura -3 z kanałem alfa - nie renderować w cyklu nieprzezroczystych
+        textures_alpha |= 0x04040004;
+    }
+    if( GfxRenderer.Material( replacable_skins[ 4 ] ).has_alpha ) {
+        // tekstura -4 z kanałem alfa - nie renderować w cyklu nieprzezroczystych
+        textures_alpha |= 0x08080008;
+    }
+}
+
+
 void TDynamicObject::destination_data::deserialize( cParser &Input ) {
 
     while( true == deserialize_mapping( Input ) ) {
@@ -4323,6 +4382,8 @@ void TDynamicObject::LoadMMediaFile( std::string const &TypeName, std::string co
             if( asModel[ 0 ] == '/' ) {
                 asModel.erase( 0, 1 );
             }
+            /*
+            // never really used, may as well get rid of it
             std::size_t i = asModel.find( ',' );
             if ( i != std::string::npos )
             { // Ra 2015-01: może szukać przecinka w nazwie modelu, a po przecinku była by liczba tekstur?
@@ -4331,76 +4392,15 @@ void TDynamicObject::LoadMMediaFile( std::string const &TypeName, std::string co
                 }
                 m_materialdata.multi_textures = clamp( m_materialdata.multi_textures, 0, 1 ); // na razie ustawiamy na 1
             }
+            */
             asModel = asBaseDir + asModel; // McZapkie 2002-07-20: dynamics maja swoje modele w dynamics/basedir
             Global.asCurrentTexturePath = asBaseDir; // biezaca sciezka do tekstur to dynamic/...
             mdModel = TModelsManager::GetModel(asModel, true);
-            if (ReplacableSkin != "none")
-            {
-                if (m_materialdata.multi_textures > 0) {
-                    // jeśli model ma 4 tekstury
-                    // check for the pipe method first
-                    if( ReplacableSkin.find( '|' ) != std::string::npos ) {
-                        cParser nameparser( ReplacableSkin );
-                        nameparser.getTokens( 4, true, "|" );
-                        int skinindex = 0;
-                        std::string texturename; nameparser >> texturename;
-                        while( ( texturename != "" ) && ( skinindex < 4 ) ) {
-                            m_materialdata.replacable_skins[ skinindex + 1 ] = GfxRenderer.Fetch_Material( texturename );
-                            ++skinindex;
-                            texturename = ""; nameparser >> texturename;
-                        }
-                        m_materialdata.multi_textures = skinindex;
-                    }
-                    else {
-                        // otherwise try the basic approach
-                        int skinindex = 0;
-                        do {
-                            material_handle material = GfxRenderer.Fetch_Material( ReplacableSkin + "," + std::to_string( skinindex + 1 ), true );
-                            if( material == null_handle ) {
-                                break;
-                            }
-                            m_materialdata.replacable_skins[ skinindex + 1 ] = material;
-                            ++skinindex;
-                        } while( skinindex < 4 );
-                        m_materialdata.multi_textures = skinindex;
-                        if( m_materialdata.multi_textures == 0 ) {
-                            // zestaw nie zadziałał, próbujemy normanie
-                            m_materialdata.replacable_skins[ 1 ] = GfxRenderer.Fetch_Material( ReplacableSkin );
-                        }
-                    }
-                }
-                else {
-                    m_materialdata.replacable_skins[ 1 ] = GfxRenderer.Fetch_Material( ReplacableSkin );
-                }
-
+            if (ReplacableSkin != "none") {
+                m_materialdata.assign( ReplacableSkin );
                 // potentially set blank destination texture
                 DestinationSign.destination_off = DestinationFind( "nowhere" );
 //                DestinationSet( {}, {} );
-
-                if( GfxRenderer.Material( m_materialdata.replacable_skins[ 1 ] ).has_alpha ) {
-                    // tekstura -1 z kanałem alfa - nie renderować w cyklu nieprzezroczystych
-                    m_materialdata.textures_alpha = 0x31310031;
-                }
-                else {
-                    // wszystkie tekstury nieprzezroczyste - nie renderować w cyklu przezroczystych
-                    m_materialdata.textures_alpha = 0x30300030;
-                }
-
-                if( ( m_materialdata.replacable_skins[ 2 ] )
-                 && ( GfxRenderer.Material( m_materialdata.replacable_skins[ 2 ] ).has_alpha ) ) {
-                    // tekstura -2 z kanałem alfa - nie renderować w cyklu nieprzezroczystych
-                    m_materialdata.textures_alpha |= 0x02020002;
-                }
-                if( ( m_materialdata.replacable_skins[ 3 ] )
-                 && ( GfxRenderer.Material( m_materialdata.replacable_skins[ 3 ] ).has_alpha ) ) {
-                    // tekstura -3 z kanałem alfa - nie renderować w cyklu nieprzezroczystych
-                    m_materialdata.textures_alpha |= 0x04040004;
-                }
-                if( ( m_materialdata.replacable_skins[ 4 ] )
-                 && ( GfxRenderer.Material( m_materialdata.replacable_skins[ 4 ] ).has_alpha ) ) {
-                    // tekstura -4 z kanałem alfa - nie renderować w cyklu nieprzezroczystych
-                    m_materialdata.textures_alpha |= 0x08080008;
-                }
             }
             Global.asCurrentTexturePath = szTexturePath; // z powrotem defaultowa sciezka do tekstur
             do {

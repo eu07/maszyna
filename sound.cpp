@@ -507,11 +507,14 @@ sound_source::update_basic( audio::openal_source &Source ) {
             // detect the moment when the sound moves from startup sample to the main
             if( true == Source.sound_change ) {
                 // when it happens update active sample counters, and potentially activate the looping
-                update_counter( sound_id::begin, -1 );
-                update_counter( soundhandle, 1 );
                 if( soundhandle == sound_id::main ) {
-                    Source.loop( TestFlag( m_flags, sound_flags::looping ) );
+                    update_counter( sound_id::begin, -1 );
                 }
+                update_counter( soundhandle, 1 );
+                Source.loop( (
+                    soundhandle == sound_id::main ?
+                        TestFlag( m_flags, sound_flags::looping ) :
+                        false ) );
             }
         }
 
@@ -552,10 +555,11 @@ sound_source::update_basic( audio::openal_source &Source ) {
             // the emitter wasn't yet started
             auto const soundhandle { Source.sounds[ Source.sound_index ] };
             // emitter initialization
-            if( soundhandle == sound_id::main ) {
-                // main sample can be optionally set to loop
-                Source.loop( TestFlag( m_flags, sound_flags::looping ) );
-            }
+            // main sample can be optionally set to loop
+            Source.loop( (
+                soundhandle == sound_id::main ?
+                    TestFlag( m_flags, sound_flags::looping ) :
+                    false ) );
             Source.range( m_range );
             Source.pitch( m_pitchvariation );
             update_location();
@@ -576,12 +580,19 @@ sound_source::update_basic( audio::openal_source &Source ) {
         }
         else {
             // the emitter is either all done or was terminated early
+            if( true == Source.sound_change ) {
+                // HACK: sound change flag means when the emitter was stopped our state counters were tracking previous sound in the sequence
+                // the id of that sound is no longer available, but for basic sounds we can make presumption about it
+                update_counter( Source.sounds[ Source.sound_index - 1 ] - 1, -1 );
+            }
+            else {
+                update_counter( Source.sounds[ Source.sound_index - 1 ], -1 );
+            }
             /*
-            update_counter( Source.sounds[ Source.sound_index - 1 ], -1 );
-            */
             for( auto &soundchunk : m_soundchunks ) {
                 soundchunk.first.playing = 0;
             }
+            */
         }
     }
 }
