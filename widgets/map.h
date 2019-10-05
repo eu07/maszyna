@@ -97,6 +97,8 @@ class map_panel : public ui_panel
 
 	glm::vec2 translate;
 	float zoom = 1.0f / 1000.0f;
+	enum { MODE_MANUAL = 0, MODE_CAMERA, MODE_VEHICLE } mode = MODE_MANUAL;
+
 	float get_vehicle_rotation();
 	void render_map_texture(glm::mat4 transform, glm::vec2 surface_size);
 	void render_labels(glm::mat4 transform, ImVec2 origin, glm::vec2 surface_size);

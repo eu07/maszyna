@@ -7,6 +7,7 @@
 #include "simulation.h"
 #include "Driver.h"
 #include "AnimModel.h"
+#include "application.h"
 
 ui::map_panel::map_panel() : ui_panel(STR_C("Map"), false)
 {
@@ -194,23 +195,23 @@ void ui::map_panel::render_contents()
 	if (!init_done)
 		return;
 
-	float prev_zoom = zoom;
+	{
+		float prev_zoom = zoom;
 
-	if (ImGui::Button("-"))
-		zoom /= 2;
-	ImGui::SameLine();
+		if (ImGui::Button("+"))
+			zoom *= 2.0f;
+		ImGui::SameLine();
 
-	if (ImGui::Button("+"))
-		zoom *= 2;
-	ImGui::SameLine();
+		if (ImGui::Button("-"))
+			zoom /= 2.0f;
+		ImGui::SameLine();
 
-	float x = zoom / prev_zoom;
-	translate *= x;
+		float x = zoom / prev_zoom;
+		translate *= x;
+	}
 
 	glm::mat4 transform;
 	transform[0][0] = -1.0f;
-
-	static enum { MODE_MANUAL = 0, MODE_CAMERA, MODE_VEHICLE } mode = MODE_MANUAL;
 
 	ImGui::RadioButton("Pan", (int *)&mode, 0);
 	ImGui::SameLine();
@@ -264,22 +265,35 @@ void ui::map_panel::render_contents()
 
 	if (ImGui::IsItemHovered())
 	{
+		const ImVec2 screen_pos = ImGui::GetMousePos();
+		const glm::vec2 surface_pos(screen_pos.x - screen_origin.x, screen_pos.y - screen_origin.y);
+		const glm::vec2 ndc_pos = surface_pos / surface_size * 2.0f - 1.0f;
+		const ImGuiIO &io = ImGui::GetIO();
+
+		if (io.MouseWheel != 0.0f)
+		{
+			float prev_zoom = zoom;
+			zoom *= std::pow(2.0, io.MouseWheel);
+			float x = zoom / prev_zoom;
+
+			translate += ndc_pos;
+			translate *= x;
+
+			glm::vec2 surface_screen_center = glm::vec2(screen_origin.x, screen_origin.y) + surface_size / 2.0f;
+			Application.set_cursor_pos(surface_screen_center.x, surface_screen_center.y);
+		}
+
 		if (mode == 0 && ImGui::IsMouseDragging(0))
 		{
 			ImVec2 delta_im = ImGui::GetMouseDragDelta();
 			ImGui::ResetMouseDragDelta();
 
 			glm::vec2 delta(delta_im.x, delta_im.y);
-			delta.x /= surface_size.x;
-			delta.y /= surface_size.y;
 
-			translate -= delta * 2.0f;
+			translate -= delta / surface_size * 2.0f;
 		}
 		else
 		{
-			ImVec2 screen_pos = ImGui::GetMousePos();
-			glm::vec2 surface_pos(screen_pos.x - screen_origin.x, screen_pos.y - screen_origin.y);
-			glm::vec2 ndc_pos = surface_pos / surface_size * 2.0f - 1.0f;
 			glm::vec3 world_pos = glm::inverse(transform) * glm::vec4(ndc_pos.x, 0.0f, -ndc_pos.y, 1.0f);
 
 			map::sorted_object_list objects = map::Objects.find_in_range(glm::vec3(world_pos.x, NAN, world_pos.z), 0.03f / zoom);
