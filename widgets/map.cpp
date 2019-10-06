@@ -222,12 +222,15 @@ void ui::map_panel::render_contents()
 	ImVec2 surface_size_im = ImGui::GetContentRegionAvail();
 	glm::vec2 surface_size(surface_size_im.x, surface_size_im.y);
 
+	glm::mat4 aspect_transform;
 	float aspect = surface_size.y / surface_size.x;
 
 	if (aspect > 1.0f / aspect)
-		transform = glm::scale(transform, glm::vec3(aspect, 1.0f, 1.0f));
+		aspect_transform = glm::scale(glm::mat4(), glm::vec3(aspect, 1.0f, 1.0f));
 	else
-		transform = glm::scale(transform, glm::vec3(1.0f, 1.0f, 1.0f / aspect));
+		aspect_transform = glm::scale(glm::mat4(), glm::vec3(1.0f, 1.0f, 1.0f / aspect));
+
+	transform *= aspect_transform;
 
 	if (mode == MODE_VEHICLE && simulation::Train)
 	{
@@ -276,7 +279,8 @@ void ui::map_panel::render_contents()
 			zoom *= std::pow(2.0, io.MouseWheel);
 			float x = zoom / prev_zoom;
 
-			translate += ndc_pos;
+			glm::vec4 corrected = glm::inverse(aspect_transform) * glm::vec4(ndc_pos.x, 0.0f, ndc_pos.y, 1.0f);
+			translate += glm::vec2(corrected.x, corrected.z);
 			translate *= x;
 
 			glm::vec2 surface_screen_center = glm::vec2(screen_origin.x, screen_origin.y) + surface_size / 2.0f;
