@@ -1583,7 +1583,7 @@ public:
 	void ComputeTotalForce(double dt);
 	double Adhesive(double staticfriction) const;
 	double TractionForce(double dt);
-	double FrictionForce(double R, int TDamage);
+	double FrictionForce() const;
 	double BrakeForceR(double ratio, double velocity);
 	double BrakeForceP(double press, double velocity);
 	double BrakeForce(const TTrackParam &Track);

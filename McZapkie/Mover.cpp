@@ -4407,7 +4407,7 @@ void TMoverParameters::ComputeTotalForce(double dt) {
     if( false == PhysicActivation ) { return; }
 
     // juz zoptymalizowane:
-    FStand = FrictionForce(RunningShape.R, RunningTrack.DamageFlag); // siła oporów ruchu
+	FStand = FrictionForce(); // siła oporów ruchu
     if( true == TestFlag( DamageFlag, dtrain_out ) ) {
         // HACK: crude way to reduce speed after derailment
         // TBD, TODO: more accurate approach?
@@ -4624,7 +4624,7 @@ double TMoverParameters::BrakeForce( TTrackParam const &Track ) {
 // Q: 20160713
 // Obliczanie siły tarcia
 // *************************************************************************************************
-double TMoverParameters::FrictionForce(double R, int TDamage)
+double TMoverParameters::FrictionForce() const
 {
     double FF = 0;
     // ABu 240205: chyba juz ekstremalnie zoptymalizowana funkcja liczaca sily tarcia
