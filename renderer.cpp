@@ -668,6 +668,9 @@ void opengl_renderer::Render_pass(viewport_config &vp, rendermode const Mode)
 
 		m_colorpass = m_renderpass;
 
+		if (m_widelines_supported)
+			glLineWidth(1.0f);
+
 		if (!Global.gfx_usegles)
 		{
 			if (Global.bWireFrame)
@@ -3174,6 +3177,9 @@ void opengl_renderer::Render_Alpha(TTraction *Traction)
 	// debug data
 	++m_debugstats.traction;
 	++m_debugstats.drawcalls;
+
+	if (m_widelines_supported)
+		glLineWidth(1.0f);
 }
 
 void opengl_renderer::Render_Alpha(scene::lines_node const &Lines)
@@ -3204,6 +3210,9 @@ void opengl_renderer::Render_Alpha(scene::lines_node const &Lines)
 
 	++m_debugstats.lines;
 	++m_debugstats.drawcalls;
+
+	if (m_widelines_supported)
+		glLineWidth(1.0f);
 }
 
 bool opengl_renderer::Render_Alpha(TDynamicObject *Dynamic)
