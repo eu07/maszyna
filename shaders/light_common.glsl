@@ -7,18 +7,20 @@ float calc_shadow()
 	
 	if (coords.z < 0.0f)
 		return 1.0f;
+
+	float bias = 0.0004f;
 	
 	//sampler PCF
-	//float shadow = texture(shadowmap, coords.xyz);
+	//float shadow = texture(shadowmap, coords.xyz + vec3(0.0, 0.0, bias));
 
 	//sampler PCF + PCF
 	float shadow = 0.0;
 	vec2 texel = vec2(1.0) / vec2(textureSize(shadowmap, 0));
 	for (float y = -1.5; y <= 1.5; y += 1.0)
 		for (float x = -1.5; x <= 1.5; x += 1.0)
-			shadow += texture(shadowmap, coords.xyz + vec3(vec2(x, y) * texel, 0.0));
+			shadow += texture(shadowmap, coords.xyz + vec3(vec2(x, y) * texel, bias));
 	shadow /= 16.0;
-		
+
 	return 1.0 - shadow;
 #else
     return 1.0;
