@@ -4263,15 +4263,13 @@ bool TController::PutCommand( std::string NewCommand, double NewValue1, double N
 	if (NewCommand == "SetSignal") {
 		TSignals signal = (TSignals)std::lrint(NewValue1);
 
-		mvOccupied->iLights[0] = 0;
-		mvOccupied->iLights[1] = 0;
-		mvOccupied->WarningSignal = 0;
-
 		for (int i = Signal_START; i <= Signal_MAX; i++)
 			iDrivigFlags &= ~(1 << i);
 
 		if (NewValue2 > 0.5)
 			iDrivigFlags |= 1 << (uint32_t)signal;
+		else
+			CheckVehicles(); // restore light state
 	}
 
     return false; // nierozpoznana - wysłać bezpośrednio do pojazdu

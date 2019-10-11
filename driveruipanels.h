@@ -123,6 +123,9 @@ private:
 	graph_data AccN_acc_graph;
 	float last_AccN;
 
+	std::array<char, 128> queue_event_buf = { 0 };
+	std::array<char, 128> queue_event_activator_buf = { 0 };
+
     bool m_eventqueueactivevehicleonly { false };
 };
 

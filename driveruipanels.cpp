@@ -523,33 +523,46 @@ debug_panel::render() {
         }
         // sections
         ImGui::Separator();
-		render_section( "Vehicle", m_vehiclelines );
-		render_section( "Vehicle Engine", m_enginelines );
-		render_section( "Vehicle AI", m_ailines );
-		render_section( "Vehicle Scan Table", m_scantablelines );
-		render_section( "Scenario", m_scenariolines );
-		if( true == render_section( "Scenario Event Queue", m_eventqueuelines ) ) {
+		render_section( STR("Vehicle"), m_vehiclelines );
+		render_section( STR("Vehicle Engine"), m_enginelines );
+		render_section( STR("Vehicle AI"), m_ailines );
+		render_section( STR("Vehicle Scan Table"), m_scantablelines );
+		render_section( STR("Scenario"), m_scenariolines );
+		if( true == render_section( STR("Scenario Event Queue"), m_eventqueuelines ) ) {
 			// event queue filter
-			ImGui::Checkbox( "By This Vehicle Only", &m_eventqueueactivevehicleonly );
+			ImGui::Checkbox( STR_C("By This Vehicle Only"), &m_eventqueueactivevehicleonly );
+
+			if (DebugModeFlag) {
+				ImGui::NewLine();
+				ImGui::TextUnformatted(STR_C("Queue event:"));
+				ImGui::InputText(STR_C("Event"), queue_event_buf.data(), queue_event_buf.size());
+				ImGui::InputText(STR_C("Activator"), queue_event_activator_buf.data(), queue_event_activator_buf.size());
+
+				if (ImGui::Button("Queue")) {
+					command_relay relay;
+					std::string cmd_id = std::string(queue_event_buf.data()) + "%" + std::string(queue_event_activator_buf.data());
+					relay.post(user_command::queueevent, 0.0, 0.0, GLFW_PRESS, 0, glm::vec3(0.0f), &cmd_id);
+				}
+			}
 		}
-		if( true == render_section( "Power Grid", m_powergridlines ) ) {
+		if( true == render_section( STR("Power Grid"), m_powergridlines ) ) {
 			// traction state debug
 			ImGui::Checkbox(
-			        "Traction debug",
+			        STR_C("Traction debug"),
 			        &GfxRenderer.settings.traction_debug );
 		}
-		render_section( "Camera", m_cameralines );
+		render_section( STR("Camera"), m_cameralines );
 		if (m_input.vehicle && ImGui::CollapsingHeader(STR_C("Normal forces graph"))) {
-			ImGui::Text("Normal acceleration: %.2f m/s^2", AccN_acc_graph.last_val);
+			ImGui::Text(STR_C("Normal acceleration: %.2f m/s^2"), AccN_acc_graph.last_val);
 			AccN_acc_graph.render();
 
-			ImGui::Text("Normal jerk: %.2f m/s^3", AccN_jerk_graph.last_val);
+			ImGui::Text(STR_C("Normal jerk: %.2f m/s^3"), AccN_jerk_graph.last_val);
 			AccN_jerk_graph.render();
 		}
-		render_section( "Gfx Renderer", m_rendererlines );
+		render_section( STR("Gfx Renderer"), m_rendererlines );
 		// toggles
 		ImGui::Separator();
-		ImGui::Checkbox( "Debug Mode", &DebugModeFlag );
+		ImGui::Checkbox( STR_C("Debug Mode"), &DebugModeFlag );
 	}
 	ImGui::End();
 

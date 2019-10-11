@@ -567,30 +567,62 @@ void ui::obstacle_remove_window::render_content()
 }
 
 ui::vehicle_click_window::vehicle_click_window(ui_panel &panel, std::shared_ptr<map::vehicle> &&obstacle)
-    : popup(panel), m_obstacle(obstacle) { }
+    : popup(panel), m_vehicle(obstacle) { }
 
 void ui::vehicle_click_window::render_content()
 {
-	std::string name = m_obstacle->name + "%SetSignal";
-
-	if (!m_obstacle->dynobj->MoverParameters->Battery) {
-		std::string name_enable = m_obstacle->name + "%Prepare_engine";
+	if (!m_vehicle->dynobj->MoverParameters->Battery) {
+		std::string name_enable = m_vehicle->name + "%Prepare_engine";
 		m_relay.post(user_command::sendaicommand, 1.0, 1.0, GLFW_PRESS, 0, glm::vec3(), &name_enable);
 	}
 
-	if (ImGui::Button(u8"wyłącz")) {
+	ImGui::TextUnformatted(STR_C("Light signal:"));
+
+	if (ImGui::Button(STR_C("none"))) {
+		std::string name = m_vehicle->name + "%SetSignal";
 		m_relay.post(user_command::sendaicommand, 0.0, 0.0, GLFW_PRESS, 0, glm::vec3(), &name);
 
 		ImGui::CloseCurrentPopup();
 	}
-	if (ImGui::Button(u8"Pc6")) {
+	if (ImGui::Button(STR_C("Pc6"))) {
+		std::string name = m_vehicle->name + "%SetSignal";
 		m_relay.post(user_command::sendaicommand, Signal_Pc6, 1.0, GLFW_PRESS, 0, glm::vec3(), &name);
 
 		ImGui::CloseCurrentPopup();
 	}
-	if (ImGui::Button(u8"A1")) {
+	if (ImGui::Button(STR_C("A1"))) {
+		std::string name = m_vehicle->name + "%SetSignal";
 		m_relay.post(user_command::sendaicommand, Signal_A1, 1.0, GLFW_PRESS, 0, glm::vec3(), &name);
 
 		ImGui::CloseCurrentPopup();
+	}
+
+	if (DebugModeFlag) {
+		ImGui::NewLine();
+		ImGui::TextUnformatted(STR_C("Send command:"));
+		ImGui::InputText(STR_C("Command"), command_buf.data(), command_buf.size());
+
+		static std::vector<std::string> possible_commands =
+		    {"CabSignal","Overhead","Emergency_brake","Timetable:","SetVelocity","SetProximityVelocity","ShuntVelocity",
+		    "Wait_for_orders","Prepare_engine","Change_direction","Obey_train","Bank","Shunt","Loose_shunt",
+		    "Jump_to_first_order","Jump_to_order","Warning_signal","Radio_channel","SetLights","SetSignal"};
+
+		ImGui::SameLine();
+		if (ImGui::BeginCombo("##cmd_select", nullptr, ImGuiComboFlags_NoPreview | ImGuiComboFlags_HeightLarge))
+		{
+			for (size_t i = 0; i < possible_commands.size(); i++)
+				if (ImGui::Selectable(possible_commands[i].c_str(), false))
+					memcpy(command_buf.data(), possible_commands[i].c_str(), possible_commands[i].size() + 1);
+			ImGui::EndCombo();
+		}
+
+		ImGui::InputInt(STR_C("Param 1"), &command_param1);
+		ImGui::InputInt(STR_C("Param 2"), &command_param2);
+		if (ImGui::Button(STR_C("Send"))) {
+			std::string name = m_vehicle->name + "%" + std::string(command_buf.data());
+			m_relay.post(user_command::sendaicommand, command_param1, command_param2, GLFW_PRESS, 0, glm::vec3(), &name);
+
+			ImGui::CloseCurrentPopup();
+		}
 	}
 }

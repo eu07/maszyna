@@ -149,10 +149,20 @@ void state_manager::process_commands() {
 		}
 
 		if (commanddata.command == user_command::queueevent) {
-			uint32_t id = std::round(commanddata.param1);
-			basic_event *ev = Events.FindEvent(commanddata.payload);
+			std::istringstream ss(commanddata.payload);
+
+			std::string event_name;
+			std::string vehicle_name;
+			std::getline(ss, event_name, '%');
+			std::getline(ss, vehicle_name, '%');
+
+			basic_event *ev = Events.FindEvent(event_name);
+			TDynamicObject *vehicle = nullptr;
+			if (!vehicle_name.empty())
+				vehicle = simulation::Vehicles.find(vehicle_name);
+
 			if (ev)
-				Events.AddToQuery(ev, nullptr);
+				Events.AddToQuery(ev, vehicle);
 		}
 
 		if (commanddata.command == user_command::setlight) {

@@ -312,7 +312,8 @@ state_serializer::deserialize_firstinit( cParser &Input, scene::scratch_data &Sc
     simulation::Events.InitLaunchers();
     simulation::Memory.InitCells();
 
-	init_time();
+	if (!Scratchpad.time_initialized)
+		init_time();
 
     Scratchpad.initialized = true;
 }
@@ -638,6 +639,11 @@ state_serializer::deserialize_time( cParser &Input, scene::scratch_data &Scratch
     // remaining sunrise and sunset parameters are no longer used, as they're now calculated dynamically
     // anything else left in the section has no defined meaning
     skip_until( Input, "endtime" );
+
+	if (!Scratchpad.time_initialized)
+		Scratchpad.time_initialized = true;
+
+	init_time();
 }
 
 void

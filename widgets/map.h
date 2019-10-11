@@ -67,8 +67,12 @@ class obstacle_remove_window : public popup
 
 class vehicle_click_window : public popup
 {
-	std::shared_ptr<map::vehicle> m_obstacle;
+	std::shared_ptr<map::vehicle> m_vehicle;
 	command_relay m_relay;
+
+	std::array<char, 128> command_buf = { 0 };
+	int command_param1 = 0;
+	int command_param2 = 0;
 
   public:
 	vehicle_click_window(ui_panel &panel, std::shared_ptr<map::vehicle> &&obstacle);
