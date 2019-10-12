@@ -17,6 +17,7 @@ private:
 #ifdef __unix__
 FILE *file = nullptr;
 #elif _WIN32
+HANDLE proc_h = nullptr;
 HANDLE pipe_rd = nullptr;
 HANDLE pipe_wr = nullptr;
 #endif

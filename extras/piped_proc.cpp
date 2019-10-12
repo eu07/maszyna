@@ -55,13 +55,12 @@ piped_proc::piped_proc(std::string cmd)
 	siStartInfo.hStdOutput = pipe_wr;
 	siStartInfo.dwFlags |= STARTF_USESTDHANDLES;
 
-	if (!CreateProcessA(NULL, (char*)cmd.c_str(), NULL, NULL, TRUE, 0, NULL, NULL, &siStartInfo, &process)) {
+	if (!CreateProcessA(NULL, (char*)cmd.c_str(), NULL, NULL, TRUE, CREATE_NO_WINDOW, NULL, NULL, &siStartInfo, &process)) {
 		ErrorLog("piped_proc: CreateProcess failed!");
 		return;
 	}
 
-	if (process.hProcess)
-		CloseHandle(process.hProcess);
+	proc_h = process.hProcess;
 	if (process.hThread)
 		CloseHandle(process.hThread);
 }
@@ -72,6 +71,10 @@ piped_proc::~piped_proc()
 		CloseHandle(pipe_wr);
 	if (pipe_rd)
 		CloseHandle(pipe_rd);
+	if (proc_h) {
+		WaitForSingleObject(proc_h, INFINITE);
+		CloseHandle(proc_h);
+	}
 }
 
 size_t piped_proc::read(unsigned char *buf, size_t len)
