@@ -6088,11 +6088,12 @@ TController::UpdateSituation(double dt) {
                 // zmniejszanie predkosci
                 // margines dla prędkości jest doliczany tylko jeśli oczekiwana prędkość jest większa od 5km/h
                 if( false == TestFlag( iDrivigFlags, movePress ) ) {
+					double SpeedCtrlMargin = (mvControlling->SpeedCtrlUnit.IsActive && VelDesired > 5) ? 3 : 0;
                     // jeśli nie dociskanie
                     if( AccDesired < -0.05 ) {
                         ZeroSpeed();
                     }
-                    else if( ( vel > VelDesired )
+                    else if( ( vel > VelDesired + SpeedCtrlMargin)
                           || ( fAccGravity < -0.01 ?
                                     AccDesired < 0.0 :
                                     (AbsAccS > AccDesired && AccDesired < 0.75) ) ) {
