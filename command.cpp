@@ -243,7 +243,21 @@ commanddescription_sequence Commands_descriptions = {
 	{ "springbrakeshutofftoggle", command_target::vehicle },
 	{ "springbrakeshutoffenable", command_target::vehicle },
 	{ "springbrakeshutoffdisable", command_target::vehicle },
-	{ "springbrakerelease", command_target::vehicle }
+	{ "springbrakerelease", command_target::vehicle },
+	{ "speedcontrolincrease", command_target::vehicle },
+	{ "speedcontroldecrease", command_target::vehicle },
+	{ "speedcontrolpowerincrease", command_target::vehicle },
+	{ "speedcontrolpowerdecrease", command_target::vehicle },
+	{ "speedcontrolbutton0", command_target::vehicle },
+	{ "speedcontrolbutton1", command_target::vehicle },
+	{ "speedcontrolbutton2", command_target::vehicle },
+	{ "speedcontrolbutton3", command_target::vehicle },
+	{ "speedcontrolbutton4", command_target::vehicle },
+	{ "speedcontrolbutton5", command_target::vehicle },
+	{ "speedcontrolbutton6", command_target::vehicle },
+	{ "speedcontrolbutton7", command_target::vehicle },
+	{ "speedcontrolbutton8", command_target::vehicle },
+	{ "speedcontrolbutton9", command_target::vehicle }
 
 };
 

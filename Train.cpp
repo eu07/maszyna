@@ -363,7 +363,21 @@ TTrain::commandhandler_map const TTrain::m_commandhandlers = {
 	{ user_command::springbrakeshutofftoggle, &TTrain::OnCommand_springbrakeshutofftoggle },
 	{ user_command::springbrakeshutoffenable, &TTrain::OnCommand_springbrakeshutoffenable },
 	{ user_command::springbrakeshutoffdisable, &TTrain::OnCommand_springbrakeshutoffdisable },
-	{ user_command::springbrakerelease, &TTrain::OnCommand_springbrakerelease }
+	{ user_command::springbrakerelease, &TTrain::OnCommand_springbrakerelease },
+	{ user_command::speedcontrolincrease, &TTrain::OnCommand_speedcontrolincrease },
+	{ user_command::speedcontroldecrease, &TTrain::OnCommand_speedcontroldecrease },
+	{ user_command::speedcontrolpowerincrease, &TTrain::OnCommand_speedcontrolpowerincrease },
+	{ user_command::speedcontrolpowerdecrease, &TTrain::OnCommand_speedcontrolpowerdecrease },
+	{ user_command::speedcontrolbutton0, &TTrain::OnCommand_speedcontrolbutton },
+	{ user_command::speedcontrolbutton1, &TTrain::OnCommand_speedcontrolbutton },
+	{ user_command::speedcontrolbutton2, &TTrain::OnCommand_speedcontrolbutton },
+	{ user_command::speedcontrolbutton3, &TTrain::OnCommand_speedcontrolbutton },
+	{ user_command::speedcontrolbutton4, &TTrain::OnCommand_speedcontrolbutton },
+	{ user_command::speedcontrolbutton5, &TTrain::OnCommand_speedcontrolbutton },
+	{ user_command::speedcontrolbutton6, &TTrain::OnCommand_speedcontrolbutton },
+	{ user_command::speedcontrolbutton7, &TTrain::OnCommand_speedcontrolbutton },
+	{ user_command::speedcontrolbutton8, &TTrain::OnCommand_speedcontrolbutton },
+	{ user_command::speedcontrolbutton9, &TTrain::OnCommand_speedcontrolbutton },
 };
 
 std::vector<std::string> const TTrain::fPress_labels = {
@@ -475,6 +489,8 @@ dictionary_source *TTrain::GetTrainState() {
     dict->insert( "scndctrl_pos", mvControlled->ScndCtrlPos );
     dict->insert( "scnd_ctrl_actual_pos", mvControlled->ScndCtrlActualPos );
 	dict->insert( "new_speed", mover->NewSpeed);
+	dict->insert( "speedctrl", mover->SpeedCtrlValue);
+	dict->insert( "speedctrlpower", mover->SpeedCtrlUnit.DesiredPower);
     // brakes
     dict->insert( "manual_brake", ( mvOccupied->ManualBrakePos > 0 ) );
     bool const bEP = ( mvControlled->LocHandle->GetCP() > 0.2 ) || ( fEIMParams[ 0 ][ 2 ] > 0.01 );
@@ -4485,6 +4501,80 @@ void TTrain::OnCommand_springbrakerelease(TTrain *Train, command_data const &Com
 	}
 };
 
+void TTrain::OnCommand_speedcontrolincrease(TTrain *Train, command_data const &Command) {
+	if (Command.action == GLFW_PRESS) {
+		// only reacting to press, so the switch doesn't flip back and forth if key is held down
+		Train->mvOccupied->SpeedCtrlInc();
+		// visual feedback
+		Train->ggSpeedControlIncreaseButton.UpdateValue(1.0, Train->dsbSwitch);
+	}
+	else if (Command.action == GLFW_RELEASE) {
+		// release
+		// visual feedback
+		Train->ggSpeedControlIncreaseButton.UpdateValue(0.0, Train->dsbSwitch);
+	}
+};
+
+void TTrain::OnCommand_speedcontroldecrease(TTrain *Train, command_data const &Command) {
+	if (Command.action == GLFW_PRESS) {
+		// only reacting to press, so the switch doesn't flip back and forth if key is held down
+		Train->mvOccupied->SpeedCtrlDec();
+		// visual feedback
+		Train->ggSpeedControlDecreaseButton.UpdateValue(1.0, Train->dsbSwitch);
+	}
+	else if (Command.action == GLFW_RELEASE) {
+		// release
+		// visual feedback
+		Train->ggSpeedControlDecreaseButton.UpdateValue(0.0, Train->dsbSwitch);
+	}
+};
+
+void TTrain::OnCommand_speedcontrolpowerincrease(TTrain *Train, command_data const &Command) {
+	if (Command.action == GLFW_PRESS) {
+		// only reacting to press, so the switch doesn't flip back and forth if key is held down
+		Train->mvOccupied->SpeedCtrlPowerInc();
+		// visual feedback
+		Train->ggSpeedControlPowerIncreaseButton.UpdateValue(1.0, Train->dsbSwitch);
+	}
+	else if (Command.action == GLFW_RELEASE) {
+		// release
+		// visual feedback
+		Train->ggSpeedControlPowerIncreaseButton.UpdateValue(0.0, Train->dsbSwitch);
+	}
+};
+
+void TTrain::OnCommand_speedcontrolpowerdecrease(TTrain *Train, command_data const &Command) {
+	if (Command.action == GLFW_PRESS) {
+		// only reacting to press, so the switch doesn't flip back and forth if key is held down
+		Train->mvOccupied->SpeedCtrlPowerDec();
+		// visual feedback
+		Train->ggSpeedControlPowerDecreaseButton.UpdateValue(1.0, Train->dsbSwitch);
+	}
+	else if (Command.action == GLFW_RELEASE) {
+		// release
+		// visual feedback
+		Train->ggSpeedControlPowerDecreaseButton.UpdateValue(0.0, Train->dsbSwitch);
+	}
+};
+
+void TTrain::OnCommand_speedcontrolbutton(TTrain *Train, command_data const &Command) {
+
+	auto const itemindex = static_cast<int>(Command.command) - static_cast<int>(user_command::speedcontrolbutton0);
+	auto &item = Train->ggSpeedCtrlButtons[itemindex];
+
+	if (Command.action == GLFW_PRESS) {
+		// only reacting to press, so the switch doesn't flip back and forth if key is held down
+		Train->mvOccupied->SpeedCtrlButton(itemindex);
+		// visual feedback
+		Train->ggSpeedCtrlButtons[itemindex].UpdateValue(1.0, Train->dsbSwitch);
+	}
+	else if (Command.action == GLFW_RELEASE) {
+		// release
+		// visual feedback
+		Train->ggSpeedCtrlButtons[itemindex].UpdateValue(0.0, Train->dsbSwitch);
+	}
+};
+
 void TTrain::OnCommand_doorlocktoggle( TTrain *Train, command_data const &Command ) {
 
     if( Train->ggDoorSignallingButton.SubModel == nullptr ) {
@@ -6460,6 +6550,15 @@ bool TTrain::Update( double const Deltatime )
             ggHelperButton.UpdateValue( DynamicObject->Mechanik->HelperState );
         }
 		ggHelperButton.Update();
+
+		ggSpeedControlIncreaseButton.Update();
+		ggSpeedControlDecreaseButton.Update();
+		ggSpeedControlPowerIncreaseButton.Update();
+		ggSpeedControlDecreaseButton.Update();
+		for (auto &speedctrlbutton : ggSpeedCtrlButtons) {
+			speedctrlbutton.Update();
+		}
+
         for( auto &universal : ggUniversals ) {
             universal.Update();
         }
@@ -7616,6 +7715,13 @@ void TTrain::clear_cab_controls()
     ggWhistleButton.Clear();
 	ggHelperButton.Clear();
     ggNextCurrentButton.Clear();
+	ggSpeedControlIncreaseButton.Clear();
+	ggSpeedControlDecreaseButton.Clear();
+	ggSpeedControlPowerIncreaseButton.Clear();
+	ggSpeedControlDecreaseButton.Clear();
+	for (auto &speedctrlbutton : ggSpeedCtrlButtons) {
+		speedctrlbutton.Clear();
+	}
     for( auto &universal : ggUniversals ) {
         universal.Clear();
     }
@@ -8364,7 +8470,21 @@ bool TTrain::initialize_gauge(cParser &Parser, std::string const &Label, int con
         { "universal6:", ggUniversals[ 6 ] },
         { "universal7:", ggUniversals[ 7 ] },
         { "universal8:", ggUniversals[ 8 ] },
-        { "universal9:", ggUniversals[ 9 ] }
+        { "universal9:", ggUniversals[ 9 ] },
+		{ "speedinc_bt:", ggSpeedControlIncreaseButton },
+		{ "speeddec_bt:", ggSpeedControlDecreaseButton },
+		{ "speedctrlpowerinc_bt:", ggSpeedControlPowerIncreaseButton },
+		{ "speedctrlpowerdec_bt:", ggSpeedControlPowerDecreaseButton },
+		{ "speedbutton0:", ggSpeedCtrlButtons[ 0 ] },
+		{ "speedbutton1:", ggSpeedCtrlButtons[ 1 ] },
+		{ "speedbutton2:", ggSpeedCtrlButtons[ 2 ] },
+		{ "speedbutton3:", ggSpeedCtrlButtons[ 3 ] },
+		{ "speedbutton4:", ggSpeedCtrlButtons[ 4 ] },
+		{ "speedbutton5:", ggSpeedCtrlButtons[ 5 ] },
+		{ "speedbutton6:", ggSpeedCtrlButtons[ 6 ] },
+		{ "speedbutton7:", ggSpeedCtrlButtons[ 7 ] },
+		{ "speedbutton8:", ggSpeedCtrlButtons[ 8 ] },
+		{ "speedbutton9:", ggSpeedCtrlButtons[ 9 ] }
     };
     {
         auto lookup = gauges.find( Label );

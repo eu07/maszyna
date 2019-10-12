@@ -2763,8 +2763,10 @@ bool TDynamicObject::Update(double dt, double dt1)
 			&& (MoverParameters->EngineType == TEngineType::DieselEngine)
 			&& (MoverParameters->EIMCtrlType > 0)) {
 			MoverParameters->CheckEIMIC(dt1);
-			MoverParameters->eimic_real = MoverParameters->eimic;
-			MoverParameters->SendCtrlToNext("EIMIC", MoverParameters->eimic, MoverParameters->CabNo);
+			if (MoverParameters->SpeedCtrl)
+				MoverParameters->CheckSpeedCtrl(dt1);
+			MoverParameters->eimic_real = std::min(MoverParameters->eimic,MoverParameters->eimicSpeedCtrl);
+			MoverParameters->SendCtrlToNext("EIMIC", MoverParameters->eimic_real, MoverParameters->CabNo);
 		}
 		if( ( Mechanik->Primary() )
          && ( MoverParameters->EngineType == TEngineType::ElectricInductionMotor ) ) {
@@ -2784,10 +2786,10 @@ bool TDynamicObject::Update(double dt, double dt1)
 			if (MoverParameters->Power < 1)
 			{
 				MoverParameters->MainCtrlPos = ctOwner->Controlling()->MainCtrlPos*MoverParameters->MainCtrlPosNo / std::max(1, ctOwner->Controlling()->MainCtrlPosNo);
-				MoverParameters->ScndCtrlActualPos = ctOwner->Controlling()->ScndCtrlActualPos;
+				MoverParameters->SpeedCtrlValue = ctOwner->Controlling()->SpeedCtrlValue;
 			}
 			MoverParameters->CheckEIMIC(dt1);
-			MoverParameters->CheckSpeedCtrl();
+			MoverParameters->CheckSpeedCtrl(dt1);
 
 			auto eimic = Min0R(MoverParameters->eimic, MoverParameters->eimicSpeedCtrl);
 			MoverParameters->eimic_real = eimic;

@@ -237,7 +237,20 @@ enum class user_command {
 	springbrakeshutoffenable,
 	springbrakeshutoffdisable,
 	springbrakerelease,
-
+	speedcontrolincrease,
+	speedcontroldecrease,
+	speedcontrolpowerincrease,
+	speedcontrolpowerdecrease,
+	speedcontrolbutton0,
+	speedcontrolbutton1,
+	speedcontrolbutton2,
+	speedcontrolbutton3,
+	speedcontrolbutton4,
+	speedcontrolbutton5,
+	speedcontrolbutton6,
+	speedcontrolbutton7,
+	speedcontrolbutton8,
+	speedcontrolbutton9,
     none = -1
 };
 

@@ -679,7 +679,32 @@ struct neighbour_data {
     float distance { 10000.f }; // distance to the obstacle // NOTE: legacy value. TBD, TODO: use standard -1 instead?
 };
 
-
+struct speed_control {
+	bool IsActive = false;
+	bool Start = false;
+	bool ManualStateOverride = true;
+	bool BrakeIntervention = false;
+	bool BrakeInterventionBraking = false;
+	bool BrakeInterventionUnbraking = false;
+	bool Standby = true;
+	bool Parking = false;
+	double InitialPower = 0.3;
+	double FullPowerVelocity = 3;
+	double StartVelocity = 3;
+	double VelocityStep = 5;
+	double PowerStep = 0.1;
+	double MinPower = 0.3;
+	double MaxPower = 1.0;
+	double MinVelocity = 20;
+	double MaxVelocity = 120;
+	double DesiredVelocity = 0;
+	double DesiredPower = 1.0;
+	double Offset = -0.5;
+	double FactorPpos = 0.1;
+	double FactorPneg = 0.4;
+	double FactorIpos = 0.04;
+	double FactorIneg = 0.0;
+};
 
 class TMoverParameters
 { // Ra: wrapper na kod pascalowy, przejmujący jego funkcje  Q: 20160824 - juz nie wrapper a klasa bazowa :)
@@ -1185,7 +1210,11 @@ public:
 #endif
     double MirrorMaxShift { 90.0 };
 	bool ScndS = false; /*Czy jest bocznikowanie na szeregowej*/
+	bool SpeedCtrl = false; /*czy jest tempomat*/
+	speed_control SpeedCtrlUnit; /*parametry tempomatu*/
+	double SpeedCtrlButtons[10] { 30, 40, 50, 60, 70, 80, 90, 100, 110, 120 }; /*przyciski prędkości*/
 	double SpeedCtrlDelay = 2; /*opoznienie dzialania tempomatu z wybieralna predkoscia*/
+	double SpeedCtrlValue = 0; /*wybrana predkosc jazdy na tempomacie*/
     /*--sekcja zmiennych*/
     /*--opis konkretnego egzemplarza taboru*/
     TLocation Loc { 0.0, 0.0, 0.0 }; //pozycja pojazdów do wyznaczenia odległości pomiędzy sprzęgami
@@ -1398,6 +1427,7 @@ public:
     static std::vector<std::string> const eimv_labels;
 	double SpeedCtrlTimer = 0; /*zegar dzialania tempomatu z wybieralna predkoscia*/
 	double eimicSpeedCtrl = 0; /*pozycja sugerowana przez tempomat*/
+	double eimicSpeedCtrlIntegral = 0; /*calkowany blad ustawienia predkosci*/
 	double NewSpeed = 0; /*nowa predkosc do zadania*/
 	double MED_EPVC_CurrentTime = 0; /*aktualny czas licznika czasu korekcji siły EP*/
 
@@ -1625,7 +1655,12 @@ public:
     bool PantRear( bool const State, range_t const Notify = range_t::consist ); //obsluga pantografu tylnego
 
 	void CheckEIMIC(double dt); //sprawdzenie i zmiana nastawy zintegrowanego nastawnika jazdy/hamowania
-	void CheckSpeedCtrl();
+	void CheckSpeedCtrl(double dt);
+	void SpeedCtrlButton(int button);
+	void SpeedCtrlInc();
+	void SpeedCtrlDec();
+	void SpeedCtrlPowerInc();
+	void SpeedCtrlPowerDec();
 
 							   /*-funkcje typowe dla lokomotywy spalinowej z przekladnia mechaniczna*/
 	bool dizel_EngageSwitch(double state);
@@ -1675,6 +1710,7 @@ private:
     void LoadFIZ_Security( std::string const &line );
     void LoadFIZ_Clima( std::string const &line );
     void LoadFIZ_Power( std::string const &Line );
+	void LoadFIZ_SpeedControl( std::string const &Line );
     void LoadFIZ_Engine( std::string const &Input );
     void LoadFIZ_Switches( std::string const &Input );
     void LoadFIZ_MotorParamTable( std::string const &Input );

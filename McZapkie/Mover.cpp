@@ -1789,7 +1789,10 @@ bool TMoverParameters::IncMainCtrl(int CtrlSpeed)
 					++MainCtrlPos;
                         OK = true;
 						if ((EIMCtrlType == 0) && (SpeedCtrlAutoTurnOffFlag == 1) && (MainCtrlActualPos != MainCtrlPos))
+						{
 							DecScndCtrl(2);
+							SpeedCtrlUnit.IsActive = false;
+						}
 					}
                     break;
                 }
@@ -1952,8 +1955,10 @@ bool TMoverParameters::DecMainCtrl(int CtrlSpeed)
                         {
                             MainCtrlPos--;
                             OK = true;
-							if ((EIMCtrlType == 0) && (SpeedCtrlAutoTurnOffFlag == 1) && (MainCtrlActualPos != MainCtrlPos))
+							if ((EIMCtrlType == 0) && (SpeedCtrlAutoTurnOffFlag == 1) && (MainCtrlActualPos != MainCtrlPos)) {
 								DecScndCtrl(2);
+								SpeedCtrlUnit.IsActive = false;
+							}
                         }
                         else if (CtrlSpeed > 1)
                             OK = (DecMainCtrl(1) && DecMainCtrl(2)); // CtrlSpeed-1);
@@ -2099,14 +2104,22 @@ bool TMoverParameters::IncScndCtrl(int CtrlSpeed)
 	{
 		// NOTE: round() already adds 0.5, are the ones added here as well correct?
 		if ((Vmax < 250))
-			ScndCtrlActualPos = Round(Vel);
+			SpeedCtrlValue = Round(Vel);
 		else
-			ScndCtrlActualPos = Round(Vel * 0.5);
+			SpeedCtrlValue = Round(Vel * 0.5);
 		if ((EIMCtrlType == 0)&&(SpeedCtrlAutoTurnOffFlag == 1))
 		{
 			MainCtrlActualPos = MainCtrlPos;
 		}
-		SendCtrlToNext("SpeedCntrl", ScndCtrlActualPos, CabNo);
+		SpeedCtrlUnit.IsActive = true;
+		SendCtrlToNext("SpeedCntrl", SpeedCtrlValue, CabNo);
+	}
+
+	if ((OK) && (SpeedCtrl) && (ScndCtrlPos == 1) && (EngineType == TEngineType::DieselEngine))
+	{
+		// NOTE: round() already adds 0.5, are the ones added here as well correct?
+		SpeedCtrlValue = Round(Vel);
+		SpeedCtrlUnit.IsActive = true;
 	}
 
     return OK;
@@ -2159,8 +2172,16 @@ bool TMoverParameters::DecScndCtrl(int CtrlSpeed)
 
 	if ((OK) && (EngineType == TEngineType::ElectricInductionMotor) && (ScndCtrlPosNo == 1))
 	{
-		ScndCtrlActualPos = 0;
-		SendCtrlToNext("SpeedCntrl", ScndCtrlActualPos, CabNo);
+		SpeedCtrlValue = 0;
+		SendCtrlToNext("SpeedCntrl", SpeedCtrlValue, CabNo);
+		SpeedCtrlUnit.IsActive = false;
+	}
+
+	if ((OK) && (SpeedCtrl) && (ScndCtrlPos == 0) && (EngineType == TEngineType::DieselEngine))
+	{
+		// NOTE: round() already adds 0.5, are the ones added here as well correct?
+		SpeedCtrlValue = 0;
+		SpeedCtrlUnit.IsActive = false;
 	}
 
     return OK;
@@ -3811,8 +3832,13 @@ void TMoverParameters::UpdatePipePressure(double dt)
 
     if( BrakeCtrlPosNo > 1 ) {
 
-		if ((EngineType != TEngineType::ElectricInductionMotor))
-			dpLocalValve = LocHandle->GetPF(std::max(LocalBrakePosA, LocalBrakePosAEIM), Hamulec->GetBCP(), ScndPipePress, dt, 0);
+		if ((EngineType != TEngineType::ElectricInductionMotor)) {
+			double lbpa = LocalBrakePosA;
+			if (SpeedCtrlUnit.Parking) {
+				lbpa = std::max(lbpa, StopBrakeDecc);
+			}
+			dpLocalValve = LocHandle->GetPF(std::max(lbpa, LocalBrakePosAEIM), Hamulec->GetBCP(), ScndPipePress, dt, 0);
+		}
 		else
 			dpLocalValve = LocHandle->GetPF(LocalBrakePosAEIM, Hamulec->GetBCP(), ScndPipePress, dt, 0);
 
@@ -3841,7 +3867,15 @@ void TMoverParameters::UpdatePipePressure(double dt)
              || ( ( Handle->GetPos( bh_EB ) - 0.5 ) < BrakeCtrlPosR )
              || ( ( BrakeHandle != TBrakeHandle::MHZ_EN57 )
                && ( BrakeHandle != TBrakeHandle::MHZ_K8P ) ) ) {
-                dpMainValve = Handle->GetPF( BrakeCtrlPosR, PipePress, temp, dt, EqvtPipePress );
+				double pos = BrakeCtrlPosR;
+				if (SpeedCtrl && SpeedCtrlUnit.BrakeIntervention && !SpeedCtrlUnit.Standby) {
+					pos = Handle->GetPos(bh_NP);
+					if (SpeedCtrlUnit.BrakeInterventionBraking)
+						pos = Handle->GetPos(bh_FB);
+					if (SpeedCtrlUnit.BrakeInterventionUnbraking)
+						pos = Handle->GetPos(bh_RP);
+				}
+                dpMainValve = Handle->GetPF( pos, PipePress, temp, dt, EqvtPipePress );
             }
             else {
                 dpMainValve = Handle->GetPF( 0, PipePress, temp, dt, EqvtPipePress );
@@ -5383,7 +5417,7 @@ double TMoverParameters::TractionForce( double dt ) {
 					switch (ScndCtrlPos) {
 					case 0:
 						NewSpeed = 0;
-						ScndCtrlActualPos = 0;
+						SpeedCtrlValue = 0;
 						SpeedCtrlTimer = 10;
 						break;
 					case 1:
@@ -5397,7 +5431,7 @@ double TMoverParameters::TractionForce( double dt ) {
 					break;
 					case 2:
 						SpeedCtrlTimer = 10;
-						ScndCtrlActualPos = NewSpeed;
+						SpeedCtrlValue = NewSpeed;
 						break;
 					case 3:
 						if (SpeedCtrlTimer > SpeedCtrlDelay) {
@@ -5410,7 +5444,7 @@ double TMoverParameters::TractionForce( double dt ) {
 						break;
 					case 4:
 						NewSpeed = Vmax;
-						ScndCtrlActualPos = Vmax;
+						SpeedCtrlValue = Vmax;
 						SpeedCtrlTimer = 10;
 						break;
 					}
@@ -5429,10 +5463,10 @@ double TMoverParameters::TractionForce( double dt ) {
 						if (SpeedCtrlTimer > SpeedCtrlDelay)
 						{
 							int NewSCAP = (Vmax < 250 ? 1 : 0.5) * (float)ScndCtrlPos / (float)ScndCtrlPosNo * Vmax;
-							if (NewSCAP != ScndCtrlActualPos)
+							if (NewSCAP != SpeedCtrlValue)
 							{
-								ScndCtrlActualPos = NewSCAP;
-//								SendCtrlToNext("SpeedCntrl", ScndCtrlActualPos, CabNo);
+								SpeedCtrlValue = NewSCAP;
+//								SendCtrlToNext("SpeedCntrl", SpeedCtrlValue, CabNo);
 							}
 						}
 					}
@@ -5489,12 +5523,12 @@ double TMoverParameters::TractionForce( double dt ) {
                     eimv[eimv_Fzad] = PosRatio;
                     if ((Flat) && (eimc[eimc_p_F0] * eimv[eimv_Fful] > 0))
                         PosRatio = Min0R(PosRatio * eimc[eimc_p_F0] / eimv[eimv_Fful], 1);
-/*                    if (ScndCtrlActualPos > 0) //speed control
+/*                    if (SpeedCtrlValue > 0) //speed control
                         if (Vmax < 250)
-                            PosRatio = Min0R(PosRatio, Max0R(-1, 0.5 * (ScndCtrlActualPos - Vel)));
+                            PosRatio = Min0R(PosRatio, Max0R(-1, 0.5 * (SpeedCtrlValue - Vel)));
                         else
                             PosRatio =
-                                Min0R(PosRatio, Max0R(-1, 0.5 * (ScndCtrlActualPos * 2 - Vel))); */
+                                Min0R(PosRatio, Max0R(-1, 0.5 * (SpeedCtrlValue * 2 - Vel))); */
                     // PosRatio = 1.0 * (PosRatio * 0 + 1) * PosRatio; // 1 * 1 * PosRatio = PosRatio
                     Hamulec->SetED(0);
                     //           (Hamulec as TLSt).SetLBP(LocBrakePress);
@@ -6475,15 +6509,106 @@ void TMoverParameters::CheckEIMIC(double dt)
 	eimic = clamp(eimic, -1.0, eimicpowerenabled ? 1.0 : 0.0);
 }
 
-void TMoverParameters::CheckSpeedCtrl()
+void TMoverParameters::CheckSpeedCtrl(double dt)
 {
-	if (ScndCtrlActualPos > 0) //speed control
-		if (Vmax < 250)
-			eimicSpeedCtrl = clamp(0.5 * (ScndCtrlActualPos - Vel), -1.0, 1.0);
-		else
-			eimicSpeedCtrl = clamp(0.5 * (ScndCtrlActualPos * 2 - Vel), -1.0, 1.0);
-	else
+	if (MainCtrlPos < MainCtrlPosNo - 2) {
+		SpeedCtrlUnit.Standby = true;
+	}
+	if (MainCtrlPos > MainCtrlPosNo - 1) {
+		SpeedCtrlUnit.Standby = false;
+	}
+	if (SpeedCtrlUnit.IsActive) {//speed control
+		if (EngineType == TEngineType::DieselEngine) {
+			if ((!SpeedCtrlUnit.Standby)) {
+				if (SpeedCtrlUnit.ManualStateOverride) {
+					if (MainCtrlPos < MainCtrlPosNo - 1) {
+						eimic = std::min(eimic, 0.0);
+						eimicSpeedCtrlIntegral = 0.0;
+					}
+					else if (eimic > 0.009) eimic = 1.0;
+				}
+				double error = (std::max(SpeedCtrlValue + SpeedCtrlUnit.Offset, 0.0) - Vel);
+				double factorP = error > 0 ? SpeedCtrlUnit.FactorPpos : SpeedCtrlUnit.FactorPneg;
+				double eSCP = clamp(factorP * error, -1.2, 1.0);  //P module
+				if (eSCP < -1.0)
+				{
+					SpeedCtrlUnit.BrakeInterventionBraking = (eSCP < -1.1) && (Vel < hydro_TC_UnlockSpeed);
+					eSCP = -1.0;
+				}
+				SpeedCtrlUnit.BrakeInterventionUnbraking = (eSCP > 0.0) || (Vel == 0.0);
+				if (abs(eSCP) < 0.999) {
+					//TODO: check how to disable integral part when braking in smart way
+					//double factorI = eimicSpeedCtrlIntegral >= 0 ? SpeedCtrlUnit.FactorIpos : SpeedCtrlUnit.FactorIneg;
+					double factorI = eimicSpeedCtrlIntegral >= 0 ? SpeedCtrlUnit.FactorIpos : SpeedCtrlUnit.FactorIneg;
+					eimicSpeedCtrlIntegral = clamp(eimicSpeedCtrlIntegral + factorI * eSCP * dt, -1.0 + eSCP, 1.0 - eSCP);
+				}
+				else {
+					eimicSpeedCtrlIntegral = 0;
+				}
+				eimicSpeedCtrl = clamp(eimicSpeedCtrlIntegral + eSCP, -SpeedCtrlUnit.DesiredPower, SpeedCtrlUnit.DesiredPower);
+				if (Vel < SpeedCtrlUnit.FullPowerVelocity) {
+					eimicSpeedCtrl = std::min(eimicSpeedCtrl, SpeedCtrlUnit.InitialPower);
+				}
+				if ((Vel < SpeedCtrlUnit.StartVelocity) && (MainCtrlPos < MainCtrlPosNo)) {
+					eimicSpeedCtrl = 0;
+					eimic = 0;
+				}
+			}
+			else {
+				eimicSpeedCtrl = 1;
+				eimicSpeedCtrlIntegral = 0;
+			}
+			SpeedCtrlUnit.Parking = (Vel == 0.0) & (eimic <= 0);
+			SendCtrlToNext("SpeedCtrlUnit.Parking", SpeedCtrlUnit.Parking, CabNo);
+
+		}
+		else {
+			if (Vmax < 250)
+				eimicSpeedCtrl = clamp(0.5 * (SpeedCtrlValue - Vel), -1.0, 1.0);
+			else
+				eimicSpeedCtrl = clamp(0.5 * (SpeedCtrlValue * 2 - Vel), -1.0, 1.0);
+		}
+	}
+	else {
 		eimicSpeedCtrl = 1;
+		eimicSpeedCtrlIntegral = 0;
+		SpeedCtrlUnit.Parking = false;
+	}
+}
+
+void TMoverParameters::SpeedCtrlButton(int button)
+{
+	if ((SpeedCtrl) && (ScndCtrlPos > 0)) {
+		SpeedCtrlValue = SpeedCtrlButtons[button];
+	}
+}
+
+void TMoverParameters::SpeedCtrlInc()
+{
+	if ((SpeedCtrl) && (ScndCtrlPos > 0)) {
+		SpeedCtrlValue = std::min(SpeedCtrlValue + SpeedCtrlUnit.VelocityStep, SpeedCtrlUnit.MaxVelocity);
+	}
+}
+
+void TMoverParameters::SpeedCtrlDec()
+{
+	if ((SpeedCtrl) && (ScndCtrlPos > 0)) {
+		SpeedCtrlValue = std::max(SpeedCtrlValue - SpeedCtrlUnit.VelocityStep, SpeedCtrlUnit.MinVelocity);
+	}
+}
+
+void TMoverParameters::SpeedCtrlPowerInc()
+{
+	if ((SpeedCtrl) && (ScndCtrlPos > 0)) {
+		SpeedCtrlUnit.DesiredPower = std::min(SpeedCtrlUnit.DesiredPower + SpeedCtrlUnit.PowerStep, SpeedCtrlUnit.MaxPower);
+	}
+}
+
+void TMoverParameters::SpeedCtrlPowerDec()
+{
+	if ((SpeedCtrl) && (ScndCtrlPos > 0)) {
+		SpeedCtrlUnit.DesiredPower = std::max(SpeedCtrlUnit.DesiredPower - SpeedCtrlUnit.PowerStep, SpeedCtrlUnit.MinPower);
+	}
 }
 
 // *************************************************************************************************
@@ -8489,6 +8614,14 @@ bool TMoverParameters::LoadFIZ(std::string chkpath)
             continue;
         }
 
+		if (issection("SpeedControl:", inputline))
+		{
+			startBPT = false;
+			fizlines.emplace("SpeedControl", inputline);
+			LoadFIZ_SpeedControl(inputline);
+			continue;
+		}
+
         if( issection( "Engine:", inputline ) )
         {
 			startBPT = false;
@@ -9240,14 +9373,6 @@ void TMoverParameters::LoadFIZ_Cntrl( std::string const &line ) {
 
     extract_value( StopBrakeDecc, "SBD", line, "" );
 
-    // speed control
-    extract_value( SpeedCtrlDelay, "SpeedCtrlDelay", line, "" );
-	SpeedCtrlTypeTime =
-		(extract_value("SpeedCtrlType", line) == "Time") ?
-		true :
-		false;
-	extract_value(SpeedCtrlAutoTurnOffFlag, "SpeedCtrlATOF", line, "");
-
     // converter
     {
         std::map<std::string, start_t> starts {
@@ -9424,6 +9549,51 @@ void TMoverParameters::LoadFIZ_Power( std::string const &Line ) {
 
     SystemPowerSource.SourceType = LoadFIZ_SourceDecode( extract_value( "SystemPower", Line ) );
     LoadFIZ_PowerParamsDecode( SystemPowerSource, "", Line );
+}
+
+void TMoverParameters::LoadFIZ_SpeedControl(std::string const &Line) {
+	// speed control
+	SpeedCtrl = extract_value("SpeedCtrl", Line) == "Yes";
+	if ((!SpeedCtrl) && (EngineType == TEngineType::ElectricInductionMotor) && (ScndCtrlPosNo > 0)) //backward compatibility
+		SpeedCtrl = true;
+	extract_value(SpeedCtrlDelay, "SpeedCtrlDelay", Line, "");
+	SpeedCtrlTypeTime =
+		(extract_value("SpeedCtrlType", Line) == "Time") ?
+		true :
+		false;
+	extract_value(SpeedCtrlAutoTurnOffFlag, "SpeedCtrlATOF", Line, "");
+
+	auto speedpresets = Split(extract_value("SpeedButtons", Line), '|');
+	int speed_no = 0;
+	for (auto const &speed : speedpresets) {
+		SpeedCtrlButtons[speed_no++] = std::stod(speed);
+		if (speed_no > 9) break;
+	}
+	SpeedCtrlUnit.ManualStateOverride =
+		(extract_value("OverrideManual", Line) == "Yes") ?
+		true :
+		false;
+
+	SpeedCtrlUnit.BrakeIntervention =
+		(extract_value("BrakeIntervention", Line) == "Yes") ?
+		true :
+		false;
+
+	extract_value(SpeedCtrlUnit.InitialPower, "InitPwr", Line, "");
+	extract_value(SpeedCtrlUnit.FullPowerVelocity, "MaxPwrVel", Line, "");
+	extract_value(SpeedCtrlUnit.StartVelocity, "StartVel", Line, "");
+	extract_value(SpeedCtrlUnit.VelocityStep, "VelStep", Line, "");
+	extract_value(SpeedCtrlUnit.PowerStep, "PwrStep", Line, "");
+	extract_value(SpeedCtrlUnit.MinPower, "MinPwr", Line, "");
+	extract_value(SpeedCtrlUnit.MaxPower, "MaxPwr", Line, "");
+	extract_value(SpeedCtrlUnit.MinVelocity, "MinVel", Line, "");
+	extract_value(SpeedCtrlUnit.MaxVelocity, "MaxVel", Line, "");
+	extract_value(SpeedCtrlUnit.Offset, "Offset", Line, "");
+	extract_value(SpeedCtrlUnit.FactorPpos, "kPpos", Line, "");
+	extract_value(SpeedCtrlUnit.FactorPneg, "kPneg", Line, "");
+	extract_value(SpeedCtrlUnit.FactorIpos, "kIpos", Line, "");
+	extract_value(SpeedCtrlUnit.FactorIneg, "kIneg", Line, "");
+
 }
 
 void TMoverParameters::LoadFIZ_Engine( std::string const &Input ) {
@@ -10879,8 +11049,13 @@ bool TMoverParameters::RunCommand( std::string Command, double CValue1, double C
     }
 	else if (Command == "SpeedCntrl")
 	{
-		if ((EngineType == TEngineType::ElectricInductionMotor))
-				ScndCtrlActualPos = static_cast<int>(round(CValue1));
+		if ((EngineType == TEngineType::ElectricInductionMotor)||(SpeedCtrl))
+				SpeedCtrlValue = static_cast<int>(round(CValue1));
+		OK = SendCtrlToNext(Command, CValue1, CValue2, Couplertype);
+	}
+	else if (Command == "SpeedCtrlUnit.Parking")
+	{
+		SpeedCtrlUnit.Parking = static_cast<bool>(CValue1);
 		OK = SendCtrlToNext(Command, CValue1, CValue2, Couplertype);
 	}
 	else if (Command == "SpringBrakeActivate")

@@ -360,6 +360,12 @@ class TTrain
 	static void OnCommand_springbrakeshutoffenable(TTrain *Train, command_data const &Command);
 	static void OnCommand_springbrakeshutoffdisable(TTrain *Train, command_data const &Command);
 	static void OnCommand_springbrakerelease(TTrain *Train, command_data const &Command);
+	static void OnCommand_speedcontrolincrease(TTrain *Train, command_data const &Command);
+	static void OnCommand_speedcontroldecrease(TTrain *Train, command_data const &Command);
+	static void OnCommand_speedcontrolpowerincrease(TTrain *Train, command_data const &Command);
+	static void OnCommand_speedcontrolpowerdecrease(TTrain *Train, command_data const &Command);
+	static void OnCommand_speedcontrolbutton(TTrain *Train, command_data const &Command);
+
 
 
 // members
@@ -465,6 +471,13 @@ public: // reszta może by?publiczna
     TGauge ggWhistleButton;
 	TGauge ggHelperButton;
     TGauge ggNextCurrentButton;
+
+	// yB 191005 - tempomat
+	TGauge ggSpeedControlIncreaseButton;
+	TGauge ggSpeedControlDecreaseButton;
+	TGauge ggSpeedControlPowerIncreaseButton;
+	TGauge ggSpeedControlPowerDecreaseButton;
+	std::array<TGauge, 10> ggSpeedCtrlButtons; // NOTE: temporary arrangement until we have dynamically built control table
 
     std::array<TGauge, 10> ggUniversals; // NOTE: temporary arrangement until we have dynamically built control table
 
