@@ -6649,15 +6649,15 @@ void TMoverParameters::CheckSpeedCtrl(double dt)
 		if (EngineType == TEngineType::DieselEngine) {
 			if ((!SpeedCtrlUnit.Standby)) {
 				if (SpeedCtrlUnit.ManualStateOverride) {
-					if (MainCtrlPos < MainCtrlPosNo - 1) {
+/*					if (MainCtrlPos < MainCtrlPosNo - 1) {
 						eimic = std::min(eimic, 0.0);
 						eimicSpeedCtrlIntegral = 0.0;
-					}
-					else if (eimic > 0.009) eimic = 1.0;
+					} 
+					else*/ if (eimic > 0.009) eimic = 1.0;
 				}
 				double error = (std::max(SpeedCtrlValue + SpeedCtrlUnit.Offset, 0.0) - Vel);
 				double factorP = error > 0 ? SpeedCtrlUnit.FactorPpos : SpeedCtrlUnit.FactorPneg;
-				double eSCP = clamp(factorP * error, -1.2, 1.0);  //P module
+				double eSCP = clamp(factorP * error, -1.2, UniCtrlList[MainCtrlPos].MaxCtrlVal);  //P module
 				if (eSCP < -1.0)
 				{
 					SpeedCtrlUnit.BrakeInterventionBraking = (eSCP < -1.1) && (Vel < hydro_TC_UnlockSpeed);
