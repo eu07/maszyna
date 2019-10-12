@@ -1084,9 +1084,9 @@ debug_panel::update_section_renderer( std::vector<text_line> &Output ) {
             auto textline =
                 "FoV: " + to_string( Global.FieldOfView / Global.ZoomFactor, 1 )
                 + ", Draw range x " + to_string( Global.fDistanceFactor, 1 )
-//                + "; sectors: " + std::to_string( GfxRenderer.m_drawcount )
+//                + "; sectors: " + std::to_string( GfxRenderer->m_drawcount )
 //                + ", FPS: " + to_string( Timer::GetFPS(), 2 );
-                + ", FPS: " + std::to_string( static_cast<int>(std::round(GfxRenderer.Framerate())) );
+                + ", FPS: " + std::to_string( static_cast<int>(std::round(GfxRenderer->Framerate())) );
             if( Global.iSlowMotion ) {
                 textline += " (slowmotion " + to_string( Global.iSlowMotion ) + ")";
             }
@@ -1108,8 +1108,8 @@ debug_panel::update_section_renderer( std::vector<text_line> &Output ) {
             Output.emplace_back( textline, Global.UITextColor );
 
             // renderer stats
-            Output.emplace_back( GfxRenderer.info_times(), Global.UITextColor );
-            Output.emplace_back( GfxRenderer.info_stats(), Global.UITextColor );
+            Output.emplace_back( GfxRenderer->info_times(), Global.UITextColor );
+            Output.emplace_back( GfxRenderer->info_stats(), Global.UITextColor );
 }
 
 bool

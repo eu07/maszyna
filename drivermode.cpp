@@ -238,7 +238,7 @@ driver_mode::update() {
 
     // NOTE: particle system runs on simulation time, but needs actual camera position to determine how to update each particle source
     simulation::Particles.update();
-    GfxRenderer.Update( deltarealtime );
+    GfxRenderer->Update( deltarealtime );
 
     simulation::is_ready = true;
 

@@ -173,7 +173,7 @@ material_data::assign( std::string const &Replacableskin ) {
         int skinindex = 0;
         std::string texturename; nameparser >> texturename;
         while( ( texturename != "" ) && ( skinindex < 4 ) ) {
-            replacable_skins[ skinindex + 1 ] = GfxRenderer.Fetch_Material( texturename );
+            replacable_skins[ skinindex + 1 ] = GfxRenderer->Fetch_Material( texturename );
             ++skinindex;
             texturename = ""; nameparser >> texturename;
         }
@@ -188,33 +188,33 @@ material_data::assign( std::string const &Replacableskin ) {
             auto const material { TextureTest( ToLower( Replacableskin + "," + std::to_string( skinindex + 1 ) ) ) };
             if( true == material.empty() ) { break; }
 
-            replacable_skins[ skinindex + 1 ] = GfxRenderer.Fetch_Material( material );
+            replacable_skins[ skinindex + 1 ] = GfxRenderer->Fetch_Material( material );
             ++skinindex;
         } while( skinindex < 4 );
         multi_textures = skinindex;
         if( multi_textures == 0 ) {
             // zestaw nie zadziałał, próbujemy normanie
-            replacable_skins[ 1 ] = GfxRenderer.Fetch_Material( Replacableskin );
+            replacable_skins[ 1 ] = GfxRenderer->Fetch_Material( Replacableskin );
         }
     }
     if( replacable_skins[ 1 ] == null_handle ) {
         // last ditch attempt, check for single replacable skin texture
-        replacable_skins[ 1 ] = GfxRenderer.Fetch_Material( Replacableskin );
+        replacable_skins[ 1 ] = GfxRenderer->Fetch_Material( Replacableskin );
     }
 
     textures_alpha = (
-        GfxRenderer.Material( replacable_skins[ 1 ] ).has_alpha ?
+        GfxRenderer->Material( replacable_skins[ 1 ] ).has_alpha ?
             0x31310031 :  // tekstura -1 z kanałem alfa - nie renderować w cyklu nieprzezroczystych
             0x30300030 ); // wszystkie tekstury nieprzezroczyste - nie renderować w cyklu przezroczystych
-    if( GfxRenderer.Material( replacable_skins[ 2 ] ).has_alpha ) {
+    if( GfxRenderer->Material( replacable_skins[ 2 ] ).has_alpha ) {
         // tekstura -2 z kanałem alfa - nie renderować w cyklu nieprzezroczystych
         textures_alpha |= 0x02020002;
     }
-    if( GfxRenderer.Material( replacable_skins[ 3 ] ).has_alpha ) {
+    if( GfxRenderer->Material( replacable_skins[ 3 ] ).has_alpha ) {
         // tekstura -3 z kanałem alfa - nie renderować w cyklu nieprzezroczystych
         textures_alpha |= 0x04040004;
     }
-    if( GfxRenderer.Material( replacable_skins[ 4 ] ).has_alpha ) {
+    if( GfxRenderer->Material( replacable_skins[ 4 ] ).has_alpha ) {
         // tekstura -4 z kanałem alfa - nie renderować w cyklu nieprzezroczystych
         textures_alpha |= 0x08080008;
     }
@@ -6327,7 +6327,7 @@ void TDynamicObject::DestinationSet(std::string to, std::string numer) {
         signrequest += "&" + DestinationSign.parameters;
     }
 
-    DestinationSign.destination = GfxRenderer.Fetch_Material( signrequest );
+    DestinationSign.destination = GfxRenderer->Fetch_Material( signrequest );
 }
 
 material_handle TDynamicObject::DestinationFind( std::string Destination ) {
@@ -6348,7 +6348,7 @@ material_handle TDynamicObject::DestinationFind( std::string Destination ) {
     for( auto const &destination : destinations ) {
         auto material = TextureTest( ToLower( destination ) );
         if( false == material.empty() ) {
-            destinationhandle = GfxRenderer.Fetch_Material( material );
+            destinationhandle = GfxRenderer->Fetch_Material( material );
             break;
         }
     }

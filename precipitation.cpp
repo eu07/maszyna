@@ -98,11 +98,11 @@ basic_precipitation::init() {
             "_medium" ) };
     if( Global.Weather == "rain:" ) {
         m_moverateweathertypefactor = 2.f;
-        m_texture = GfxRenderer.Fetch_Texture( "fx/rain" + densitysuffix );
+        m_texture = GfxRenderer->Fetch_Texture( "fx/rain" + densitysuffix );
     }
     else if( Global.Weather == "snow:" ) {
         m_moverateweathertypefactor = 1.25f;
-        m_texture = GfxRenderer.Fetch_Texture( "fx/snow" + densitysuffix );
+        m_texture = GfxRenderer->Fetch_Texture( "fx/snow" + densitysuffix );
     }
 
     return true;
@@ -163,7 +163,7 @@ basic_precipitation::update() {
 void
 basic_precipitation::render() {
 
-    GfxRenderer.Bind_Texture( m_texture );
+    GfxRenderer->Bind_Texture( m_texture );
 
     // cache entry state
     ::glPushClientAttrib( GL_CLIENT_VERTEX_ARRAY_BIT );

@@ -24,7 +24,7 @@ http://mozilla.org/MPL/2.0/.
 #include "Logs.h"
 #include "utilities.h"
 
-opengl_renderer GfxRenderer;
+std::unique_ptr<gfx_renderer> GfxRenderer;
 
 int const EU07_PICKBUFFERSIZE { 1024 }; // size of (square) textures bound with the pick framebuffer
 int const EU07_ENVIRONMENTBUFFERSIZE { 256 }; // size of (square) environmental cube map texture
@@ -1610,7 +1610,7 @@ opengl_renderer::Render( world_environment *Environment ) {
         ::glRotatef( -std::fmod( (float)Global.fTimeAngleDeg, 360.f ), 0.f, 1.f, 0.f ); // obrót dobowy osi OX
         ::glPointSize( 2.f );
         // render
-        GfxRenderer.Render( Environment->m_stars.m_stars, nullptr, 1.0 );
+        Render( Environment->m_stars.m_stars, nullptr, 1.0 );
         // post-render cleanup
         ::glPointSize( 3.f );
         ::glPopMatrix();
@@ -4202,12 +4202,14 @@ opengl_renderer::Init_caps() {
 #ifdef EU07_USEIMGUIIMPLOPENGL2
     if( !GLEW_VERSION_1_5 ) {
         ErrorLog( "Requires openGL >= 1.5" );
+        return false;
+    }
 #else
     if( !GLEW_VERSION_3_0 ) {
         ErrorLog( "Requires openGL >= 3.0" );
-#endif
         return false;
     }
+#endif
 
     WriteLog( "Supported extensions: " +  std::string((char *)glGetString( GL_EXTENSIONS )) );
 

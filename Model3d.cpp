@@ -371,14 +371,14 @@ int TSubModel::Load( cParser &parser, TModel3d *Model, /*int Pos,*/ bool dynamic
                 material.insert( 0, Global.asCurrentTexturePath );
             }
 */
-            m_material = GfxRenderer.Fetch_Material( material );
+            m_material = GfxRenderer->Fetch_Material( material );
             // renderowanie w cyklu przezroczystych tylko jeśli:
             // 1. Opacity=0 (przejściowo <1, czy tam <100) oraz
             // 2. tekstura ma przezroczystość
             iFlags |=
                 ( ( ( Opacity < 1.0 )
                  && ( ( m_material != null_handle )
-                   && ( GfxRenderer.Material( m_material ).has_alpha ) ) ) ?
+                   && ( GfxRenderer->Material( m_material ).has_alpha ) ) ) ?
                     0x20 :
                     0x10 ); // 0x10-nieprzezroczysta, 0x20-przezroczysta
         };
@@ -646,7 +646,7 @@ int TSubModel::TriangleAdd(TModel3d *m, material_handle tex, int tri)
             s = new TSubModel();
             m->AddTo(this, s);
         }
-        s->Name_Material(GfxRenderer.Material(tex).name);
+        s->Name_Material(GfxRenderer->Material(tex).name);
         s->m_material = tex;
         s->eType = GL_TRIANGLES;
     }
@@ -1076,7 +1076,7 @@ void TSubModel::serialize_geometry( std::ostream &Output ) const {
         Child->serialize_geometry( Output );
     }
     if( m_geometry != null_handle ) {
-        for( auto const &vertex : GfxRenderer.Vertices( m_geometry ) ) {
+        for( auto const &vertex : GfxRenderer->Vertices( m_geometry ) ) {
             vertex.serialize( Output );
         }
     }
@@ -1102,7 +1102,7 @@ TSubModel::create_geometry( std::size_t &Dataoffset, gfx::geometrybank_handle co
             eType < TP_ROTATOR ?
                 eType :
                 GL_POINTS );
-        m_geometry = GfxRenderer.Insert( Vertices, Bank, type );
+        m_geometry = GfxRenderer->Insert( Vertices, Bank, type );
     }
 
     if( m_geometry != NULL ) {
@@ -1112,7 +1112,7 @@ TSubModel::create_geometry( std::size_t &Dataoffset, gfx::geometrybank_handle co
         // since we're comparing squared radii, we need to square it back for correct results
         m_boundingradius *= m_boundingradius;
         auto const submodeloffset { offset( std::numeric_limits<float>::max() ) };
-        for( auto const &vertex : GfxRenderer.Vertices( m_geometry ) ) {
+        for( auto const &vertex : GfxRenderer->Vertices( m_geometry ) ) {
             squaredradius = glm::length2( submodeloffset + vertex.position );
             if( squaredradius > m_boundingradius ) {
                 m_boundingradius = squaredradius;
@@ -1214,7 +1214,7 @@ float TSubModel::MaxY( float4x4 const &m ) {
     // binary and text models invoke this function at different stages, either after or before geometry data was sent to the geometry manager
     if( m_geometry != null_handle ) {
 
-        for( auto const &vertex : GfxRenderer.Vertices( m_geometry ) ) {
+        for( auto const &vertex : GfxRenderer->Vertices( m_geometry ) ) {
             maxy = std::max(
                 maxy,
                   m[ 0 ][ 1 ] * vertex.position.x
@@ -1327,7 +1327,7 @@ TSubModel::offset( float const Geometrytestoffsetthreshold ) const {
         // TODO: do proper bounding area calculation for submodel when loading mesh and grab the centre point from it here
         auto const &vertices { (
             m_geometry != null_handle ?
-                GfxRenderer.Vertices( m_geometry ) :
+                GfxRenderer->Vertices( m_geometry ) :
                 Vertices ) };
         if( false == vertices.empty() ) {
             // transformation matrix for the submodel can still contain rotation and/or scaling,
@@ -1596,7 +1596,7 @@ void TModel3d::deserialize(std::istream &s, size_t size, bool dynamic)
 {
 	Root = nullptr;
     if( m_geometrybank == null_handle ) {
-        m_geometrybank = GfxRenderer.Create_Bank();
+        m_geometrybank = GfxRenderer->Create_Bank();
     }
 
 	std::streampos end = s.tellg() + (std::streampos)size;
@@ -1681,7 +1681,7 @@ void TModel3d::deserialize(std::istream &s, size_t size, bool dynamic)
                         break;
                     }
                 }
-                submodel.m_geometry = GfxRenderer.Insert( vertices, m_geometrybank, type );
+                submodel.m_geometry = GfxRenderer->Insert( vertices, m_geometrybank, type );
             }
 
 		}
@@ -1782,12 +1782,12 @@ void TSubModel::BinInit(TSubModel *s, float4x4 *m, std::vector<std::string> *t, 
                 m_materialname = Global.asCurrentTexturePath + m_materialname;
             }
 */
-            m_material = GfxRenderer.Fetch_Material( m_materialname );
+            m_material = GfxRenderer->Fetch_Material( m_materialname );
             if( ( iFlags & 0x30 ) == 0 ) {
                 // texture-alpha based fallback if for some reason we don't have opacity flag set yet
                 iFlags |= (
                     ( ( m_material != null_handle )
-                   && ( GfxRenderer.Material( m_material ).has_alpha ) ) ?
+                   && ( GfxRenderer->Material( m_material ).has_alpha ) ) ?
                         0x20 :
                         0x10 ); // 0x10-nieprzezroczysta, 0x20-przezroczysta
             }
@@ -1920,7 +1920,7 @@ void TModel3d::Init()
 		iFlags |= Root->FlagsCheck() | 0x8000; // flagi całego modelu
         if (iNumVerts) {
             if( m_geometrybank == null_handle ) {
-                m_geometrybank = GfxRenderer.Create_Bank();
+                m_geometrybank = GfxRenderer->Create_Bank();
             }
             std::size_t dataoffset = 0;
             Root->create_geometry( dataoffset, m_geometrybank );

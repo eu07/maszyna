@@ -3451,7 +3451,7 @@ void TTrain::OnCommand_motoroverloadrelayreset( TTrain *Train, command_data cons
 void TTrain::OnCommand_lightspresetactivatenext( TTrain *Train, command_data const &Command ) {
 
     if( Train->mvOccupied->LightsPosNo == 0 ) {
-        // lights are controlled by preset selector
+        // no preset selector
         return;
     }
     if( Command.action != GLFW_PRESS ) {
@@ -3462,15 +3462,22 @@ void TTrain::OnCommand_lightspresetactivatenext( TTrain *Train, command_data con
     if( ( Train->mvOccupied->LightsPos < Train->mvOccupied->LightsPosNo )
      || ( true == Train->mvOccupied->LightsWrap ) ) {
         // active light preset is stored as value in range 1-LigthPosNo
+        auto const restartcycle { Train->mvOccupied->LightsPos == Train->mvOccupied->LightsPosNo };
         Train->mvOccupied->LightsPos = (
-            Train->mvOccupied->LightsPos < Train->mvOccupied->LightsPosNo ?
+            false == restartcycle ?
                 Train->mvOccupied->LightsPos + 1 :
                 1 ); // wrap mode
 
         Train->SetLights();
         // visual feedback
         if( Train->ggLightsButton.SubModel != nullptr ) {
-            Train->ggLightsButton.UpdateValue( Train->mvOccupied->LightsPos - 1, Train->dsbSwitch );
+            // HACK: skip submodel animation when restarting cycle, since it plays in the 'wrong' direction
+            if( false == restartcycle ) {
+                Train->ggLightsButton.UpdateValue( Train->mvOccupied->LightsPos - 1, Train->dsbSwitch );
+            }
+            else {
+                Train->ggLightsButton.PutValue( Train->mvOccupied->LightsPos - 1 );
+            }
         }
     }
 }
@@ -3478,7 +3485,7 @@ void TTrain::OnCommand_lightspresetactivatenext( TTrain *Train, command_data con
 void TTrain::OnCommand_lightspresetactivateprevious( TTrain *Train, command_data const &Command ) {
 
     if( Train->mvOccupied->LightsPosNo == 0 ) {
-        // lights are controlled by preset selector
+        // no preset selector
         return;
     }
     if( Command.action != GLFW_PRESS ) {
@@ -3489,15 +3496,22 @@ void TTrain::OnCommand_lightspresetactivateprevious( TTrain *Train, command_data
     if( ( Train->mvOccupied->LightsPos > 1 )
      || ( true == Train->mvOccupied->LightsWrap ) ) {
         // active light preset is stored as value in range 1-LigthPosNo
+        auto const restartcycle { Train->mvOccupied->LightsPos == 1 };
         Train->mvOccupied->LightsPos = (
-            Train->mvOccupied->LightsPos > 1 ?
+            false == restartcycle ?
                 Train->mvOccupied->LightsPos - 1 :
                 Train->mvOccupied->LightsPosNo ); // wrap mode
 
         Train->SetLights();
         // visual feedback
         if( Train->ggLightsButton.SubModel != nullptr ) {
-            Train->ggLightsButton.UpdateValue( Train->mvOccupied->LightsPos - 1, Train->dsbSwitch );
+            // HACK: skip submodel animation when restarting cycle, since it plays in the 'wrong' direction
+            if( false == restartcycle ) {
+                Train->ggLightsButton.UpdateValue( Train->mvOccupied->LightsPos - 1, Train->dsbSwitch );
+            }
+            else {
+                Train->ggLightsButton.PutValue( Train->mvOccupied->LightsPos - 1 );
+            }
         }
     }
 }
@@ -6600,7 +6614,7 @@ bool TTrain::Update( double const Deltatime )
      && ( false == FreeFlyModeFlag ) ) { // don't bother if we're outside
         fScreenTimer = 0.f;
         for( auto const &screen : m_screens ) {
-            Application.request( { screen.first, GetTrainState(), GfxRenderer.Texture( screen.second ).id } );
+            Application.request( { screen.first, GetTrainState(), GfxRenderer->Texture( screen.second ).id } );
         }
     }
     // sounds
@@ -7407,7 +7421,7 @@ bool TTrain::InitializeCab(int NewCabNo, std::string const &asFileName)
                     ( substr_path(renderername).empty() ? // supply vehicle folder as path if none is provided
                         DynamicObject->asBaseDir + renderername :
                         renderername ),
-                    GfxRenderer.Material( material ).texture1 );
+                    GfxRenderer->Material( material ).texture1 );
             }
             // btLampkaUnknown.Init("unknown",mdKabina,false);
         } while (token != "");

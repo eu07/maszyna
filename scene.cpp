@@ -898,7 +898,7 @@ basic_section::create_geometry() {
 
     // since sections can be empty, we're doing lazy initialization of the geometry bank, when something may actually use it
     if( m_geometrybank == null_handle ) {
-        m_geometrybank = GfxRenderer.Create_Bank();
+        m_geometrybank = GfxRenderer->Create_Bank();
     }
 
     for( auto &shape : m_shapes ) {
@@ -1182,7 +1182,7 @@ basic_region::insert( shape_node Shape, scratch_data &Scratchpad, bool const Tra
 
     if( Global.CreateSwitchTrackbeds ) {
 
-        auto const materialname{ GfxRenderer.Material( Shape.data().material ).name };
+        auto const materialname{ GfxRenderer->Material( Shape.data().material ).name };
         for( auto const &switchtrackbedtexture : switchtrackbedtextures ) {
             if( materialname.find( switchtrackbedtexture ) != std::string::npos ) {
                 // geometry with blacklisted texture, part of old switch trackbed; ignore it

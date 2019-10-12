@@ -323,7 +323,7 @@ drivermouse_input::button( int const Button, int const Action ) {
         // left mouse button launches on_click event associated with to the node
         if( Button == GLFW_MOUSE_BUTTON_LEFT ) {
             if( Action == GLFW_PRESS ) {
-                auto const *node { GfxRenderer.Update_Pick_Node() };
+                auto const *node { GfxRenderer->Update_Pick_Node() };
                 if( ( node == nullptr )
                  || ( typeid( *node ) != typeid( TAnimModel ) ) ) {
                     return;
@@ -369,7 +369,7 @@ drivermouse_input::button( int const Button, int const Action ) {
         }
         else {
             // if not release then it's press
-            auto const lookup = m_buttonbindings.find( simulation::Train->GetLabel( GfxRenderer.Update_Pick_Control() ) );
+            auto const lookup = m_buttonbindings.find( simulation::Train->GetLabel( GfxRenderer->Update_Pick_Control() ) );
             if( lookup != m_buttonbindings.end() ) {
                 // if the recognized element under the cursor has a command associated with the pressed button, notify the recipient
                 mousecommand = (

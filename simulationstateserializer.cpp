@@ -119,7 +119,7 @@ state_serializer::deserialize( cParser &Input, scene::scratch_data &Scratchpad )
             timelast = timenow;
             glfwPollEvents();
             Application.set_progress( Input.getProgress(), Input.getFullProgress() );
-            GfxRenderer.Render();
+            GfxRenderer->Render();
         }
 
         token = Input.getToken<std::string>();

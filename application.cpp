@@ -150,7 +150,7 @@ eu07_application::run() {
     while( ( false == glfwWindowShouldClose( m_windows.front() ) )
         && ( false == m_modestack.empty() )
         && ( true == m_modes[ m_modestack.top() ]->update() )
-        && ( true == GfxRenderer.Render() ) ) {
+        && ( true == GfxRenderer->Render() ) ) {
         glfwPollEvents();
         m_modes[ m_modestack.top() ]->on_event_poll();
     }
@@ -512,7 +512,9 @@ eu07_application::init_gfx() {
         return -1;
     }
 
-    if( ( false == GfxRenderer.Init( m_windows.front() ) )
+    GfxRenderer = std::make_unique<opengl_renderer>();
+
+    if( ( false == GfxRenderer->Init( m_windows.front() ) )
      || ( false == ui_layer::init( m_windows.front() ) ) ) {
         return -1;
     }
