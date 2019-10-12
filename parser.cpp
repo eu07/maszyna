@@ -267,14 +267,28 @@ std::string cParser::readToken( bool ToLower, const char *Break ) {
 std::string cParser::readQuotes(char const Quote) { // read the stream until specified char or stream end
     std::string token = "";
     char c { 0 };
-    while( mStream->peek() != EOF && Quote != (c = mStream->get()) ) { // get all chars until the quote mark
-        if( c == '\n' ) {
-            // update line counter
-            ++mLine;
-        }
-        token += c;
+	bool escaped = false;
+	while( mStream->peek() != EOF ) { // get all chars until the quote mark
+		c = mStream->get();
+
+		if (escaped) {
+			escaped = false;
+		}
+		else {
+			if (c == '\\') {
+				escaped = true;
+				continue;
+			}
+			else if (c == Quote)
+				break;
+		}
+
+		if (c == '\n')
+			++mLine; // update line counter
+		token += c;
     }
-    return token;
+
+	return token;
 }
 
 void cParser::skipComment( std::string const &Endmark ) { // pobieranie znaków aż do znalezienia znacznika końca
