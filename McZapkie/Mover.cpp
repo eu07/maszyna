@@ -6657,7 +6657,7 @@ void TMoverParameters::CheckSpeedCtrl(double dt)
 				}
 				double error = (std::max(SpeedCtrlValue + SpeedCtrlUnit.Offset, 0.0) - Vel);
 				double factorP = error > 0 ? SpeedCtrlUnit.FactorPpos : SpeedCtrlUnit.FactorPneg;
-				double eSCP = clamp(factorP * error, -1.2, UniCtrlList[MainCtrlPos].MaxCtrlVal);  //P module
+				double eSCP = clamp(factorP * error, -1.2, 1.0);  //P module
 				if (eSCP < -1.0)
 				{
 					SpeedCtrlUnit.BrakeInterventionBraking = (eSCP < -1.1) && (Vel < hydro_TC_UnlockSpeed);
@@ -6673,7 +6673,7 @@ void TMoverParameters::CheckSpeedCtrl(double dt)
 				else {
 					eimicSpeedCtrlIntegral = 0;
 				}
-				eimicSpeedCtrl = clamp(eimicSpeedCtrlIntegral + eSCP, -SpeedCtrlUnit.DesiredPower, SpeedCtrlUnit.DesiredPower);
+				eimicSpeedCtrl = clamp(eimicSpeedCtrlIntegral + eSCP, -SpeedCtrlUnit.DesiredPower, SpeedCtrlUnit.DesiredPower*double(UniCtrlList[MainCtrlPos].SpeedUp > 0));
 				if (Vel < SpeedCtrlUnit.FullPowerVelocity) {
 					eimicSpeedCtrl = std::min(eimicSpeedCtrl, SpeedCtrlUnit.InitialPower);
 				}
