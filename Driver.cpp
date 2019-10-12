@@ -3170,10 +3170,24 @@ bool TController::IncSpeed()
         { // dla 2Ls150 można zmienić tryb pracy, jeśli jest w liniowym i nie daje rady (wymaga zerowania kierunku)
             // mvControlling->ShuntMode=(OrderList[OrderPos]&Shunt)||(fMass>224000.0);
         }
+		if ((mvControlling->SpeedCtrl)&&(mvControlling->Mains)) {// cruise control
+			auto const SpeedCntrlVel{ (
+				(ActualProximityDist > std::max(50.0, fMaxProximityDist)) ?
+				VelDesired :
+				min_speed(VelDesired, VelNext)) };
+			if (SpeedCntrlVel >= mvControlling->SpeedCtrlUnit.MinVelocity) {
+				SpeedCntrl(SpeedCntrlVel);
+			}
+			else if (SpeedCntrlVel > 0.1) {
+				SpeedCntrl(0.0);
+			}
+		}
 		if (mvControlling->EIMCtrlType > 0) {
 			if (true == Ready)
 			{
-				DizelPercentage = (mvControlling->Vel > mvControlling->dizel_minVelfullengage ? 100 : 1);
+				bool max = (mvControlling->Vel > mvControlling->dizel_minVelfullengage)
+					|| (mvControlling->SpeedCtrl && mvControlling->ScndCtrlPos > 0);
+				DizelPercentage = (max ? 100 : 1);
 			}
 			break;
 		}
@@ -3188,11 +3202,12 @@ bool TController::IncSpeed()
             }
         }
         if( false == mvControlling->Mains ) {
+			SpeedCntrl(0.0);
             mvControlling->MainSwitch( true );
             mvControlling->ConverterSwitch( true );
             mvControlling->CompressorSwitch( true );
         }
-        break;
+		break;
     }
     return OK;
 }
@@ -3243,6 +3258,14 @@ bool TController::DecSpeed(bool force)
 		if (mvControlling->EIMCtrlType > 0)
 		{
 			DizelPercentage = 0;
+			if (force) {
+				SpeedCntrl(0.0); //wylacz od razu tempomat
+				mvControlling->DecScndCtrl(2);
+			}
+			if ((VelDesired > 0.1) && (mvControlling->SpeedCtrlUnit.MinVelocity > VelDesired)) {
+				SpeedCntrl(0.0); //wylacz od razu tempomat
+				mvControlling->DecScndCtrl(2);
+			}
 			break;
 		}
 
@@ -3257,8 +3280,11 @@ bool TController::DecSpeed(bool force)
                 OK = mvControlling->DecMainCtrl( 1 );
             }
         }
-        if (force) // przy aktywacji kabiny jest potrzeba natychmiastowego wyzerowania
-            OK = mvControlling->DecMainCtrl((mvControlling->MainCtrlPowerPos() > 2 ? 2 : 1));
+		if (force) { // przy aktywacji kabiny jest potrzeba natychmiastowego wyzerowania
+			OK = mvControlling->DecMainCtrl((mvControlling->MainCtrlPowerPos() > 2 ? 2 : 1));
+			SpeedCntrl(0.0); //wylacz od razu tempomat
+			mvControlling->DecScndCtrl( 2 );
+		}
         break;
     }
     return OK;
@@ -3495,6 +3521,22 @@ void TController::SpeedSet()
 
 void TController::SpeedCntrl(double DesiredSpeed)
 {
+	while (mvControlling->SpeedCtrlUnit.DesiredPower < mvControlling->SpeedCtrlUnit.MaxPower)
+	{
+		mvControlling->SpeedCtrlPowerInc();
+	}
+	if (mvControlling->EngineType == TEngineType::DieselEngine)
+	{
+		if (DesiredSpeed < 0.1) {
+			mvControlling->DecScndCtrl(2);
+			DesiredSpeed = 0;
+		}
+		else if (mvControlling->ScndCtrlPos < 1) {
+			mvControlling->IncScndCtrl(1);
+		}
+		mvControlling->RunCommand("SpeedCntrl", DesiredSpeed, mvControlling->CabNo);
+	}
+	else
 	if (mvControlling->ScndCtrlPosNo == 1)
 	{
 		mvControlling->IncScndCtrl(1);
@@ -3579,8 +3621,13 @@ void TController::SetTimeControllers()
 	{
 
         DizelPercentage_Speed = DizelPercentage; //wstepnie procenty
-		auto MinVel{ std::min(mvControlling->hydro_TC_LockupSpeed, mvControlling->Vmax / 6) }; //minimal velocity
-		if (VelDesired > MinVel) //more power for faster ride
+		auto MinVel{ std::min(mvControlling->hydro_TC_LockupSpeed, mvControlling->Vmax / 6) }; //minimal velocity 
+		//when speed controll unit is active - start with the procedure
+		if ((mvControlling->SpeedCtrl) && (mvControlling->ScndCtrlPos > 0)) {
+			if ((mvControlling->ScndCtrlPos > 0) && (mvControlling->Vel < 1 + mvControlling->SpeedCtrlUnit.StartVelocity) && (DizelPercentage > 0))
+				DizelPercentage_Speed = 101; //keep last position to start
+		}
+		else if (VelDesired > MinVel) //more power for faster ride
 		{
 			auto const Factor{ 10 * (mvControlling->Vmax) / (mvControlling->Vmax + 3 * mvControlling->Vel) };
 			auto DesiredPercentage{ clamp(
@@ -3594,7 +3641,7 @@ void TController::SetTimeControllers()
 			}
 			DizelPercentage_Speed = std::round(DesiredPercentage * DizelPercentage);
 		}
-		else
+		else //slow acceleration during shunting wth minimal velocity
 		{
 			DizelPercentage_Speed = std::min(DizelPercentage, mvControlling->Vel < 0.99 * VelDesired ? 1 : 0);
 		}
@@ -4394,9 +4441,11 @@ TController::UpdateSituation(double dt) {
     while (p)
     { // sprawdzenie odhamowania wszystkich połączonych pojazdów
         auto *vehicle { p->MoverParameters };
+		double bp = vehicle->BrakePress - (vehicle->SpeedCtrlUnit.Parking ? vehicle->MaxBrakePress[0] * vehicle->StopBrakeDecc : 0.0);
+		if (bp < 0) bp = 0;
         if (Ready) {
             // bo jak coś nie odhamowane, to dalej nie ma co sprawdzać
-            if (vehicle->BrakePress >= 0.4) // wg UIC określone sztywno na 0.04
+            if (bp >= 0.4) // wg UIC określone sztywno na 0.04
             {
                 Ready = false; // nie gotowy
                 // Ra: odluźnianie przeładowanych lokomotyw, ciągniętych na zimno - prowizorka...
@@ -4412,8 +4461,8 @@ TController::UpdateSituation(double dt) {
                 }
             }
         }
-        if (fReady < vehicle->BrakePress)
-            fReady = vehicle->BrakePress; // szukanie najbardziej zahamowanego
+        if (fReady < bp)
+            fReady = bp; // szukanie najbardziej zahamowanego
         if( ( dy = p->VectorFront().y ) != 0.0 ) {
             // istotne tylko dla pojazdów na pochyleniu
             // ciężar razy składowa styczna grawitacji

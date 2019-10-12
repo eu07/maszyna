@@ -824,7 +824,49 @@ drivermouse_input::default_bindings() {
             user_command::none } },
         { "universal9:", {
             user_command::generictoggle9,
-            user_command::none } }
+            user_command::none } },
+		{ "speedinc_bt:",{
+			user_command::speedcontrolincrease,
+			user_command::none } },
+		{ "speeddec_bt:",{
+			user_command::speedcontroldecrease,
+			user_command::none } },
+		{ "speedctrlpowerinc_bt:",{
+			user_command::speedcontrolpowerincrease,
+			user_command::none } },
+		{ "speedctrlpowerdec_bt:",{
+			user_command::speedcontrolpowerdecrease,
+			user_command::none } },
+		{ "speedbutton0:",{
+			user_command::speedcontrolbutton0,
+			user_command::none } },
+		{ "speedbutton1:",{
+			user_command::speedcontrolbutton1,
+			user_command::none } },
+		{ "speedbutton2:",{
+			user_command::speedcontrolbutton2,
+			user_command::none } },
+		{ "speedbutton3:",{
+			user_command::speedcontrolbutton3,
+			user_command::none } },
+		{ "speedbutton4:",{
+			user_command::speedcontrolbutton4,
+			user_command::none } },
+		{ "speedbutton5:",{
+			user_command::speedcontrolbutton5,
+			user_command::none } },
+		{ "speedbutton6:",{
+			user_command::speedcontrolbutton6,
+			user_command::none } },
+		{ "speedbutton7:",{
+			user_command::speedcontrolbutton7,
+			user_command::none } },
+		{ "speedbutton8:",{
+			user_command::speedcontrolbutton8,
+			user_command::none } },
+		{ "speedbutton9:",{
+			user_command::speedcontrolbutton9,
+			user_command::none } }
     };
 }
 
