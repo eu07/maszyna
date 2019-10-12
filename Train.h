@@ -69,8 +69,10 @@ public:
         find( TSubModel const *Control ) const;
 };
 
-class TTrain
-{
+class TTrain {
+
+    friend class drivingaid_panel;
+
   public:
 // types
     struct state_t {
@@ -88,6 +90,7 @@ class TTrain
         std::uint8_t ventilator_overload;
         std::uint8_t motor_overload_threshold;
         std::uint8_t train_heating;
+        std::uint8_t cab;
         std::uint8_t recorder_braking;
         std::uint8_t recorder_power;
         std::uint8_t alerter_sound;
@@ -98,13 +101,15 @@ class TTrain
         float brake_pressure;
         float hv_voltage;
         std::array<float, 3> hv_current;
+        float lv_voltage;
     };
 
+// constructors
+    TTrain();
 // methods
     bool CabChange(int iDirection);
     bool ShowNextCurrent; // pokaz przd w podlaczonej lokomotywie (ET41)
     bool InitializeCab(int NewCabNo, std::string const &asFileName);
-    TTrain();
     // McZapkie-010302
     bool Init(TDynamicObject *NewDynamicObject, bool e3d = false);
 
@@ -113,6 +118,7 @@ class TTrain
     inline std::string GetLabel( TSubModel const *Control ) const { return m_controlmapper.find( Control ); }
     void UpdateCab();
     bool Update( double const Deltatime );
+    void add_distance( double const Distance );
     void SetLights();
     // McZapkie-310302: ladowanie parametrow z pliku
     bool LoadMMediaFile(std::string const &asFileName);
@@ -151,6 +157,12 @@ class TTrain
     void update_sounds( double const Deltatime );
     void update_sounds_runningnoise( sound_source &Sound );
     void update_sounds_radio();
+    inline
+    end cab_to_end() const {
+        return (
+            iCabn == 2 ?
+                end::rear :
+                end::front ); }
 
     // command handlers
     // NOTE: we're currently using universal handlers and static handler map but it may be beneficial to have these implemented on individual class instance basis
@@ -350,6 +362,7 @@ class TTrain
     static void OnCommand_radiochanneldecrease( TTrain *Train, command_data const &Command );
     static void OnCommand_radiostopsend( TTrain *Train, command_data const &Command );
     static void OnCommand_radiostoptest( TTrain *Train, command_data const &Command );
+    static void OnCommand_radiocall3send( TTrain *Train, command_data const &Command );
     static void OnCommand_cabchangeforward( TTrain *Train, command_data const &Command );
     static void OnCommand_cabchangebackward( TTrain *Train, command_data const &Command );
     static void OnCommand_generictoggle( TTrain *Train, command_data const &Command );
@@ -360,6 +373,7 @@ class TTrain
 	static void OnCommand_springbrakeshutoffenable(TTrain *Train, command_data const &Command);
 	static void OnCommand_springbrakeshutoffdisable(TTrain *Train, command_data const &Command);
 	static void OnCommand_springbrakerelease(TTrain *Train, command_data const &Command);
+    static void OnCommand_distancecounteractivate( TTrain *Train, command_data const &Command );
 	static void OnCommand_speedcontrolincrease(TTrain *Train, command_data const &Command);
 	static void OnCommand_speedcontroldecrease(TTrain *Train, command_data const &Command);
 	static void OnCommand_speedcontrolpowerincrease(TTrain *Train, command_data const &Command);
@@ -429,7 +443,7 @@ public: // reszta może by?publiczna
 	TGauge ggUniveralBrakeButton2;
 	TGauge ggUniveralBrakeButton3;
     TGauge ggSandButton; // guzik piasecznicy
-	TGauge ggAutoSandAllow; // przełącznik piasecznicy
+	TGauge ggAutoSandButton; // przełącznik piasecznicy
     TGauge ggAntiSlipButton;
     TGauge ggFuseButton;
     TGauge ggConverterFuseButton; // hunter-261211: przycisk odblokowania nadmiarowego przetwornic i ogrzewania
@@ -440,6 +454,7 @@ public: // reszta może by?publiczna
     TGauge ggRadioChannelNext;
     TGauge ggRadioTest;
     TGauge ggRadioStop;
+    TGauge ggRadioCall3;
     TGauge ggUpperLightButton;
     TGauge ggLeftLightButton;
     TGauge ggRightLightButton;
@@ -472,14 +487,14 @@ public: // reszta może by?publiczna
 	TGauge ggHelperButton;
     TGauge ggNextCurrentButton;
 
-	// yB 191005 - tempomat
+ 	// yB 191005 - tempomat
 	TGauge ggSpeedControlIncreaseButton;
 	TGauge ggSpeedControlDecreaseButton;
 	TGauge ggSpeedControlPowerIncreaseButton;
 	TGauge ggSpeedControlPowerDecreaseButton;
 	std::array<TGauge, 10> ggSpeedCtrlButtons; // NOTE: temporary arrangement until we have dynamically built control table
 
-    std::array<TGauge, 10> ggUniversals; // NOTE: temporary arrangement until we have dynamically built control table
+   std::array<TGauge, 10> ggUniversals; // NOTE: temporary arrangement until we have dynamically built control table
 
     TGauge ggInstrumentLightButton;
     TGauge ggDashboardLightButton;
@@ -528,6 +543,8 @@ public: // reszta może by?publiczna
     TGauge ggMotorBlowersFrontButton; // front traction motor fan switch
     TGauge ggMotorBlowersRearButton; // rear traction motor fan switch
     TGauge ggMotorBlowersAllOffButton; // motor fans shutdown switch
+
+    TGauge ggDistanceCounterButton; // distance meter activation button
 
     TButton btLampkaPoslizg;
     TButton btLampkaStyczn;
@@ -624,6 +641,7 @@ public: // reszta może by?publiczna
     TButton btLampkaMotorBlowers;
     TButton btLampkaCoolingFans;
     TButton btLampkaTempomat;
+    TButton btLampkaDistanceCounter;
 
     TButton btCabLight; // hunter-171012: lampa oswietlajaca kabine
     // Ra 2013-12: wirtualne "lampki" do odbijania na haslerze w PoKeys
@@ -656,6 +674,7 @@ public: // reszta może by?publiczna
     sound_source m_radiosound { sound_placement::internal, 2 * EU07_SOUND_CABCONTROLSCUTOFFRANGE }; // cached template for radio messages
     std::vector<std::pair<int, std::shared_ptr<sound_source>>> m_radiomessages; // list of currently played radio messages
     sound_source m_radiostop { sound_placement::internal, EU07_SOUND_CABCONTROLSCUTOFFRANGE };
+    sound_source m_distancecounterclear { sound_placement::internal, EU07_SOUND_CABCONTROLSCUTOFFRANGE }; // distance meter 'good to go' alert
 /*
     int iCabLightFlag; // McZapkie:120503: oswietlenie kabiny (0: wyl, 1: przyciemnione, 2: pelne)
     bool bCabLight; // hunter-091012: czy swiatlo jest zapalone?
@@ -663,7 +682,7 @@ public: // reszta może by?publiczna
 */
     // McZapkie: opis kabiny - obszar poruszania sie mechanika oraz zajetosc
     std::array<TCab, maxcab + 1> Cabine; // przedzial maszynowy, kabina 1 (A), kabina 2 (B)
-    int iCabn { 0 };
+    int iCabn { 0 }; // 0: mid, 1: front, 2: rear
     // McZapkie: do poruszania sie po kabinie
     Math3D::vector3 pMechSittingPosition; // ABu 180404
     Math3D::vector3 MirrorPosition( bool lewe );
@@ -709,6 +728,7 @@ private:
     float m_mastercontrollerreturndelay { 0.f };
     int iRadioChannel { 1 }; // numer aktualnego kana?u radiowego
     std::vector<std::pair<std::string, texture_handle>> m_screens;
+    float m_distancecounter { -1.f }; // distance traveled since meter was activated or -1 if inactive
 
   public:
     float fPress[20][3]; // cisnienia dla wszystkich czlonow

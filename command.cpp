@@ -132,7 +132,8 @@ commanddescription_sequence Commands_descriptions = {
     { "radiochanneldecrease", command_target::vehicle },
     { "radiostopsend", command_target::vehicle },
     { "radiostoptest", command_target::vehicle },
-    // TBD, TODO: make cab change controls entity-centric
+    { "radiocall3send", command_target::vehicle },
+// TBD, TODO: make cab change controls entity-centric
     { "cabchangeforward", command_target::vehicle },
     { "cabchangebackward", command_target::vehicle },
 
@@ -244,7 +245,8 @@ commanddescription_sequence Commands_descriptions = {
 	{ "springbrakeshutoffenable", command_target::vehicle },
 	{ "springbrakeshutoffdisable", command_target::vehicle },
 	{ "springbrakerelease", command_target::vehicle },
-	{ "speedcontrolincrease", command_target::vehicle },
+    { "distancecounteractivate", command_target::vehicle },
+    { "speedcontrolincrease", command_target::vehicle },
 	{ "speedcontroldecrease", command_target::vehicle },
 	{ "speedcontrolpowerincrease", command_target::vehicle },
 	{ "speedcontrolpowerdecrease", command_target::vehicle },
