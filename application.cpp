@@ -16,6 +16,7 @@ http://mozilla.org/MPL/2.0/.
 #include "Globals.h"
 #include "simulation.h"
 #include "Train.h"
+#include "dictionary.h"
 #include "sceneeditor.h"
 #include "renderer.h"
 #include "uilayer.h"
@@ -41,6 +42,9 @@ http://mozilla.org/MPL/2.0/.
 #pragma comment( lib, "libserialport-0.lib" )
 #pragma comment (lib, "dbghelp.lib")
 #pragma comment (lib, "version.lib")
+
+extern "C" { _declspec( dllexport ) DWORD AmdPowerXpressRequestHighPerformance = 0x00000001; }
+extern "C" { _declspec( dllexport ) DWORD NvOptimusEnablement = 0x00000001; }
 
 eu07_application Application;
 
@@ -128,6 +132,9 @@ eu07_application::init( int Argc, char *Argv[] ) {
     if( ( result = init_audio() ) != 0 ) {
         return result;
     }
+    if( ( result = init_data() ) != 0 ) {
+        return result;
+    }
     m_taskqueue.init();
     if( ( result = init_modes() ) != 0 ) {
         return result;
@@ -143,7 +150,7 @@ eu07_application::run() {
     while( ( false == glfwWindowShouldClose( m_windows.front() ) )
         && ( false == m_modestack.empty() )
         && ( true == m_modes[ m_modestack.top() ]->update() )
-        && ( true == GfxRenderer.Render() ) ) {
+        && ( true == GfxRenderer->Render() ) ) {
         glfwPollEvents();
         m_modes[ m_modestack.top() ]->on_event_poll();
     }
@@ -505,7 +512,9 @@ eu07_application::init_gfx() {
         return -1;
     }
 
-    if( ( false == GfxRenderer.Init( m_windows.front() ) )
+    GfxRenderer = std::make_unique<opengl_renderer>();
+
+    if( ( false == GfxRenderer->Init( m_windows.front() ) )
      || ( false == ui_layer::init( m_windows.front() ) ) ) {
         return -1;
     }
@@ -520,6 +529,23 @@ eu07_application::init_audio() {
         Global.bSoundEnabled &= audio::renderer.init();
     }
     // NOTE: lack of audio isn't deemed a failure serious enough to throw in the towel
+    return 0;
+}
+
+int
+eu07_application::init_data() {
+
+    // HACK: grab content of the first {} block in load_unit_weights using temporary parser, then parse it normally. on any error our weight list will be empty string
+    auto loadweights { cParser( cParser( "data/load_weights.txt", cParser::buffer_FILE ).getToken<std::string>( true, "{}" ), cParser::buffer_TEXT ) };
+    while( true == loadweights.getTokens( 2 ) ) {
+        std::pair<std::string, float> weightpair;
+        loadweights
+            >> weightpair.first
+            >> weightpair.second;
+        weightpair.first.erase( weightpair.first.end() - 1 ); // trim trailing ':' from the key
+        simulation::Weights.emplace( weightpair.first, weightpair.second );
+    }
+
     return 0;
 }
 

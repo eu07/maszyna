@@ -18,6 +18,7 @@ http://mozilla.org/MPL/2.0/.
 #include "frustum.h"
 #include "scene.h"
 #include "simulationenvironment.h"
+#include "particles.h"
 #include "MemCell.h"
 
 #define EU07_USE_PICKING_FRAMEBUFFER
@@ -27,6 +28,52 @@ http://mozilla.org/MPL/2.0/.
 //#define EU07_USE_DEBUG_SOUNDEMITTERS
 //#define EU07_USEIMGUIIMPLOPENGL2
 //#define EU07_DISABLECABREFLECTIONS
+
+class gfx_renderer {
+
+public:
+// types
+// constructors
+// destructor
+    virtual ~gfx_renderer() {}
+// methods
+    virtual auto Init( GLFWwindow *Window ) -> bool = 0;
+    // main draw call. returns false on error
+    virtual auto Render() -> bool = 0;
+    virtual auto Framerate() -> float = 0;
+    // geometry methods
+    // NOTE: hands-on geometry management is exposed as a temporary measure; ultimately all visualization data should be generated/handled automatically by the renderer itself
+    // creates a new geometry bank. returns: handle to the bank or NULL
+    virtual auto Create_Bank() -> gfx::geometrybank_handle = 0;
+    // creates a new geometry chunk of specified type from supplied vertex data, in specified bank. returns: handle to the chunk or NULL
+    virtual auto Insert( gfx::vertex_array &Vertices, gfx::geometrybank_handle const &Geometry, int const Type ) -> gfx::geometry_handle = 0;
+    // replaces data of specified chunk with the supplied vertex data, starting from specified offset
+    virtual auto Replace( gfx::vertex_array &Vertices, gfx::geometry_handle const &Geometry, std::size_t const Offset = 0 ) -> bool = 0;
+    // adds supplied vertex data at the end of specified chunk
+    virtual auto Append( gfx::vertex_array &Vertices, gfx::geometry_handle const &Geometry ) -> bool = 0;
+    // provides direct access to vertex data of specfied chunk
+    virtual auto Vertices( gfx::geometry_handle const &Geometry ) const ->gfx::vertex_array const & = 0;
+    // material methods
+    virtual auto Fetch_Material( std::string const &Filename, bool const Loadnow = true ) -> material_handle = 0;
+    virtual void Bind_Material( material_handle const Material ) = 0;
+    virtual auto Material( material_handle const Material ) const -> opengl_material const & = 0;
+    // texture methods
+    virtual auto Fetch_Texture( std::string const &Filename, bool const Loadnow = true ) -> texture_handle = 0;
+    virtual void Bind_Texture( texture_handle const Texture ) = 0;
+    virtual auto Texture( texture_handle const Texture ) const -> opengl_texture const & = 0;
+    // utility methods
+    virtual auto Pick_Control() const -> TSubModel const * = 0;
+    virtual auto Pick_Node() const -> scene::basic_node const * = 0;
+    virtual auto Mouse_Position() const -> glm::dvec3 = 0;
+    // maintenance methods
+    virtual void Update( double const Deltatime ) = 0;
+    virtual auto Update_Pick_Control() -> TSubModel * = 0;
+    virtual auto Update_Pick_Node() -> scene::basic_node * = 0;
+    virtual auto Update_Mouse_Position() -> glm::dvec3 = 0;
+    // debug methods
+    virtual auto info_times() const -> std::string const & = 0;
+    virtual auto info_stats() const -> std::string const & = 0;
+};
 
 struct opengl_light : public basic_light {
 
@@ -43,12 +90,16 @@ struct opengl_light : public basic_light {
             return *this; }
 };
 
+
+
 // encapsulates basic rendering setup.
 // for modern opengl this translates to a specific collection of glsl shaders,
 // for legacy opengl this is combination of blending modes, active texture units etc
 struct opengl_technique {
 
 };
+
+
 
 // simple camera object. paired with 'virtual camera' in the scene
 class opengl_camera {
@@ -112,8 +163,48 @@ private:
     glm::mat4 m_inversetransformation; // cached transformation to world space
 };
 
+
+// particle data visualizer
+class opengl_particles {
+public:
+// constructors
+    opengl_particles() = default;
+// destructor
+    ~opengl_particles() {
+        if( m_buffer != 0 ) {
+            ::glDeleteBuffers( 1, &m_buffer ); } }
+// methods
+    void
+        update( opengl_camera const &Camera );
+    void
+        render( int const Textureunit );
+private:
+// types
+    struct particle_vertex {
+        glm::vec3 position; // 3d space
+        std::uint8_t color[ 4 ]; // rgba, unsigned byte format
+        glm::vec2 texture; // uv space
+        float padding[ 2 ]; // experimental, some gfx hardware allegedly works better with 32-bit aligned data blocks
+    };
+/*
+    using sourcedistance_pair = std::pair<smoke_source *, float>;
+    using source_sequence = std::vector<sourcedistance_pair>;
+*/
+    using particlevertex_sequence = std::vector<particle_vertex>;
+// methods
+// members
+/*
+    source_sequence m_sources; // list of particle sources visible in current render pass, with their respective distances to the camera
+*/
+    particlevertex_sequence m_particlevertices; // geometry data of visible particles, generated on the cpu end
+    GLuint m_buffer{ (GLuint)-1 }; // id of the buffer holding geometry data on the opengl end
+    std::size_t m_buffercapacity{ 0 }; // total capacity of the last established buffer
+};
+
+
+
 // bare-bones render controller, in lack of anything better yet
-class opengl_renderer {
+class opengl_renderer : public gfx_renderer {
 
 public:
 // types
@@ -123,68 +214,65 @@ public:
     ~opengl_renderer() { gluDeleteQuadric( m_quadric ); }
 // methods
     bool
-        Init( GLFWwindow *Window );
+        Init( GLFWwindow *Window ) override;
     // main draw call. returns false on error
     bool
-        Render();
+        Render() override;
     inline
     float
-        Framerate() { return m_framerate; }
+        Framerate() override { return m_framerate; }
     // geometry methods
     // NOTE: hands-on geometry management is exposed as a temporary measure; ultimately all visualization data should be generated/handled automatically by the renderer itself
     // creates a new geometry bank. returns: handle to the bank or NULL
     gfx::geometrybank_handle
-        Create_Bank();
+        Create_Bank() override;
     // creates a new geometry chunk of specified type from supplied vertex data, in specified bank. returns: handle to the chunk or NULL
     gfx::geometry_handle
-        Insert( gfx::vertex_array &Vertices, gfx::geometrybank_handle const &Geometry, int const Type );
+        Insert( gfx::vertex_array &Vertices, gfx::geometrybank_handle const &Geometry, int const Type ) override;
     // replaces data of specified chunk with the supplied vertex data, starting from specified offset
     bool
-        Replace( gfx::vertex_array &Vertices, gfx::geometry_handle const &Geometry, std::size_t const Offset = 0 );
+        Replace( gfx::vertex_array &Vertices, gfx::geometry_handle const &Geometry, std::size_t const Offset = 0 ) override;
     // adds supplied vertex data at the end of specified chunk
     bool
-        Append( gfx::vertex_array &Vertices, gfx::geometry_handle const &Geometry );
+        Append( gfx::vertex_array &Vertices, gfx::geometry_handle const &Geometry ) override;
     // provides direct access to vertex data of specfied chunk
     gfx::vertex_array const &
-        Vertices( gfx::geometry_handle const &Geometry ) const;
+        Vertices( gfx::geometry_handle const &Geometry ) const override;
     // material methods
     material_handle
-        Fetch_Material( std::string const &Filename, bool const Loadnow = true );
+        Fetch_Material( std::string const &Filename, bool const Loadnow = true ) override;
     void
-        Bind_Material( material_handle const Material );
+        Bind_Material( material_handle const Material ) override;
     opengl_material const &
-        Material( material_handle const Material ) const;
+        Material( material_handle const Material ) const override;
     // texture methods
     texture_handle
-        Fetch_Texture( std::string const &Filename, bool const Loadnow = true );
+        Fetch_Texture( std::string const &Filename, bool const Loadnow = true ) override;
     void
         Bind_Texture( texture_handle const Texture );
     opengl_texture const &
-        Texture( texture_handle const Texture ) const;
-    // light methods
-    void
-        Disable_Lights();
+        Texture( texture_handle const Texture ) const override;
     // utility methods
     TSubModel const *
-        Pick_Control() const { return m_pickcontrolitem; }
+        Pick_Control() const override { return m_pickcontrolitem; }
     scene::basic_node const *
-        Pick_Node() const { return m_picksceneryitem; }
+        Pick_Node() const override { return m_picksceneryitem; }
     glm::dvec3
-        Mouse_Position() const { return m_worldmousecoordinates; }
+        Mouse_Position() const override { return m_worldmousecoordinates; }
     // maintenance methods
     void
-        Update( double const Deltatime );
+        Update( double const Deltatime ) override;
     TSubModel *
-        Update_Pick_Control();
+        Update_Pick_Control() override;
     scene::basic_node *
-        Update_Pick_Node();
+        Update_Pick_Node() override;
     glm::dvec3
-        Update_Mouse_Position();
+        Update_Mouse_Position() override;
     // debug methods
     std::string const &
-        info_times() const;
+        info_times() const override;
     std::string const &
-        info_stats() const;
+        info_stats() const override;
 
 // members
     GLenum static const sunlight { GL_LIGHT0 };
@@ -241,8 +329,8 @@ private:
     typedef std::vector<opengl_light> opengllight_array;
 
 // methods
-    bool
-        Init_caps();
+    void
+        Disable_Lights();
     void
         setup_pass( renderpass_config &Config, rendermode const Mode, float const Znear = 0.f, float const Zfar = 1.f, bool const Ignoredebug = false );
     void
@@ -297,6 +385,8 @@ private:
     void
         Render( TMemCell *Memcell );
     void
+        Render_particles();
+    void
         Render_precipitation();
     void
         Render_Alpha( scene::basic_region *Region );
@@ -318,6 +408,8 @@ private:
         Render_Alpha( TSubModel *Submodel );
     void
         Update_Lights( light_array &Lights );
+    bool
+        Init_caps();
     glm::vec3
         pick_color( std::size_t const Index );
     std::size_t
@@ -338,6 +430,7 @@ private:
     texture_handle m_suntexture { -1 };
     texture_handle m_moontexture { -1 };
     texture_handle m_reflectiontexture { -1 };
+    texture_handle m_smoketexture { -1 };
     GLUquadricObj *m_quadric { nullptr }; // helper object for drawing debug mode scene elements
     // TODO: refactor framebuffer stuff into an object
     bool m_framebuffersupport { false };
@@ -369,6 +462,8 @@ private:
     int m_environmentcubetextureface { 0 }; // helper, currently processed cube map face
     int m_environmentupdatetime { 0 }; // time of the most recent environment map update
     glm::dvec3 m_environmentupdatelocation; // coordinates of most recent environment map update
+    // particle visualization subsystem
+    opengl_particles m_particlerenderer;
 
     int m_helpertextureunit { GL_TEXTURE0 };
     int m_shadowtextureunit { GL_TEXTURE1 };
@@ -409,6 +504,6 @@ private:
 #endif
 };
 
-extern opengl_renderer GfxRenderer;
+extern std::unique_ptr<gfx_renderer> GfxRenderer;
 
 //---------------------------------------------------------------------------

@@ -56,34 +56,28 @@ bool TEventLauncher::Load(cParser *parser)
         dRadius *= dRadius; // do kwadratu, pod warunkiem, że nie jest ujemne
     parser->getTokens(); // klawisz sterujący
     *parser >> token;
-    if (token != "none")
-    {
-        if( token.size() == 1 )
+    if (token != "none") {
+
+        if( token.size() == 1 ) {
+            // single char, assigned activation key
             iKey = vk_to_glfw_key( token[ 0 ] );
-        else
-            iKey = vk_to_glfw_key(stol_def( token, 0 )); // a jak więcej, to jakby numer klawisza jest
+        }
+        else {
+            // this launcher may be activated by radio message
+            std::map<std::string, int> messages {
+                { "radio_call1", radio_message::call1 },
+                { "radio_call3", radio_message::call3 }
+            };
+            auto lookup = messages.find( token );
+            iKey = (
+                lookup != messages.end() ?
+                    lookup->second :
+                    // a jak więcej, to jakby numer klawisza jest
+                    vk_to_glfw_key( stol_def( token, 0 ) ) );
+        }
     }
     parser->getTokens();
     *parser >> DeltaTime;
-    if (DeltaTime < 0)
-        DeltaTime = -DeltaTime; // dla ujemnego zmieniamy na dodatni
-    else if (DeltaTime > 0)
-    { // wartość dodatnia oznacza wyzwalanie o określonej godzinie
-        iMinute = int(DeltaTime) % 100; // minuty są najmłodszymi cyframi dziesietnymi
-        iHour = int(DeltaTime - iMinute) / 100; // godzina to setki
-        DeltaTime = 0; // bez powtórzeń
-        // potentially shift the provided time by requested offset
-        auto const timeoffset { static_cast<int>( Global.ScenarioTimeOffset * 60 ) };
-        if( timeoffset != 0 ) {
-            auto const adjustedtime { clamp_circular( iHour * 60 + iMinute + timeoffset, 24 * 60 ) };
-            iHour = ( adjustedtime / 60 ) % 24;
-            iMinute = adjustedtime % 60;
-        }
-        WriteLog(
-            "EventLauncher at "
-            + std::to_string( iHour ) + ":"
-            + ( iMinute < 10 ? "0" : "" ) + to_string( iMinute ) ); // wyświetlenie czasu
-    }
     parser->getTokens();
     *parser >> token;
     asEvent1Name = token; // pierwszy event
@@ -132,6 +126,29 @@ bool TEventLauncher::Load(cParser *parser)
         parser->getTokens(); // słowo zamykające
         *parser >> token;
     }
+
+    if( DeltaTime < 0 )
+        DeltaTime = -DeltaTime; // dla ujemnego zmieniamy na dodatni
+    else if( DeltaTime > 0 ) { // wartość dodatnia oznacza wyzwalanie o określonej godzinie
+        iMinute = int( DeltaTime ) % 100; // minuty są najmłodszymi cyframi dziesietnymi
+        iHour = int( DeltaTime - iMinute ) / 100; // godzina to setki
+        DeltaTime = 0; // bez powtórzeń
+        // potentially shift the provided time by requested offset
+        auto const timeoffset{ static_cast<int>( Global.ScenarioTimeOffset * 60 ) };
+        if( timeoffset != 0 ) {
+            auto const adjustedtime{ clamp_circular( iHour * 60 + iMinute + timeoffset, 24 * 60 ) };
+            iHour = ( adjustedtime / 60 ) % 24;
+            iMinute = adjustedtime % 60;
+        }
+
+        WriteLog(
+            "EventLauncher at "
+            + std::to_string( iHour ) + ":"
+            + ( iMinute < 10 ? "0" : "" ) + to_string( iMinute )
+            + " (" + asEvent1Name
+            + ( asEvent2Name != "none" ? " / " + asEvent2Name : "" )
+            + ")" ); // wyświetlenie czasu
+    }
     return true;
 }
 
@@ -139,7 +156,7 @@ bool TEventLauncher::check_activation() {
 
     auto bCond { false };
 
-    if( iKey != 0 ) {
+    if( iKey > 0 ) {
         if( iKey > 255 ) {
             // key and modifier
             auto const modifier = ( iKey & 0xff00 ) >> 8;
@@ -201,6 +218,11 @@ bool TEventLauncher::IsGlobal() const {
           && ( iHour >= 0 )
           && ( iMinute >= 0 )
           && ( dRadius < 0.0 ) ); // bez ograniczenia zasięgu
+}
+
+bool TEventLauncher::IsRadioActivated() const {
+
+    return ( iKey < 0 );
 }
 
 // radius() subclass details, calculates node's bounding radius

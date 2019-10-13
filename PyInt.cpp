@@ -111,7 +111,7 @@ auto python_taskqueue::init() -> bool {
     // release the lock, save the state for future use
     m_mainthread = PyEval_SaveThread();
 
-    WriteLog( "Python Interpreter setup complete" );
+    WriteLog( "Python Interpreter: setup complete" );
 
     // init workers
     for( auto &worker : m_workers ) {
@@ -192,8 +192,7 @@ auto python_taskqueue::run_file( std::string const &File, std::string const &Pat
     if( lookup.first.empty() ) { return false; }
 
     std::ifstream inputfile { lookup.first + lookup.second };
-    std::string input;
-    input.assign( std::istreambuf_iterator<char>( inputfile ), std::istreambuf_iterator<char>() );
+    std::string const input { std::istreambuf_iterator<char>( inputfile ), std::istreambuf_iterator<char>() };
 
     if( PyRun_SimpleString( input.c_str() ) != 0 ) {
         error();
@@ -215,7 +214,7 @@ void python_taskqueue::release_lock() {
     PyEval_SaveThread();
 }
 
-auto python_taskqueue::fetch_renderer( std::string const Renderer ) ->PyObject * {
+auto python_taskqueue::fetch_renderer( std::string const Renderer ) -> PyObject * {
 
     auto const lookup { m_renderers.find( Renderer ) };
     if( lookup != std::end( m_renderers ) ) {
@@ -296,7 +295,9 @@ void python_taskqueue::run( GLFWwindow *Context, rendertask_sequence &Tasks, thr
                 {
                     // execute python code
                     task->run();
-                    error();
+                    if( PyErr_Occurred() != nullptr ) {
+                        error();
+                    }
                 }
                 // clear the thread state
                 PyEval_SaveThread();
@@ -318,8 +319,7 @@ void python_taskqueue::run( GLFWwindow *Context, rendertask_sequence &Tasks, thr
 void
 python_taskqueue::error() {
 
-    if( PyErr_Occurred() == nullptr ) { return; }
-
+    ErrorLog( "Python Interpreter: encountered error" );
     if( m_stderr != nullptr ) {
         // std err pythona jest buforowane
         PyErr_Print();

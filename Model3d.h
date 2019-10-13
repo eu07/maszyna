@@ -51,6 +51,8 @@ namespace scene {
 class shape_node;
 }
 
+using nameoffset_sequence = std::vector<std::pair<std::string, glm::vec3>>;
+
 class TSubModel
 { // klasa submodelu - pojedyncza siatka, punkt świetlny albo grupa punktów
     //m7todo: zrobić normalną serializację
@@ -149,6 +151,8 @@ public: // chwilowo
 private:
 	int SeekFaceNormal( std::vector<unsigned int> const &Masks, int const Startface, unsigned int const Mask, glm::vec3 const &Position, gfx::vertex_array const &Vertices );
 	void RaAnimation(TAnimType a);
+    // returns true if the submodel is a smoke emitter attachment point, false otherwise
+    bool is_emitter() const;
 
 public:
 	static size_t iInstance; // identyfikator egzemplarza, który aktualnie renderuje model
@@ -168,6 +172,8 @@ public:
     int count_children();
     // locates submodel mapped with replacable -4
     std::tuple<TSubModel *, bool> find_replacable4();
+    // locates particle emitter submodels and adds them to provided list
+    void find_smoke_sources( nameoffset_sequence &Sourcelist ) const;
 	int TriangleAdd(TModel3d *m, material_handle tex, int tri);
 	void SetRotate(float3 vNewRotateAxis, float fNewAngle);
 	void SetRotateXYZ( Math3D::vector3 vNewAngles);
@@ -240,6 +246,7 @@ private:
 	int iSubModelsCount; // Ra: używane do tworzenia binarnych
 	std::string asBinary; // nazwa pod którą zapisać model binarny
     std::string m_filename;
+    nameoffset_sequence m_smokesources; // list of particle sources defined in the model
 
 public:
     TModel3d();
@@ -252,6 +259,7 @@ public:
 	inline TSubModel * GetSMRoot() { return (Root); };
 	TSubModel * GetFromName(std::string const &Name) const;
 	TSubModel * AddToNamed(const char *Name, TSubModel *SubModel);
+    nameoffset_sequence const & find_smoke_sources();
 	void AddTo(TSubModel *tmp, TSubModel *SubModel);
 	void LoadFromTextFile(std::string const &FileName, bool dynamic);
 	void LoadFromBinFile(std::string const &FileName, bool dynamic);
@@ -260,6 +268,8 @@ public:
 	int Flags() const { return iFlags; };
 	void Init();
 	std::string NameGet() const { return m_filename; };
+    nameoffset_sequence const & smoke_sources() const {
+        return m_smokesources; }
 	int TerrainCount() const;
 	TSubModel * TerrainSquare(int n);
 	void deserialize(std::istream &s, size_t size, bool dynamic);

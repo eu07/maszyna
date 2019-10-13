@@ -84,6 +84,7 @@ private:
     void init_callbacks();
     int  init_gfx();
     int  init_audio();
+    int  init_data();
     int  init_modes();
 // members
     modeptr_array m_modes { nullptr }; // collection of available application behaviour modes

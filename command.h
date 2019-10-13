@@ -126,6 +126,7 @@ enum class user_command {
     radiochanneldecrease,
     radiostopsend,
     radiostoptest,
+    radiocall3send,
     cabchangeforward,
     cabchangebackward,
 
@@ -237,6 +238,7 @@ enum class user_command {
 	springbrakeshutoffenable,
 	springbrakeshutoffdisable,
 	springbrakerelease,
+    distancecounteractivate,
 	speedcontrolincrease,
 	speedcontroldecrease,
 	speedcontrolpowerincrease,

@@ -422,16 +422,7 @@ bool TAnimModel::Init(std::string const &asName, std::string const &asReplacable
         asText = asReplacableTexture.substr( 1, asReplacableTexture.length() - 1 ); // zapamiętanie tekstu
     }
     else if( asReplacableTexture != "none" ) {
-        m_materialdata.replacable_skins[ 1 ] = GfxRenderer.Fetch_Material( asReplacableTexture );
-    }
-    if( ( m_materialdata.replacable_skins[ 1 ] != null_handle )
-     && ( GfxRenderer.Material( m_materialdata.replacable_skins[ 1 ] ).has_alpha ) ) {
-        // tekstura z kanałem alfa - nie renderować w cyklu nieprzezroczystych
-        m_materialdata.textures_alpha = 0x31310031;
-    }
-    else{
-        // tekstura nieprzezroczysta - nie renderować w cyklu przezroczystych
-        m_materialdata.textures_alpha = 0x30300030;
+        m_materialdata.assign( asReplacableTexture );
     }
 
 // TODO: redo the random timer initialization
@@ -927,7 +918,7 @@ TAnimModel::export_as_text_( std::ostream &Output ) const {
     // texture
     auto texturefile { (
         m_materialdata.replacable_skins[ 1 ] != null_handle ?
-            GfxRenderer.Material( m_materialdata.replacable_skins[ 1 ] ).name :
+            GfxRenderer->Material( m_materialdata.replacable_skins[ 1 ] ).name :
             "none" ) };
     if( texturefile.find( szTexturePath ) == 0 ) {
         // don't include 'textures/' in the path

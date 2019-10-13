@@ -265,14 +265,14 @@ void
 ui_layer::set_background( std::string const &Filename ) {
 
     if( false == Filename.empty() ) {
-        m_background = GfxRenderer.Fetch_Texture( Filename );
+        m_background = GfxRenderer->Fetch_Texture( Filename );
     }
     else {
         m_background = null_handle;
     }
 
     if( m_background != null_handle ) {
-        auto const &texture = GfxRenderer.Texture( m_background );
+        auto const &texture = GfxRenderer->Texture( m_background );
         m_progressbottom = ( texture.width() != texture.height() );
     }
     else {
@@ -354,9 +354,9 @@ ui_layer::render_background() {
 	if( m_background == 0 ) return;
     // NOTE: we limit/expect the background to come with 4:3 ratio.
     // TODO, TBD: if we expose texture width or ratio from texture object, this limitation could be lifted
-    GfxRenderer.Bind_Texture( m_background );
+    GfxRenderer->Bind_Texture( m_background );
     auto const height { 768.0f };
-    auto const &texture = GfxRenderer.Texture( m_background );
+    auto const &texture = GfxRenderer->Texture( m_background );
     float const width = (
         texture.width() == texture.height() ?
             1024.0f : // legacy mode, square texture displayed as 4:3 image
@@ -376,7 +376,7 @@ ui_layer::render_texture() {
     if( m_texture != 0 ) {
         ::glColor4fv( glm::value_ptr( colors::white ) );
 
-        GfxRenderer.Bind_Texture( null_handle );
+        GfxRenderer->Bind_Texture( null_handle );
         ::glBindTexture( GL_TEXTURE_2D, m_texture );
 
         auto const size = 512.f;

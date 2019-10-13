@@ -74,7 +74,7 @@ shape_node::shapenode_data::serialize( std::ostream &Output ) const {
     sn_utils::s_str(
         Output,
         ( material != null_handle ?
-            GfxRenderer.Material( material ).name :
+            GfxRenderer->Material( material ).name :
             "" ) );
     lighting.serialize( Output );
     // geometry
@@ -104,7 +104,7 @@ shape_node::shapenode_data::deserialize( std::istream &Input ) {
     translucent = sn_utils::d_bool( Input );
     auto const materialname { sn_utils::d_str( Input ) };
     if( false == materialname.empty() ) {
-        material = GfxRenderer.Fetch_Material( materialname );
+        material = GfxRenderer->Fetch_Material( materialname );
     }
     lighting.deserialize( Input );
     // geometry
@@ -193,17 +193,17 @@ shape_node::import( cParser &Input, scene::node_data const &Nodedata ) {
     }
 
     // assigned material
-    m_data.material = GfxRenderer.Fetch_Material( token );
+    m_data.material = GfxRenderer->Fetch_Material( token );
 
     // determine way to proceed from the assigned diffuse texture
     // TBT, TODO: add methods to material manager to access these simpler
     auto const texturehandle = (
         m_data.material != null_handle ?
-            GfxRenderer.Material( m_data.material ).texture1 :
+            GfxRenderer->Material( m_data.material ).texture1 :
             null_handle );
     auto const &texture = (
         texturehandle ?
-            GfxRenderer.Texture( texturehandle ) :
+            GfxRenderer->Texture( texturehandle ) :
             opengl_texture() ); // dirty workaround for lack of better api
     bool const clamps = (
         texturehandle ?
@@ -345,7 +345,7 @@ shape_node::convert( TSubModel const *Submodel ) {
     m_data.lighting.diffuse = Submodel->f4Diffuse;
     m_data.lighting.specular = Submodel->f4Specular;
     m_data.material = Submodel->m_material;
-    m_data.translucent = ( true == GfxRenderer.Material( m_data.material ).has_alpha );
+    m_data.translucent = ( true == GfxRenderer->Material( m_data.material ).has_alpha );
     // NOTE: we set unlimited view range typical for terrain, because we don't expect to convert any other 3d models
     m_data.rangesquared_max = std::numeric_limits<double>::max();
 
@@ -354,7 +354,7 @@ shape_node::convert( TSubModel const *Submodel ) {
     int vertexcount { 0 };
     std::vector<world_vertex> importedvertices;
     world_vertex vertex, vertex1, vertex2;
-    for( auto const &sourcevertex : GfxRenderer.Vertices( Submodel->m_geometry ) ) {
+    for( auto const &sourcevertex : GfxRenderer->Vertices( Submodel->m_geometry ) ) {
         vertex.position = sourcevertex.position;
         vertex.normal   = sourcevertex.normal;
         vertex.texture  = sourcevertex.texture;
@@ -429,7 +429,7 @@ shape_node::create_geometry( gfx::geometrybank_handle const &Bank ) {
             vertex.normal,
             vertex.texture );
     }
-    m_data.geometry = GfxRenderer.Insert( vertices, Bank, GL_TRIANGLES );
+    m_data.geometry = GfxRenderer->Insert( vertices, Bank, GL_TRIANGLES );
     std::vector<world_vertex>().swap( m_data.vertices ); // hipster shrink_to_fit
 }
 
@@ -658,7 +658,7 @@ lines_node::create_geometry( gfx::geometrybank_handle const &Bank ) {
             vertex.normal,
             vertex.texture );
     }
-    m_data.geometry = GfxRenderer.Insert( vertices, Bank, GL_LINES );
+    m_data.geometry = GfxRenderer->Insert( vertices, Bank, GL_LINES );
     std::vector<world_vertex>().swap( m_data.vertices ); // hipster shrink_to_fit
 }
 

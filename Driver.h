@@ -194,9 +194,13 @@ public:
 public:
     void UpdateSituation(double dt); // uruchamiac przynajmniej raz na sekundę
     void MoveTo(TDynamicObject *to);
-    void TakeControl(bool yes);
+    void TakeControl(bool const Aidriver, bool const Forcevehiclecheck = false);
     inline
-    bool Primary() const {
+    bool primary( bool const Primary ) {
+        SetFlag( iDrivigFlags, ( Primary ? movePrimary : -movePrimary ) );
+        return primary(); }
+    inline
+    bool primary() const {
         return ( ( iDrivigFlags & movePrimary ) != 0 ); };
     inline
     TMoverParameters const *Controlling() const {
@@ -210,8 +214,11 @@ public:
     inline
     int Direction() const {
         return iDirection; }
+    inline
+    TAction & action() {
+        return eAction; }
     inline 
-    TAction GetAction() {
+    TAction const & action() const {
         return eAction; }
 private:
     void Activation(); // umieszczenie obsady w odpowiednim członie
@@ -427,6 +434,7 @@ private:
     Mtable::TTrainParameters *TrainParams = nullptr; // rozkład jazdy zawsze jest, nawet jeśli pusty
     std::string asNextStop; // nazwa następnego punktu zatrzymania wg rozkładu
     int iStationStart = 0; // numer pierwszej stacji pokazywanej na podglądzie rozkładu
+    std::string m_lastexchangestop; // HACK: safeguard to prevent multiple load exchanges per station
     double fLastStopExpDist = -1.0; // odległość wygasania ostateniego przystanku
     int iRadioChannel = 1; // numer aktualnego kanału radiowego
     int iGuardRadio = 0; // numer kanału radiowego kierownika (0, gdy nie używa radia)

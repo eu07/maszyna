@@ -323,7 +323,7 @@ drivermouse_input::button( int const Button, int const Action ) {
         // left mouse button launches on_click event associated with to the node
         if( Button == GLFW_MOUSE_BUTTON_LEFT ) {
             if( Action == GLFW_PRESS ) {
-                auto const *node { GfxRenderer.Update_Pick_Node() };
+                auto const *node { GfxRenderer->Update_Pick_Node() };
                 if( ( node == nullptr )
                  || ( typeid( *node ) != typeid( TAnimModel ) ) ) {
                     return;
@@ -369,7 +369,7 @@ drivermouse_input::button( int const Button, int const Action ) {
         }
         else {
             // if not release then it's press
-            auto const lookup = m_buttonbindings.find( simulation::Train->GetLabel( GfxRenderer.Update_Pick_Control() ) );
+            auto const lookup = m_buttonbindings.find( simulation::Train->GetLabel( GfxRenderer->Update_Pick_Control() ) );
             if( lookup != m_buttonbindings.end() ) {
                 // if the recognized element under the cursor has a command associated with the pressed button, notify the recipient
                 mousecommand = (
@@ -732,6 +732,9 @@ drivermouse_input::default_bindings() {
         { "radiotest_sw:", {
             user_command::radiostoptest,
             user_command::none } },
+        { "radiocall3_sw:", {
+            user_command::radiocall3send,
+            user_command::none } },
         { "pantfront_sw:", {
             user_command::pantographtogglefront,
             user_command::none } },
@@ -770,6 +773,9 @@ drivermouse_input::default_bindings() {
             user_command::none } },
         { "nextcurrent_sw:", {
             user_command::mucurrentindicatorothersourceactivate,
+            user_command::none } },
+        { "distancecounter_sw:", {
+            user_command::distancecounteractivate,
             user_command::none } },
         { "instrumentlight_sw:", {
             user_command::instrumentlighttoggle,

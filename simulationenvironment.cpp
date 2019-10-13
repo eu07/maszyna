@@ -11,6 +11,7 @@ http://mozilla.org/MPL/2.0/.
 #include "simulationenvironment.h"
 
 #include "Globals.h"
+#include "Timer.h"
 
 namespace simulation {
 
@@ -77,8 +78,14 @@ world_environment::init() {
     m_stars.init();
     m_clouds.Init();
     m_precipitation.init();
-
     m_precipitationsound.deserialize( "rain-sound-loop", sound_type::single );
+    m_wind = basic_wind{
+        static_cast<float>( Random( 0, 360 ) ),
+        static_cast<float>( Random( -5, 5 ) ),
+        static_cast<float>( Random( -2, 4 ) ),
+        static_cast<float>( Random( -1, 1 ) ),
+        static_cast<float>( Random( 5, 20 ) ),
+        {} };
 }
 
 void
@@ -170,12 +177,49 @@ world_environment::update() {
         // reduce friction due to snow
         Global.FrictionWeatherFactor = 0.75f;
     }
+
+    update_wind();
 }
 
 void
 world_environment::update_precipitation() {
 
     m_precipitation.update();
+}
+
+void
+world_environment::update_wind() {
+
+    auto const timedelta{ static_cast<float>( Timer::GetDeltaTime() ) };
+
+    m_wind.change_time -= timedelta;
+    if( m_wind.change_time < 0 ) {
+        m_wind.change_time = Random( 5, 15 );
+        m_wind.velocity_change = Random( -0.2, 0.2 );
+        if( Random() < 0.05 ) {
+            // changes in wind direction should be less frequent than changes in wind speed
+            // TBD, TODO: configuration-driven direction change frequency
+            m_wind.azimuth_change = Random( -5, 5 );
+        }
+        else {
+            // keep direction change periods short, to avoid too drastic changes in direction
+            m_wind.azimuth_change = 0.0;
+        }
+    }
+    // TBD, TODO: wind configuration
+    m_wind.azimuth = clamp_circular( m_wind.azimuth + m_wind.azimuth_change * timedelta );
+    // HACK: negative part of range allows for some quiet periods, without active wind
+    m_wind.velocity = clamp<float>( m_wind.velocity + m_wind.velocity_change * timedelta, -2, 4 );
+    // convert to force vector
+    auto const polarangle { glm::radians( 90.f ) }; // theta
+    auto const azimuthalangle{ glm::radians( m_wind.azimuth ) }; // phi
+    // convert spherical coordinates to opengl coordinates
+    m_wind.vector =
+        std::max( 0.f, m_wind.velocity )
+        *  glm::vec3(
+            std::sin( polarangle ) * std::sin( azimuthalangle ) * -1,
+            std::cos( polarangle ),
+            std::sin( polarangle ) * std::cos( azimuthalangle ) );
 }
 
 void

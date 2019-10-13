@@ -80,7 +80,7 @@ editor_mode::update() {
     simulation::Region->update_sounds();
     audio::renderer.update( deltarealtime );
 
-    GfxRenderer.Update( deltarealtime );
+    GfxRenderer->Update( deltarealtime );
 
     simulation::is_ready = true;
 
@@ -203,7 +203,7 @@ editor_mode::on_cursor_pos( double const Horizontal, double const Vertical ) {
             m_editor.translate( m_node, translation );
         }
         else {
-            auto const mouseworldposition { Camera.Pos + GfxRenderer.Mouse_Position() };
+            auto const mouseworldposition { Camera.Pos + GfxRenderer->Mouse_Position() };
             m_editor.translate( m_node, mouseworldposition, mode_snap() );
         }
     }
@@ -229,7 +229,7 @@ editor_mode::on_mouse_button( int const Button, int const Action, int const Mods
 
         if( Action == GLFW_PRESS ) {
             // left button press
-            m_node = GfxRenderer.Update_Pick_Node();
+            m_node = GfxRenderer->Update_Pick_Node();
             if( m_node ) {
                 Application.set_cursor( GLFW_CURSOR_DISABLED );
             }

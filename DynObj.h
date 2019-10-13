@@ -154,6 +154,9 @@ struct material_data {
     int textures_alpha{ 0x30300030 }; // maska przezroczystości tekstur. default: tekstury wymienne nie mają przezroczystości
     material_handle replacable_skins[ 5 ] = { null_handle, null_handle, null_handle, null_handle, null_handle }; // McZapkie:zmienialne nadwozie
     int multi_textures{ 0 }; //<0 tekstury wskazane wpisem, >0 tekstury z przecinkami, =0 jedna
+
+    // assigns specified texture or a group of textures to replacable texture slots
+    void assign( std::string const &Replacableskin );
 };
 
 class TDynamicObject { // klasa pojazdu
@@ -200,6 +203,7 @@ public:
     TModel3d *mdLowPolyInt; // ABu 010305: wnetrze lowpoly
     std::array<TSubModel *, 3> LowPolyIntCabs {}; // pointers to low fidelity version of individual driver cabs
     bool JointCabs{ false }; // flag for vehicles with multiple virtual 'cabs' sharing location and 3d model(s)
+    std::vector<TModel3d *> mdAttachments; // additional models attached to main body
     struct destination_data {
         TSubModel *sign { nullptr }; // submodel mapped with replacable texture -4
         bool has_light { false }; // the submodel was originally configured with self-illumination attribute
@@ -319,7 +323,6 @@ private:
     };
 
     struct door_sounds {
-        sound_source sDepartureSignal { sound_placement::general };
         sound_source rsDoorOpen { sound_placement::general }; // Ra: przeniesione z kabiny
         sound_source rsDoorClose { sound_placement::general };
         sound_source lock { sound_placement::general };
@@ -446,6 +449,7 @@ private:
     std::array<coupler_sounds, 2> m_couplersounds; // always front and rear
     std::vector<pantograph_sounds> m_pantographsounds; // typically 2 but can be less (or more?)
     std::vector<door_sounds> m_doorsounds; // can expect symmetrical arrangement, but don't count on it
+    std::vector<sound_source> m_departuresignalsounds; // single source per door (pair) on the centreline
     bool m_doorlocks { false }; // sound helper, current state of door locks
     sound_source sHorn1 { sound_placement::external, 5 * EU07_SOUND_RUNNINGNOISECUTOFFRANGE };
     sound_source sHorn2 { sound_placement::external, 5 * EU07_SOUND_RUNNINGNOISECUTOFFRANGE };
@@ -619,7 +623,7 @@ private:
             Axle1.GetTranslation() :
             Axle0.GetTranslation(); };
     // zwraca tor z aktywną osią
-    inline TTrack * RaTrackGet() const {
+    inline TTrack const * RaTrackGet() const {
         return iAxleFirst ?
             Axle1.GetTrack() :
             Axle0.GetTrack(); };

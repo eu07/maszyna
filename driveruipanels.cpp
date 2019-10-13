@@ -20,6 +20,7 @@ http://mozilla.org/MPL/2.0/.
 #include "Camera.h"
 #include "mtable.h"
 #include "Train.h"
+#include "Button.h"
 #include "Driver.h"
 #include "AnimModel.h"
 #include "DynObj.h"
@@ -43,6 +44,7 @@ drivingaid_panel::update() {
 
     auto const *mover = controlled->MoverParameters;
     auto const *driver = controlled->Mechanik;
+    auto const *owner = ( controlled->ctOwner != nullptr ? controlled->ctOwner : controlled->Mechanik );
 
     { // throttle, velocity, speed limits and grade
         std::string expandedtext;
@@ -59,8 +61,8 @@ drivingaid_panel::update() {
                 gradetext = m_buffer.data();
             }
             // next speed limit
-            auto const speedlimit { static_cast<int>( std::floor( driver->VelDesired ) ) };
-            auto const nextspeedlimit { static_cast<int>( std::floor( driver->VelNext ) ) };
+            auto const speedlimit { static_cast<int>( std::floor( owner->VelDesired ) ) };
+            auto const nextspeedlimit { static_cast<int>( std::floor( owner->VelNext ) ) };
             std::string nextspeedlimittext;
             if( nextspeedlimit != speedlimit ) {
                 std::snprintf(
@@ -116,7 +118,7 @@ drivingaid_panel::update() {
     { // alerter, hints
         std::string expandedtext;
         if( is_expanded ) {
-            auto const stoptime { static_cast<int>( std::ceil( -1.0 * controlled->Mechanik->fStopTime ) ) };
+            auto const stoptime { static_cast<int>( std::ceil( -1.0 * owner->fStopTime ) ) };
             if( stoptime > 0 ) {
                 std::snprintf(
                     m_buffer.data(), m_buffer.size(),
@@ -125,7 +127,7 @@ drivingaid_panel::update() {
                 expandedtext = m_buffer.data();
             }
             else {
-                auto const trackblockdistance{ std::abs( controlled->Mechanik->TrackBlock() ) };
+                auto const trackblockdistance{ std::abs( owner->TrackBlock() ) };
                 if( trackblockdistance <= 75.0 ) {
                     std::snprintf(
                         m_buffer.data(), m_buffer.size(),
@@ -135,12 +137,14 @@ drivingaid_panel::update() {
                 }
             }
         }
-        std::string textline =
-            ( true == TestFlag( mover->SecuritySystem.Status, s_aware ) ?
+        std::string textline = (
+            ( ( true == TestFlag( mover->SecuritySystem.Status, s_aware ) )
+           && ( train != nullptr )
+           && ( train->fBlinkTimer > 0 ) ) ?
                 locale::strings[ locale::string::driver_aid_alerter ] :
                 "          " );
-        textline +=
-            ( true == TestFlag( mover->SecuritySystem.Status, s_active ) ?
+        textline += (
+            ( true == TestFlag( mover->SecuritySystem.Status, s_active ) ) ?
                 locale::strings[ locale::string::driver_aid_shp ] :
                 "     " );
 
@@ -167,7 +171,7 @@ scenario_panel::update() {
         std::get<TDynamicObject *>( simulation::Region->find_vehicle( camera.Pos, 20, false, false ) ) ); // w trybie latania lokalizujemy wg mapy
     if( m_nearest == nullptr ) { return; }
     auto const *owner { (
-        ( ( m_nearest->Mechanik != nullptr ) && ( m_nearest->Mechanik->Primary() ) ) ?
+        ( ( m_nearest->Mechanik != nullptr ) && ( m_nearest->Mechanik->primary() ) ) ?
             m_nearest->Mechanik :
             m_nearest->ctOwner ) };
     if( owner == nullptr ) { return; }
@@ -205,7 +209,7 @@ scenario_panel::render() {
     if( true == ImGui::Begin( panelname.c_str(), &is_open, flags ) ) {
         // potential assignment section
         auto const *owner { (
-            ( ( m_nearest->Mechanik != nullptr ) && ( m_nearest->Mechanik->Primary() ) ) ?
+            ( ( m_nearest->Mechanik != nullptr ) && ( m_nearest->Mechanik->primary() ) ) ?
                 m_nearest->Mechanik :
                 m_nearest->ctOwner ) };
         if( owner != nullptr ) {
@@ -258,7 +262,7 @@ timetable_panel::update() {
     if( vehicle == nullptr ) { return; }
     // if the nearest located vehicle doesn't have a direct driver, try to query its owner
     auto const *owner = (
-        ( ( vehicle->Mechanik != nullptr ) && ( vehicle->Mechanik->Primary() ) ) ?
+        ( ( vehicle->Mechanik != nullptr ) && ( vehicle->Mechanik->primary() ) ) ?
             vehicle->Mechanik :
             vehicle->ctOwner );
     if( owner == nullptr ) { return; }
@@ -550,7 +554,7 @@ debug_panel::update_section_vehicle( std::vector<text_line> &Output ) {
     auto const &vehicle { *m_input.vehicle };
     auto const &mover { *m_input.mover };
 
-    auto const isowned { ( vehicle.Mechanik == nullptr ) && ( vehicle.ctOwner != nullptr ) };
+    auto const isowned { /* ( vehicle.Mechanik == nullptr ) && */ ( vehicle.ctOwner != nullptr ) && ( vehicle.ctOwner->Vehicle() != m_input.vehicle ) };
     auto const isplayervehicle { ( m_input.train != nullptr ) && ( m_input.train->Dynamic() == m_input.vehicle ) };
     auto const isdieselenginepowered { ( mover.EngineType == TEngineType::DieselElectric ) || ( mover.EngineType == TEngineType::DieselEngine ) };
     auto const isdieselinshuntmode { mover.ShuntMode && mover.EngineType == TEngineType::DieselElectric };
@@ -750,17 +754,14 @@ debug_panel::update_vehicle_brake() const {
 
 void
 debug_panel::update_section_engine( std::vector<text_line> &Output ) {
-
-    if( m_input.train == nullptr ) { return; }
+    // engine data
     if( m_input.vehicle == nullptr ) { return; }
     if( m_input.mover == nullptr ) { return; }
 
-    auto const &train { *m_input.train };
     auto const &vehicle{ *m_input.vehicle };
     auto const &mover{ *m_input.mover };
 
-        // engine data
-                // induction motor data
+    // induction motor data
     if( mover.EngineType == TEngineType::ElectricInductionMotor ) {
 
         Output.emplace_back( "      eimc:            eimv:            press:", Global.UITextColor );
@@ -772,7 +773,11 @@ debug_panel::update_section_engine( std::vector<text_line> &Output ) {
                 + mover.eimv_labels[ i ] + to_string( mover.eimv[ i ], 2, 9 );
 
             if( i < 10 ) {
-                parameters += " | " + train.fPress_labels[ i ] + to_string( train.fPress[ i ][ 0 ], 2, 9 );
+                // NOTE: we pull consist data from the train structure, so show this data only if we're viewing controlled vehicle
+                parameters +=
+                    ( ( m_input.train != nullptr ) && ( m_input.train->Dynamic() == m_input.vehicle ) ?
+                        " | " + TTrain::fPress_labels[ i ] + to_string( m_input.train->fPress[ i ][ 0 ], 2, 9 ) :
+                        "" );
             }
             else if( i == 12 ) {
                 parameters += "        med:";
@@ -784,6 +789,7 @@ debug_panel::update_section_engine( std::vector<text_line> &Output ) {
             Output.emplace_back( parameters, Global.UITextColor );
         }
     }
+    // diesel engine data
     if( mover.EngineType == TEngineType::DieselEngine ) {
 
         std::string parameterstext = "param       value";
@@ -959,6 +965,13 @@ debug_panel::update_section_scenario( std::vector<text_line> &Output ) {
     textline = "Cloud cover: " + to_string( Global.Overcast, 3 );
     textline += "\nLight level: " + to_string( Global.fLuminance, 3 );
     if( Global.FakeLight ) { textline += "(*)"; }
+    textline +=
+        "\nWind: azimuth "
+        + to_string( simulation::Environment.wind_azimuth(), 0 ) // ma być azymut, czyli 0 na północy i rośnie na wschód
+        + " "
+        + std::string( "N NEE SES SWW NW" )
+        .substr( 0 + 2 * std::floor( std::fmod( 8 + ( glm::radians( simulation::Environment.wind_azimuth() ) + 0.5 * M_PI_4 ) / M_PI_4, 8 ) ), 2 )
+        + ", " + to_string( glm::length( simulation::Environment.wind() ), 1 ) + " m/s";
     textline += "\nAir temperature: " + to_string( Global.AirTemperature, 1 ) + " deg C";
 
     Output.emplace_back( textline, Global.UITextColor );
@@ -1071,9 +1084,9 @@ debug_panel::update_section_renderer( std::vector<text_line> &Output ) {
             auto textline =
                 "FoV: " + to_string( Global.FieldOfView / Global.ZoomFactor, 1 )
                 + ", Draw range x " + to_string( Global.fDistanceFactor, 1 )
-//                + "; sectors: " + std::to_string( GfxRenderer.m_drawcount )
+//                + "; sectors: " + std::to_string( GfxRenderer->m_drawcount )
 //                + ", FPS: " + to_string( Timer::GetFPS(), 2 );
-                + ", FPS: " + std::to_string( static_cast<int>(std::round(GfxRenderer.Framerate())) );
+                + ", FPS: " + std::to_string( static_cast<int>(std::round(GfxRenderer->Framerate())) );
             if( Global.iSlowMotion ) {
                 textline += " (slowmotion " + to_string( Global.iSlowMotion ) + ")";
             }
@@ -1095,8 +1108,8 @@ debug_panel::update_section_renderer( std::vector<text_line> &Output ) {
             Output.emplace_back( textline, Global.UITextColor );
 
             // renderer stats
-            Output.emplace_back( GfxRenderer.info_times(), Global.UITextColor );
-            Output.emplace_back( GfxRenderer.info_stats(), Global.UITextColor );
+            Output.emplace_back( GfxRenderer->info_times(), Global.UITextColor );
+            Output.emplace_back( GfxRenderer->info_stats(), Global.UITextColor );
 }
 
 bool

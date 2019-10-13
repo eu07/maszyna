@@ -162,6 +162,65 @@ void TAnim::Parovoz(){
 */
 
 
+// assigns specified texture or a group of textures to replacable texture slots
+void
+material_data::assign( std::string const &Replacableskin ) {
+
+    // check for the pipe method first
+    if( Replacableskin.find( '|' ) != std::string::npos ) {
+        cParser nameparser( Replacableskin );
+        nameparser.getTokens( 4, true, "|" );
+        int skinindex = 0;
+        std::string texturename; nameparser >> texturename;
+        while( ( texturename != "" ) && ( skinindex < 4 ) ) {
+            replacable_skins[ skinindex + 1 ] = GfxRenderer->Fetch_Material( texturename );
+            ++skinindex;
+            texturename = ""; nameparser >> texturename;
+        }
+        multi_textures = skinindex;
+    }
+    else {
+        // otherwise try the basic approach
+        int skinindex = 0;
+        do {
+            // test quietly for file existence so we don't generate tons of false errors in the log
+            // NOTE: this means actual missing files won't get reported which is hardly ideal, but still somewhat better
+            auto const material { TextureTest( ToLower( Replacableskin + "," + std::to_string( skinindex + 1 ) ) ) };
+            if( true == material.empty() ) { break; }
+
+            replacable_skins[ skinindex + 1 ] = GfxRenderer->Fetch_Material( material );
+            ++skinindex;
+        } while( skinindex < 4 );
+        multi_textures = skinindex;
+        if( multi_textures == 0 ) {
+            // zestaw nie zadziałał, próbujemy normanie
+            replacable_skins[ 1 ] = GfxRenderer->Fetch_Material( Replacableskin );
+        }
+    }
+    if( replacable_skins[ 1 ] == null_handle ) {
+        // last ditch attempt, check for single replacable skin texture
+        replacable_skins[ 1 ] = GfxRenderer->Fetch_Material( Replacableskin );
+    }
+
+    textures_alpha = (
+        GfxRenderer->Material( replacable_skins[ 1 ] ).has_alpha ?
+            0x31310031 :  // tekstura -1 z kanałem alfa - nie renderować w cyklu nieprzezroczystych
+            0x30300030 ); // wszystkie tekstury nieprzezroczyste - nie renderować w cyklu przezroczystych
+    if( GfxRenderer->Material( replacable_skins[ 2 ] ).has_alpha ) {
+        // tekstura -2 z kanałem alfa - nie renderować w cyklu nieprzezroczystych
+        textures_alpha |= 0x02020002;
+    }
+    if( GfxRenderer->Material( replacable_skins[ 3 ] ).has_alpha ) {
+        // tekstura -3 z kanałem alfa - nie renderować w cyklu nieprzezroczystych
+        textures_alpha |= 0x04040004;
+    }
+    if( GfxRenderer->Material( replacable_skins[ 4 ] ).has_alpha ) {
+        // tekstura -4 z kanałem alfa - nie renderować w cyklu nieprzezroczystych
+        textures_alpha |= 0x08080008;
+    }
+}
+
+
 void TDynamicObject::destination_data::deserialize( cParser &Input ) {
 
     while( true == deserialize_mapping( Input ) ) {
@@ -849,15 +908,18 @@ void TDynamicObject::ABuLittleUpdate(double ObjSqrDist)
             //*************************************************************/// koniec
             // wezykow
             // uginanie zderzakow
-            for (int i = 0; i < 2; i++)
-            {
-                double dist = MoverParameters->Couplers[i].Dist / 2.0;
-                if (smBuforLewy[i])
-                    if (dist < 0)
-                        smBuforLewy[i]->SetTranslate( Math3D::vector3(dist, 0, 0));
-                if (smBuforPrawy[i])
-                    if (dist < 0)
-                        smBuforPrawy[i]->SetTranslate( Math3D::vector3(dist, 0, 0));
+            for (int i = 0; i < 2; ++i) {
+
+                auto const dist { clamp( MoverParameters->Couplers[ i ].Dist / 2.0, -MoverParameters->Couplers[ i ].DmaxB, 0.0 ) };
+
+                if( dist >= 0.0 ) { continue; }
+
+                if( smBuforLewy[ i ] ) {
+                    smBuforLewy[ i ]->SetTranslate( Math3D::vector3( dist, 0, 0 ) );
+                }
+                if( smBuforPrawy[ i ] ) {
+                    smBuforPrawy[ i ]->SetTranslate( Math3D::vector3( dist, 0, 0 ) );
+                }
             }
         } // vehicle within 50m
 
@@ -977,8 +1039,8 @@ void TDynamicObject::ABuLittleUpdate(double ObjSqrDist)
         
 		if( ( false == bDisplayCab ) // edge case, lowpoly may act as a stand-in for the hi-fi cab, so make sure not to show the driver when inside
          && ( Mechanik != nullptr )
-         && ( ( Mechanik->GetAction() != TAction::actSleep )
-           || ( MoverParameters->Battery ) ) ) {
+         && ( ( Mechanik->action() != TAction::actSleep )
+           /* || ( MoverParameters->Battery ) */ ) ) {
             // rysowanie figurki mechanika
             btMechanik1.Turn( MoverParameters->ActiveCab > 0 );
             btMechanik2.Turn( MoverParameters->ActiveCab < 0 );
@@ -1616,6 +1678,7 @@ TDynamicObject::Init(std::string Name, // nazwa pojazdu, np. "EU07-424"
     }
     // load the cargo now that we know whether the vehicle will allow it
     MoverParameters->AssignLoad( LoadType, Load );
+    MoverParameters->ComputeMass();
 
     bool driveractive = (fVel != 0.0); // jeśli prędkość niezerowa, to aktywujemy ruch
     if (!MoverParameters->CheckLocomotiveParameters(
@@ -2005,12 +2068,18 @@ TDynamicObject::Init(std::string Name, // nazwa pojazdu, np. "EU07-424"
                 smBuforPrawy[ i ]->WillBeAnimated();
         }
     }
-    for( auto &axle : m_axlesounds ) {
-        // wyszukiwanie osi (0 jest na końcu, dlatego dodajemy długość?)
-        axle.distance = (
-            Reversed ?
-                 -axle.offset :
-                ( axle.offset + MoverParameters->Dim.L ) ) + fDist;
+    if( Track->fSoundDistance > 0.f ) {
+        for( auto &axle : m_axlesounds ) {
+            // wyszukiwanie osi (0 jest na końcu, dlatego dodajemy długość?)
+            axle.distance =
+                clamp_circular<double>(
+                    ( Reversed ?
+                        -axle.offset :
+                         axle.offset )
+                        - 0.5 * MoverParameters->Dim.L
+                        + fDist,
+                    Track->fSoundDistance );
+        }
     }
     // McZapkie-250202 end.
     Track->AddDynamicObject(this); // wstawiamy do toru na pozycję 0, a potem przesuniemy
@@ -2203,12 +2272,9 @@ void TDynamicObject::Move(double fDistance)
         // Ra 2F1J: to nie jest stabilne (powoduje rzucanie taborem) i wymaga
         // dopracowania
         fAdjustment = vFront.Length() - fAxleDist; // na łuku będzie ujemny
-        // if (fabs(fAdjustment)>0.02) //jeśli jest zbyt dużo, to rozłożyć na kilka
-        // przeliczeń
-        // (wygasza drgania?)
+        // if (fabs(fAdjustment)>0.02) //jeśli jest zbyt dużo, to rozłożyć na kilka przeliczeń (wygasza drgania?)
         //{//parę centymetrów trzeba by już skorygować; te błędy mogą się też
-        // generować na ostrych
-        //łukach
+        // generować na ostrych łukach
         // fAdjustment*=0.5; //w jednym kroku korygowany jest ułamek błędu
         //}
         // else
@@ -2431,6 +2497,7 @@ void TDynamicObject::update_exchange( double const Deltatime ) {
                 m_exchange.unload_count -= exchangesize;
                 MoverParameters->LoadStatus = 1;
                 MoverParameters->LoadAmount = std::max( 0.f, MoverParameters->LoadAmount - exchangesize );
+                MoverParameters->ComputeMass();
                 update_load_visibility();
             }
             if( m_exchange.unload_count < 0.01 ) {
@@ -2445,6 +2512,7 @@ void TDynamicObject::update_exchange( double const Deltatime ) {
                     m_exchange.load_count -= exchangesize;
                     MoverParameters->LoadStatus = 2;
                     MoverParameters->LoadAmount = std::min( MoverParameters->MaxLoad, MoverParameters->LoadAmount + exchangesize ); // std::max not strictly needed but, eh
+                    MoverParameters->ComputeMass();
                     update_load_visibility();
                 }
             }
@@ -2759,7 +2827,7 @@ bool TDynamicObject::Update(double dt, double dt1)
     if (Mechanik)
     { // Ra 2F3F: do Driver.cpp to przenieść?
         MoverParameters->EqvtPipePress = GetEPP(); // srednie cisnienie w PG
-		if ((Mechanik->Primary())
+		if ((Mechanik->primary())
 			&& (MoverParameters->EngineType == TEngineType::DieselEngine)
 			&& (MoverParameters->EIMCtrlType > 0)) {
 			MoverParameters->CheckEIMIC(dt1);
@@ -2768,7 +2836,7 @@ bool TDynamicObject::Update(double dt, double dt1)
 			MoverParameters->eimic_real = std::min(MoverParameters->eimic,MoverParameters->eimicSpeedCtrl);
 			MoverParameters->SendCtrlToNext("EIMIC", MoverParameters->eimic_real, MoverParameters->CabNo);
 		}
-		if( ( Mechanik->Primary() )
+		if( ( Mechanik->primary() )
          && ( MoverParameters->EngineType == TEngineType::ElectricInductionMotor ) ) {
             // jesli glowny i z asynchronami, to niech steruje hamulcem i napedem lacznie dla calego pociagu/ezt
 			auto const kier = (DirectionGet() * MoverParameters->ActiveCab > 0);
@@ -2783,8 +2851,8 @@ bool TDynamicObject::Update(double dt, double dt1)
             auto Frj { 0.0 };
             auto osie { 0 };
 			// 0a. ustal aktualna nastawe zadania sily napedowej i hamowania 
-			if (MoverParameters->Power < 1)
-			{
+			if( ( MoverParameters->Power < 1 )
+             && ( ctOwner != nullptr ) ) {
 				MoverParameters->MainCtrlPos = ctOwner->Controlling()->MainCtrlPos*MoverParameters->MainCtrlPosNo / std::max(1, ctOwner->Controlling()->MainCtrlPosNo);
 				MoverParameters->SpeedCtrlValue = ctOwner->Controlling()->SpeedCtrlValue;
 			}
@@ -3125,11 +3193,22 @@ bool TDynamicObject::Update(double dt, double dt1)
         -vPosition.x,
          vPosition.z,
          vPosition.y };
-    TRotation r { 0.0, 0.0, 0.0 };
+    TRotation const r {
+        0.0,
+        0.0,
+        modelRot.z };
     // McZapkie-260202 - dMoveLen przyda sie przy stukocie kol
     dDOMoveLen = GetdMoveLen() + MoverParameters->ComputeMovement(dt, dt1, ts, tp, tmpTraction, l, r);
-    if( Mechanik )
-        Mechanik->MoveDistanceAdd( dDOMoveLen ); // dodanie aktualnego przemieszczenia
+    if( Mechanik ) {
+        // dodanie aktualnego przemieszczenia
+        Mechanik->MoveDistanceAdd( dDOMoveLen );
+    }
+    if( ( simulation::Train != nullptr )
+     && ( simulation::Train->Dynamic() == this ) ) {
+        // update distance meter in user-controlled cab
+        // TBD: place the meter on mover logic level?
+        simulation::Train->add_distance( dDOMoveLen );
+    }
     Move(dDOMoveLen);
     if (!bEnabled) // usuwane pojazdy nie mają toru
     { // pojazd do usunięcia
@@ -3143,12 +3222,14 @@ bool TDynamicObject::Update(double dt, double dt1)
     if( MyTrack->fSoundDistance != -1 ) {
 
         if( MyTrack->fSoundDistance != dRailLength ) {
-            dRailLength = MyTrack->fSoundDistance;
-            for( auto &axle : m_axlesounds ) {
-                axle.distance = axle.offset + MoverParameters->Dim.L;
+            if( dRailLength > 0.0 ) {
+                for( auto &axle : m_axlesounds ) {
+                    axle.distance = axle.offset;
+                }
             }
+            dRailLength = MyTrack->fSoundDistance;
         }
-        if( dRailLength != -1 ) {
+        if( dRailLength > 0.0 ) {
             if( MoverParameters->Vel > 0 ) {
                 // TODO: track quality and/or environment factors as separate subroutine
                 auto volume =
@@ -3170,35 +3251,43 @@ bool TDynamicObject::Update(double dt, double dt1)
                         break;
                     }
                 }
-
-                auto axleindex { 0 };
-                for( auto &axle : m_axlesounds ) {
-                    axle.distance -= dDOMoveLen * Sign( dDOMoveLen );
-                    if( axle.distance < 0 ) {
-                        axle.distance += dRailLength;
-                        if( MoverParameters->Vel > 2.5 ) {
-                            // NOTE: for combined clatter sound we supply 1/100th of actual value, as the sound module converts does the opposite, converting received (typically) 0-1 values to 0-100 range
-                            auto const frequency = (
-                                true == axle.clatter.is_combined() ?
-                                    MoverParameters->Vel * 0.01 :
-                                    1.0 );
-                            axle.clatter
-                                .pitch( frequency )
-                                .gain( volume )
-                                .play();
-                            // crude bump simulation, drop down on even axles, move back up on the odd ones
-                            MoverParameters->AccVert +=
-                                interpolate(
-                                    0.01, 0.05,
-                                    clamp(
-                                        GetVelocity() / ( 1 + MoverParameters->Vmax ),
-                                        0.0, 1.0 ) )
-                                * ( ( axleindex % 2 ) != 0 ?
-                                     1 :
-                                    -1 );
+                if( dRailLength > 0.0 ) {
+                    auto axleindex { 0 };
+                    auto const directioninconsist { (
+                        ctOwner == nullptr ?
+                            1 :
+                            ( ctOwner->Vehicle()->DirectionGet() == DirectionGet() ?
+                                1 :
+                               -1 ) ) };
+                    for( auto &axle : m_axlesounds ) {
+                        axle.distance += dDOMoveLen * directioninconsist;
+                        if( ( axle.distance < 0 )
+                         || ( axle.distance > dRailLength ) ) {
+                            axle.distance = clamp_circular( axle.distance, dRailLength );
+                            if( MoverParameters->Vel > 0.1 ) {
+                                // NOTE: for combined clatter sound we supply 1/100th of actual value, as the sound module converts does the opposite, converting received (typically) 0-1 values to 0-100 range
+                                auto const frequency = (
+                                    true == axle.clatter.is_combined() ?
+                                        MoverParameters->Vel * 0.01 :
+                                        1.0 );
+                                axle.clatter
+                                    .pitch( frequency )
+                                    .gain( volume )
+                                    .play();
+                                // crude bump simulation, drop down on even axles, move back up on the odd ones
+                                MoverParameters->AccVert +=
+                                    interpolate(
+                                        0.01, 0.05,
+                                        clamp(
+                                            GetVelocity() / ( 1 + MoverParameters->Vmax ),
+                                            0.0, 1.0 ) )
+                                    * ( ( axleindex % 2 ) != 0 ?
+                                         1 :
+                                        -1 );
+                            }
                         }
+                        ++axleindex;
                     }
-                    ++axleindex;
                 }
             }
         }
@@ -3619,7 +3708,10 @@ bool TDynamicObject::FastUpdate(double dt)
         -vPosition.x,
          vPosition.z,
          vPosition.y };
-    TRotation r { 0.0, 0.0, 0.0 };
+    TRotation const r {
+        0.0,
+        0.0,
+        modelRot.z };
     // McZapkie: parametry powinny byc pobierane z toru
     // ts.R=MyTrack->fRadius;
     // ts.Len= Max0R(MoverParameters->BDist,MoverParameters->ADist);
@@ -3903,7 +3995,7 @@ void TDynamicObject::RenderSounds() {
     }
     // NBMX sygnal odjazdu
     if( MoverParameters->Doors.has_warning ) {
-        for( auto &door : m_doorsounds ) {
+        for( auto &departuresignalsound : m_departuresignalsounds ) {
             // TBD, TODO: per-location door state triggers?
             if( ( MoverParameters->DepartureSignal )
 /*
@@ -3914,10 +4006,10 @@ void TDynamicObject::RenderSounds() {
                  ) {
                 // for the autonomous doors play the warning automatically whenever a door is closing
                 // MC: pod warunkiem ze jest zdefiniowane w chk
-                door.sDepartureSignal.play( sound_flags::exclusive | sound_flags::looping );
+                departuresignalsound.play( sound_flags::exclusive | sound_flags::looping );
             }
             else {
-                door.sDepartureSignal.stop();
+                departuresignalsound.stop();
             }
         }
     }
@@ -4226,12 +4318,7 @@ void TDynamicObject::RenderSounds() {
     if( MoverParameters->EventFlag ) {
         // McZapkie: w razie wykolejenia
         if( true == TestFlag( MoverParameters->DamageFlag, dtrain_out ) ) {
-            if( GetVelocity() > 0 ) {
-                rsDerailment.play();
-            }
-            else {
-                rsDerailment.stop();
-            }
+            rsDerailment.play( sound_flags::exclusive );
         }
 
         MoverParameters->EventFlag = false;
@@ -4258,11 +4345,24 @@ void TDynamicObject::LoadMMediaFile( std::string const &TypeName, std::string co
     std::string asAnimName;
     bool Stop_InternalData = false;
     pants = NULL; // wskaźnik pierwszego obiektu animującego dla pantografów
-	cParser parser( TypeName + ".mmd", cParser::buffer_FILE, asBaseDir );
-    if( false == parser.ok() ) {
-        ErrorLog( "Failed to load appearance data for vehicle " + MoverParameters->Name );
-        return;
+    {
+        // preliminary check whether the file exists
+        cParser parser( TypeName + ".mmd", cParser::buffer_FILE, asBaseDir );
+        if( false == parser.ok() ) {
+            ErrorLog( "Failed to load appearance data for vehicle " + MoverParameters->Name );
+            return;
+        }
     }
+    // use #include wrapper to access the appearance data file
+    // this allows us to provide the file content with user-defined parameters
+    cParser parser(
+        "include " + TypeName + ".mmd"
+        + " " + asName // (p1)
+        + " " + TypeName // (p2)
+        + " " + ReplacableSkin // (p3)
+        + " end",
+        cParser::buffer_TEXT,
+        asBaseDir );
 	std::string token;
     do {
 		token = "";
@@ -4284,6 +4384,8 @@ void TDynamicObject::LoadMMediaFile( std::string const &TypeName, std::string co
             if( asModel[ 0 ] == '/' ) {
                 asModel.erase( 0, 1 );
             }
+            /*
+            // never really used, may as well get rid of it
             std::size_t i = asModel.find( ',' );
             if ( i != std::string::npos )
             { // Ra 2015-01: może szukać przecinka w nazwie modelu, a po przecinku była by liczba tekstur?
@@ -4292,76 +4394,15 @@ void TDynamicObject::LoadMMediaFile( std::string const &TypeName, std::string co
                 }
                 m_materialdata.multi_textures = clamp( m_materialdata.multi_textures, 0, 1 ); // na razie ustawiamy na 1
             }
+            */
             asModel = asBaseDir + asModel; // McZapkie 2002-07-20: dynamics maja swoje modele w dynamics/basedir
             Global.asCurrentTexturePath = asBaseDir; // biezaca sciezka do tekstur to dynamic/...
             mdModel = TModelsManager::GetModel(asModel, true);
-            if (ReplacableSkin != "none")
-            {
-                if (m_materialdata.multi_textures > 0) {
-                    // jeśli model ma 4 tekstury
-                    // check for the pipe method first
-                    if( ReplacableSkin.find( '|' ) != std::string::npos ) {
-                        cParser nameparser( ReplacableSkin );
-                        nameparser.getTokens( 4, true, "|" );
-                        int skinindex = 0;
-                        std::string texturename; nameparser >> texturename;
-                        while( ( texturename != "" ) && ( skinindex < 4 ) ) {
-                            m_materialdata.replacable_skins[ skinindex + 1 ] = GfxRenderer.Fetch_Material( texturename );
-                            ++skinindex;
-                            texturename = ""; nameparser >> texturename;
-                        }
-                        m_materialdata.multi_textures = skinindex;
-                    }
-                    else {
-                        // otherwise try the basic approach
-                        int skinindex = 0;
-                        do {
-                            material_handle material = GfxRenderer.Fetch_Material( ReplacableSkin + "," + std::to_string( skinindex + 1 ), true );
-                            if( material == null_handle ) {
-                                break;
-                            }
-                            m_materialdata.replacable_skins[ skinindex + 1 ] = material;
-                            ++skinindex;
-                        } while( skinindex < 4 );
-                        m_materialdata.multi_textures = skinindex;
-                        if( m_materialdata.multi_textures == 0 ) {
-                            // zestaw nie zadziałał, próbujemy normanie
-                            m_materialdata.replacable_skins[ 1 ] = GfxRenderer.Fetch_Material( ReplacableSkin );
-                        }
-                    }
-                }
-                else {
-                    m_materialdata.replacable_skins[ 1 ] = GfxRenderer.Fetch_Material( ReplacableSkin );
-                }
-
+            if (ReplacableSkin != "none") {
+                m_materialdata.assign( ReplacableSkin );
                 // potentially set blank destination texture
                 DestinationSign.destination_off = DestinationFind( "nowhere" );
 //                DestinationSet( {}, {} );
-
-                if( GfxRenderer.Material( m_materialdata.replacable_skins[ 1 ] ).has_alpha ) {
-                    // tekstura -1 z kanałem alfa - nie renderować w cyklu nieprzezroczystych
-                    m_materialdata.textures_alpha = 0x31310031;
-                }
-                else {
-                    // wszystkie tekstury nieprzezroczyste - nie renderować w cyklu przezroczystych
-                    m_materialdata.textures_alpha = 0x30300030;
-                }
-
-                if( ( m_materialdata.replacable_skins[ 2 ] )
-                 && ( GfxRenderer.Material( m_materialdata.replacable_skins[ 2 ] ).has_alpha ) ) {
-                    // tekstura -2 z kanałem alfa - nie renderować w cyklu nieprzezroczystych
-                    m_materialdata.textures_alpha |= 0x02020002;
-                }
-                if( ( m_materialdata.replacable_skins[ 3 ] )
-                 && ( GfxRenderer.Material( m_materialdata.replacable_skins[ 3 ] ).has_alpha ) ) {
-                    // tekstura -3 z kanałem alfa - nie renderować w cyklu nieprzezroczystych
-                    m_materialdata.textures_alpha |= 0x04040004;
-                }
-                if( ( m_materialdata.replacable_skins[ 4 ] )
-                 && ( GfxRenderer.Material( m_materialdata.replacable_skins[ 4 ] ).has_alpha ) ) {
-                    // tekstura -4 z kanałem alfa - nie renderować w cyklu nieprzezroczystych
-                    m_materialdata.textures_alpha |= 0x08080008;
-                }
             }
             Global.asCurrentTexturePath = szTexturePath; // z powrotem defaultowa sciezka do tekstur
             do {
@@ -4420,13 +4461,28 @@ void TDynamicObject::LoadMMediaFile( std::string const &TypeName, std::string co
 					parser.getTokens();
 					parser >> asModel;
                     replace_slashes( asModel );
-                    if( asModel[ 0 ] == '/' ) {
-                        // filename can potentially begin with a slash, and we don't need it
-                        asModel.erase( 0, 1 );
-                    }
+                    erase_leading_slashes( asModel );
                     asModel = asBaseDir + asModel; // McZapkie-200702 - dynamics maja swoje modele w dynamic/basedir
                     Global.asCurrentTexturePath = asBaseDir; // biezaca sciezka do tekstur to dynamic/...
                     mdLowPolyInt = TModelsManager::GetModel(asModel, true);
+                }
+
+                else if(token == "attachments:") {
+					// additional 3d models attached to main body
+                    // content provided as a series of values together enclosed in "{}"
+                    // each value is a name of additional 3d model
+                    // value can be optionally set of values enclosed in "[]" in which case one value will be picked randomly
+                    // TBD: reconsider something more yaml-compliant and/or ability to define offset and rotation
+                    while( ( ( token = deserialize_random_set( parser ) ) != "" )
+                        && ( token != "}" ) ) {
+                        if( token == "{" ) { continue; }
+                        replace_slashes( token );
+                        Global.asCurrentTexturePath = asBaseDir; // biezaca sciezka do tekstur to dynamic/...
+                        auto *attachmentmodel { TModelsManager::GetModel( asBaseDir + token, true ) };
+                        if( attachmentmodel != nullptr ) {
+                            mdAttachments.emplace_back( attachmentmodel );
+                        }
+                    }
                 }
 
                 else if(token == "loads:") {
@@ -4972,18 +5028,18 @@ void TDynamicObject::LoadMMediaFile( std::string const &TypeName, std::string co
                         // add another axle entry to the list
                         axle_sounds axle {
                             0,
-                            std::atof( token.c_str() ),
+                            std::atof( token.c_str() ) * -1.0, // for axle locations negative value means ahead of centre but vehicle faces +Z in 'its' space
                             { sound_placement::external, static_cast<float>( dSDist ) } };
                         axle.clatter.deserialize( parser, sound_type::single );
                         axle.clatter.owner( this );
-                        axle.clatter.offset( { 0, 0, -axle.offset } ); // vehicle faces +Z in 'its' space, for axle locations negative value means ahead of centre
+                        axle.clatter.offset( { 0, 0, axle.offset } );
                         m_axlesounds.emplace_back( axle );
                     }
                     // arrange the axles in case they're listed out of order
                     std::sort(
                         std::begin( m_axlesounds ), std::end( m_axlesounds ),
                         []( axle_sounds const &Left, axle_sounds const &Right ) {
-                            return ( Left.offset < Right.offset ); } );
+                            return ( Left.offset > Right.offset ); } );
                 }
 
 				else if( ( token == "engine:" )
@@ -5232,11 +5288,11 @@ void TDynamicObject::LoadMMediaFile( std::string const &TypeName, std::string co
                     sound_source soundtemplate { sound_placement::general, 25.f };
                     soundtemplate.deserialize( parser, sound_type::multipart, sound_parameters::range );
                     soundtemplate.owner( this );
-                    for( auto &door : m_doorsounds ) {
+                    for( auto &departuresignalsound : m_departuresignalsounds ) {
                         // apply configuration to all defined doors, but preserve their individual offsets
-                        auto const dooroffset { door.lock.offset() };
-                        door.sDepartureSignal = soundtemplate;
-                        door.sDepartureSignal.offset( dooroffset );
+                        auto const soundoffset { departuresignalsound.offset() };
+                        departuresignalsound = soundtemplate;
+                        departuresignalsound.offset( soundoffset );
                     }
                 }
 
@@ -5390,7 +5446,6 @@ void TDynamicObject::LoadMMediaFile( std::string const &TypeName, std::string co
                             // left...
                             auto const location { glm::vec3 { MoverParameters->Dim.W * 0.5f, MoverParameters->Dim.H * 0.5f, offset } };
                             door.placement = side::left;
-                            door.sDepartureSignal.offset( location );
                             door.rsDoorClose.offset( location );
                             door.rsDoorOpen.offset( location );
                             door.lock.offset( location );
@@ -5402,9 +5457,8 @@ void TDynamicObject::LoadMMediaFile( std::string const &TypeName, std::string co
                         if( ( sides == "both" )
                          || ( sides == "right" ) ) {
                             // ...and right
-                            auto const location { glm::vec3 { MoverParameters->Dim.W * -0.5f, MoverParameters->Dim.H * 0.5f, offset } };
+                            auto const location { glm::vec3 { MoverParameters->Dim.W * -0.5f, 2.f, offset } };
                             door.placement = side::right;
-                            door.sDepartureSignal.offset( location );
                             door.rsDoorClose.offset( location );
                             door.rsDoorOpen.offset( location );
                             door.lock.offset( location );
@@ -5413,6 +5467,10 @@ void TDynamicObject::LoadMMediaFile( std::string const &TypeName, std::string co
                             door.step_open.offset( location );
                             m_doorsounds.emplace_back( door );
                         }
+                        // potential departure sound, one per door (pair) on vehicle centreline
+                        sound_source departuresignalsound { sound_placement::general, 25.f };
+                        departuresignalsound.offset( glm::vec3{ 0.f, 3.f, offset } );
+                        m_departuresignalsounds.emplace_back( departuresignalsound );
                     }
                 }
 
@@ -5715,6 +5773,9 @@ void TDynamicObject::LoadMMediaFile( std::string const &TypeName, std::string co
         mdLoad->Init();
     if (mdLowPolyInt)
         mdLowPolyInt->Init();
+    for( auto *attachment : mdAttachments ) {
+        attachment->Init();
+    }
 
     Global.asCurrentTexturePath = szTexturePath; // kiedyś uproszczone wnętrze mieszało tekstury nieba
     Global.asCurrentDynamicPath = "";
@@ -6268,7 +6329,7 @@ void TDynamicObject::DestinationSet(std::string to, std::string numer) {
         signrequest += "&" + DestinationSign.parameters;
     }
 
-    DestinationSign.destination = GfxRenderer.Fetch_Material( signrequest );
+    DestinationSign.destination = GfxRenderer->Fetch_Material( signrequest );
 }
 
 material_handle TDynamicObject::DestinationFind( std::string Destination ) {
@@ -6289,7 +6350,7 @@ material_handle TDynamicObject::DestinationFind( std::string Destination ) {
     for( auto const &destination : destinations ) {
         auto material = TextureTest( ToLower( destination ) );
         if( false == material.empty() ) {
-            destinationhandle = GfxRenderer.Fetch_Material( material );
+            destinationhandle = GfxRenderer->Fetch_Material( material );
             break;
         }
     }

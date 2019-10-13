@@ -204,6 +204,7 @@ static int const dbrake_automatic = 8;
 
 /*status czuwaka/SHP*/
 //hunter-091012: rozdzielenie alarmow, dodanie testu czuwaka
+static int const s_off = 0; //disabled
 static int const s_waiting = 1; //działa
 static int const s_aware = 2;   //czuwak miga
 static int const s_active = 4;  //SHP świeci
@@ -665,6 +666,7 @@ struct TCoupling {
 	double CForce = 0.0;                /*sila z jaka dzialal*/
 	double Dist = 0.0;                  /*strzalka ugiecia zderzaków*/
 	bool CheckCollision = false;     /*czy sprawdzac sile czy pedy*/
+    float stretch_duration { 0.f }; // seconds, elapsed time with excessive force applied to the coupler
 
     power_coupling power_high;
 //    power_coupling power_low; // TODO: implement this
@@ -1176,10 +1178,10 @@ public:
 	double MED_EPVC_Time = 7; // czas korekcji sily hamowania EP, gdy nie ma dostepnego ED
 	bool MED_Ncor = 0; // czy korekcja sily hamowania z uwzglednieniem nacisku
 
-	int DCEMUED_CC; //na którym sprzęgu sprawdzać działanie ED
-	double DCEMUED_EP_max_Vel; //maksymalna prędkość, przy której działa EP przy włączonym ED w jednostce (dla tocznych)
-	double DCEMUED_EP_min_Im; //minimalny prąd, przy którym EP nie działa przy włączonym ED w członie (dla silnikowych)
-	double DCEMUED_EP_delay; //opóźnienie włączenia hamulca EP przy hamowaniu ED - zwłoka wstępna
+    int DCEMUED_CC { 0 }; //na którym sprzęgu sprawdzać działanie ED
+    double DCEMUED_EP_max_Vel{ 0.0 }; //maksymalna prędkość, przy której działa EP przy włączonym ED w jednostce (dla tocznych)
+    double DCEMUED_EP_min_Im{ 0.0 }; //minimalny prąd, przy którym EP nie działa przy włączonym ED w członie (dla silnikowych)
+    double DCEMUED_EP_delay{ 0.0 }; //opóźnienie włączenia hamulca EP przy hamowaniu ED - zwłoka wstępna
 
 	/*-dla wagonow*/
     struct load_attributes {
@@ -1219,6 +1221,7 @@ public:
     /*--opis konkretnego egzemplarza taboru*/
     TLocation Loc { 0.0, 0.0, 0.0 }; //pozycja pojazdów do wyznaczenia odległości pomiędzy sprzęgami
     TRotation Rot { 0.0, 0.0, 0.0 };
+    glm::vec3 Front{};
 	std::string Name;                       /*nazwa wlasna*/
 	TCoupling Couplers[2];  //urzadzenia zderzno-sprzegowe, polaczenia miedzy wagonami
     std::array<neighbour_data, 2> Neighbours; // potential collision sources
@@ -1330,6 +1333,8 @@ public:
 
     /*-zmienne dla lokomotyw*/
 	bool Mains = false;    /*polozenie glownego wylacznika*/
+    double MainsInitTime{ 0.0 }; // config, initialization time (in seconds) of the main circuit after it receives power, before it can be closed
+    double MainsInitTimeCountdown{ 0.0 }; // current state of main circuit initialization, remaining time (in seconds) until it's ready
 	int MainCtrlPos = 0; /*polozenie glownego nastawnika*/
 	int ScndCtrlPos = 0; /*polozenie dodatkowego nastawnika*/
 	int LightsPos = 0; /*polozenie przelacznika wielopozycyjnego swiatel*/
@@ -1490,6 +1495,8 @@ public:
 	bool Attach(int ConnectNo, int ConnectToNr, TMoverParameters *ConnectTo, int CouplingType, bool Forced = false, bool Audible = true);
 	int DettachStatus(int ConnectNo);
 	bool Dettach(int ConnectNo);
+    void damage_coupler( int const End );
+    void derail( int const Reason );
 	bool DirectionForward();
     bool DirectionBackward( void );/*! kierunek ruchu*/
 	void BrakeLevelSet(double b);
@@ -1499,8 +1506,8 @@ public:
 	bool ChangeCab(int direction);
 	bool CurrentSwitch(bool const State);
 	void UpdateBatteryVoltage(double dt);
-	double ComputeMovement(double dt, double dt1, const TTrackShape &Shape, TTrackParam &Track, TTractionParam &ElectricTraction, const TLocation &NewLoc, TRotation &NewRot); //oblicza przesuniecie pojazdu
-	double FastComputeMovement(double dt, const TTrackShape &Shape, TTrackParam &Track, const TLocation &NewLoc, TRotation &NewRot); //oblicza przesuniecie pojazdu - wersja zoptymalizowana
+	double ComputeMovement(double dt, double dt1, const TTrackShape &Shape, TTrackParam &Track, TTractionParam &ElectricTraction, TLocation const &NewLoc, TRotation const &NewRot); //oblicza przesuniecie pojazdu
+	double FastComputeMovement(double dt, const TTrackShape &Shape, TTrackParam &Track, TLocation const &NewLoc, TRotation const &NewRot); //oblicza przesuniecie pojazdu - wersja zoptymalizowana
     void compute_movement_( double const Deltatime );
 	double ShowEngineRotation(int VehN);
 
@@ -1588,7 +1595,7 @@ public:
 
 	/*funkcje obliczajace sily*/
 	void ComputeConstans(void);//ABu: wczesniejsze wyznaczenie stalych dla liczenia sil
-	double ComputeMass(void);
+	void ComputeMass(void);
 	void ComputeTotalForce(double dt);
 	double Adhesive(double staticfriction) const;
 	double TractionForce(double dt);
@@ -1597,7 +1604,7 @@ public:
 	double BrakeForceP(double press, double velocity);
 	double BrakeForce(const TTrackParam &Track);
 	double CouplerForce(int const End, double dt);
-	void CollisionDetect(int CouplerN, double dt);
+	void CollisionDetect(int const End, double const dt);
 	/*obrot kol uwzgledniajacy poslizg*/
 	double ComputeRotatingWheel(double WForce, double dt, double n) const;
 
@@ -1620,6 +1627,7 @@ public:
     bool CompressorSwitch( bool State, range_t const Notify = range_t::consist );/*! wl/wyl sprezarki*/
 
 									  /*-funkcje typowe dla lokomotywy elektrycznej*/
+    void MainsCheck( double const Deltatime );
     void PowerCouplersCheck( double const Deltatime );
     void ConverterCheck( double const Timestep ); // przetwornica
     void HeatingCheck( double const Timestep );
@@ -1744,3 +1752,11 @@ private:
 };
 
 //double Distance(TLocation Loc1, TLocation Loc2, TDimension Dim1, TDimension Dim2);
+
+namespace simulation {
+
+using weights_table = std::unordered_map<std::string, float>;
+
+extern weights_table Weights;
+
+} // simulation

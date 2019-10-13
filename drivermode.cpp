@@ -17,6 +17,7 @@ http://mozilla.org/MPL/2.0/.
 #include "simulationtime.h"
 #include "simulationenvironment.h"
 #include "lightarray.h"
+#include "particles.h"
 #include "Train.h"
 #include "Driver.h"
 #include "DynObj.h"
@@ -235,7 +236,9 @@ driver_mode::update() {
     simulation::Region->update_sounds();
     audio::renderer.update( deltarealtime );
 
-    GfxRenderer.Update( deltarealtime );
+    // NOTE: particle system runs on simulation time, but needs actual camera position to determine how to update each particle source
+    simulation::Particles.update();
+    GfxRenderer->Update( deltarealtime );
 
     simulation::is_ready = true;
 
@@ -720,20 +723,36 @@ driver_mode::OnKeyDown(int cKey) {
 
             if( tmp != nullptr ) {
 
-                if( simulation::Train ) {// jeśli mielismy pojazd
-                    if( simulation::Train->Dynamic()->Mechanik ) { // na skutek jakiegoś błędu może czasem zniknąć
-                        simulation::Train->Dynamic()->Mechanik->TakeControl( true ); // oddajemy dotychczasowy AI
-                    }
-                }
-
                 if( ( true == DebugModeFlag )
                  || ( tmp->MoverParameters->Vel <= 5.0 ) ) {
                     // works always in debug mode, or for stopped/slow moving vehicles otherwise
+                    if( simulation::Train ) { // jeśli mielismy pojazd
+                        if( simulation::Train->Dynamic()->Mechanik ) { // na skutek jakiegoś błędu może czasem zniknąć
+                            if( ( tmp->ctOwner == simulation::Train->Dynamic()->Mechanik )
+                             && ( true == Global.ctrlState ) ) {
+                                // if the vehicle we left to the ai controlled the vehicle we're about to take over
+                                // put the ai we left in charge of our old vehicle to sleep
+                                // TODO: remove ctrl key mode once manual cab (de)activation is in place
+                                simulation::Train->Dynamic()->Mechanik->primary( false );
+                                simulation::Train->Dynamic()->Mechanik->action() = TAction::actSleep;
+                                simulation::Train->Dynamic()->MoverParameters->CabDeactivisation();
+                            }
+                            simulation::Train->Dynamic()->Mechanik->TakeControl( true ); // oddajemy dotychczasowy AI
+                        }
+                    }
+
                     if( simulation::Train == nullptr ) {
                         simulation::Train = new TTrain(); // jeśli niczym jeszcze nie jeździlismy
                     }
-                    if( simulation::Train->Init( tmp ) ) { // przejmujemy sterowanie
-                        simulation::Train->Dynamic()->Mechanik->TakeControl( false );
+                    if( simulation::Train->Init( tmp ) ) {
+                        // przejmujemy sterowanie
+                        if( true == Global.ctrlState ) {
+                            // make sure we can take over the consist
+                            // TODO: remove ctrl key mode once manual cab (de)activation is in place
+                            simulation::Train->Dynamic()->Mechanik->primary( true );
+                            simulation::Train->Dynamic()->MoverParameters->CabActivisation();
+                        }
+                        simulation::Train->Dynamic()->Mechanik->TakeControl( false, true );
                     }
                     else {
                         SafeDelete( simulation::Train ); // i nie ma czym sterować

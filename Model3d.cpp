@@ -371,14 +371,14 @@ int TSubModel::Load( cParser &parser, TModel3d *Model, /*int Pos,*/ bool dynamic
                 material.insert( 0, Global.asCurrentTexturePath );
             }
 */
-            m_material = GfxRenderer.Fetch_Material( material );
+            m_material = GfxRenderer->Fetch_Material( material );
             // renderowanie w cyklu przezroczystych tylko jeśli:
             // 1. Opacity=0 (przejściowo <1, czy tam <100) oraz
             // 2. tekstura ma przezroczystość
             iFlags |=
                 ( ( ( Opacity < 1.0 )
                  && ( ( m_material != null_handle )
-                   && ( GfxRenderer.Material( m_material ).has_alpha ) ) ) ?
+                   && ( GfxRenderer->Material( m_material ).has_alpha ) ) ) ?
                     0x20 :
                     0x10 ); // 0x10-nieprzezroczysta, 0x20-przezroczysta
         };
@@ -646,7 +646,7 @@ int TSubModel::TriangleAdd(TModel3d *m, material_handle tex, int tri)
             s = new TSubModel();
             m->AddTo(this, s);
         }
-        s->Name_Material(GfxRenderer.Material(tex).name);
+        s->Name_Material(GfxRenderer->Material(tex).name);
         s->m_material = tex;
         s->eType = GL_TRIANGLES;
     }
@@ -703,7 +703,8 @@ void TSubModel::InitialRotate(bool doit)
         }
         else if (Global.iConvertModels & 2) {
             // optymalizacja jest opcjonalna
-            if ((iFlags & 0xC000) == 0x8000) // o ile nie ma animacji
+            if ( ((iFlags & 0xC000) == 0x8000) // o ile nie ma animacji
+              && ( false == is_emitter() ) ) // don't optimize smoke emitter attachment points
             { // jak nie ma potomnych, można wymnożyć przez transform i wyjedynkować go
                 float4x4 *mat = GetMatrix(); // transform submodelu
                 if( false == Vertices.empty() ) {
@@ -808,6 +809,26 @@ TSubModel::find_replacable4() {
     }
 
     return std::make_tuple( nullptr, false );
+}
+
+// locates particle emitter submodels and adds them to provided list
+void
+TSubModel::find_smoke_sources( nameoffset_sequence &Sourcelist ) const {
+
+    auto const name { ToLower( pName ) };
+
+    if( ( eType == TP_ROTATOR )
+     && ( pName.find( "smokesource_" ) == 0 ) ) {
+        Sourcelist.emplace_back( pName, offset() );
+    }
+
+    if( Next != nullptr ) {
+        Next->find_smoke_sources( Sourcelist );
+    }
+
+    if( Child != nullptr ) {
+        Child->find_smoke_sources( Sourcelist );
+    }
 }
 
 int TSubModel::FlagsCheck()
@@ -1047,7 +1068,7 @@ void TSubModel::RaAnimation(TAnimType a)
 	}
 };
 
-   //---------------------------------------------------------------------------
+//---------------------------------------------------------------------------
 
 void TSubModel::serialize_geometry( std::ostream &Output ) const {
 
@@ -1055,7 +1076,7 @@ void TSubModel::serialize_geometry( std::ostream &Output ) const {
         Child->serialize_geometry( Output );
     }
     if( m_geometry != null_handle ) {
-        for( auto const &vertex : GfxRenderer.Vertices( m_geometry ) ) {
+        for( auto const &vertex : GfxRenderer->Vertices( m_geometry ) ) {
             vertex.serialize( Output );
         }
     }
@@ -1081,7 +1102,7 @@ TSubModel::create_geometry( std::size_t &Dataoffset, gfx::geometrybank_handle co
             eType < TP_ROTATOR ?
                 eType :
                 GL_POINTS );
-        m_geometry = GfxRenderer.Insert( Vertices, Bank, type );
+        m_geometry = GfxRenderer->Insert( Vertices, Bank, type );
     }
 
     if( m_geometry != NULL ) {
@@ -1091,7 +1112,7 @@ TSubModel::create_geometry( std::size_t &Dataoffset, gfx::geometrybank_handle co
         // since we're comparing squared radii, we need to square it back for correct results
         m_boundingradius *= m_boundingradius;
         auto const submodeloffset { offset( std::numeric_limits<float>::max() ) };
-        for( auto const &vertex : GfxRenderer.Vertices( m_geometry ) ) {
+        for( auto const &vertex : GfxRenderer->Vertices( m_geometry ) ) {
             squaredradius = glm::length2( submodeloffset + vertex.position );
             if( squaredradius > m_boundingradius ) {
                 m_boundingradius = squaredradius;
@@ -1131,6 +1152,14 @@ void TSubModel::ColorsSet( glm::vec3 const &Ambient, glm::vec3 const &Diffuse, g
 			f4Specular[i] = s[i] / 255.0;
 */
 };
+
+bool
+TSubModel::is_emitter() const {
+
+    return (
+        ( eType == TP_ROTATOR )
+     && ( ToLower( pName ).find( "smokesource_" ) == 0 ) );
+}
 
 // pobranie transformacji względem wstawienia modelu
 void TSubModel::ParentMatrix( float4x4 *m ) const {
@@ -1185,7 +1214,7 @@ float TSubModel::MaxY( float4x4 const &m ) {
     // binary and text models invoke this function at different stages, either after or before geometry data was sent to the geometry manager
     if( m_geometry != null_handle ) {
 
-        for( auto const &vertex : GfxRenderer.Vertices( m_geometry ) ) {
+        for( auto const &vertex : GfxRenderer->Vertices( m_geometry ) ) {
             maxy = std::max(
                 maxy,
                   m[ 0 ][ 1 ] * vertex.position.x
@@ -1230,8 +1259,9 @@ TModel3d::~TModel3d() {
     }
 };
 
-TSubModel *TModel3d::AddToNamed(const char *Name, TSubModel *SubModel)
-{
+TSubModel *
+TModel3d::AddToNamed(const char *Name, TSubModel *SubModel) {
+
 	TSubModel *sm = Name ? GetFromName(Name) : nullptr;
     if( ( sm == nullptr )
      && ( Name != nullptr ) && ( std::strcmp( Name, "none" ) != 0 ) ) {
@@ -1243,6 +1273,7 @@ TSubModel *TModel3d::AddToNamed(const char *Name, TSubModel *SubModel)
 
 // jedyny poprawny sposób dodawania submodeli, inaczej mogą zginąć przy zapisie E3D
 void TModel3d::AddTo(TSubModel *tmp, TSubModel *SubModel) {
+
 	if (tmp) {
         // jeśli znaleziony, podłączamy mu jako potomny
 		tmp->ChildAdd(SubModel);
@@ -1269,6 +1300,18 @@ TSubModel *TModel3d::GetFromName(std::string const &Name) const
 	}
 };
 
+// locates particle source submodels and stores them on internal list
+nameoffset_sequence const &
+TModel3d::find_smoke_sources() {
+
+    m_smokesources.clear();
+    if( Root != nullptr ) {
+        Root->find_smoke_sources( m_smokesources );
+    }
+
+    return smoke_sources();
+}
+
 // returns offset vector from root
 glm::vec3
 TSubModel::offset( float const Geometrytestoffsetthreshold ) const {
@@ -1284,7 +1327,7 @@ TSubModel::offset( float const Geometrytestoffsetthreshold ) const {
         // TODO: do proper bounding area calculation for submodel when loading mesh and grab the centre point from it here
         auto const &vertices { (
             m_geometry != null_handle ?
-                GfxRenderer.Vertices( m_geometry ) :
+                GfxRenderer->Vertices( m_geometry ) :
                 Vertices ) };
         if( false == vertices.empty() ) {
             // transformation matrix for the submodel can still contain rotation and/or scaling,
@@ -1553,7 +1596,7 @@ void TModel3d::deserialize(std::istream &s, size_t size, bool dynamic)
 {
 	Root = nullptr;
     if( m_geometrybank == null_handle ) {
-        m_geometrybank = GfxRenderer.Create_Bank();
+        m_geometrybank = GfxRenderer->Create_Bank();
     }
 
 	std::streampos end = s.tellg() + (std::streampos)size;
@@ -1638,7 +1681,7 @@ void TModel3d::deserialize(std::istream &s, size_t size, bool dynamic)
                         break;
                     }
                 }
-                submodel.m_geometry = GfxRenderer.Insert( vertices, m_geometrybank, type );
+                submodel.m_geometry = GfxRenderer->Insert( vertices, m_geometrybank, type );
             }
 
 		}
@@ -1739,12 +1782,12 @@ void TSubModel::BinInit(TSubModel *s, float4x4 *m, std::vector<std::string> *t, 
                 m_materialname = Global.asCurrentTexturePath + m_materialname;
             }
 */
-            m_material = GfxRenderer.Fetch_Material( m_materialname );
+            m_material = GfxRenderer->Fetch_Material( m_materialname );
             if( ( iFlags & 0x30 ) == 0 ) {
                 // texture-alpha based fallback if for some reason we don't have opacity flag set yet
                 iFlags |= (
                     ( ( m_material != null_handle )
-                   && ( GfxRenderer.Material( m_material ).has_alpha ) ) ?
+                   && ( GfxRenderer->Material( m_material ).has_alpha ) ) ?
                         0x20 :
                         0x10 ); // 0x10-nieprzezroczysta, 0x20-przezroczysta
             }
@@ -1877,7 +1920,7 @@ void TModel3d::Init()
 		iFlags |= Root->FlagsCheck() | 0x8000; // flagi całego modelu
         if (iNumVerts) {
             if( m_geometrybank == null_handle ) {
-                m_geometrybank = GfxRenderer.Create_Bank();
+                m_geometrybank = GfxRenderer->Create_Bank();
             }
             std::size_t dataoffset = 0;
             Root->create_geometry( dataoffset, m_geometrybank );
@@ -1888,6 +1931,8 @@ void TModel3d::Init()
             asBinary = ""; // zablokowanie powtórnego zapisu
         }
     }
+    // check if the model contains particle emitters
+    find_smoke_sources();
 };
 
 //-----------------------------------------------------------------------------

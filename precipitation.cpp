@@ -98,11 +98,11 @@ basic_precipitation::init() {
             "_medium" ) };
     if( Global.Weather == "rain:" ) {
         m_moverateweathertypefactor = 2.f;
-        m_texture = GfxRenderer.Fetch_Texture( "fx/rain" + densitysuffix );
+        m_texture = GfxRenderer->Fetch_Texture( "fx/rain" + densitysuffix );
     }
     else if( Global.Weather == "snow:" ) {
         m_moverateweathertypefactor = 1.25f;
-        m_texture = GfxRenderer.Fetch_Texture( "fx/snow" + densitysuffix );
+        m_texture = GfxRenderer->Fetch_Texture( "fx/snow" + densitysuffix );
     }
 
     return true;
@@ -123,7 +123,8 @@ basic_precipitation::update() {
 
     m_camerapos = Global.pCamera.Pos;
 
-    // intercept sudden user-induced camera jumps
+    // intercept sudden user-induced camera jumps...
+    // ...from free fly mode change
     if( m_freeflymode != FreeFlyModeFlag ) {
         m_freeflymode = FreeFlyModeFlag;
         if( true == m_freeflymode ) {
@@ -138,14 +139,17 @@ basic_precipitation::update() {
         }
         cameramove = glm::dvec3{ 0.0 };
     }
+    // ...from jump between cab and window/mirror view
     if( m_windowopen != Global.CabWindowOpen ) {
         m_windowopen = Global.CabWindowOpen;
         cameramove = glm::dvec3{ 0.0 };
     }
+    // ... from cab change
     if( ( simulation::Train != nullptr ) && ( simulation::Train->iCabn != m_activecab ) ) {
         m_activecab = simulation::Train->iCabn;
         cameramove = glm::dvec3{ 0.0 };
     }
+    // ... from camera jump to another location
     if( glm::length( cameramove ) > 100.0 ) {
         cameramove = glm::dvec3{ 0.0 };
     }
@@ -159,7 +163,7 @@ basic_precipitation::update() {
 void
 basic_precipitation::render() {
 
-    GfxRenderer.Bind_Texture( m_texture );
+    GfxRenderer->Bind_Texture( m_texture );
 
     // cache entry state
     ::glPushClientAttrib( GL_CLIENT_VERTEX_ARRAY_BIT );

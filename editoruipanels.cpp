@@ -36,12 +36,26 @@ itemproperties_panel::update( scene::basic_node const *Node ) {
     auto const &camera { Global.pCamera };
 
     if( node == nullptr ) {
-        auto const mouseposition { camera.Pos + GfxRenderer.Mouse_Position() };
+        auto const mouseposition { camera.Pos + GfxRenderer->Mouse_Position() };
         textline = "mouse location: [" + to_string( mouseposition.x, 2 ) + ", " + to_string( mouseposition.y, 2 ) + ", " + to_string( mouseposition.z, 2 ) + "]";
         text_lines.emplace_back( textline, Global.UITextColor );
         return;
     }
+/*
+    // TODO: bind receiver in the constructor
+    if( ( m_itemproperties != nullptr )
+     && ( m_itemproperties->node != nullptr ) )  {
+        // fetch node data; skip properties which were changed until they're retrieved by the observer
+        auto const *node { m_itemproperties->node };
 
+        if( m_itemproperties->name.second == false ) {
+            m_itemproperties->name.first = ( node->name().empty() ? "(none)" : node->name() );
+        }
+        if( m_itemproperties->location.second == false ) {
+            m_itemproperties->location.first = node->location();
+        }
+    }
+*/
     textline =
         "name: " + ( node->name().empty() ? "(none)" : node->name() )
         + "\nlocation: [" + to_string( node->location().x, 2 ) + ", " + to_string( node->location().y, 2 ) + ", " + to_string( node->location().z, 2 ) + "]"
@@ -83,7 +97,7 @@ itemproperties_panel::update( scene::basic_node const *Node ) {
         // texture
         auto texturefile { (
             ( subnode->Material()->replacable_skins[ 1 ] != null_handle ) ?
-                GfxRenderer.Material( subnode->Material()->replacable_skins[ 1 ] ).name :
+                GfxRenderer->Material( subnode->Material()->replacable_skins[ 1 ] ).name :
                 "(none)" ) };
         if( texturefile.find( szTexturePath ) == 0 ) {
             // don't include 'textures/' in the path
@@ -106,14 +120,14 @@ itemproperties_panel::update( scene::basic_node const *Node ) {
         // textures
         auto texturefile { (
             ( subnode->m_material1 != null_handle ) ?
-                GfxRenderer.Material( subnode->m_material1 ).name :
+                GfxRenderer->Material( subnode->m_material1 ).name :
                 "(none)" ) };
         if( texturefile.find( szTexturePath ) == 0 ) {
             texturefile.erase( 0, std::string{ szTexturePath }.size() );
         }
         auto texturefile2{ (
             ( subnode->m_material2 != null_handle ) ?
-                GfxRenderer.Material( subnode->m_material2 ).name :
+                GfxRenderer->Material( subnode->m_material2 ).name :
                 "(none)" ) };
         if( texturefile2.find( szTexturePath ) == 0 ) {
             texturefile2.erase( 0, std::string{ szTexturePath }.size() );

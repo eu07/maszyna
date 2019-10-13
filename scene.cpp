@@ -898,7 +898,7 @@ basic_section::create_geometry() {
 
     // since sections can be empty, we're doing lazy initialization of the geometry bank, when something may actually use it
     if( m_geometrybank == null_handle ) {
-        m_geometrybank = GfxRenderer.Create_Bank();
+        m_geometrybank = GfxRenderer->Create_Bank();
     }
 
     for( auto &shape : m_shapes ) {
@@ -950,6 +950,9 @@ basic_region::on_click( TAnimModel const *Instance ) {
 // legacy method, polls event launchers around camera
 void
 basic_region::update_events() {
+
+    if( false == simulation::is_ready ) { return; }
+
     // render events and sounds from sectors near enough to the viewer
     auto const range = EU07_SECTIONSIZE; // arbitrary range
     auto const &sectionlist = sections( Global.pCamera.Pos, range );
@@ -1179,7 +1182,7 @@ basic_region::insert( shape_node Shape, scratch_data &Scratchpad, bool const Tra
 
     if( Global.CreateSwitchTrackbeds ) {
 
-        auto const materialname{ GfxRenderer.Material( Shape.data().material ).name };
+        auto const materialname{ GfxRenderer->Material( Shape.data().material ).name };
         for( auto const &switchtrackbedtexture : switchtrackbedtextures ) {
             if( materialname.find( switchtrackbedtexture ) != std::string::npos ) {
                 // geometry with blacklisted texture, part of old switch trackbed; ignore it
