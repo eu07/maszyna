@@ -18,6 +18,7 @@ http://mozilla.org/MPL/2.0/.
 #include "simulation.h"
 #include "Globals.h"
 #include "Event.h"
+#include "MemCell.h"
 #include "messaging.h"
 #include "DynObj.h"
 #include "AnimModel.h"

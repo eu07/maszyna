@@ -12,6 +12,7 @@ http://mozilla.org/MPL/2.0/.
 
 #include "Model3d.h"
 #include "renderer.h"
+#include "parser.h"
 #include "Logs.h"
 #include "sn_utils.h"
 

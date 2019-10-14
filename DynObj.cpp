@@ -16,6 +16,7 @@ http://mozilla.org/MPL/2.0/.
 #include "DynObj.h"
 
 #include "simulation.h"
+#include "lightarray.h"
 #include "Camera.h"
 #include "Train.h"
 #include "Driver.h"

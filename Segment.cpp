@@ -12,6 +12,7 @@ http://mozilla.org/MPL/2.0/.
 
 #include "Globals.h"
 #include "Logs.h"
+#include "parser.h"
 #include "utilities.h"
 #include "Track.h"
 #include "renderer.h"

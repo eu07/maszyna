@@ -18,7 +18,7 @@ http://mozilla.org/MPL/2.0/.
 #include "Train.h"
 #include "dictionary.h"
 #include "sceneeditor.h"
-#include "renderer.h"
+#include "openglrenderer.h"
 #include "uilayer.h"
 #include "translation.h"
 #include "Logs.h"

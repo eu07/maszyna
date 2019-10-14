@@ -14,6 +14,7 @@ http://mozilla.org/MPL/2.0/.
 #include "translation.h"
 #include "simulation.h"
 #include "simulationtime.h"
+#include "simulationenvironment.h"
 #include "Timer.h"
 #include "Event.h"
 #include "TractionPower.h"

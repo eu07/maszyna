@@ -11,6 +11,7 @@ http://mozilla.org/MPL/2.0/.
 
 #include "material.h"
 #include "renderer.h"
+#include "parser.h"
 #include "utilities.h"
 #include "sn_utils.h"
 #include "Globals.h"

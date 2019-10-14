@@ -52,6 +52,12 @@
     <Filter Include="Source Files\imgui">
       <UniqueIdentifier>{33f7f4ae-692b-4989-a71a-004e0d48ed4f}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Header Files\gfx">
+      <UniqueIdentifier>{66a7bd41-ffd6-47cc-af2f-15c36e811142}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\math">
+      <UniqueIdentifier>{77356e25-abc5-4f1c-9caf-6cf554a65770}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="AirCoupler.cpp">
@@ -342,6 +348,24 @@
     <ClCompile Include="dictionary.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="particles.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="geometrybank.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="openglrenderer.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="opengllight.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="openglcamera.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="openglparticles.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Globals.h">
@@ -356,34 +380,19 @@
     <ClInclude Include="McZapkie\mover.h">
       <Filter>Header Files\mczapkie</Filter>
     </ClInclude>
-    <ClInclude Include="dumb3d.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="PyInt.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="Classes.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="Texture.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="Camera.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="MdlMngr.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="sky.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="parser.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="resource.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="Float3d.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="stdafx.h">
@@ -428,13 +437,7 @@
     <ClInclude Include="Names.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="Model3d.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="Event.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="AnimModel.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="Track.h">
@@ -467,31 +470,13 @@
     <ClInclude Include="sun.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="renderer.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="skydome.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="color.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="stars.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="lightarray.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="sn_utils.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="frustum.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="uilayer.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="openglmatrixstack.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="moon.h">
@@ -503,13 +488,7 @@
     <ClInclude Include="version.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="openglgeometrybank.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="translation.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="material.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="vertex.h">
@@ -537,9 +516,6 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="uitranscripts.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="light.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="utilities.h">
@@ -620,14 +596,80 @@
     <ClInclude Include="editoruipanels.h">
       <Filter>Header Files\application\mode_editor</Filter>
     </ClInclude>
-    <ClInclude Include="precipitation.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="openglcolor.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="dictionary.h">
       <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="particles.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="geometrybank.h">
+      <Filter>Header Files\gfx</Filter>
+    </ClInclude>
+    <ClInclude Include="color.h">
+      <Filter>Header Files\gfx</Filter>
+    </ClInclude>
+    <ClInclude Include="light.h">
+      <Filter>Header Files\gfx</Filter>
+    </ClInclude>
+    <ClInclude Include="material.h">
+      <Filter>Header Files\gfx</Filter>
+    </ClInclude>
+    <ClInclude Include="openglcolor.h">
+      <Filter>Header Files\gfx</Filter>
+    </ClInclude>
+    <ClInclude Include="openglgeometrybank.h">
+      <Filter>Header Files\gfx</Filter>
+    </ClInclude>
+    <ClInclude Include="openglmatrixstack.h">
+      <Filter>Header Files\gfx</Filter>
+    </ClInclude>
+    <ClInclude Include="renderer.h">
+      <Filter>Header Files\gfx</Filter>
+    </ClInclude>
+    <ClInclude Include="sky.h">
+      <Filter>Header Files\gfx</Filter>
+    </ClInclude>
+    <ClInclude Include="skydome.h">
+      <Filter>Header Files\gfx</Filter>
+    </ClInclude>
+    <ClInclude Include="Texture.h">
+      <Filter>Header Files\gfx</Filter>
+    </ClInclude>
+    <ClInclude Include="stars.h">
+      <Filter>Header Files\gfx</Filter>
+    </ClInclude>
+    <ClInclude Include="precipitation.h">
+      <Filter>Header Files\gfx</Filter>
+    </ClInclude>
+    <ClInclude Include="AnimModel.h">
+      <Filter>Header Files\gfx</Filter>
+    </ClInclude>
+    <ClInclude Include="MdlMngr.h">
+      <Filter>Header Files\gfx</Filter>
+    </ClInclude>
+    <ClInclude Include="Model3d.h">
+      <Filter>Header Files\gfx</Filter>
+    </ClInclude>
+    <ClInclude Include="openglrenderer.h">
+      <Filter>Header Files\gfx</Filter>
+    </ClInclude>
+    <ClInclude Include="Float3d.h">
+      <Filter>Header Files\math</Filter>
+    </ClInclude>
+    <ClInclude Include="frustum.h">
+      <Filter>Header Files\math</Filter>
+    </ClInclude>
+    <ClInclude Include="dumb3d.h">
+      <Filter>Header Files\math</Filter>
+    </ClInclude>
+    <ClInclude Include="opengllight.h">
+      <Filter>Header Files\gfx</Filter>
+    </ClInclude>
+    <ClInclude Include="openglcamera.h">
+      <Filter>Header Files\gfx</Filter>
+    </ClInclude>
+    <ClInclude Include="openglparticles.h">
+      <Filter>Header Files\gfx</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
