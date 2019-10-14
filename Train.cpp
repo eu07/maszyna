@@ -6601,7 +6601,7 @@ bool TTrain::Update( double const Deltatime )
         ggSpeedControlIncreaseButton.Update();
 		ggSpeedControlDecreaseButton.Update();
 		ggSpeedControlPowerIncreaseButton.Update();
-		ggSpeedControlDecreaseButton.Update();
+		ggSpeedControlPowerDecreaseButton.Update();
 		for (auto &speedctrlbutton : ggSpeedCtrlButtons) {
 			speedctrlbutton.Update();
 		}

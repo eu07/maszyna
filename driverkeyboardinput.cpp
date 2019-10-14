@@ -247,7 +247,21 @@ driverkeyboard_input::default_bindings() {
         // springbrakeshutoffenable,
         // springbrakeshutoffdisable,
         // springbrakerelease,
-        // distancecounteractivate
+        // distancecounteractivate,
+	    // speedcontrolincrease,
+	    // speedcontroldecrease,
+	    // speedcontrolpowerincrease,
+	    // speedcontrolpowerdecrease,
+	    // speedcontrolbutton0,
+	    // speedcontrolbutton1,
+	    // speedcontrolbutton2,
+	    // speedcontrolbutton3,
+	    // speedcontrolbutton4,
+	    // speedcontrolbutton5,
+	    // speedcontrolbutton6,
+	    // speedcontrolbutton7,
+	    // speedcontrolbutton8,
+	    // speedcontrolbutton9,
     };
 }
 
