@@ -6639,28 +6639,31 @@ void TMoverParameters::CheckEIMIC(double dt)
 
 void TMoverParameters::CheckSpeedCtrl(double dt)
 {
-	if (MainCtrlPos < MainCtrlPosNo - 2) {
-		SpeedCtrlUnit.Standby = true;
-	}
-	if (MainCtrlPos > MainCtrlPosNo - 1) {
-		SpeedCtrlUnit.Standby = false;
+	double accfactor = SpeedCtrlUnit.DesiredPower;
+	if (EIMCtrlType >= 2) {
+		if (MainCtrlPos < MainCtrlPosNo - 2) {
+			SpeedCtrlUnit.Standby = true;
+		}
+		if (MainCtrlPos > MainCtrlPosNo - 1) {
+			SpeedCtrlUnit.Standby = false;
+		}
+		if (UniCtrlList[MainCtrlPos].SpeedUp > 0) {
+			accfactor = 0.0;
+		}
 	}
 	if (SpeedCtrlUnit.IsActive) {//speed control
-		if (EngineType == TEngineType::DieselEngine) {
+		if (true) {
 			if ((!SpeedCtrlUnit.Standby)) {
 				if (SpeedCtrlUnit.ManualStateOverride) {
-/*					if (MainCtrlPos < MainCtrlPosNo - 1) {
-						eimic = std::min(eimic, 0.0);
-						eimicSpeedCtrlIntegral = 0.0;
-					} 
-					else*/ if (eimic > 0.009) eimic = 1.0;
+					if (eimic > 0.009) eimic = 1.0;
 				}
 				double error = (std::max(SpeedCtrlValue + SpeedCtrlUnit.Offset, 0.0) - Vel);
 				double factorP = error > 0 ? SpeedCtrlUnit.FactorPpos : SpeedCtrlUnit.FactorPneg;
 				double eSCP = clamp(factorP * error, -1.2, 1.0);  //P module
+				bool hydrounlock = (EngineType != TEngineType::DieselEngine) || (Vel < hydro_TC_UnlockSpeed);
 				if (eSCP < -1.0)
 				{
-					SpeedCtrlUnit.BrakeInterventionBraking = (eSCP < -1.1) && (Vel < hydro_TC_UnlockSpeed);
+					SpeedCtrlUnit.BrakeInterventionBraking = (eSCP < -1.1) && hydrounlock;
 					eSCP = -1.0;
 				}
 				SpeedCtrlUnit.BrakeInterventionUnbraking = (eSCP > 0.0) || (Vel == 0.0);
@@ -6673,7 +6676,7 @@ void TMoverParameters::CheckSpeedCtrl(double dt)
 				else {
 					eimicSpeedCtrlIntegral = 0;
 				}
-				eimicSpeedCtrl = clamp(eimicSpeedCtrlIntegral + eSCP, -SpeedCtrlUnit.DesiredPower, SpeedCtrlUnit.DesiredPower*double(UniCtrlList[MainCtrlPos].SpeedUp > 0));
+				eimicSpeedCtrl = clamp(eimicSpeedCtrlIntegral + eSCP, -SpeedCtrlUnit.DesiredPower, accfactor);
 				if (Vel < SpeedCtrlUnit.FullPowerVelocity) {
 					eimicSpeedCtrl = std::min(eimicSpeedCtrl, SpeedCtrlUnit.InitialPower);
 				}

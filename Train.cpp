@@ -501,7 +501,9 @@ dictionary_source *TTrain::GetTrainState() {
     dict->insert( "scnd_ctrl_actual_pos", mvControlled->ScndCtrlActualPos );
 	dict->insert( "new_speed", mvOccupied->NewSpeed);
  	dict->insert( "speedctrl", mvOccupied->SpeedCtrlValue);
-	dict->insert( "speedctrlpower", mvOccupied->SpeedCtrlUnit.DesiredPower);
+	dict->insert( "speedctrlpower", mvOccupied->SpeedCtrlUnit.DesiredPower );
+	dict->insert( "speedctrlactive", mvOccupied->SpeedCtrlUnit.IsActive );
+	dict->insert( "speedctrlstandby", mvOccupied->SpeedCtrlUnit.Standby );
    // brakes
     dict->insert( "manual_brake", ( mvOccupied->ManualBrakePos > 0 ) );
     bool const bEP = ( mvControlled->LocHandle->GetCP() > 0.2 ) || ( fEIMParams[ 0 ][ 2 ] > 0.01 );
