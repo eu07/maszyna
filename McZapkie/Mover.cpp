@@ -6657,7 +6657,7 @@ void TMoverParameters::CheckSpeedCtrl(double dt)
 			if ((Hamulec->GetEDBCP()>0.4) || (PipePress < (HighPipePress - 0.2)))
 				SpeedCtrlUnit.Standby = true;
 		}
-		if (UniCtrlList[MainCtrlPos].SpeedUp > 0) {
+		if ((EIMCtrlType >= 3)&&(UniCtrlList[MainCtrlPos].SpeedUp <= 0)) {
 			accfactor = 0.0;
 		}
 	}
