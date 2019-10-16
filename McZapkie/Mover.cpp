@@ -2288,12 +2288,18 @@ bool TMoverParameters::DecScndCtrl(int CtrlSpeed)
 		SpeedCtrlValue = 0;
 		SendCtrlToNext("SpeedCntrl", SpeedCtrlValue, CabNo);
 		SpeedCtrlUnit.IsActive = false;
+		if (SpeedCtrlUnit.ManualStateOverride) {
+			eimic = 0.0;
+		}
 	}
 
  	if ((OK) && (SpeedCtrl) && (ScndCtrlPos == 0) && (EngineType == TEngineType::DieselEngine))
 	{
 		SpeedCtrlValue = 0;
 		SpeedCtrlUnit.IsActive = false;
+		if (SpeedCtrlUnit.ManualStateOverride) {
+			eimic = 0.0;
+		}
 	}
 
    return OK;
@@ -6647,6 +6653,10 @@ void TMoverParameters::CheckSpeedCtrl(double dt)
 		if (MainCtrlPos > MainCtrlPosNo - 1) {
 			SpeedCtrlUnit.Standby = false;
 		}
+		if (!SpeedCtrlUnit.BrakeIntervention) {
+			if ((Hamulec->GetEDBCP()>0.4) || (PipePress < (HighPipePress - 0.2)))
+				SpeedCtrlUnit.Standby = true;
+		}
 		if (UniCtrlList[MainCtrlPos].SpeedUp > 0) {
 			accfactor = 0.0;
 		}
@@ -6686,7 +6696,7 @@ void TMoverParameters::CheckSpeedCtrl(double dt)
 				}
 			}
 			else {
-				eimicSpeedCtrl = 1;
+				eimicSpeedCtrl = 0;
 				eimicSpeedCtrlIntegral = 0;
 			}
 			SpeedCtrlUnit.Parking = (Vel == 0.0) & (eimic <= 0);
@@ -6717,14 +6727,16 @@ void TMoverParameters::SpeedCtrlButton(int button)
 void TMoverParameters::SpeedCtrlInc()
 {
 	if ((SpeedCtrl) && (ScndCtrlPos > 0)) {
-		SpeedCtrlValue = std::min(SpeedCtrlValue + SpeedCtrlUnit.VelocityStep, SpeedCtrlUnit.MaxVelocity);
+		double x = floor(SpeedCtrlValue / SpeedCtrlUnit.VelocityStep) + 1.0;
+		SpeedCtrlValue = std::min(x * SpeedCtrlUnit.VelocityStep, SpeedCtrlUnit.MaxVelocity);
 	}
 }
 
 void TMoverParameters::SpeedCtrlDec()
 {
 	if ((SpeedCtrl) && (ScndCtrlPos > 0)) {
-		SpeedCtrlValue = std::max(SpeedCtrlValue - SpeedCtrlUnit.VelocityStep, SpeedCtrlUnit.MinVelocity);
+		double x = ceil(SpeedCtrlValue / SpeedCtrlUnit.VelocityStep) - 1.0;
+		SpeedCtrlValue = std::max(x * SpeedCtrlUnit.VelocityStep, SpeedCtrlUnit.MinVelocity);
 	}
 }
 
