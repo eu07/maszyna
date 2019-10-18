@@ -3987,7 +3987,7 @@ void TMoverParameters::UpdatePipePressure(double dt)
              || ( ( BrakeHandle != TBrakeHandle::MHZ_EN57 )
                && ( BrakeHandle != TBrakeHandle::MHZ_K8P ) ) ) {
 				double pos = BrakeCtrlPosR;
-				if (SpeedCtrl && SpeedCtrlUnit.BrakeIntervention && !SpeedCtrlUnit.Standby) {
+				if (SpeedCtrlUnit.IsActive && SpeedCtrlUnit.BrakeIntervention && !SpeedCtrlUnit.Standby) {
 					pos = Handle->GetPos(bh_NP);
 					if (SpeedCtrlUnit.BrakeInterventionBraking)
 						pos = Handle->GetPos(bh_FB);
