@@ -3987,7 +3987,7 @@ void TMoverParameters::UpdatePipePressure(double dt)
              || ( ( BrakeHandle != TBrakeHandle::MHZ_EN57 )
                && ( BrakeHandle != TBrakeHandle::MHZ_K8P ) ) ) {
 				double pos = BrakeCtrlPosR;
-				if (SpeedCtrlUnit.IsActive && SpeedCtrlUnit.BrakeIntervention && !SpeedCtrlUnit.Standby && (BrakeCtrlPos != Handle->GetPos(bh_EB))) {
+				if (SpeedCtrlUnit.IsActive && !SpeedCtrlUnit.Standby && SpeedCtrlUnit.BrakeIntervention && !SpeedCtrlUnit.Standby && (BrakeCtrlPos != Handle->GetPos(bh_EB))) {
 					pos = Handle->GetPos(bh_NP);
 					if (SpeedCtrlUnit.BrakeInterventionBraking)
 						pos = Handle->GetPos(bh_FB);
@@ -6670,10 +6670,10 @@ void TMoverParameters::CheckSpeedCtrl(double dt)
 				double error = (std::max(SpeedCtrlValue + SpeedCtrlUnit.Offset, 0.0) - Vel);
 				double factorP = error > 0 ? SpeedCtrlUnit.FactorPpos : SpeedCtrlUnit.FactorPneg;
 				double eSCP = clamp(factorP * error, -1.2, 1.0);  //P module
-				bool hydrounlock = (EngineType != TEngineType::DieselEngine) || (Vel < hydro_TC_UnlockSpeed);
+				bool retarder_not_work = (EngineType != TEngineType::DieselEngine) || (Vel < SpeedCtrlUnit.BrakeInterventionVel);
 				if (eSCP < -1.0)
 				{
-					SpeedCtrlUnit.BrakeInterventionBraking = (eSCP < -1.1) && hydrounlock;
+					SpeedCtrlUnit.BrakeInterventionBraking = (eSCP < -1.1) && retarder_not_work;
 					eSCP = -1.0;
 				}
 				SpeedCtrlUnit.BrakeInterventionUnbraking = (eSCP > 0.0) || (Vel == 0.0);
@@ -9741,6 +9741,8 @@ void TMoverParameters::LoadFIZ_SpeedControl(std::string const &Line) {
 	extract_value(SpeedCtrlUnit.FactorPneg, "kPneg", Line, "");
 	extract_value(SpeedCtrlUnit.FactorIpos, "kIpos", Line, "");
 	extract_value(SpeedCtrlUnit.FactorIneg, "kIneg", Line, "");
+	extract_value(SpeedCtrlUnit.BrakeInterventionVel, "BrakeIntMaxVel", Line, "");
+	
 
 }
 
