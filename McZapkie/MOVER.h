@@ -706,6 +706,7 @@ struct speed_control {
 	double FactorPneg = 0.5;
 	double FactorIpos = 0.0;
 	double FactorIneg = 0.0;
+	double BrakeInterventionVel = 30.0;
 };
 
 class TMoverParameters
