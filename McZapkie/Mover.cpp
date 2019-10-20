@@ -5053,7 +5053,8 @@ double TMoverParameters::TractionForce( double dt ) {
             break;
         }
         case TEngineType::DieselEngine: {
-            EnginePower = ( 2 * dizel_Mstand + dmoment ) * enrot * ( 2.0 * M_PI / 1000.0 );
+			dizel_Power = Mm * enrot * (2.0 * M_PI / 1000.0);
+            EnginePower = ( dizel_Mstand + Mm ) * enrot * ( 2.0 * M_PI / 1000.0 );
             if( MainCtrlPowerPos() > 1 ) {
                 // dodatkowe opory z powodu sprezarki}
 //                dmoment -= dizel_Mstand * ( 0.2 * enrot / dizel_nmax ); //yB: skąd to w ogóle się bierze?!
@@ -5237,8 +5238,7 @@ double TMoverParameters::TractionForce( double dt ) {
 
         case TEngineType::DieselEngine:
         {
-            Mm = dmoment; //bylo * dizel_engage
-            Mw = Mm * dtrans; // dmoment i dtrans policzone przy okazji enginerotation
+            Mw = dmoment * dtrans; // dmoment i dtrans policzone przy okazji enginerotation
 			if ((hydro_R) && (hydro_R_Placement == 0))
 				Mw -= dizel_MomentumRetarder(nrot * Transmision.Ratio, dt) * Transmision.Ratio;
             Fw = Mw * 2.0 / WheelDiameter / NPoweredAxles;
@@ -7121,6 +7121,9 @@ double TMoverParameters::dizel_Momentum(double dizel_fill, double n, double dt)
 
     if( enrot > 0 ) {
         Moment = ( dizel_Mmax - ( dizel_Mmax - dizel_Mnmax ) * square( ( enrot - dizel_nMmax ) / ( dizel_nMmax - dizel_nmax ) ) ) * dizel_fill - dizel_Mstand;
+		Mm = Moment;
+		dizel_FuelConsumptionActual = dizel_FuelConsumption * enrot * dizel_fill;
+		dizel_FuelConsumptedTotal += dizel_FuelConsumptionActual * dt / 3600.0;
 		if ((hydro_R) && (hydro_R_Placement == 2))
 			Moment -= dizel_MomentumRetarder(enrot, dt);
     }
@@ -10045,11 +10048,18 @@ void TMoverParameters::LoadFIZ_DList( std::string const &Input ) {
     extract_value( dizel_nmax, "nmax", Input, "" );
     extract_value( dizel_nominalfill, "nominalfill", Input, "" );
     extract_value( dizel_Mstand, "Mstand", Input, "" );
+	extract_value( dizel_NominalFuelConsumptionRate, "NomFuelConsRate", Input, "");
 
     if( dizel_nMmax == dizel_nmax ) {
         // HACK: guard against cases where nMmax == nmax, leading to division by 0 in momentum calculation
         dizel_nMmax = dizel_nmax - 1.0 / 60.0;
     }
+
+	//Calculation of fuel consumption coefficient for futher calculation
+	double dizel_max_power = dizel_nmax * (dizel_Mnmax - dizel_Mstand) * M_PI * 2 * 0.001; //power in kW
+	double dizel_max_energy = dizel_max_power; //energy per one hour in kWh is equal to power in kW times 1 h
+	double fuel_density = 850; //g/l
+	dizel_FuelConsumption = dizel_NominalFuelConsumptionRate * dizel_max_energy / fuel_density / dizel_nmax;
 }
 
 void TMoverParameters::LoadFIZ_FFList( std::string const &Input ) {
