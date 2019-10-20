@@ -129,6 +129,7 @@ private:
         int traction { 0 };
         int shapes { 0 };
         int lines { 0 };
+        int particles { 0 };
         int drawcalls { 0 };
     };
 

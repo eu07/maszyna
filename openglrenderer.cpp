@@ -359,7 +359,8 @@ opengl_renderer::Render() {
         + " paths:     " + to_string( m_debugstats.paths ) + "\n"
         + " shapes:    " + to_string( m_debugstats.shapes ) + "\n"
         + " traction:  " + to_string( m_debugstats.traction ) + "\n"
-        + " lines:     " + to_string( m_debugstats.lines );
+        + " lines:     " + to_string( m_debugstats.lines ) + "\n"
+        + "particles: " + to_string( m_debugstats.particles );
 
     ++m_framestamp;
 
@@ -2953,7 +2954,7 @@ opengl_renderer::Render_particles() {
     ::glDepthMask( GL_FALSE );
 
     Bind_Texture( m_smoketexture );
-    m_particlerenderer.render( m_diffusetextureunit );
+    m_debugstats.particles = m_particlerenderer.render( m_diffusetextureunit );
 
     ::glDepthMask( GL_TRUE );
     ::glEnable( GL_LIGHTING );

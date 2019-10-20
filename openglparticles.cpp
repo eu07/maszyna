@@ -127,13 +127,13 @@ opengl_particles::update( opengl_camera const &Camera ) {
     ::glPopClientAttrib();
 }
 
-void
+std::size_t
 opengl_particles::render( int const Textureunit ) {
 
-    if( false == Global.Smoke ) { return; }
-    if( m_buffercapacity == 0 ) { return; }
-    if( m_particlevertices.empty() ) { return; }
-    if( ( m_buffer == 0 ) || ( m_buffer == (GLuint)-1 ) ) { return; }
+    if( false == Global.Smoke ) { return 0; }
+    if( m_buffercapacity == 0 ) { return 0; }
+    if( m_particlevertices.empty() ) { return 0; }
+    if( ( m_buffer == 0 ) || ( m_buffer == (GLuint)-1 ) ) { return 0; }
 
     // setup...
     ::glPushClientAttrib( GL_CLIENT_VERTEX_ARRAY_BIT );
@@ -153,6 +153,8 @@ opengl_particles::render( int const Textureunit ) {
         gfx::opengl_vbogeometrybank::reset();
     }
     ::glPopClientAttrib();
+
+    return m_particlevertices.size() / 4;
 }
 
 //---------------------------------------------------------------------------

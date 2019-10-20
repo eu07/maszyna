@@ -25,7 +25,7 @@ public:
 // methods
     void
         update( opengl_camera const &Camera );
-    void
+    std::size_t
         render( int const Textureunit );
 private:
 // types
