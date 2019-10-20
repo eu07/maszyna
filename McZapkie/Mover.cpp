@@ -10,9 +10,9 @@ http://mozilla.org/MPL/2.0/.
 #include "stdafx.h"
 #include "MOVER.h"
 
+#include "utilities.h"
 #include "DynObj.h"
 #include "Oerlikon_ESt.h"
-#include "utilities.h"
 #include "Globals.h"
 #include "Logs.h"
 #include "parser.h"
@@ -2562,7 +2562,8 @@ void TMoverParameters::SecuritySystemCheck(double dt)
      && (Battery)) // Ra: EZT ma teraz czuwak w rozrządczym
     {
         // CA
-        if( ( SecuritySystem.AwareMinSpeed > 0.0 ?
+        if( ( false == ShuntMode ) // TBD, TODO: check if alerter inactivity in shunt mode is general rule or vehicle specific, may need a config flag
+         && ( SecuritySystem.AwareMinSpeed > 0.0 ?
                 ( Vel >= SecuritySystem.AwareMinSpeed ) :
                 ( ActiveDir != 0 ) ) ) {
             // domyślnie predkość większa od 10% Vmax, albo podanej jawnie w FIZ
@@ -9417,10 +9418,10 @@ void TMoverParameters::LoadFIZ_Cntrl( std::string const &line ) {
                 lookup->second :
                 TBrakeHandle::NoHandle;
         }
-		Handle_AutomaticOverload = (extract_value("HAO", line) == "Yes");
-		Handle_ManualOverload = (extract_value("HMO", line) == "Yes");
-		extract_value(Handle_GenericDoubleParameter1, "HGDP1", line, "");
-		extract_value(Handle_GenericDoubleParameter2, "HGDP2", line, "");
+		extract_value( Handle_AutomaticOverload, "HAO", line, "" );
+		extract_value( Handle_ManualOverload, "HMO", line, "" );
+		extract_value( Handle_GenericDoubleParameter1, "HGDP1", line, "" );
+		extract_value( Handle_GenericDoubleParameter2, "HGDP2", line, "" );
         // brakelochandle
         {
             std::map<std::string, TBrakeHandle> locbrakehandles{
@@ -9442,17 +9443,16 @@ void TMoverParameters::LoadFIZ_Cntrl( std::string const &line ) {
         }
 
         // asbtype
-        std::string asb;
-        extract_value( asb, "ASB", line, "" );
+        std::string const asb { ToLower( extract_value( "ASB", line ) ) };
         if( BrakeCtrlPosNo > 0 ) {
 
-            if( asb == "Manual" ) { ASBType = 1; }
-            else if( asb == "Automatic" ) { ASBType = 2; }
-			else if (asb == "Yes") { ASBType = 128; }
+                 if( asb == "manual" )    { ASBType = 1; }
+            else if( asb == "automatic" ) { ASBType = 2; }
+			else if( asb == "yes")        { ASBType = 128; }
         }
         else {
 
-            if( asb == "Yes" ) { ASBType = 128; }
+            if( asb == "yes" ) { ASBType = 128; }
         }
     } // brakesystem != individual
 
@@ -9470,7 +9470,7 @@ void TMoverParameters::LoadFIZ_Cntrl( std::string const &line ) {
             TLocalBrake::NoBrake;
     }
     // mbrake
-    MBrake = ( extract_value( "ManualBrake", line ) == "Yes" );
+    extract_value( MBrake, "ManualBrake", line, "" );
     // dynamicbrake
     {
         std::map<std::string, int> dynamicbrakes{
@@ -9492,17 +9492,16 @@ void TMoverParameters::LoadFIZ_Cntrl( std::string const &line ) {
     extract_value( ScndInMain, "SCIM", line, "" );
     extract_value( MaxMainCtrlPosNoDirChange, "DirChangeMaxPos", line, "" );
 
-    std::string autorelay;
-    extract_value( autorelay, "AutoRelay", line, "" );
-    if( autorelay == "Optional" ) { AutoRelayType = 2; }
-    else if( autorelay == "Yes" ) { AutoRelayType = 1; }
-    else { AutoRelayType = 0; }
+    auto const autorelay { ToLower( extract_value( "AutoRelay", line ) ) };
+         if( autorelay == "optional" ) { AutoRelayType = 2; }
+    else if( autorelay == "yes" )      { AutoRelayType = 1; }
+    else                               { AutoRelayType = 0; }
 
     extract_value( CoupledCtrl, "CoupledCtrl", line, "" );
 	extract_value( EIMCtrlType, "EIMCtrlType", line, "" );
-	clamp( EIMCtrlType, 0, 3 );
-	LocHandleTimeTraxx = (extract_value("LocalBrakeTraxx", line) == "Yes");
-	EIMCtrlAdditionalZeros = (extract_value("EIMCtrlAddZeros", line) == "Yes");
+    EIMCtrlType = clamp( EIMCtrlType, 0, 3 );
+	extract_value( LocHandleTimeTraxx, "LocalBrakeTraxx", line, "" );
+	extract_value( EIMCtrlAdditionalZeros, "EIMCtrlAddZeros", line, "" );
 
     extract_value( ScndS, "ScndS", line, "" ); // brak pozycji rownoleglej przy niskiej nastawie PSR
 
@@ -9513,9 +9512,9 @@ void TMoverParameters::LoadFIZ_Cntrl( std::string const &line ) {
 
     //hunter-111012: dla siodemek 303E
     FastSerialCircuit =
-        ( extract_value( "FSCircuit", line ) == "Yes" ) ?
-        1 :
-        0;
+        ( ToLower( extract_value( "FSCircuit", line ) ) == "yes" ) ?
+            1 :
+            0;
 
     extract_value( StopBrakeDecc, "SBD", line, "" );
 
@@ -9701,7 +9700,7 @@ void TMoverParameters::LoadFIZ_Power( std::string const &Line ) {
 
 void TMoverParameters::LoadFIZ_SpeedControl(std::string const &Line) {
 	// speed control
-	SpeedCtrl = extract_value("SpeedCtrl", Line) == "Yes";
+    extract_value( SpeedCtrl, "SpeedCtrl", Line, "" );
 	if ((!SpeedCtrl) && (EngineType == TEngineType::ElectricInductionMotor) && (ScndCtrlPosNo > 0)) //backward compatibility
 		SpeedCtrl = true;
 	extract_value(SpeedCtrlDelay, "SpeedCtrlDelay", Line, "");
@@ -9717,16 +9716,8 @@ void TMoverParameters::LoadFIZ_SpeedControl(std::string const &Line) {
 		SpeedCtrlButtons[speed_no++] = std::stod(speed);
 		if (speed_no > 9) break;
 	}
-	SpeedCtrlUnit.ManualStateOverride =
-		(extract_value("OverrideManual", Line) == "Yes") ?
-		true :
-		false;
-
-	SpeedCtrlUnit.BrakeIntervention =
-		(extract_value("BrakeIntervention", Line) == "Yes") ?
-		true :
-		false;
-
+	extract_value( SpeedCtrlUnit.ManualStateOverride, "OverrideManual", Line, "");
+    extract_value( SpeedCtrlUnit.BrakeIntervention, "BrakeIntervention", Line, "" );
 	extract_value(SpeedCtrlUnit.InitialPower, "InitPwr", Line, "");
 	extract_value(SpeedCtrlUnit.FullPowerVelocity, "MaxPwrVel", Line, "");
 	extract_value(SpeedCtrlUnit.StartVelocity, "StartVel", Line, "");
@@ -10003,17 +9994,17 @@ void TMoverParameters::LoadFIZ_RList( std::string const &Input ) {
 
     extract_value( RlistSize, "Size", Input, "" );
 
-    auto const venttype = extract_value( "RVent", Input );
-    if( venttype == "Automatic" ) {
+    auto const venttype { ToLower( extract_value( "RVent", Input ) ) };
+    if( venttype == "automatic" ) {
     
         RVentType = 2;
     }
     else {
 
-        RVentType =
-            venttype == "Yes" ?
-            1 :
-            0;
+        RVentType = (
+            venttype == "yes" ?
+                1 :
+                0 );
     }
 
     if( RVentType > 0 ) {
@@ -10031,9 +10022,9 @@ void TMoverParameters::LoadFIZ_RList( std::string const &Input ) {
 
 void TMoverParameters::LoadFIZ_UCList(std::string const &Input) {
 
-	extract_value(UniCtrlListSize, "Size", Input, "");
-	UniCtrlIntegratedBrakeCtrl = (extract_value("IntegratedBrake", Input) == "Yes");
-	UniCtrlIntegratedBrakePNCtrl = (extract_value("IntegratedBrakePN", Input) == "Yes");
+	extract_value( UniCtrlListSize, "Size", Input, "" );
+	extract_value( UniCtrlIntegratedBrakeCtrl, "IntegratedBrake", Input, "" );
+	extract_value( UniCtrlIntegratedBrakePNCtrl, "IntegratedBrakePN", Input, "" );
 
 }
 
