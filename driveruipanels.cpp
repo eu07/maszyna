@@ -793,11 +793,20 @@ debug_panel::update_section_engine( std::vector<text_line> &Output ) {
     // diesel engine data
     if( mover.EngineType == TEngineType::DieselEngine ) {
 
+		double fuel_mean = 0.0;
+		if (mover.DistCounter > 0.5) {
+			fuel_mean = 100 * mover.dizel_FuelConsumptedTotal / mover.DistCounter;
+		}
+
         std::string parameterstext = "param       value";
         std::vector< std::pair <std::string, double> > const paramvalues {
 			{ "  rpm: ", mover.enrot * 60.0 },
 			{ "efill: ", mover.dizel_fill },
             { "etorq: ", mover.dizel_Torque },
+			{ "power: ", mover.dizel_Power },
+			{ "f_act: ", mover.dizel_FuelConsumptionActual },
+			{ "f_tot: ", mover.dizel_FuelConsumptedTotal },
+			{ "fmean: ", fuel_mean },
             { "creal: ", mover.dizel_engage },
             { "cdesi: ", mover.dizel_engagestate },
             { "cdelt: ", mover.dizel_engagedeltaomega },

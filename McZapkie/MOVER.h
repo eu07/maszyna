@@ -1121,6 +1121,10 @@ public:
 	double dizel_minVelfullengage = 0.0; /*najmniejsza predkosc przy jezdzie ze sprzeglem bez poslizgu*/
 	double dizel_maxVelANS = 3.0; /*predkosc progowa rozlaczenia przetwornika momentu*/
 	double dizel_AIM = 1.0; /*moment bezwladnosci walu itp*/
+	double dizel_NominalFuelConsumptionRate = 250.0; /*jednostkowe zużycie paliwa przy mocy nominalnej, wczytywane z fiz, g/kWh*/
+	double dizel_FuelConsumption = 0.0; /*współczynnik zużycia paliwa przeliczony do jednostek maszynowych, l/obrót*/
+	double dizel_FuelConsumptionActual = 0.0; /*chwilowe spalanie paliwa w l/h*/
+	double dizel_FuelConsumptedTotal = 0.0; /*ilość paliwa zużyta od początku symulacji, l*/
 	double dizel_engageDia = 0.5; double dizel_engageMaxForce = 6000.0; double dizel_engagefriction = 0.5; /*parametry sprzegla*/
 	double engagedownspeed = 0.9;
 	double engageupspeed = 0.5;
@@ -1401,7 +1405,8 @@ public:
     bool dizel_spinup { false }; // engine spin up to idle speed flag
 	double dizel_engagedeltaomega = 0.0;    /*roznica predkosci katowych tarcz sprzegla*/
 	double dizel_n_old = 0.0; /*poredkosc na potrzeby obliczen sprzegiel*/
-	double dizel_Torque = 0.0; /*poredkosc na potrzeby obliczen sprzegiel*/
+	double dizel_Torque = 0.0; /*aktualny moment obrotowy silnika spalinowego*/
+	double dizel_Power = 0.0; /*aktualna moc silnika spalinowego*/
 	double dizel_nreg_min = 0.0; /*predkosc regulatora minimalna, zmienna w hydro*/
 
 	/* - zmienne dla przetowrnika momentu */
