@@ -158,11 +158,14 @@ class TTrain {
     void update_sounds_runningnoise( sound_source &Sound );
     void update_sounds_radio();
     inline
-    end cab_to_end() const {
+    end cab_to_end( int const End ) const {
         return (
-            iCabn == 2 ?
+            End == 2 ?
                 end::rear :
                 end::front ); }
+    inline
+    end cab_to_end() const {
+        return cab_to_end( iCabn ); }
 
     // command handlers
     // NOTE: we're currently using universal handlers and static handler map but it may be beneficial to have these implemented on individual class instance basis

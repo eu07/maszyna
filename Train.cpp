@@ -42,10 +42,8 @@ extern user_command command;
 void
 control_mapper::insert( TGauge const &Gauge, std::string const &Label ) {
 
-    auto const submodel = Gauge.SubModel;
-    if( submodel != nullptr ) {
-        m_controlnames.emplace( submodel, Label );
-    }
+    if( Gauge.SubModel   != nullptr ) { m_controlnames.emplace( Gauge.SubModel, Label ); }
+    if( Gauge.SubModelOn != nullptr ) { m_controlnames.emplace( Gauge.SubModelOn, Label ); }
 }
 
 std::string
@@ -2179,6 +2177,8 @@ void TTrain::OnCommand_pantographlowerrear( TTrain *Train, command_data const &C
 
 void TTrain::OnCommand_pantographlowerall( TTrain *Train, command_data const &Command ) {
 
+    if( Command.action == GLFW_REPEAT ) { return; }
+
     if( ( Train->ggPantAllDownButton.SubModel == nullptr )
      && ( Train->ggPantSelectedDownButton.SubModel == nullptr ) ) {
         // TODO: expand definition of cab controls so we can know if the control is present without testing for presence of 3d switch
@@ -2187,29 +2187,64 @@ void TTrain::OnCommand_pantographlowerall( TTrain *Train, command_data const &Co
         }
         return;
     }
-    if( Command.action == GLFW_PRESS ) {
-        // press the button
-        // since we're just lowering all potential pantographs we don't need to test for state and effect
-        // front...
-        Train->mvControlled->PantFrontSP = false;
-        Train->mvControlled->PantFront( false );
-        // ...and rear
-        Train->mvControlled->PantRearSP = false;
-        Train->mvControlled->PantRear( false );
-        // visual feedback
-        if( Train->ggPantAllDownButton.SubModel )
-            Train->ggPantAllDownButton.UpdateValue( 1.0, Train->dsbSwitch );
-        if( Train->ggPantSelectedDownButton.SubModel ) {
-            Train->ggPantSelectedDownButton.UpdateValue( 1.0, Train->dsbSwitch );
+
+    if( Train->ggPantAllDownButton.type() == TGaugeType::push ) {
+        // impulse switch
+        if( Command.action == GLFW_PRESS ) {
+            // press the button
+            // since we're just lowering all potential pantographs we don't need to test for state and effect
+            // front...
+            Train->mvControlled->PantFrontSP = false;
+            Train->mvControlled->PantFront( false );
+            // ...and rear
+            Train->mvControlled->PantRearSP = false;
+            Train->mvControlled->PantRear( false );
+            // visual feedback
+            if( Train->ggPantAllDownButton.SubModel )
+                Train->ggPantAllDownButton.UpdateValue( 1.0, Train->dsbSwitch );
+            if( Train->ggPantSelectedDownButton.SubModel ) {
+                Train->ggPantSelectedDownButton.UpdateValue( 1.0, Train->dsbSwitch );
+            }
+        }
+        else if( Command.action == GLFW_RELEASE ) {
+            // release the button
+            // visual feedback
+            if( Train->ggPantAllDownButton.SubModel )
+                Train->ggPantAllDownButton.UpdateValue( 0.0 );
+            if( Train->ggPantSelectedDownButton.SubModel ) {
+                Train->ggPantSelectedDownButton.UpdateValue( 0.0 );
+            }
         }
     }
-    else if( Command.action == GLFW_RELEASE ) {
-        // release the button
-        // visual feedback
-        if( Train->ggPantAllDownButton.SubModel )
-            Train->ggPantAllDownButton.UpdateValue( 0.0 );
-        if( Train->ggPantSelectedDownButton.SubModel ) {
-            Train->ggPantSelectedDownButton.UpdateValue( 0.0 );
+    else {
+        // two-state switch, only cares about press events
+        if( Command.action == GLFW_PRESS ) {
+            // HACK: use current switch position to determine (intended) state
+            if( Train->ggPantAllDownButton.GetDesiredValue() < 0.05 ) {
+                // currenty inactive, activate it
+                // since we're just lowering all potential pantographs we don't need to test for state and effect
+                // front...
+                Train->mvControlled->PantFrontSP = false;
+                Train->mvControlled->PantFront( false );
+                // ...and rear
+                Train->mvControlled->PantRearSP = false;
+                Train->mvControlled->PantRear( false );
+                // visual feedback
+                if( Train->ggPantAllDownButton.SubModel )
+                    Train->ggPantAllDownButton.UpdateValue( 1.0, Train->dsbSwitch );
+                if( Train->ggPantSelectedDownButton.SubModel ) {
+                    Train->ggPantSelectedDownButton.UpdateValue( 1.0, Train->dsbSwitch );
+                }
+            }
+            else {
+                // currently active, move it back to neutral position
+                // visual feedback
+                if( Train->ggPantAllDownButton.SubModel )
+                    Train->ggPantAllDownButton.UpdateValue( 0.0 );
+                if( Train->ggPantSelectedDownButton.SubModel ) {
+                    Train->ggPantSelectedDownButton.UpdateValue( 0.0 );
+                }
+            }
         }
     }
 }
@@ -5834,8 +5869,7 @@ bool TTrain::Update( double const Deltatime )
                 ((mvControlled->EngineType == TEngineType::ElectricSeriesMotor) ||
                  (mvControlled->TrainType == dt_EZT)) &&
                 (DynamicObject->Controller == Humandriver)) // hunter-110212: poprawka dla EZT
-            { // hunter-091012: poprawka (zmiana warunku z CompressorPower /rozne od
-                // 0/ na /rowne 1/)
+            { // hunter-091012: poprawka (zmiana warunku z CompressorPower /rozne od 0/ na /rowne 1/)
                 if (fConverterTimer < fConverterPrzekaznik)
                 {
                     mvControlled->ConvOvldFlag = true;
@@ -5851,6 +5885,7 @@ bool TTrain::Update( double const Deltatime )
         else
             fConverterTimer = 0;
         //------------------
+        auto const lowvoltagepower { mvControlled->Battery || mvControlled->ConverterFlag };
 
         // youBy - prad w drugim czlonie: galaz lub calosc
         {
@@ -5903,7 +5938,7 @@ bool TTrain::Update( double const Deltatime )
             ggClockHInd.Update();
         }
 
-        Cabine[iCabn].Update( mvControlled->Battery || mvControlled->ConverterFlag ); // nowy sposób ustawienia animacji
+        Cabine[iCabn].Update( lowvoltagepower ); // nowy sposób ustawienia animacji
         if (ggZbS.SubModel)
         {
             ggZbS.UpdateValue(mvOccupied->Handle->GetCP());
@@ -6012,7 +6047,7 @@ bool TTrain::Update( double const Deltatime )
             btLampkaNadmSil.Turn( false );
         }
 
-        if (mvControlled->Battery || mvControlled->ConverterFlag) {
+        if( true == lowvoltagepower ) {
             // alerter test
             if( true == CAflag ) {
                 if( ggSecurityResetButton.GetDesiredValue() > 0.95 ) {
@@ -6199,7 +6234,7 @@ bool TTrain::Update( double const Deltatime )
             btLampkaMalfunction.Turn( mvControlled->dizel_heat.PA );
             btLampkaMotorBlowers.Turn( ( mvControlled->MotorBlowers[ end::front ].is_active ) && ( mvControlled->MotorBlowers[ end::rear ].is_active ) );
             btLampkaCoolingFans.Turn( mvControlled->RventRot > 1.0 );
-            btLampkaTempomat.Turn( mvControlled->ScndCtrlPos > 0 );
+            btLampkaTempomat.Turn( mvOccupied->SpeedCtrlUnit.IsActive );
             btLampkaDistanceCounter.Turn( m_distancecounter >= 0.f );
             // universal devices state indicators
             for( auto idx = 0; idx < btUniversals.size(); ++idx ) {
@@ -6282,32 +6317,32 @@ bool TTrain::Update( double const Deltatime )
                 (mvOccupied->ActiveCab < 0))
                 tmp = DynamicObject->PrevConnected();
 
-            if (tmp)
-                if ( mvControlled->Battery || mvControlled->ConverterFlag ) {
+            if( tmp ) {
+                if( lowvoltagepower ) {
 
-                    auto const *mover { tmp->MoverParameters };
+                    auto const *mover{ tmp->MoverParameters };
 
                     btLampkaWylSzybkiB.Turn( mover->Mains );
                     btLampkaWylSzybkiBOff.Turn(
                         ( false == mover->Mains )
-                     && ( mover->MainsInitTimeCountdown <= 0.0 )
-                   /*&& ( fHVoltage != 0.0 )*/ );
+                        && ( mover->MainsInitTimeCountdown <= 0.0 )
+                    /*&& ( fHVoltage != 0.0 )*/ );
 
-                    btLampkaOporyB.Turn(mover->ResistorsFlagCheck());
+                    btLampkaOporyB.Turn( mover->ResistorsFlagCheck() );
                     btLampkaBezoporowaB.Turn(
                         ( true == mover->ResistorsFlagCheck() )
-                     || ( mover->MainCtrlActualPos == 0 ) ); // do EU04
+                        || ( mover->MainCtrlActualPos == 0 ) ); // do EU04
 
                     if( ( mover->StLinFlag )
-                     || ( mover->BrakePress > 2.0 )
-                     || ( mover->PipePress < 0.36 ) ) {
+                        || ( mover->BrakePress > 2.0 )
+                        || ( mover->PipePress < 0.36 ) ) {
                         btLampkaStycznB.Turn( false );
                     }
                     else if( mover->BrakePress < 1.0 ) {
                         btLampkaStycznB.Turn( true ); // mozna prowadzic rozruch
                     }
                     // hunter-271211: sygnalizacja poslizgu w pierwszym pojezdzie, gdy wystapi w drugim
-                    btLampkaPoslizg.Turn(mover->SlippingWheels);
+                    btLampkaPoslizg.Turn( mover->SlippingWheels );
 
                     btLampkaSprezarkaB.Turn( mover->CompressorFlag ); // mutopsitka dziala
                     btLampkaSprezarkaBOff.Turn( false == mover->CompressorFlag );
@@ -6348,6 +6383,7 @@ bool TTrain::Update( double const Deltatime )
                     btLampkaHVoltageB.Turn( false );
                     btLampkaMalfunctionB.Turn( false );
                 }
+            }
         }
         // McZapkie-080602: obroty (albo translacje) regulatorow
         if( ggJointCtrl.SubModel != nullptr ) {
@@ -6408,7 +6444,7 @@ bool TTrain::Update( double const Deltatime )
                 dsbNastawnikBocz );
             ggScndCtrl.Update();
         }
-        ggScndCtrlButton.Update();
+        ggScndCtrlButton.Update( lowvoltagepower );
         ggDistanceCounterButton.Update();
         if (ggDirKey.SubModel) {
             if (mvControlled->TrainType != dt_EZT)
@@ -6600,12 +6636,12 @@ bool TTrain::Update( double const Deltatime )
         }
 		ggHelperButton.Update();
  
-        ggSpeedControlIncreaseButton.Update();
-		ggSpeedControlDecreaseButton.Update();
-		ggSpeedControlPowerIncreaseButton.Update();
-		ggSpeedControlPowerDecreaseButton.Update();
+        ggSpeedControlIncreaseButton.Update( lowvoltagepower );
+		ggSpeedControlDecreaseButton.Update( lowvoltagepower );
+		ggSpeedControlPowerIncreaseButton.Update( lowvoltagepower );
+		ggSpeedControlPowerDecreaseButton.Update( lowvoltagepower );
 		for (auto &speedctrlbutton : ggSpeedCtrlButtons) {
-			speedctrlbutton.Update();
+			speedctrlbutton.Update( lowvoltagepower );
 		}
 
         for( auto &universal : ggUniversals ) {
@@ -8102,7 +8138,7 @@ void TTrain::set_cab_controls( int const Cab ) {
     // lights
     ggLightsButton.PutValue( mvOccupied->LightsPos - 1 );
 
-    auto const vehicleend { cab_to_end() };
+    auto const vehicleend { cab_to_end( Cab ) };
 
     if( ( DynamicObject->iLights[ vehicleend ] & light::headlight_left ) != 0 ) {
         ggLeftLightButton.PutValue( 1.f );
@@ -8559,7 +8595,6 @@ bool TTrain::initialize_gauge(cParser &Parser, std::string const &Label, int con
         { "cablight_sw:", ggCabLightButton },
         { "cablightdim_sw:", ggCabLightDimButton },
         { "battery_sw:", ggBatteryButton },
-        { "tempomat_sw:", ggScndCtrlButton },
         { "distancecounter_sw:", ggDistanceCounterButton },
         { "universal0:", ggUniversals[ 0 ] },
         { "universal1:", ggUniversals[ 1 ] },
@@ -8570,27 +8605,41 @@ bool TTrain::initialize_gauge(cParser &Parser, std::string const &Label, int con
         { "universal6:", ggUniversals[ 6 ] },
         { "universal7:", ggUniversals[ 7 ] },
         { "universal8:", ggUniversals[ 8 ] },
-        { "universal9:", ggUniversals[ 9 ] },
- 		{ "speedinc_bt:", ggSpeedControlIncreaseButton },
-		{ "speeddec_bt:", ggSpeedControlDecreaseButton },
-		{ "speedctrlpowerinc_bt:", ggSpeedControlPowerIncreaseButton },
-		{ "speedctrlpowerdec_bt:", ggSpeedControlPowerDecreaseButton },
-		{ "speedbutton0:", ggSpeedCtrlButtons[ 0 ] },
-		{ "speedbutton1:", ggSpeedCtrlButtons[ 1 ] },
-		{ "speedbutton2:", ggSpeedCtrlButtons[ 2 ] },
-		{ "speedbutton3:", ggSpeedCtrlButtons[ 3 ] },
-		{ "speedbutton4:", ggSpeedCtrlButtons[ 4 ] },
-		{ "speedbutton5:", ggSpeedCtrlButtons[ 5 ] },
-		{ "speedbutton6:", ggSpeedCtrlButtons[ 6 ] },
-		{ "speedbutton7:", ggSpeedCtrlButtons[ 7 ] },
-		{ "speedbutton8:", ggSpeedCtrlButtons[ 8 ] },
-		{ "speedbutton9:", ggSpeedCtrlButtons[ 9 ] }
-   };
+        { "universal9:", ggUniversals[ 9 ] }
+    };
     {
-        auto lookup = gauges.find( Label );
+        auto const lookup { gauges.find( Label ) };
         if( lookup != gauges.end() ) {
             lookup->second.Load( Parser, DynamicObject );
             m_controlmapper.insert( lookup->second, lookup->first );
+            return true;
+        }
+    }
+    // TODO: move viable gauges to the state driven array 
+    std::unordered_map<std::string, std::tuple<TGauge &, bool const *> > const stategauges = {
+        { "tempomat_sw:", { ggScndCtrlButton, &mvOccupied->SpeedCtrlUnit.IsActive } },
+        { "speedinc_bt:", { ggSpeedControlIncreaseButton, &mvOccupied->SpeedCtrlUnit.IsActive } },
+		{ "speeddec_bt:", { ggSpeedControlDecreaseButton, &mvOccupied->SpeedCtrlUnit.IsActive } },
+		{ "speedctrlpowerinc_bt:", { ggSpeedControlPowerIncreaseButton, &mvOccupied->SpeedCtrlUnit.IsActive } },
+		{ "speedctrlpowerdec_bt:", { ggSpeedControlPowerDecreaseButton, &mvOccupied->SpeedCtrlUnit.IsActive } },
+		{ "speedbutton0:", { ggSpeedCtrlButtons[ 0 ], &mvOccupied->SpeedCtrlUnit.IsActive } },
+		{ "speedbutton1:", { ggSpeedCtrlButtons[ 1 ], &mvOccupied->SpeedCtrlUnit.IsActive } },
+		{ "speedbutton2:", { ggSpeedCtrlButtons[ 2 ], &mvOccupied->SpeedCtrlUnit.IsActive } },
+		{ "speedbutton3:", { ggSpeedCtrlButtons[ 3 ], &mvOccupied->SpeedCtrlUnit.IsActive } },
+		{ "speedbutton4:", { ggSpeedCtrlButtons[ 4 ], &mvOccupied->SpeedCtrlUnit.IsActive } },
+		{ "speedbutton5:", { ggSpeedCtrlButtons[ 5 ], &mvOccupied->SpeedCtrlUnit.IsActive } },
+		{ "speedbutton6:", { ggSpeedCtrlButtons[ 6 ], &mvOccupied->SpeedCtrlUnit.IsActive } },
+		{ "speedbutton7:", { ggSpeedCtrlButtons[ 7 ], &mvOccupied->SpeedCtrlUnit.IsActive } },
+		{ "speedbutton8:", { ggSpeedCtrlButtons[ 8 ], &mvOccupied->SpeedCtrlUnit.IsActive } },
+		{ "speedbutton9:", { ggSpeedCtrlButtons[ 9 ], &mvOccupied->SpeedCtrlUnit.IsActive } }
+    };
+    {
+        auto const lookup { stategauges.find( Label ) };
+        if( lookup != stategauges.end() ) {
+            auto &gauge { std::get<TGauge &>( lookup->second ) };
+            gauge.Load( Parser, DynamicObject );
+            gauge.AssignState( std::get<bool const *>( lookup->second ) );
+            m_controlmapper.insert( gauge, lookup->first );
             return true;
         }
     }
@@ -8803,9 +8852,9 @@ bool TTrain::initialize_gauge(cParser &Parser, std::string const &Label, int con
         {
             if( DynamicObject->mdKabina ) {
                 // McZapkie-300302: zegarek
-                ggClockSInd.Init( DynamicObject->mdKabina->GetFromName( "ClockShand" ), TGaugeAnimation::gt_Rotate, 1.0 / 60.0 );
-                ggClockMInd.Init( DynamicObject->mdKabina->GetFromName( "ClockMhand" ), TGaugeAnimation::gt_Rotate, 1.0 / 60.0 );
-                ggClockHInd.Init( DynamicObject->mdKabina->GetFromName( "ClockHhand" ), TGaugeAnimation::gt_Rotate, 1.0 / 12.0 );
+                ggClockSInd.Init( DynamicObject->mdKabina->GetFromName( "ClockShand" ), nullptr, TGaugeAnimation::gt_Rotate, 1.0 / 60.0 );
+                ggClockMInd.Init( DynamicObject->mdKabina->GetFromName( "ClockMhand" ), nullptr, TGaugeAnimation::gt_Rotate, 1.0 / 60.0 );
+                ggClockHInd.Init( DynamicObject->mdKabina->GetFromName( "ClockHhand" ), nullptr, TGaugeAnimation::gt_Rotate, 1.0 / 12.0 );
             }
         }
     }
