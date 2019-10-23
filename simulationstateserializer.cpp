@@ -706,7 +706,12 @@ state_serializer::deserialize_endtrainset( cParser &Input, scene::scratch_data &
     }
     if( Scratchpad.trainset.couplings.back() == coupling::faux ) {
         // jeśli ostatni pojazd ma sprzęg 0 to założymy mu końcówki blaszane (jak AI się odpali, to sobie poprawi)
-        Scratchpad.trainset.vehicles.back()->RaLightsSet( -1, light::rearendsignals );
+        // place end signals only on trains without a driver, activate markers otherwise
+        Scratchpad.trainset.vehicles.back()->RaLightsSet(
+            -1,
+            ( Scratchpad.trainset.driver != nullptr ?
+                light::redmarker_left | light::redmarker_right | light::rearendsignals :
+                light::rearendsignals ) );
     }
     // all done
     Scratchpad.trainset.is_open = false;

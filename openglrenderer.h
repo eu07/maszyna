@@ -14,6 +14,7 @@ http://mozilla.org/MPL/2.0/.
 #include "opengllight.h"
 #include "openglcamera.h"
 #include "openglparticles.h"
+#include "openglskydome.h"
 #include "lightarray.h"
 #include "scene.h"
 #include "simulationenvironment.h"
@@ -247,6 +248,8 @@ private:
     texture_manager m_textures;
     opengl_light m_sunlight;
     opengllight_array m_lights;
+    opengl_skydome m_skydomerenderer;
+    opengl_particles m_particlerenderer; // particle visualization subsystem
 /*
     float m_sunandviewangle; // cached dot product of sunlight and camera vectors
 */
@@ -287,8 +290,6 @@ private:
     int m_environmentcubetextureface { 0 }; // helper, currently processed cube map face
     int m_environmentupdatetime { 0 }; // time of the most recent environment map update
     glm::dvec3 m_environmentupdatelocation; // coordinates of most recent environment map update
-    // particle visualization subsystem
-    opengl_particles m_particlerenderer;
 
     int m_helpertextureunit { GL_TEXTURE0 };
     int m_shadowtextureunit { GL_TEXTURE1 };

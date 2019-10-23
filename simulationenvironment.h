@@ -37,10 +37,16 @@ public:
     // calculates current weather
     void compute_weather() const;
     // data access
-    glm::vec3 const &
+    inline auto const &
+        skydome() const {
+            return m_skydome; }
+    inline auto &
+        skydome() {
+            return m_skydome; }
+    inline auto const &
         wind() const {
             return m_wind.vector; }
-    float const &
+    inline auto const &
         wind_azimuth() const {
             return m_wind.azimuth; }
 

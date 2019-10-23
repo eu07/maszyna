@@ -125,6 +125,7 @@ opengl_particles::update( opengl_camera const &Camera ) {
     }
     // ...and cleanup
     ::glPopClientAttrib();
+    ::glBindBuffer( GL_ARRAY_BUFFER, 0 );
 }
 
 std::size_t
@@ -148,11 +149,8 @@ opengl_particles::render( int const Textureunit ) {
     // ...draw...
     ::glDrawArrays( GL_QUADS, 0, m_particlevertices.size() );
     // ...and cleanup
-    ::glBindBuffer( GL_ARRAY_BUFFER, 0 );
-    if( Global.bUseVBO ) {
-        gfx::opengl_vbogeometrybank::reset();
-    }
     ::glPopClientAttrib();
+    ::glBindBuffer( GL_ARRAY_BUFFER, 0 );
 
     return m_particlevertices.size() / 4;
 }

@@ -116,42 +116,6 @@ void CSkyDome::Update( glm::vec3 const &Sun ) {
 }
 
 // render skydome to screen
-void CSkyDome::Render() {
-
-    // cache entry state
-    ::glPushClientAttrib( GL_CLIENT_VERTEX_ARRAY_BIT );
-
-    if( m_vertexbuffer == -1 ) {
-        // build the buffers
-        ::glGenBuffers( 1, &m_vertexbuffer );
-        ::glBindBuffer( GL_ARRAY_BUFFER, m_vertexbuffer );
-        ::glBufferData( GL_ARRAY_BUFFER, m_vertices.size() * sizeof( glm::vec3 ), m_vertices.data(), GL_STATIC_DRAW );
-
-        ::glGenBuffers( 1, &m_coloursbuffer );
-        ::glBindBuffer( GL_ARRAY_BUFFER, m_coloursbuffer );
-        ::glBufferData( GL_ARRAY_BUFFER, m_colours.size() * sizeof( glm::vec3 ), m_colours.data(), GL_DYNAMIC_DRAW );
-
-        ::glGenBuffers( 1, &m_indexbuffer );
-        ::glBindBuffer( GL_ELEMENT_ARRAY_BUFFER, m_indexbuffer );
-        ::glBufferData( GL_ELEMENT_ARRAY_BUFFER, m_indices.size() * sizeof( unsigned short ), m_indices.data(), GL_STATIC_DRAW );
-        // NOTE: vertex and index source data is superfluous past this point, but, eh
-    }
-    // begin
-    ::glEnableClientState( GL_VERTEX_ARRAY );
-    ::glEnableClientState( GL_COLOR_ARRAY );
-    // positions
-    ::glBindBuffer( GL_ARRAY_BUFFER, m_vertexbuffer );
-    ::glVertexPointer( 3, GL_FLOAT, sizeof( glm::vec3 ), reinterpret_cast<void const*>( 0 ) );
-    // colours
-    ::glBindBuffer( GL_ARRAY_BUFFER, m_coloursbuffer );
-    ::glColorPointer( 3, GL_FLOAT, sizeof( glm::vec3 ), reinterpret_cast<void const*>( 0 ) );
-    // indices
-    ::glBindBuffer( GL_ELEMENT_ARRAY_BUFFER, m_indexbuffer );
-    ::glDrawElements( GL_TRIANGLES, static_cast<GLsizei>( m_indices.size() ), GL_UNSIGNED_SHORT, reinterpret_cast<void const*>( 0 ) );
-    // cleanup
-    ::glPopClientAttrib();
-}
-
 bool CSkyDome::SetSunPosition( glm::vec3 const &Direction ) {
 
     if( Direction == m_sundirection ) {
@@ -341,23 +305,11 @@ void CSkyDome::RebuildColors() {
             averagehorizoncolor += color;
         }
 	}
-    // NOTE: average reduced to 25% makes nice tint value for clouds lit from behind
-    // down the road we could interpolate between it and full strength average, to improve accuracy of cloud appearance
+
     m_averagecolour = glm::max( glm::vec3(), averagecolor / static_cast<float>( m_vertices.size() ) );
     m_averagehorizoncolour = glm::max( glm::vec3(), averagehorizoncolor / static_cast<float>( m_tesselation * 2 ) );
 
-    if( m_coloursbuffer != -1 ) {
-        // the colour buffer was already initialized, so on this run we update its content
-        // cache entry state
-        ::glPushClientAttrib( GL_CLIENT_VERTEX_ARRAY_BIT );
-        // begin
-        ::glEnableClientState( GL_VERTEX_ARRAY );
-        // update
-        ::glBindBuffer( GL_ARRAY_BUFFER, m_coloursbuffer );
-        ::glBufferSubData( GL_ARRAY_BUFFER, 0, m_colours.size() * sizeof( glm::vec3 ), m_colours.data() );
-        // cleanup
-        ::glPopClientAttrib();
-    }
+    m_dirty = true;
 }
 
 //******************************************************************************//

@@ -1375,7 +1375,7 @@ opengl_renderer::Render( world_environment *Environment ) {
     // drawn with 500m radius to blend in if the fog range is low
     ::glPushMatrix();
     ::glScalef( 500.f, 500.f, 500.f );
-    Environment->m_skydome.Render();
+    m_skydomerenderer.render();
     if( Global.bUseVBO ) {
         gfx::opengl_vbogeometrybank::reset();
     }
@@ -2955,7 +2955,9 @@ opengl_renderer::Render_particles() {
 
     Bind_Texture( m_smoketexture );
     m_debugstats.particles = m_particlerenderer.render( m_diffusetextureunit );
-
+    if( Global.bUseVBO ) {
+        gfx::opengl_vbogeometrybank::reset();
+    }
     ::glDepthMask( GL_TRUE );
     ::glEnable( GL_LIGHTING );
 }
@@ -3011,6 +3013,9 @@ opengl_renderer::Render_precipitation() {
     ::glDepthMask( GL_FALSE );
 
     simulation::Environment.m_precipitation.render();
+    if( Global.bUseVBO ) {
+        gfx::opengl_vbogeometrybank::reset();
+    }
 
     ::glDepthMask( GL_TRUE );
     ::glEnable( GL_LIGHTING );
@@ -3769,6 +3774,7 @@ opengl_renderer::Update( double const Deltatime ) {
         // update particle subsystem
         renderpass_config renderpass;
         setup_pass( renderpass, rendermode::color );
+        m_skydomerenderer.update();
         m_particlerenderer.update( renderpass.camera );
     }
 

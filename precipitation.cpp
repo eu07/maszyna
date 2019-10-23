@@ -203,4 +203,6 @@ basic_precipitation::render() {
     ::glLoadIdentity();
     ::glMatrixMode( GL_MODELVIEW );
     ::glPopClientAttrib();
+    ::glBindBuffer( GL_ARRAY_BUFFER, 0 );
+    ::glBindBuffer( GL_ELEMENT_ARRAY_BUFFER, 0 );
 }
