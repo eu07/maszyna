@@ -4013,6 +4013,9 @@ void TMoverParameters::UpdatePipePressure(double dt)
     }
 
     // ulepszony hamulec bezp.
+    auto const securitysystempresent { SecuritySystem.RadioStop || ( SecuritySystem.SystemType > 0 ) };
+    auto const lowvoltagepower { Battery || ConverterFlag };
+
     if( ( true == RadioStopFlag )
      || ( true == AlarmChainFlag )
      || ( true == TestFlag( SecuritySystem.Status, s_SHPebrake ) )
@@ -4022,7 +4025,9 @@ void TMoverParameters::UpdatePipePressure(double dt)
     // (if it's supposed to be broken coupler, such event sets alarmchainflag instead when appropriate)
      || ( true == TestFlag( EngDmgFlag, 32 ) )
 */
-     || ( true == s_CAtestebrake ) ) {
+     || ( true == s_CAtestebrake )
+     || ( ( true == securitysystempresent )
+       && ( false == lowvoltagepower ) ) ) {
         dpMainValve = dpMainValve + PF( 0, PipePress, 0.15 ) * dt;
     }
     // 0.2*Spg
