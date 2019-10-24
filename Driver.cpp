@@ -873,9 +873,9 @@ TCommandType TController::TableUpdate(double &fVelDes, double &fDist, double &fN
                     {
                         // porównuje do następnej stacji, więc trzeba przewinąć do poprzedniej
                         // nastepnie ustawić następną na aktualną tak żeby prawidłowo ją obsłużył w następnym kroku
-                        if( true == TrainParams->RewindTimeTable( sSpeedTable[ i ].evEvent->input_text() ) ) {
-                            asNextStop = TrainParams->NextStop();
-                            iStationStart = TrainParams->StationIndex;
+                        if( true == TrainParams.RewindTimeTable( sSpeedTable[ i ].evEvent->input_text() ) ) {
+                            asNextStop = TrainParams.NextStop();
+                            iStationStart = TrainParams.StationIndex;
                         }
                     }
                     else if( sSpeedTable[ i ].fDist < -fLength ) {
@@ -886,7 +886,7 @@ TCommandType TController::TableUpdate(double &fVelDes, double &fDist, double &fN
                 }
                 else if (iDrivigFlags & moveStopPoint) // jeśli pomijanie W4, to nie sprawdza czasu odjazdu
                 { // tylko gdy nazwa zatrzymania się zgadza
-                    if (!TrainParams->IsStop())
+                    if (false == TrainParams.IsStop())
                     { // jeśli nie ma tu postoju
                         sSpeedTable[i].fVelNext = -1; // maksymalna prędkość w tym miejscu
                         // przy 160km/h jedzie 44m/s, to da dokładność rzędu 5 sekund
@@ -894,16 +894,16 @@ TCommandType TController::TableUpdate(double &fVelDes, double &fDist, double &fN
                             // zaliczamy posterunek w pewnej odległości przed (choć W4 nie zasłania już semafora)
 #if LOGSTOPS
                             WriteLog(
-                                pVehicle->asName + " as " + TrainParams->TrainName
+                                pVehicle->asName + " as " + TrainParams.TrainName
                                 + ": at " + std::to_string(simulation::Time.data().wHour) + ":" + std::to_string(simulation::Time.data().wMinute)
                                 + " passed " + asNextStop); // informacja
 #endif
                             // przy jakim dystansie (stanie licznika) ma przesunąć na następny postój
                             fLastStopExpDist = mvOccupied->DistCounter + 0.250 + 0.001 * fLength;
-                            TrainParams->UpdateMTable( simulation::Time, asNextStop );
+                            TrainParams.UpdateMTable( simulation::Time, asNextStop );
                             UpdateDelayFlag();
-                            TrainParams->StationIndexInc(); // przejście do następnej
-                            asNextStop = TrainParams->NextStop(); // pobranie kolejnego miejsca zatrzymania
+                            TrainParams.StationIndexInc(); // przejście do następnej
+                            asNextStop = TrainParams.NextStop(); // pobranie kolejnego miejsca zatrzymania
                             sSpeedTable[i].iFlags = 0; // nie liczy się już
                             continue; // nie analizować prędkości
                         }
@@ -971,9 +971,9 @@ TCommandType TController::TableUpdate(double &fVelDes, double &fDist, double &fN
                                 Doors( true, static_cast<int>( std::floor( std::abs( sSpeedTable[ i ].evEvent->input_value( 2 ) ) ) ) % 10 );
                             }
 
-                            if (TrainParams->UpdateMTable( simulation::Time, asNextStop) ) {
+                            if (TrainParams.UpdateMTable( simulation::Time, asNextStop) ) {
                                 // to się wykona tylko raz po zatrzymaniu na W4
-                                if( TrainParams->StationIndex < TrainParams->StationCount ) {
+                                if( TrainParams.StationIndex < TrainParams.StationCount ) {
                                     // jeśli są dalsze stacje, bez trąbienia przed odjazdem
                                     // also ignore any horn cue that may be potentially set below 1 km/h and before the actual full stop
                                     iDrivigFlags &= ~( moveStartHorn | moveStartHornNow );
@@ -985,12 +985,12 @@ TCommandType TController::TableUpdate(double &fVelDes, double &fDist, double &fN
                                 // TODO: remove the check once the station system is in place
                                 if( m_lastexchangestop != asNextStop ) {
                                     auto const platformside = static_cast<int>( std::floor( std::abs( sSpeedTable[ i ].evEvent->input_value( 2 ) ) ) ) % 10;
-                                    auto const exchangetime = simulation::Station.update_load( pVehicles[ 0 ], *TrainParams, platformside );
+                                    auto const exchangetime = simulation::Station.update_load( pVehicles[ 0 ], TrainParams, platformside );
                                     WaitingSet( exchangetime );
                                     m_lastexchangestop = asNextStop;
                                 }
 
-                                if (TrainParams->DirectionChange()) {
+                                if (TrainParams.DirectionChange()) {
                                     // jeśli "@" w rozkładzie, to wykonanie dalszych komend
                                     // wykonanie kolejnej komendy, nie dotyczy ostatniej stacji
                                     if (iDrivigFlags & movePushPull) {
@@ -999,7 +999,7 @@ TCommandType TController::TableUpdate(double &fVelDes, double &fDist, double &fN
                                         if (OrderNextGet() != Change_direction) {
                                             OrderPush(Change_direction); // zmiana kierunku
                                             OrderPush(
-                                                TrainParams->StationIndex < TrainParams->StationCount ?
+                                                TrainParams.StationIndex < TrainParams.StationCount ?
                                                     Obey_train :
                                                     Shunt); // to dalej wg rozkładu
                                         }
@@ -1027,18 +1027,18 @@ TCommandType TController::TableUpdate(double &fVelDes, double &fDist, double &fN
                                 CheckVehicles(); // zmienić światła
                             }
 
-                            if (TrainParams->StationIndex < TrainParams->StationCount) {
+                            if (TrainParams.StationIndex < TrainParams.StationCount) {
                                 // jeśli są dalsze stacje, czekamy do godziny odjazdu
-                                if (TrainParams->IsTimeToGo(simulation::Time.data().wHour, simulation::Time.data().wMinute + simulation::Time.data().wSecond*0.0167 )) {
+                                if (TrainParams.IsTimeToGo(simulation::Time.data().wHour, simulation::Time.data().wMinute + simulation::Time.data().wSecond*0.0167 )) {
                                     // z dalszą akcją czekamy do godziny odjazdu
                                     IsAtPassengerStop = false;
                                     // przy jakim dystansie (stanie licznika) ma przesunąć na następny postój
                                     fLastStopExpDist = mvOccupied->DistCounter + 0.050 + 0.001 * fLength;
-                                    TrainParams->StationIndexInc(); // przejście do następnej
-                                    asNextStop = TrainParams->NextStop(); // pobranie kolejnego miejsca zatrzymania
+                                    TrainParams.StationIndexInc(); // przejście do następnej
+                                    asNextStop = TrainParams.NextStop(); // pobranie kolejnego miejsca zatrzymania
 #if LOGSTOPS
                                     WriteLog(
-                                        pVehicle->asName + " as " + TrainParams->TrainName
+                                        pVehicle->asName + " as " + TrainParams.TrainName
                                         + ": at " + std::to_string(simulation::Time.data().wHour) + ":" + std::to_string(simulation::Time.data().wMinute)
                                         + " next " + asNextStop); // informacja
 #endif
@@ -1074,12 +1074,12 @@ TCommandType TController::TableUpdate(double &fVelDes, double &fDist, double &fN
                                 // jeśli dojechaliśmy do końca rozkładu
 #if LOGSTOPS
                                 WriteLog(
-                                    pVehicle->asName + " as " + TrainParams->TrainName
+                                    pVehicle->asName + " as " + TrainParams.TrainName
                                     + ": at " + std::to_string(simulation::Time.data().wHour) + ":" + std::to_string(simulation::Time.data().wMinute)
                                     + " end of route."); // informacja
 #endif
-                                asNextStop = TrainParams->NextStop(); // informacja o końcu trasy
-                                TrainParams->NewName("none"); // czyszczenie nieaktualnego rozkładu
+                                asNextStop = TrainParams.NextStop(); // informacja o końcu trasy
+                                TrainParams.NewName("none"); // czyszczenie nieaktualnego rozkładu
                                 // ma nie podjeżdżać pod W4 i ma je pomijać
                                 iDrivigFlags &= ~( moveStopCloser );
                                 if( false == TestFlag( iDrivigFlags, movePushPull ) ) {
@@ -1644,9 +1644,9 @@ TController::TController(bool AI, TDynamicObject *NewControll, bool InitPsyche, 
     }
     // TrainParams=NewTrainParams;
     // if (TrainParams)
-    // asNextStop=TrainParams->NextStop();
+    // asNextStop=TrainParams.NextStop();
     // else
-    TrainParams = new TTrainParameters("none"); // rozkład jazdy
+    TrainParams = TTrainParameters("none"); // rozkład jazdy
     // OrderCommand="";
     // OrderValue=0;
     OrdersClear();
@@ -1694,7 +1694,6 @@ void TController::CloseLog()
 
 TController::~TController()
 { // wykopanie mechanika z roboty
-    delete TrainParams;
     CloseLog();
 };
 
@@ -2160,7 +2159,7 @@ bool TController::CheckVehicles(TOrders user)
             }
 
             if (p->asDestination == "none")
-                p->DestinationSet(TrainParams->Relation2, TrainParams->TrainName); // relacja docelowa, jeśli nie było
+                p->DestinationSet(TrainParams.Relation2, TrainParams.TrainName); // relacja docelowa, jeśli nie było
             if (AIControllFlag) // jeśli prowadzi komputer
                 p->RaLightsSet(0, 0); // gasimy światła
             if (p->MoverParameters->EnginePowerSource.SourceType == TPowerSource::CurrentCollector)
@@ -2601,13 +2600,13 @@ bool TController::PrepareEngine()
             eStopReason = stopNone;
         }
         eAction = TAction::actUnknown;
-        iEngineActive = 1;
+        iEngineActive = true;
         iDrivigFlags |= moveActive; // może skanować sygnały i reagować na komendy
 
         return true;
     }
     else {
-        iEngineActive = 0;
+        iEngineActive = false;
         return false;
     }
 };
@@ -2703,7 +2702,7 @@ bool TController::ReleaseEngine() {
 
     if (OK) {
         // jeśli się zatrzymał
-        iEngineActive = 0;
+        iEngineActive = false;
         eStopReason = stopSleep; // stoimy z powodu wyłączenia
         eAction = TAction::actSleep; //śpi (wygaszony)
 
@@ -3934,22 +3933,19 @@ bool TController::PutCommand( std::string NewCommand, double NewValue1, double N
 #if LOGSTOPS
         WriteLog("New timetable for " + pVehicle->asName + ": " + NewCommand); // informacja
 #endif
-        if (!TrainParams)
-            TrainParams = new TTrainParameters(NewCommand); // rozkład jazdy
-        else
-            TrainParams->NewName(NewCommand); // czyści tabelkę przystanków
+        TrainParams = TTrainParameters(NewCommand); // rozkład jazdy
         tsGuardSignal = sound_source { sound_placement::internal, 2 * EU07_SOUND_CABCONTROLSCUTOFFRANGE }; // wywalenie kierownika
         m_lastexchangestop.clear();
         if (NewCommand != "none")
         {
-            if (!TrainParams->LoadTTfile(
+            if (false == TrainParams.LoadTTfile(
                     std::string(Global.asCurrentSceneryPath.c_str()), floor(NewValue2 + 0.5),
                     NewValue1)) // pierwszy parametr to przesunięcie rozkładu w czasie
             {
                 if (ConversionError == -8)
                     ErrorLog("Missed timetable: " + NewCommand);
                 WriteLog("Cannot load timetable file " + NewCommand + "\r\nError " +
-                         std::to_string(ConversionError) + " in position " + std::to_string(TrainParams->StationCount));
+                         std::to_string(ConversionError) + " in position " + std::to_string(TrainParams.StationCount));
                 NewCommand = ""; // puste, dla wymiennej tekstury
             }
             else
@@ -3957,10 +3953,10 @@ bool TController::PutCommand( std::string NewCommand, double NewValue1, double N
                 // HACK: clear the potentially set door state flag to ensure door get opened if applicable
                 iDrivigFlags &= ~( moveDoorOpened );
 
-                TrainParams->UpdateMTable( simulation::Time, TrainParams->NextStationName );
-                TrainParams->StationIndexInc(); // przejście do następnej
-                iStationStart = TrainParams->StationIndex;
-                asNextStop = TrainParams->NextStop();
+                TrainParams.UpdateMTable( simulation::Time, TrainParams.NextStationName );
+                TrainParams.StationIndexInc(); // przejście do następnej
+                iStationStart = TrainParams.StationIndex;
+                asNextStop = TrainParams.NextStop();
                 iDrivigFlags |= movePrimary; // skoro dostał rozkład, to jest teraz głównym
 //                NewCommand = Global.asCurrentSceneryPath + NewCommand;
                 auto lookup =
@@ -3974,7 +3970,7 @@ bool TController::PutCommand( std::string NewCommand, double NewValue1, double N
                 }
                 else {
                     NewCommand += "radio";
-                    auto lookup =
+                    lookup =
                         FileExists(
                             { Global.asCurrentSceneryPath + NewCommand, szSoundPath + NewCommand },
                             { ".ogg", ".flac", ".wav" } );
@@ -3984,13 +3980,13 @@ bool TController::PutCommand( std::string NewCommand, double NewValue1, double N
                         iGuardRadio = iRadioChannel;
                     }
                 }
-                NewCommand = TrainParams->Relation2; // relacja docelowa z rozkładu
+                NewCommand = TrainParams.Relation2; // relacja docelowa z rozkładu
             }
             // jeszcze poustawiać tekstury na wyświetlaczach
             TDynamicObject *p = pVehicles[0];
             while (p)
             {
-                p->DestinationSet(NewCommand, TrainParams->TrainName); // relacja docelowa
+                p->DestinationSet(NewCommand, TrainParams.TrainName); // relacja docelowa
                 p = p->Next(); // pojazd podłączony od tyłu (licząc od czoła)
             }
         }
@@ -4048,7 +4044,7 @@ bool TController::PutCommand( std::string NewCommand, double NewValue1, double N
             vCommandLocation = *NewLocation;
         if ((NewValue1 != 0.0) && (OrderCurrentGet() != Obey_train))
         { // o ile jazda
-            if( iEngineActive == 0 ) {
+            if( false == iEngineActive ) {
                 // trzeba odpalić silnik najpierw, światła ustawi
                 OrderNext( Prepare_engine );
             }
@@ -4079,7 +4075,7 @@ bool TController::PutCommand( std::string NewCommand, double NewValue1, double N
         if (NewLocation)
             vCommandLocation = *NewLocation;
         // if (OrderList[OrderPos]=Obey_train) and (NewValue1<>0))
-        if (!iEngineActive)
+        if (false == iEngineActive)
             OrderNext(Prepare_engine); // trzeba odpalić silnik najpierw
         OrderNext(Shunt); // zamieniamy w aktualnej pozycji, albo dodajey za odpaleniem silnika
         if (NewValue1 != 0.0)
@@ -4126,7 +4122,7 @@ bool TController::PutCommand( std::string NewCommand, double NewValue1, double N
     if (NewCommand == "Change_direction")
     {
         TOrders o = OrderCurrentGet(); // co robił przed zmianą kierunku
-        if (!iEngineActive)
+        if (false == iEngineActive)
             OrderNext(Prepare_engine); // trzeba odpalić silnik najpierw
         if (NewValue1 == 0.0)
             iDirectionOrder = -iDirection; // zmiana na przeciwny niż obecny
@@ -4186,7 +4182,7 @@ bool TController::PutCommand( std::string NewCommand, double NewValue1, double N
         // x,-y - podłączyć się do składu (sprzęgiem y>=1), a następnie odczepić i zabrać (x) wagonów
         // 1, 0 - odczepienie lokomotywy z jednym wagonem
         iDrivigFlags &= ~moveStopHere; // podjeżanie do semaforów zezwolone
-        if (!iEngineActive)
+        if (false == iEngineActive)
             OrderNext(Prepare_engine); // trzeba odpalić silnik najpierw
         if (NewValue2 != 0) // jeśli podany jest sprzęg
         {
@@ -4415,7 +4411,7 @@ TController::UpdateSituation(double dt) {
     if( ( fLastStopExpDist > 0.0 )
      && ( mvOccupied->DistCounter > fLastStopExpDist ) ) {
         // zaktualizować wyświetlanie rozkładu
-        iStationStart = TrainParams->StationIndex;
+        iStationStart = TrainParams.StationIndex;
         fLastStopExpDist = -1.0; // usunąć licznik
     }
 
@@ -4703,7 +4699,7 @@ TController::UpdateSituation(double dt) {
 
         if( ( true == TestFlag( iDrivigFlags, moveStartHornNow ) )
          && ( true == Ready )
-         && ( iEngineActive != 0 )
+         && ( true == iEngineActive )
          && ( mvControlling->MainCtrlPowerPos() > 0 ) ) {
             // uruchomienie trąbienia przed ruszeniem
             fWarningDuration = 0.3; // czas trąbienia
@@ -5153,7 +5149,7 @@ TController::UpdateSituation(double dt) {
         } // Change_direction (tylko dla AI)
 
         if( ( true == AIControllFlag )
-         && ( iEngineActive == 0 )
+         && ( false == iEngineActive )
          && ( OrderCurrentGet() & ( Change_direction | Connect | Disconnect | Shunt | Loose_shunt | Obey_train | Bank ) ) ) {
             // jeśli coś ma robić to niech odpala do skutku
             PrepareEngine();
@@ -5170,10 +5166,9 @@ TController::UpdateSituation(double dt) {
             // no chyba żeby to uwzgldnić już w (ActualProximityDist)
             VelDesired = fVelMax; // wstępnie prędkość maksymalna dla pojazdu(-ów), będzie
             // następnie ograniczana
-            if( ( TrainParams )
-             && ( TrainParams->TTVmax > 0.0 ) ) {
+            if( TrainParams.TTVmax > 0.0 ) {
                 // jeśli ma rozkład i ograniczenie w rozkładzie to nie przekraczać rozkladowej
-                VelDesired = min_speed( VelDesired, TrainParams->TTVmax );
+                VelDesired = min_speed( VelDesired, TrainParams.TTVmax );
             }
             // szukanie optymalnych wartości
             AccDesired = AccPreferred; // AccPreferred wynika z osobowości mechanika
@@ -5537,13 +5532,13 @@ TController::UpdateSituation(double dt) {
 
             if( ( OrderCurrentGet() & Obey_train ) != 0 ) {
 
-                if( ( TrainParams->CheckTrainLatency() < 5.0 )
-                 && ( TrainParams->TTVmax > 0.0 ) ) {
+                if( ( TrainParams.CheckTrainLatency() < 5.0 )
+                 && ( TrainParams.TTVmax > 0.0 ) ) {
                     // jesli nie spozniony to nie przekraczać rozkladowej
                     VelDesired =
                         min_speed(
                             VelDesired,
-                            TrainParams->TTVmax );
+                            TrainParams.TTVmax );
                 }
             }
 
@@ -6408,7 +6403,7 @@ void TController::OrdersInit(double fVel)
     // ustawienie kolejności komend, niezależnie kto prowadzi
     OrdersClear(); // usunięcie poprzedniej tabeli
     OrderPush(Prepare_engine); // najpierw odpalenie silnika
-    if (TrainParams->TrainName == "none")
+    if (TrainParams.TrainName == "none")
     { // brak rozkładu to jazda manewrowa
         if (fVel > 0.05) // typowo 0.1 oznacza gotowość do jazdy, 0.01 tylko załączenie silnika
             OrderPush(Shunt); // jeśli nie ma rozkładu, to manewruje
@@ -6417,23 +6412,21 @@ void TController::OrdersInit(double fVel)
     { // jeśli z rozkładem, to jedzie na szlak
         if ((fVel > 0.0) && (fVel < 0.02))
             OrderPush(Shunt); // dla prędkości 0.01 włączamy jazdę manewrową
-        else if (TrainParams ?
-                     (TrainParams->DirectionChange() ? //  jeśli obrót na pierwszym przystanku
-                          ((iDrivigFlags & movePushPull) ? // SZT również! SN61 zależnie od wagonów...
-                               (TrainParams->TimeTable[1].StationName == TrainParams->Relation1) :
-                               false) :
-                          false) :
-                     true)
+        else if (TrainParams.DirectionChange() ? //  jeśli obrót na pierwszym przystanku
+                    ((iDrivigFlags & movePushPull) ? // SZT również! SN61 zależnie od wagonów...
+                        (TrainParams.TimeTable[1].StationName == TrainParams.Relation1) :
+                        false) :
+                    false)
             OrderPush(Shunt); // a teraz start będzie w manewrowym, a tryb pociągowy włączy W4
         else
             // jeśli start z pierwszej stacji i jednocześnie jest na niej zmiana kierunku, to EZT ma mieć Shunt
             OrderPush(Obey_train); // dla starych scenerii start w trybie pociagowym
         if (DebugModeFlag) // normalnie nie ma po co tego wypisywać
-            WriteLog("/* Timetable: " + TrainParams->ShowRelation());
+            WriteLog("/* Timetable: " + TrainParams.ShowRelation());
         TMTableLine *t;
-        for (int i = 0; i <= TrainParams->StationCount; ++i)
+        for (int i = 0; i <= TrainParams.StationCount; ++i)
         {
-            t = TrainParams->TimeTable + i;
+            t = TrainParams.TimeTable + i;
             if (DebugModeFlag) {
                 // normalnie nie ma po co tego wypisywa?
                 WriteLog(
@@ -6453,7 +6446,7 @@ void TController::OrdersInit(double fVel)
                     OrderPush(Disconnect); // odczepienie lokomotywy
                     OrderPush(Shunt); // a dalej manewry
                 }
-                if (i < TrainParams->StationCount) // jak nie ostatnia stacja
+                if (i < TrainParams.StationCount) // jak nie ostatnia stacja
                     OrderPush(Obey_train); // to dalej wg rozkładu
             }
         }
@@ -6818,10 +6811,8 @@ std::string TController::NextStop() const
     if (asNextStop == "[End of route]")
         return ""; // nie zawiera nazwy stacji, gdy dojechał do końca
     // dodać godzinę odjazdu
-    if (!TrainParams)
-        return ""; // tu nie powinno nigdy wejść
-    std::string nextstop = Bezogonkow( asNextStop, true );
-    TMTableLine *t = TrainParams->TimeTable + TrainParams->StationIndex;
+    auto nextstop{ Bezogonkow( asNextStop, true ) };
+    auto const *t{ TrainParams.TimeTable + TrainParams.StationIndex };
     if( t->Ah >= 0 ) {
         // przyjazd
         nextstop += "  przyj." + std::to_string( t->Ah ) + ":"
@@ -6838,7 +6829,7 @@ std::string TController::NextStop() const
 
 void TController::UpdateDelayFlag() {
 
-    if( TrainParams->CheckTrainLatency() < 0.0 ) {
+    if( TrainParams.CheckTrainLatency() < 0.0 ) {
         // odnotowano spóźnienie
         iDrivigFlags |= moveLate;
     }
@@ -6940,34 +6931,34 @@ void TController::ZeroDirection() {
     while( ( mvOccupied->ActiveDir < 0 ) && ( mvOccupied->DirectionForward() ) ) { ; }
 }
 
-Mtable::TTrainParameters const *
+Mtable::TTrainParameters const &
 TController::TrainTimetable() const {
     return TrainParams;
 }
 
 std::string TController::Relation() const
 { // zwraca relację pociągu
-    return TrainParams->ShowRelation();
+    return TrainParams.ShowRelation();
 };
 
 std::string TController::TrainName() const
 { // zwraca numer pociągu
-    return TrainParams->TrainName;
+    return TrainParams.TrainName;
 };
 
 int TController::StationCount() const
 { // zwraca ilość stacji (miejsc zatrzymania)
-    return TrainParams->StationCount;
+    return TrainParams.StationCount;
 };
 
 int TController::StationIndex() const
 { // zwraca indeks aktualnej stacji (miejsca zatrzymania)
-    return TrainParams->StationIndex;
+    return TrainParams.StationIndex;
 };
 
 bool TController::IsStop() const
 { // informuje, czy jest zatrzymanie na najbliższej stacji
-    return TrainParams->IsStop();
+    return TrainParams.IsStop();
 };
 
 // returns most recently calculated distance to potential obstacle ahead

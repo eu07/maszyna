@@ -3328,8 +3328,7 @@ bool TDynamicObject::Update(double dt, double dt1)
         if (dWheelAngle[2] > 360.0)
             dWheelAngle[2] -= 360.0;
     }
-    if (pants) // pantograf może być w wagonie kuchennym albo pojeździe rewizyjnym
-    // (np. SR61)
+    if (pants) // pantograf może być w wagonie kuchennym albo pojeździe rewizyjnym (np. SR61)
     { // przeliczanie kątów dla pantografów
         double k; // tymczasowy kąt
         double PantDiff;
@@ -3341,17 +3340,12 @@ bool TDynamicObject::Update(double dt, double dt1)
             + MoverParameters->TotalCurrent; // prąd pobierany przez pojazd - bez
         // sensu z tym (TotalCurrent)
         // TotalCurrent to bedzie prad nietrakcyjny (niezwiazany z napedem)
-        // fCurrent+=fabs(MoverParameters->Voltage)*1e-6; //prąd płynący przez
-        // woltomierz,
-        // rozładowuje kondensator orgromowy 4µF
+        // fCurrent+=fabs(MoverParameters->Voltage)*1e-6; //prąd płynący przez woltomierz, rozładowuje kondensator orgromowy 4µF
         double fPantCurrent = fCurrent; // normalnie cały prąd przez jeden pantograf
-        if (pants)
-            if (iAnimType[ANIM_PANTS] > 1) // a jeśli są dwa pantografy //Ra 1014-11:
-                // proteza, trzeba zrobić sensowniej
-                if (pants[0].fParamPants->hvPowerWire &&
-                    pants[1].fParamPants->hvPowerWire) // i oba podłączone do drutów
-                    fPantCurrent = fCurrent * 0.5; // to dzielimy prąd równo na oba (trochę bez
-        // sensu, ale lepiej tak niż podwoić prąd)
+        if (iAnimType[ANIM_PANTS] > 1) // a jeśli są dwa pantografy //Ra 1014-11: proteza, trzeba zrobić sensowniej
+            if (pants[0].fParamPants->hvPowerWire &&
+                pants[1].fParamPants->hvPowerWire) // i oba podłączone do drutów
+                fPantCurrent = fCurrent * 0.5; // to dzielimy prąd równo na oba (trochę bez sensu, ale lepiej tak niż podwoić prąd)
         for (int i = 0; i < iAnimType[ANIM_PANTS]; ++i)
         { // pętla po wszystkich pantografach
             p = pants[i].fParamPants;
@@ -6436,7 +6430,7 @@ TDynamicObject::update_shake( double const Timedelta ) {
     // ABu: rzucamy kabina tylko przy duzym FPS!
     // Mala histereza, zeby bez przerwy nie przelaczalo przy FPS~17
     // Granice mozna ustalic doswiadczalnie. Ja proponuje 14:20
-    if( false == Global.iSlowMotion ) { // musi być pełna prędkość
+    if( Global.iSlowMotion == 0 ) { // musi być pełna prędkość
 
         Math3D::vector3 shakevector;
         if( ( MoverParameters->EngineType == TEngineType::DieselElectric )

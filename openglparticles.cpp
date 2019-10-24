@@ -141,10 +141,10 @@ opengl_particles::render( int const Textureunit ) {
     ::glBindBuffer( GL_ARRAY_BUFFER, m_buffer );
     ::glVertexPointer( 3, GL_FLOAT, sizeof( particle_vertex ), static_cast<char *>( nullptr ) );
     ::glEnableClientState( GL_VERTEX_ARRAY );
-    ::glColorPointer( 4, GL_UNSIGNED_BYTE, sizeof( particle_vertex ), static_cast<char *>( nullptr ) + sizeof( float ) * 3 );
+    ::glColorPointer( 4, GL_UNSIGNED_BYTE, sizeof( particle_vertex ), reinterpret_cast<void const *>( sizeof( float ) * 3 ) );
     ::glEnableClientState( GL_COLOR_ARRAY );
     ::glClientActiveTexture( Textureunit );
-    ::glTexCoordPointer( 2, GL_FLOAT, sizeof( particle_vertex ), static_cast<char *>( nullptr ) + sizeof( float ) * 3 + sizeof( std::uint8_t ) * 4 );
+    ::glTexCoordPointer( 2, GL_FLOAT, sizeof( particle_vertex ), reinterpret_cast<void const *>( sizeof( float ) * 3 + sizeof( std::uint8_t ) * 4 ) );
     ::glEnableClientState( GL_TEXTURE_COORD_ARRAY );
     // ...draw...
     ::glDrawArrays( GL_QUADS, 0, m_particlevertices.size() );

@@ -268,8 +268,7 @@ timetable_panel::update() {
             vehicle->ctOwner );
     if( owner == nullptr ) { return; }
 
-    auto const *table = owner->TrainTimetable();
-    if( table == nullptr ) { return; }
+    auto const &table = owner->TrainTimetable();
 
     // destination
     {
@@ -310,14 +309,14 @@ timetable_panel::update() {
             std::snprintf(
                 m_buffer.data(), m_buffer.size(),
                 locale::strings[ locale::string::driver_timetable_consistdata ].c_str(),
-                static_cast<int>( table->LocLoad ),
+                static_cast<int>( table.LocLoad ),
                 static_cast<int>( consistmass / 1000 ),
                 static_cast<int>( consistlength ) );
 
             text_lines.emplace_back( m_buffer.data(), Global.UITextColor );
         }
 
-        if( 0 == table->StationCount ) {
+        if( 0 == table.StationCount ) {
             // only bother if there's stations to list
             text_lines.emplace_back( locale::strings[ locale::string::driver_timetable_notimetable ], Global.UITextColor );
         } 
@@ -331,9 +330,9 @@ timetable_panel::update() {
             m_tablelines.emplace_back( u8"┌─────┬────────────────────────────────────┬─────────┬─────┐", Global.UITextColor );
 
             TMTableLine const *tableline;
-            for( int i = owner->iStationStart; i <= table->StationCount; ++i ) {
+            for( int i = owner->iStationStart; i <= table.StationCount; ++i ) {
                 // wyświetlenie pozycji z rozkładu
-                tableline = table->TimeTable + i; // linijka rozkładu
+                tableline = table.TimeTable + i; // linijka rozkładu
 
                 bool vmaxchange { true };
                 if( i > owner->iStationStart ) {
@@ -366,16 +365,16 @@ timetable_panel::update() {
                         to_string( int( 100 + tableline->Dh ) ).substr( 1, 2 ) + ":" + to_minutes_str( tableline->Dm, true, 3 ) :
                         u8"  │   " ) };
                 auto const candeparture { (
-                       ( owner->iStationStart < table->StationIndex )
-                    && ( i < table->StationIndex )
+                       ( owner->iStationStart < table.StationIndex )
+                    && ( i < table.StationIndex )
                     && ( ( tableline->Ah < 0 ) // pass-through, always valid
                       || ( time.wHour * 60 + time.wMinute + time.wSecond * 0.0167 >= tableline->Dh * 60 + tableline->Dm ) ) ) };
                 auto const loadchangeinprogress { ( ( static_cast<int>( std::ceil( -1.0 * owner->fStopTime ) ) ) > 0 ) };
                 auto const isatpassengerstop { ( true == owner->IsAtPassengerStop ) && ( vehicle->MoverParameters->Vel < 1.0 ) };
                 auto const traveltime { (
                     i < 2 ? "   " :
-                    tableline->Ah >= 0 ? to_minutes_str( CompareTime( table->TimeTable[ i - 1 ].Dh, table->TimeTable[ i - 1 ].Dm, tableline->Ah, tableline->Am ), false, 3 ) :
-                    to_minutes_str( std::max( 0.0, CompareTime( table->TimeTable[ i - 1 ].Dh, table->TimeTable[ i - 1 ].Dm, tableline->Dh, tableline->Dm ) - 0.5 ), false, 3 ) ) };
+                    tableline->Ah >= 0 ? to_minutes_str( CompareTime( table.TimeTable[ i - 1 ].Dh, table.TimeTable[ i - 1 ].Dm, tableline->Ah, tableline->Am ), false, 3 ) :
+                    to_minutes_str( std::max( 0.0, CompareTime( table.TimeTable[ i - 1 ].Dh, table.TimeTable[ i - 1 ].Dm, tableline->Dh, tableline->Dm ) - 0.5 ), false, 3 ) ) };
                 auto const linecolor { (
                     ( i != owner->iStationStart ) ? Global.UITextColor :
                     loadchangeinprogress ? loadingcolor :
@@ -390,7 +389,7 @@ timetable_panel::update() {
                     ( u8"│     │ " + location + tableline->StationWare + trackcount + departure + u8" │     │" ),
                     linecolor );
                 // divider/footer
-                if( i < table->StationCount ) {
+                if( i < table.StationCount ) {
                     auto const *nexttableline { tableline + 1 };
                     std::string const vmaxnext{ ( tableline->vmax == nexttableline->vmax ? u8"│     ├" : u8"├─────┼" ) };
                     auto const trackcountnext{ ( nexttableline->TrackNo == 1 ? u8"╂" : u8"╫" ) };

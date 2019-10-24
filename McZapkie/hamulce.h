@@ -130,7 +130,7 @@ static double const BPT_394[7][2] = { {13 , 10.0} , {5 , 5.0} , {0 , -1} , {5 , 
 //double *BPT_394 = zero_based_BPT_394[1]; //tablica pozycji hamulca dla zakresu -1..5
 //   BPT: array[-2..6] of array [0..1] of real= ((0, 5.0), (12, 5.4), (9, 5.0), (9, 4.6), (9, 4.2), (9, 3.8), (9, 3.4), (9, 2.8), (34, 2.8));
 //      BPT: array[-2..6] of array [0..1] of real= ((0, 0),(0, 0),(0, 0),(0, 0),(0, 0),(0, 0),(0, 0),(0, 0),(0, 0));
-static int const i_bcpno = 6;
+static int const i_bcpno = 5;
 // static double const pi = 3.141592653589793; //definicja w mctools
 
 enum TUniversalBrake // możliwe działania uniwersalnego przycisku hamulca

@@ -14,6 +14,7 @@ http://mozilla.org/MPL/2.0/.
 #include "MOVER.h"
 #include "sound.h"
 #include "DynObj.h"
+#include "mtable.h"
 
 enum TOrders
 { // rozkazy dla AI
@@ -421,7 +422,7 @@ private:
 // methods
 public:
     std::string TrainName() const;
-    Mtable::TTrainParameters const * TrainTimetable() const;
+    Mtable::TTrainParameters const & TrainTimetable() const;
 private:
     std::string Relation() const;
     int StationIndex() const;
@@ -431,7 +432,7 @@ private:
     // tests whether the train is delayed and sets accordingly a driving flag
     void UpdateDelayFlag();
 // members
-    Mtable::TTrainParameters *TrainParams = nullptr; // rozkład jazdy zawsze jest, nawet jeśli pusty
+    Mtable::TTrainParameters TrainParams; // rozkład jazdy zawsze jest, nawet jeśli pusty
     std::string asNextStop; // nazwa następnego punktu zatrzymania wg rozkładu
     int iStationStart = 0; // numer pierwszej stacji pokazywanej na podglądzie rozkładu
     std::string m_lastexchangestop; // HACK: safeguard to prevent multiple load exchanges per station
@@ -456,7 +457,7 @@ private:
     double fMass = 0.0; // całkowita masa do liczenia stycznej składowej grawitacji
     double fAccGravity = 0.0; // przyspieszenie składowej stycznej grawitacji
     int iVehicles = 0; // ilość pojazdów w składzie
-    int iEngineActive = 0; // ABu: Czy silnik byl juz zalaczony; Ra: postęp w załączaniu
+    bool iEngineActive{ false }; // ABu: Czy silnik byl juz zalaczony
     bool IsCargoTrain{ false };
     bool IsHeavyCargoTrain{ false };
     bool IsLineBreakerClosed{ false }; // state of line breaker in all powered vehicles under control

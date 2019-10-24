@@ -346,10 +346,10 @@ opengl_renderer::Render() {
     Timer::subsystem.gfx_swap.stop();
 
     m_drawcount = m_cellqueue.size();
-    m_debugtimestext
-        += "color: " + to_string( Timer::subsystem.gfx_color.average(), 2 ) + " msec (" + std::to_string( m_cellqueue.size() ) + " sectors)\n"
-        += "gpu side: " + to_string( Timer::subsystem.gfx_swap.average(), 2 ) + " msec\n"
-        += "frame total: " + to_string( Timer::subsystem.gfx_color.average() + Timer::subsystem.gfx_swap.average(), 2 ) + " msec";
+    m_debugtimestext +=
+          "color: " + to_string( Timer::subsystem.gfx_color.average(), 2 ) + " msec (" + std::to_string( m_cellqueue.size() ) + " sectors)\n"
+        + "gpu side: " + to_string( Timer::subsystem.gfx_swap.average(), 2 ) + " msec\n"
+        + "frame total: " + to_string( Timer::subsystem.gfx_color.average() + Timer::subsystem.gfx_swap.average(), 2 ) + " msec";
 
     m_debugstatstext =
         "drawcalls:  " + to_string( m_debugstats.drawcalls ) + "\n"

@@ -8416,10 +8416,11 @@ bool TMoverParameters::readCompressorList(std::string const &Input) {
 		return false;
 	}
 	int idx = LISTLINE++;
-	if (idx > 8) {
+	if (idx > 8 - 1) {
 		WriteLog("Read CompressorList: number of entries exceeded capacity of the data table");
 		return false;
 	}
+    // NOTE: content of slot [x][0] is hardcoded elsewhere
 	parser
 		>> CompressorList[ 0 ][ idx + 1 ]
 		>> CompressorList[ 1 ][ idx + 1 ]

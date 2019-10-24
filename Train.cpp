@@ -603,7 +603,7 @@ dictionary_source *TTrain::GetTrainState() {
     dict->insert( "velnext", driver->VelNext );
     dict->insert( "actualproximitydist", driver->ActualProximityDist );
     // train data
-    driver->TrainTimetable()->serialize( dict );
+    driver->TrainTimetable().serialize( dict );
     dict->insert( "train_stationstart", driver->iStationStart );
     dict->insert( "train_atpassengerstop", driver->IsAtPassengerStop );
     dict->insert( "train_length", driver->fLength );
@@ -3117,8 +3117,8 @@ void TTrain::OnCommand_compressorpresetactivatenext(TTrain *Train, command_data 
 		// active light preset is stored as value in range 1-LigthPosNo
 		Train->mvOccupied->CompressorListPos = (
 			Train->mvOccupied->CompressorListPos < Train->mvOccupied->CompressorListPosNo ?
-			Train->mvOccupied->CompressorListPos + 1 :
-			1); // wrap mode
+			    Train->mvOccupied->CompressorListPos + 1 :
+			    1); // wrap mode
 
 		// visual feedback
 		if (Train->ggCompressorListButton.SubModel != nullptr) {
@@ -3139,12 +3139,12 @@ void TTrain::OnCommand_compressorpresetactivateprevious(TTrain *Train, command_d
 	}
 
 	if ((Train->mvOccupied->CompressorListPos > 1)
-		|| (true == Train->mvOccupied->CompressorListWrap)) {
+     || (true == Train->mvOccupied->CompressorListWrap)) {
 		// active light preset is stored as value in range 1-LigthPosNo
 		Train->mvOccupied->CompressorListPos = (
 			Train->mvOccupied->CompressorListPos > 1 ?
-			Train->mvOccupied->CompressorListPos - 1 :
-			Train->mvOccupied->CompressorListPosNo); // wrap mode
+			    Train->mvOccupied->CompressorListPos - 1 :
+			    Train->mvOccupied->CompressorListPosNo); // wrap mode
 
 		// visual feedback
 		if (Train->ggCompressorListButton.SubModel != nullptr) {

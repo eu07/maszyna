@@ -22,8 +22,6 @@ http://mozilla.org/MPL/2.0/.
 
 // typedef enum {st_Off, st_Starting, st_On, st_ShuttingDown} T4State;
 
-const int maxcab = 2;
-
 const double fCzuwakBlink = 0.15;
 const float fConverterPrzekaznik = 1.5f; // hunter-261211: do przekaznika nadmiarowego przetwornicy
 // 0.33f
@@ -685,7 +683,7 @@ public: // reszta może by?publiczna
     bool bCabLightDim; // hunter-091012: czy przyciemnienie kabiny jest zapalone?
 */
     // McZapkie: opis kabiny - obszar poruszania sie mechanika oraz zajetosc
-    std::array<TCab, maxcab + 1> Cabine; // przedzial maszynowy, kabina 1 (A), kabina 2 (B)
+    std::array<TCab, 3> Cabine; // przedzial maszynowy, kabina 1 (A), kabina 2 (B)
     int iCabn { 0 }; // 0: mid, 1: front, 2: rear
     // McZapkie: do poruszania sie po kabinie
     Math3D::vector3 pMechSittingPosition; // ABu 180404

@@ -653,7 +653,7 @@ driver_mode::OnKeyDown(int cKey) {
         int i = cKey - GLFW_KEY_0; // numer klawisza
         if (Global.shiftState) {
             // z [Shift] uruchomienie eventu
-            if( ( false == Global.iPause ) // podczas pauzy klawisze nie działają
+            if( ( Global.iPause == 0 ) // podczas pauzy klawisze nie działają
              && ( KeyEvents[ i ] != nullptr ) ) {
                 simulation::Events.AddToQuery( KeyEvents[ i ], NULL );
             }
