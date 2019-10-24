@@ -524,7 +524,7 @@ dictionary_source *TTrain::GetTrainState() {
     dict->insert( "distance_counter", m_distancecounter );
     dict->insert( "pantpress", std::abs( mvControlled->PantPress ) );
     dict->insert( "universal3", InstrumentLightActive );
-    dict->insert( "radio_channel", iRadioChannel );
+    dict->insert( "radio_channel", RadioChannel() );
     dict->insert( "door_lock", mvOccupied->Doors.lock_enabled );
     // movement data
     dict->insert( "velocity", std::abs( mvOccupied->Vel ) );
@@ -5353,9 +5353,9 @@ void TTrain::OnCommand_radiotoggle( TTrain *Train, command_data const &Command )
 void TTrain::OnCommand_radiochannelincrease( TTrain *Train, command_data const &Command ) {
 
     if( Command.action == GLFW_PRESS ) {
-        Train->iRadioChannel = clamp( Train->iRadioChannel + 1, 1, 10 );
+        Train->RadioChannel() = clamp( Train->RadioChannel() + 1, 1, 10 );
         // visual feedback
-        Train->ggRadioChannelSelector.UpdateValue( Train->iRadioChannel - 1 );
+        Train->ggRadioChannelSelector.UpdateValue( Train->RadioChannel() - 1 );
         Train->ggRadioChannelNext.UpdateValue( 1.0 );
     }
     else if( Command.action == GLFW_RELEASE ) {
@@ -5367,9 +5367,9 @@ void TTrain::OnCommand_radiochannelincrease( TTrain *Train, command_data const &
 void TTrain::OnCommand_radiochanneldecrease( TTrain *Train, command_data const &Command ) {
 
     if( Command.action == GLFW_PRESS ) {
-        Train->iRadioChannel = clamp( Train->iRadioChannel - 1, 1, 10 );
+        Train->RadioChannel() = clamp( Train->RadioChannel() - 1, 1, 10 );
         // visual feedback
-        Train->ggRadioChannelSelector.UpdateValue( Train->iRadioChannel - 1 );
+        Train->ggRadioChannelSelector.UpdateValue( Train->RadioChannel() - 1 );
         Train->ggRadioChannelPrevious.UpdateValue( 1.0 );
     }
     else if( Command.action == GLFW_RELEASE ) {
@@ -7085,7 +7085,7 @@ void TTrain::update_sounds_radio() {
     for( auto &message : m_radiomessages ) {
         auto const volume {
             ( true == radioenabled )
-         && ( message.first == iRadioChannel ) ?
+         && ( message.first == RadioChannel() ) ?
                 Global.RadioVolume :
                 0.0 };
         message.second->gain( volume );
@@ -7743,7 +7743,7 @@ TTrain::radio_message( sound_source *Message, int const Channel ) {
     auto const radioenabled { ( true == mvOccupied->Radio ) && ( mvControlled->Battery || mvControlled->ConverterFlag ) };
     auto const volume {
         ( true == radioenabled )
-     && ( Channel == iRadioChannel ) ?
+     && ( Channel == RadioChannel() ) ?
             1.0 :
             0.0 };
     message
@@ -8038,7 +8038,7 @@ void TTrain::set_cab_controls( int const Cab ) {
     if( true == mvOccupied->Radio ) {
         ggRadioButton.PutValue( 1.f );
     }
-    ggRadioChannelSelector.PutValue( iRadioChannel - 1 );
+    ggRadioChannelSelector.PutValue( RadioChannel() - 1 );
     // pantographs
     if( mvOccupied->PantSwitchType != "impulse" ) {
         if( ggPantFrontButton.SubModel ) {

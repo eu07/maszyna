@@ -11,6 +11,7 @@ http://mozilla.org/MPL/2.0/.
 
 #include <string>
 #include "DynObj.h"
+#include "Driver.h"
 #include "Button.h"
 #include "Gauge.h"
 #include "sound.h"
@@ -729,7 +730,6 @@ private:
     float fPPress, fNPress;
     bool m_mastercontrollerinuse { false };
     float m_mastercontrollerreturndelay { 0.f };
-    int iRadioChannel { 1 }; // numer aktualnego kana?u radiowego
     std::vector<std::pair<std::string, texture_handle>> m_screens;
     float m_distancecounter { -1.f }; // distance traveled since meter was activated or -1 if inactive
 
@@ -739,9 +739,10 @@ private:
     static std::vector<std::string> const fPress_labels;
     float fEIMParams[9][10]; // parametry dla silnikow asynchronicznych
 	float fDieselParams[9][10]; // parametry dla silnikow asynchronicznych
-    int RadioChannel() const { return iRadioChannel; };
     // plays provided sound from position of the radio
     void radio_message( sound_source *Message, int const Channel );
+    inline auto const &RadioChannel() const { return Dynamic()->Mechanik->iRadioChannel; }
+    inline auto &RadioChannel() { return Dynamic()->Mechanik->iRadioChannel; }
     inline TDynamicObject *Dynamic() { return DynamicObject; };
     inline TDynamicObject const *Dynamic() const { return DynamicObject; };
     inline TMoverParameters *Controlled() { return mvControlled; };
