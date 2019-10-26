@@ -1997,10 +1997,10 @@ void TController::AutoRewident()
 	    }
 	    for (int i = 0; i < BrakeAccTableSize; ++i)
 	    {
-		    fBrake_a1[i+1] -= fBrake_a0[i+1];
-		    fBrake_a0[i+1] /= fMass;
-		    fBrake_a0[i + 1] += 0.001*velstep*(1 + 2 * i);
-		    fBrake_a1[i+1] /= (12*fMass);
+		    fBrake_a1[ i + 1 ] -= fBrake_a0[i+1];
+		    fBrake_a0[ i + 1 ] /= fMass;
+		    fBrake_a0[ i + 1 ] += 0.001*velstep*(1 + 2 * i);
+		    fBrake_a1[ i + 1 ] /= (12*fMass);
 	    }
 
         IsCargoTrain = ( mvOccupied->CategoryFlag == 1 ) && ( ( mvOccupied->BrakeDelayFlag & bdelay_G ) != 0 );
@@ -2804,7 +2804,7 @@ bool TController::IncBrake()
 					while (d)
 					{ // przeliczanie dodatkowego potrzebnego spadku ciśnienia
                         if( ( d->MoverParameters->Hamulec->GetBrakeStatus() & b_dmg ) == 0 ) {
-                            pos_corr += ( d->MoverParameters->Hamulec->GetCRP() - 5.0 ) * d->MoverParameters->TotalMass;
+                            pos_corr -= ( d->MoverParameters->Hamulec->GetCRP() - 5.0 ) * d->MoverParameters->TotalMass;
                         }
 						d = d->Next(); // kolejny pojazd, podłączony od tyłu (licząc od czoła)
 					}
