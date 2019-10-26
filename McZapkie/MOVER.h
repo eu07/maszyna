@@ -688,7 +688,7 @@ struct speed_control {
 	bool BrakeIntervention = false;
 	bool BrakeInterventionBraking = false;
 	bool BrakeInterventionUnbraking = false;
-	bool Standby = true;
+	bool Standby = false;
 	bool Parking = false;
 	double InitialPower = 1.0;
 	double FullPowerVelocity = -1;

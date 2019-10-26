@@ -5554,6 +5554,7 @@ double TMoverParameters::TractionForce( double dt ) {
 				//tempomat
 				if (ScndCtrlPosNo == 4 && SpeedCtrlTypeTime)
 				{
+					SpeedCtrlUnit.IsActive = SpeedCtrlValue > 0;
 					switch (ScndCtrlPos) {
 					case 0:
 						NewSpeed = 0;
