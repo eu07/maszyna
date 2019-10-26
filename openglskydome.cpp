@@ -27,7 +27,7 @@ void opengl_skydome::update() {
     ::glPushClientAttrib( GL_CLIENT_VERTEX_ARRAY_BIT );
     // setup gpu data buffers:
     // ...static data...
-    if( m_indexbuffer == -1 ) {
+    if( m_indexbuffer == (GLuint)-1 ) {
         ::glGenBuffers( 1, &m_indexbuffer );
         if( ( m_indexbuffer > 0 ) && ( m_indexbuffer != (GLuint)-1 ) ) {
             ::glBindBuffer( GL_ELEMENT_ARRAY_BUFFER, m_indexbuffer );
@@ -36,7 +36,7 @@ void opengl_skydome::update() {
             m_indexcount = indices.size();
         }
     }
-    if( m_vertexbuffer == -1 ) {
+    if( m_vertexbuffer == (GLuint)-1 ) {
         ::glGenBuffers( 1, &m_vertexbuffer );
         if( ( m_vertexbuffer > 0 ) && ( m_vertexbuffer != (GLuint)-1 ) ) {
             ::glBindBuffer( GL_ARRAY_BUFFER, m_vertexbuffer );
@@ -45,7 +45,7 @@ void opengl_skydome::update() {
         }
     }
     // ...and dynamic data
-    if( m_coloursbuffer == -1 ) {
+    if( m_coloursbuffer == (GLuint)-1 ) {
         ::glGenBuffers( 1, &m_coloursbuffer );
         if( ( m_coloursbuffer > 0 ) && ( m_coloursbuffer != (GLuint)-1 ) ) {
             ::glBindBuffer( GL_ARRAY_BUFFER, m_coloursbuffer );

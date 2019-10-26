@@ -8953,8 +8953,8 @@ void TMoverParameters::LoadFIZ_Param( std::string const &line ) {
         auto lookup = categories.find( category );
         CategoryFlag = (
             lookup != categories.end() ?
-            lookup->second :
-            0 );
+                lookup->second :
+                0 );
         if( CategoryFlag == 0 ) {
             ErrorLog( "Unknown vehicle category: \"" + category + "\"." );
         }

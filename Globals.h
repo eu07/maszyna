@@ -25,6 +25,7 @@ struct global_settings {
     bool ctrlState{ false };
     bool altState{ false };
     std::mt19937 random_engine{ std::mt19937( static_cast<unsigned int>( std::time( NULL ) ) ) };
+    std::mt19937 local_random_engine{ std::mt19937( static_cast<unsigned int>( std::time( NULL ) ) ) };
     TDynamicObject *changeDynObj{ nullptr };// info o zmianie pojazdu
     TCamera pCamera; // parametry kamery
     TCamera pDebugCamera;
@@ -91,7 +92,6 @@ struct global_settings {
     // ui
     int PythonScreenUpdateRate { 200 }; // delay between python-based screen updates, in milliseconds
     int iTextMode{ 0 }; // tryb pracy wyświetlacza tekstowego
-    int iScreenMode[ 12 ] = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 }; // numer ekranu wyświetlacza tekstowego
     glm::vec4 UITextColor { glm::vec4( 225.f / 255.f, 225.f / 255.f, 225.f / 255.f, 1.f ) }; // base color of UI text
     float UIBgOpacity { 0.65f }; // opacity of ui windows
     std::string asLang{ "pl" }; // domyślny język - http://tools.ietf.org/html/bcp47
@@ -99,6 +99,7 @@ struct global_settings {
     int iWindowWidth{ 800 };
     int iWindowHeight{ 600 };
     float fDistanceFactor{ iWindowHeight / 768.f }; // baza do przeliczania odległości dla LoD
+    float targetfps { 0.0f };
     bool bFullScreen{ false };
     bool VSync{ false };
     bool bWireFrame{ false };
@@ -115,7 +116,7 @@ struct global_settings {
         float depth{ 250.f };
         float distance{ 500.f }; // no longer used
     } shadowtune;
-    int ReflectionUpdatesPerSecond{ static_cast<int>( 1000 / ( 1.0 / 300.0 ) ) };
+    double ReflectionUpdateInterval{ 300.0 };
     bool bUseVBO{ true }; // czy jest VBO w karcie graficznej (czy użyć)
     float AnisotropicFiltering{ 8.f }; // requested level of anisotropic filtering. TODO: move it to renderer object
     float FieldOfView{ 45.f }; // vertical field of view for the camera. TODO: move it to the renderer
@@ -175,6 +176,21 @@ struct global_settings {
     // other
     std::string AppName{ "EU07" };
     std::string asVersion{ "UNKNOWN" }; // z opisem
+    // TODO: move these to relevant areas
+    bool render_cab = true;
+    int gfx_framebuffer_width = -1;
+    int gfx_framebuffer_height = -1;
+    bool gfx_shadowmap_enabled = true;
+    bool gfx_envmap_enabled = true;
+    bool gfx_postfx_motionblur_enabled = true;
+    float gfx_postfx_motionblur_shutter = 0.01f;
+    GLenum gfx_postfx_motionblur_format = GL_RG16F;
+    GLenum gfx_format_color = GL_RGB16F;
+    GLenum gfx_format_depth = GL_DEPTH_COMPONENT32F;
+    bool gfx_skippipeline = false;
+    bool gfx_extraeffects = true;
+    bool gfx_shadergamma = false;
+    bool gfx_usegles = false;
 
 // methods
     void LoadIniFile( std::string asFileName );

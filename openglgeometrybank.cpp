@@ -162,14 +162,14 @@ opengl_vbogeometrybank::bind_streams( gfx::stream_units const &Units, unsigned i
     }
     // NOTE: normal and color streams share the data, making them effectively mutually exclusive
     if( Streams & gfx::stream::normal ) {
-        ::glNormalPointer( GL_FLOAT, sizeof( gfx::basic_vertex ), reinterpret_cast<void const *>( sizeof( float ) * 3 ) );
+        ::glNormalPointer( GL_FLOAT, sizeof( gfx::basic_vertex ), reinterpret_cast<void const *>( 12 ) );
         ::glEnableClientState( GL_NORMAL_ARRAY );
     }
     else {
         ::glDisableClientState( GL_NORMAL_ARRAY );
     }
     if( Streams & gfx::stream::color ) {
-        ::glColorPointer( 3, GL_FLOAT, sizeof( gfx::basic_vertex ), reinterpret_cast<void const *>( sizeof( float ) * 3 ) );
+        ::glColorPointer( 3, GL_FLOAT, sizeof( gfx::basic_vertex ), reinterpret_cast<void const *>( 12 ) );
         ::glEnableClientState( GL_COLOR_ARRAY );
     }
     else {

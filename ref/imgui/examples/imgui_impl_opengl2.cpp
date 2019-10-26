@@ -27,7 +27,7 @@
 //  2016-09-05: OpenGL: Fixed save and restore of current scissor rectangle.
 
 #include "stdafx.h"
-#define IMGUI_IMPL_OPENGL_LOADER_GLEW
+#define IMGUI_IMPL_OPENGL_LOADER_GLAD
 
 #include "imgui.h"
 #include "imgui_impl_opengl2.h"

@@ -585,11 +585,11 @@ void TTrack::Load(cParser *parser, glm::dvec3 const &pOrigin)
         else if (iCategoryFlag & 2)
             if (m_material1 && fTexLength)
             { // dla drogi trzeba ustalić proporcje boków nawierzchni
-                auto const &texture1 { GfxRenderer->Texture( GfxRenderer->Material( m_material1 ).texture1 ) };
+                auto const &texture1 { GfxRenderer->Texture( GfxRenderer->Material( m_material1 ).textures[0] ) };
                 if( texture1.height() > 0 ) {
                     fTexRatio1 = static_cast<float>( texture1.width() ) / static_cast<float>( texture1.height() ); // proporcja boków
                 }
-                auto const &texture2 { GfxRenderer->Texture( GfxRenderer->Material( m_material2 ).texture1 ) };
+                auto const &texture2 { GfxRenderer->Texture( GfxRenderer->Material( m_material2 ).textures[0] ) };
                 if( texture2.height() > 0 ) {
                     fTexRatio2 = static_cast<float>( texture2.width() ) / static_cast<float>( texture2.height() ); // proporcja boków
                 }

@@ -17,7 +17,6 @@ http://mozilla.org/MPL/2.0/.
 #include "Texture.h"
 
 #include <ddraw.h>
-#include "GL/glew.h"
 
 #include "application.h"
 #include "dictionary.h"
@@ -28,6 +27,9 @@ http://mozilla.org/MPL/2.0/.
 
 
 #define EU07_DEFERRED_TEXTURE_UPLOAD
+
+std::array<GLuint, gl::MAX_TEXTURES + 2> opengl_texture::units = { 0 };
+GLint opengl_texture::m_activeunit = -1;
 
 texture_manager::texture_manager() {
 
@@ -545,14 +547,54 @@ opengl_texture::load_TGA() {
 }
 
 bool
-opengl_texture::bind() {
+opengl_texture::bind(size_t unit) {
 
     if( ( false == is_ready )
      && ( false == create() ) ) {
         return false;
     }
-    ::glBindTexture( GL_TEXTURE_2D, id );
+
+    if (units[unit] == id)
+        return true;
+
+    if (GLAD_GL_ARB_direct_state_access)
+    {
+        glBindTextureUnit(unit, id);
+    }
+    else
+    {
+        if (unit != m_activeunit)
+        {
+            glActiveTexture(GL_TEXTURE0 + unit);
+            m_activeunit = unit;
+        }
+        glBindTexture(target, id);
+    }
+
+    units[unit] = id;
+
     return true;
+}
+
+void
+opengl_texture::unbind(size_t unit)
+{
+    if (GLAD_GL_ARB_direct_state_access)
+    {
+        glBindTextureUnit(unit, 0);
+    }
+    else
+    {
+        if (unit != m_activeunit)
+        {
+            glActiveTexture(GL_TEXTURE0 + unit);
+            m_activeunit = unit;
+        }
+        //todo: for other targets
+        glBindTexture(GL_TEXTURE_2D, 0);
+    }
+
+    units[unit] = 0;
 }
 
 bool
@@ -698,13 +740,45 @@ opengl_texture::release() {
 }
 
 void
+opengl_texture::alloc_rendertarget( GLint format, GLint components, int width, int height, int s, GLint wrap ) {
+
+    data_width = width;
+    data_height = height;
+    data_format = format;
+    data_components = components;
+    data_mapcount = 1;
+    is_rendertarget = true;
+    wrap_mode_s = wrap;
+    wrap_mode_t = wrap;
+    samples = s;
+    if( samples > 1 )
+        target = GL_TEXTURE_2D_MULTISAMPLE;
+    create();
+}
+
+void
+opengl_texture::set_components_hint( GLint hint ) {
+
+    components_hint = hint;
+}
+
+void
+opengl_texture::reset_unit_cache() {
+
+    for( auto &unit : units ) {
+        unit = 0;
+    }
+    m_activeunit = -1;
+}
+
+void
 opengl_texture::set_filtering() const {
 
     // default texture mode
     ::glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR );
     ::glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR );
 
-    if( GLEW_EXT_texture_filter_anisotropic ) {
+    if( GL_EXT_texture_filter_anisotropic ) {
         // anisotropic filtering
         ::glTexParameterf( GL_TEXTURE_2D, GL_TEXTURE_MAX_ANISOTROPY_EXT, Global.AnisotropicFiltering );
     }
@@ -793,7 +867,7 @@ texture_manager::unit( GLint const Textureunit ) {
 
 // ustalenie numeru tekstury, wczytanie jeśli jeszcze takiej nie było
 texture_handle
-texture_manager::create( std::string Filename, bool const Loadnow ) {
+texture_manager::create( std::string Filename, bool const Loadnow, GLint Formathint ) {
 
     if( Filename.find( '|' ) != std::string::npos )
         Filename.erase( Filename.find( '|' ) ); // po | może być nazwa kolejnej tekstury
@@ -866,6 +940,7 @@ texture_manager::create( std::string Filename, bool const Loadnow ) {
     texture->name = locator.first;
     texture->type = locator.second;
     texture->traits = traits;
+    texture->components_hint = Formathint;
     auto const textureindex = (texture_handle)m_textures.size();
     m_textures.emplace_back( texture, std::chrono::steady_clock::time_point() );
     m_texturemappings.emplace( locator.first, textureindex );
@@ -888,40 +963,18 @@ texture_manager::create( std::string Filename, bool const Loadnow ) {
 void
 texture_manager::bind( std::size_t const Unit, texture_handle const Texture ) {
 
-    m_textures[ Texture ].second = m_garbagecollector.timestamp();
-    if( m_units[ Unit ].unit == 0 ) {
-        // no texture unit, nothing to bind the texture to
-        return;
-    }
-    // even if we may skip texture binding make sure the relevant texture unit is activated
-    unit( m_units[ Unit ].unit );
-    if( Texture == m_units[ Unit ].texture ) {
-        // don't bind again what's already active
-        return;
-    }
-    // TBD, TODO: do binding in texture object, add support for other types than 2d
-    if( Texture != null_handle ) {
-#ifndef EU07_DEFERRED_TEXTURE_UPLOAD
-        // NOTE: we could bind dedicated 'error' texture here if the id isn't valid
-        ::glBindTexture( GL_TEXTURE_2D, texture(Texture).id );
-        m_units[ Unit ].texture = Texture;
-#else
-        if( true == texture( Texture ).bind() ) {
-            m_units[ Unit ].texture = Texture;
-        }
-        else {
-            // TODO: bind a special 'error' texture on failure
-            ::glBindTexture( GL_TEXTURE_2D, 0 );
-            m_units[ Unit ].texture = 0;
-        }
-#endif
-    }
-    else {
-        ::glBindTexture( GL_TEXTURE_2D, 0 );
-        m_units[ Unit ].texture = 0;
-    }
-    // all done
-    return;
+    if (Texture != null_handle)
+        mark_as_used(Texture).bind(Unit);
+    else
+        opengl_texture::unbind(Unit);
+}
+
+opengl_texture &
+texture_manager::mark_as_used(const texture_handle Texture) {
+
+    auto &pair = m_textures[ Texture ];
+    pair.second = m_garbagecollector.timestamp();
+    return *pair.first;
 }
 
 void

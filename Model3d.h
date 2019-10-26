@@ -12,8 +12,9 @@ http://mozilla.org/MPL/2.0/.
 #include "Classes.h"
 #include "dumb3d.h"
 #include "Float3d.h"
-#include "openglgeometrybank.h"
+#include "geometrybank.h"
 #include "material.h"
+#include "gl/query.h"
 
 // Ra: specjalne typy submodeli, poza tym GL_TRIANGLES itp.
 const int TP_ROTATOR = 256;
@@ -58,6 +59,7 @@ class TSubModel
     //m7todo: zrobić normalną serializację
 
     friend opengl_renderer;
+    friend opengl33_renderer;
     friend TModel3d; // temporary workaround. TODO: clean up class content/hierarchy
     friend TDynamicObject; // temporary etc
     friend scene::shape_node; // temporary etc
@@ -151,7 +153,8 @@ public: // chwilowo
 private:
 	int SeekFaceNormal( std::vector<unsigned int> const &Masks, int const Startface, unsigned int const Mask, glm::vec3 const &Position, gfx::vertex_array const &Vertices );
 	void RaAnimation(TAnimType a);
-    // returns true if the submodel is a smoke emitter attachment point, false otherwise
+  	void RaAnimation(glm::mat4 &m, TAnimType a);
+   // returns true if the submodel is a smoke emitter attachment point, false otherwise
     bool is_emitter() const;
 
 public:
@@ -217,6 +220,8 @@ public:
 		return m_material; }
 	void ParentMatrix(float4x4 *m) const;
 	float MaxY( float4x4 const &m );
+    std::optional<gl::query> occlusion_query;
+    glm::mat4 future_transform;
 
 	void deserialize(std::istream&);
 	void serialize(std::ostream&,
@@ -231,6 +236,7 @@ public:
 class TModel3d
 {
     friend opengl_renderer;
+    friend opengl33_renderer;
 
 private:
 	TSubModel *Root; // drzewo submodeli

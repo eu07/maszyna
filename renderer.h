@@ -40,18 +40,25 @@ public:
     virtual auto Fetch_Material( std::string const &Filename, bool const Loadnow = true ) -> material_handle = 0;
     virtual void Bind_Material( material_handle const Material ) = 0;
     virtual auto Material( material_handle const Material ) const -> opengl_material const & = 0;
+    // shader methods
+    virtual auto Fetch_Shader( std::string const &name ) -> std::shared_ptr<gl::program> = 0;
     // texture methods
-    virtual auto Fetch_Texture( std::string const &Filename, bool const Loadnow = true ) -> texture_handle = 0;
+    virtual auto Fetch_Texture( std::string const &Filename, bool const Loadnow = true, GLint format_hint = GL_SRGB_ALPHA ) -> texture_handle = 0;
     virtual void Bind_Texture( texture_handle const Texture ) = 0;
+    virtual void Bind_Texture( std::size_t const Unit, texture_handle const Texture ) = 0;
+    virtual auto Texture( texture_handle const Texture ) -> opengl_texture & = 0;
     virtual auto Texture( texture_handle const Texture ) const -> opengl_texture const & = 0;
     // utility methods
+    virtual void Pick_Control( std::function<void( TSubModel const * )> Callback ) = 0;
+    virtual void Pick_Node( std::function<void( scene::basic_node * )> Callback ) = 0;
     virtual auto Pick_Control() const -> TSubModel const * = 0;
     virtual auto Pick_Node() const -> scene::basic_node const * = 0;
+
     virtual auto Mouse_Position() const -> glm::dvec3 = 0;
     // maintenance methods
     virtual void Update( double const Deltatime ) = 0;
-    virtual auto Update_Pick_Control() -> TSubModel * = 0;
-    virtual auto Update_Pick_Node() -> scene::basic_node * = 0;
+    virtual void Update_Pick_Control() = 0;
+    virtual void Update_Pick_Node() = 0;
     virtual auto Update_Mouse_Position() -> glm::dvec3 = 0;
     // debug methods
     virtual auto info_times() const -> std::string const & = 0;

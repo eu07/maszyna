@@ -25,14 +25,12 @@ http://mozilla.org/MPL/2.0/.
 
 #ifdef EU07_BUILD_STATIC
 #pragma comment( lib, "glfw3.lib" )
-#pragma comment( lib, "glew32s.lib" )
 #else
 #ifdef _WIN32
 #pragma comment( lib, "glfw3dll.lib" )
 #else
 #pragma comment( lib, "glfw3.lib" )
 #endif
-#pragma comment( lib, "glew32.lib" )
 #endif // build_static
 #pragma comment( lib, "opengl32.lib" )
 #pragma comment( lib, "glu32.lib" )
@@ -125,10 +123,10 @@ eu07_application::init( int Argc, char *Argv[] ) {
     if( ( result = init_glfw() ) != 0 ) {
         return result;
     }
-    init_callbacks();
     if( ( result = init_gfx() ) != 0 ) {
         return result;
     }
+    init_callbacks();
     if( ( result = init_audio() ) != 0 ) {
         return result;
     }
@@ -255,6 +253,16 @@ eu07_application::set_cursor_pos( double const Horizontal, double const Vertical
     glfwSetCursorPos( m_windows.front(), Horizontal, Vertical );
 }
 
+glm::dvec2
+eu07_application::get_cursor_pos() const {
+
+    glm::dvec2 pos;
+    if( !m_windows.empty() ) {
+        glfwGetCursorPos( m_windows.front(), &pos.x, &pos.y );
+    }
+    return pos;
+}
+
 void
 eu07_application::get_cursor_pos( double &Horizontal, double &Vertical ) const {
 
@@ -320,10 +328,12 @@ eu07_application::init_debug() {
     // memory leaks
     _CrtSetDbgFlag( _CrtSetDbgFlag( _CRTDBG_REPORT_FLAG ) | _CRTDBG_LEAK_CHECK_DF );
     // floating point operation errors
+    /*
     auto state { _clearfp() };
     state = _control87( 0, 0 );
     // this will turn on FPE for #IND and zerodiv
     state = _control87( state & ~( _EM_ZERODIVIDE | _EM_INVALID ), _MCW_EM );
+    */
 #endif
 #ifdef _WIN32
     ::SetUnhandledExceptionFilter( unhandled_handler );
@@ -507,18 +517,38 @@ eu07_application::init_callbacks() {
 int
 eu07_application::init_gfx() {
 
-    if( glewInit() != GLEW_OK ) {
-        ErrorLog( "Bad init: failed to initialize glew" );
-        return -1;
+    if (Global.gfx_usegles)
+    {
+        if( 0 == gladLoadGLES2Loader( (GLADloadproc)glfwGetProcAddress ) ) {
+            ErrorLog( "Bad init: failed to initialize glad" );
+            return -1;
+        }
+    }
+    else
+    {
+        if( 0 == gladLoadGLLoader( (GLADloadproc)glfwGetProcAddress ) ) {
+            ErrorLog( "Bad init: failed to initialize glad" );
+            return -1;
+        }
     }
 
-    GfxRenderer = std::make_unique<opengl_renderer>();
-
-    if( ( false == GfxRenderer->Init( m_windows.front() ) )
-     || ( false == ui_layer::init( m_windows.front() ) ) ) {
-        return -1;
+    {
+        // legacy render path
+        GfxRenderer = std::make_unique<opengl_renderer>();
+        Global.DisabledLogTypes |= logtype::material;
     }
 
+    if( false == GfxRenderer->Init( m_windows.front() ) ) {
+        return -1;
+    }
+    if( false == ui_layer::init( m_windows.front() ) ) {
+        return -1;
+    }
+/*
+	for (const global_settings::extraviewport_config &conf : Global.extra_viewports)
+		if (!GfxRenderer.AddViewport(conf))
+			return -1;
+*/
     return 0;
 }
 

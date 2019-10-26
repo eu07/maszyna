@@ -66,31 +66,27 @@
 #include <mutex>
 #include <condition_variable>
 #include <typeinfo>
+#include <bitset>
+#include <chrono>
+#include <optional>
+#include <filesystem>
 
 #ifdef NDEBUG
 #define EU07_BUILD_STATIC
 #endif
 
-#ifdef EU07_BUILD_STATIC
-#define GLEW_STATIC
-#else
-#ifdef _WIN32
-#define GLFW_DLL
-#endif // _windows
-#endif // build_static
-#ifndef __ANDROID__
-#include "GL/glew.h"
-#else
-#include <GL/gl.h>
-#include <GL/glu.h>
-#endif
-#ifdef _WIN32
-#include "GL/wglew.h"
-#endif
-#define GLFW_INCLUDE_GLU
-//m7todo: jest tu bo nie chcia³o mi siê wpychaæ do wszystkich plików
-#ifndef __ANDROID__
+#include "glad/glad.h"
+
+#include "GL/glu.h"
+
+#define GLFW_INCLUDE_NONE
 #include <GLFW/glfw3.h>
+
+#ifndef GLFW_TRUE
+#define GLFW_FALSE 0
+#define GLFW_TRUE 1
+#define glfwGetKeyName(a, b) ("")
+#define glfwFocusWindow(w)
 #endif
 
 #define GLM_ENABLE_EXPERIMENTAL 
@@ -102,10 +98,14 @@
 #include <glm/gtc/epsilon.hpp>
 #include <glm/gtx/rotate_vector.hpp>
 #include <glm/gtx/norm.hpp>
+#include <glm/gtx/string_cast.hpp>
 
 int const null_handle = 0;
 
 #include "openglmatrixstack.h"
+#define STRINGIZE_DETAIL(x) #x
+#define STRINGIZE(x) STRINGIZE_DETAIL(x)
+#define glDebug(x) if (GLAD_GL_GREMEDY_string_marker) glStringMarkerGREMEDY(0, __FILE__ ":" STRINGIZE(__LINE__) ": " x);
 #include "openglcolor.h"
 
 // imgui.h comes with its own operator new which gets wrecked by dbg_new, so we temporarily disable the latter

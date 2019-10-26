@@ -110,6 +110,12 @@ double Random(double a, double b)
     return dis(Global.random_engine);
 }
 
+double LocalRandom(double a, double b)
+{
+	uint32_t val = Global.local_random_engine();
+	return interpolate(a, b, (double)val / Global.random_engine.max());
+}
+
 bool FuzzyLogic(double Test, double Threshold, double Probability)
 {
     if ((Test > Threshold) && (!DebugModeFlag))

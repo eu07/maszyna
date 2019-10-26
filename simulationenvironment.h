@@ -18,11 +18,13 @@ http://mozilla.org/MPL/2.0/.
 #include "sound.h"
 
 class opengl_renderer;
+class opengl33_renderer;
 
 // wrapper for environment elements -- sky, sun, stars, clouds etc
 class world_environment {
 
     friend opengl_renderer;
+    friend opengl33_renderer;
 
 public:
 // methods
@@ -43,6 +45,9 @@ public:
     inline auto &
         skydome() {
             return m_skydome; }
+    inline auto const &
+        precipitation() const {
+            return m_precipitation; }
     inline auto const &
         wind() const {
             return m_wind.vector; }

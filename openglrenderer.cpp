@@ -51,7 +51,7 @@ opengl_renderer::Init( GLFWwindow *Window ) {
             std::vector<GLint>{ m_normaltextureunit, m_diffusetextureunit } );
     m_textures.assign_units( m_helpertextureunit, m_shadowtextureunit, m_normaltextureunit, m_diffusetextureunit ); // TODO: add reflections unit
     ui_layer::set_unit( m_diffusetextureunit );
-    simulation::Environment.m_precipitation.set_unit( m_diffusetextureunit );
+    m_precipitationrenderer.set_unit( m_diffusetextureunit );
     select_unit( m_diffusetextureunit );
 
     ::glDepthFunc( GL_LEQUAL );
@@ -548,7 +548,7 @@ opengl_renderer::Render_pass( rendermode const Mode ) {
                 ::glPolygonOffset( 1.f, 1.f );
 
                 // main shadowmap
-                ::glBindFramebufferEXT( GL_FRAMEBUFFER, m_shadowframebuffer );
+                ::glBindFramebufferEXT( GL_FRAMEBUFFER_EXT, m_shadowframebuffer );
                 ::glViewport( 0, 0, m_shadowbuffersize, m_shadowbuffersize );
 
 #ifdef EU07_USE_DEBUG_SHADOWMAP
@@ -589,7 +589,7 @@ opengl_renderer::Render_pass( rendermode const Mode ) {
                 ::glEnable( GL_POLYGON_OFFSET_FILL ); // alleviate depth-fighting
                 ::glPolygonOffset( 1.f, 1.f );
 
-                ::glBindFramebufferEXT( GL_FRAMEBUFFER, m_cabshadowframebuffer );
+                ::glBindFramebufferEXT( GL_FRAMEBUFFER_EXT, m_cabshadowframebuffer );
                 ::glViewport( 0, 0, m_shadowbuffersize / 2, m_shadowbuffersize / 2 );
 
 #ifdef EU07_USE_DEBUG_CABSHADOWMAP
@@ -719,10 +719,10 @@ opengl_renderer::Render_pass( rendermode const Mode ) {
 bool
 opengl_renderer::Render_reflections() {
 
-    if( Global.ReflectionUpdatesPerSecond == 0 ) { return false; }
+    if( Global.ReflectionUpdateInterval == 0 ) { return false; }
 
-    auto const timestamp { static_cast<int>( Timer::GetTime() * 1000 ) };
-    if( ( timestamp - m_environmentupdatetime < Global.ReflectionUpdatesPerSecond )
+    auto const timestamp { Timer::GetTime() };
+    if( ( timestamp - m_environmentupdatetime < Global.ReflectionUpdateInterval )
      && ( glm::length( m_renderpass.camera.position() - m_environmentupdatelocation ) < 1000.0 ) ) {
         // run update every 5+ mins of simulation time, or at least 1km from the last location
         return false;
@@ -736,7 +736,7 @@ opengl_renderer::Render_reflections() {
          m_environmentcubetextureface < GL_TEXTURE_CUBE_MAP_POSITIVE_X + 6;
        ++m_environmentcubetextureface ) {
 
-        ::glFramebufferTexture2DEXT( GL_FRAMEBUFFER_EXT, GL_COLOR_ATTACHMENT0, m_environmentcubetextureface, m_environmentcubetexture, 0 );
+        ::glFramebufferTexture2DEXT( GL_FRAMEBUFFER_EXT, GL_COLOR_ATTACHMENT0_EXT, m_environmentcubetextureface, m_environmentcubetexture, 0 );
         Render_pass( rendermode::reflections );
     }
     ::glBindFramebufferEXT( GL_FRAMEBUFFER_EXT, 0 );
@@ -1567,15 +1567,22 @@ opengl_renderer::Bind_Material( material_handle const Material ) {
 
     auto const &material = m_materials.material( Material );
     if( false == Global.BasicRenderer ) {
-        m_textures.bind( textureunit::normals, material.texture2 );
+        m_textures.bind( textureunit::normals, material.textures[1] );
     }
-    m_textures.bind( textureunit::diffuse, material.texture1 );
+    m_textures.bind( textureunit::diffuse, material.textures[0] );
 }
 
 opengl_material const &
 opengl_renderer::Material( material_handle const Material ) const {
 
     return m_materials.material( Material );
+}
+
+// shader methods
+std::shared_ptr<gl::program>
+opengl_renderer::Fetch_Shader( std::string const &name ) {
+
+    return std::shared_ptr<gl::program>();
 }
 
 // texture methods
@@ -1586,7 +1593,7 @@ opengl_renderer::select_unit( GLint const Textureunit ) {
 }
 
 texture_handle
-opengl_renderer::Fetch_Texture( std::string const &Filename, bool const Loadnow ) {
+opengl_renderer::Fetch_Texture( std::string const &Filename, bool const Loadnow, GLint format_hint ) {
 
     return m_textures.create( Filename, Loadnow );
 }
@@ -1597,10 +1604,34 @@ opengl_renderer::Bind_Texture( texture_handle const Texture ) {
     m_textures.bind( textureunit::diffuse, Texture );
 }
 
+void
+opengl_renderer::Bind_Texture( std::size_t const Unit, texture_handle const Texture ) {
+
+    m_textures.bind( Unit, Texture );
+}
+
+opengl_texture &
+opengl_renderer::Texture( texture_handle const Texture ) {
+
+    return m_textures.texture( Texture );
+}
+
 opengl_texture const &
 opengl_renderer::Texture( texture_handle const Texture ) const {
 
     return m_textures.texture( Texture );
+}
+
+void
+opengl_renderer::Pick_Control( std::function<void( TSubModel const * )> Callback ) {
+
+    m_control_pick_requests.emplace_back( Callback );
+}
+
+void
+opengl_renderer::Pick_Node( std::function<void( scene::basic_node * )> Callback ) {
+
+    m_node_pick_requests.emplace_back( Callback );
 }
 
 void
@@ -3012,7 +3043,7 @@ opengl_renderer::Render_precipitation() {
     // momentarily disable depth write, to allow vehicle cab drawn afterwards to mask it instead of leaving it 'inside'
     ::glDepthMask( GL_FALSE );
 
-    simulation::Environment.m_precipitation.render();
+    m_precipitationrenderer.render();
     if( Global.bUseVBO ) {
         gfx::opengl_vbogeometrybank::reset();
     }
@@ -3646,7 +3677,7 @@ opengl_renderer::Render_Alpha( TSubModel *Submodel ) {
 
 
 // utility methods
-TSubModel *
+void
 opengl_renderer::Update_Pick_Control() {
 
 #ifdef EU07_USE_PICKING_FRAMEBUFFER
@@ -3690,10 +3721,14 @@ opengl_renderer::Update_Pick_Control() {
     }
 #endif
     m_pickcontrolitem = control;
-    return control;
+//    return control;
+    for( auto callback : m_control_pick_requests ) {
+        callback( m_pickcontrolitem );
+    }
+    m_control_pick_requests.clear();
 }
 
-scene::basic_node *
+void
 opengl_renderer::Update_Pick_Node() {
 
 #ifdef EU07_USE_PICKING_FRAMEBUFFER
@@ -3739,7 +3774,11 @@ opengl_renderer::Update_Pick_Node() {
     }
 #endif
     m_picksceneryitem = node;
-    return node;
+//    return node;
+    for( auto callback : m_node_pick_requests ) {
+        callback( m_picksceneryitem );
+    }
+    m_node_pick_requests.clear();
 }
 
 // converts provided screen coordinates to world coordinates of most recent color pass
@@ -3775,6 +3814,7 @@ opengl_renderer::Update( double const Deltatime ) {
         renderpass_config renderpass;
         setup_pass( renderpass, rendermode::color );
         m_skydomerenderer.update();
+        m_precipitationrenderer.update();
         m_particlerenderer.update( renderpass.camera );
     }
 
@@ -3805,6 +3845,30 @@ opengl_renderer::Update( double const Deltatime ) {
     }
 */
     m_updateaccumulator += Deltatime;
+
+    if( ( true  == Global.ControlPicking )
+     && ( false == FreeFlyModeFlag ) ) {
+        if( ( false == m_control_pick_requests.empty() )
+         || ( m_updateaccumulator >= 1.0 ) ) {
+            Update_Pick_Control();
+        }
+    }
+    else {
+        m_pickcontrolitem = nullptr;
+    }
+    // temporary conditions for testing. eventually will be coupled with editor mode
+    if( ( true == Global.ControlPicking )
+     && ( true == FreeFlyModeFlag )
+     && ( ( true == DebugModeFlag )
+       || ( true == EditorModeFlag ) ) ) {
+        if( ( false == m_control_pick_requests.empty() )
+         || ( m_updateaccumulator >= 1.0 ) ) {
+            Update_Pick_Node();
+        }
+    }
+    else {
+        m_picksceneryitem = nullptr;
+    }
 
     if( m_updateaccumulator < 1.0 ) {
         // too early for any work
@@ -3856,22 +3920,6 @@ opengl_renderer::Update( double const Deltatime ) {
         m_debugtimestext += m_textures.info();
     }
 
-    if( ( true  == Global.ControlPicking )
-     && ( false == FreeFlyModeFlag ) ) {
-        Update_Pick_Control();
-    }
-    else {
-        m_pickcontrolitem = nullptr;
-    }
-    // temporary conditions for testing. eventually will be coupled with editor mode
-    if( ( true == Global.ControlPicking )
-     && ( true == DebugModeFlag ) 
-     && ( true == FreeFlyModeFlag ) ) {
-        Update_Pick_Node();
-    }
-    else {
-        m_picksceneryitem = nullptr;
-    }
     // dump last opengl error, if any
     auto const glerror = ::glGetError();
     if( glerror != GL_NO_ERROR ) {
@@ -3984,12 +4032,12 @@ opengl_renderer::Init_caps() {
         + " OpenGL Version: " + oglversion );
 
 #ifdef EU07_USEIMGUIIMPLOPENGL2
-    if( !GLEW_VERSION_1_5 ) {
+    if( !GLAD_GL_VERSION_1_5 ) {
         ErrorLog( "Requires openGL >= 1.5" );
         return false;
     }
 #else
-    if( !GLEW_VERSION_3_0 ) {
+    if( !GLAD_GL_VERSION_3_0 ) {
         ErrorLog( "Requires openGL >= 3.0" );
         return false;
     }
@@ -3998,7 +4046,7 @@ opengl_renderer::Init_caps() {
     WriteLog( "Supported extensions: " +  std::string((char *)glGetString( GL_EXTENSIONS )) );
 
     WriteLog( std::string("Render path: ") + ( Global.bUseVBO ? "VBO" : "Display lists" ) );
-    if( GLEW_EXT_framebuffer_object ) {
+    if( GL_EXT_framebuffer_object ) {
         m_framebuffersupport = true;
         WriteLog( "Framebuffer objects enabled" );
     }

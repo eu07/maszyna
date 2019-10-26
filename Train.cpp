@@ -7558,7 +7558,7 @@ bool TTrain::InitializeCab(int NewCabNo, std::string const &asFileName)
                     ( substr_path(renderername).empty() ? // supply vehicle folder as path if none is provided
                         DynamicObject->asBaseDir + renderername :
                         renderername ),
-                    GfxRenderer->Material( material ).texture1 );
+                    GfxRenderer->Material( material ).textures[0] );
             }
             // btLampkaUnknown.Init("unknown",mdKabina,false);
         } while (token != "");

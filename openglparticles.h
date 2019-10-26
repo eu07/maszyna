@@ -9,8 +9,6 @@ http://mozilla.org/MPL/2.0/.
 
 #pragma once
 
-#include "GL/glew.h"
-
 class opengl_camera;
 
 // particle data visualizer
