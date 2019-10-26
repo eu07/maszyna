@@ -1,0 +1,413 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" ToolsVersion="15.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="Debug|Win32">
+      <Configuration>Debug</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Debug|x64">
+      <Configuration>Debug</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|Win32">
+      <Configuration>Release</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|x64">
+      <Configuration>Release</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+  <PropertyGroup Label="Globals">
+    <ProjectGuid>{8E0232E5-1C67-442F-9E04-45ED2DDFC960}</ProjectGuid>
+    <Keyword>Win32Proj</Keyword>
+    <WindowsTargetPlatformVersion>10.0.17763.0</WindowsTargetPlatformVersion>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <UseDebugLibraries>true</UseDebugLibraries>
+    <PlatformToolset>v141_xp</PlatformToolset>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <UseDebugLibraries>true</UseDebugLibraries>
+    <PlatformToolset>v141</PlatformToolset>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <UseDebugLibraries>false</UseDebugLibraries>
+    <PlatformToolset>v141_xp</PlatformToolset>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <UseDebugLibraries>false</UseDebugLibraries>
+    <PlatformToolset>v141</PlatformToolset>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <ImportGroup Label="ExtensionSettings">
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <PropertyGroup Label="UserMacros" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <TargetName>eu07-$(PlatformShortName)</TargetName>
+    <IntDir>$(SolutionDir)tmp\$(PlatformShortName)-$(Configuration)\$(ProjectName)\</IntDir>
+    <OutDir>$(SolutionDir)bin\</OutDir>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <TargetName>eu07-$(PlatformShortName)</TargetName>
+    <OutDir>$(SolutionDir)bin\</OutDir>
+    <IntDir>$(SolutionDir)tmp\$(PlatformShortName)-$(Configuration)\$(ProjectName)\</IntDir>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <LinkIncremental>false</LinkIncremental>
+    <OutDir>$(SolutionDir)bin\</OutDir>
+    <IntDir>$(SolutionDir)tmp\$(PlatformShortName)-$(Configuration)\$(ProjectName)\</IntDir>
+    <TargetName>eu07-$(PlatformShortName)</TargetName>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <TargetName>eu07-$(PlatformShortName)</TargetName>
+    <LinkIncremental>false</LinkIncremental>
+    <OutDir>$(SolutionDir)bin\</OutDir>
+    <IntDir>$(SolutionDir)tmp\$(PlatformShortName)-$(Configuration)\$(ProjectName)\</IntDir>
+  </PropertyGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <ClCompile>
+      <PreprocessorDefinitions>WIN32;_DEBUG;_WINDOWS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <WarningLevel>Level3</WarningLevel>
+      <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
+      <AdditionalIncludeDirectories>$(SolutionDir);$(SolutionDir)console;$(SolutionDir)mczapkie;$(SolutionDir)ref/glew/include;$(SolutionDir)ref/glfw/include;$(SolutionDir)ref/glm;$(SolutionDir)ref/openal/include;$(SolutionDir)ref/dr_libs/include;$(SolutionDir)ref/imgui;$(SolutionDir)ref/imgui/examples;$(SolutionDir)ref/python/include;$(SolutionDir)ref/libserialport/include;$(SolutionDir)ref/stb;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PrecompiledHeader>Use</PrecompiledHeader>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
+      <MinimalRebuild>false</MinimalRebuild>
+      <FloatingPointExceptions>true</FloatingPointExceptions>
+      <EnforceTypeConversionRules>true</EnforceTypeConversionRules>
+      <LanguageStandard>stdcpp17</LanguageStandard>
+    </ClCompile>
+    <Link>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <AdditionalLibraryDirectories>$(DXSKD_DIR)lib/$(PlatformShortName);$(SolutionDir)ref/glew/lib/msvc-$(MSBuildToolsVersion)/$(PlatformShortName);$(SolutionDir)ref/glfw/lib/msvc-$(MSBuildToolsVersion)/$(PlatformShortName);$(SolutionDir)ref/openal/lib/$(PlatformShortName);$(SolutionDir)ref/python/lib/$(PlatformShortName);$(SolutionDir)ref/libserialport/lib/$(PlatformShortName);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <SubSystem>Windows</SubSystem>
+      <IgnoreSpecificDefaultLibraries>
+      </IgnoreSpecificDefaultLibraries>
+      <LargeAddressAware>true</LargeAddressAware>
+    </Link>
+    <Bscmake />
+    <Bscmake />
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <ClCompile>
+      <PreprocessorDefinitions>WIN32;_DEBUG;_WINDOWS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <WarningLevel>Level3</WarningLevel>
+      <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
+      <AdditionalIncludeDirectories>$(SolutionDir);$(SolutionDir)console;$(SolutionDir)mczapkie;$(SolutionDir)ref/glew/include;$(SolutionDir)ref/glfw/include;$(SolutionDir)ref/glm;$(SolutionDir)ref/openal/include;$(SolutionDir)ref/dr_libs/include;$(SolutionDir)ref/imgui;$(SolutionDir)ref/imgui/examples;$(SolutionDir)ref/python/include;$(SolutionDir)ref/libserialport/include;$(SolutionDir)ref/stb;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PrecompiledHeader>Use</PrecompiledHeader>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
+      <MinimalRebuild>false</MinimalRebuild>
+      <EnforceTypeConversionRules>true</EnforceTypeConversionRules>
+      <LanguageStandard>stdcpp17</LanguageStandard>
+    </ClCompile>
+    <Link>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <AdditionalLibraryDirectories>$(DXSKD_DIR)lib/$(PlatformShortName);$(SolutionDir)ref/glew/lib/msvc-$(MSBuildToolsVersion)/$(PlatformShortName);$(SolutionDir)ref/glfw/lib/msvc-$(MSBuildToolsVersion)/$(PlatformShortName);$(SolutionDir)ref/openal/lib/$(PlatformShortName);$(SolutionDir)ref/python/lib/$(PlatformShortName);$(SolutionDir)ref/libserialport/lib/$(PlatformShortName);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <SubSystem>Windows</SubSystem>
+      <IgnoreSpecificDefaultLibraries>
+      </IgnoreSpecificDefaultLibraries>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <ClCompile>
+      <PreprocessorDefinitions>WIN32;NDEBUG;_WINDOWS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
+      <WarningLevel>Level3</WarningLevel>
+      <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
+      <AdditionalIncludeDirectories>$(SolutionDir);$(SolutionDir)console;$(SolutionDir)mczapkie;$(SolutionDir)ref/glew/include;$(SolutionDir)ref/glfw/include;$(SolutionDir)ref/glm;$(SolutionDir)ref/openal/include;$(SolutionDir)ref/dr_libs/include;$(SolutionDir)ref/imgui;$(SolutionDir)ref/imgui/examples;$(SolutionDir)ref/python/include;$(SolutionDir)ref/libserialport/include;$(SolutionDir)ref/stb;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PrecompiledHeader>Use</PrecompiledHeader>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
+      <WholeProgramOptimization>true</WholeProgramOptimization>
+      <EnforceTypeConversionRules>true</EnforceTypeConversionRules>
+      <LanguageStandard>stdcpp17</LanguageStandard>
+    </ClCompile>
+    <Link>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <EnableCOMDATFolding>true</EnableCOMDATFolding>
+      <OptimizeReferences>true</OptimizeReferences>
+      <AdditionalLibraryDirectories>$(DXSKD_DIR)lib/$(PlatformShortName);$(SolutionDir)ref/glew/lib/msvc-$(MSBuildToolsVersion)/$(PlatformShortName);$(SolutionDir)ref/glfw/lib/msvc-$(MSBuildToolsVersion)/$(PlatformShortName);$(SolutionDir)ref/openal/lib/$(PlatformShortName);$(SolutionDir)ref/python/lib/$(PlatformShortName);$(SolutionDir)ref/libserialport/lib/$(PlatformShortName);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <SubSystem>Windows</SubSystem>
+      <IgnoreSpecificDefaultLibraries>libcmt.lib</IgnoreSpecificDefaultLibraries>
+      <LargeAddressAware>true</LargeAddressAware>
+      <LinkTimeCodeGeneration>UseLinkTimeCodeGeneration</LinkTimeCodeGeneration>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <ClCompile>
+      <PreprocessorDefinitions>WIN32;NDEBUG;_WINDOWS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
+      <WarningLevel>Level3</WarningLevel>
+      <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
+      <AdditionalIncludeDirectories>$(SolutionDir);$(SolutionDir)console;$(SolutionDir)mczapkie;$(SolutionDir)ref/glew/include;$(SolutionDir)ref/glfw/include;$(SolutionDir)ref/glm;$(SolutionDir)ref/openal/include;$(SolutionDir)ref/dr_libs/include;$(SolutionDir)ref/imgui;$(SolutionDir)ref/imgui/examples;$(SolutionDir)ref/python/include;$(SolutionDir)ref/libserialport/include;$(SolutionDir)ref/stb;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PrecompiledHeader>Use</PrecompiledHeader>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
+      <WholeProgramOptimization>true</WholeProgramOptimization>
+      <EnforceTypeConversionRules>true</EnforceTypeConversionRules>
+      <FloatingPointExceptions>true</FloatingPointExceptions>
+      <LanguageStandard>stdcpp17</LanguageStandard>
+    </ClCompile>
+    <Link>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <EnableCOMDATFolding>true</EnableCOMDATFolding>
+      <OptimizeReferences>true</OptimizeReferences>
+      <AdditionalLibraryDirectories>$(DXSKD_DIR)lib/$(PlatformShortName);$(SolutionDir)ref/glew/lib/msvc-$(MSBuildToolsVersion)/$(PlatformShortName);$(SolutionDir)ref/glfw/lib/msvc-$(MSBuildToolsVersion)/$(PlatformShortName);$(SolutionDir)ref/openal/lib/$(PlatformShortName);$(SolutionDir)ref/python/lib/$(PlatformShortName);$(SolutionDir)ref/libserialport/lib/$(PlatformShortName);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <SubSystem>Windows</SubSystem>
+      <IgnoreSpecificDefaultLibraries>libcmt.lib</IgnoreSpecificDefaultLibraries>
+      <LinkTimeCodeGeneration>UseLinkTimeCodeGeneration</LinkTimeCodeGeneration>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemGroup>
+    <ClCompile Include="AirCoupler.cpp" />
+    <ClCompile Include="AnimModel.cpp" />
+    <ClCompile Include="application.cpp" />
+    <ClCompile Include="audio.cpp" />
+    <ClCompile Include="audiorenderer.cpp" />
+    <ClCompile Include="Button.cpp" />
+    <ClCompile Include="Camera.cpp" />
+    <ClCompile Include="command.cpp" />
+    <ClCompile Include="Console.cpp" />
+    <ClCompile Include="console\LPT.cpp" />
+    <ClCompile Include="console\PoKeys55.cpp" />
+    <ClCompile Include="dictionary.cpp" />
+    <ClCompile Include="Driver.cpp" />
+    <ClCompile Include="drivermode.cpp" />
+    <ClCompile Include="driveruilayer.cpp" />
+    <ClCompile Include="driveruipanels.cpp" />
+    <ClCompile Include="dumb3d.cpp" />
+    <ClCompile Include="DynObj.cpp" />
+    <ClCompile Include="editorkeyboardinput.cpp" />
+    <ClCompile Include="editormode.cpp" />
+    <ClCompile Include="editormouseinput.cpp" />
+    <ClCompile Include="editoruilayer.cpp" />
+    <ClCompile Include="editoruipanels.cpp" />
+    <ClCompile Include="eu07.cpp" />
+    <ClCompile Include="Event.cpp" />
+    <ClCompile Include="EvLaunch.cpp" />
+    <ClCompile Include="Float3d.cpp" />
+    <ClCompile Include="frustum.cpp" />
+    <ClCompile Include="gamepadinput.cpp" />
+    <ClCompile Include="Gauge.cpp" />
+    <ClCompile Include="geometrybank.cpp" />
+    <ClCompile Include="Globals.cpp" />
+    <ClCompile Include="driverkeyboardinput.cpp" />
+    <ClCompile Include="keyboardinput.cpp" />
+    <ClCompile Include="lightarray.cpp" />
+    <ClCompile Include="Logs.cpp" />
+    <ClCompile Include="material.cpp" />
+    <ClCompile Include="mczapkie\friction.cpp" />
+    <ClCompile Include="mczapkie\hamulce.cpp" />
+    <ClCompile Include="mczapkie\Mover.cpp" />
+    <ClCompile Include="mczapkie\Oerlikon_ESt.cpp" />
+    <ClCompile Include="MdlMngr.cpp" />
+    <ClCompile Include="MemCell.cpp" />
+    <ClCompile Include="messaging.cpp" />
+    <ClCompile Include="Model3d.cpp" />
+    <ClCompile Include="moon.cpp" />
+    <ClCompile Include="drivermouseinput.cpp" />
+    <ClCompile Include="mtable.cpp" />
+    <ClCompile Include="Names.cpp" />
+    <ClCompile Include="openglcamera.cpp" />
+    <ClCompile Include="openglcolor.cpp" />
+    <ClCompile Include="openglgeometrybank.cpp" />
+    <ClCompile Include="opengllight.cpp" />
+    <ClCompile Include="openglmatrixstack.cpp" />
+    <ClCompile Include="openglparticles.cpp" />
+    <ClCompile Include="openglrenderer.cpp" />
+    <ClCompile Include="openglskydome.cpp" />
+    <ClCompile Include="parser.cpp" />
+    <ClCompile Include="particles.cpp" />
+    <ClCompile Include="precipitation.cpp" />
+    <ClCompile Include="PyInt.cpp" />
+    <ClCompile Include="ref\imgui\examples\imgui_impl_glfw.cpp" />
+    <ClCompile Include="ref\imgui\examples\imgui_impl_opengl2.cpp" />
+    <ClCompile Include="ref\imgui\examples\imgui_impl_opengl3.cpp" />
+    <ClCompile Include="ref\imgui\imgui.cpp" />
+    <ClCompile Include="ref\imgui\imgui_draw.cpp" />
+    <ClCompile Include="ref\imgui\imgui_widgets.cpp" />
+    <ClCompile Include="ref\stb\stb_vorbis.c">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">NotUsing</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">NotUsing</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="renderer.cpp" />
+    <ClCompile Include="ResourceManager.cpp" />
+    <ClCompile Include="scenarioloadermode.cpp" />
+    <ClCompile Include="scenenodegroups.cpp" />
+    <ClCompile Include="simulationenvironment.cpp" />
+    <ClCompile Include="simulationstateserializer.cpp" />
+    <ClCompile Include="scene.cpp" />
+    <ClCompile Include="sceneeditor.cpp" />
+    <ClCompile Include="scenenode.cpp" />
+    <ClCompile Include="Segment.cpp" />
+    <ClCompile Include="simulation.cpp" />
+    <ClCompile Include="simulationtime.cpp" />
+    <ClCompile Include="sky.cpp" />
+    <ClCompile Include="skydome.cpp" />
+    <ClCompile Include="sn_utils.cpp" />
+    <ClCompile Include="sound.cpp" />
+    <ClCompile Include="Spring.cpp" />
+    <ClCompile Include="stars.cpp" />
+    <ClCompile Include="station.cpp" />
+    <ClCompile Include="stdafx.cpp">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Create</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Create</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Create</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Create</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="sun.cpp" />
+    <ClCompile Include="Texture.cpp" />
+    <ClCompile Include="Timer.cpp" />
+    <ClCompile Include="Track.cpp" />
+    <ClCompile Include="Traction.cpp" />
+    <ClCompile Include="TractionPower.cpp" />
+    <ClCompile Include="Train.cpp" />
+    <ClCompile Include="translation.cpp" />
+    <ClCompile Include="TrkFoll.cpp" />
+    <ClCompile Include="uart.cpp" />
+    <ClCompile Include="uilayer.cpp" />
+    <ClCompile Include="uitranscripts.cpp" />
+    <ClCompile Include="utilities.cpp" />
+    <ClCompile Include="vertex.cpp" />
+    <ClCompile Include="windows.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="AirCoupler.h" />
+    <ClInclude Include="AnimModel.h" />
+    <ClInclude Include="application.h" />
+    <ClInclude Include="applicationmode.h" />
+    <ClInclude Include="audio.h" />
+    <ClInclude Include="audiorenderer.h" />
+    <ClInclude Include="Button.h" />
+    <ClInclude Include="Camera.h" />
+    <ClInclude Include="Classes.h" />
+    <ClInclude Include="color.h" />
+    <ClInclude Include="command.h" />
+    <ClInclude Include="Console.h" />
+    <ClInclude Include="Console\LPT.h" />
+    <ClInclude Include="Console\PoKeys55.h" />
+    <ClInclude Include="dictionary.h" />
+    <ClInclude Include="Driver.h" />
+    <ClInclude Include="drivermode.h" />
+    <ClInclude Include="driveruilayer.h" />
+    <ClInclude Include="driveruipanels.h" />
+    <ClInclude Include="dumb3d.h" />
+    <ClInclude Include="DynObj.h" />
+    <ClInclude Include="editorkeyboardinput.h" />
+    <ClInclude Include="editormode.h" />
+    <ClInclude Include="editormouseinput.h" />
+    <ClInclude Include="editoruilayer.h" />
+    <ClInclude Include="editoruipanels.h" />
+    <ClInclude Include="Event.h" />
+    <ClInclude Include="EvLaunch.h" />
+    <ClInclude Include="Float3d.h" />
+    <ClInclude Include="frustum.h" />
+    <ClInclude Include="gamepadinput.h" />
+    <ClInclude Include="Gauge.h" />
+    <ClInclude Include="geometrybank.h" />
+    <ClInclude Include="Globals.h" />
+    <ClInclude Include="driverkeyboardinput.h" />
+    <ClInclude Include="keyboardinput.h" />
+    <ClInclude Include="light.h" />
+    <ClInclude Include="lightarray.h" />
+    <ClInclude Include="Logs.h" />
+    <ClInclude Include="material.h" />
+    <ClInclude Include="McZapkie\friction.h" />
+    <ClInclude Include="McZapkie\hamulce.h" />
+    <ClInclude Include="McZapkie\mover.h" />
+    <ClInclude Include="McZapkie\Oerlikon_ESt.h" />
+    <ClInclude Include="MdlMngr.h" />
+    <ClInclude Include="MemCell.h" />
+    <ClInclude Include="messaging.h" />
+    <ClInclude Include="Model3d.h" />
+    <ClInclude Include="moon.h" />
+    <ClInclude Include="drivermouseinput.h" />
+    <ClInclude Include="mtable.h" />
+    <ClInclude Include="Names.h" />
+    <ClInclude Include="opengl33light.h" />
+    <ClInclude Include="opengl33particles.h" />
+    <ClInclude Include="opengl33precipitation.h" />
+    <ClInclude Include="opengl33renderer.h" />
+    <ClInclude Include="openglcamera.h" />
+    <ClInclude Include="openglcolor.h" />
+    <ClInclude Include="openglgeometrybank.h" />
+    <ClInclude Include="opengllight.h" />
+    <ClInclude Include="openglmatrixstack.h" />
+    <ClInclude Include="openglparticles.h" />
+    <ClInclude Include="openglprecipitation.h" />
+    <ClInclude Include="openglrenderer.h" />
+    <ClInclude Include="openglskydome.h" />
+    <ClInclude Include="parser.h" />
+    <ClInclude Include="particles.h" />
+    <ClInclude Include="precipitation.h" />
+    <ClInclude Include="PyInt.h" />
+    <ClInclude Include="renderer.h" />
+    <ClInclude Include="resource.h" />
+    <ClInclude Include="ResourceManager.h" />
+    <ClInclude Include="scenarioloadermode.h" />
+    <ClInclude Include="scenarioloaderuilayer.h" />
+    <ClInclude Include="scenenodegroups.h" />
+    <ClInclude Include="simulationenvironment.h" />
+    <ClInclude Include="simulationstateserializer.h" />
+    <ClInclude Include="scene.h" />
+    <ClInclude Include="sceneeditor.h" />
+    <ClInclude Include="scenenode.h" />
+    <ClInclude Include="Segment.h" />
+    <ClInclude Include="simulation.h" />
+    <ClInclude Include="simulationtime.h" />
+    <ClInclude Include="sky.h" />
+    <ClInclude Include="skydome.h" />
+    <ClInclude Include="sn_utils.h" />
+    <ClInclude Include="sound.h" />
+    <ClInclude Include="Spring.h" />
+    <ClInclude Include="stars.h" />
+    <ClInclude Include="station.h" />
+    <ClInclude Include="stdafx.h" />
+    <ClInclude Include="sun.h" />
+    <ClInclude Include="targetver.h" />
+    <ClInclude Include="Texture.h" />
+    <ClInclude Include="Timer.h" />
+    <ClInclude Include="Track.h" />
+    <ClInclude Include="Traction.h" />
+    <ClInclude Include="TractionPower.h" />
+    <ClInclude Include="Train.h" />
+    <ClInclude Include="translation.h" />
+    <ClInclude Include="TrkFoll.h" />
+    <ClInclude Include="uart.h" />
+    <ClInclude Include="uilayer.h" />
+    <ClInclude Include="uitranscripts.h" />
+    <ClInclude Include="utilities.h" />
+    <ClInclude Include="version.h" />
+    <ClInclude Include="vertex.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <ResourceCompile Include="maszyna.rc">
+      <PreprocessorDefinitions Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">TARGETMACHINEX86;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">TARGETMACHINEX86;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+    </ResourceCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <Image Include="eu07.ico" />
+  </ItemGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+  <ImportGroup Label="ExtensionTargets">
+  </ImportGroup>
+</Project>

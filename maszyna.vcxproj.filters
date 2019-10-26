@@ -58,12 +58,18 @@
     <Filter Include="Header Files\math">
       <UniqueIdentifier>{77356e25-abc5-4f1c-9caf-6cf554a65770}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Source Files\gfx">
+      <UniqueIdentifier>{8b47594a-f06a-4c9b-9aef-70f6ec24a288}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\gfx\gl">
+      <UniqueIdentifier>{b8dcf22f-cddb-4d1f-a2fa-8c54e5da4a39}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\math">
+      <UniqueIdentifier>{dd00198e-a316-4bcc-a4d3-916c8dcfe08f}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="AirCoupler.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="AnimModel.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="Button.cpp">
@@ -78,9 +84,6 @@
     <ClCompile Include="Driver.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="dumb3d.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="DynObj.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -88,9 +91,6 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="EvLaunch.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="Float3d.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="Gauge.cpp">
@@ -102,13 +102,7 @@
     <ClCompile Include="Logs.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="MdlMngr.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="MemCell.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="Model3d.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="mtable.cpp">
@@ -126,13 +120,7 @@
     <ClCompile Include="Segment.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="sky.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="Spring.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="Texture.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="Timer.cpp">
@@ -174,13 +162,7 @@
     <ClCompile Include="sun.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="renderer.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="skydome.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="stars.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="lightarray.cpp">
@@ -192,13 +174,7 @@
     <ClCompile Include="sn_utils.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="frustum.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="uilayer.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="openglmatrixstack.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="moon.cpp">
@@ -207,13 +183,7 @@
     <ClCompile Include="command.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="openglgeometrybank.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="translation.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="material.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="scene.cpp">
@@ -336,9 +306,6 @@
     <ClCompile Include="precipitation.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="openglcolor.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="ref\imgui\examples\imgui_impl_opengl2.cpp">
       <Filter>Source Files\imgui</Filter>
     </ClCompile>
@@ -351,23 +318,65 @@
     <ClCompile Include="particles.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="dumb3d.cpp">
+      <Filter>Source Files\math</Filter>
+    </ClCompile>
+    <ClCompile Include="Float3d.cpp">
+      <Filter>Source Files\math</Filter>
+    </ClCompile>
+    <ClCompile Include="frustum.cpp">
+      <Filter>Source Files\math</Filter>
+    </ClCompile>
+    <ClCompile Include="AnimModel.cpp">
+      <Filter>Source Files\gfx</Filter>
+    </ClCompile>
     <ClCompile Include="geometrybank.cpp">
-      <Filter>Source Files</Filter>
+      <Filter>Source Files\gfx</Filter>
     </ClCompile>
-    <ClCompile Include="openglrenderer.cpp">
-      <Filter>Source Files</Filter>
+    <ClCompile Include="material.cpp">
+      <Filter>Source Files\gfx</Filter>
     </ClCompile>
-    <ClCompile Include="opengllight.cpp">
-      <Filter>Source Files</Filter>
+    <ClCompile Include="Model3d.cpp">
+      <Filter>Source Files\gfx</Filter>
+    </ClCompile>
+    <ClCompile Include="MdlMngr.cpp">
+      <Filter>Source Files\gfx</Filter>
     </ClCompile>
     <ClCompile Include="openglcamera.cpp">
-      <Filter>Source Files</Filter>
+      <Filter>Source Files\gfx</Filter>
+    </ClCompile>
+    <ClCompile Include="openglcolor.cpp">
+      <Filter>Source Files\gfx</Filter>
+    </ClCompile>
+    <ClCompile Include="openglgeometrybank.cpp">
+      <Filter>Source Files\gfx</Filter>
+    </ClCompile>
+    <ClCompile Include="opengllight.cpp">
+      <Filter>Source Files\gfx</Filter>
+    </ClCompile>
+    <ClCompile Include="openglmatrixstack.cpp">
+      <Filter>Source Files\gfx</Filter>
     </ClCompile>
     <ClCompile Include="openglparticles.cpp">
-      <Filter>Source Files</Filter>
+      <Filter>Source Files\gfx</Filter>
+    </ClCompile>
+    <ClCompile Include="openglrenderer.cpp">
+      <Filter>Source Files\gfx</Filter>
     </ClCompile>
     <ClCompile Include="openglskydome.cpp">
-      <Filter>Source Files</Filter>
+      <Filter>Source Files\gfx</Filter>
+    </ClCompile>
+    <ClCompile Include="renderer.cpp">
+      <Filter>Source Files\gfx</Filter>
+    </ClCompile>
+    <ClCompile Include="sky.cpp">
+      <Filter>Source Files\gfx</Filter>
+    </ClCompile>
+    <ClCompile Include="stars.cpp">
+      <Filter>Source Files\gfx</Filter>
+    </ClCompile>
+    <ClCompile Include="Texture.cpp">
+      <Filter>Source Files\gfx</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -638,9 +647,6 @@
     <ClInclude Include="stars.h">
       <Filter>Header Files\gfx</Filter>
     </ClInclude>
-    <ClInclude Include="precipitation.h">
-      <Filter>Header Files\gfx</Filter>
-    </ClInclude>
     <ClInclude Include="AnimModel.h">
       <Filter>Header Files\gfx</Filter>
     </ClInclude>
@@ -676,6 +682,24 @@
     </ClInclude>
     <ClInclude Include="skydome.h">
       <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="opengl33renderer.h">
+      <Filter>Header Files\gfx</Filter>
+    </ClInclude>
+    <ClInclude Include="opengl33particles.h">
+      <Filter>Header Files\gfx</Filter>
+    </ClInclude>
+    <ClInclude Include="opengl33light.h">
+      <Filter>Header Files\gfx</Filter>
+    </ClInclude>
+    <ClInclude Include="precipitation.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="openglprecipitation.h">
+      <Filter>Header Files\gfx</Filter>
+    </ClInclude>
+    <ClInclude Include="opengl33precipitation.h">
+      <Filter>Header Files\gfx</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
