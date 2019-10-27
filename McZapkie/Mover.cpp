@@ -5611,6 +5611,7 @@ double TMoverParameters::TractionForce( double dt ) {
 							}
 						}
 					}
+					SpeedCtrlUnit.IsActive = SpeedCtrlValue > 0;
 				}
 				double edBCP = Hamulec->GetEDBCP();
                 if( ( false == Doors.instances[ side::left ].is_closed )
