@@ -1486,30 +1486,42 @@ TCommandType TController::TableUpdate(double &fVelDes, double &fDist, double &fN
 float
 TController::braking_distance_multiplier( float const Targetvelocity ) const {
 
-    if( Targetvelocity > 65.f ) { return 1.f; }
+    auto const frictionmultiplier { 1.f / Global.FrictionWeatherFactor };
+
+    if( Targetvelocity > 65.f ) { return 1.f * frictionmultiplier; }
     if( Targetvelocity < 5.f ) {
         // HACK: engaged automatic transmission means extra/earlier braking effort is needed for the last leg before full stop
         if( ( mvOccupied->TrainType == dt_DMU )
          && ( mvOccupied->Vel < 40.0 )
          && ( Targetvelocity == 0.f ) ) {
             auto const multiplier { clamp( 1.f + iVehicles * 0.5f, 2.f, 4.f ) };
-            return interpolate( multiplier, 1.f, static_cast<float>( mvOccupied->Vel / 40.0 ) );
+            return (
+                interpolate(
+                    multiplier, 1.f,
+                    static_cast<float>( mvOccupied->Vel / 40.0 ) )
+                * frictionmultiplier );
         }
         // HACK: cargo trains or trains going downhill with high braking threshold need more distance to come to a full stop
         if( ( fBrake_a0[ 1 ] > 0.2 )
          && ( ( true == IsCargoTrain )
            || ( fAccGravity > 0.025 ) ) ) {
-            return interpolate(
-                1.f, 2.f,
-                clamp(
-                    ( fBrake_a0[ 1 ] - 0.2 ) / 0.2,
-                    0.0, 1.0 ) );
+            return (
+                interpolate(
+                    1.f, 2.f,
+                    clamp(
+                        ( fBrake_a0[ 1 ] - 0.2 ) / 0.2,
+                        0.0, 1.0 ) )
+                * frictionmultiplier );
         }
 
-        return 1.f;
+        return 1.f * frictionmultiplier;
     }
     // stretch the braking distance up to 3 times; the lower the speed, the greater the stretch
-    return interpolate( 3.f, 1.f, ( Targetvelocity - 5.f ) / 60.f );
+    return (
+        interpolate(
+            3.f, 1.f,
+            ( Targetvelocity - 5.f ) / 60.f )
+        * frictionmultiplier );
 }
 
 void TController::TablePurger()
@@ -2804,7 +2816,7 @@ bool TController::IncBrake()
 					while (d)
 					{ // przeliczanie dodatkowego potrzebnego spadku ciśnienia
                         if( ( d->MoverParameters->Hamulec->GetBrakeStatus() & b_dmg ) == 0 ) {
-                            pos_corr += ( d->MoverParameters->Hamulec->GetCRP() - 5.0 ) * d->MoverParameters->TotalMass;
+                            pos_corr -= ( std::min( 5.0, d->MoverParameters->Hamulec->GetCRP() ) - 5.0 ) * d->MoverParameters->TotalMass;
                         }
 						d = d->Next(); // kolejny pojazd, podłączony od tyłu (licząc od czoła)
 					}
@@ -3378,7 +3390,7 @@ void TController::SpeedSet()
             else {
                 // jak ma jechać
                 if( fActionTime < 0.0 ) { break; }
-                if( fReady > 0.4 ) { break; }
+                if( fReady > ( mvOccupied->Vel > 5.0 ? 0.5 : 0.4 ) ) { break; }
 
                 if( mvOccupied->ActiveDir > 0 ) {
                     mvOccupied->DirectionForward(); //żeby EN57 jechały na drugiej nastawie
@@ -4940,6 +4952,12 @@ TController::UpdateSituation(double dt) {
             fMinProximityDist += 5.0;
             fMaxProximityDist += 5.0;
         }
+        // take into account weather conditions
+        if( ( Global.FrictionWeatherFactor < 1.f )
+         && ( iVehicles > 1 ) ) {
+            fMinProximityDist += 5.0;
+            fMaxProximityDist += 5.0;
+        }
         fVelPlus = 2.0; // dopuszczalne przekroczenie prędkości na ograniczeniu bez hamowania
         // margines prędkości powodujący załączenie napędu
         // były problemy z jazdą np. 3km/h podczas ładowania wagonów
@@ -4971,6 +4989,14 @@ TController::UpdateSituation(double dt) {
                 }
 */
             }
+
+            if( ( Global.FrictionWeatherFactor < 1.f )
+             && ( iVehicles > 1 ) ) {
+            // take into account weather conditions
+                fMinProximityDist += 5.0;
+                fMaxProximityDist += 5.0;
+            }
+
             if( mvOccupied->Vel < 0.1 ) {
                 // jak stanie za daleko, to niech nie dociąga paru metrów
                 fMaxProximityDist = 50.0;
@@ -4995,6 +5021,11 @@ TController::UpdateSituation(double dt) {
             // samochod (sokista też)
             fMinProximityDist = std::max( 3.5, mvOccupied->Vel * 0.2   );
             fMaxProximityDist = std::max( 9.5, mvOccupied->Vel * 0.375 ); //[m]
+            if( Global.FrictionWeatherFactor < 1.f ) {
+                // take into account weather conditions
+                fMinProximityDist += 0.75;
+                fMaxProximityDist += 0.75;
+            }
             // margines prędkości powodujący załączenie napędu
             fVelMinus = 2.0;
             // dopuszczalne przekroczenie prędkości na ograniczeniu bez hamowania
@@ -5388,7 +5419,6 @@ TController::UpdateSituation(double dt) {
                 VelDesired = fVelMax; // bo VelDesired<0 oznacza prędkość maksymalną
 
             // Ra: jazda na widoczność
-            // Ra: jazda na widoczność
             if( Obstacle.distance < 5000 ) {
                 // mamy coś z przodu
                 // prędkość pojazdu z przodu (zakładając, że jedzie w tę samą stronę!!!)
@@ -5429,15 +5459,17 @@ TController::UpdateSituation(double dt) {
                         // jeśli odległość jest zbyt mała
                         if( k < 10.0 ) // k - prędkość tego z przodu
                         { // jeśli tamten porusza się z niewielką prędkością albo stoi
+                            // keep speed difference within a safer margin
+                            VelDesired = std::floor(
+                                min_speed(
+                                    VelDesired,
+                                    ( Obstacle.distance > 100 ?
+                                        k + 20.0:
+                                        std::min( 8.0, k + 4.0 ) ) ) );
+
                             if( ( OrderCurrentGet() & ( Connect | Loose_shunt ) ) != 0 ) {
                                 // jeśli spinanie, to jechać dalej
                                 AccPreferred = std::min( 0.35, AccPreferred ); // nie hamuj
-                                VelDesired = std::floor(
-                                    min_speed(
-                                        VelDesired,
-                                        ( Obstacle.distance > 150 ?
-                                            k + 20.0:
-                                            std::min( 8.0, k + 4.0 ) ) ) );
                                 VelNext = std::floor( std::min( 8.0, k + 2.0 ) ); // i pakuj się na tamtego
                             }
                             else {
@@ -5929,7 +5961,7 @@ TController::UpdateSituation(double dt) {
                     if( vel < VelDesired ) {
                         // don't adjust acceleration when going above current goal speed
                         if( -AccDesired * BrakeAccFactor() < (
-                            ( ( fReady > 0.4 )
+                            ( ( fReady > ( ( mvOccupied->Vel > 5.0 ) ? 0.5 : 0.4 ) )
                            || ( VelNext > vel - 40.0 ) ) ?
                                 fBrake_a0[ 0 ] * 0.8 :
                                 -fAccThreshold )
