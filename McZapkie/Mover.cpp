@@ -2216,16 +2216,12 @@ bool TMoverParameters::IncScndCtrl(int CtrlSpeed)
 	if ((OK) && (EngineType == TEngineType::ElectricInductionMotor) && (ScndCtrlPosNo == 1) && (MainCtrlPos>0))
 	{
 		// NOTE: round() already adds 0.5, are the ones added here as well correct?
-		if ((Vmax < 250))
-			SpeedCtrlValue = Round(Vel);
-		else
-			SpeedCtrlValue = Round(Vel * 0.5);
+		SpeedCtrlValue = Vel;
 		if ((EIMCtrlType == 0)&&(SpeedCtrlAutoTurnOffFlag == 1))
 		{
 			MainCtrlActualPos = MainCtrlPos;
 		}
 		SpeedCtrlUnit.IsActive = true;
-		SendCtrlToNext("SpeedCntrl", SpeedCtrlValue, CabNo);
 	}
 
  	if ((OK) && (SpeedCtrl) && (ScndCtrlPos == 1) && (EngineType == TEngineType::DieselEngine))
@@ -2286,7 +2282,6 @@ bool TMoverParameters::DecScndCtrl(int CtrlSpeed)
 	if ((OK) && (EngineType == TEngineType::ElectricInductionMotor) && (ScndCtrlPosNo == 1))
 	{
 		SpeedCtrlValue = 0;
-		SendCtrlToNext("SpeedCntrl", SpeedCtrlValue, CabNo);
 		SpeedCtrlUnit.IsActive = false;
 		if (SpeedCtrlUnit.ManualStateOverride) {
 			eimic = 0.0;
@@ -5603,11 +5598,10 @@ double TMoverParameters::TractionForce( double dt ) {
 						SpeedCtrlTimer += dt;
 						if (SpeedCtrlTimer > SpeedCtrlDelay)
 						{
-							int NewSCAP = (Vmax < 250 ? 1 : 0.5) * (float)ScndCtrlPos / (float)ScndCtrlPosNo * Vmax;
+							int NewSCAP = (float)ScndCtrlPos / (float)ScndCtrlPosNo * Vmax;
 							if (NewSCAP != SpeedCtrlValue)
 							{
 								SpeedCtrlValue = NewSCAP;
-//								SendCtrlToNext("SpeedCntrl", SpeedCtrlValue, CabNo);
 							}
 						}
 					}

@@ -2855,6 +2855,7 @@ bool TDynamicObject::Update(double dt, double dt1)
              && ( ctOwner != nullptr ) ) {
 				MoverParameters->MainCtrlPos = ctOwner->Controlling()->MainCtrlPos*MoverParameters->MainCtrlPosNo / std::max(1, ctOwner->Controlling()->MainCtrlPosNo);
 				MoverParameters->SpeedCtrlValue = ctOwner->Controlling()->SpeedCtrlValue;
+				MoverParameters->SpeedCtrlUnit.IsActive = ctOwner->Controlling()->SpeedCtrlUnit.IsActive;
 			}
 			MoverParameters->CheckEIMIC(dt1);
 			MoverParameters->CheckSpeedCtrl(dt1);
