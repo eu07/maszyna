@@ -802,6 +802,8 @@ eu07_application::init_data() {
 
 int
 eu07_application::init_modes() {
+	Global.local_random_engine.seed(std::random_device{}());
+
 	if ((!Global.network_servers.empty() || Global.network_client) && Global.SceneryFile.empty()) {
 		ErrorLog("launcher mode is currently not supported in network mode");
 		return -1;

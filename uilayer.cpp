@@ -128,6 +128,19 @@ ui_layer::ui_layer()
     m_logpanel.size = { 700, 400 };
 }
 
+void::ui_layer::load_random_background()
+{
+	std::vector<std::string> images;
+	for (auto &f : std::filesystem::directory_iterator("textures/logo"))
+		if (f.is_regular_file())
+			images.emplace_back(std::filesystem::relative(f.path(), "textures/").string());
+
+	if (!images.empty()) {
+		std::string &selected = images[std::lround(LocalRandom(images.size() - 1))];
+		set_background(selected);
+	}
+}
+
 static ImVec4 imvec_lerp(const ImVec4& a, const ImVec4& b, float t)
 {
 	return ImVec4(a.x + (b.x - a.x) * t, a.y + (b.y - a.y) * t, a.z + (b.z - a.z) * t, a.w + (b.w - a.w) * t);
@@ -373,7 +386,7 @@ void ui_layer::set_background(std::string const &Filename)
 {
     if (false == Filename.empty())
     {
-        m_background = GfxRenderer.Fetch_Texture(Filename);
+		m_background = GfxRenderer.Fetch_Texture(Filename);
     }
     else
     {

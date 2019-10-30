@@ -12,6 +12,8 @@ launcher_ui::launcher_ui()
 	add_external_panel(&m_scenerylist_panel);
 	add_external_panel(&m_keymapper_panel);
 	add_external_panel(&m_vehiclepicker_panel);
+
+	load_random_background();
 }
 
 bool launcher_ui::on_key(const int Key, const int Action)

@@ -80,10 +80,9 @@ scenarioloader_mode::enter() {
 
     simulation::is_ready = false;
 
-    m_userinterface->set_background( "logo" );
     Application.set_title( Global.AppName + " (" + Global.SceneryFile + ")" );
     m_userinterface->set_progress();
-    m_userinterface->set_progress(STR("Loading scenery"));
+	m_userinterface->set_progress(STR("Loading scenery"));
     GfxRenderer.Render();
 }
 

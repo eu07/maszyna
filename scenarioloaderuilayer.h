@@ -12,6 +12,9 @@ http://mozilla.org/MPL/2.0/.
 #include "uilayer.h"
 
 class scenarioloader_ui : public ui_layer {
-
+public:
+	scenarioloader_ui() : ui_layer() {
+		load_random_background();
+	}
     // TODO: implement mode-specific elements
 };

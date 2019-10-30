@@ -26,7 +26,6 @@ void launcher_mode::enter()
 
 	simulation::is_ready = false;
 
-	m_userinterface->set_background( "logo" );
 	Application.set_title(Global.AppName);
 }
 
