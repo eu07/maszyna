@@ -79,6 +79,29 @@ int DirF(int CouplerN)
 	}
 }
 
+double TableInterpolation(std::map<double, double> &Map,  double Parameter)
+{
+	if (Map.size() == 0)
+		return 0.0;
+	if (Map.size() == 1)
+		return Map.begin()->second;
+
+	auto lower = Map.lower_bound(Parameter);
+	auto upper = lower;
+	
+	if (lower != Map.begin())
+		lower--;
+	else
+		upper++;
+
+	if (upper == Map.end()) {
+		lower--;
+		upper--;
+	}
+	double ratio = (upper->second - lower->second) / (upper->first - lower->first);
+	return (lower->second + (Parameter - lower->first) * ratio);
+}
+
 // *************************************************************************************************
 // Q: 20160716
 // Obliczanie natężenie prądu w silnikach
@@ -7116,7 +7139,12 @@ double TMoverParameters::dizel_Momentum(double dizel_fill, double n, double dt)
 	neps = (n - dizel_n_old) / dt; //przyspieszenie katowe walu wejsciowego skrzyni biegow
 
     if( enrot > 0 ) {
-        Moment = ( dizel_Mmax - ( dizel_Mmax - dizel_Mnmax ) * square( ( enrot - dizel_nMmax ) / ( dizel_nMmax - dizel_nmax ) ) ) * dizel_fill - dizel_Mstand;
+		if (dizel_Momentum_Table.size() > 1) {
+			Moment = TableInterpolation(dizel_Momentum_Table, enrot) * dizel_fill - dizel_Mstand;
+		}
+		else {
+			Moment = (dizel_Mmax - (dizel_Mmax - dizel_Mnmax) * square((enrot - dizel_nMmax) / (dizel_nMmax - dizel_nmax))) * dizel_fill - dizel_Mstand;
+		}
 		Mm = Moment;
 		dizel_FuelConsumptionActual = dizel_FuelConsumption * enrot * dizel_fill;
 		dizel_FuelConsumptedTotal += dizel_FuelConsumptionActual * dt / 3600.0;
@@ -7176,17 +7204,25 @@ double TMoverParameters::dizel_Momentum(double dizel_fill, double n, double dt)
 		HydroTorque += (hydro_TC_nIn - hydro_TC_nOut) * hydro_TC_TorqueInOut;
 		HydroTorque += hydro_TC_nOut * hydro_TC_nOut * hydro_TC_TorqueOutOut;
 		double nOut2In = hydro_TC_nOut / std::max(0.01, hydro_TC_nIn);
-		if (nOut2In < hydro_TC_CouplingPoint)
-		{
-			hydro_TC_TMRatio = 1 + (hydro_TC_TMMax - 1) * square(1 - nOut2In / hydro_TC_CouplingPoint);
-			hydro_TC_TorqueIn = HydroTorque * hydro_TC_Fill;
+		if (hydro_TC_Table.size() > 1) {
+			hydro_TC_TMRatio = TableInterpolation(hydro_TC_Table, nOut2In);
 			hydro_TC_TorqueOut = HydroTorque * hydro_TC_Fill * hydro_TC_TMRatio;
+			hydro_TC_TorqueIn = HydroTorque * hydro_TC_Fill * std::min(1.0, hydro_TC_TMRatio);
 		}
 		else
 		{
-			hydro_TC_TMRatio = (1 - nOut2In) / (1 - hydro_TC_CouplingPoint);
-			hydro_TC_TorqueIn = HydroTorque * hydro_TC_Fill * hydro_TC_TMRatio;
-			hydro_TC_TorqueOut = HydroTorque * hydro_TC_Fill * hydro_TC_TMRatio;
+			if (nOut2In < hydro_TC_CouplingPoint)
+			{
+				hydro_TC_TMRatio = 1 + (hydro_TC_TMMax - 1) * square(1 - nOut2In / hydro_TC_CouplingPoint);
+				hydro_TC_TorqueIn = HydroTorque * hydro_TC_Fill;
+				hydro_TC_TorqueOut = HydroTorque * hydro_TC_Fill * hydro_TC_TMRatio;
+			}
+			else
+			{
+				hydro_TC_TMRatio = (1 - nOut2In) / (1 - hydro_TC_CouplingPoint);
+				hydro_TC_TorqueIn = HydroTorque * hydro_TC_Fill * hydro_TC_TMRatio;
+				hydro_TC_TorqueOut = HydroTorque * hydro_TC_Fill * hydro_TC_TMRatio;
+			}
 		}
 		TorqueH = hydro_TC_TorqueOut;
 		TorqueL = hydro_TC_LockupTorque * hydro_TC_LockupRate;
@@ -8090,6 +8126,7 @@ bool TMoverParameters::switch_physics(bool const State) // DO PRZETLUMACZENIA NA
 bool startBPT;
 bool startMPT, startMPT0;
 bool startRLIST, startUCLIST;
+bool startDIZELMOMENTUMLIST, startHYDROTCLIST;
 bool startDLIST, startFFLIST, startWWLIST;
 bool startLIGHTSLIST;
 bool startCOMPRESSORLIST;
@@ -8327,6 +8364,46 @@ bool TMoverParameters::readDList( std::string const &line ) {
     return true;
 }
 
+bool TMoverParameters::readDMList(std::string const &line) {
+
+	cParser parser(line);
+	if (false == parser.getTokens(2, false)) {
+
+		WriteLog("Read DMList: arguments missing in line " + std::to_string(LISTLINE + 1));
+		return false;
+	}
+	auto idx = LISTLINE++;
+	double x = 0.0;
+	double y = 0.0;
+	parser
+		>> x
+		>> y;
+
+	dizel_Momentum_Table.emplace(x / 60.0, y);
+
+	return true;
+}
+
+bool TMoverParameters::readHTCList(std::string const &line) {
+
+	cParser parser(line);
+	if (false == parser.getTokens(2, false)) {
+
+		WriteLog("Read HTCList: arguments missing in line " + std::to_string(LISTLINE + 1));
+		return false;
+	}
+	auto idx = LISTLINE++;
+	double x = 0.0;
+	double y = 0.0;
+	parser
+		>> x
+		>> y;
+
+	hydro_TC_Table.emplace(x, y);
+
+	return true;
+}
+
 bool TMoverParameters::readFFList( std::string const &line ) {
 
     cParser parser( line );
@@ -8522,6 +8599,8 @@ bool TMoverParameters::LoadFIZ(std::string chkpath)
     startRLIST = false;
 	startUCLIST = false;
     startDLIST = false;
+	startDIZELMOMENTUMLIST = false;
+	startHYDROTCLIST = false;
     startFFLIST = false;
     startWWLIST = false;
     startLIGHTSLIST = false;
@@ -8594,6 +8673,16 @@ bool TMoverParameters::LoadFIZ(std::string chkpath)
             startDLIST = false;
             continue;
         }
+		if (issection("END-DML", inputline)) {
+			startBPT = false;
+			startDIZELMOMENTUMLIST = false;
+			continue;
+		}
+		if (issection("END-HTCL", inputline)) {
+			startBPT = false;
+			startHYDROTCLIST = false;
+			continue;
+		}
         if( issection( "endff", inputline ) ) {
             startBPT = false;
             startFFLIST = false;
@@ -8831,6 +8920,22 @@ bool TMoverParameters::LoadFIZ(std::string chkpath)
             continue;
         }
 
+		if (issection("DMList:", inputline))
+		{
+			startBPT = false;
+			fizlines.emplace("DMList", inputline);
+			startDIZELMOMENTUMLIST = true; LISTLINE = 0;
+			continue;
+		}
+
+		if (issection("HTCList:", inputline))
+		{
+			startBPT = false;
+			fizlines.emplace("HTCList", inputline);
+			startHYDROTCLIST = true; LISTLINE = 0;
+			continue;
+		}
+
         if( issection( "ffList:", inputline ) ) {
 			startBPT = false;
             startFFLIST = true; LISTLINE = 0;
@@ -8887,6 +8992,14 @@ bool TMoverParameters::LoadFIZ(std::string chkpath)
             readDList( inputline );
             continue;
         }
+		if (true == startDIZELMOMENTUMLIST) {
+			readDMList(inputline);
+			continue;
+		}
+		if (true == startHYDROTCLIST) {
+			readHTCList(inputline);
+			continue;
+		}
         if( true == startFFLIST ) {
             readFFList( inputline );
             continue;

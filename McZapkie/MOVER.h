@@ -1110,6 +1110,7 @@ public:
     double dizel_Mnmax = 2.0;
     double dizel_nmax = 2.0;
     double dizel_nominalfill = 0.0;
+	std::map<double, double> dizel_Momentum_Table;
 	/*parametry aproksymacji silnika spalinowego*/
 	double dizel_Mstand = 0.0; /*moment oporow ruchu silnika dla enrot=0*/
 						 /*                dizel_auto_min, dizel_auto_max: real; {predkosc obrotowa przelaczania automatycznej skrzyni biegow*/
@@ -1142,6 +1143,7 @@ public:
 	double hydro_TC_TorqueOutOut = 0.0; /*stala momentu proporcjonalnego do kwadratu obrotow wyjsciowych*/
 	double hydro_TC_LockupSpeed = 1.0; /*prog predkosci zalaczania sprzegla blokujacego*/
 	double hydro_TC_UnlockSpeed = 1.0; /*prog predkosci rozlaczania sprzegla blokujacego*/
+	std::map<double, double> hydro_TC_Table; /*tablica przetwornika momentu*/
 	/*parametry retardera*/
 	bool hydro_R = false; /*obecnosc retardera*/
 	int hydro_R_Placement = 0; /*umiejscowienie retardera: 0 - za skrzynia biegow, 1 - miedzy przetwornikiem a biegami, 2 - przed skrzynia biegow */
@@ -1748,6 +1750,8 @@ private:
     bool readRList( std::string const &Input );
 	bool readUCList(std::string const &Input);
     bool readDList( std::string const &line );
+	bool readDMList(std::string const &line);
+	bool readHTCList(std::string const &line);
     bool readFFList( std::string const &line );
     bool readWWList( std::string const &line );
     bool readLightsList( std::string const &Input );
