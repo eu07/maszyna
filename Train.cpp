@@ -348,6 +348,8 @@ TTrain::commandhandler_map const TTrain::m_commandhandlers = {
     { user_command::radiostopsend, &TTrain::OnCommand_radiostopsend },
     { user_command::radiostoptest, &TTrain::OnCommand_radiostoptest },
     { user_command::radiocall3send, &TTrain::OnCommand_radiocall3send },
+	{ user_command::radiovolumeincrease, &TTrain::OnCommand_radiovolumeincrease },
+	{ user_command::radiovolumedecrease, &TTrain::OnCommand_radiovolumedecrease },
     { user_command::cabchangeforward, &TTrain::OnCommand_cabchangeforward },
     { user_command::cabchangebackward, &TTrain::OnCommand_cabchangebackward },
     { user_command::generictoggle0, &TTrain::OnCommand_generictoggle },
@@ -525,6 +527,7 @@ dictionary_source *TTrain::GetTrainState() {
     dict->insert( "pantpress", std::abs( mvControlled->PantPress ) );
     dict->insert( "universal3", InstrumentLightActive );
     dict->insert( "radio_channel", RadioChannel() );
+	dict->insert( "radio_volume", Global.RadioVolume );
     dict->insert( "door_lock", mvOccupied->Doors.lock_enabled );
     // movement data
     dict->insert( "velocity", std::abs( mvOccupied->Vel ) );
@@ -622,8 +625,8 @@ TTrain::state_t
 TTrain::get_state() const {
 
     return {
-		btLampkaSHP.GetValue(),
-		btLampkaCzuwaka.GetValue(),
+        btLampkaSHP.GetValue(),
+        btLampkaCzuwaka.GetValue(),
         btLampkaRadioStop.GetValue(),
         btLampkaOpory.GetValue(),
         btLampkaWylSzybki.GetValue(),
@@ -639,7 +642,7 @@ TTrain::get_state() const {
         static_cast<std::uint8_t>( iCabn ),
         btHaslerBrakes.GetValue(),
         btHaslerCurrent.GetValue(),
-		mvOccupied->SecuritySystem.is_beeping(),
+        mvOccupied->SecuritySystem.is_beeping(),
         btLampkaHVoltageB.GetValue(),
         fTachoVelocity,
         static_cast<float>( mvOccupied->Compressor ),
@@ -3120,8 +3123,8 @@ void TTrain::OnCommand_compressorpresetactivatenext(TTrain *Train, command_data 
 		// active light preset is stored as value in range 1-LigthPosNo
 		Train->mvOccupied->CompressorListPos = (
 			Train->mvOccupied->CompressorListPos < Train->mvOccupied->CompressorListPosNo ?
-			    Train->mvOccupied->CompressorListPos + 1 :
-			    1); // wrap mode
+			Train->mvOccupied->CompressorListPos + 1 :
+			1); // wrap mode
 
 		// visual feedback
 		if (Train->ggCompressorListButton.SubModel != nullptr) {
@@ -3142,12 +3145,12 @@ void TTrain::OnCommand_compressorpresetactivateprevious(TTrain *Train, command_d
 	}
 
 	if ((Train->mvOccupied->CompressorListPos > 1)
-     || (true == Train->mvOccupied->CompressorListWrap)) {
+		|| (true == Train->mvOccupied->CompressorListWrap)) {
 		// active light preset is stored as value in range 1-LigthPosNo
 		Train->mvOccupied->CompressorListPos = (
 			Train->mvOccupied->CompressorListPos > 1 ?
-			    Train->mvOccupied->CompressorListPos - 1 :
-			    Train->mvOccupied->CompressorListPosNo); // wrap mode
+			Train->mvOccupied->CompressorListPos - 1 :
+			Train->mvOccupied->CompressorListPosNo); // wrap mode
 
 		// visual feedback
 		if (Train->ggCompressorListButton.SubModel != nullptr) {
@@ -5431,6 +5434,34 @@ void TTrain::OnCommand_radiocall3send( TTrain *Train, command_data const &Comman
     }
 }
 
+void TTrain::OnCommand_radiovolumeincrease(TTrain *Train, command_data const &Command) {
+
+	if (Command.action == GLFW_PRESS) {
+		Global.RadioVolume = clamp(Global.RadioVolume + 0.125, 0.0, 1.0);
+		// visual feedback
+		Train->ggRadioVolumeSelector.UpdateValue(Global.RadioVolume);
+		Train->ggRadioVolumeNext.UpdateValue(1.0);
+	}
+	else if (Command.action == GLFW_RELEASE) {
+		// visual feedback
+		Train->ggRadioVolumeNext.UpdateValue(0.0);
+	}
+}
+
+void TTrain::OnCommand_radiovolumedecrease(TTrain *Train, command_data const &Command) {
+
+	if (Command.action == GLFW_PRESS) {
+		Global.RadioVolume = clamp(Global.RadioVolume - 0.125, 0.0, 1.0);
+		// visual feedback
+		Train->ggRadioVolumeSelector.UpdateValue(Global.RadioVolume);
+		Train->ggRadioVolumePrevious.UpdateValue(1.0);
+	}
+	else if (Command.action == GLFW_RELEASE) {
+		// visual feedback
+		Train->ggRadioVolumePrevious.UpdateValue(0.0);
+	}
+}
+
 void TTrain::OnCommand_cabchangeforward( TTrain *Train, command_data const &Command ) {
 
     if( Command.action == GLFW_PRESS ) {
@@ -6328,17 +6359,17 @@ bool TTrain::Update( double const Deltatime )
                     btLampkaWylSzybkiB.Turn( mover->Mains );
                     btLampkaWylSzybkiBOff.Turn(
                         ( false == mover->Mains )
-                        && ( mover->MainsInitTimeCountdown <= 0.0 )
-                    /*&& ( fHVoltage != 0.0 )*/ );
+                     && ( mover->MainsInitTimeCountdown <= 0.0 )
+                   /*&& ( fHVoltage != 0.0 )*/ );
 
                     btLampkaOporyB.Turn( mover->ResistorsFlagCheck() );
                     btLampkaBezoporowaB.Turn(
                         ( true == mover->ResistorsFlagCheck() )
-                        || ( mover->MainCtrlActualPos == 0 ) ); // do EU04
+                     || ( mover->MainCtrlActualPos == 0 ) ); // do EU04
 
                     if( ( mover->StLinFlag )
-                        || ( mover->BrakePress > 2.0 )
-                        || ( mover->PipePress < 0.36 ) ) {
+                     || ( mover->BrakePress > 2.0 )
+                     || ( mover->PipePress < 0.36 ) ) {
                         btLampkaStycznB.Turn( false );
                     }
                     else if( mover->BrakePress < 1.0 ) {
@@ -6598,6 +6629,9 @@ bool TTrain::Update( double const Deltatime )
         ggRadioStop.Update();
         ggRadioTest.Update();
         ggRadioCall3.Update();
+		ggRadioVolumeSelector.Update();
+		ggRadioVolumePrevious.Update();
+		ggRadioVolumeNext.Update();
         ggDepartureSignalButton.Update();
 
         ggPantFrontButton.Update();
@@ -7873,6 +7907,9 @@ void TTrain::clear_cab_controls()
     ggRadioStop.Clear();
     ggRadioTest.Clear();
     ggRadioCall3.Clear();
+	ggRadioVolumeSelector.Clear();
+	ggRadioVolumePrevious.Clear();
+	ggRadioVolumeNext.Clear();
     ggDoorLeftPermitButton.Clear();
     ggDoorRightPermitButton.Clear();
     ggDoorPermitPresetButton.Clear();
@@ -8579,6 +8616,9 @@ bool TTrain::initialize_gauge(cParser &Parser, std::string const &Label, int con
         { "radiostop_sw:", ggRadioStop },
         { "radiotest_sw:", ggRadioTest },
         { "radiocall3_sw:", ggRadioCall3 },
+		{ "radiovolume_sw:", ggRadioVolumeSelector },
+		{ "radiovolumeprev_sw:", ggRadioVolumePrevious },
+		{ "radiovolumenext_sw:", ggRadioVolumeNext },
         { "pantfront_sw:", ggPantFrontButton },
         { "pantrear_sw:", ggPantRearButton },
         { "pantfrontoff_sw:", ggPantFrontButtonOff },
@@ -8609,7 +8649,7 @@ bool TTrain::initialize_gauge(cParser &Parser, std::string const &Label, int con
         { "universal7:", ggUniversals[ 7 ] },
         { "universal8:", ggUniversals[ 8 ] },
         { "universal9:", ggUniversals[ 9 ] }
-    };
+   };
     {
         auto const lookup { gauges.find( Label ) };
         if( lookup != gauges.end() ) {
