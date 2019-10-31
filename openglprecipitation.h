@@ -39,6 +39,6 @@ private:
     GLuint m_uvbuffer { (GLuint)-1 };
     GLuint m_indexbuffer { (GLuint)-1 };
     GLint m_textureunit { 0 };
-    texture_handle m_texture { -1 };
+    texture_handle m_texture { null_handle };
     float m_overcast { -1.f }; // cached overcast level, difference from current state triggers texture update
 };

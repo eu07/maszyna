@@ -598,6 +598,10 @@ namespace ImGui
     IMGUI_API void*         MemAlloc(size_t size);
     IMGUI_API void          MemFree(void* ptr);
 
+    // by zfedoran, https://github.com/ocornut/imgui/issues/1901
+    IMGUI_API bool          BufferingBar( const char* label, float value, const ImVec2& size_arg, const ImU32& bg_col, const ImU32& fg_col );
+    IMGUI_API bool          Spinner( const char* label, float radius, int thickness, const ImU32& color );
+
 } // namespace ImGui
 
 // Flags for ImGui::Begin()

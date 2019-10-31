@@ -73,11 +73,12 @@ private:
     void set_filtering() const;
     void downsize( GLuint const Format );
     void flip_vertical();
+    void gles_match_internalformat( GLuint format );
 
 // members
     bool is_rendertarget = false; // is used as postfx rendertarget, without loaded data
     int samples = 1;
-    std::vector<char> data; // texture data (stored GL-style, bottom-left origin)
+    std::vector<unsigned char> data; // texture data (stored GL-style, bottom-left origin)
     resource_state data_state{ resource_state::none }; // current state of texture data
     int data_width{ 0 },
         data_height{ 0 },
@@ -166,7 +167,7 @@ private:
 // reduces provided data image to half of original size, using basic 2x2 average
 template <typename Colortype_>
 void
-downsample( std::size_t const Width, std::size_t const Height, char *Imagedata ) {
+downsample( std::size_t const Width, std::size_t const Height, unsigned char *Imagedata ) {
 
     Colortype_ *destination = reinterpret_cast<Colortype_*>( Imagedata );
     Colortype_ *sampler = reinterpret_cast<Colortype_*>( Imagedata );

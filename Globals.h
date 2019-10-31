@@ -49,6 +49,7 @@ struct global_settings {
     std::string asCurrentSceneryPath{ "scenery/" };
     std::string asCurrentTexturePath{ szTexturePath };
     std::string asCurrentDynamicPath;
+    bool GfxFramebufferSRGB { true };
     // settings
     // filesystem
     bool bLoadTraction{ true };
@@ -107,6 +108,7 @@ struct global_settings {
     float BaseDrawRange{ 2500.f };
     int DynamicLightCount{ 3 };
     bool ScaleSpecularValues{ true };
+    std::string GfxRenderer{ "default" };
     bool BasicRenderer{ false };
     bool RenderShadows{ true };
     int RenderCabShadowsRange{ 0 };

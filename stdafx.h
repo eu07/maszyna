@@ -117,3 +117,5 @@ int const null_handle = 0;
 #else
 #include "imgui.h"
 #endif
+
+#pragma warning( disable : 5033 ) // "register is no longer a supported storage class" but it's all over python headers

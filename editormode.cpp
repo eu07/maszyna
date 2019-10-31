@@ -230,7 +230,7 @@ editor_mode::on_mouse_button( int const Button, int const Action, int const Mods
         if( Action == GLFW_PRESS ) {
             // left button press
             m_node = nullptr;
-            GfxRenderer->Pick_Node(
+            GfxRenderer->Pick_Node_Callback(
                 [ this ]( scene::basic_node *node ) {
                     m_node = node;
                     if( m_node ) {

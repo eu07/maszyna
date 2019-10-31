@@ -13,7 +13,7 @@ http://mozilla.org/MPL/2.0/.
 #include "openglcamera.h"
 #include "opengl33light.h"
 #include "opengl33particles.h"
-#include "openglskydome.h"
+#include "opengl33skydome.h"
 #include "opengl33precipitation.h"
 #include "simulationenvironment.h"
 #include "scene.h"
@@ -33,51 +33,52 @@ http://mozilla.org/MPL/2.0/.
 class opengl33_renderer : public gfx_renderer {
 
   public:
-	// types
+  // types
 	/// Renderer runtime settings
 	struct Settings
 	{
 		bool traction_debug { false };
 	} settings;
-
-	// methods
-	bool Init(GLFWwindow *Window);
-/*    
-	bool AddViewport(const global_settings::extraviewport_config &conf);
- */   
-	// main draw call. returns false on error
-	bool Render();
-	void SwapBuffers();
-	inline float Framerate()
-	{
-		return m_framerate;
-	}
-	// geometry methods
-	// NOTE: hands-on geometry management is exposed as a temporary measure; ultimately all visualization data should be generated/handled automatically by the renderer itself
-	// creates a new geometry bank. returns: handle to the bank or NULL
-	gfx::geometrybank_handle Create_Bank();
-	// creates a new geometry chunk of specified type from supplied vertex data, in specified bank. returns: handle to the chunk or NULL
-	gfx::geometry_handle Insert(gfx::vertex_array &Vertices, gfx::geometrybank_handle const &Geometry, int const Type);
-	// replaces data of specified chunk with the supplied vertex data, starting from specified offset
-	bool Replace(gfx::vertex_array &Vertices, gfx::geometry_handle const &Geometry, int const Type, std::size_t const Offset = 0);
-	// adds supplied vertex data at the end of specified chunk
-	bool Append(gfx::vertex_array &Vertices, gfx::geometry_handle const &Geometry, int const Type);
-    // draws supplied geometry handles
-    void Draw_Geometry(std::vector<gfx::geometrybank_handle>::iterator begin, std::vector<gfx::geometrybank_handle>::iterator end);
-	void Draw_Geometry(const gfx::geometrybank_handle &handle);
-	// provides direct access to vertex data of specfied chunk
-	gfx::vertex_array const &Vertices(gfx::geometry_handle const &Geometry) const;
-	// material methods
-	material_handle Fetch_Material(std::string const &Filename, bool const Loadnow = true);
-    void Bind_Material(material_handle const Material, TSubModel *sm = nullptr);
-    void Bind_Material_Shadow(material_handle const Material);
-
-	// shader methods
-    std::shared_ptr<gl::program> Fetch_Shader( std::string const &name ) override;
-
-	opengl_material const &Material(material_handle const Material) const;
-    opengl_material &Material(material_handle const Material);
-	// texture methods
+// constructors
+    opengl33_renderer() = default;
+// destructor
+    ~opengl33_renderer() {}
+// methods
+    bool
+        Init( GLFWwindow *Window ) override;
+    // main draw call. returns false on error
+    bool
+        Render() override;
+    inline
+    float
+        Framerate() override { return m_framerate; }
+    // geometry methods
+    // NOTE: hands-on geometry management is exposed as a temporary measure; ultimately all visualization data should be generated/handled automatically by the renderer itself
+    // creates a new geometry bank. returns: handle to the bank or NULL
+    gfx::geometrybank_handle
+        Create_Bank() override;
+    // creates a new geometry chunk of specified type from supplied vertex data, in specified bank. returns: handle to the chunk or NULL
+    gfx::geometry_handle
+        Insert( gfx::vertex_array &Vertices, gfx::geometrybank_handle const &Geometry, int const Type ) override;
+    // replaces data of specified chunk with the supplied vertex data, starting from specified offset
+    bool
+        Replace( gfx::vertex_array &Vertices, gfx::geometry_handle const &Geometry, int const Type, std::size_t const Offset = 0 ) override;
+    // adds supplied vertex data at the end of specified chunk
+    bool
+        Append( gfx::vertex_array &Vertices, gfx::geometry_handle const &Geometry, int const Type ) override;
+    // provides direct access to vertex data of specfied chunk
+    gfx::vertex_array const &
+        Vertices( gfx::geometry_handle const &Geometry ) const override;
+    // material methods
+    material_handle
+        Fetch_Material( std::string const &Filename, bool const Loadnow = true ) override;
+    void
+        Bind_Material( material_handle const Material, TSubModel *sm = nullptr ) override;
+    opengl_material const &
+        Material( material_handle const Material ) const override;
+    // shader methods
+    auto Fetch_Shader( std::string const &name ) -> std::shared_ptr<gl::program> override;
+    // texture methods
     texture_handle
         Fetch_Texture( std::string const &Filename, bool const Loadnow = true, GLint format_hint = GL_SRGB_ALPHA ) override;
     void
@@ -88,25 +89,42 @@ class opengl33_renderer : public gfx_renderer {
         Texture( texture_handle const Texture ) override;
     opengl_texture const &
         Texture( texture_handle const Texture ) const override;
-	// utility methods
+    // utility methods
+    void
+        Pick_Control_Callback( std::function<void( TSubModel const * )> Callback ) override;
+    void
+        Pick_Node_Callback( std::function<void( scene::basic_node * )> Callback ) override;
     TSubModel const *
         Pick_Control() const override { return m_pickcontrolitem; }
     scene::basic_node const *
         Pick_Node() const override { return m_picksceneryitem; }
     glm::dvec3
         Mouse_Position() const override { return m_worldmousecoordinates; }
-	void Update_AnimModel(TAnimModel *model);
-	// maintenance methods
-	void Update(double const Deltatime);
-    void Update_Pick_Control();
-    void Update_Pick_Node();
-    glm::dvec3 get_mouse_depth();
-	// debug methods
-	std::string const &info_times() const;
-	std::string const &info_stats() const;
+    // maintenance methods
+    void
+        Update( double const Deltatime ) override;
+    void
+        Update_Pick_Control() override;
+    void
+        Update_Pick_Node() override;
+    glm::dvec3
+        Update_Mouse_Position() override;
+    // debug methods
+    std::string const &
+        info_times() const override;
+    std::string const &
+        info_stats() const override;
 
-    void pick_control(std::function<void(TSubModel const *)> callback);
-    void pick_node(std::function<void(scene::basic_node *)> callback);
+
+
+    opengl_material & Material( material_handle const Material );
+    void SwapBuffers();
+    // draws supplied geometry handles
+    void Draw_Geometry(std::vector<gfx::geometrybank_handle>::iterator begin, std::vector<gfx::geometrybank_handle>::iterator end);
+	void Draw_Geometry(const gfx::geometrybank_handle &handle);
+	// material methods
+    void Bind_Material_Shadow(material_handle const Material);
+	void Update_AnimModel(TAnimModel *model);
 
 	// members
     GLenum static const sunlight{0};
@@ -252,7 +270,7 @@ class opengl33_renderer : public gfx_renderer {
 	int m_environmentcubetextureface{0}; // helper, currently processed cube map face
 	double m_environmentupdatetime{0}; // time of the most recent environment map update
 	glm::dvec3 m_environmentupdatelocation; // coordinates of most recent environment map update
-    opengl_skydome m_skydomerenderer;
+    opengl33_skydome m_skydomerenderer;
     opengl33_precipitation m_precipitationrenderer;
     opengl33_particles m_particlerenderer; // particle visualization subsystem
 

@@ -10,6 +10,7 @@ http://mozilla.org/MPL/2.0/.
 #include "stdafx.h"
 #include "geometrybank.h"
 #include "openglgeometrybank.h"
+#include "opengl33geometrybank.h"
 
 #include "sn_utils.h"
 #include "Logs.h"
@@ -239,8 +240,9 @@ geometrybank_manager::update() {
 gfx::geometrybank_handle
 geometrybank_manager::create_bank() {
 
-    if( true == Global.bUseVBO ) { m_geometrybanks.emplace_back( std::make_shared<opengl_vbogeometrybank>(), std::chrono::steady_clock::time_point() ); }
-    else                         { m_geometrybanks.emplace_back( std::make_shared<opengl_dlgeometrybank>(),  std::chrono::steady_clock::time_point() ); }
+         if( Global.GfxRenderer == "default" ) { m_geometrybanks.emplace_back( std::make_shared<opengl33_vaogeometrybank>(), std::chrono::steady_clock::time_point() ); }
+    else if( true == Global.bUseVBO )          { m_geometrybanks.emplace_back( std::make_shared<opengl_vbogeometrybank>(), std::chrono::steady_clock::time_point() ); }
+    else                                       { m_geometrybanks.emplace_back( std::make_shared<opengl_dlgeometrybank>(),  std::chrono::steady_clock::time_point() ); }
     // NOTE: handle is effectively (index into chunk array + 1) this leaves value of 0 to serve as error/empty handle indication
     return { static_cast<std::uint32_t>( m_geometrybanks.size() ), 0 };
 }

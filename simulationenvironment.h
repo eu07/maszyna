@@ -40,6 +40,12 @@ public:
     void compute_weather() const;
     // data access
     inline auto const &
+        sun() const {
+            return m_sun; }
+    inline auto const &
+        light_intensity() const {
+            return m_lightintensity; }
+    inline auto const &
         skydome() const {
             return m_skydome; }
     inline auto &
@@ -74,6 +80,7 @@ private:
     cStars m_stars;
     cSun m_sun;
     cMoon m_moon;
+    float m_lightintensity { 1.f };
     TSky m_clouds;
     basic_precipitation m_precipitation;
     sound_source m_precipitationsound { sound_placement::external, -1 };

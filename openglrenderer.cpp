@@ -27,6 +27,8 @@ http://mozilla.org/MPL/2.0/.
 int const EU07_PICKBUFFERSIZE { 1024 }; // size of (square) textures bound with the pick framebuffer
 int const EU07_ENVIRONMENTBUFFERSIZE { 256 }; // size of (square) environmental cube map texture
 
+float const EU07_OPACITYDEFAULT { 0.5f };
+
 bool
 opengl_renderer::Init( GLFWwindow *Window ) {
 
@@ -329,6 +331,7 @@ opengl_renderer::Render() {
     }
     // generate new frame
     m_renderpass.draw_mode = rendermode::none; // force setup anew
+    opengl_texture::reset_unit_cache();
     m_debugtimestext.clear();
     m_debugstats = debug_stats();
     Render_pass( rendermode::color );
@@ -511,7 +514,7 @@ opengl_renderer::Render_pass( rendermode const Mode ) {
                     setup_shadow_map( m_cabshadowtexture, m_cabshadowtexturematrix );
                     // cache shadow colour in case we need to account for cab light
                     auto const shadowcolor{ m_shadowcolor };
-                    auto const *vehicle { simulation::Train->Dynamic() };
+                    auto *vehicle { simulation::Train->Dynamic() };
                     if( vehicle->InteriorLightLevel > 0.f ) {
                         setup_shadow_color( glm::min( colors::white, shadowcolor + glm::vec4( vehicle->InteriorLight * vehicle->InteriorLightLevel, 1.f ) ) );
                     }
@@ -525,6 +528,8 @@ opengl_renderer::Render_pass( rendermode const Mode ) {
                     if( vehicle->InteriorLightLevel > 0.f ) {
                         setup_shadow_color( shadowcolor );
                     }
+                    // with the cab in place we can (finally) safely draw translucent part of the occupied vehicle
+                    Render_Alpha( vehicle );
                 }
 
                 if( m_environmentcubetexturesupport ) {
@@ -982,7 +987,7 @@ opengl_renderer::setup_drawing( bool const Alpha ) {
     }
     else {
         ::glDisable( GL_BLEND );
-        ::glAlphaFunc( GL_GREATER, 0.5f );
+        ::glAlphaFunc( GL_GREATER, EU07_OPACITYDEFAULT );
     }
 
     switch( m_renderpass.draw_mode ) {
@@ -1536,14 +1541,14 @@ opengl_renderer::Insert( gfx::vertex_array &Vertices, gfx::geometrybank_handle c
 
 // replaces data of specified chunk with the supplied vertex data, starting from specified offset
 bool
-opengl_renderer::Replace( gfx::vertex_array &Vertices, gfx::geometry_handle const &Geometry, std::size_t const Offset ) {
+opengl_renderer::Replace( gfx::vertex_array &Vertices, gfx::geometry_handle const &Geometry, int const Type, std::size_t const Offset ) {
 
     return m_geometry.replace( Vertices, Geometry, Offset );
 }
 
 // adds supplied vertex data at the end of specified chunk
 bool
-opengl_renderer::Append( gfx::vertex_array &Vertices, gfx::geometry_handle const &Geometry ) {
+opengl_renderer::Append( gfx::vertex_array &Vertices, gfx::geometry_handle const &Geometry, int const Type ) {
 
     return m_geometry.append( Vertices, Geometry );
 }
@@ -1563,13 +1568,13 @@ opengl_renderer::Fetch_Material( std::string const &Filename, bool const Loadnow
 }
 
 void
-opengl_renderer::Bind_Material( material_handle const Material ) {
+opengl_renderer::Bind_Material( material_handle const Material, TSubModel *sm ) {
 
     auto const &material = m_materials.material( Material );
     if( false == Global.BasicRenderer ) {
-        m_textures.bind( textureunit::normals, material.textures[1] );
+        m_textures.bind( m_normaltextureunit - GL_TEXTURE0, material.textures[1] );
     }
-    m_textures.bind( textureunit::diffuse, material.textures[0] );
+    m_textures.bind( m_diffusetextureunit - GL_TEXTURE0, material.textures[0] );
 }
 
 opengl_material const &
@@ -1595,13 +1600,13 @@ opengl_renderer::select_unit( GLint const Textureunit ) {
 texture_handle
 opengl_renderer::Fetch_Texture( std::string const &Filename, bool const Loadnow, GLint format_hint ) {
 
-    return m_textures.create( Filename, Loadnow );
+    return m_textures.create( Filename, Loadnow, GL_RGBA );
 }
 
 void
 opengl_renderer::Bind_Texture( texture_handle const Texture ) {
 
-    m_textures.bind( textureunit::diffuse, Texture );
+    m_textures.bind( m_diffusetextureunit - GL_TEXTURE0, Texture );
 }
 
 void
@@ -1623,13 +1628,13 @@ opengl_renderer::Texture( texture_handle const Texture ) const {
 }
 
 void
-opengl_renderer::Pick_Control( std::function<void( TSubModel const * )> Callback ) {
+opengl_renderer::Pick_Control_Callback( std::function<void( TSubModel const * )> Callback ) {
 
     m_control_pick_requests.emplace_back( Callback );
 }
 
 void
-opengl_renderer::Pick_Node( std::function<void( scene::basic_node * )> Callback ) {
+opengl_renderer::Pick_Node_Callback( std::function<void( scene::basic_node * )> Callback ) {
 
     m_node_pick_requests.emplace_back( Callback );
 }
@@ -2449,15 +2454,14 @@ opengl_renderer::Render( TSubModel *Submodel ) {
                         }
 #endif
                         // material configuration:
+                        auto const material{ (
+                            Submodel->m_material < 0 ?
+                                Submodel->ReplacableSkinId[ -Submodel->m_material ] : // zmienialne skóry
+                                Submodel->m_material ) }; // również 0
                         // textures...
-                        if( Submodel->m_material < 0 ) { // zmienialne skóry
-                            Bind_Material( Submodel->ReplacableSkinId[ -Submodel->m_material ] );
-                        }
-                        else {
-                            // również 0
-                            Bind_Material( Submodel->m_material );
-                        }
-                        // ...colors...
+                        Bind_Material( material );
+                        // ...colors and opacity...
+                        auto const opacity { clamp( Material( material ).get_or_guess_opacity(), 0.f, 1.f ) };
                         if( Submodel->fVisible < 1.f ) {
                             // setup
                             ::glAlphaFunc( GL_GREATER, 0.f );
@@ -2470,6 +2474,10 @@ opengl_renderer::Render( TSubModel *Submodel ) {
                         }
                         else {
                             ::glColor3fv( glm::value_ptr( Submodel->f4Diffuse ) ); // McZapkie-240702: zamiast ub
+                            if( ( opacity != 0.f )
+                             && ( opacity != EU07_OPACITYDEFAULT ) ) {
+                                ::glAlphaFunc( GL_GREATER, opacity );
+                            }
                         }
                         // ...specular...
                         if( ( true == m_renderspecular ) && ( m_sunlight.specular.a > 0.01f ) ) {
@@ -2505,8 +2513,12 @@ opengl_renderer::Render( TSubModel *Submodel ) {
 */
                         // post-draw reset
                         if( Submodel->fVisible < 1.f ) {
-                            ::glAlphaFunc( GL_GREATER, 0.5f );
+                            ::glAlphaFunc( GL_GREATER, EU07_OPACITYDEFAULT );
                             ::glDisable( GL_BLEND );
+                        }
+                        else if( ( opacity != 0.f )
+                              && ( opacity != EU07_OPACITYDEFAULT ) ) {
+                            ::glAlphaFunc( GL_GREATER, EU07_OPACITYDEFAULT );
                         }
                         if( ( true == m_renderspecular ) && ( m_sunlight.specular.a > 0.01f ) ) {
                             ::glMaterialfv( GL_FRONT, GL_SPECULAR, glm::value_ptr( colors::none ) );
@@ -3104,6 +3116,11 @@ opengl_renderer::Render_Alpha( cell_sequence::reverse_iterator First, cell_seque
             // translucent parts of vehicles
             for( auto *path : cell->m_paths ) {
                 for( auto *dynamic : path->Dynamics ) {
+                    if( ( false == FreeFlyModeFlag )
+                     && ( simulation::Train->Dynamic() == dynamic ) ) {
+                        // delay drawing translucent parts of occupied vehicle until after the cab was drawn
+                        continue;
+                    }
                     Render_Alpha( dynamic );
                 }
             }
@@ -3861,7 +3878,7 @@ opengl_renderer::Update( double const Deltatime ) {
      && ( true == FreeFlyModeFlag )
      && ( ( true == DebugModeFlag )
        || ( true == EditorModeFlag ) ) ) {
-        if( ( false == m_control_pick_requests.empty() )
+        if( ( false == m_node_pick_requests.empty() )
          || ( m_updateaccumulator >= 1.0 ) ) {
             Update_Pick_Node();
         }

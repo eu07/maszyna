@@ -24,6 +24,8 @@ http://mozilla.org/MPL/2.0/.
 
 int const EU07_PICKBUFFERSIZE{1024}; // size of (square) textures bound with the pick framebuffer
 
+auto const gammacorrection { glm::vec3( 2.2f ) };
+
 bool opengl33_renderer::Init(GLFWwindow *Window)
 {
 	if (!Init_caps())
@@ -280,7 +282,7 @@ bool opengl33_renderer::init_viewport(viewport_config &vp)
 	glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
 	glPixelStorei(GL_PACK_ALIGNMENT, 1);
 
-	glClearColor(51.0f / 255.0f, 102.0f / 255.0f, 85.0f / 255.0f, 1.0f); // initial background Color
+    glClearColor( 51.0f / 255.f, 102.0f / 255.f, 85.0f / 255.f, 1.f ); // initial background Color
 
 	glFrontFace(GL_CCW);
 	glEnable(GL_CULL_FACE);
@@ -397,6 +399,8 @@ bool opengl33_renderer::Render()
 		m_sunlight.direction = glm::normalize(quantizationstep * glm::roundEven(m_sunlight.direction * (1.f / quantizationstep)));
 	}
 	// generate new frame
+    opengl_texture::reset_unit_cache();
+
 	m_renderpass.draw_mode = rendermode::none; // force setup anew
 	m_debugstats = debug_stats();
 
@@ -430,6 +434,8 @@ bool opengl33_renderer::Render()
 		m_debugtimestext += m_textures.info();
 
 	++m_framestamp;
+
+    SwapBuffers();
 
 	Timer::subsystem.gfx_total.stop();
 
@@ -491,10 +497,13 @@ void opengl33_renderer::Render_pass(viewport_config &vp, rendermode const Mode)
 		if (!simulation::is_ready)
 		{
 			gl::framebuffer::unbind();
-			glClearColor(0.0f, 0.5f, 0.0f, 1.0f);
+			glClearColor( 51.0f / 255.f, 102.0f / 255.f, 85.0f / 255.f, 1.f ); // initial background Color
 			glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-			if (vp.main)
-				Application.render_ui();
+            if( vp.main ) {
+                //glEnable( GL_FRAMEBUFFER_SRGB );
+                Application.render_ui();
+                //glDisable( GL_FRAMEBUFFER_SRGB );
+            }
 			break;
 		}
 
@@ -952,49 +961,17 @@ void opengl33_renderer::setup_pass(viewport_config &Viewport, renderpass_config 
 
 	Config.draw_mode = Mode;
 
-	if (false == simulation::is_ready)
-	{
-		return;
-	}
-	// setup draw range
-	switch (Mode)
-	{
-	case rendermode::color:
-	{
-		Config.draw_range = Global.BaseDrawRange;
-		break;
-	}
-	case rendermode::shadows:
-	{
-		Config.draw_range = Global.BaseDrawRange * 0.5f;
-		break;
-	}
-	case rendermode::cabshadows:
-	{
-		Config.draw_range = simulation::Train->Occupied()->Dim.L;
-		break;
-	}
-	case rendermode::reflections:
-	{
-		Config.draw_range = Global.BaseDrawRange;
-		break;
-	}
-	case rendermode::pickcontrols:
-	{
-		Config.draw_range = 50.f;
-		break;
-	}
-	case rendermode::pickscenery:
-	{
-		Config.draw_range = Global.BaseDrawRange * 0.5f;
-		break;
-	}
-	default:
-	{
-		Config.draw_range = 0.f;
-		break;
-	}
-	}
+    if( false == simulation::is_ready ) { return; }
+    // setup draw range
+    switch( Mode ) {
+        case rendermode::color:        { Config.draw_range = Global.BaseDrawRange; break; }
+        case rendermode::shadows:      { Config.draw_range = Global.BaseDrawRange * 0.5f; break; }
+        case rendermode::cabshadows:   { Config.draw_range = ( Global.RenderCabShadowsRange > 0 ? clamp( Global.RenderCabShadowsRange, 5, 100 ) : simulation::Train->Occupied()->Dim.L ); break; }
+        case rendermode::reflections:  { Config.draw_range = Global.BaseDrawRange; break; }
+        case rendermode::pickcontrols: { Config.draw_range = 50.f; break; }
+        case rendermode::pickscenery:  { Config.draw_range = Global.BaseDrawRange * 0.5f; break; }
+        default:                       { Config.draw_range = 0.f; break; }
+    }
 
 	Config.draw_range *= Viewport.draw_range;
 
@@ -1247,7 +1224,12 @@ void opengl33_renderer::setup_shadow_map(opengl_texture *tex, renderpass_config 
 		glm::mat4 depthcam = conf.pass_camera.modelview();
 		glm::mat4 worldcam = m_renderpass.pass_camera.modelview();
 
-		scene_ubs.lightview = coordmove * depthproj * depthcam * glm::inverse(worldcam);
+        scene_ubs.lightview =
+            coordmove
+            * depthproj
+            * depthcam
+            * glm::inverse( worldcam );
+                
 		scene_ubo->update(scene_ubs);
 	}
 }
@@ -1328,11 +1310,17 @@ bool opengl33_renderer::Render(world_environment *Environment)
 	// drawn with 500m radius to blend in if the fog range is low
 	glPushMatrix();
 	glScalef(500.0f, 500.0f, 500.0f);
+    m_skydomerenderer.update();
     m_skydomerenderer.render();
     glPopMatrix();
 
 	// skydome uses a custom vbo which could potentially confuse the main geometry system. hardly elegant but, eh
 	gfx::opengl_vbogeometrybank::reset();
+
+    ::glPushAttrib( GL_ENABLE_BIT | GL_COLOR_BUFFER_BIT );
+    ::glDisable( GL_ALPHA_TEST );
+    ::glEnable( GL_BLEND );
+    ::glBlendFunc( GL_SRC_ALPHA, GL_ONE );
 
 	// stars
 	if (Environment->m_stars.m_stars != nullptr)
@@ -1349,34 +1337,15 @@ bool opengl33_renderer::Render(world_environment *Environment)
 		::glPopMatrix();
 	}
 
-	auto const fogfactor{clamp<float>(Global.fFogEnd / 2000.f, 0.f, 1.f)}; // stronger fog reduces opacity of the celestial bodies
-	float const duskfactor = 1.0f - clamp(std::abs(Environment->m_sun.getAngle()), 0.0f, 12.0f) / 12.0f;
-	glm::vec3 suncolor = interpolate(glm::vec3(255.0f / 255.0f, 242.0f / 255.0f, 231.0f / 255.0f), glm::vec3(235.0f / 255.0f, 140.0f / 255.0f, 36.0f / 255.0f), duskfactor);
-
-	// clouds
-	if (Environment->m_clouds.mdCloud)
-	{
-		// setup
-		glm::vec3 color = interpolate(Environment->m_skydome.GetAverageColor(), suncolor, duskfactor * 0.25f) * interpolate(1.f, 0.35f, Global.Overcast / 2.f) // overcast darkens the clouds
-		                  * 0.5f;
-
-		// write cloud color into material
-		TSubModel *mdl = Environment->m_clouds.mdCloud->Root;
-		if (mdl->m_material != null_handle)
-			m_materials.material(mdl->m_material).params[0] = glm::vec4(color, 1.0f);
-
-		// render
-		Render(Environment->m_clouds.mdCloud, nullptr, 100.0);
-		Render_Alpha(Environment->m_clouds.mdCloud, nullptr, 100.0);
-		// post-render cleanup
-	}
-
 	// celestial bodies
-
 	m_celestial_shader->bind();
 	m_empty_vao->bind();
 
 	auto const &modelview = OpenGLMatrices.data(GL_MODELVIEW);
+
+    auto const fogfactor{clamp<float>(Global.fFogEnd / 2000.f, 0.f, 1.f)}; // stronger fog reduces opacity of the celestial bodies
+	float const duskfactor = 1.0f - clamp(std::abs(Environment->m_sun.getAngle()), 0.0f, 12.0f) / 12.0f;
+	glm::vec3 suncolor = interpolate(glm::vec3(255.0f / 255.0f, 242.0f / 255.0f, 231.0f / 255.0f), glm::vec3(235.0f / 255.0f, 140.0f / 255.0f, 36.0f / 255.0f), duskfactor);
 
 	// sun
 	{
@@ -1384,8 +1353,12 @@ bool opengl33_renderer::Render(world_environment *Environment)
 		glm::vec4 color(suncolor.x, suncolor.y, suncolor.z, clamp(1.5f - Global.Overcast, 0.f, 1.f) * fogfactor);
 		auto const sunvector = Environment->m_sun.getDirection();
 
+        float const size = interpolate( // TODO: expose distance/scale factor from the moon object
+            0.0325f,
+            0.0275f,
+            clamp( Environment->m_sun.getAngle(), 0.f, 90.f ) / 90.f );
 		model_ubs.param[0] = color;
-		model_ubs.param[1] = glm::vec4(glm::vec3(modelview * glm::vec4(sunvector, 1.0f)), 0.00463f);
+		model_ubs.param[1] = glm::vec4(glm::vec3(modelview * glm::vec4(sunvector, 1.0f)), /*0.00463f*/ size);
 		model_ubs.param[2] = glm::vec4(0.0f, 1.0f, 1.0f, 0.0f);
 		model_ubo->update(model_ubs);
 		glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
@@ -1451,11 +1424,35 @@ bool opengl33_renderer::Render(world_environment *Environment)
 			moonu = 0.0f;
 		}
 
+        float const size = interpolate( // TODO: expose distance/scale factor from the moon object
+            0.0160f,
+            0.0135f,
+            clamp( Environment->m_moon.getAngle(), 0.f, 90.f ) / 90.f );
+
 		model_ubs.param[0] = color;
-		model_ubs.param[1] = glm::vec4(glm::vec3(modelview * glm::vec4(moonvector, 1.0f)), 0.00451f);
+		model_ubs.param[1] = glm::vec4(glm::vec3(modelview * glm::vec4(moonvector, 1.0f)), /*0.00451f*/ size);
 		model_ubs.param[2] = glm::vec4(moonu, moonv, 0.333f, 0.0f);
 		model_ubo->update(model_ubs);
 		glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+	}
+    ::glPopAttrib();
+
+  	// clouds
+	if (Environment->m_clouds.mdCloud)
+	{
+		// setup
+		glm::vec3 color = interpolate(Environment->m_skydome.GetAverageColor(), suncolor, duskfactor * 0.25f) * interpolate(1.f, 0.35f, Global.Overcast / 2.f) // overcast darkens the clouds
+		                  * 0.5f;
+
+		// write cloud color into material
+		TSubModel *mdl = Environment->m_clouds.mdCloud->Root;
+		if (mdl->m_material != null_handle)
+			m_materials.material(mdl->m_material).params[0] = glm::vec4(color, 1.0f);
+
+		// render
+		Render(Environment->m_clouds.mdCloud, nullptr, 100.0);
+		Render_Alpha(Environment->m_clouds.mdCloud, nullptr, 100.0);
+		// post-render cleanup
 	}
 
 	gl::program::unbind();
@@ -1548,6 +1545,7 @@ void opengl33_renderer::Bind_Material(material_handle const Material, TSubModel 
 					src = sm->f4Ambient;
 				else if (entry.defaultparam == gl::shader::defaultparam_e::diffuse)
 					src = sm->f4Diffuse;
+//                    src = glm::vec4( glm::pow( glm::vec3( sm->f4Diffuse ), gammacorrection ), sm->f4Diffuse.a );
 				else if (entry.defaultparam == gl::shader::defaultparam_e::specular)
 					src = sm->f4Specular;
 			}
@@ -1645,6 +1643,11 @@ texture_handle opengl33_renderer::Fetch_Texture(std::string const &Filename, boo
 	return m_textures.create(Filename, Loadnow, format_hint);
 }
 
+void opengl33_renderer::Bind_Texture( texture_handle const Texture )
+{
+    return Bind_Texture( 0, Texture );
+}
+
 void opengl33_renderer::Bind_Texture(std::size_t const Unit, texture_handle const Texture)
 {
 	m_textures.bind(Unit, Texture);
@@ -1720,7 +1723,7 @@ void opengl33_renderer::Render(scene::basic_region *Region)
 		{
 			// when editor mode is active calculate world position of the cursor
 			// at this stage the z-buffer is filled with only ground geometry
-			get_mouse_depth();
+			Update_Mouse_Position();
 		}
 		Render(std::begin(m_cellqueue), std::end(m_cellqueue));
 		break;
@@ -2489,7 +2492,7 @@ void opengl33_renderer::Render(TSubModel *Submodel)
 					Bind_Material(Submodel->m_material, Submodel);
 
 					// main draw call
-					model_ubs.param[1].x = 2.0f * 2.0f;
+                    model_ubs.param[1].x = 2.0f;
 
 					draw(Submodel->m_geometry);
 				}
@@ -3353,9 +3356,10 @@ void opengl33_renderer::Render_Alpha(TSubModel *Submodel)
 					// main draw call
 					model_ubs.emission = 1.0f;
 
-					auto const lightcolor = glm::vec3(Submodel->DiffuseOverride.r < 0.f ? // -1 indicates no override
-					                           Submodel->f4Diffuse :
-					                           Submodel->DiffuseOverride);
+					auto lightcolor = glm::vec3(Submodel->DiffuseOverride.r < 0.f ? // -1 indicates no override
+                                            Submodel->f4Diffuse :
+                                            Submodel->DiffuseOverride);
+                    lightcolor = glm::pow( lightcolor, gammacorrection );
 
 					m_freespot_shader->bind();
 
@@ -3368,7 +3372,7 @@ void opengl33_renderer::Render_Alpha(TSubModel *Submodel)
 
 						draw(Submodel->m_geometry);
 					}
-					model_ubs.param[1].x = pointsize * resolutionratio * 2.0f;
+					model_ubs.param[1].x = pointsize * resolutionratio;
 					model_ubs.param[0] = glm::vec4(glm::vec3(lightcolor), Submodel->fVisible * std::min(1.f, lightlevel));
 
 					if (!Submodel->occlusion_query)
@@ -3517,17 +3521,17 @@ void opengl33_renderer::Update_Pick_Node()
 	}
 }
 
-void opengl33_renderer::pick_control(std::function<void(TSubModel const *)> callback)
+void opengl33_renderer::Pick_Control_Callback(std::function<void(TSubModel const *)> callback)
 {
 	m_control_pick_requests.push_back(callback);
 }
 
-void opengl33_renderer::pick_node(std::function<void(scene::basic_node *)> callback)
+void opengl33_renderer::Pick_Node_Callback(std::function<void(scene::basic_node *)> callback)
 {
 	m_node_pick_requests.push_back(callback);
 }
 
-glm::dvec3 opengl33_renderer::get_mouse_depth()
+glm::dvec3 opengl33_renderer::Update_Mouse_Position()
 {
 	if (!m_depth_pointer_pbo->is_busy())
 	{
@@ -3631,18 +3635,33 @@ void opengl33_renderer::Update(double const Deltatime)
 	}
 
 	m_updateaccumulator = 0.0;
-	m_framerate = 1000.f / (Timer::subsystem.mainloop_total.average());
+    m_framerate = 1000.f / ( Timer::subsystem.mainloop_total.average() );
 
 	// adjust draw ranges etc, based on recent performance
 	// TODO: it doesn't make much sense with vsync
-
-	if (Global.targetfps != 0.0f) {
-		float fps_diff = Global.targetfps - m_framerate;
-		if (fps_diff > 0.0f)
-			Global.fDistanceFactor = std::max(0.5f, Global.fDistanceFactor - 0.05f);
-		else
-			Global.fDistanceFactor = std::min(3.0f, Global.fDistanceFactor + 0.05f);
-	}
+    if( Global.targetfps == 0.0f ) {
+        // automatic adjustment
+        float targetfactor;
+             if( m_framerate > 90.0 ) { targetfactor = 3.0f; }
+        else if( m_framerate > 60.0 ) { targetfactor = 1.5f; }
+        else if( m_framerate > 30.0 ) { targetfactor = 1.25; }
+        else                          { targetfactor = 1.0f; }
+        if( targetfactor > Global.fDistanceFactor ) {
+            Global.fDistanceFactor = std::min( targetfactor, Global.fDistanceFactor + 0.05f );
+        }
+        else if( targetfactor < Global.fDistanceFactor ) {
+            Global.fDistanceFactor = std::max( targetfactor, Global.fDistanceFactor - 0.05f );
+        }
+    }
+    else {
+        auto const fps_diff = Global.targetfps - m_framerate;
+        if( fps_diff > 0.5f ) {
+            Global.fDistanceFactor = std::max( 1.0f, Global.fDistanceFactor - 0.05f );
+        }
+        else if( fps_diff < 0.5f ) {
+            Global.fDistanceFactor = std::min( 3.0f, Global.fDistanceFactor + 0.05f );
+        }
+    }
 
 	if ((true == Global.ResourceSweep) && (true == simulation::is_ready))
 	{
@@ -3652,10 +3671,10 @@ void opengl33_renderer::Update(double const Deltatime)
 	}
 
 	if ((true == Global.ControlPicking) && (false == FreeFlyModeFlag))
-		pick_control([](const TSubModel *) {});
+		Pick_Control_Callback([](const TSubModel *) {});
 	// temporary conditions for testing. eventually will be coupled with editor mode
 	if ((true == Global.ControlPicking) && (true == DebugModeFlag) && (true == FreeFlyModeFlag))
-		pick_node([](scene::basic_node *) {});
+		Pick_Node_Callback([](scene::basic_node *) {});
 
 	// dump last opengl error, if any
 	auto const glerror = ::glGetError();
@@ -3748,7 +3767,7 @@ void opengl33_renderer::Update_Lights(light_array &Lights)
 		renderlight->diffuse = glm::vec4{glm::max(glm::vec3{colors::none}, scenelight.color - glm::vec3{luminance}), renderlight->diffuse[3]};
 		renderlight->ambient = glm::vec4{glm::max(glm::vec3{colors::none}, scenelight.color * glm::vec3{scenelight.intensity} - glm::vec3{luminance}), renderlight->ambient[3]};
 
-		renderlight->apply_intensity();
+		renderlight->apply_intensity( ( scenelight.count * 0.5 ) * ( scenelight.owner->DimHeadlights ? 0.5 : 1.0 ) );
 		renderlight->apply_angle();
 
 		gl::light_element_ubs *l = &light_ubs.lights[light_i];
@@ -3767,10 +3786,10 @@ void opengl33_renderer::Update_Lights(light_array &Lights)
 		++renderlight;
 	}
 
-	light_ubs.ambient = m_sunlight.ambient * m_sunlight.factor;
+    light_ubs.ambient = m_sunlight.ambient * m_sunlight.factor;// *simulation::Environment.light_intensity();
 	light_ubs.lights[0].type = gl::light_element_ubs::DIR;
 	light_ubs.lights[0].dir = mv * glm::vec4(m_sunlight.direction, 0.0f);
-	light_ubs.lights[0].color = m_sunlight.diffuse * m_sunlight.factor;
+	light_ubs.lights[0].color = m_sunlight.diffuse * m_sunlight.factor * simulation::Environment.light_intensity();
 	light_ubs.lights[0].ambient = 0.0f;
 	light_ubs.lights[0].intensity = 1.0f;
 	light_ubs.lights_count = light_i;

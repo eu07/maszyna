@@ -435,6 +435,12 @@
     <ClCompile Include="opengl33precipitation.cpp">
       <Filter>Source Files\gfx</Filter>
     </ClCompile>
+    <ClCompile Include="opengl33skydome.cpp">
+      <Filter>Source Files\gfx</Filter>
+    </ClCompile>
+    <ClCompile Include="opengl33geometrybank.cpp">
+      <Filter>Source Files\gfx</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Globals.h">
@@ -701,9 +707,6 @@
     <ClInclude Include="Texture.h">
       <Filter>Header Files\gfx</Filter>
     </ClInclude>
-    <ClInclude Include="stars.h">
-      <Filter>Header Files\gfx</Filter>
-    </ClInclude>
     <ClInclude Include="AnimModel.h">
       <Filter>Header Files\gfx</Filter>
     </ClInclude>
@@ -798,6 +801,15 @@
       <Filter>Header Files\gfx</Filter>
     </ClInclude>
     <ClInclude Include="opengl33precipitation.h">
+      <Filter>Header Files\gfx</Filter>
+    </ClInclude>
+    <ClInclude Include="opengl33skydome.h">
+      <Filter>Header Files\gfx</Filter>
+    </ClInclude>
+    <ClInclude Include="opengl33geometrybank.h">
+      <Filter>Header Files\gfx</Filter>
+    </ClInclude>
+    <ClInclude Include="stars.h">
       <Filter>Header Files\gfx</Filter>
     </ClInclude>
   </ItemGroup>

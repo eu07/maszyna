@@ -338,10 +338,9 @@ global_settings::ConfigParse(cParser &Parser) {
         }
         else if( token == "gfxrenderer" ) {
             // shadow render toggle
-            std::string gfxrenderer;
             Parser.getTokens();
-            Parser >> gfxrenderer;
-            BasicRenderer = ( gfxrenderer == "simple" );
+            Parser >> GfxRenderer;
+            BasicRenderer = ( GfxRenderer == "simple" );
         }
         else if( token == "shadows" ) {
             // shadow render toggle

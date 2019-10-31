@@ -54,6 +54,8 @@ private:
     void
         release_() override;
     void
+        setup_buffer();
+    void
         bind_buffer();
     void
         delete_buffer();

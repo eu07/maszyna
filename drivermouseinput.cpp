@@ -318,7 +318,7 @@ drivermouse_input::button( int const Button, int const Action ) {
         // left mouse button launches on_click event associated with to the node
         if( Button == GLFW_MOUSE_BUTTON_LEFT ) {
             if( Action == GLFW_PRESS ) {
-                GfxRenderer->Pick_Node(
+                GfxRenderer->Pick_Node_Callback(
                     [this](scene::basic_node *node) {
                         if( ( node == nullptr )
                          || ( typeid( *node ) != typeid( TAnimModel ) ) )
@@ -366,7 +366,7 @@ drivermouse_input::button( int const Button, int const Action ) {
         else {
             // if not release then it's press
             m_pickwaiting = true;
-            GfxRenderer->Pick_Control(
+            GfxRenderer->Pick_Control_Callback(
                 [this, Button, Action, &mousecommand](TSubModel const *control) {
 
                     bool pickwaiting = m_pickwaiting;

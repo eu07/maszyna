@@ -141,6 +141,8 @@ opengl_precipitation::update() {
 void
 opengl_precipitation::render() {
 
+    if( m_texture == null_handle ) { return; }
+
     GfxRenderer->Bind_Texture( m_texture );
 
     // cache entry state

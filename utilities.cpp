@@ -487,3 +487,13 @@ deserialize_random_set( cParser &Input, char const *Break ) {
         return "";
     }
 }
+
+int count_trailing_zeros( uint32_t val )
+{
+    int r = 0;
+
+    for( uint32_t shift = 1; !( val & shift ); shift <<= 1 )
+        r++;
+
+    return r;
+}

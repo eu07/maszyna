@@ -195,7 +195,7 @@ ui_layer::render() {
 
 	glMatrixMode(GL_MODELVIEW);
     glLoadIdentity();
-
+/*
     glPushAttrib( GL_ENABLE_BIT | GL_COLOR_BUFFER_BIT ); // blendfunc included since 3rd party gui doesn't play nice
 	glDisable( GL_LIGHTING );
 	glDisable( GL_DEPTH_TEST );
@@ -206,18 +206,10 @@ ui_layer::render() {
     ::glColor4fv( glm::value_ptr( colors::white ) );
 
     // render code here
-    render_background();
     render_texture();
 
-    glDisable( GL_TEXTURE_2D );
-    glDisable( GL_TEXTURE_CUBE_MAP );
-
-    render_progress();
-
-    glDisable( GL_BLEND );
-
     glPopAttrib();
-
+*/
     // imgui ui code
     ::glPushClientAttrib( GL_CLIENT_VERTEX_ARRAY_BIT );
 
@@ -232,6 +224,8 @@ ui_layer::render() {
     ImGui_ImplGlfw_NewFrame();
     ImGui::NewFrame();
 
+    render_background();
+    render_progress();
     render_panels();
     render_tooltip();
     // template method implementation
@@ -265,7 +259,7 @@ void
 ui_layer::set_background( std::string const &Filename ) {
 
     if( false == Filename.empty() ) {
-        m_background = GfxRenderer->Fetch_Texture( Filename );
+        m_background = GfxRenderer->Fetch_Texture( Filename, true, GL_RGBA );
     }
     else {
         m_background = null_handle;
@@ -283,52 +277,27 @@ ui_layer::set_background( std::string const &Filename ) {
 void
 ui_layer::render_progress() {
 
-	if( (m_progress == 0.0f) && (m_subtaskprogress == 0.0f) ) return;
+    if ((m_progress == 0.0f) && (m_subtaskprogress == 0.0f))
+        return;
 
-    glm::vec2 origin, size;
-    if( m_progressbottom == true ) {
-        origin = glm::vec2{ 0.0f, 768.0f - 20.0f };
-        size   = glm::vec2{ 1024.0f, 20.0f };
-    }
-    else {
-        origin = glm::vec2{ 75.0f, 640.0f };
-        size   = glm::vec2{ 320.0f, 16.0f };
-    }
+    ImGui::SetNextWindowPos(ImVec2(50, Global.iWindowHeight - 50));
+    ImGui::SetNextWindowSize(ImVec2(0, 0));
+    ImGui::Begin(
+        "Loading", nullptr,
+        ImGuiWindowFlags_NoTitleBar
+        | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse
+        | ImGuiWindowFlags_NoCollapse );
 
-    quad( glm::vec4( origin.x, origin.y, origin.x + size.x, origin.y + size.y ), glm::vec4(0.0f, 0.0f, 0.0f, 0.25f) );
-    // secondary bar
-    if( m_subtaskprogress ) {
-        quad(
-            glm::vec4( origin.x, origin.y, origin.x + size.x * m_subtaskprogress, origin.y + size.y),
-            glm::vec4( 8.0f/255.0f, 160.0f/255.0f, 8.0f/255.0f, 0.35f ) );
-    }
-    // primary bar
-	if( m_progress ) {
-        quad(
-            glm::vec4( origin.x, origin.y, origin.x + size.x * m_progress, origin.y + size.y ),
-            glm::vec4( 8.0f / 255.0f, 160.0f / 255.0f, 8.0f / 255.0f, 1.0f ) );
-    }
+    const ImU32 col = ImGui::ColorConvertFloat4ToU32(  ImVec4( 8.0f / 255.0f, 160.0f / 255.0f, 8.0f / 255.0f, 1.0f ) ); // ImGui::GetColorU32( ImGuiCol_ButtonHovered );
+    const ImU32 bg = ImGui::ColorConvertFloat4ToU32( ImVec4( 8.0f / 255.0f, 160.0f / 255.0f, 8.0f / 255.0f, 0.35f ) ); // ImGui::GetColorU32( ImGuiCol_Button );
+/*
+    ImGui::Spinner( "##spinner", 8, 4, col );
+    ImGui::SetCursorPos( ImVec2( 40, 18 ) );
+*/
+    ImGui::SetCursorPos( ImVec2( 15, 15 ) );
+    ImGui::BufferingBar( "##buffer_bar", m_progress, ImVec2( Global.iWindowWidth - 125, 4 ), bg, col );
 
-    if( false == m_progresstext.empty() ) {
-        float const screenratio = static_cast<float>( Global.iWindowWidth ) / Global.iWindowHeight;
-        float const width =
-            ( screenratio >= (4.0f/3.0f) ?
-                ( 4.0f / 3.0f ) * Global.iWindowHeight :
-                Global.iWindowWidth );
-        float const heightratio =
-            ( screenratio >= ( 4.0f / 3.0f ) ?
-                Global.iWindowHeight / 768.f :
-                Global.iWindowHeight / 768.f * screenratio / ( 4.0f / 3.0f ) );
-        float const height = 768.0f * heightratio;
-
-        ::glColor4f( 216.0f / 255.0f, 216.0f / 255.0f, 216.0f / 255.0f, 1.0f );
-        auto const charsize = 9.0f;
-        auto const textwidth = m_progresstext.size() * charsize;
-        auto const textheight = 12.0f;
-        ::glRasterPos2f(
-            ( 0.5f * ( Global.iWindowWidth  - width )  + origin.x * heightratio ) + ( ( size.x * heightratio - textwidth ) * 0.5f * heightratio ),
-            ( 0.5f * ( Global.iWindowHeight - height ) + origin.y * heightratio ) + ( charsize ) + ( ( size.y * heightratio - textheight ) * 0.5f * heightratio ) );
-    }
+    ImGui::End();
 }
 
 void
@@ -351,23 +320,22 @@ ui_layer::render_tooltip() {
 void
 ui_layer::render_background() {
 
-	if( m_background == 0 ) return;
-    // NOTE: we limit/expect the background to come with 4:3 ratio.
-    // TODO, TBD: if we expose texture width or ratio from texture object, this limitation could be lifted
-    GfxRenderer->Bind_Texture( m_background );
-    auto const height { 768.0f };
-    auto const &texture = GfxRenderer->Texture( m_background );
-    float const width = (
-        texture.width() == texture.height() ?
-            1024.0f : // legacy mode, square texture displayed as 4:3 image
-            texture.width() / ( texture.height() / 768.0f ) );
-    quad(
-        glm::vec4(
-            ( 1024.0f * 0.5f ) - ( width  * 0.5f ),
-            (  768.0f * 0.5f ) - ( height * 0.5f ),
-            ( 1024.0f * 0.5f ) - ( width  * 0.5f ) + width,
-            (  768.0f * 0.5f ) - ( height * 0.5f ) + height ),
-        colors::white );
+    if (m_background == 0)
+        return;
+
+    ImVec2 size = ImGui::GetIO().DisplaySize;
+    opengl_texture &tex = GfxRenderer->Texture(m_background);
+    tex.create();
+
+    ImGui::SetNextWindowPos(ImVec2(0, 0));
+    ImGui::SetNextWindowSize(size);
+    ImGui::Begin(
+        "Logo", nullptr,
+        ImGuiWindowFlags_NoTitleBar
+        | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse
+        | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoBringToFrontOnFocus );
+    ImGui::Image(reinterpret_cast<void *>(tex.id), size, ImVec2(0, 1), ImVec2(1, 0));
+    ImGui::End();
 }
 
 void

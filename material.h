@@ -38,9 +38,7 @@ struct opengl_material {
         deserialize( cParser &Input, bool const Loadnow );
     void finalize(bool Loadnow);
     float get_or_guess_opacity() const;
-    inline bool
-        is_translucent() const {
-            return ( get_or_guess_opacity() == 0.0f ); }
+    bool is_translucent() const;
 
 private:
 // methods

@@ -19,9 +19,11 @@ http://mozilla.org/MPL/2.0/.
 #include "dictionary.h"
 #include "sceneeditor.h"
 #include "openglrenderer.h"
+#include "opengl33renderer.h"
 #include "uilayer.h"
 #include "translation.h"
 #include "Logs.h"
+#include "Timer.h"
 
 #ifdef EU07_BUILD_STATIC
 #pragma comment( lib, "glfw3.lib" )
@@ -145,15 +147,27 @@ int
 eu07_application::run() {
 
     // main application loop
-    while( ( false == glfwWindowShouldClose( m_windows.front() ) )
-        && ( false == m_modestack.empty() )
-        && ( true == m_modes[ m_modestack.top() ]->update() )
-        && ( true == GfxRenderer->Render() ) ) {
+    while (!glfwWindowShouldClose( m_windows.front() ) && !m_modestack.empty())
+    {
+        Timer::subsystem.mainloop_total.start();
+
+        if( !m_modes[ m_modestack.top() ]->update() )
+            break;
+
+        if (!GfxRenderer->Render())
+            break;
+
         glfwPollEvents();
+
+        if (m_modestack.empty())
+            return 0;
+
         m_modes[ m_modestack.top() ]->on_event_poll();
+
+		Timer::subsystem.mainloop_total.stop();
     }
 
-    return 0;
+	return 0;
 }
 
 // issues request for a worker thread to perform specified task. returns: true if task was scheduled
@@ -532,9 +546,14 @@ eu07_application::init_gfx() {
         }
     }
 
-    {
+    if( Global.GfxRenderer == "default" ) {
+        // default render path
+        GfxRenderer = std::make_unique<opengl33_renderer>();
+    }
+    else {
         // legacy render path
         GfxRenderer = std::make_unique<opengl_renderer>();
+        Global.GfxFramebufferSRGB = false;
         Global.DisabledLogTypes |= logtype::material;
     }
 

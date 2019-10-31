@@ -90,6 +90,30 @@ TSubModel::SetDiffuseOverride( glm::vec3 const &Color, bool const Includechildre
     }
 }
 
+std::optional<glm::vec3>
+TSubModel::GetDiffuse(float Includesiblings) {
+	if (eType == TP_FREESPOTLIGHT) {
+		if (DiffuseOverride.x >= 0.0f)
+			return DiffuseOverride;
+		else
+			return glm::vec3(f4Diffuse);
+	}
+
+	if (Includesiblings) {
+		auto sibling = this;
+		while ((sibling = sibling->Next)) {
+			auto result = sibling->GetDiffuse(true);
+			if (result)
+				return result;
+		}
+	}
+
+	if (Child)
+		return Child->GetDiffuse(true);
+
+	return std::nullopt;
+}
+
 // sets visibility level (alpha component) to specified value
 void
 TSubModel::SetVisibilityLevel( float const Level, bool const Includechildren, bool const Includesiblings ) {
@@ -335,7 +359,8 @@ int TSubModel::Load( cParser &parser, TModel3d *Model, /*int Pos,*/ bool dynamic
         std::string material = parser.getToken<std::string>();
         if (material == "none")
         { // rysowanie podanym kolorem
-            m_material = null_handle;
+            Name_Material( "colored" );
+            m_material = GfxRenderer->Fetch_Material( m_materialname );
             iFlags |= 0x10; // rysowane w cyklu nieprzezroczystych
         }
         else if (material.find("replacableskin") != material.npos)
@@ -374,11 +399,18 @@ int TSubModel::Load( cParser &parser, TModel3d *Model, /*int Pos,*/ bool dynamic
             m_material = GfxRenderer->Fetch_Material( material );
             // renderowanie w cyklu przezroczystych tylko jeśli:
             // 1. Opacity=0 (przejściowo <1, czy tam <100) oraz
-			iFlags |= (
-                Opacity < 0.999f ?
+            // 2. tekstura ma przezroczystość
+             iFlags |= (
+                ( ( Opacity < 0.01f )
+               && ( ( m_material != null_handle )
+                 && ( GfxRenderer->Material( m_material ).is_translucent() ) ) ) ?
                     0x20 :
-                    0x10 ); // 0x20-przezroczysta, 0x10-nieprzezroczysta
-        };
+                    0x10 ); // 0x10-nieprzezroczysta, 0x20-przezroczysta
+       };
+    }
+    else if( eType == TP_STARS ) {
+        m_material = GfxRenderer->Fetch_Material( "stars" );
+        iFlags |= 0x10;
     }
     else {
         iFlags |= 0x10;
@@ -387,17 +419,26 @@ int TSubModel::Load( cParser &parser, TModel3d *Model, /*int Pos,*/ bool dynamic
     if (m_material > 0)
     {
         opengl_material const &mat = GfxRenderer->Material(m_material);
-
-        // if material have opacity set, replace submodel opacity with it
-        if (!std::isnan(mat.opacity))
-        {
+        /*
+        if( eType == TP_FREESPOTLIGHT ) {
             iFlags &= ~0x30;
-            if (mat.opacity == 0.0f)
-                iFlags |= 0x20; // translucent
-            else
-                iFlags |= 0x10; // opaque
+            iFlags |= 0x20;
         }
-
+        else
+        */
+        {
+            // if material has opacity set, replace submodel opacity with it
+            auto const opacity { (
+                false == std::isnan( mat.opacity ) ?
+                    mat.opacity :
+                    Opacity ) };
+            iFlags &= ~0x30;
+            iFlags |= (
+                ( ( opacity < 0.01f )
+               && ( GfxRenderer->Material( m_material ).is_translucent() ) ) ?
+                    0x20 :
+                    0x10 ); // 0x10-nieprzezroczysta, 0x20-przezroczysta
+        }
         // and same thing with selfillum
         if (!std::isnan(mat.selfillum))
             fLight = mat.selfillum;
@@ -1802,25 +1843,25 @@ void TSubModel::BinInit(TSubModel *s, float4x4 *m, std::vector<std::string> *t, 
             }
 */
             m_material = GfxRenderer->Fetch_Material( m_materialname );
-
             // if we don't have phase flags set for some reason, try to fix it
             if (!(iFlags & 0x30) && m_material != null_handle)
             {
-                opengl_material const &mat = GfxRenderer->Material(m_material);
-                float opacity = mat.opacity;
-
-                // if material don't have opacity set, try to guess it
-                if (std::isnan(opacity))
-                        opacity = mat.get_or_guess_opacity();
-
-                // set phase flag based on material opacity
-                if (opacity == 0.0f)
-                    iFlags |= 0x20; // translucent
+                /*
+                if( eType == TP_FREESPOTLIGHT ) {
+                    iFlags &= ~0x30;
+                    iFlags |=  0x20;
+                }
                 else
-                    iFlags |= 0x10; // opaque
+                */
+                {
+                // texture-alpha based fallback if for some reason we don't have opacity flag set yet
+                    iFlags |= (
+                        GfxRenderer->Material( m_material ).is_translucent() ?
+                            0x20 :
+                            0x10 ); // 0x10-nieprzezroczysta, 0x20-przezroczysta
+                }
             }
-
-            if (m_material > 0)
+            if ( m_material != null_handle )
             {
                 opengl_material const &mat = GfxRenderer->Material(m_material);
 
@@ -1835,7 +1876,12 @@ void TSubModel::BinInit(TSubModel *s, float4x4 *m, std::vector<std::string> *t, 
         }
     }
 	else
-		m_material = iTexture;
+    {
+        if( iTexture == 0 )
+            m_material = GfxRenderer->Fetch_Material( "colored" );
+        else
+            m_material = iTexture;
+    }
 
 	b_aAnim = b_Anim; // skopiowanie animacji do drugiego cyklu
 

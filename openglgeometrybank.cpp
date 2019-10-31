@@ -49,44 +49,8 @@ opengl_vbogeometrybank::replace_( gfx::geometry_handle const &Geometry ) {
 void
 opengl_vbogeometrybank::draw_( gfx::geometry_handle const &Geometry, gfx::stream_units const &Units, unsigned int const Streams ) {
 
-    if( m_buffer == 0 ) {
-        // if there's no buffer, we'll have to make one
-        // NOTE: this isn't exactly optimal in terms of ensuring the gfx card doesn't stall waiting for the data
-        // may be better to initiate upload earlier (during update phase) and trust this effort won't go to waste
-        if( true == m_chunks.empty() ) { return; }
+    setup_buffer();
 
-        std::size_t datasize{ 0 };
-        auto chunkiterator = m_chunks.cbegin();
-        for( auto &chunkrecord : m_chunkrecords ) {
-            // fill records for all chunks, based on the chunk data
-            chunkrecord.is_good = false; // if we're re-creating buffer, chunks might've been uploaded in the old one
-            chunkrecord.offset = datasize;
-            chunkrecord.size = chunkiterator->vertices.size();
-            datasize += chunkrecord.size;
-            ++chunkiterator;
-        }
-        // the odds for all created chunks to get replaced with empty ones are quite low, but the possibility does exist
-        if( datasize == 0 ) { return; }
-        // try to set up the buffer we need
-        ::glGenBuffers( 1, &m_buffer );
-        bind_buffer();
-        if( m_buffer == 0 ) { return; } // if we didn't get a buffer we'll try again during the next draw call
-        // NOTE: we're using static_draw since it's generally true for all we have implemented at the moment
-        // TODO: allow to specify usage hint at the object creation, and pass it here
-        ::glBufferData(
-            GL_ARRAY_BUFFER,
-            datasize * sizeof( gfx::basic_vertex ),
-            nullptr,
-            GL_STATIC_DRAW );
-        if( ::glGetError() == GL_OUT_OF_MEMORY ) {
-            // TBD: throw a bad_alloc?
-            ErrorLog( "openGL error: out of memory; failed to create a geometry buffer" );
-            delete_buffer();
-            return;
-        }
-        m_buffercapacity = datasize;
-    }
-    // actual draw procedure starts here
     auto &chunkrecord { m_chunkrecords[ Geometry.chunk - 1 ] };
     // sanity check; shouldn't be needed but, eh
     if( chunkrecord.size == 0 ) { return; }
@@ -123,6 +87,47 @@ void
 opengl_vbogeometrybank::release_() {
 
     delete_buffer();
+}
+
+void
+opengl_vbogeometrybank::setup_buffer() {
+
+    if( m_buffer != 0 ) { return; }
+    // if there's no buffer, we'll have to make one
+    // NOTE: this isn't exactly optimal in terms of ensuring the gfx card doesn't stall waiting for the data
+    // may be better to initiate upload earlier (during update phase) and trust this effort won't go to waste
+    if( true == m_chunks.empty() ) { return; }
+
+    std::size_t datasize{ 0 };
+    auto chunkiterator = m_chunks.cbegin();
+    for( auto &chunkrecord : m_chunkrecords ) {
+        // fill records for all chunks, based on the chunk data
+        chunkrecord.is_good = false; // if we're re-creating buffer, chunks might've been uploaded in the old one
+        chunkrecord.offset = datasize;
+        chunkrecord.size = chunkiterator->vertices.size();
+        datasize += chunkrecord.size;
+        ++chunkiterator;
+    }
+    // the odds for all created chunks to get replaced with empty ones are quite low, but the possibility does exist
+    if( datasize == 0 ) { return; }
+    // try to set up the buffer we need
+    ::glGenBuffers( 1, &m_buffer );
+    bind_buffer();
+    if( m_buffer == 0 ) { return; } // if we didn't get a buffer we'll try again during the next draw call
+    // NOTE: we're using static_draw since it's generally true for all we have implemented at the moment
+    // TODO: allow to specify usage hint at the object creation, and pass it here
+    ::glBufferData(
+        GL_ARRAY_BUFFER,
+        datasize * sizeof( gfx::basic_vertex ),
+        nullptr,
+        GL_STATIC_DRAW );
+    if( ::glGetError() == GL_OUT_OF_MEMORY ) {
+        // TBD: throw a bad_alloc?
+        ErrorLog( "openGL error: out of memory; failed to create a geometry buffer" );
+        delete_buffer();
+        return;
+    }
+    m_buffercapacity = datasize;
 }
 
 void

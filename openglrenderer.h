@@ -56,10 +56,10 @@ public:
         Insert( gfx::vertex_array &Vertices, gfx::geometrybank_handle const &Geometry, int const Type ) override;
     // replaces data of specified chunk with the supplied vertex data, starting from specified offset
     bool
-        Replace( gfx::vertex_array &Vertices, gfx::geometry_handle const &Geometry, std::size_t const Offset = 0 ) override;
+        Replace( gfx::vertex_array &Vertices, gfx::geometry_handle const &Geometry, int const Type, std::size_t const Offset = 0 ) override;
     // adds supplied vertex data at the end of specified chunk
     bool
-        Append( gfx::vertex_array &Vertices, gfx::geometry_handle const &Geometry ) override;
+        Append( gfx::vertex_array &Vertices, gfx::geometry_handle const &Geometry, int const Type ) override;
     // provides direct access to vertex data of specfied chunk
     gfx::vertex_array const &
         Vertices( gfx::geometry_handle const &Geometry ) const override;
@@ -67,7 +67,7 @@ public:
     material_handle
         Fetch_Material( std::string const &Filename, bool const Loadnow = true ) override;
     void
-        Bind_Material( material_handle const Material ) override;
+        Bind_Material( material_handle const Material, TSubModel *sm = nullptr ) override;
     opengl_material const &
         Material( material_handle const Material ) const override;
     // shader methods
@@ -85,9 +85,9 @@ public:
         Texture( texture_handle const Texture ) const override;
     // utility methods
     void
-        Pick_Control( std::function<void( TSubModel const * )> Callback ) override;
+        Pick_Control_Callback( std::function<void( TSubModel const * )> Callback ) override;
     void
-        Pick_Node( std::function<void( scene::basic_node * )> Callback ) override;
+        Pick_Node_Callback( std::function<void( scene::basic_node * )> Callback ) override;
     TSubModel const *
         Pick_Control() const override { return m_pickcontrolitem; }
     scene::basic_node const *

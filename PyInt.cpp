@@ -47,7 +47,7 @@ void render_task::run() {
             // build texture
             ::glTexImage2D(
                 GL_TEXTURE_2D, 0,
-                GL_RGBA8,
+                ( Global.GfxFramebufferSRGB ? GL_SRGB8 : GL_RGBA8 ),
                 PyInt_AsLong( outputwidth ), PyInt_AsLong( outputheight ), 0,
                 GL_RGB, GL_UNSIGNED_BYTE, reinterpret_cast<GLubyte const *>( PyString_AsString( output ) ) );
             ::glFlush();
