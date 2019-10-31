@@ -363,6 +363,8 @@ class TTrain {
     static void OnCommand_radiostopsend( TTrain *Train, command_data const &Command );
     static void OnCommand_radiostoptest( TTrain *Train, command_data const &Command );
     static void OnCommand_radiocall3send( TTrain *Train, command_data const &Command );
+	static void OnCommand_radiovolumeincrease(TTrain *Train, command_data const &Command);
+	static void OnCommand_radiovolumedecrease(TTrain *Train, command_data const &Command);
     static void OnCommand_cabchangeforward( TTrain *Train, command_data const &Command );
     static void OnCommand_cabchangebackward( TTrain *Train, command_data const &Command );
     static void OnCommand_generictoggle( TTrain *Train, command_data const &Command );
@@ -455,6 +457,9 @@ public: // reszta może by?publiczna
     TGauge ggRadioTest;
     TGauge ggRadioStop;
     TGauge ggRadioCall3;
+	TGauge ggRadioVolumeSelector;
+	TGauge ggRadioVolumePrevious;
+	TGauge ggRadioVolumeNext;
     TGauge ggUpperLightButton;
     TGauge ggLeftLightButton;
     TGauge ggRightLightButton;

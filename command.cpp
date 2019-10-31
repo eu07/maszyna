@@ -133,6 +133,8 @@ commanddescription_sequence Commands_descriptions = {
     { "radiostopsend", command_target::vehicle },
     { "radiostoptest", command_target::vehicle },
     { "radiocall3send", command_target::vehicle },
+	{ "radiovolumeincrease", command_target::vehicle },
+	{ "radiovolumedecrease", command_target::vehicle },
 // TBD, TODO: make cab change controls entity-centric
     { "cabchangeforward", command_target::vehicle },
     { "cabchangebackward", command_target::vehicle },

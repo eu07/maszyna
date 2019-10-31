@@ -735,6 +735,15 @@ drivermouse_input::default_bindings() {
         { "radiocall3_sw:", {
             user_command::radiocall3send,
             user_command::none } },
+		{ "radiovolume_sw:",{
+			user_command::radiovolumeincrease,
+			user_command::radiovolumedecrease } },
+		{ "radiovolumeprev_sw:",{
+			user_command::radiovolumedecrease,
+			user_command::none } },
+		{ "radiovolumenext_sw:",{
+			user_command::radiovolumeincrease,
+			user_command::none } },
         { "pantfront_sw:", {
             user_command::pantographtogglefront,
             user_command::none } },
