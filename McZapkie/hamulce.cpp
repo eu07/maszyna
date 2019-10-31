@@ -1573,9 +1573,9 @@ double TEStED::GetPF( double const PP, double const dt, double const Vel )
 	}
 
     if ((BrakeCyl->P() > temp))
-        dv = -PFVd(BrakeCyl->P(), 0, 0.02 * SizeBC * speed, temp) * dt;
+        dv = -PFVd(BrakeCyl->P(), 0, 0.05 * SizeBC * speed, temp) * dt;
     else if ((BrakeCyl->P() < temp) && ((BrakeStatus & b_asb) == 0))
-        dv = PFVa(BVP, BrakeCyl->P(), 0.02 * SizeBC, temp) * dt;
+        dv = PFVa(BVP, BrakeCyl->P(), 0.05 * SizeBC, temp) * dt;
     else
         dv = 0;
 
