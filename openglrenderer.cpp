@@ -338,8 +338,11 @@ opengl_renderer::Render() {
     Timer::subsystem.gfx_color.stop();
     // add user interface
     setup_units( true, false, false );
+    ::glPushClientAttrib( GL_CLIENT_VERTEX_ARRAY_BIT );
+    ::glClientActiveTexture( m_diffusetextureunit );
+    ::glBindBuffer( GL_ARRAY_BUFFER, 0 );
     Application.render_ui();
-
+    ::glPopClientAttrib();
     if( Global.bUseVBO ) {
         // swapbuffers() will unbind current buffers so we prepare for it on our end
         gfx::opengl_vbogeometrybank::reset();

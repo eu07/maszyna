@@ -6,6 +6,7 @@
 #include "Train.h"
 #include "parser.h"
 #include "Logs.h"
+#include "simulationtime.h"
 
 uart_input::uart_input()
 {
@@ -14,7 +15,7 @@ uart_input::uart_input()
     if (sp_get_port_by_name(conf.port.c_str(), &port) != SP_OK)
         throw std::runtime_error("uart: cannot find specified port");
 
-    if (sp_open(port, SP_MODE_READ_WRITE) != SP_OK)
+    if (sp_open(port, (sp_mode)(SP_MODE_READ | SP_MODE_WRITE)) != SP_OK)
         throw std::runtime_error("uart: cannot open port");
 
 	sp_port_config *config;
@@ -39,7 +40,7 @@ uart_input::uart_input()
 
 uart_input::~uart_input()
 {
-	std::array<std::uint8_t, 31> buffer = { 0 };
+	std::array<std::uint8_t, 48> buffer = { 0 };
 	sp_blocking_write(port, (void*)buffer.data(), buffer.size(), 0);
 	sp_drain(port);
 
@@ -121,7 +122,7 @@ uart_input::recall_bindings() {
     return true;
 }
 
-#define SPLIT_INT16(x) (uint8_t)x, (uint8_t)(x >> 8)
+#define SPLIT_INT16(x) (uint8_t)(x), (uint8_t)((x) >> 8)
 
 void uart_input::poll()
 {
@@ -168,19 +169,19 @@ void uart_input::poll()
             auto const action { (
                 type != input_type_t::impulse ?
                     GLFW_PRESS :
-                    ( true == state ?
+                    ( state ?
                         GLFW_PRESS :
                         GLFW_RELEASE ) ) };
 
             auto const command { (
                 type != input_type_t::toggle ?
                     std::get<2>( entry ) :
-                    ( true == state ?
+                    ( state ?
                         std::get<2>( entry ) :
                         std::get<3>( entry ) ) ) };
 
             // TODO: pass correct entity id once the missing systems are in place
-            relay.post( command, 0, 0, action, 0 );
+			relay.post( command, 0, 0, action, 0 );
         }
 
         if( true == conf.mainenable ) {
@@ -191,17 +192,17 @@ void uart_input::poll()
                 0,
                 GLFW_PRESS,
                 // TODO: pass correct entity id once the missing systems are in place
-                0 );
+			    0 );
         }
         if( true == conf.scndenable ) {
             // second controller
             relay.post(
                 user_command::secondcontrollerset,
-                buffer[ 7 ],
+                static_cast<int8_t>(buffer[ 7 ]),
                 0,
                 GLFW_PRESS,
                 // TODO: pass correct entity id once the missing systems are in place
-                0 );
+			    0 );
         }
         if( true == conf.trainenable ) {
             // train brake
@@ -212,7 +213,7 @@ void uart_input::poll()
                 0,
                 GLFW_PRESS,
                 // TODO: pass correct entity id once the missing systems are in place
-                0 );
+			    0 );
         }
         if( true == conf.localenable ) {
             // independent brake
@@ -223,7 +224,7 @@ void uart_input::poll()
                 0,
                 GLFW_PRESS,
                 // TODO: pass correct entity id once the missing systems are in place
-                0 );
+			    0 );
         }
 
         old_packet = buffer;
@@ -234,7 +235,8 @@ void uart_input::poll()
 	    // TODO: ugly! move it into structure like input_bits
         auto const trainstate = t->get_state();
 
-	    uint8_t tacho = Global.iPause ? 0 : trainstate.velocity;
+		SYSTEMTIME time = simulation::Time.data();
+		uint16_t tacho = Global.iPause ? 0 : (trainstate.velocity * conf.tachoscale);
 	    uint16_t tank_press = (uint16_t)std::min(conf.tankuart, trainstate.reservoir_pressure * 0.1f / conf.tankmax * conf.tankuart);
 	    uint16_t pipe_press = (uint16_t)std::min(conf.pipeuart, trainstate.pipe_pressure * 0.1f / conf.pipemax * conf.pipeuart);
 	    uint16_t brake_press = (uint16_t)std::min(conf.brakeuart, trainstate.brake_pressure * 0.1f / conf.brakemax * conf.brakeuart);
@@ -242,18 +244,16 @@ void uart_input::poll()
 	    uint16_t current1 = (uint16_t)std::min(conf.currentuart, trainstate.hv_current[0] / conf.currentmax * conf.currentuart);
 	    uint16_t current2 = (uint16_t)std::min(conf.currentuart, trainstate.hv_current[1] / conf.currentmax * conf.currentuart);
 	    uint16_t current3 = (uint16_t)std::min(conf.currentuart, trainstate.hv_current[2] / conf.currentmax * conf.currentuart);
+	    uint32_t odometer = trainstate.distance * 10000.0;
         uint16_t lv_voltage = (uint16_t)std::min( conf.lvuart, trainstate.lv_voltage / conf.lvmax * conf.lvuart );
-
         if( trainstate.cab > 0 ) {
             // NOTE: moving from a cab to engine room doesn't change cab indicator
             m_trainstatecab = trainstate.cab - 1;
         }
 
-	    std::array<uint8_t, 31> buffer {
-            //byte 0
-			tacho,
-            //byte 1
-	        0,
+	    std::array<uint8_t, 48> buffer {
+			//byte 0-1
+			SPLIT_INT16(tacho),
             //byte 2
 			(uint8_t)(
                 trainstate.ventilator_overload << 1
@@ -280,7 +280,8 @@ void uart_input::poll()
                 m_trainstatecab << 2
               | trainstate.recorder_braking << 3
               | trainstate.recorder_power << 4
-              | trainstate.radio_stop <<5
+			  | trainstate.radio_stop << 5
+			  | trainstate.springbrake_active << 6
               | trainstate.alerter_sound << 7),
             //byte 7-8
 	        SPLIT_INT16(brake_press),
@@ -296,10 +297,20 @@ void uart_input::poll()
 	        SPLIT_INT16(current2),
             //byte 19-20
 	        SPLIT_INT16(current3),
-            //byte 21-22
-            SPLIT_INT16(lv_voltage),
-            //byte 23-30
-			0, 0, 0, 0, 0, 0, 0, 0
+			//byte 21-22
+			SPLIT_INT16((time.wYear - 1) * 12 + time.wMonth - 1),
+			//byte 23-24
+			SPLIT_INT16((time.wDay - 1) * 1440 + time.wHour * 60 + time.wMinute),
+			//byte 25-26
+			SPLIT_INT16(time.wSecond * 1000 + time.wMilliseconds),
+			//byte 27-30
+			SPLIT_INT16((uint16_t)odometer), SPLIT_INT16((uint16_t)(odometer >> 16)),
+			//byte 31-32
+			SPLIT_INT16(lv_voltage),
+			//byte 33
+			(uint8_t)trainstate.radio_channel,
+			//byte 34-48
+			0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
 	    };
 
 		if (conf.debug)

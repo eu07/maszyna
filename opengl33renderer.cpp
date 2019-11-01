@@ -33,6 +33,8 @@ bool opengl33_renderer::Init(GLFWwindow *Window)
 
 	WriteLog("preparing renderer..");
 
+    OpenGLMatrices.upload() = false; // set matrix stack in virtual mode
+
 	m_window = Window;
 
 	gl::glsl_common_setup();
@@ -668,6 +670,7 @@ void opengl33_renderer::Render_pass(viewport_config &vp, rendermode const Mode)
 		{
 			if (Global.gfx_postfx_motionblur_enabled)
 			{
+                gl::program::unbind();
 				vp.main_fb->clear(GL_COLOR_BUFFER_BIT);
 				vp.msaa_fb->blit_to(vp.main_fb.get(), vp.width, vp.height, GL_COLOR_BUFFER_BIT, GL_COLOR_ATTACHMENT0);
 				vp.msaa_fb->blit_to(vp.main_fb.get(), vp.width, vp.height, GL_COLOR_BUFFER_BIT, GL_COLOR_ATTACHMENT1);
@@ -866,18 +869,15 @@ void opengl33_renderer::Render_pass(viewport_config &vp, rendermode const Mode)
 // creates dynamic environment cubemap
 bool opengl33_renderer::Render_reflections(viewport_config &vp)
 {
-	if (Global.ReflectionUpdateInterval == 0.0)
-		return false;
+    if( Global.ReflectionUpdateInterval == 0 ) { return false; }
 
-	auto const timestamp = Timer::GetTime();
-
-	if ((timestamp - m_environmentupdatetime < Global.ReflectionUpdateInterval)
-	        && (glm::length(m_renderpass.pass_camera.position() - m_environmentupdatelocation) < 1000.0))
-	{
-		// run update every 5+ mins of simulation time, or at least 1km from the last location
-		return false;
-	}
-	m_environmentupdatetime = timestamp;
+    auto const timestamp{ Timer::GetTime() };
+    if( ( timestamp - m_environmentupdatetime < Global.ReflectionUpdateInterval )
+        && ( glm::length( m_renderpass.pass_camera.position() - m_environmentupdatelocation ) < 1000.0 ) ) {
+           // run update every 5+ mins of simulation time, or at least 1km from the last location
+        return false;
+    }
+    m_environmentupdatetime = timestamp;
 	m_environmentupdatelocation = m_renderpass.pass_camera.position();
 
 	glViewport(0, 0, gl::ENVMAP_SIZE, gl::ENVMAP_SIZE);
@@ -1142,11 +1142,11 @@ void opengl33_renderer::setup_pass(viewport_config &Viewport, renderpass_config 
 
 void opengl33_renderer::setup_matrices()
 {
-	::glMatrixMode(GL_PROJECTION);
+    OpenGLMatrices.mode(GL_PROJECTION);
 	OpenGLMatrices.load_matrix(m_renderpass.pass_camera.projection());
 
 	// trim modelview matrix just to rotation, since rendering is done in camera-centric world space
-	::glMatrixMode(GL_MODELVIEW);
+    OpenGLMatrices.mode(GL_MODELVIEW);
 	OpenGLMatrices.load_matrix(glm::mat4(glm::mat3(m_renderpass.pass_camera.modelview())));
 }
 
@@ -1317,12 +1317,9 @@ bool opengl33_renderer::Render(world_environment *Environment)
 	// skydome uses a custom vbo which could potentially confuse the main geometry system. hardly elegant but, eh
 	gfx::opengl_vbogeometrybank::reset();
 
-    ::glPushAttrib( GL_ENABLE_BIT | GL_COLOR_BUFFER_BIT );
-    ::glDisable( GL_ALPHA_TEST );
-    ::glEnable( GL_BLEND );
     ::glBlendFunc( GL_SRC_ALPHA, GL_ONE );
 
-	// stars
+    // stars
 	if (Environment->m_stars.m_stars != nullptr)
 	{
 		// setup
@@ -1435,7 +1432,8 @@ bool opengl33_renderer::Render(world_environment *Environment)
 		model_ubo->update(model_ubs);
 		glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
 	}
-    ::glPopAttrib();
+
+    ::glBlendFunc( GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA );
 
   	// clouds
 	if (Environment->m_clouds.mdCloud)
@@ -2492,7 +2490,7 @@ void opengl33_renderer::Render(TSubModel *Submodel)
 					Bind_Material(Submodel->m_material, Submodel);
 
 					// main draw call
-                    model_ubs.param[1].x = 2.0f;
+                    model_ubs.param[1].x = 2.0f * 2.0f;
 
 					draw(Submodel->m_geometry);
 				}
@@ -3372,7 +3370,7 @@ void opengl33_renderer::Render_Alpha(TSubModel *Submodel)
 
 						draw(Submodel->m_geometry);
 					}
-					model_ubs.param[1].x = pointsize * resolutionratio;
+					model_ubs.param[1].x = pointsize * resolutionratio * 2.0f;
 					model_ubs.param[0] = glm::vec4(glm::vec3(lightcolor), Submodel->fVisible * std::min(1.f, lightlevel));
 
 					if (!Submodel->occlusion_query)

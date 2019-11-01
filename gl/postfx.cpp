@@ -30,6 +30,7 @@ void gl::postfx::apply(std::vector<opengl_texture *> src, framebuffer *dst)
 {
     if (dst)
     {
+        gl::program::unbind();
         dst->clear(GL_COLOR_BUFFER_BIT);
         dst->bind();
     }

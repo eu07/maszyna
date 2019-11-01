@@ -132,9 +132,6 @@ private:
         render_panels();
     void
         render_tooltip();
-    // draws a quad between coordinates x,y and z,w with uv-coordinates spanning 0-1
-    void
-        quad( glm::vec4 const &Coordinates, glm::vec4 const &Color );
     // input methods subclass details
     virtual
     bool

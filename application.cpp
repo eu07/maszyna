@@ -475,6 +475,27 @@ eu07_application::init_glfw() {
         glfwWindowHint( GLFW_SAMPLES, 1 << Global.iMultisampling );
     }
 
+    glfwWindowHint(GLFW_SRGB_CAPABLE, !Global.gfx_shadergamma);
+
+    if( Global.GfxRenderer == "default" ) {
+        // activate core profile for opengl 3.3 renderer
+        if( !Global.gfx_usegles ) {
+            glfwWindowHint( GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE );
+            glfwWindowHint( GLFW_CONTEXT_VERSION_MAJOR, 3 );
+            glfwWindowHint( GLFW_CONTEXT_VERSION_MINOR, 3 );
+        }
+        else {
+#ifdef GLFW_CONTEXT_CREATION_API
+            glfwWindowHint( GLFW_CONTEXT_CREATION_API, GLFW_EGL_CONTEXT_API );
+#endif
+            glfwWindowHint( GLFW_CLIENT_API, GLFW_OPENGL_ES_API );
+            glfwWindowHint( GLFW_CONTEXT_VERSION_MAJOR, 3 );
+            glfwWindowHint( GLFW_CONTEXT_VERSION_MINOR, 0 );
+        }
+    }
+
+    glfwWindowHint( GLFW_AUTO_ICONIFY, GLFW_FALSE );
+
     if( Global.bFullScreen ) {
         // match screen dimensions with selected monitor, for 'borderless window' in fullscreen mode
         Global.iWindowWidth = vmode->width;

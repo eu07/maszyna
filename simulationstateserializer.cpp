@@ -118,7 +118,7 @@ state_serializer::deserialize( cParser &Input, scene::scratch_data &Scratchpad )
         }
 
         timenow = std::chrono::steady_clock::now();
-        if( std::chrono::duration_cast<std::chrono::milliseconds>( timenow - timelast ).count() >= 50 ) {
+        if( std::chrono::duration_cast<std::chrono::milliseconds>( timenow - timelast ).count() >= 75 ) {
             timelast = timenow;
             glfwPollEvents();
             Application.set_progress( Input.getProgress(), Input.getFullProgress() );

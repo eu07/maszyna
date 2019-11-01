@@ -67,10 +67,12 @@ driver_mode::drivermode_input::init() {
     if( true == Global.InputGamepad ) {
         gamepad.init();
     }
+#ifdef WITH_UART
     if( true == Global.uart_conf.enable ) {
         uart = std::make_unique<uart_input>();
         uart->init();
     }
+#endif
 #ifdef _WIN32
     Console::On(); // włączenie konsoli
 #endif

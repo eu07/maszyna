@@ -622,8 +622,8 @@ TTrain::state_t
 TTrain::get_state() const {
 
     return {
-        btLampkaSHP.GetValue(),
-        btLampkaCzuwaka.GetValue(),
+		btLampkaSHP.GetValue(),
+		btLampkaCzuwaka.GetValue(),
         btLampkaRadioStop.GetValue(),
         btLampkaOpory.GetValue(),
         btLampkaWylSzybki.GetValue(),
@@ -639,7 +639,7 @@ TTrain::get_state() const {
         static_cast<std::uint8_t>( iCabn ),
         btHaslerBrakes.GetValue(),
         btHaslerCurrent.GetValue(),
-        ( TestFlag( mvOccupied->SecuritySystem.Status, s_CAalarm ) || TestFlag( mvOccupied->SecuritySystem.Status, s_SHPalarm ) ),
+		mvOccupied->SecuritySystem.is_beeping(),
         btLampkaHVoltageB.GetValue(),
         fTachoVelocity,
         static_cast<float>( mvOccupied->Compressor ),
@@ -647,7 +647,10 @@ TTrain::get_state() const {
         static_cast<float>( mvOccupied->BrakePress ),
         fHVoltage,
         { fHCurrent[ ( mvControlled->TrainType & dt_EZT ) ? 0 : 1 ], fHCurrent[ 2 ], fHCurrent[ 3 ] },
-        ggLVoltage.GetValue()
+        ggLVoltage.GetValue(),
+        mvOccupied->DistCounter,
+		RadioChannel(),
+		btLampkaSpringBrakeActive.GetValue()
     };
 }
 

@@ -9,12 +9,16 @@ http://mozilla.org/MPL/2.0/.
 
 #pragma once
 
+#define WITH_UART
+
 #include "Classes.h"
 #include "Camera.h"
 #include "dumb3d.h"
 #include "Float3d.h"
 #include "light.h"
+#ifdef WITH_UART
 #include "uart.h"
+#endif
 #include "utilities.h"
 
 struct global_settings {
@@ -132,7 +136,6 @@ struct global_settings {
     bool ResourceMove{ false }; // gfx resources are moved between cpu and gpu side instead of sending a copy
     bool compress_tex{ true }; // all textures are compressed on gpu side
     std::string asSky{ "1" };
-    bool bGlutFont{ false }; // czy tekst generowany przez GLUT32.DLL
     double fFpsAverage{ 20.0 }; // oczekiwana wartosć FPS
     double fFpsDeviation{ 5.0 }; // odchylenie standardowe FPS
     double fFpsMin{ 30.0 }; // dolna granica FPS, przy której promień scenerii będzie zmniejszany
@@ -172,7 +175,9 @@ struct global_settings {
         0, 0, 0, 0, 0, 0, 0 };
     int iCalibrateOutDebugInfo { -1 }; // numer wyjścia kalibrowanego dla którego wyświetlać informacje podczas kalibracji
     int iPoKeysPWM[ 7 ] = { 0, 1, 2, 3, 4, 5, 6 }; // numery wejść dla PWM
+#ifdef WITH_UART
     uart_input::conf_t uart_conf;
+#endif
     // multiplayer
     int iMultiplayer{ 0 }; // blokada działania niektórych eventów na rzecz kominikacji
     // other
@@ -193,6 +198,7 @@ struct global_settings {
     bool gfx_extraeffects = true;
     bool gfx_shadergamma = false;
     bool gfx_usegles = false;
+    bool python_mipmaps = true;
 
 // methods
     void LoadIniFile( std::string asFileName );
