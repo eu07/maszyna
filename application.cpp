@@ -19,20 +19,20 @@ http://mozilla.org/MPL/2.0/.
 #include "dictionary.h"
 #include "sceneeditor.h"
 #include "openglrenderer.h"
+#include "opengl33renderer.h"
 #include "uilayer.h"
 #include "translation.h"
 #include "Logs.h"
+#include "Timer.h"
 
 #ifdef EU07_BUILD_STATIC
 #pragma comment( lib, "glfw3.lib" )
-#pragma comment( lib, "glew32s.lib" )
 #else
 #ifdef _WIN32
 #pragma comment( lib, "glfw3dll.lib" )
 #else
 #pragma comment( lib, "glfw3.lib" )
 #endif
-#pragma comment( lib, "glew32.lib" )
 #endif // build_static
 #pragma comment( lib, "opengl32.lib" )
 #pragma comment( lib, "glu32.lib" )
@@ -125,10 +125,10 @@ eu07_application::init( int Argc, char *Argv[] ) {
     if( ( result = init_glfw() ) != 0 ) {
         return result;
     }
-    init_callbacks();
     if( ( result = init_gfx() ) != 0 ) {
         return result;
     }
+    init_callbacks();
     if( ( result = init_audio() ) != 0 ) {
         return result;
     }
@@ -147,15 +147,27 @@ int
 eu07_application::run() {
 
     // main application loop
-    while( ( false == glfwWindowShouldClose( m_windows.front() ) )
-        && ( false == m_modestack.empty() )
-        && ( true == m_modes[ m_modestack.top() ]->update() )
-        && ( true == GfxRenderer->Render() ) ) {
+    while (!glfwWindowShouldClose( m_windows.front() ) && !m_modestack.empty())
+    {
+        Timer::subsystem.mainloop_total.start();
+
+        if( !m_modes[ m_modestack.top() ]->update() )
+            break;
+
+        if (!GfxRenderer->Render())
+            break;
+
         glfwPollEvents();
+
+        if (m_modestack.empty())
+            return 0;
+
         m_modes[ m_modestack.top() ]->on_event_poll();
+
+		Timer::subsystem.mainloop_total.stop();
     }
 
-    return 0;
+	return 0;
 }
 
 // issues request for a worker thread to perform specified task. returns: true if task was scheduled
@@ -255,6 +267,16 @@ eu07_application::set_cursor_pos( double const Horizontal, double const Vertical
     glfwSetCursorPos( m_windows.front(), Horizontal, Vertical );
 }
 
+glm::dvec2
+eu07_application::get_cursor_pos() const {
+
+    glm::dvec2 pos;
+    if( !m_windows.empty() ) {
+        glfwGetCursorPos( m_windows.front(), &pos.x, &pos.y );
+    }
+    return pos;
+}
+
 void
 eu07_application::get_cursor_pos( double &Horizontal, double &Vertical ) const {
 
@@ -320,10 +342,12 @@ eu07_application::init_debug() {
     // memory leaks
     _CrtSetDbgFlag( _CrtSetDbgFlag( _CRTDBG_REPORT_FLAG ) | _CRTDBG_LEAK_CHECK_DF );
     // floating point operation errors
+    /*
     auto state { _clearfp() };
     state = _control87( 0, 0 );
     // this will turn on FPE for #IND and zerodiv
     state = _control87( state & ~( _EM_ZERODIVIDE | _EM_INVALID ), _MCW_EM );
+    */
 #endif
 #ifdef _WIN32
     ::SetUnhandledExceptionFilter( unhandled_handler );
@@ -451,6 +475,27 @@ eu07_application::init_glfw() {
         glfwWindowHint( GLFW_SAMPLES, 1 << Global.iMultisampling );
     }
 
+    glfwWindowHint(GLFW_SRGB_CAPABLE, !Global.gfx_shadergamma);
+
+    if( Global.GfxRenderer == "default" ) {
+        // activate core profile for opengl 3.3 renderer
+        if( !Global.gfx_usegles ) {
+            glfwWindowHint( GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE );
+            glfwWindowHint( GLFW_CONTEXT_VERSION_MAJOR, 3 );
+            glfwWindowHint( GLFW_CONTEXT_VERSION_MINOR, 3 );
+        }
+        else {
+#ifdef GLFW_CONTEXT_CREATION_API
+            glfwWindowHint( GLFW_CONTEXT_CREATION_API, GLFW_EGL_CONTEXT_API );
+#endif
+            glfwWindowHint( GLFW_CLIENT_API, GLFW_OPENGL_ES_API );
+            glfwWindowHint( GLFW_CONTEXT_VERSION_MAJOR, 3 );
+            glfwWindowHint( GLFW_CONTEXT_VERSION_MINOR, 0 );
+        }
+    }
+
+    glfwWindowHint( GLFW_AUTO_ICONIFY, GLFW_FALSE );
+
     if( Global.bFullScreen ) {
         // match screen dimensions with selected monitor, for 'borderless window' in fullscreen mode
         Global.iWindowWidth = vmode->width;
@@ -507,18 +552,43 @@ eu07_application::init_callbacks() {
 int
 eu07_application::init_gfx() {
 
-    if( glewInit() != GLEW_OK ) {
-        ErrorLog( "Bad init: failed to initialize glew" );
-        return -1;
+    if (Global.gfx_usegles)
+    {
+        if( 0 == gladLoadGLES2Loader( (GLADloadproc)glfwGetProcAddress ) ) {
+            ErrorLog( "Bad init: failed to initialize glad" );
+            return -1;
+        }
+    }
+    else
+    {
+        if( 0 == gladLoadGLLoader( (GLADloadproc)glfwGetProcAddress ) ) {
+            ErrorLog( "Bad init: failed to initialize glad" );
+            return -1;
+        }
     }
 
-    GfxRenderer = std::make_unique<opengl_renderer>();
-
-    if( ( false == GfxRenderer->Init( m_windows.front() ) )
-     || ( false == ui_layer::init( m_windows.front() ) ) ) {
-        return -1;
+    if( Global.GfxRenderer == "default" ) {
+        // default render path
+        GfxRenderer = std::make_unique<opengl33_renderer>();
+    }
+    else {
+        // legacy render path
+        GfxRenderer = std::make_unique<opengl_renderer>();
+        Global.GfxFramebufferSRGB = false;
+        Global.DisabledLogTypes |= logtype::material;
     }
 
+    if( false == GfxRenderer->Init( m_windows.front() ) ) {
+        return -1;
+    }
+    if( false == ui_layer::init( m_windows.front() ) ) {
+        return -1;
+    }
+/*
+	for (const global_settings::extraviewport_config &conf : Global.extra_viewports)
+		if (!GfxRenderer.AddViewport(conf))
+			return -1;
+*/
     return 0;
 }
 

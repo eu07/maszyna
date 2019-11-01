@@ -1104,9 +1104,14 @@ debug_panel::update_section_renderer( std::vector<text_line> &Output ) {
 
             textline =
                 std::string( "Rendering mode: " )
+                + ( Global.GfxRenderer == "default" ?
+                    "Shaders" :
+                    ( Global.BasicRenderer ?
+                        "Legacy Simple" :
+                        "Legacy" ) )
                 + ( Global.bUseVBO ?
-                    "VBO" :
-                    "Display Lists" )
+                    ", VBO" :
+                    ", Display Lists" )
                 + " ";
             if( false == Global.LastGLError.empty() ) {
                 textline +=

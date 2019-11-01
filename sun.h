@@ -1,8 +1,6 @@
 #pragma once
 
 #include "windows.h"
-#include "GL/glew.h"
-#include "GL/wglew.h"
 
 
 //////////////////////////////////////////////////////////////////////////////////////////
@@ -25,7 +23,7 @@ public:
 	// returns vector pointing at the sun
 	glm::vec3 getDirection();
 	// returns current elevation above horizon
-	float getAngle();
+	float getAngle() const;
     // return current hour angle
     double getHourAngle() const;
     // returns current intensity of the sun

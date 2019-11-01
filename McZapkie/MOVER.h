@@ -630,6 +630,10 @@ struct TSecuritySystem
 	int VelocityAllowed;
 	int NextVelocityAllowed; /*predkosc pokazywana przez sygnalizacje kabinowa*/
 	bool RadioStop; // czy jest RadioStop
+
+    inline bool is_beeping() const {
+        return TestFlag( Status, s_SHPalarm );
+    }
 };
 
 struct TTransmision
@@ -688,7 +692,7 @@ struct speed_control {
 	bool BrakeIntervention = false;
 	bool BrakeInterventionBraking = false;
 	bool BrakeInterventionUnbraking = false;
-	bool Standby = true;
+	bool Standby = false;
 	bool Parking = false;
 	double InitialPower = 1.0;
 	double FullPowerVelocity = -1;

@@ -130,7 +130,6 @@ static double const BPT_394[7][2] = { {13 , 10.0} , {5 , 5.0} , {0 , -1} , {5 , 
 //double *BPT_394 = zero_based_BPT_394[1]; //tablica pozycji hamulca dla zakresu -1..5
 //   BPT: array[-2..6] of array [0..1] of real= ((0, 5.0), (12, 5.4), (9, 5.0), (9, 4.6), (9, 4.2), (9, 3.8), (9, 3.4), (9, 2.8), (34, 2.8));
 //      BPT: array[-2..6] of array [0..1] of real= ((0, 0),(0, 0),(0, 0),(0, 0),(0, 0),(0, 0),(0, 0),(0, 0),(0, 0));
-static int const i_bcpno = 5;
 // static double const pi = 3.141592653589793; //definicja w mctools
 
 enum TUniversalBrake // możliwe działania uniwersalnego przycisku hamulca
@@ -533,6 +532,7 @@ class TDriverHandle {
 	  bool ManualOvrld = false; //czy jest asymilacja reczna przyciskiem
 	  bool ManualOvrldActive = false; //czy jest wcisniety przycisk asymilacji
 	  int UniversalFlag = 0; //flaga wcisnietych przyciskow uniwersalnych
+      int i_bcpno = 6;
   public:
 		bool Time = false;
 		bool TimeEP = false;
@@ -591,7 +591,7 @@ class TFV4aM : public TDriverHandle {
 		double GetCP();
 		inline TFV4aM() :
 			TDriverHandle()
-		{}
+        {}
 };
 
 class TMHZ_EN57 : public TDriverHandle {
@@ -722,7 +722,8 @@ class TM394 : public TDriverHandle {
 
 		inline TM394(void) :
 			TDriverHandle()
-		{}
+		{
+            i_bcpno = 5; }
 };
 
 class TH14K1 : public TDriverHandle {
@@ -744,7 +745,8 @@ class TH14K1 : public TDriverHandle {
 
 		inline TH14K1(void) :
 			TDriverHandle()
-		{}
+		{
+            i_bcpno = 4; }
 };
 
 class TSt113 : public TH14K1 {

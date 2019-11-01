@@ -36,20 +36,25 @@ void render_task::run() {
          && ( outputheight != nullptr ) ) {
 
             ::glBindTexture( GL_TEXTURE_2D, m_target );
-            // setup texture parameters
-            ::glTexParameteri( GL_TEXTURE_2D, GL_GENERATE_MIPMAP, GL_TRUE );
-            ::glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR );
-            ::glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR );
-            if( GLEW_EXT_texture_filter_anisotropic ) {
-                // anisotropic filtering
-                ::glTexParameterf( GL_TEXTURE_2D, GL_TEXTURE_MAX_ANISOTROPY_EXT, Global.AnisotropicFiltering );
-            }
             // build texture
             ::glTexImage2D(
                 GL_TEXTURE_2D, 0,
-                GL_RGBA8,
+                ( Global.GfxFramebufferSRGB ? GL_SRGB8 : GL_RGBA8 ),
                 PyInt_AsLong( outputwidth ), PyInt_AsLong( outputheight ), 0,
                 GL_RGB, GL_UNSIGNED_BYTE, reinterpret_cast<GLubyte const *>( PyString_AsString( output ) ) );
+            // setup texture parameters
+            if( GL_EXT_texture_filter_anisotropic ) {
+                // anisotropic filtering
+                ::glTexParameterf( GL_TEXTURE_2D, GL_TEXTURE_MAX_ANISOTROPY_EXT, Global.AnisotropicFiltering );
+            }
+            if( Global.python_mipmaps ) {
+                ::glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR );
+                ::glGenerateMipmap( GL_TEXTURE_2D );
+            } 
+            else {
+                glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR );
+            }
+            // all done
             ::glFlush();
         }
         if( outputheight != nullptr ) { Py_DECREF( outputheight ); }

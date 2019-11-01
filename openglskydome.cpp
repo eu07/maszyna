@@ -11,7 +11,6 @@ http://mozilla.org/MPL/2.0/.
 #include "openglskydome.h"
 
 #include "simulationenvironment.h"
-#include "openglgeometrybank.h"
 
 opengl_skydome::~opengl_skydome() {
 
@@ -27,7 +26,7 @@ void opengl_skydome::update() {
     ::glPushClientAttrib( GL_CLIENT_VERTEX_ARRAY_BIT );
     // setup gpu data buffers:
     // ...static data...
-    if( m_indexbuffer == -1 ) {
+    if( m_indexbuffer == (GLuint)-1 ) {
         ::glGenBuffers( 1, &m_indexbuffer );
         if( ( m_indexbuffer > 0 ) && ( m_indexbuffer != (GLuint)-1 ) ) {
             ::glBindBuffer( GL_ELEMENT_ARRAY_BUFFER, m_indexbuffer );
@@ -36,7 +35,7 @@ void opengl_skydome::update() {
             m_indexcount = indices.size();
         }
     }
-    if( m_vertexbuffer == -1 ) {
+    if( m_vertexbuffer == (GLuint)-1 ) {
         ::glGenBuffers( 1, &m_vertexbuffer );
         if( ( m_vertexbuffer > 0 ) && ( m_vertexbuffer != (GLuint)-1 ) ) {
             ::glBindBuffer( GL_ARRAY_BUFFER, m_vertexbuffer );
@@ -45,7 +44,7 @@ void opengl_skydome::update() {
         }
     }
     // ...and dynamic data
-    if( m_coloursbuffer == -1 ) {
+    if( m_coloursbuffer == (GLuint)-1 ) {
         ::glGenBuffers( 1, &m_coloursbuffer );
         if( ( m_coloursbuffer > 0 ) && ( m_coloursbuffer != (GLuint)-1 ) ) {
             ::glBindBuffer( GL_ARRAY_BUFFER, m_coloursbuffer );
@@ -58,7 +57,14 @@ void opengl_skydome::update() {
     if( true == skydome.is_dirty() ) {
         if( ( m_coloursbuffer > 0 ) && ( m_coloursbuffer != (GLuint)-1 ) ) {
             ::glBindBuffer( GL_ARRAY_BUFFER, m_coloursbuffer );
-            auto const &colors { skydome.colors() };
+            auto &colors{ skydome.colors() };
+            /*
+            float twilightfactor = clamp( -simulation::Environment.sun().getAngle(), 0.0f, 18.0f ) / 18.0f;
+            auto gamma = interpolate( glm::vec3( 0.45f ), glm::vec3( 1.0f ), twilightfactor );
+            for( auto & color : colors ) {
+                color = glm::pow( color, gamma );
+            }
+            */
             ::glBufferSubData( GL_ARRAY_BUFFER, 0, colors.size() * sizeof( glm::vec3 ), colors.data() );
             skydome.is_dirty() = false;
         }

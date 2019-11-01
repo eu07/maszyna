@@ -204,18 +204,18 @@ material_data::assign( std::string const &Replacableskin ) {
     }
 
     textures_alpha = (
-        GfxRenderer->Material( replacable_skins[ 1 ] ).has_alpha ?
+        GfxRenderer->Material( replacable_skins[ 1 ] ).is_translucent() ?
             0x31310031 :  // tekstura -1 z kanałem alfa - nie renderować w cyklu nieprzezroczystych
             0x30300030 ); // wszystkie tekstury nieprzezroczyste - nie renderować w cyklu przezroczystych
-    if( GfxRenderer->Material( replacable_skins[ 2 ] ).has_alpha ) {
+    if( GfxRenderer->Material( replacable_skins[ 2 ] ).is_translucent() ) {
         // tekstura -2 z kanałem alfa - nie renderować w cyklu nieprzezroczystych
         textures_alpha |= 0x02020002;
     }
-    if( GfxRenderer->Material( replacable_skins[ 3 ] ).has_alpha ) {
+    if( GfxRenderer->Material( replacable_skins[ 3 ] ).is_translucent() ) {
         // tekstura -3 z kanałem alfa - nie renderować w cyklu nieprzezroczystych
         textures_alpha |= 0x04040004;
     }
-    if( GfxRenderer->Material( replacable_skins[ 4 ] ).has_alpha ) {
+    if( GfxRenderer->Material( replacable_skins[ 4 ] ).is_translucent() ) {
         // tekstura -4 z kanałem alfa - nie renderować w cyklu nieprzezroczystych
         textures_alpha |= 0x08080008;
     }
@@ -477,12 +477,9 @@ void TDynamicObject::SetPneumatic(bool front, bool red)
 
 void TDynamicObject::UpdateAxle(TAnim *pAnim)
 { // animacja osi
-    pAnim->smAnimated->SetRotate(float3(1, 0, 0), *pAnim->dWheelAngle);
-};
-
-void TDynamicObject::UpdateBoogie(TAnim *pAnim)
-{ // animacja wózka
-    pAnim->smAnimated->SetRotate(float3(1, 0, 0), *pAnim->dWheelAngle);
+    size_t wheel_id = pAnim->dWheelAngle;
+    pAnim->smAnimated->SetRotate(float3(1, 0, 0), dWheelAngle[wheel_id]);
+    pAnim->smAnimated->future_transform = glm::rotate((float)glm::radians(m_future_wheels_angle[wheel_id]), glm::vec3(1.0f, 0.0f, 0.0f));
 };
 
 // animacja drzwi - przesuw
@@ -2856,6 +2853,7 @@ bool TDynamicObject::Update(double dt, double dt1)
              && ( ctOwner != nullptr ) ) {
 				MoverParameters->MainCtrlPos = ctOwner->Controlling()->MainCtrlPos*MoverParameters->MainCtrlPosNo / std::max(1, ctOwner->Controlling()->MainCtrlPosNo);
 				MoverParameters->SpeedCtrlValue = ctOwner->Controlling()->SpeedCtrlValue;
+                MoverParameters->SpeedCtrlUnit.IsActive = ctOwner->Controlling()->SpeedCtrlUnit.IsActive;
 			}
 			MoverParameters->CheckEIMIC(dt1);
 			MoverParameters->CheckSpeedCtrl(dt1);
@@ -3210,7 +3208,11 @@ bool TDynamicObject::Update(double dt, double dt1)
         // TBD: place the meter on mover logic level?
         simulation::Train->add_distance( dDOMoveLen );
     }
+    glm::dvec3 old_pos = vPosition;
     Move(dDOMoveLen);
+
+	m_future_movement = (glm::dvec3(vPosition) - old_pos) / dt1 * Timer::GetDeltaRenderTime();
+
     if (!bEnabled) // usuwane pojazdy nie mają toru
     { // pojazd do usunięcia
         bDynamicRemove = true; // sprawdzić
@@ -3316,17 +3318,19 @@ bool TDynamicObject::Update(double dt, double dt1)
 
     if (MoverParameters->Vel != 0)
     { // McZapkie-050402: krecenie kolami:
+        glm::dvec3 old_wheels = glm::dvec3(dWheelAngle[0], dWheelAngle[1], dWheelAngle[2]);
+
         dWheelAngle[0] += 114.59155902616464175359630962821 * MoverParameters->V * dt1 /
                           MoverParameters->WheelDiameterL; // przednie toczne
         dWheelAngle[1] += MoverParameters->nrot * dt1 * 360.0; // napędne
         dWheelAngle[2] += 114.59155902616464175359630962821 * MoverParameters->V * dt1 /
                           MoverParameters->WheelDiameterT; // tylne toczne
-        if (dWheelAngle[0] > 360.0)
-            dWheelAngle[0] -= 360.0; // a w drugą stronę jak się kręcą?
-        if (dWheelAngle[1] > 360.0)
-            dWheelAngle[1] -= 360.0;
-        if (dWheelAngle[2] > 360.0)
-            dWheelAngle[2] -= 360.0;
+ 
+		m_future_wheels_angle = (glm::dvec3(dWheelAngle[0], dWheelAngle[1], dWheelAngle[2]) - old_wheels) / dt1 * Timer::GetDeltaRenderTime();
+
+        dWheelAngle[0] = clamp_circular( dWheelAngle[0] );
+        dWheelAngle[1] = clamp_circular( dWheelAngle[1] );
+        dWheelAngle[2] = clamp_circular( dWheelAngle[2] );
     }
     if (pants) // pantograf może być w wagonie kuchennym albo pojeździe rewizyjnym (np. SR61)
     { // przeliczanie kątów dla pantografów
@@ -4530,7 +4534,7 @@ void TDynamicObject::LoadMMediaFile( std::string const &TypeName, std::string co
                     }
                     // Ra: ustawianie indeksów osi
                     for (i = 0; i < iAnimType[ANIM_WHEELS]; ++i) // ilość osi (zabezpieczenie przed błędami w CHK)
-                        pAnimations[i].dWheelAngle = dWheelAngle + 1; // domyślnie wskaźnik na napędzające
+                        pAnimations[i].dWheelAngle = 1; // domyślnie wskaźnik na napędzające
                     i = 0;
                     j = 1;
                     k = 0;
@@ -4543,13 +4547,13 @@ void TDynamicObject::LoadMMediaFile( std::string const &TypeName, std::string co
                         { // wersja ze wskaźnikami jest bardziej elastyczna na nietypowe układy
                             if ((k >= 'A') && (k <= 'J')) // 10 chyba maksimum?
                             {
-                                pAnimations[i++].dWheelAngle = dWheelAngle + 1; // obrót osi napędzających
+                                pAnimations[i++].dWheelAngle = 1; // obrót osi napędzających
                                 --k; // następna będzie albo taka sama, albo bierzemy kolejny znak
                                 m = 2; // następujące toczne będą miały inną średnicę
                             }
                             else if ((k >= '1') && (k <= '9'))
                             {
-                                pAnimations[i++].dWheelAngle = dWheelAngle + m; // obrót osi tocznych
+                                pAnimations[i++].dWheelAngle = m; // obrót osi tocznych
                                 --k; // następna będzie albo taka sama, albo bierzemy kolejny znak
                             }
                             else
@@ -6380,6 +6384,11 @@ void TDynamicObject::OverheadTrack(float o)
         }
     }
 };
+
+glm::dvec3 TDynamicObject::get_future_movement() const {
+
+    return m_future_movement;
+}
 
 // returns type of the nearest functional power source present in the trainset
 TPowerSource

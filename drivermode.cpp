@@ -67,10 +67,12 @@ driver_mode::drivermode_input::init() {
     if( true == Global.InputGamepad ) {
         gamepad.init();
     }
+#ifdef WITH_UART
     if( true == Global.uart_conf.enable ) {
         uart = std::make_unique<uart_input>();
         uart->init();
     }
+#endif
 #ifdef _WIN32
     Console::On(); // włączenie konsoli
 #endif
@@ -238,9 +240,10 @@ driver_mode::update() {
 
     // NOTE: particle system runs on simulation time, but needs actual camera position to determine how to update each particle source
     simulation::Particles.update();
-    GfxRenderer->Update( deltarealtime );
 
     simulation::is_ready = true;
+
+    GfxRenderer->Update( deltarealtime );
 
     return true;
 }

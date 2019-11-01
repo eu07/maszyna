@@ -9,8 +9,6 @@ http://mozilla.org/MPL/2.0/.
 
 #pragma once
 
-#include "GL/glew.h"
-
 class opengl_skydome {
 
 public:
@@ -19,7 +17,7 @@ public:
 // destructor
     ~opengl_skydome();
 // methods
-    // updates data stores on the opengl end. NOTE: unbinds 
+    // updates data stores on the opengl end. NOTE: unbinds buffers
     void update();
     // draws the skydome
     void render();

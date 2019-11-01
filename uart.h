@@ -29,6 +29,7 @@ public:
         float currentuart = 65535.0f;
         float lvmax = 150.0f;
         float lvuart = 65535.0f;
+		float tachoscale = 1.0f;
 
         bool mainenable = true;
         bool scndenable = true;

@@ -9,12 +9,12 @@ http://mozilla.org/MPL/2.0/.
 
 #pragma once
 
-#include "GL/glew.h"
 #include "renderer.h"
 #include "opengllight.h"
 #include "openglcamera.h"
 #include "openglparticles.h"
 #include "openglskydome.h"
+#include "openglprecipitation.h"
 #include "lightarray.h"
 #include "scene.h"
 #include "simulationenvironment.h"
@@ -56,10 +56,10 @@ public:
         Insert( gfx::vertex_array &Vertices, gfx::geometrybank_handle const &Geometry, int const Type ) override;
     // replaces data of specified chunk with the supplied vertex data, starting from specified offset
     bool
-        Replace( gfx::vertex_array &Vertices, gfx::geometry_handle const &Geometry, std::size_t const Offset = 0 ) override;
+        Replace( gfx::vertex_array &Vertices, gfx::geometry_handle const &Geometry, int const Type, std::size_t const Offset = 0 ) override;
     // adds supplied vertex data at the end of specified chunk
     bool
-        Append( gfx::vertex_array &Vertices, gfx::geometry_handle const &Geometry ) override;
+        Append( gfx::vertex_array &Vertices, gfx::geometry_handle const &Geometry, int const Type ) override;
     // provides direct access to vertex data of specfied chunk
     gfx::vertex_array const &
         Vertices( gfx::geometry_handle const &Geometry ) const override;
@@ -67,17 +67,27 @@ public:
     material_handle
         Fetch_Material( std::string const &Filename, bool const Loadnow = true ) override;
     void
-        Bind_Material( material_handle const Material ) override;
+        Bind_Material( material_handle const Material, TSubModel *sm = nullptr ) override;
     opengl_material const &
         Material( material_handle const Material ) const override;
+    // shader methods
+    auto Fetch_Shader( std::string const &name ) -> std::shared_ptr<gl::program> override;
     // texture methods
     texture_handle
-        Fetch_Texture( std::string const &Filename, bool const Loadnow = true ) override;
+        Fetch_Texture( std::string const &Filename, bool const Loadnow = true, GLint format_hint = GL_SRGB_ALPHA ) override;
     void
-        Bind_Texture( texture_handle const Texture );
+        Bind_Texture( texture_handle const Texture ) override;
+    void
+        Bind_Texture( std::size_t const Unit, texture_handle const Texture ) override;
+    opengl_texture &
+        Texture( texture_handle const Texture ) override;
     opengl_texture const &
         Texture( texture_handle const Texture ) const override;
     // utility methods
+    void
+        Pick_Control_Callback( std::function<void( TSubModel const * )> Callback ) override;
+    void
+        Pick_Node_Callback( std::function<void( scene::basic_node * )> Callback ) override;
     TSubModel const *
         Pick_Control() const override { return m_pickcontrolitem; }
     scene::basic_node const *
@@ -87,9 +97,9 @@ public:
     // maintenance methods
     void
         Update( double const Deltatime ) override;
-    TSubModel *
+    void
         Update_Pick_Control() override;
-    scene::basic_node *
+    void
         Update_Pick_Node() override;
     glm::dvec3
         Update_Mouse_Position() override;
@@ -249,6 +259,7 @@ private:
     opengl_light m_sunlight;
     opengllight_array m_lights;
     opengl_skydome m_skydomerenderer;
+    opengl_precipitation m_precipitationrenderer;
     opengl_particles m_particlerenderer; // particle visualization subsystem
 /*
     float m_sunandviewangle; // cached dot product of sunlight and camera vectors
@@ -288,7 +299,7 @@ private:
     GLuint m_environmentdepthbuffer { 0 };
     bool m_environmentcubetexturesupport { false }; // indicates whether we can use the dynamic environment cube map
     int m_environmentcubetextureface { 0 }; // helper, currently processed cube map face
-    int m_environmentupdatetime { 0 }; // time of the most recent environment map update
+    double m_environmentupdatetime { 0.0 }; // time of the most recent environment map update
     glm::dvec3 m_environmentupdatelocation; // coordinates of most recent environment map update
 
     int m_helpertextureunit { GL_TEXTURE0 };
@@ -325,6 +336,8 @@ private:
     std::vector<scene::basic_node *> m_picksceneryitems;
     scene::basic_node *m_picksceneryitem { nullptr };
     glm::vec3 m_worldmousecoordinates { 0.f };
+    std::vector<std::function<void( TSubModel const * )>> m_control_pick_requests;
+    std::vector<std::function<void( scene::basic_node * )>> m_node_pick_requests;
 #ifdef EU07_USE_DEBUG_CAMERA
     renderpass_config m_worldcamera; // debug item
 #endif

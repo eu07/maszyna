@@ -245,9 +245,7 @@ drivermouse_input::move( double Mousex, double Mousey ) {
             Mousex,
             Mousey,
             GLFW_PRESS,
-            // as we haven't yet implemented either item id system or multiplayer, the 'local' controlled vehicle and entity have temporary ids of 0
-            // TODO: pass correct entity id once the missing systems are in place
-            0 );
+		    0 );
     }
     else {
         // control picking mode
@@ -258,8 +256,7 @@ drivermouse_input::move( double Mousex, double Mousey ) {
                 m_slider.value(),
                 0,
                 GLFW_PRESS,
-                // TODO: pass correct entity id once the missing systems are in place
-                0 );
+			    0 );
         }
 
         if( false == m_pickmodepanning ) {
@@ -275,9 +272,7 @@ drivermouse_input::move( double Mousex, double Mousey ) {
             viewoffset.x,
             viewoffset.y,
             GLFW_PRESS,
-            // as we haven't yet implemented either item id system or multiplayer, the 'local' controlled vehicle and entity have temporary ids of 0
-            // TODO: pass correct entity id once the missing systems are in place
-            0 );
+		    0 );
         m_cursorposition = cursorposition;
     }
 }
@@ -287,7 +282,7 @@ drivermouse_input::scroll( double const Xoffset, double const Yoffset ) {
 
     if( Global.ctrlState ) {
         // ctrl + scroll wheel adjusts fov
-        Global.FieldOfView = clamp( static_cast<float>( Global.FieldOfView - Yoffset * 20.0 / Timer::subsystem.gfx_total.average() ), 15.0f, 75.0f );
+		Global.FieldOfView = clamp( static_cast<float>( Global.FieldOfView - Yoffset * 20.0 / Timer::subsystem.mainloop_total.average() ), 15.0f, 75.0f );
     }
     else {
         // scroll adjusts master controller
@@ -323,12 +318,12 @@ drivermouse_input::button( int const Button, int const Action ) {
         // left mouse button launches on_click event associated with to the node
         if( Button == GLFW_MOUSE_BUTTON_LEFT ) {
             if( Action == GLFW_PRESS ) {
-                auto const *node { GfxRenderer->Update_Pick_Node() };
-                if( ( node == nullptr )
-                 || ( typeid( *node ) != typeid( TAnimModel ) ) ) {
-                    return;
-                }
-                simulation::Region->on_click( static_cast<TAnimModel const *>( node ) );
+                GfxRenderer->Pick_Node_Callback(
+                    [this](scene::basic_node *node) {
+                        if( ( node == nullptr )
+                         || ( typeid( *node ) != typeid( TAnimModel ) ) )
+                            return;
+                        simulation::Region->on_click( static_cast<TAnimModel const *>( node ) ); } );
             }
         }
         // right button controls panning
@@ -349,10 +344,11 @@ drivermouse_input::button( int const Button, int const Action ) {
                 // NOTE: basic keyboard controls don't have any parameters
                 // as we haven't yet implemented either item id system or multiplayer, the 'local' controlled vehicle and entity have temporary ids of 0
                 // TODO: pass correct entity id once the missing systems are in place
-                m_relay.post( mousecommand, 0, 0, Action, 0 );
+				m_relay.post( mousecommand, 0, 0, Action, 0 );
                 mousecommand = user_command::none;
             }
             else {
+                m_pickwaiting = false;
                 if( Button == GLFW_MOUSE_BUTTON_LEFT ) {
                     if( m_slider.command() != user_command::none ) {
                         m_relay.post( m_slider.command(), 0, 0, Action, 0 );
@@ -369,68 +365,77 @@ drivermouse_input::button( int const Button, int const Action ) {
         }
         else {
             // if not release then it's press
-            auto const lookup = m_buttonbindings.find( simulation::Train->GetLabel( GfxRenderer->Update_Pick_Control() ) );
-            if( lookup != m_buttonbindings.end() ) {
-                // if the recognized element under the cursor has a command associated with the pressed button, notify the recipient
-                mousecommand = (
-                    Button == GLFW_MOUSE_BUTTON_LEFT ?
-                        lookup->second.left :
-                        lookup->second.right
-                    );
-                if( mousecommand == user_command::none ) { return; }
-                // check manually for commands which have 'fast' variants launched with shift modifier
-                if( Global.shiftState ) {
-                    switch( mousecommand ) {
-                        case user_command::mastercontrollerincrease: { mousecommand = user_command::mastercontrollerincreasefast; break; }
-                        case user_command::mastercontrollerdecrease: { mousecommand = user_command::mastercontrollerdecreasefast; break; }
-                        case user_command::secondcontrollerincrease: { mousecommand = user_command::secondcontrollerincreasefast; break; }
-                        case user_command::secondcontrollerdecrease: { mousecommand = user_command::secondcontrollerdecreasefast; break; }
-                        case user_command::independentbrakeincrease: { mousecommand = user_command::independentbrakeincreasefast; break; }
-                        case user_command::independentbrakedecrease: { mousecommand = user_command::independentbrakedecreasefast; break; }
-                        default: { break; }
-                    }
-                }
+            m_pickwaiting = true;
+            GfxRenderer->Pick_Control_Callback(
+                [this, Button, Action, &mousecommand](TSubModel const *control) {
 
-                switch( mousecommand ) {
-                    case user_command::mastercontrollerincrease:
-                    case user_command::mastercontrollerdecrease:
-                    case user_command::secondcontrollerincrease:
-                    case user_command::secondcontrollerdecrease:
-                    case user_command::trainbrakeincrease:
-                    case user_command::trainbrakedecrease:
-                    case user_command::independentbrakeincrease:
-                    case user_command::independentbrakedecrease: {
-                        // these commands trigger varying repeat rate mode,
-                        // which scales the rate based on the distance of the cursor from its point when the command was first issued
-                        m_varyingpollrateorigin = m_cursorposition;
-                        m_varyingpollrate = true;
-                        break;
-                    }
-                    case user_command::jointcontrollerset:
-                    case user_command::mastercontrollerset:
-                    case user_command::secondcontrollerset:
-                    case user_command::trainbrakeset:
-                    case user_command::independentbrakeset: {
-                        m_slider.bind( mousecommand );
-                        mousecommand = user_command::none;
-                        return;
-                    }
-                    default: {
-                        break;
-                    }
-                }
-                // NOTE: basic keyboard controls don't have any parameters
-                // NOTE: as we haven't yet implemented either item id system or multiplayer, the 'local' controlled vehicle and entity have temporary ids of 0
-                // TODO: pass correct entity id once the missing systems are in place
-                m_relay.post( mousecommand, 0, 0, Action, 0 );
-                m_updateaccumulator = -0.25; // prevent potential command repeat right after issuing one
-            }
-            else {
-                // if we don't have any recognized element under the cursor and the right button was pressed, enter view panning mode
-                if( Button == GLFW_MOUSE_BUTTON_RIGHT ) {
-                    m_pickmodepanning = true;
-                }
-            }
+                    bool pickwaiting = m_pickwaiting;
+                    m_pickwaiting = false;
+
+                    auto const lookup = m_buttonbindings.find( simulation::Train->GetLabel( control ) );
+                    if( lookup != m_buttonbindings.end() ) {
+                        // if the recognized element under the cursor has a command associated with the pressed button, notify the recipient
+                        mousecommand = (
+                            Button == GLFW_MOUSE_BUTTON_LEFT ?
+                                lookup->second.left :
+                                lookup->second.right
+                            );
+                        if( mousecommand == user_command::none ) { return; }
+                        // check manually for commands which have 'fast' variants launched with shift modifier
+                        if( Global.shiftState ) {
+                            switch( mousecommand ) {
+                                case user_command::mastercontrollerincrease: { mousecommand = user_command::mastercontrollerincreasefast; break; }
+                                case user_command::mastercontrollerdecrease: { mousecommand = user_command::mastercontrollerdecreasefast; break; }
+                                case user_command::secondcontrollerincrease: { mousecommand = user_command::secondcontrollerincreasefast; break; }
+                                case user_command::secondcontrollerdecrease: { mousecommand = user_command::secondcontrollerdecreasefast; break; }
+                                case user_command::independentbrakeincrease: { mousecommand = user_command::independentbrakeincreasefast; break; }
+                                case user_command::independentbrakedecrease: { mousecommand = user_command::independentbrakedecreasefast; break; }
+                                default: { break; }
+                            }
+                        }
+
+					    switch( mousecommand ) {
+					        case user_command::mastercontrollerincrease:
+					        case user_command::mastercontrollerdecrease:
+					        case user_command::secondcontrollerincrease:
+					        case user_command::secondcontrollerdecrease:
+					        case user_command::trainbrakeincrease:
+					        case user_command::trainbrakedecrease:
+					        case user_command::independentbrakeincrease:
+					        case user_command::independentbrakedecrease: {
+						        // these commands trigger varying repeat rate mode,
+						        // which scales the rate based on the distance of the cursor from its point when the command was first issued
+						        m_varyingpollrateorigin = m_cursorposition;
+							    m_varyingpollrate = true;
+							    break;
+					        }
+					        case user_command::jointcontrollerset:
+					        case user_command::mastercontrollerset:
+					        case user_command::secondcontrollerset:
+					        case user_command::trainbrakeset:
+					        case user_command::independentbrakeset: {
+						        m_slider.bind( mousecommand );
+							    mousecommand = user_command::none;
+							    return;
+					        }
+					        default: {
+						        break;
+					        }
+					    }
+
+					    // NOTE: basic keyboard controls don't have any parameters
+					    // NOTE: as we haven't yet implemented either item id system or multiplayer, the 'local' controlled vehicle and entity have temporary ids of 0
+					    // TODO: pass correct entity id once the missing systems are in place
+					    m_relay.post( mousecommand, 0, 0, Action, 0 );
+					    if (!pickwaiting) // already depressed
+						    m_relay.post( mousecommand, 0, 0, GLFW_RELEASE, 0 );
+					    m_updateaccumulator = -0.25; // prevent potential command repeat right after issuing one
+				    }
+				    else {
+					    // if we don't have any recognized element under the cursor and the right button was pressed, enter view panning mode
+					    if( Button == GLFW_MOUSE_BUTTON_RIGHT ) {
+						    m_pickmodepanning = true;
+					    } } } );
         }
     }
 }
@@ -457,13 +462,13 @@ drivermouse_input::poll() {
             // NOTE: basic keyboard controls don't have any parameters
             // as we haven't yet implemented either item id system or multiplayer, the 'local' controlled vehicle and entity have temporary ids of 0
             // TODO: pass correct entity id once the missing systems are in place
-            m_relay.post( m_mousecommandleft, 0, 0, GLFW_REPEAT, 0 );
+			m_relay.post( m_mousecommandleft, 0, 0, GLFW_REPEAT, 0 );
         }
         if( m_mousecommandright != user_command::none ) {
             // NOTE: basic keyboard controls don't have any parameters
             // as we haven't yet implemented either item id system or multiplayer, the 'local' controlled vehicle and entity have temporary ids of 0
             // TODO: pass correct entity id once the missing systems are in place
-            m_relay.post( m_mousecommandright, 0, 0, GLFW_REPEAT, 0 );
+			m_relay.post( m_mousecommandright, 0, 0, GLFW_REPEAT, 0 );
         }
         m_updateaccumulator -= updaterate;
     }

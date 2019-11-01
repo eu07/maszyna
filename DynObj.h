@@ -124,7 +124,7 @@ public:
     union
     { // parametry animacji
         TAnimValveGear *pValveGear; // współczynniki do animacji parowozu
-        double *dWheelAngle; // wskaźnik na kąt obrotu osi
+        int dWheelAngle; // wskaźnik na kąt obrotu osi
         float *fParam; // różne parametry dla animacji
         TAnimPant *fParamPants; // różne parametry dla animacji
     };
@@ -162,6 +162,7 @@ struct material_data {
 class TDynamicObject { // klasa pojazdu
 
     friend opengl_renderer;
+    friend opengl33_renderer;
 
 public:
     static bool bDynamicRemove; // moved from ground
@@ -179,6 +180,8 @@ private: // położenie pojazdu w świecie oraz parametry ruchu
     float fAxleDist; // rozstaw wózków albo osi do liczenia proporcji zacienienia
     Math3D::vector3 modelRot; // obrot pudła względem świata - do przeanalizowania, czy potrzebne!!!
     TDynamicObject * ABuFindNearestObject( TTrack *Track, TDynamicObject *MyPointer, int &CouplNr );
+    glm::dvec3 m_future_movement;
+    glm::dvec3 m_future_wheels_angle;
 
 public:
     // parametry położenia pojazdu dostępne publicznie
@@ -257,7 +260,6 @@ private:
     void UpdateNone(TAnim *pAnim){}; // animacja pusta (funkcje ustawiania submodeli, gdy blisko kamery)
 */
     void UpdateAxle(TAnim *pAnim); // animacja osi
-    void UpdateBoogie(TAnim *pAnim); // animacja wózka
     void UpdateDoorTranslate(TAnim *pAnim); // animacja drzwi - przesuw
     void UpdateDoorRotate(TAnim *pAnim); // animacja drzwi - obrót
     void UpdateDoorFold(TAnim *pAnim); // animacja drzwi - składanie
@@ -456,8 +458,8 @@ private:
     sound_source sHorn3 { sound_placement::external, 5 * EU07_SOUND_RUNNINGNOISECUTOFFRANGE };
     std::vector<sound_source> m_bogiesounds; // TBD, TODO: wrapper for all bogie-related sounds (noise, brakes, squeal etc)
     sound_source m_wheelflat { sound_placement::external, EU07_SOUND_RUNNINGNOISECUTOFFRANGE };
-    sound_source rscurve { sound_placement::external, EU07_SOUND_RUNNINGNOISECUTOFFRANGE }; // youBy
-    sound_source rsDerailment { sound_placement::external, 250.f }; // McZapkie-051202
+    sound_source rscurve { sound_placement::external, 2 * EU07_SOUND_RUNNINGNOISECUTOFFRANGE }; // youBy
+    sound_source rsDerailment { sound_placement::external, 2 * EU07_SOUND_RUNNINGNOISECUTOFFRANGE }; // McZapkie-051202
 
     exchange_data m_exchange; // state of active load exchange procedure, if any
     exchange_sounds m_exchangesounds; // sounds associated with the load exchange
@@ -655,6 +657,7 @@ private:
     void DestinationSet(std::string to, std::string numer);
     material_handle DestinationFind( std::string Destination );
     void OverheadTrack(float o);
+    glm::dvec3 get_future_movement() const;
 
     double MED[9][8]; // lista zmiennych do debugowania hamulca ED
     static std::string const MED_labels[ 8 ];

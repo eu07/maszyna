@@ -58,6 +58,9 @@
     <Filter Include="Header Files\math">
       <UniqueIdentifier>{77356e25-abc5-4f1c-9caf-6cf554a65770}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Header Files\gfx\gl">
+      <UniqueIdentifier>{4fcccdfc-d0d4-45a9-9603-b13d8dfe345c}</UniqueIdentifier>
+    </Filter>
     <Filter Include="Source Files\gfx">
       <UniqueIdentifier>{8b47594a-f06a-4c9b-9aef-70f6ec24a288}</UniqueIdentifier>
     </Filter>
@@ -318,6 +321,42 @@
     <ClCompile Include="particles.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="gl\buffer.cpp">
+      <Filter>Source Files\gfx\gl</Filter>
+    </ClCompile>
+    <ClCompile Include="gl\cubemap.cpp">
+      <Filter>Source Files\gfx\gl</Filter>
+    </ClCompile>
+    <ClCompile Include="gl\fence.cpp">
+      <Filter>Source Files\gfx\gl</Filter>
+    </ClCompile>
+    <ClCompile Include="gl\framebuffer.cpp">
+      <Filter>Source Files\gfx\gl</Filter>
+    </ClCompile>
+    <ClCompile Include="gl\glsl_common.cpp">
+      <Filter>Source Files\gfx\gl</Filter>
+    </ClCompile>
+    <ClCompile Include="gl\pbo.cpp">
+      <Filter>Source Files\gfx\gl</Filter>
+    </ClCompile>
+    <ClCompile Include="gl\postfx.cpp">
+      <Filter>Source Files\gfx\gl</Filter>
+    </ClCompile>
+    <ClCompile Include="gl\query.cpp">
+      <Filter>Source Files\gfx\gl</Filter>
+    </ClCompile>
+    <ClCompile Include="gl\renderbuffer.cpp">
+      <Filter>Source Files\gfx\gl</Filter>
+    </ClCompile>
+    <ClCompile Include="gl\shader.cpp">
+      <Filter>Source Files\gfx\gl</Filter>
+    </ClCompile>
+    <ClCompile Include="gl\ubo.cpp">
+      <Filter>Source Files\gfx\gl</Filter>
+    </ClCompile>
+    <ClCompile Include="gl\vao.cpp">
+      <Filter>Source Files\gfx\gl</Filter>
+    </ClCompile>
     <ClCompile Include="dumb3d.cpp">
       <Filter>Source Files\math</Filter>
     </ClCompile>
@@ -376,6 +415,30 @@
       <Filter>Source Files\gfx</Filter>
     </ClCompile>
     <ClCompile Include="Texture.cpp">
+      <Filter>Source Files\gfx</Filter>
+    </ClCompile>
+    <ClCompile Include="ref\glad\src\glad.c">
+      <Filter>Source Files\gfx\gl</Filter>
+    </ClCompile>
+    <ClCompile Include="opengl33renderer.cpp">
+      <Filter>Source Files\gfx</Filter>
+    </ClCompile>
+    <ClCompile Include="opengl33particles.cpp">
+      <Filter>Source Files\gfx</Filter>
+    </ClCompile>
+    <ClCompile Include="opengl33light.cpp">
+      <Filter>Source Files\gfx</Filter>
+    </ClCompile>
+    <ClCompile Include="openglprecipitation.cpp">
+      <Filter>Source Files\gfx</Filter>
+    </ClCompile>
+    <ClCompile Include="opengl33precipitation.cpp">
+      <Filter>Source Files\gfx</Filter>
+    </ClCompile>
+    <ClCompile Include="opengl33skydome.cpp">
+      <Filter>Source Files\gfx</Filter>
+    </ClCompile>
+    <ClCompile Include="opengl33geometrybank.cpp">
       <Filter>Source Files\gfx</Filter>
     </ClCompile>
   </ItemGroup>
@@ -644,9 +707,6 @@
     <ClInclude Include="Texture.h">
       <Filter>Header Files\gfx</Filter>
     </ClInclude>
-    <ClInclude Include="stars.h">
-      <Filter>Header Files\gfx</Filter>
-    </ClInclude>
     <ClInclude Include="AnimModel.h">
       <Filter>Header Files\gfx</Filter>
     </ClInclude>
@@ -683,6 +743,48 @@
     <ClInclude Include="skydome.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="gl\bindable.h">
+      <Filter>Header Files\gfx\gl</Filter>
+    </ClInclude>
+    <ClInclude Include="gl\buffer.h">
+      <Filter>Header Files\gfx\gl</Filter>
+    </ClInclude>
+    <ClInclude Include="gl\cubemap.h">
+      <Filter>Header Files\gfx\gl</Filter>
+    </ClInclude>
+    <ClInclude Include="gl\fence.h">
+      <Filter>Header Files\gfx\gl</Filter>
+    </ClInclude>
+    <ClInclude Include="gl\framebuffer.h">
+      <Filter>Header Files\gfx\gl</Filter>
+    </ClInclude>
+    <ClInclude Include="gl\glsl_common.h">
+      <Filter>Header Files\gfx\gl</Filter>
+    </ClInclude>
+    <ClInclude Include="gl\object.h">
+      <Filter>Header Files\gfx\gl</Filter>
+    </ClInclude>
+    <ClInclude Include="gl\pbo.h">
+      <Filter>Header Files\gfx\gl</Filter>
+    </ClInclude>
+    <ClInclude Include="gl\postfx.h">
+      <Filter>Header Files\gfx\gl</Filter>
+    </ClInclude>
+    <ClInclude Include="gl\query.h">
+      <Filter>Header Files\gfx\gl</Filter>
+    </ClInclude>
+    <ClInclude Include="gl\renderbuffer.h">
+      <Filter>Header Files\gfx\gl</Filter>
+    </ClInclude>
+    <ClInclude Include="gl\shader.h">
+      <Filter>Header Files\gfx\gl</Filter>
+    </ClInclude>
+    <ClInclude Include="gl\ubo.h">
+      <Filter>Header Files\gfx\gl</Filter>
+    </ClInclude>
+    <ClInclude Include="gl\vao.h">
+      <Filter>Header Files\gfx\gl</Filter>
+    </ClInclude>
     <ClInclude Include="opengl33renderer.h">
       <Filter>Header Files\gfx</Filter>
     </ClInclude>
@@ -699,6 +801,15 @@
       <Filter>Header Files\gfx</Filter>
     </ClInclude>
     <ClInclude Include="opengl33precipitation.h">
+      <Filter>Header Files\gfx</Filter>
+    </ClInclude>
+    <ClInclude Include="opengl33skydome.h">
+      <Filter>Header Files\gfx</Filter>
+    </ClInclude>
+    <ClInclude Include="opengl33geometrybank.h">
+      <Filter>Header Files\gfx</Filter>
+    </ClInclude>
+    <ClInclude Include="stars.h">
       <Filter>Header Files\gfx</Filter>
     </ClInclude>
   </ItemGroup>

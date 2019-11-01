@@ -13,6 +13,7 @@ http://mozilla.org/MPL/2.0/.
 // Ra: zestaw klas do robienia wskaźników, aby uporządkować nagłówki
 //---------------------------------------------------------------------------
 class opengl_renderer;
+class opengl33_renderer;
 class TTrack; // odcinek trajektorii
 class basic_event;
 class TTrain; // pojazd sterowany

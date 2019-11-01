@@ -3,6 +3,7 @@
 #include "skydome.h"
 #include "color.h"
 #include "utilities.h"
+#include "simulationenvironment.h"
 
 // sky gradient based on "A practical analytic model for daylight" 
 // by A. J. Preetham Peter Shirley Brian Smits (University of Utah)
@@ -189,6 +190,9 @@ float CSkyDome::PerezFunctionO2( float Perezcoeffs[ 5 ], const float Icostheta, 
 
 void CSkyDome::RebuildColors() {
 
+    float twilightfactor = clamp( -simulation::Environment.sun().getAngle(), 0.0f, 18.0f ) / 18.0f;
+    auto gammacorrection = interpolate( glm::vec3( 0.45f ), glm::vec3( 1.0f ), twilightfactor );
+
 	// get zenith luminance
 	float const chi = ( (4.0f / 9.0f) - (m_turbidity / 120.0f) ) * ( M_PI - (2.0f * m_thetasun) );
 	float zenithluminance = ( (4.0453f * m_turbidity) - 4.9710f ) * std::tan( chi ) - (0.2155f * m_turbidity) + 2.4192f; 
@@ -260,6 +264,7 @@ void CSkyDome::RebuildColors() {
 			colorconverter.z = 1.0f - std::exp( -m_expfactor * colorconverter.z );  
 		}
 
+        colorconverter.y = clamp( colorconverter.y * 1.15f, 0.0f, 1.0f );
         // desaturate sky colour, based on overcast level
         if( colorconverter.y > 0.0f ) {
             colorconverter.y *= ( 1.0f - m_overcast );
@@ -296,6 +301,11 @@ void CSkyDome::RebuildColors() {
             color.x = 0.20f * color.z; 
             color.y = 0.65f * color.z;
             color = color * ( 1.15f - vertex.y ); // simple gradient, darkening towards the top
+        }
+        // gamma correction
+        color = glm::pow( color, gammacorrection );
+        if( Global.GfxFramebufferSRGB ) {
+            color = glm::pow( color, glm::vec3( 2.2f ) - ( gammacorrection * 0.5f ) );
         }
 		// save
         m_colours[ i ] = color;

@@ -9,7 +9,6 @@ http://mozilla.org/MPL/2.0/.
 
 #pragma once
 
-#include "GL/glew.h"
 #include "frustum.h"
 #include "scene.h"
 
@@ -23,6 +22,10 @@ public:
     inline
     void
         update_frustum() { update_frustum( m_projection, m_modelview ); }
+    inline
+    void
+        update_frustum(glm::mat4 frustumtest_proj) {
+            update_frustum(frustumtest_proj, m_modelview); }
     void
         update_frustum( glm::mat4 const &Projection, glm::mat4 const &Modelview );
     bool

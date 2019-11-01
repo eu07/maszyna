@@ -56,6 +56,8 @@ public:
         set_cursor( int const Mode );
     void
         set_cursor_pos( double const Horizontal, double const Vertical );
+    glm::dvec2
+        get_cursor_pos() const;
     void
         get_cursor_pos( double &Horizontal, double &Vertical ) const;
     // input handlers

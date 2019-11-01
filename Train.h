@@ -101,6 +101,9 @@ class TTrain {
         float hv_voltage;
         std::array<float, 3> hv_current;
         float lv_voltage;
+		double distance;
+		int radio_channel;
+		bool springbrake_active;
     };
 
 // constructors

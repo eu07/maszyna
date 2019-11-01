@@ -118,6 +118,7 @@ world_environment::update() {
         Global.DayLight.position = m_moon.getDirection();
         Global.DayLight.direction = -1.0f * m_moon.getDirection();
         keylightintensity = moonlightlevel;
+        m_lightintensity = 0.35f;
         // if the moon is up, it overrides the twilight
         twilightfactor = 0.0f;
         keylightcolor = glm::vec3( 255.0f / 255.0f, 242.0f / 255.0f, 202.0f / 255.0f );
@@ -128,6 +129,7 @@ world_environment::update() {
         Global.DayLight.position = m_sun.getDirection();
         Global.DayLight.direction = -1.0f * m_sun.getDirection();
         keylightintensity = sunlightlevel;
+        m_lightintensity = 1.0f;
         // include 'golden hour' effect in twilight lighting
         float const duskfactor = 1.0f - clamp( Global.SunAngle, 0.0f, 18.0f ) / 18.0f;
         keylightcolor = interpolate(

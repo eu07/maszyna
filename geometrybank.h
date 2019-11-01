@@ -9,13 +9,6 @@ http://mozilla.org/MPL/2.0/.
 
 #pragma once
 
-#include <vector>
-#include <glm/glm.hpp>
-#include <glm/gtc/type_ptr.hpp>
-#include "GL/glew.h"
-#ifdef _WIN32
-#include "GL/wglew.h"
-#endif
 #include "ResourceManager.h"
 
 namespace gfx {
@@ -25,6 +18,7 @@ struct basic_vertex {
     glm::vec3 position; // 3d space
     glm::vec3 normal; // 3d space
     glm::vec2 texture; // uv space
+    glm::vec4 tangent; // xyz - tangent, w - handedness
 
     basic_vertex() = default;
     basic_vertex( glm::vec3 Position,  glm::vec3 Normal,  glm::vec2 Texture ) :
@@ -52,6 +46,8 @@ struct stream_units {
 };
 
 using vertex_array = std::vector<basic_vertex>;
+
+void calculate_tangent( vertex_array &vertices, int type );
 
 // generic geometry bank class, allows storage, update and drawing of geometry chunks
 

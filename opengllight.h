@@ -9,7 +9,6 @@ http://mozilla.org/MPL/2.0/.
 
 #pragma once
 
-#include "GL/glew.h"
 #include "light.h"
 
 struct opengl_light : public basic_light {

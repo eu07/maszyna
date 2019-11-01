@@ -110,6 +110,12 @@ double Random(double a, double b)
     return dis(Global.random_engine);
 }
 
+double LocalRandom(double a, double b)
+{
+	uint32_t val = Global.local_random_engine();
+	return interpolate(a, b, (double)val / Global.random_engine.max());
+}
+
 bool FuzzyLogic(double Test, double Threshold, double Probability)
 {
     if ((Test > Threshold) && (!DebugModeFlag))
@@ -480,4 +486,14 @@ deserialize_random_set( cParser &Input, char const *Break ) {
         // shouldn't ever get here but, eh
         return "";
     }
+}
+
+int count_trailing_zeros( uint32_t val )
+{
+    int r = 0;
+
+    for( uint32_t shift = 1; !( val & shift ); shift <<= 1 )
+        r++;
+
+    return r;
 }

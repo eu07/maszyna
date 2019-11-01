@@ -26,7 +26,7 @@ public:
 
     std::vector<glm::vec3> const & vertices() const {
         return m_vertices; }
-    std::vector<glm::vec3> const & colors() const {
+    std::vector<glm::vec3> & colors() {
         return m_colours; }
     std::vector<std::uint16_t> const & indices() const {
         return m_indices; }
