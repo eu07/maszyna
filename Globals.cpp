@@ -361,6 +361,9 @@ global_settings::ConfigParse(cParser &Parser) {
             // shadow render toggle
             Parser.getTokens();
             Parser >> GfxRenderer;
+            if( GfxRenderer == "full" ) {
+                GfxRenderer = "default";
+            }
             BasicRenderer = ( GfxRenderer == "simple" );
         }
         else if( token == "shadows" ) {
