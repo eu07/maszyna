@@ -637,6 +637,7 @@ struct TTransmision
 	int NToothM = 0;
 	int NToothW = 0;
 	double Ratio = 1.0;
+	double Efficiency = 1.0;
 };
 
 enum class TCouplerType { NoCoupler, Articulated, Bare, Chain, Screw, Automatic };
