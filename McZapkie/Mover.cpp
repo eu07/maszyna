@@ -5247,7 +5247,7 @@ double TMoverParameters::TractionForce( double dt ) {
                 Itot = Im;
             else
                 Itot = Im * RList[MainCtrlActualPos].Bn; // prad silnika * ilosc galezi
-            Mw = Mm * Transmision.Ratio;
+            Mw = Mm * Transmision.Ratio  * Transmision.Efficiency;
             Fw = Mw * 2.0 / WheelDiameter;
             Ft = Fw * NPoweredAxles; // sila trakcyjna
             break;
@@ -5255,9 +5255,9 @@ double TMoverParameters::TractionForce( double dt ) {
 
         case TEngineType::DieselEngine:
         {
-            Mw = dmoment * dtrans; // dmoment i dtrans policzone przy okazji enginerotation
+            Mw = dmoment * dtrans * Transmision.Efficiency; // dmoment i dtrans policzone przy okazji enginerotation
 			if ((hydro_R) && (hydro_R_Placement == 0))
-				Mw -= dizel_MomentumRetarder(nrot * Transmision.Ratio, dt) * Transmision.Ratio;
+				Mw -= dizel_MomentumRetarder(nrot * Transmision.Ratio, dt) * Transmision.Ratio * Transmision.Efficiency;
             Fw = Mw * 2.0 / WheelDiameter / NPoweredAxles;
             Ft = Fw * NPoweredAxles; // sila trakcyjna
             Ft = Ft * DirAbsolute; // ActiveDir*CabNo;
@@ -5826,7 +5826,7 @@ double TMoverParameters::TractionForce( double dt ) {
                 }
 
                 Mm = eimv[eimv_M] * DirAbsolute;
-                Mw = Mm * Transmision.Ratio;
+                Mw = Mm * Transmision.Ratio * Transmision.Efficiency;
                 Fw = Mw * 2.0 / WheelDiameter;
                 Ft = Fw * NPoweredAxles;
                 eimv[eimv_Fr] = DirAbsolute * Ft / 1000;
@@ -9869,6 +9869,7 @@ void TMoverParameters::LoadFIZ_Engine( std::string const &Input ) {
             Transmision.Ratio = static_cast<double>( Transmision.NToothW ) / Transmision.NToothM;
         else
             Transmision.Ratio = 1.0;
+		extract_value(Transmision.Efficiency, "TransEff", Input, "");
     }
 
     switch( EngineType ) {
