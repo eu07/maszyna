@@ -26,6 +26,14 @@ Stele, firleju, szociu, hunter, ZiomalCl, OLI_EU and others
 #pragma comment(linker, "/subsystem:windows /ENTRY:mainCRTStartup") 
 #endif 
 
+extern "C" {
+    // https://docs.nvidia.com/gameworks/content/technologies/desktop/optimus.htm
+    __declspec(dllexport) std::uint32_t NvOptimusEnablement = 0x00000001;
+
+    // https://gpuopen.com/amdpowerxpressrequesthighperformance/
+    __declspec(dllexport) std::uint32_t AmdPowerXpressRequestHighPerformance = 0x00000001;
+}
+
 
 int main( int argc, char *argv[] )
 {
