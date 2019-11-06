@@ -233,12 +233,10 @@ driver_ui::set_cursor( bool const Visible ) {
 void
 driver_ui::render_() {
 	const std::string *rec_name = m_trainingcardpanel.is_recording();
-	if (rec_name && m_cameraviewpanel.set_state(ui::cameraview_panel::RECORDING)) {
+	if (rec_name && m_cameraviewpanel.set_state(true)) {
 		m_cameraviewpanel.rec_name = *rec_name;
-	} else if (!rec_name && m_cameraviewpanel.is_open)
-		m_cameraviewpanel.set_state(ui::cameraview_panel::PREVIEW);
-	else if (!rec_name)
-		m_cameraviewpanel.set_state(ui::cameraview_panel::IDLE);
+	} else if (!rec_name)
+		m_cameraviewpanel.set_state(false);
 
     // pause/quit modal
 	auto const popupheader { STR_C("Simulation Paused") };

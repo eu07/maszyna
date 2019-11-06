@@ -20,23 +20,41 @@ void cameraview_window_callback(ImGuiSizeCallbackData *data) {
 }
 
 ui::cameraview_panel::~cameraview_panel() {
-	exit_thread = true;
-	if (workthread.joinable())
-		workthread.detach();
+	record_state = STOPPING;
+	if (record_workthread.joinable())
+		record_workthread.join();
+
+	capture_state = STOPPING;
+	if (capture_workthread.joinable())
+		capture_workthread.join();
 }
 
 void ui::cameraview_panel::render()
 {
-	if (!is_open && state != RECORDING) {
-		exit_thread = true;
+	if (Global.extcam_cmd.empty())
+		return;
+
+	if (record_state == STOPPING_DONE) {
+		record_workthread.join();
+		record_state = STOPPED;
 	}
 
-	if (exit_thread) {
-		if (workthread.joinable())
-			workthread.join();
-		exit_thread = false;
-		if (state != IDLE && !Global.extcam_cmd.empty())
-			workthread = std::thread(&cameraview_panel::workthread_func, this);
+	if (capture_state == STOPPING_DONE) {
+		capture_workthread.join();
+		capture_state = STOPPED;
+	}
+
+	if (capture_state == STOPPED) {
+		capture_state = STARTING;
+		capture_workthread = std::thread(&cameraview_panel::capture_func, this);
+	}
+
+	if (recording && !(record_state == RUNNING || record_state == STARTING)) {
+		record_state = STARTING;
+		record_workthread = std::thread(&cameraview_panel::record_func, this);
+	}
+	if (!recording && !(record_state == STOPPED || record_state == STOPPING_DONE)) {
+		record_state = STOPPING;
 	}
 
 	if (!is_open)
@@ -52,15 +70,14 @@ void ui::cameraview_panel::render()
 	ImGui::End();
 }
 
-bool ui::cameraview_panel::set_state(state_e e)
+bool ui::cameraview_panel::set_state(bool rec)
 {
-	if (state != e) {
-		exit_thread = true;
-		state = e;
-		is_open = (state != IDLE);
-		return true;
-	}
-	return false;
+	if (recording == rec)
+		return false;
+
+	recording = rec;
+
+	return true;
 }
 
 void ui::cameraview_panel::render_contents()
@@ -99,18 +116,9 @@ void ui::cameraview_panel::render_contents()
 	ImGui::Image(reinterpret_cast<void*>(texture->id), surface_size);
 }
 
-void ui::cameraview_panel::workthread_func()
+void ui::cameraview_panel::capture_func()
 {
 	std::string cmdline = Global.extcam_cmd;
-	if (state == RECORDING)
-		cmdline += " " + Global.extcam_rec;
-
-	if (!rec_name.empty()) {
-		const std::string magic{"{RECORD}"};
-		size_t pos = cmdline.find(magic);
-		if (pos != -1)
-			cmdline.replace(pos, magic.size(), rec_name);
-	}
 
 	piped_proc proc(cmdline);
 
@@ -119,7 +127,9 @@ void ui::cameraview_panel::workthread_func()
 	uint8_t *active_buffer = new uint8_t[frame_size];
 
 	size_t bufpos = 0;
-	while (!exit_thread) {
+
+	capture_state = RUNNING;
+	while (capture_state == RUNNING) {
 		size_t read = 0;
 		read = proc.read(read_buffer + bufpos, frame_size - bufpos);
 
@@ -136,10 +146,54 @@ void ui::cameraview_panel::workthread_func()
 		image_ptr = read_buffer;
 		read_buffer = active_buffer;
 		active_buffer = image_ptr;
+
+		frame_cnt++;
+		notify_var.notify_one();
 	}
 
 	std::lock_guard<std::mutex> lock(mutex);
 	image_ptr = nullptr;
 	delete[] read_buffer;
 	delete[] active_buffer;
+
+	capture_state = STOPPING_DONE;
+}
+
+void ui::cameraview_panel::record_func()
+{
+	std::string cmdline = Global.extcam_rec;
+
+	if (!rec_name.empty()) {
+		const std::string magic{"{RECORD}"};
+		size_t pos = cmdline.find(magic);
+		if (pos != -1)
+			cmdline.replace(pos, magic.size(), rec_name);
+	}
+
+	piped_proc proc(cmdline, true);
+
+	size_t frame_size = Global.extcam_res.x * Global.extcam_res.y * 3;
+	uint8_t *read_buffer = new uint8_t[frame_size];
+	uint32_t last_cnt = 0;
+	size_t bufpos = frame_size;
+
+	record_state = RUNNING;
+	while (record_state == RUNNING) {
+		if (bufpos == frame_size)
+		{
+			std::unique_lock<std::mutex> lock(mutex);
+			auto r = notify_var.wait_for(lock, std::chrono::milliseconds(50), [this, last_cnt]{return last_cnt != frame_cnt;});
+			last_cnt = frame_cnt;
+			if (!image_ptr || !r)
+				continue;
+
+			bufpos = 0;
+			memcpy(read_buffer, image_ptr, frame_size);
+		}
+		bufpos += proc.write(read_buffer + bufpos, frame_size - bufpos);
+	}
+
+	delete[] read_buffer;
+
+	record_state = STOPPING_DONE;
 }

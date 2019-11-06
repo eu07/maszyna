@@ -7,9 +7,9 @@
 #include "Logs.h"
 
 #ifdef __unix__
-piped_proc::piped_proc(std::string cmd)
+piped_proc::piped_proc(std::string cmd, bool write)
 {
-	file = popen(cmd.c_str(), "r");
+	file = popen(cmd.c_str(), write ? "w" : "r");
 }
 
 piped_proc::~piped_proc()
@@ -25,8 +25,16 @@ size_t piped_proc::read(unsigned char *buf, size_t len)
 
 	return fread(buf, 1, len, file);
 }
+
+size_t piped_proc::write(unsigned char *buf, size_t len)
+{
+	if (!file)
+		return 0;
+
+	return fwrite(buf, 1, len, file);
+}
 #elif _WIN32
-piped_proc::piped_proc(std::string cmd)
+piped_proc::piped_proc(std::string cmd, bool write)
 {
 	PROCESS_INFORMATION process;
 	STARTUPINFO siStartInfo;
@@ -45,14 +53,17 @@ piped_proc::piped_proc(std::string cmd)
 		return;
 	}
 
-	if (!SetHandleInformation(pipe_rd, HANDLE_FLAG_INHERIT, 0)) {
+	if (!SetHandleInformation(write ? pipe_wr : pipe_rd, HANDLE_FLAG_INHERIT, 0)) {
 		ErrorLog("piped_proc: SetHandleInformation failed!");
 		return;
 	}
 
 	siStartInfo.cb = sizeof(STARTUPINFO);
 	siStartInfo.hStdError = GetStdHandle(STD_ERROR_HANDLE);
-	siStartInfo.hStdOutput = pipe_wr;
+	if (!write)
+		siStartInfo.hStdOutput = pipe_wr;
+	else
+		siStartInfo.hStdInput = pipe_rd;
 	siStartInfo.dwFlags |= STARTF_USESTDHANDLES;
 
 	if (!CreateProcessA(NULL, (char*)cmd.c_str(), NULL, NULL, TRUE, CREATE_NO_WINDOW, NULL, NULL, &siStartInfo, &process)) {
@@ -71,10 +82,8 @@ piped_proc::~piped_proc()
 		CloseHandle(pipe_wr);
 	if (pipe_rd)
 		CloseHandle(pipe_rd);
-	if (proc_h) {
-		WaitForSingleObject(proc_h, INFINITE);
+	if (proc_h)
 		CloseHandle(proc_h);
-	}
 }
 
 size_t piped_proc::read(unsigned char *buf, size_t len)
@@ -86,5 +95,16 @@ size_t piped_proc::read(unsigned char *buf, size_t len)
 	BOOL ret = ReadFile(pipe_rd, buf, len, &read, NULL);
 
 	return read;
+}
+
+size_t piped_proc::write(unsigned char *buf, size_t len)
+{
+	if (!pipe_wr)
+		return 0;
+
+	DWORD wrote = 0;
+	BOOL ret = WriteFile(pipe_wr, buf, len, &wrote, NULL);
+
+	return wrote;
 }
 #endif
