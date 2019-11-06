@@ -8363,6 +8363,8 @@ void TTrain::set_cab_controls( int const Cab ) {
                 1.f :
                 0.f );
      }
+    // radio
+    ggRadioVolumeSelector.PutValue( Global.RadioVolume );
        
     // we reset all indicators, as they're set during the update pass
     // TODO: when cleaning up break setting indicator state into a separate function, so we can reuse it

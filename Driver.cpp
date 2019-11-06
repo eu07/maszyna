@@ -1029,8 +1029,11 @@ TCommandType TController::TableUpdate(double &fVelDes, double &fDist, double &fN
 
                             if (TrainParams.StationIndex < TrainParams.StationCount) {
                                 // jeśli są dalsze stacje, czekamy do godziny odjazdu
-                                if (TrainParams.IsTimeToGo(simulation::Time.data().wHour, simulation::Time.data().wMinute + simulation::Time.data().wSecond*0.0167 )) {
+                                if ( ( true == IsCargoTrain )
+                                  || ( true == TrainParams.IsMaintenance() )
+                                  || ( TrainParams.IsTimeToGo( simulation::Time.data().wHour, simulation::Time.data().wMinute + simulation::Time.data().wSecond*0.0167 ) ) ) {
                                     // z dalszą akcją czekamy do godziny odjazdu
+                                    // cargo trains and passenger trains at maintenance stop don't need to wait
                                     IsAtPassengerStop = false;
                                     // przy jakim dystansie (stanie licznika) ma przesunąć na następny postój
                                     fLastStopExpDist = mvOccupied->DistCounter + 0.050 + 0.001 * fLength;
