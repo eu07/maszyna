@@ -1092,7 +1092,7 @@ debug_panel::update_section_renderer( std::vector<text_line> &Output ) {
             // gfx renderer data
             auto textline =
                 "FoV: " + to_string( Global.FieldOfView / Global.ZoomFactor, 1 )
-                + ", Draw range x " + to_string( Global.fDistanceFactor, 1 )
+                + ", Draw range: " + to_string( Global.BaseDrawRange * Global.fDistanceFactor, 0 ) + "m"
 //                + "; sectors: " + std::to_string( GfxRenderer->m_drawcount )
 //                + ", FPS: " + to_string( Timer::GetFPS(), 2 );
                 + ", FPS: " + std::to_string( static_cast<int>(std::round(GfxRenderer->Framerate())) );

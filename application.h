@@ -71,7 +71,7 @@ public:
         on_scroll( double const Xoffset, double const Yoffset );
     // gives access to specified window, creates a new window if index == -1
     GLFWwindow *
-        window( int const Windowindex = 0 );
+        window( int const Windowindex = 0, bool visible = false, int width = 1, int height = 1, GLFWmonitor *monitor = nullptr, bool keep_ownership = true, bool share_ctx = true );
 
 private:
 // types
@@ -88,6 +88,8 @@ private:
     int  init_audio();
     int  init_data();
     int  init_modes();
+    GLFWmonitor * find_monitor( const std::string &str ) const;
+    std::string describe_monitor( GLFWmonitor *monitor ) const;
 // members
     modeptr_array m_modes { nullptr }; // collection of available application behaviour modes
     mode_stack m_modestack; // current behaviour mode

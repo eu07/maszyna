@@ -76,7 +76,7 @@ struct global_settings {
     bool bLiveTraction{ true };
     float Overcast{ 0.1f }; // NOTE: all this weather stuff should be moved elsewhere
     glm::vec3 FogColor = { 0.6f, 0.7f, 0.8f };
-    double fFogEnd{ 2000 };
+    double fFogEnd{ 7500 };
     std::string Season{}; // season of the year, based on simulation date
     std::string Weather{ "cloudy:" }; // current weather
     bool FullPhysics{ true }; // full calculations performed for each simulation step
@@ -187,6 +187,7 @@ struct global_settings {
     bool render_cab = true;
     int gfx_framebuffer_width = -1;
     int gfx_framebuffer_height = -1;
+    int gfx_framebuffer_fidelity = -1;
     bool gfx_shadowmap_enabled = true;
     bool gfx_envmap_enabled = true;
     bool gfx_postfx_motionblur_enabled = true;
@@ -198,6 +199,7 @@ struct global_settings {
     bool gfx_extraeffects = true;
     bool gfx_shadergamma = false;
     bool gfx_usegles = false;
+    std::string fullscreen_monitor;
     bool python_mipmaps = true;
 
 // methods

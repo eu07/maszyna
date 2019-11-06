@@ -125,8 +125,15 @@ bool opengl33_renderer::Init(GLFWwindow *Window)
 
 	m_viewports.push_back(std::make_unique<viewport_config>());
 	viewport_config &default_viewport = *m_viewports.front().get();
-	default_viewport.width = Global.gfx_framebuffer_width;
-	default_viewport.height = Global.gfx_framebuffer_height;
+    if( Global.gfx_framebuffer_fidelity >= 0 ) {
+        std::vector<int> resolutions = { 480, 720, 1080, 1440 };
+        default_viewport.height = resolutions[ clamp<int>( Global.gfx_framebuffer_fidelity, 0, resolutions.size() - 1 ) ];
+        default_viewport.width = quantize( Global.iWindowWidth * default_viewport.height / Global.iWindowHeight, 4 );
+    }
+    else {
+        default_viewport.width = Global.gfx_framebuffer_width;
+        default_viewport.height = Global.gfx_framebuffer_height;
+    }
 	default_viewport.main = true;
 	default_viewport.window = m_window;
 	default_viewport.draw_range = 1.0f;
@@ -612,11 +619,18 @@ void opengl33_renderer::Render_pass(viewport_config &vp, rendermode const Mode)
 		if (!FreeFlyModeFlag && Global.Overcast <= 1.0f && Global.render_cab)
 		{
 			glDebug("render cab opaque");
-			if (Global.gfx_shadowmap_enabled)
-				setup_shadow_map(m_cabshadows_tex.get(), m_cabshadowpass);
-
-			auto const *vehicle = simulation::Train->Dynamic();
-			Render_cab(vehicle, vehicle->InteriorLightLevel, false);
+            if( Global.gfx_shadowmap_enabled ) {
+                setup_shadow_map( m_cabshadows_tex.get(), m_cabshadowpass );
+            }
+            // cache shadow colour in case we need to account for cab light
+            auto const *vehicle{ simulation::Train->Dynamic() };
+            if( vehicle->InteriorLightLevel > 0.f ) {
+                setup_shadow_color( glm::min( colors::white, m_shadowcolor + glm::vec4( vehicle->InteriorLight * vehicle->InteriorLightLevel, 1.f ) ) );
+            }
+            Render_cab( vehicle, vehicle->InteriorLightLevel, false );
+            if( vehicle->InteriorLightLevel > 0.f ) {
+                setup_shadow_color( m_shadowcolor );
+            }
 		}
 
 		glDebug("render opaque region");
@@ -644,10 +658,14 @@ void opengl33_renderer::Render_pass(viewport_config &vp, rendermode const Mode)
 		{
 			glDebug("render translucent cab");
 			model_ubs.future = glm::mat4();
-			if (Global.gfx_shadowmap_enabled)
-				setup_shadow_map(m_cabshadows_tex.get(), m_cabshadowpass);
-			// cache shadow colour in case we need to account for cab light
-			auto const *vehicle{simulation::Train->Dynamic()};
+            if( Global.gfx_shadowmap_enabled ) {
+                setup_shadow_map( m_cabshadows_tex.get(), m_cabshadowpass );
+            }
+            // cache shadow colour in case we need to account for cab light
+            auto *vehicle { simulation::Train->Dynamic() };
+            if( vehicle->InteriorLightLevel > 0.f ) {
+                setup_shadow_color( glm::min( colors::white, m_shadowcolor + glm::vec4( vehicle->InteriorLight * vehicle->InteriorLightLevel, 1.f ) ) );
+            }
 			if (Global.Overcast > 1.0f)
 			{
 				// with active precipitation draw the opaque cab parts here to mask rain/snow placed 'inside' the cab
@@ -656,7 +674,10 @@ void opengl33_renderer::Render_pass(viewport_config &vp, rendermode const Mode)
 				setup_drawing(true);
 			}
 			Render_cab(vehicle, vehicle->InteriorLightLevel, true);
-		}
+            if( vehicle->InteriorLightLevel > 0.f ) {
+                setup_shadow_color( m_shadowcolor );
+            }
+        }
 
 		Timer::subsystem.gfx_color.stop();
 
@@ -731,8 +752,10 @@ void opengl33_renderer::Render_pass(viewport_config &vp, rendermode const Mode)
 
 		scene_ubs.projection = OpenGLMatrices.data(GL_PROJECTION);
 		scene_ubo->update(scene_ubs);
-		Render(simulation::Region);
 
+        if( m_shadowcolor != colors::white ) {
+            Render( simulation::Region );
+        }
 		m_shadowpass = m_renderpass;
 
 		m_shadow_fb->unbind();
@@ -758,8 +781,13 @@ void opengl33_renderer::Render_pass(viewport_config &vp, rendermode const Mode)
 		scene_ubs.projection = OpenGLMatrices.data(GL_PROJECTION);
 		scene_ubo->update(scene_ubs);
 
-		Render_cab(simulation::Train->Dynamic(), 0.0f, false);
-		Render_cab(simulation::Train->Dynamic(), 0.0f, true);
+        if( m_shadowcolor != colors::white ) {
+            if( Global.RenderCabShadowsRange > 0 ) {
+                Render( simulation::Region );
+            }
+            Render_cab( simulation::Train->Dynamic(), 0.0f, false );
+            Render_cab( simulation::Train->Dynamic(), 0.0f, true );
+        }
 		m_cabshadowpass = m_renderpass;
 
 		m_cabshadows_fb->unbind();
@@ -1086,7 +1114,7 @@ void opengl33_renderer::setup_pass(viewport_config &Viewport, renderpass_config 
 		camera.position() = Global.pCamera.Pos - glm::dvec3{lightvector};
 		viewmatrix *= glm::lookAt(camera.position(), glm::dvec3{Global.pCamera.Pos}, glm::dvec3{0.f, 1.f, 0.f});
 		// projection
-		auto const maphalfsize{Config.draw_range * 0.5f};
+        auto const maphalfsize { std::min( 10.f, Config.draw_range * 0.5f ) };
 		camera.projection() = ortho_projection(-maphalfsize, maphalfsize, -maphalfsize, maphalfsize, -Config.draw_range, Config.draw_range);
 		frustumtest_proj = ortho_frustumtest_projection(-maphalfsize, maphalfsize, -maphalfsize, maphalfsize, -Config.draw_range, Config.draw_range);
 
@@ -1221,17 +1249,26 @@ void opengl33_renderer::setup_shadow_map(opengl_texture *tex, renderpass_config 
 			    0.5, 0.5, 0.5, 1.0 //
 			);
 		glm::mat4 depthproj = conf.pass_camera.projection();
-		glm::mat4 depthcam = conf.pass_camera.modelview();
-		glm::mat4 worldcam = m_renderpass.pass_camera.modelview();
+        // NOTE: we strip transformations from camera projections to remove jitter that occurs
+        // with large (and unneded as we only need the offset) transformations back and forth
+        auto const depthcam{ glm::mat3{ conf.pass_camera.modelview()} };
+        auto const worldcam{ glm::mat3{ m_renderpass.pass_camera.modelview()} };
 
         scene_ubs.lightview =
             coordmove
             * depthproj
-            * depthcam
-            * glm::inverse( worldcam );
-                
+            * glm::translate(
+                glm::mat4{ depthcam },
+                glm::vec3{ m_renderpass.pass_camera.position() - conf.pass_camera.position() } )
+            * glm::mat4{ glm::inverse( worldcam ) };
+
 		scene_ubo->update(scene_ubs);
 	}
+}
+
+void opengl33_renderer::setup_shadow_color( glm::vec4 const &Shadowcolor ) {
+
+    model_ubs.shadow_tone = glm::pow( Shadowcolor.x, 2.2f );
 }
 
 void opengl33_renderer::setup_env_map(gl::cubemap *tex)
@@ -1257,19 +1294,19 @@ void opengl33_renderer::setup_environment_light(TEnvironmentType const Environme
 	{
 	case e_flat:
 	{
-		m_sunlight.apply_intensity();
+        setup_sunlight_intensity();
 		//            m_environment = Environment;
 		break;
 	}
 	case e_canyon:
 	{
-		m_sunlight.apply_intensity(0.4f);
+		setup_sunlight_intensity(0.4f);
 		//            m_environment = Environment;
 		break;
 	}
 	case e_tunnel:
 	{
-		m_sunlight.apply_intensity(0.2f);
+		setup_sunlight_intensity(0.2f);
 		//            m_environment = Environment;
 		break;
 	}
@@ -1280,18 +1317,18 @@ void opengl33_renderer::setup_environment_light(TEnvironmentType const Environme
 	}
 }
 
+void opengl33_renderer::setup_sunlight_intensity( float const Factor ) {
+
+    m_sunlight.apply_intensity( Factor );
+    light_ubs.lights[ 0 ].intensity = m_sunlight.factor;
+    light_ubs.ambient = m_sunlight.ambient * m_sunlight.factor;
+    light_ubo->update( light_ubs );
+}
+
 bool opengl33_renderer::Render(world_environment *Environment)
 {
-
-	// calculate shadow tone, based on positions of celestial bodies
-	m_shadowcolor = interpolate(glm::vec4{colors::shadow}, glm::vec4{colors::white}, clamp(-Environment->m_sun.getAngle(), 0.f, 6.f) / 6.f);
-	if ((Environment->m_sun.getAngle() < -18.f) && (Environment->m_moon.getAngle() > 0.f))
-	{
-		// turn on moon shadows after nautical twilight, if the moon is actually up
-		m_shadowcolor = colors::shadow;
-	}
-	// soften shadows depending on sky overcast factor
-	m_shadowcolor = glm::min(colors::white, m_shadowcolor + ((colors::white - colors::shadow) * Global.Overcast));
+    m_shadowcolor = colors::white; // prevent shadow from affecting sky
+    setup_shadow_color( m_shadowcolor );
 
 	if (Global.bWireFrame)
 	{
@@ -1303,19 +1340,20 @@ bool opengl33_renderer::Render(world_environment *Environment)
 	::glDisable(GL_DEPTH_TEST);
 	::glPushMatrix();
 
-	model_ubs.set_modelview(OpenGLMatrices.data(GL_MODELVIEW));
-	model_ubo->update(model_ubs);
-
 	// skydome
 	// drawn with 500m radius to blend in if the fog range is low
 	glPushMatrix();
-	glScalef(500.0f, 500.0f, 500.0f);
-    m_skydomerenderer.update();
-    m_skydomerenderer.render();
-    glPopMatrix();
+    {
+        glScalef( 500.0f, 500.0f, 500.0f );
+        model_ubs.set_modelview( OpenGLMatrices.data( GL_MODELVIEW ) );
+        model_ubo->update( model_ubs );
 
-	// skydome uses a custom vbo which could potentially confuse the main geometry system. hardly elegant but, eh
-	gfx::opengl_vbogeometrybank::reset();
+        m_skydomerenderer.update();
+        m_skydomerenderer.render();
+        // skydome uses a custom vbo which could potentially confuse the main geometry system. hardly elegant but, eh
+        gfx::opengl_vbogeometrybank::reset();
+    }
+    glPopMatrix();
 
     ::glBlendFunc( GL_SRC_ALPHA, GL_ONE );
 
@@ -1328,7 +1366,9 @@ bool opengl33_renderer::Render(world_environment *Environment)
 		::glRotatef(-std::fmod((float)Global.fTimeAngleDeg, 360.f), 0.f, 1.f, 0.f); // obrót dobowy osi OX
 
 		// render
+        m_pointsize = ( 4.f ); // smaller points for stars visualization
 		Render(Environment->m_stars.m_stars, nullptr, 1.0);
+        m_pointsize = ( 8.f ); // default point size
 
 		// post-render cleanup
 		::glPopMatrix();
@@ -1460,6 +1500,18 @@ bool opengl33_renderer::Render(world_environment *Environment)
 
 	m_sunlight.apply_angle();
 	m_sunlight.apply_intensity();
+
+    // calculate shadow tone, based on positions of celestial bodies
+	m_shadowcolor = interpolate(glm::vec4{colors::shadow}, glm::vec4{colors::white}, clamp(-Environment->m_sun.getAngle(), 0.f, 6.f) / 6.f);
+	if ((Environment->m_sun.getAngle() < -18.f) && (Environment->m_moon.getAngle() > 0.f))
+	{
+		// turn on moon shadows after nautical twilight, if the moon is actually up
+		m_shadowcolor = colors::shadow;
+	}
+	// soften shadows depending on sky overcast factor
+	m_shadowcolor = glm::min(colors::white, m_shadowcolor + ((colors::white - colors::shadow) * Global.Overcast));
+
+    setup_shadow_color( m_shadowcolor);
 
 	return true;
 }
@@ -1727,7 +1779,8 @@ void opengl33_renderer::Render(scene::basic_region *Region)
 		break;
 	}
 	case rendermode::shadows:
-	case rendermode::pickscenery:
+    case rendermode::cabshadows:
+    case rendermode::pickscenery:
 	{
 		// these render modes don't bother with lights
 		Render(std::begin(m_sectionqueue), std::end(m_sectionqueue));
@@ -1758,7 +1811,8 @@ void opengl33_renderer::Render(section_sequence::iterator First, section_sequenc
 	{
 	case rendermode::color:
 	case rendermode::reflections:
-	case rendermode::shadows:
+    case rendermode::cabshadows:
+    case rendermode::shadows:
 		break;
 	case rendermode::pickscenery:
 	{
@@ -1782,7 +1836,8 @@ void opengl33_renderer::Render(section_sequence::iterator First, section_sequenc
 		case rendermode::color:
 		case rendermode::reflections:
 		case rendermode::shadows:
-		case rendermode::pickscenery:
+        case rendermode::cabshadows:
+        case rendermode::pickscenery:
 		{
 			if (false == section->m_shapes.empty())
 			{
@@ -1812,7 +1867,8 @@ void opengl33_renderer::Render(section_sequence::iterator First, section_sequenc
 		{
 		case rendermode::color:
 		case rendermode::shadows:
-		case rendermode::pickscenery:
+        case rendermode::cabshadows:
+        case rendermode::pickscenery:
 		{
 			for (auto &cell : section->m_cells)
 			{
@@ -1838,7 +1894,8 @@ void opengl33_renderer::Render(section_sequence::iterator First, section_sequenc
 	switch (m_renderpass.draw_mode)
 	{
 	case rendermode::shadows:
-	{
+    case rendermode::cabshadows:
+    {
 		break;
 	}
 	default:
@@ -1903,6 +1960,24 @@ void opengl33_renderer::Render(cell_sequence::iterator First, cell_sequence::ite
 
 			break;
 		}
+		case rendermode::cabshadows:
+		{
+			// since all shapes of the section share center point we can optimize out a few calls here
+			::glPushMatrix();
+			auto const originoffset{cell->m_area.center - m_renderpass.pass_camera.position()};
+			::glTranslated(originoffset.x, originoffset.y, originoffset.z);
+
+			// render
+			// opaque non-instanced shapes
+			for (auto const &shape : cell->m_shapesopaque)
+				Render(shape, false);
+            // NOTE: tracks aren't likely to cast shadows into the cab, so we skip them in this pass
+
+			// post-render cleanup
+			::glPopMatrix();
+
+			break;
+		}
 		case rendermode::pickscenery:
 		{
 			// same procedure like with regular render, but editor-enabled nodes receive custom colour used for picking
@@ -1946,7 +2021,8 @@ void opengl33_renderer::Render(cell_sequence::iterator First, cell_sequence::ite
 		{
 		case rendermode::color:
 		case rendermode::shadows:
-		{
+        case rendermode::cabshadows:
+        {
 			// opaque parts of instanced models
 			for (auto *instance : cell->m_instancesopaque)
 			{
@@ -2022,7 +2098,8 @@ void opengl33_renderer::Render(scene::shape_node const &Shape, bool const Ignore
 		switch (m_renderpass.draw_mode)
 		{
 		case rendermode::shadows:
-		{
+        case rendermode::cabshadows:
+        {
 			// 'camera' for the light pass is the light source, but we need to draw what the 'real' camera sees
 			distancesquared = Math3D::SquareMagnitude((data.area.center - m_renderpass.viewport_camera.position()) / (double)Global.ZoomFactor) / Global.fDistanceFactor;
 			break;
@@ -2047,7 +2124,8 @@ void opengl33_renderer::Render(scene::shape_node const &Shape, bool const Ignore
 		Bind_Material(data.material);
 		break;
 	case rendermode::shadows:
-		Bind_Material_Shadow(data.material);
+    case rendermode::cabshadows:
+        Bind_Material_Shadow(data.material);
 		break;
 	case rendermode::pickscenery:
 	case rendermode::pickcontrols:
@@ -2076,7 +2154,8 @@ void opengl33_renderer::Render(TAnimModel *Instance)
 	switch (m_renderpass.draw_mode)
 	{
 	case rendermode::shadows:
-	{
+    case rendermode::cabshadows:
+    {
 		// 'camera' for the light pass is the light source, but we need to draw what the 'real' camera sees
 		distancesquared = Math3D::SquareMagnitude((Instance->location() - m_renderpass.viewport_camera.position()) / (double)Global.ZoomFactor) / Global.fDistanceFactor;
 		break;
@@ -2140,8 +2219,18 @@ bool opengl33_renderer::Render(TDynamicObject *Dynamic)
 	case rendermode::shadows:
 	{
 		squaredistance = glm::length2(glm::vec3{glm::dvec3{Dynamic->vPosition - m_renderpass.viewport_camera.position()}} / Global.ZoomFactor) / Global.fDistanceFactor;
+        if( false == FreeFlyModeFlag ) {
+            // filter out small details if we're in vehicle cab
+            squaredistance = std::max( 100.f * 100.f, squaredistance );
+        }
 		break;
 	}
+    case rendermode::cabshadows: {
+        squaredistance = glm::length2( glm::vec3{ glm::dvec3{ Dynamic->vPosition - m_renderpass.viewport_camera.position() } } / Global.ZoomFactor ) / Global.fDistanceFactor;
+        // filter out small details
+        squaredistance = std::max( 100.f * 100.f, squaredistance );
+        break;
+    }
 	default:
 	{
 		squaredistance = glm::length2(glm::vec3{originoffset} / Global.ZoomFactor) / Global.fDistanceFactor;
@@ -2167,39 +2256,73 @@ bool opengl33_renderer::Render(TDynamicObject *Dynamic)
 		if (Dynamic->fShade > 0.0f)
 		{
 			// change light level based on light level of the occupied track
-			m_sunlight.apply_intensity(Dynamic->fShade);
-		}
+			setup_sunlight_intensity(Dynamic->fShade);
+        }
 
 		// render
-		if (Dynamic->mdLowPolyInt)
-			Render(Dynamic->mdLowPolyInt, Dynamic->Material(), squaredistance);
+        if( Dynamic->mdLowPolyInt ) {
+            // low poly interior
+            // HACK: reduce light level for vehicle interior if there's strong global lighting source
+            auto const luminance { static_cast<float>( 0.5 * ( std::max( 0.3, Global.fLuminance - Global.Overcast ) ) ) };
+            setup_sunlight_intensity(
+                clamp( (
+                    Dynamic->fShade > 0.f ?
+                        Dynamic->fShade :
+                        1.f )
+                    - luminance,
+                    0.f, 1.f ) );
+           Render( Dynamic->mdLowPolyInt, Dynamic->Material(), squaredistance );
+           // HACK: if the model has low poly interior, we presume the load is placed inside and also affected by reduced light level
+           if( Dynamic->mdLoad ) {
+               // renderowanie nieprzezroczystego ładunku
+               Render( Dynamic->mdLoad, Dynamic->Material(), squaredistance, { 0.f, Dynamic->LoadOffset, 0.f }, {} );
+           }
 
-		if (Dynamic->mdModel)
-			Render(Dynamic->mdModel, Dynamic->Material(), squaredistance);
-
-		if (Dynamic->mdLoad) // renderowanie nieprzezroczystego ładunku
-			Render(Dynamic->mdLoad, Dynamic->Material(), squaredistance, {0.f, Dynamic->LoadOffset, 0.f}, {});
+            setup_sunlight_intensity( Dynamic->fShade > 0.f ? Dynamic->fShade : 1.f );
+       }
+        else {
+            // HACK: if the model lacks low poly interior, we presume the load is placed outside
+            if( Dynamic->mdLoad ) {
+                // renderowanie nieprzezroczystego ładunku
+                Render( Dynamic->mdLoad, Dynamic->Material(), squaredistance, { 0.f, Dynamic->LoadOffset, 0.f }, {} );
+            }
+        }
+        if( Dynamic->mdModel ) {
+            // main model
+            Render( Dynamic->mdModel, Dynamic->Material(), squaredistance );
+        }
+        // optional attached models
+        for( auto *attachment : Dynamic->mdAttachments ) {
+            Render( attachment, Dynamic->Material(), squaredistance );
+        }
 
 		// post-render cleanup
-
 		if (Dynamic->fShade > 0.0f)
 		{
 			// restore regular light level
-			m_sunlight.apply_intensity();
-		}
+			setup_sunlight_intensity();
+        }
 		break;
 	}
 	case rendermode::shadows:
+    case rendermode::cabshadows:
 	{
-		if (Dynamic->mdLowPolyInt)
-		{
-			// low poly interior
-			Render(Dynamic->mdLowPolyInt, Dynamic->Material(), squaredistance);
-		}
-		if (Dynamic->mdModel)
-			Render(Dynamic->mdModel, Dynamic->Material(), squaredistance);
-		if (Dynamic->mdLoad) // renderowanie nieprzezroczystego ładunku
-			Render(Dynamic->mdLoad, Dynamic->Material(), squaredistance, {0.f, Dynamic->LoadOffset, 0.f}, {});
+        if( Dynamic->mdLowPolyInt ) {
+            // low poly interior
+            Render( Dynamic->mdLowPolyInt, Dynamic->Material(), squaredistance );
+        }
+        if( Dynamic->mdModel ) {
+            // main model
+            Render( Dynamic->mdModel, Dynamic->Material(), squaredistance );
+        }
+        // optional attached models
+        for( auto *attachment : Dynamic->mdAttachments ) {
+            Render( attachment, Dynamic->Material(), squaredistance );
+        }
+        if( Dynamic->mdLoad ) {
+            // renderowanie nieprzezroczystego ładunku
+            Render( Dynamic->mdLoad, Dynamic->Material(), squaredistance, { 0.f, Dynamic->LoadOffset, 0.f }, {} );
+        }
 		// post-render cleanup
 		break;
 	}
@@ -2265,8 +2388,8 @@ bool opengl33_renderer::Render_cab(TDynamicObject const *Dynamic, float const Li
 			if (Dynamic->fShade > 0.0f)
 			{
 				// change light level based on light level of the occupied track
-				m_sunlight.apply_intensity(Dynamic->fShade);
-			}
+				setup_sunlight_intensity(Dynamic->fShade);
+            }
 
 			// crude way to light the cabin, until we have something more complete in place
 			glm::vec3 old_ambient = light_ubs.ambient;
@@ -2288,8 +2411,8 @@ bool opengl33_renderer::Render_cab(TDynamicObject const *Dynamic, float const Li
 			if (Dynamic->fShade > 0.0f)
 			{
 				// change light level based on light level of the occupied track
-				m_sunlight.apply_intensity();
-			}
+				setup_sunlight_intensity();
+            }
 
 			// restore ambient
 			light_ubs.ambient = old_ambient;
@@ -2490,7 +2613,7 @@ void opengl33_renderer::Render(TSubModel *Submodel)
 					Bind_Material(Submodel->m_material, Submodel);
 
 					// main draw call
-                    model_ubs.param[1].x = 2.0f * 2.0f;
+                    model_ubs.param[1].x = m_pointsize;
 
 					draw(Submodel->m_geometry);
 				}
@@ -2565,6 +2688,7 @@ void opengl33_renderer::Render(scene::basic_cell::path_sequence::const_iterator 
 	switch (m_renderpass.draw_mode)
 	{
 	case rendermode::shadows:
+    case rendermode::cabshadows:
 	{
 		// NOTE: roads-based platforms tend to miss parts of shadows if rendered with either back or front culling
 		glDisable(GL_CULL_FACE);
@@ -2614,7 +2738,8 @@ void opengl33_renderer::Render(scene::basic_cell::path_sequence::const_iterator 
 			break;
 		}
 		case rendermode::shadows:
-		{
+        case rendermode::cabshadows:
+        {
 			if ((std::abs(track->fTexHeight1) < 0.35f) || (track->iCategoryFlag != 2))
 			{
 				// shadows are only calculated for high enough roads, typically meaning track platforms
@@ -2665,7 +2790,8 @@ void opengl33_renderer::Render(scene::basic_cell::path_sequence::const_iterator 
 			break;
 		}
 		case rendermode::shadows:
-		{
+        case rendermode::cabshadows:
+        {
 			if ((std::abs(track->fTexHeight1) < 0.35f) || ((track->iCategoryFlag == 1) && (track->eType != tt_Normal)))
 			{
 				// shadows are only calculated for high enough trackbeds
@@ -2722,7 +2848,8 @@ void opengl33_renderer::Render(scene::basic_cell::path_sequence::const_iterator 
 			break;
 		}
 		case rendermode::shadows:
-		{
+        case rendermode::cabshadows:
+        {
 			if ((std::abs(track->fTexHeight1) < 0.35f) || ((track->iCategoryFlag == 1) && (track->eType != tt_Normal)))
 			{
 				// shadows are only calculated for high enough trackbeds
@@ -2745,7 +2872,8 @@ void opengl33_renderer::Render(scene::basic_cell::path_sequence::const_iterator 
 	switch (m_renderpass.draw_mode)
 	{
 	case rendermode::shadows:
-	{
+    case rendermode::cabshadows:
+    {
 		// restore standard face cull mode
 		::glEnable(GL_CULL_FACE);
 		break;
@@ -2771,7 +2899,8 @@ void opengl33_renderer::Render(TMemCell *Memcell)
 		break;
 	}
 	case rendermode::shadows:
-	case rendermode::pickscenery:
+    case rendermode::cabshadows:
+    case rendermode::pickscenery:
 	{
 		break;
 	}
@@ -3099,27 +3228,32 @@ bool opengl33_renderer::Render_Alpha(TDynamicObject *Dynamic)
 	if (Dynamic->fShade > 0.0f)
 	{
 		// change light level based on light level of the occupied track
-		m_sunlight.apply_intensity(Dynamic->fShade);
+		setup_sunlight_intensity(Dynamic->fShade);
 	}
 
-	// render
-	if (Dynamic->mdLowPolyInt)
-	{
-		// low poly interior
-		Render_Alpha(Dynamic->mdLowPolyInt, Dynamic->Material(), squaredistance);
-	}
-
-	if (Dynamic->mdModel)
-		Render_Alpha(Dynamic->mdModel, Dynamic->Material(), squaredistance);
-
-	if (Dynamic->mdLoad) // renderowanie nieprzezroczystego ładunku
-		Render_Alpha(Dynamic->mdLoad, Dynamic->Material(), squaredistance);
+    // render
+    if( Dynamic->mdLowPolyInt ) {
+        // low poly interior
+        Render_Alpha( Dynamic->mdLowPolyInt, Dynamic->Material(), squaredistance );
+    }
+    if( Dynamic->mdModel ) {
+        // main model
+        Render_Alpha( Dynamic->mdModel, Dynamic->Material(), squaredistance );
+    }
+    // optional attached models
+    for( auto *attachment : Dynamic->mdAttachments ) {
+        Render_Alpha( attachment, Dynamic->Material(), squaredistance );
+    }
+    if( Dynamic->mdLoad ) {
+        // renderowanie nieprzezroczystego ładunku
+        Render_Alpha( Dynamic->mdLoad, Dynamic->Material(), squaredistance, { 0.f, Dynamic->LoadOffset, 0.f }, {} );
+    }
 
 	// post-render cleanup
 	if (Dynamic->fShade > 0.0f)
 	{
 		// restore regular light level
-		m_sunlight.apply_intensity();
+		setup_sunlight_intensity();
 	}
 
 	::glPopMatrix();
@@ -3365,12 +3499,12 @@ void opengl33_renderer::Render_Alpha(TSubModel *Submodel)
 					{
 						// fake fog halo
 						float const fogfactor{interpolate(2.f, 1.f, clamp<float>(Global.fFogEnd / 2000, 0.f, 1.f)) * std::max(1.f, Global.Overcast)};
-						model_ubs.param[1].x = pointsize * resolutionratio * fogfactor * 2.0f;
+						model_ubs.param[1].x = pointsize * resolutionratio * fogfactor * 3.0f;
 						model_ubs.param[0] = glm::vec4(glm::vec3(lightcolor), Submodel->fVisible * std::min(1.f, lightlevel) * 0.5f);
 
 						draw(Submodel->m_geometry);
 					}
-					model_ubs.param[1].x = pointsize * resolutionratio * 2.0f;
+					model_ubs.param[1].x = pointsize * resolutionratio * 3.0f;
 					model_ubs.param[0] = glm::vec4(glm::vec3(lightcolor), Submodel->fVisible * std::min(1.f, lightlevel));
 
 					if (!Submodel->occlusion_query)
@@ -3639,11 +3773,12 @@ void opengl33_renderer::Update(double const Deltatime)
 	// TODO: it doesn't make much sense with vsync
     if( Global.targetfps == 0.0f ) {
         // automatic adjustment
+        auto const framerate = 1000.f / Timer::subsystem.gfx_color.average();
         float targetfactor;
-             if( m_framerate > 90.0 ) { targetfactor = 3.0f; }
-        else if( m_framerate > 60.0 ) { targetfactor = 1.5f; }
-        else if( m_framerate > 30.0 ) { targetfactor = 1.25; }
-        else                          { targetfactor = 1.0f; }
+             if( framerate > 90.0 ) { targetfactor = 3.0f; }
+        else if( framerate > 60.0 ) { targetfactor = 1.5f; }
+        else if( framerate > 30.0 ) { targetfactor = 1.25; }
+        else                        { targetfactor = 1.0f; }
         if( targetfactor > Global.fDistanceFactor ) {
             Global.fDistanceFactor = std::min( targetfactor, Global.fDistanceFactor + 0.05f );
         }
@@ -3656,7 +3791,7 @@ void opengl33_renderer::Update(double const Deltatime)
         if( fps_diff > 0.5f ) {
             Global.fDistanceFactor = std::max( 1.0f, Global.fDistanceFactor - 0.05f );
         }
-        else if( fps_diff < 0.5f ) {
+        else if( fps_diff < 1.0f ) {
             Global.fDistanceFactor = std::min( 3.0f, Global.fDistanceFactor + 0.05f );
         }
     }
@@ -3807,23 +3942,26 @@ void opengl33_renderer::Update_Lights(light_array &Lights)
 
 bool opengl33_renderer::Init_caps()
 {
-	WriteLog("MaSzyna OpenGL Renderer");
-	WriteLog("Renderer: " + std::string((char *)glGetString(GL_RENDERER)));
-	WriteLog("Vendor: " + std::string((char *)glGetString(GL_VENDOR)));
-	WriteLog("GL version: " + std::string((char *)glGetString(GL_VERSION)));
+    WriteLog(
+        "Gfx Renderer: " + std::string( (char *)glGetString(GL_RENDERER))
+        + "\nVendor: " + std::string( (char *)glGetString(GL_VENDOR))
+        + "\nOpenGL Version: " + std::string((char *)glGetString(GL_VERSION)) );
 
 	WriteLog("--------");
+    {
+        GLint extCount = 0;
+        glGetIntegerv( GL_NUM_EXTENSIONS, &extCount );
+        std::string extensions;
 
-	GLint extCount = 0;
-	glGetIntegerv(GL_NUM_EXTENSIONS, &extCount);
-
-	WriteLog("Supported extensions:");
-	for (int i = 0; i < extCount; i++)
-	{
-		const char *ext = (const char *)glGetStringi(GL_EXTENSIONS, i);
-		WriteLog(ext);
-	}
-	WriteLog("--------");
+        WriteLog( "Supported extensions:" );
+        for( int i = 0; i < extCount; i++ ) {
+            const char *ext = (const char *)glGetStringi( GL_EXTENSIONS, i );
+            extensions += ext;
+            extensions += " ";
+        }
+        WriteLog( extensions );
+    }
+    WriteLog("--------");
 
 	if (!Global.gfx_usegles)
 	{
@@ -3860,20 +3998,20 @@ bool opengl33_renderer::Init_caps()
 		}
 
 		if (GLAD_GL_EXT_texture_filter_anisotropic)
-			WriteLog("EXT_texture_filter_anisotropic supported!");
+			WriteLog("EXT_texture_filter_anisotropic supported.");
 
 		if (GLAD_GL_EXT_clip_control)
-			WriteLog("EXT_clip_control supported!");
+			WriteLog("EXT_clip_control supported.");
 
 		if (GLAD_GL_EXT_geometry_shader)
-			WriteLog("EXT_geometry_shader supported!");
+			WriteLog("EXT_geometry_shader supported.");
 	}
 
 	glGetError();
 	glLineWidth(2.0f);
 	if (!glGetError())
 	{
-		WriteLog("wide lines supported!");
+		WriteLog("wide lines supported.");
 		m_widelines_supported = true;
 	}
 	else

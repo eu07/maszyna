@@ -316,7 +316,7 @@ eu07_application::on_scroll( double const Xoffset, double const Yoffset ) {
 }
 
 GLFWwindow *
-eu07_application::window( int const Windowindex ) {
+eu07_application::window(int const Windowindex, bool visible, int width, int height, GLFWmonitor *monitor, bool keep_ownership , bool share_ctx) {
 
     if( Windowindex >= 0 ) {
         return (
@@ -325,15 +325,51 @@ eu07_application::window( int const Windowindex ) {
                 nullptr );
     }
     // for index -1 create a new child window
-    glfwWindowHint( GLFW_VISIBLE, GL_FALSE );
-    auto *childwindow = glfwCreateWindow( 1, 1, "eu07helper", nullptr, m_windows.front() );
-    if( childwindow != nullptr ) {
-        m_windows.emplace_back( childwindow );
-    }
+
+	auto const *vmode { glfwGetVideoMode( monitor ? monitor : glfwGetPrimaryMonitor() ) };
+
+	glfwWindowHint( GLFW_RED_BITS, vmode->redBits );
+	glfwWindowHint( GLFW_GREEN_BITS, vmode->greenBits );
+	glfwWindowHint( GLFW_BLUE_BITS, vmode->blueBits );
+	glfwWindowHint( GLFW_REFRESH_RATE, vmode->refreshRate );
+
+	glfwWindowHint( GLFW_VISIBLE, visible );
+
+	auto *childwindow = glfwCreateWindow( width, height, "eu07window", monitor,
+	                                      share_ctx ? m_windows.front() : nullptr);
+	if (!childwindow)
+		return nullptr;
+
+	if (keep_ownership)
+		m_windows.emplace_back( childwindow );
+
+	glfwFocusWindow(m_windows.front()); // restore focus to main window
+
     return childwindow;
 }
 
 // private:
+GLFWmonitor* eu07_application::find_monitor(const std::string &str) const {
+	int monitor_count;
+	GLFWmonitor **monitors = glfwGetMonitors(&monitor_count);
+
+	for (size_t i = 0; i < monitor_count; i++) {
+		if (describe_monitor(monitors[i]) == str)
+			return monitors[i];
+	}
+
+	return nullptr;
+}
+
+std::string eu07_application::describe_monitor(GLFWmonitor *monitor) const {
+	std::string name(glfwGetMonitorName(monitor));
+	std::replace(std::begin(name), std::end(name), ' ', '_');
+
+	int x, y;
+	glfwGetMonitorPos(monitor, &x, &y);
+
+	return name + ":" + std::to_string(x) + "," + std::to_string(y);
+}
 
 void
 eu07_application::init_debug() {
@@ -342,12 +378,10 @@ eu07_application::init_debug() {
     // memory leaks
     _CrtSetDbgFlag( _CrtSetDbgFlag( _CRTDBG_REPORT_FLAG ) | _CRTDBG_LEAK_CHECK_DF );
     // floating point operation errors
-    /*
     auto state { _clearfp() };
     state = _control87( 0, 0 );
     // this will turn on FPE for #IND and zerodiv
     state = _control87( state & ~( _EM_ZERODIVIDE | _EM_INVALID ), _MCW_EM );
-    */
 #endif
 #ifdef _WIN32
     ::SetUnhandledExceptionFilter( unhandled_handler );
@@ -462,13 +496,19 @@ eu07_application::init_glfw() {
     }
     // match requested video mode to current to allow for
     // fullwindow creation when resolution is the same
-    auto *monitor { glfwGetPrimaryMonitor() };
-    auto const *vmode { glfwGetVideoMode( monitor ) };
+	{
+		int monitor_count;
+		GLFWmonitor **monitors = glfwGetMonitors(&monitor_count);
 
-    glfwWindowHint( GLFW_RED_BITS, vmode->redBits );
-    glfwWindowHint( GLFW_GREEN_BITS, vmode->greenBits );
-    glfwWindowHint( GLFW_BLUE_BITS, vmode->blueBits );
-    glfwWindowHint( GLFW_REFRESH_RATE, vmode->refreshRate );
+		WriteLog("available monitors:");
+		for (size_t i = 0; i < monitor_count; i++) {
+			WriteLog(describe_monitor(monitors[i]));
+		}
+	}
+
+	auto *monitor { find_monitor(Global.fullscreen_monitor) };
+	if (!monitor)
+		monitor = glfwGetPrimaryMonitor();
 
     glfwWindowHint( GLFW_AUTO_ICONIFY, GLFW_FALSE );
     if( Global.iMultisampling > 0 ) {
@@ -494,40 +534,24 @@ eu07_application::init_glfw() {
         }
     }
 
-    glfwWindowHint( GLFW_AUTO_ICONIFY, GLFW_FALSE );
+    auto *mainwindow = window(
+        -1, true, Global.iWindowWidth, Global.iWindowHeight, Global.bFullScreen ? monitor : nullptr, true, false );
 
-    if( Global.bFullScreen ) {
-        // match screen dimensions with selected monitor, for 'borderless window' in fullscreen mode
-        Global.iWindowWidth = vmode->width;
-        Global.iWindowHeight = vmode->height;
-    }
-
-    auto *window {
-        glfwCreateWindow(
-            Global.iWindowWidth,
-            Global.iWindowHeight,
-            Global.AppName.c_str(),
-            ( Global.bFullScreen ?
-                monitor :
-                nullptr ),
-            nullptr ) };
-
-    if( window == nullptr ) {
+    if( mainwindow == nullptr ) {
         ErrorLog( "Bad init: failed to create glfw window" );
         return -1;
     }
 
-    glfwMakeContextCurrent( window );
+    glfwMakeContextCurrent( mainwindow );
     glfwSwapInterval( Global.VSync ? 1 : 0 ); //vsync
 
 #ifdef _WIN32
 // setup wrapper for base glfw window proc, to handle copydata messages
-    Hwnd = glfwGetWin32Window( window );
+    Hwnd = glfwGetWin32Window( mainwindow );
     BaseWindowProc = ( WNDPROC )::SetWindowLongPtr( Hwnd, GWLP_WNDPROC, (LONG_PTR)WndProc );
     // switch off the topmost flag
     ::SetWindowPos( Hwnd, HWND_NOTOPMOST, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE );
 #endif
-    m_windows.emplace_back( window );
 
     return 0;
 }

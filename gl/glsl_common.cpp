@@ -58,6 +58,7 @@ void gl::glsl_common_setup()
             float emission;
             float fog_density;
             float alpha_mult;
+            float shadow_tone;
     };
 
     layout (std140) uniform scene_ubo

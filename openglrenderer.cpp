@@ -895,7 +895,7 @@ opengl_renderer::setup_pass( renderpass_config &Config, rendermode const Mode, f
                 glm::dvec3 { Global.pCamera.Pos },
                 glm::dvec3 { 0.f, 1.f, 0.f } );
             // projection
-            auto const maphalfsize { Config.draw_range * 0.5f };
+            auto const maphalfsize { std::min( 10.f, Config.draw_range * 0.5f ) };
             camera.projection() *=
                 glm::ortho(
                     -maphalfsize, maphalfsize,

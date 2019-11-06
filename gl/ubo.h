@@ -56,6 +56,7 @@ namespace gl
         float emission;
         float fog_density;
         float alpha_mult;
+        float shadow_tone;
         UBS_PAD(4);
 
         void set_modelview(const glm::mat4 &mv)
@@ -65,7 +66,7 @@ namespace gl
         }
     };
 
-    static_assert(sizeof(model_ubs) == 196 + 16 * MAX_PARAMS, "bad size of ubs");
+    static_assert(sizeof(model_ubs) == 200 + 16 * MAX_PARAMS, "bad size of ubs");
 
     struct light_element_ubs
     {

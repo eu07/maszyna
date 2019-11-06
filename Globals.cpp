@@ -77,6 +77,7 @@ global_settings::ConfigParse(cParser &Parser) {
         {
             Parser.getTokens(1, false);
             Parser >> fDistanceFactor;
+            fDistanceFactor = clamp( fDistanceFactor, 250.f, 10000.f ); // arbitrary limits to keep users from hurting themselves
         }
 		else if (token == "targetfps")
 		{
@@ -93,6 +94,11 @@ global_settings::ConfigParse(cParser &Parser) {
             Parser.getTokens();
             Parser >> bFullScreen;
         }
+        else if (token == "fullscreenmonitor")
+		{
+			Parser.getTokens(1, false);
+			Parser >> fullscreen_monitor;
+		}
         else if( token == "vsync" ) {
 
             Parser.getTokens();
@@ -733,6 +739,11 @@ global_settings::ConfigParse(cParser &Parser) {
         {
             Parser.getTokens(1, false);
             Parser >> gfx_framebuffer_height;
+        }
+        else if (token == "gfx.framebuffer.fidelity")
+        {
+            Parser.getTokens(1, false);
+            Parser >> gfx_framebuffer_fidelity;
         }
         else if (token == "gfx.shadowmap.enabled")
         {

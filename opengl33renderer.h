@@ -204,8 +204,10 @@ class opengl33_renderer : public gfx_renderer {
 	void setup_matrices();
     void setup_drawing(bool const Alpha = false);
     void setup_shadow_map(opengl_texture *tex, renderpass_config conf);
+    void setup_shadow_color( glm::vec4 const &Shadowcolor );
     void setup_env_map(gl::cubemap *tex);
 	void setup_environment_light(TEnvironmentType const Environment = e_flat);
+    void setup_sunlight_intensity( float const Factor = 1.f);
 	// runs jobs needed to generate graphics for specified render pass
 	void Render_pass(viewport_config &vp, rendermode const Mode);
 	// creates dynamic environment cubemap
@@ -309,6 +311,7 @@ class opengl33_renderer : public gfx_renderer {
 	GLuint64 m_gllasttime = 0;
 
     double m_precipitationrotation;
+    float m_pointsize{ 8.f };
 
     glm::mat4 perspective_projection(float fov, float aspect, float z_near, float z_far);
     glm::mat4 perpsective_frustumtest_projection(float fov, float aspect, float z_near, float z_far);

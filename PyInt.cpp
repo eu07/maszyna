@@ -160,7 +160,8 @@ auto python_taskqueue::insert( task_request const &Task ) -> bool {
 
     if( ( Task.renderer.empty() )
      || ( Task.input == nullptr )
-     || ( Task.target == 0 ) ) { return false; }
+     || ( Task.target == 0 )
+     || ( Task.target == (GLuint)-1 ) ) { return false; }
 
     auto *renderer { fetch_renderer( Task.renderer ) };
     if( renderer == nullptr ) { return false; }
