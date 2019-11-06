@@ -26,12 +26,18 @@ Stele, firleju, szociu, hunter, ZiomalCl, OLI_EU and others
 #pragma comment(linker, "/subsystem:windows /ENTRY:mainCRTStartup") 
 #endif 
 
+#if defined(_MSC_VER)
+#define DECLSPEC_PUBLIC_SYMBOL __declspec(dllexport)
+#else
+#define DECLSPEC_PUBLIC_SYMBOL __attribute__((visibility("default")))
+#endif
+
 extern "C" {
     // https://docs.nvidia.com/gameworks/content/technologies/desktop/optimus.htm
-    __declspec(dllexport) std::uint32_t NvOptimusEnablement = 0x00000001;
+    DECLSPEC_PUBLIC_SYMBOL std::uint32_t NvOptimusEnablement = 0x00000001;
 
     // https://gpuopen.com/amdpowerxpressrequesthighperformance/
-    __declspec(dllexport) std::uint32_t AmdPowerXpressRequestHighPerformance = 0x00000001;
+    DECLSPEC_PUBLIC_SYMBOL std::uint32_t AmdPowerXpressRequestHighPerformance = 0x00000001;
 }
 
 
