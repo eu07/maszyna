@@ -433,10 +433,12 @@ bool TSegment::RenderLoft( gfx::vertex_array &Output, Math3D::vector3 const &Ori
             m2 = 1.f;
             jmm2 = 0.f;
         }
-
+/*
         while( tv1 < 0.0 ) {
             tv1 += 1.0;
         }
+*/
+        tv1 = clamp_circular( tv1, 1.0f );
         tv2 = tv1 - step / texturelength; // mapowanie na końcu segmentu
 
         t = fTsBuffer[ i ]; // szybsze od GetTFromS(s);

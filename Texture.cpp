@@ -1020,7 +1020,8 @@ opengl_texture::set_filtering() const {
     ::glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR );
     ::glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR );
 
-    if( GL_EXT_texture_filter_anisotropic ) {
+    if( ( Global.AnisotropicFiltering >= 0 )
+     && ( GL_EXT_texture_filter_anisotropic != 0 ) ) {
         // anisotropic filtering
         ::glTexParameterf( GL_TEXTURE_2D, GL_TEXTURE_MAX_ANISOTROPY_EXT, Global.AnisotropicFiltering );
     }

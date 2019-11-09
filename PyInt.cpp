@@ -43,7 +43,8 @@ void render_task::run() {
                 PyInt_AsLong( outputwidth ), PyInt_AsLong( outputheight ), 0,
                 GL_RGB, GL_UNSIGNED_BYTE, reinterpret_cast<GLubyte const *>( PyString_AsString( output ) ) );
             // setup texture parameters
-            if( GL_EXT_texture_filter_anisotropic ) {
+            if( ( Global.AnisotropicFiltering >= 0 )
+             && ( GL_EXT_texture_filter_anisotropic != 0 ) ) {
                 // anisotropic filtering
                 ::glTexParameterf( GL_TEXTURE_2D, GL_TEXTURE_MAX_ANISOTROPY_EXT, Global.AnisotropicFiltering );
             }

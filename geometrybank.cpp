@@ -150,8 +150,12 @@ void calculate_tangent(vertex_array &vertices, int type)
         const glm::vec3 &t = tan[a];
         const glm::vec3 &t2 = tan[vertex_count + a];
 
-        vertices[a].tangent = glm::vec4(glm::normalize((t - n * glm::dot(n, t))),
-            (glm::dot(glm::cross(n, t), t2) < 0.0F) ? -1.0F : 1.0F);
+        vertices[a].tangent =
+            glm::vec4(
+                glm::normalize((t - n * glm::dot(n, t))),
+                (glm::dot(glm::cross(n, t), t2) < 0.0F) ?
+                   -1.0F :
+                    1.0F);
     }
 }
 
