@@ -5718,53 +5718,55 @@ void TDynamicObject::LoadMMediaFile( std::string const &TypeName, std::string co
     }
 
     // assign default samples to sound emitters which weren't included in the config file
-    // engine
-    if( MoverParameters->Power > 0 ) {
-        if( true == m_powertrainsounds.dsbWejscie_na_bezoporow.empty() ) {
+    if( TestFlag( MoverParameters->CategoryFlag, 1 ) ) {
+        // rail vehicles:
+        // engine
+        if( MoverParameters->Power > 0 ) {
+            if( true == m_powertrainsounds.dsbWejscie_na_bezoporow.empty() ) {
+                // hunter-111211: domyslne, gdy brak
+                m_powertrainsounds.dsbWejscie_na_bezoporow.deserialize( "wejscie_na_bezoporow.wav", sound_type::single );
+                m_powertrainsounds.dsbWejscie_na_bezoporow.owner( this );
+            }
+            if( true == m_powertrainsounds.motor_parallel.empty() ) {
+                m_powertrainsounds.motor_parallel.deserialize( "wescie_na_drugi_uklad.wav", sound_type::single );
+                m_powertrainsounds.motor_parallel.owner( this );
+            }
+        }
+        // braking sounds
+        if( true == rsUnbrake.empty() ) {
+            rsUnbrake.deserialize( "[1007]estluz.wav", sound_type::single );
+            rsUnbrake.owner( this );
+        }
+        // couplers
+        for( auto &couplersounds : m_couplersounds ) {
+            if( true == couplersounds.dsbCouplerAttach.empty() ) {
+                couplersounds.dsbCouplerAttach.deserialize( "couplerattach.wav", sound_type::single );
+                couplersounds.dsbCouplerAttach.owner( this );
+            }
+            if( true == couplersounds.dsbCouplerDetach.empty() ) {
+                couplersounds.dsbCouplerDetach.deserialize( "couplerdetach.wav", sound_type::single );
+                couplersounds.dsbCouplerDetach.owner( this );
+            }
+            if( true == couplersounds.dsbCouplerStretch.empty() ) {
+                couplersounds.dsbCouplerStretch.deserialize( "en57_couplerstretch.wav", sound_type::single );
+                couplersounds.dsbCouplerStretch.owner( this );
+            }
+            if( true == couplersounds.dsbBufferClamp.empty() ) {
+                couplersounds.dsbBufferClamp.deserialize( "en57_bufferclamp.wav", sound_type::single );
+                couplersounds.dsbBufferClamp.owner( this );
+            }
+        }
+        // other sounds
+        if( true == m_wheelflat.empty() ) {
+            m_wheelflat.deserialize( "lomotpodkucia.wav 0.23 0.0", sound_type::single, sound_parameters::frequency );
+            m_wheelflat.owner( this );
+        }
+        if( true == rscurve.empty() ) {
             // hunter-111211: domyslne, gdy brak
-            m_powertrainsounds.dsbWejscie_na_bezoporow.deserialize( "wejscie_na_bezoporow.wav", sound_type::single );
-            m_powertrainsounds.dsbWejscie_na_bezoporow.owner( this );
-        }
-        if( true == m_powertrainsounds.motor_parallel.empty() ) {
-            m_powertrainsounds.motor_parallel.deserialize( "wescie_na_drugi_uklad.wav", sound_type::single );
-            m_powertrainsounds.motor_parallel.owner( this );
+            rscurve.deserialize( "curve.wav", sound_type::single );
+            rscurve.owner( this );
         }
     }
-    // braking sounds
-    if( true == rsUnbrake.empty() ) {
-        rsUnbrake.deserialize( "[1007]estluz.wav", sound_type::single );
-        rsUnbrake.owner( this );
-    }
-    // couplers
-    for( auto &couplersounds : m_couplersounds ) {
-        if( true == couplersounds.dsbCouplerAttach.empty() ) {
-            couplersounds.dsbCouplerAttach.deserialize( "couplerattach.wav", sound_type::single );
-            couplersounds.dsbCouplerAttach.owner( this );
-        }
-        if( true == couplersounds.dsbCouplerDetach.empty() ) {
-            couplersounds.dsbCouplerDetach.deserialize( "couplerdetach.wav", sound_type::single );
-            couplersounds.dsbCouplerDetach.owner( this );
-        }
-        if( true == couplersounds.dsbCouplerStretch.empty() ) {
-            couplersounds.dsbCouplerStretch.deserialize( "en57_couplerstretch.wav", sound_type::single );
-            couplersounds.dsbCouplerStretch.owner( this );
-        }
-        if( true == couplersounds.dsbBufferClamp.empty() ) {
-            couplersounds.dsbBufferClamp.deserialize( "en57_bufferclamp.wav", sound_type::single );
-            couplersounds.dsbBufferClamp.owner( this );
-        }
-    }
-    // other sounds
-    if( true == m_wheelflat.empty() ) {
-        m_wheelflat.deserialize( "lomotpodkucia.wav 0.23 0.0", sound_type::single, sound_parameters::frequency );
-        m_wheelflat.owner( this );
-    }
-    if( true == rscurve.empty() ) {
-        // hunter-111211: domyslne, gdy brak
-        rscurve.deserialize( "curve.wav", sound_type::single );
-        rscurve.owner( this );
-    }
-
 
     if (mdModel)
         mdModel->Init(); // obrócenie modelu oraz optymalizacja, również zapisanie binarnego
