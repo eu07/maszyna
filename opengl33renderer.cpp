@@ -138,8 +138,10 @@ bool opengl33_renderer::Init(GLFWwindow *Window)
 	default_viewport.window = m_window;
 	default_viewport.draw_range = 1.0f;
 
-	if (!init_viewport(default_viewport))
-		return false;
+    if( !init_viewport( default_viewport ) ) {
+        ErrorLog( "default viewport setup failed" );
+        return false;
+    }
 	glfwMakeContextCurrent(m_window);
 	gl::buffer::unbind();
 
@@ -150,8 +152,10 @@ bool opengl33_renderer::Init(GLFWwindow *Window)
 		m_shadow_tex->alloc_rendertarget(Global.gfx_format_depth, GL_DEPTH_COMPONENT, m_shadowbuffersize, m_shadowbuffersize);
 		m_shadow_fb->attach(*m_shadow_tex, GL_DEPTH_ATTACHMENT);
 
-		if (!m_shadow_fb->is_complete())
-			return false;
+        if( !m_shadow_fb->is_complete() ) {
+            ErrorLog( "shadow framebuffer setup failed" );
+            return false;
+        }
 
 		WriteLog("shadows enabled");
 
@@ -160,8 +164,10 @@ bool opengl33_renderer::Init(GLFWwindow *Window)
 		m_cabshadows_tex->alloc_rendertarget(Global.gfx_format_depth, GL_DEPTH_COMPONENT, m_shadowbuffersize, m_shadowbuffersize);
 		m_cabshadows_fb->attach(*m_cabshadows_tex, GL_DEPTH_ATTACHMENT);
 
-		if (!m_cabshadows_fb->is_complete())
-			return false;
+        if( !m_cabshadows_fb->is_complete() ) {
+            ErrorLog( "cabshadows framebuffer setup failed" );
+            return false;
+        }
 
 		WriteLog("cabshadows enabled");
 	}
@@ -196,8 +202,10 @@ bool opengl33_renderer::Init(GLFWwindow *Window)
 	m_pick_fb->attach(*m_pick_tex, GL_COLOR_ATTACHMENT0);
 	m_pick_fb->attach(*m_pick_rb, GL_DEPTH_ATTACHMENT);
 
-	if (!m_pick_fb->is_complete())
-		return false;
+    if( !m_pick_fb->is_complete() ) {
+        ErrorLog( "pick framebuffer setup failed" );
+        return false;
+    }
 
 	m_picking_pbo = std::make_unique<gl::pbo>();
 	m_picking_node_pbo = std::make_unique<gl::pbo>();
@@ -211,8 +219,10 @@ bool opengl33_renderer::Init(GLFWwindow *Window)
 		m_depth_pointer_fb = std::make_unique<gl::framebuffer>();
 		m_depth_pointer_fb->attach(*m_depth_pointer_rb, GL_DEPTH_ATTACHMENT);
 
-		if (!m_depth_pointer_fb->is_complete())
-			return false;
+        if( !m_depth_pointer_fb->is_complete() ) {
+            ErrorLog( "depth pointer framebuffer setup failed" );
+            return false;
+        }
 	}
 	else if (Global.gfx_usegles)
 	{
@@ -246,11 +256,15 @@ bool opengl33_renderer::Init(GLFWwindow *Window)
 		m_depth_pointer_fb2 = std::make_unique<gl::framebuffer>();
 		m_depth_pointer_fb2->attach(*m_depth_pointer_rb, GL_COLOR_ATTACHMENT0);
 
-		if (!m_depth_pointer_fb->is_complete())
-			return false;
+        if( !m_depth_pointer_fb->is_complete() ) {
+            ErrorLog( "depth pointer framebuffer setup failed" );
+            return false;
+        }
 
-		if (!m_depth_pointer_fb2->is_complete())
-			return false;
+        if( !m_depth_pointer_fb2->is_complete() ) {
+            ErrorLog( "depth pointer framebuffer2 setup failed" );
+            return false;
+        }
 	}
 
 	m_timequery.emplace(gl::query::TIME_ELAPSED);
@@ -357,22 +371,28 @@ bool opengl33_renderer::init_viewport(viewport_config &vp)
 			vp.main_fb->attach(*vp.main_texv, GL_COLOR_ATTACHMENT1);
 			vp.main_fb->setup_drawing(2);
 
-			if (!vp.main_fb->is_complete())
-				return false;
+            if( !vp.main_fb->is_complete() ) {
+                ErrorLog( "main framebuffer setup failed" );
+                return false;
+            }
 
 			WriteLog("motion blur enabled");
 		}
 
-		if (!vp.msaa_fb->is_complete())
-			return false;
+        if( !vp.msaa_fb->is_complete() ) {
+            ErrorLog( "msaa framebuffer setup failed" );
+            return false;
+        }
 
 		vp.main2_tex = std::make_unique<opengl_texture>();
 		vp.main2_tex->alloc_rendertarget(Global.gfx_format_color, GL_RGB, vp.width, vp.height);
 
 		vp.main2_fb = std::make_unique<gl::framebuffer>();
 		vp.main2_fb->attach(*vp.main2_tex, GL_COLOR_ATTACHMENT0);
-		if (!vp.main2_fb->is_complete())
-			return false;
+        if( !vp.main2_fb->is_complete() ) {
+            ErrorLog( "main2 framebuffer setup failed" );
+            return false;
+        }
 	}
 
 	return true;
@@ -3062,6 +3082,7 @@ void opengl33_renderer::Render_Alpha(cell_sequence::reverse_iterator First, cell
 				auto const originoffset{cell->m_area.center - m_renderpass.pass_camera.position()};
 				::glTranslated(originoffset.x, originoffset.y, originoffset.z);
 				Bind_Material(null_handle);
+                ::glDepthMask( GL_TRUE ); // wires are 'solid' geometry, record them in the depth buffer
 				// render
 				for (auto *traction : cell->m_traction)
 				{
@@ -3072,6 +3093,7 @@ void opengl33_renderer::Render_Alpha(cell_sequence::reverse_iterator First, cell
 					Render_Alpha(lines);
 				}
 				// post-render cleanup
+                ::glDepthMask( GL_FALSE );
 				::glPopMatrix();
 			}
 
