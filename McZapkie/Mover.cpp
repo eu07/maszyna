@@ -7179,11 +7179,15 @@ double TMoverParameters::dizel_Momentum(double dizel_fill, double n, double dt)
 		hydro_TC_Fill = clamp(hydro_TC_Fill, 0.0, 1.0);
 
 		//blokowanie sprzegla blokującego
-		if ((Vel > hydro_TC_LockupSpeed) && (Mains) && (enrot > 0.9 * dizel_nmin) && (IsPower))
+		if ((Vel > hydro_TC_LockupSpeed) && (Mains) && (enrot > 0.9 * dizel_nmin) && (IsPower)) {
+			hydro_TC_Lockup = true;
 			hydro_TC_LockupRate += hydro_TC_FillRateInc*dt;
+		}
 		//luzowanie sprzegla blokujacego
-		if ((Vel < (IsPower ? hydro_TC_LockupSpeed : hydro_TC_UnlockSpeed)) || (!Mains) || (enrot < 0.8 * dizel_nmin))
+		if ((Vel < (IsPower ? hydro_TC_LockupSpeed : hydro_TC_UnlockSpeed)) || (!Mains) || (enrot < 0.8 * dizel_nmin)) {
+			hydro_TC_Lockup = false;
 			hydro_TC_LockupRate -= hydro_TC_FillRateDec*dt;
+		}
 		//obcinanie zakresu
 		hydro_TC_LockupRate = clamp(hydro_TC_LockupRate, 0.0, 1.0);
 	}
