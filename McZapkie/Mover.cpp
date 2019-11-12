@@ -1484,9 +1484,7 @@ void TMoverParameters::MainsCheck( double const Deltatime ) {
             localvoltage =
                 std::max(
                     localvoltage,
-                    std::max(
-                        PantFrontVolt,
-                        PantRearVolt ) );
+                    PantographVoltage );
             break;
         }
         default: {
@@ -1513,9 +1511,7 @@ void TMoverParameters::PowerCouplersCheck( double const Deltatime ) {
                 // HACK: main circuit can be fed through couplers, so we explicitly check pantograph supply here
                 localvoltage = (
                     true == Mains ?
-                        std::max(
-                            PantFrontVolt,
-                            PantRearVolt ) :
+                        PantographVoltage :
                         0.0 );
                 break;
             }
@@ -1530,9 +1526,7 @@ void TMoverParameters::PowerCouplersCheck( double const Deltatime ) {
             localvoltage =
                 std::max(
                     localvoltage,
-                    std::max(
-                        PantFrontVolt,
-                        PantRearVolt ) );
+                    PantographVoltage );
             break;
         }
         default: {
@@ -1597,7 +1591,7 @@ void TMoverParameters::PowerCouplersCheck( double const Deltatime ) {
             // bez napiecia...
             if( couplervoltage != 0.0 ) {
                 // ...ale jest cos na sprzegach:
-                coupler.power_high.current = ( Itot + TotalCurrent ) * coupler.power_high.voltage / couplervoltage; // obciążenie rozkladane stosownie do napiec
+                coupler.power_high.current = ( std::abs( Itot ) + TotalCurrent ) * coupler.power_high.voltage / couplervoltage; // obciążenie rozkladane stosownie do napiec
                 if( true == coupler.power_high.is_live ) {
                     coupler.power_high.current += connectedothercoupler.power_high.current;
                 }
@@ -1718,7 +1712,7 @@ void TMoverParameters::HeatingCheck( double const Timestep ) {
             break;
         }
         case TPowerSource::Main: {
-            voltage = ( true == Mains ? Voltage : 0.0 );
+            voltage = ( true == Mains ? PantographVoltage : 0.0 );
             break;
         }
         default: {
@@ -1726,7 +1720,7 @@ void TMoverParameters::HeatingCheck( double const Timestep ) {
         }
     }
 
-    Heating = ( std::abs( voltage ) > heatingpowerthreshold );
+    Heating = ( voltage > heatingpowerthreshold );
 
     if( Heating ) {
         TotalCurrent += 1000 * HeatingPower / voltage; // heater power cost presumably specified in kilowatts
@@ -3747,7 +3741,7 @@ void TMoverParameters::CompressorCheck(double dt)
                         CompressorSpeedF
                         * ( 2.0 * MaxCompressorF - Compressor ) / MaxCompressorF
                         * dt;
-                    TotalCurrent += 0.0015 * Voltage; // tymczasowo tylko obciążenie sprężarki, tak z 5A na sprężarkę
+                    TotalCurrent += 0.0015 * PantographVoltage; // tymczasowo tylko obciążenie sprężarki, tak z 5A na sprężarkę
                 }
             }
             else {
@@ -3929,15 +3923,15 @@ void TMoverParameters::CompressorCheck(double dt)
 
                 if( ( CompressorPower == 5 ) && ( Couplers[ 1 ].Connected != NULL ) ) {
                     // tymczasowo tylko obciążenie sprężarki, tak z 5A na sprężarkę
-                    Couplers[ 1 ].Connected->TotalCurrent += 0.0015 * Couplers[ 1 ].Connected->Voltage;
+                    Couplers[ 1 ].Connected->TotalCurrent += 0.0015 * Couplers[ 1 ].Connected->PantographVoltage;
                 }
                 else if( ( CompressorPower == 4 ) && ( Couplers[ 0 ].Connected != NULL ) ) {
                     // tymczasowo tylko obciążenie sprężarki, tak z 5A na sprężarkę
-                    Couplers[ 0 ].Connected->TotalCurrent += 0.0015 * Couplers[ 0 ].Connected->Voltage;
+                    Couplers[ 0 ].Connected->TotalCurrent += 0.0015 * Couplers[ 0 ].Connected->PantographVoltage;
                 }
                 else {
                     // tymczasowo tylko obciążenie sprężarki, tak z 5A na sprężarkę
-                    TotalCurrent += 0.0015 * Voltage;
+                    TotalCurrent += 0.0015 * PantographVoltage;
                 }
             }
         }
@@ -4504,27 +4498,27 @@ void TMoverParameters::ComputeTotalForce(double dt) {
     if( EngineType == TEngineType::ElectricSeriesMotor ) {
         LastRelayTime += dt;
     }
-    if( Mains && /*(abs(CabNo) < 2) &&*/ ( EngineType == TEngineType::ElectricSeriesMotor ) ) // potem ulepszyc! pantogtrafy!
+
+    if( EngineType == TEngineType::ElectricSeriesMotor ) // potem ulepszyc! pantogtrafy!
     { // Ra 2014-03: uwzględnienie kierunku jazdy w napięciu na silnikach, a powinien być zdefiniowany nawrotnik
-        if( CabNo == 0 )
-            Voltage = RunningTraction.TractionVoltage * ActiveDir;
-        else
-            Voltage = RunningTraction.TractionVoltage * DirAbsolute; // ActiveDir*CabNo;
-    } // bo nie dzialalo
-    // TODO: clean up this elseif to match changes in power coupling code
-    else if( ( EngineType == TEngineType::ElectricInductionMotor )
-          || ( ( ( Couplers[ end::front ].CouplingFlag & ctrain_power ) == ctrain_power )
-            || ( ( Couplers[ end::rear  ].CouplingFlag & ctrain_power ) == ctrain_power ) ) ) {
-        // potem ulepszyc! pantogtrafy!
-        Voltage =
+        EngineVoltage =
             std::max(
-                RunningTraction.TractionVoltage,
-                std::max(
-                    Couplers[ end::front ].power_high.voltage,
-                    Couplers[ end::rear ].power_high.voltage ) );
-    }
+                GetTrainsetVoltage(),
+                ( Mains ?
+                    PantographVoltage :
+                    0 ) );
+        if( CabNo == 0 ) {
+            EngineVoltage *= ActiveDir;
+        }
+        else {
+            EngineVoltage *= DirAbsolute; // ActiveDir*CabNo;
+        }
+    } // bo nie dzialalo
     else {
-        Voltage = 0;
+        EngineVoltage =
+            std::max(
+                GetTrainsetVoltage(),
+                PantographVoltage );
     }
 
     FTrain = (
@@ -5097,7 +5091,7 @@ double TMoverParameters::TractionForce( double dt ) {
 
         case TEngineType::ElectricSeriesMotor: {
             // update the state of voltage relays
-            auto const voltage { std::max( GetTrainsetVoltage(), std::abs( RunningTraction.TractionVoltage ) ) };
+            auto const voltage { std::max( GetTrainsetVoltage(), PantographVoltage ) };
             NoVoltRelay =
                 ( EnginePowerSource.SourceType != TPowerSource::CurrentCollector )
              || ( voltage >= EnginePowerSource.CollectorParameters.MinV );
@@ -5116,8 +5110,8 @@ double TMoverParameters::TractionForce( double dt ) {
             // TODO: check if we can use instead the code for electricseriesmotor
             if( ( Mains ) ) {
                 // nie wchodzić w funkcję bez potrzeby
-                if( ( std::max( GetTrainsetVoltage(), std::abs( RunningTraction.TractionVoltage ) ) < EnginePowerSource.CollectorParameters.MinV )
-                 || ( std::max( GetTrainsetVoltage(), std::abs( RunningTraction.TractionVoltage ) ) > EnginePowerSource.CollectorParameters.MaxV + 200 ) ) {
+                if( ( std::max( GetTrainsetVoltage(), PantographVoltage ) < EnginePowerSource.CollectorParameters.MinV )
+                 || ( std::max( GetTrainsetVoltage(), PantographVoltage ) > EnginePowerSource.CollectorParameters.MaxV + 200 ) ) {
                     MainSwitch( false, ( TrainType == dt_EZT ? range_t::unit : range_t::local ) ); // TODO: check whether we need to send this EMU-wide
                 }
             }
@@ -5176,13 +5170,13 @@ double TMoverParameters::TractionForce( double dt ) {
             //        enrot:=Transmision.Ratio*nrot;
             // yB: szereg dwoch sekcji w ET42
             if ((TrainType == dt_ET42) && (Imax == ImaxHi))
-                Voltage = Voltage / 2.0;
-            Mm = Momentum(Current(enrot, Voltage)); // oblicza tez prad p/slinik
+                EngineVoltage = EngineVoltage / 2.0;
+            Mm = Momentum(Current(enrot, EngineVoltage)); // oblicza tez prad p/slinik
 
             if (TrainType == dt_ET42)
             {
                 if (Imax == ImaxHi)
-                    Voltage = Voltage * 2;
+                    EngineVoltage = EngineVoltage * 2;
                 if ((DynamicBrakeFlag) && (abs(Im) > 300)) // przeiesione do mover.cpp
                     FuseOff();
             }
@@ -5277,7 +5271,7 @@ double TMoverParameters::TractionForce( double dt ) {
             // jazda manewrowa
             if( true == ShuntMode ) {
                 if( ( true == Mains ) && ( MainCtrlPowerPos() > 0 ) ) {
-                    Voltage = ( SST[ MainCtrlPos ].Umax * AnPos ) + ( SST[ MainCtrlPos ].Umin * ( 1.0 - AnPos ) );
+                    EngineVoltage = ( SST[ MainCtrlPos ].Umax * AnPos ) + ( SST[ MainCtrlPos ].Umin * ( 1.0 - AnPos ) );
                     // NOTE: very crude way to approximate power generated at current rpm instead of instant top output
                     // NOTE, TODO: doesn't take into account potentially increased revolutions if heating is on, fix it
                     auto const rpmratio { 60.0 * enrot / DElist[ MainCtrlPos ].RPM };
@@ -5285,7 +5279,7 @@ double TMoverParameters::TractionForce( double dt ) {
                     Ft = tmp * 1000.0 / ( abs( tmpV ) + 1.6 );
                 }
                 else {
-                    Voltage = 0;
+                    EngineVoltage = 0;
                     Ft = 0;
                 }
                 PosRatio = 1;
@@ -5346,10 +5340,10 @@ double TMoverParameters::TractionForce( double dt ) {
                 Im = NPoweredAxles * sqrt(abs(Mm * MotorParam[ScndCtrlPos].Isat));
 
             if( ShuntMode ) {
-                EnginePower = Voltage * Im / 1000.0;
+                EnginePower = EngineVoltage * Im / 1000.0;
                 if( EnginePower > tmp ) {
                     EnginePower = tmp;
-                    Voltage = EnginePower * 1000.0 / Im;
+                    EngineVoltage = EnginePower * 1000.0 / Im;
                 }
                 if( EnginePower < tmp ) {
                     Ft *= EnginePower / tmp;
@@ -5367,31 +5361,31 @@ double TMoverParameters::TractionForce( double dt ) {
                     // jak pod obciazeniem
                     if( true == Flat ) {
                         // ograniczenie napiecia w pradnicy - plaszczak u gory
-                        Voltage = 1000.0 * tmp / std::abs( Im );
+                        EngineVoltage = 1000.0 * tmp / std::abs( Im );
                     }
                     else {
                         // charakterystyka pradnicy obcowzbudnej (elipsa) - twierdzenie Pitagorasa
-                        Voltage =
+                        EngineVoltage =
                             std::sqrt(
                                 std::abs(
                                     square( DElist[ MainCtrlPos ].Umax )
                                     - square( DElist[ MainCtrlPos ].Umax * Im / DElist[ MainCtrlPos ].Imax ) ) )
                             * ( MainCtrlPos - 1 )
                             + ( 1.0 - Im / DElist[ MainCtrlPos ].Imax ) * DElist[ MainCtrlPos ].Umax * ( MainCtrlPosNo - MainCtrlPos );
-                        Voltage /= ( MainCtrlPosNo - 1 );
-                        Voltage = clamp(
-                            Voltage,
+                        EngineVoltage /= ( MainCtrlPosNo - 1 );
+                        EngineVoltage = clamp(
+                            EngineVoltage,
                             Im * 0.05, ( 1000.0 * tmp / std::abs( Im ) ) );
                     }
                 }
 
-                if( ( Voltage > DElist[ MainCtrlPos ].Umax )
+                if( ( EngineVoltage > DElist[ MainCtrlPos ].Umax )
                  || ( Im == 0 ) ) {
                     // gdy wychodzi za duze napiecie albo przy biegu jalowym (jest cos takiego?)
-                    Voltage = DElist[ MainCtrlPos ].Umax * ( ConverterFlag ? 1 : 0 ); 
+                    EngineVoltage = DElist[ MainCtrlPos ].Umax * ( ConverterFlag ? 1 : 0 ); 
                 }
 
-                EnginePower = Voltage * Im / 1000.0;
+                EnginePower = EngineVoltage * Im / 1000.0;
 /*
                 // power curve drop
                 // NOTE: disabled for the time being due to side-effects
@@ -5406,7 +5400,7 @@ double TMoverParameters::TractionForce( double dt ) {
             if ((Imax > 1) && (Im > Imax))
                 FuseOff();
             if (FuseFlag)
-                Voltage = 0;
+                EngineVoltage = 0;
 
             // przekazniki bocznikowania, kazdy inny dla kazdej pozycji
             if ((IsMainCtrlNoPowerPos()) || (ShuntMode) || (false==Mains))
@@ -5724,7 +5718,7 @@ double TMoverParameters::TractionForce( double dt ) {
                 else
                     tmp = eimc[eimc_f_Uzmax];
 
-                eimv[eimv_Uzsmax] = Min0R(Voltage - eimc[eimc_f_DU], tmp);
+                eimv[eimv_Uzsmax] = Min0R(EngineVoltage - eimc[eimc_f_DU], tmp);
                 eimv[eimv_fkr] = eimv[eimv_Uzsmax] / eimc[eimc_f_cfu];
                 if( (eimv_pr < 0 ) ) {
                     eimv[ eimv_Pmax ] = eimc[ eimc_p_Ph ];
@@ -5733,7 +5727,7 @@ double TMoverParameters::TractionForce( double dt ) {
                     eimv[ eimv_Pmax ] =
                         std::min(
                             eimc[ eimc_p_Pmax ],
-                            0.001 * Voltage * ( eimc[ eimc_p_Imax ] - eimc[ eimc_f_I0 ] ) * Pirazy2 * eimc[ eimc_s_cim ] / eimc[ eimc_s_p ] / eimc[ eimc_s_cfu ] );
+                            0.001 * EngineVoltage * ( eimc[ eimc_p_Imax ] - eimc[ eimc_f_I0 ] ) * Pirazy2 * eimc[ eimc_s_cim ] / eimc[ eimc_s_p ] / eimc[ eimc_s_cfu ] );
                 }
                 eimv[ eimv_FMAXMAX ] =
                     0.001
@@ -5792,20 +5786,20 @@ double TMoverParameters::TractionForce( double dt ) {
                 eimv[eimv_Ic] = (eimv[eimv_fp] - DirAbsolute * enrot * eimc[eimc_s_p]) * eimc[eimc_s_dfic] * eimv[eimv_pole];
                 eimv[eimv_If] = eimv[eimv_Ic] * eimc[eimc_s_icif];
                 eimv[eimv_M] = eimv[eimv_pole] * eimv[eimv_Ic] * eimc[eimc_s_cim];
-                eimv[eimv_Ipoj] = (eimv[eimv_Ic] * NPoweredAxles * eimv[eimv_U]) / (Voltage - eimc[eimc_f_DU]) + eimc[eimc_f_I0];
+                eimv[eimv_Ipoj] = (eimv[eimv_Ic] * NPoweredAxles * eimv[eimv_U]) / (EngineVoltage - eimc[eimc_f_DU]) + eimc[eimc_f_I0];
                 eimv[eimv_Pm] = ActiveDir * eimv[eimv_M] * NPoweredAxles * enrot * Pirazy2 / 1000;
-                eimv[eimv_Pe] = eimv[eimv_Ipoj] * Voltage / 1000;
+                eimv[eimv_Pe] = eimv[eimv_Ipoj] * EngineVoltage / 1000;
                 eimv[eimv_eta] = eimv[eimv_Pm] / eimv[eimv_Pe];
 
                 Im = eimv[eimv_If];
                 if ((eimv[eimv_Ipoj] >= 0))
                     Vadd *= (1.0 - 2.0 * dt);
-                else if ((std::abs(Voltage) < EnginePowerSource.CollectorParameters.MaxV))
+                else if ((std::abs(EngineVoltage) < EnginePowerSource.CollectorParameters.MaxV))
                     Vadd *= (1.0 - dt);
                 else
                     Vadd = Max0R(
                         Vadd * (1.0 - 0.2 * dt),
-                        0.007 * (std::abs(Voltage) - (EnginePowerSource.CollectorParameters.MaxV - 100)));
+                        0.007 * (std::abs(EngineVoltage) - (EnginePowerSource.CollectorParameters.MaxV - 100)));
                 Itot = eimv[eimv_Ipoj] * (0.01 + Min0R(0.99, 0.99 - Vadd));
 
                 EnginePower = abs(eimv[eimv_Ic] * eimv[eimv_U] * NPoweredAxles) / 1000;

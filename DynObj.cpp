@@ -2764,7 +2764,8 @@ bool TDynamicObject::Update(double dt, double dt1)
     { // dla EZT tylko silnikowy
         // if (Global.bLiveTraction)
         { // Ra 2013-12: to niżej jest chyba trochę bez sensu
-            double v = MoverParameters->PantRearVolt;
+            tmpTraction.TractionVoltage = std::max( std::abs( MoverParameters->PantRearVolt ), std::abs( MoverParameters->PantFrontVolt ) );
+            /*
             if (v == 0.0) {
                 v = MoverParameters->PantFrontVolt;
                 if( v == 0.0 ) {
@@ -2775,10 +2776,10 @@ bool TDynamicObject::Update(double dt, double dt1)
 //                    }
                 }
             }
-            if (v != 0.0)
+            */
+            if ( tmpTraction.TractionVoltage > 0.0)
             { // jeśli jest zasilanie
                 NoVoltTime = 0;
-                tmpTraction.TractionVoltage = v;
             }
             else {
                 NoVoltTime += dt1;
@@ -2804,19 +2805,18 @@ bool TDynamicObject::Update(double dt, double dt1)
                             }
                         }
                     }
-                    // Ra 2F1H: nie było sensu wpisywać tu zera po upływie czasu, bo zmienna była
-                    // tymczasowa, a napięcie zerowane od razu
-                    tmpTraction.TractionVoltage = 0; // Ra 2013-12: po co tak?
                 }
             }
         }
     }
-    else
+    else {
         tmpTraction.TractionVoltage = 0.95 * MoverParameters->EnginePowerSource.MaxVoltage;
+    }
     tmpTraction.TractionFreq = 0;
     tmpTraction.TractionMaxCurrent = 7500; // Ra: chyba za dużo? powinno wywalać przy 1500
     tmpTraction.TractionResistivity = 0.3;
 
+    MoverParameters->PantographVoltage = tmpTraction.TractionVoltage;
     // McZapkie: predkosc w torze przekazac do TrackParam
     // McZapkie: Vel ma wymiar [km/h] (absolutny), V ma wymiar [m/s], taka
     // przyjalem notacje
@@ -3340,7 +3340,7 @@ bool TDynamicObject::Update(double dt, double dt1)
         double fCurrent = (
             ( MoverParameters->DynamicBrakeFlag && MoverParameters->ResistorsFlag ) ?
                 0 :
-                MoverParameters->Itot )
+                std::abs( MoverParameters->Itot ) )
             + MoverParameters->TotalCurrent; // prąd pobierany przez pojazd - bez
         // sensu z tym (TotalCurrent)
         // TotalCurrent to bedzie prad nietrakcyjny (niezwiazany z napedem)
@@ -3387,7 +3387,7 @@ bool TDynamicObject::Update(double dt, double dt1)
                     if (p->hvPowerWire) {
                         auto const lastvoltage { MoverParameters->PantFrontVolt };
                         // TODO: wyliczyć trzeba prąd przypadający na pantograf i wstawić do GetVoltage()
-                        MoverParameters->PantFrontVolt = p->hvPowerWire->VoltageGet( MoverParameters->Voltage, fPantCurrent );
+                        MoverParameters->PantFrontVolt = p->hvPowerWire->VoltageGet( MoverParameters->PantographVoltage, fPantCurrent );
                         fCurrent -= fPantCurrent; // taki prąd płynie przez powyższy pantograf
                         // TODO: refactor reaction to voltage change to mover as sound event for specific pantograph
                         if( ( lastvoltage == 0.0 )
@@ -3421,7 +3421,7 @@ bool TDynamicObject::Update(double dt, double dt1)
                     if (p->hvPowerWire) {
                         auto const lastvoltage { MoverParameters->PantRearVolt };
                         // TODO: wyliczyć trzeba prąd przypadający na pantograf i wstawić do GetVoltage()
-                        MoverParameters->PantRearVolt = p->hvPowerWire->VoltageGet( MoverParameters->Voltage, fPantCurrent );
+                        MoverParameters->PantRearVolt = p->hvPowerWire->VoltageGet( MoverParameters->PantographVoltage, fPantCurrent );
                         fCurrent -= fPantCurrent; // taki prąd płynie przez powyższy pantograf
                         // TODO: refactor reaction to voltage change to mover as sound event for specific pantograph
                         if( ( lastvoltage == 0.0 )
@@ -3801,7 +3801,7 @@ void TDynamicObject::RenderSounds() {
     if( MoverParameters->ConverterFlag ) {
         frequency = (
             MoverParameters->EngineType == TEngineType::ElectricSeriesMotor ?
-            ( MoverParameters->RunningTraction.TractionVoltage / MoverParameters->NominalVoltage ) * MoverParameters->RList[ MoverParameters->RlistSize ].Mn :
+            ( MoverParameters->PantographVoltage / MoverParameters->NominalVoltage ) * MoverParameters->RList[ MoverParameters->RlistSize ].Mn :
             1.0 );
         frequency = sConverter.m_frequencyoffset + sConverter.m_frequencyfactor * frequency;
         sConverter

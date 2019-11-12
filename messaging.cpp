@@ -335,7 +335,7 @@ WyslijNamiary(TDynamicObject const *Vehicle)
             Vehicle->MoverParameters->ShowCurrent(p + 1); // amperomierze kolejnych grup
     // WriteLog("zapisalem prady");
     r.iPar[30] = Vehicle->MoverParameters->WarningSignal; // trabienie
-    r.fPar[31] = Vehicle->MoverParameters->RunningTraction.TractionVoltage; // napiecie WN
+    r.fPar[31] = Vehicle->MoverParameters->PantographVoltage; // napiecie WN
     // WriteLog("Parametry gotowe");
     i <<= 2; // ilość bajtów
     r.cString[i] = char(j); // na końcu nazwa, żeby jakoś zidentyfikować

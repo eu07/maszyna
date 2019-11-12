@@ -1,6 +1,9 @@
 #include "stdafx.h"
 #include "framebuffer.h"
 
+#include "Logs.h"
+#include "utilities.h"
+
 gl::framebuffer::framebuffer()
 {
     glGenFramebuffers(1, *this);
@@ -43,8 +46,14 @@ void gl::framebuffer::detach(GLenum location)
 bool gl::framebuffer::is_complete()
 {
     bind();
-    GLenum status = glCheckFramebufferStatus(GL_FRAMEBUFFER);
-    return status == GL_FRAMEBUFFER_COMPLETE;
+    GLenum const status { glCheckFramebufferStatus( GL_FRAMEBUFFER ) };
+    auto const iscomplete { status == GL_FRAMEBUFFER_COMPLETE };
+
+    if( false == iscomplete ) {
+        ErrorLog( "framebuffer status error: " + to_hex_str( status ) );
+    }
+
+    return iscomplete;
 }
 
 void gl::framebuffer::clear(GLbitfield mask)

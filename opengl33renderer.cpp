@@ -31,7 +31,7 @@ bool opengl33_renderer::Init(GLFWwindow *Window)
 	if (!Init_caps())
 		return false;
 
-	WriteLog("preparing renderer..");
+	WriteLog("preparing renderer...");
 
     OpenGLMatrices.upload() = false; // set matrix stack in virtual mode
 
@@ -272,7 +272,7 @@ bool opengl33_renderer::Init(GLFWwindow *Window)
 
 	WriteLog("picking objects created");
 
-	WriteLog("renderer initialization finished!");
+	WriteLog("gfx renderer setup complete");
 
 	return true;
 }
@@ -3994,22 +3994,22 @@ bool opengl33_renderer::Init_caps()
 		}
 
 		if (!GLAD_GL_EXT_texture_sRGB)
-			ErrorLog("EXT_texture_sRGB not supported!");
+			ErrorLog("warning: EXT_texture_sRGB not supported");
 
 		if (!GLAD_GL_EXT_texture_compression_s3tc)
-			ErrorLog("EXT_texture_compression_s3tc not supported!");
+			ErrorLog("warning: EXT_texture_compression_s3tc not supported");
 
 		if (GLAD_GL_ARB_texture_filter_anisotropic)
-			WriteLog("ARB_texture_filter_anisotropic supported!");
+			WriteLog("ARB_texture_filter_anisotropic supported");
 
 		if (GLAD_GL_ARB_multi_bind)
-			WriteLog("ARB_multi_bind supported!");
+			WriteLog("ARB_multi_bind supported");
 
 		if (GLAD_GL_ARB_direct_state_access)
-			WriteLog("ARB_direct_state_access supported!");
+			WriteLog("ARB_direct_state_access supported");
 
 		if (GLAD_GL_ARB_clip_control)
-			WriteLog("ARB_clip_control supported!");
+			WriteLog("ARB_clip_control supported");
 	}
 	else
 	{
@@ -4020,20 +4020,20 @@ bool opengl33_renderer::Init_caps()
 		}
 
 		if (GLAD_GL_EXT_texture_filter_anisotropic)
-			WriteLog("EXT_texture_filter_anisotropic supported.");
+			WriteLog("EXT_texture_filter_anisotropic supported");
 
 		if (GLAD_GL_EXT_clip_control)
-			WriteLog("EXT_clip_control supported.");
+			WriteLog("EXT_clip_control supported");
 
 		if (GLAD_GL_EXT_geometry_shader)
-			WriteLog("EXT_geometry_shader supported.");
+			WriteLog("EXT_geometry_shader supported");
 	}
 
 	glGetError();
 	glLineWidth(2.0f);
 	if (!glGetError())
 	{
-		WriteLog("wide lines supported.");
+		WriteLog("wide lines supported");
 		m_widelines_supported = true;
 	}
 	else

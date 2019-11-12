@@ -535,8 +535,8 @@ dictionary_source *TTrain::GetTrainState() {
     dict->insert( "slipping_wheels", mvOccupied->SlippingWheels );
     dict->insert( "sanding", mvOccupied->SandDose );
     // electric current data
-    dict->insert( "traction_voltage", std::abs( mvControlled->RunningTraction.TractionVoltage ) );
-    dict->insert( "voltage", std::abs( mvControlled->Voltage ) );
+    dict->insert( "traction_voltage", std::abs( mvControlled->PantographVoltage ) );
+    dict->insert( "voltage", std::abs( mvControlled->EngineVoltage ) );
     dict->insert( "im", std::abs(  mvControlled->Im ) );
     dict->insert( "fuse", mvControlled->FuseFlag );
     dict->insert( "epfuse", mvOccupied->EpFuse );
@@ -5703,10 +5703,10 @@ bool TTrain::Update( double const Deltatime )
         // Ra 2014-09: napięcia i prądy muszą być ustalone najpierw, bo wysyłane są ewentualnie na PoKeys
 		if ((mvControlled->EngineType != TEngineType::DieselElectric)
          && (mvControlled->EngineType != TEngineType::ElectricInductionMotor)) // Ra 2014-09: czy taki rozdzia? ma sens?
-			fHVoltage = mvControlled->RunningTraction.TractionVoltage; // Winger czy to nie jest zle?
+			fHVoltage = std::max( mvControlled->PantographVoltage, mvControlled->GetTrainsetVoltage() ); // Winger czy to nie jest zle?
         // *mvControlled->Mains);
         else
-            fHVoltage = mvControlled->Voltage;
+            fHVoltage = mvControlled->EngineVoltage;
         if (ShowNextCurrent)
         { // jeśli pokazywać drugi człon
             if (mvSecond)
@@ -5789,7 +5789,7 @@ bool TTrain::Update( double const Deltatime )
                     fEIMParams[1 + in][6] = p->MoverParameters->eimv[eimv_If];
                     fEIMParams[1 + in][7] = p->MoverParameters->eimv[eimv_U];
 					fEIMParams[1 + in][8] = p->MoverParameters->Itot;//p->MoverParameters->eimv[eimv_Ipoj];
-                    fEIMParams[1 + in][9] = p->MoverParameters->Voltage;
+                    fEIMParams[1 + in][9] = p->MoverParameters->EngineVoltage;
                     fEIMParams[0][6] += fEIMParams[1 + in][8];
                     bMains[in] = p->MoverParameters->Mains;
                     fCntVol[in] = p->MoverParameters->BatteryVoltage;
@@ -5984,7 +5984,7 @@ bool TTrain::Update( double const Deltatime )
         {
             if (mvControlled->DynamicBrakeFlag)
             {
-                ggEngineVoltage.UpdateValue(abs(mvControlled->Im * 5));
+                ggEngineVoltage.UpdateValue(std::abs(mvControlled->Im * 5));
             }
             else
             {
@@ -5995,12 +5995,12 @@ bool TTrain::Update( double const Deltatime )
                 else
                     x = 2;
                 if ((mvControlled->RList[mvControlled->MainCtrlActualPos].Mn > 0) &&
-                    (abs(mvControlled->Im) > 0))
+                    (std::abs(mvControlled->Im) > 0))
                 {
                     ggEngineVoltage.UpdateValue(
-                        (x * (mvControlled->RunningTraction.TractionVoltage -
+                        (x * (mvControlled->PantographVoltage -
                               mvControlled->RList[mvControlled->MainCtrlActualPos].R *
-                                  abs(mvControlled->Im)) /
+                                  std::abs(mvControlled->Im)) /
                          mvControlled->RList[mvControlled->MainCtrlActualPos].Mn));
                 }
                 else

@@ -1026,23 +1026,26 @@ opengl_texture::set_filtering() const {
         ::glTexParameterf( GL_TEXTURE_2D, GL_TEXTURE_MAX_ANISOTROPY_EXT, Global.AnisotropicFiltering );
     }
 
-    bool sharpen{ false };
-    for( auto const &trait : traits ) {
+    if( false == Global.gfx_usegles ) {
 
-        switch( trait ) {
+        bool sharpen{ false };
+        for( auto const &trait : traits ) {
 
-            case '#': { sharpen = true; break; }
-            default:  {                 break; }
+            switch( trait ) {
+
+                case '#': { sharpen = true; break; }
+                default:  {                 break; }
+            }
         }
-    }
 
-    if( true == sharpen ) {
-        // #: sharpen more
-        ::glTexEnvf( GL_TEXTURE_FILTER_CONTROL, GL_TEXTURE_LOD_BIAS, -2.0 );
-    }
-    else {
-        // regular texture sharpening
-        ::glTexEnvf( GL_TEXTURE_FILTER_CONTROL, GL_TEXTURE_LOD_BIAS, -1.0 );
+        if( true == sharpen ) {
+            // #: sharpen more
+            ::glTexEnvf( GL_TEXTURE_FILTER_CONTROL, GL_TEXTURE_LOD_BIAS, -2.0 );
+        }
+        else {
+            // regular texture sharpening
+            ::glTexEnvf( GL_TEXTURE_FILTER_CONTROL, GL_TEXTURE_LOD_BIAS, -1.0 );
+        }
     }
 }
 

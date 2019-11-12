@@ -1381,7 +1381,7 @@ public:
 	//a ujemne powinien być przy odwróconej polaryzacji sieci...
 	//w wielu miejscach jest używane abs(Im)
 	int Imin = 0; int Imax = 0;      /*prad przelaczania automatycznego rozruchu, prad bezpiecznika*/
-	double Voltage = 0.0;           /*aktualne napiecie sieci zasilajacej*/
+	double EngineVoltage = 0.0; // voltage supplied to engine
 	int MainCtrlActualPos = 0; /*wskaznik RList*/
 	int ScndCtrlActualPos = 0; /*wskaznik MotorParam*/
 	bool DelayCtrlFlag = false;  //czy czekanie na 1. pozycji na załączenie?
@@ -1394,6 +1394,7 @@ public:
 	bool ResistorsFlag = false;  /*!o jazda rezystorowa*/
 	double RventRot = 0.0;          /*!s obroty wentylatorow rozruchowych*/
     bool UnBrake = false;       /*w EZT - nacisniete odhamowywanie*/
+    double PantographVoltage{ 0.0 }; // voltage supplied to pantographs
 	double PantPress = 0.0; /*Cisnienie w zbiornikach pantografow*/
     bool PantPressSwitchActive{ false }; // state of the pantograph pressure switch. gets primed at defined pressure level in pantograph air system
     bool PantPressLockActive{ false }; // pwr system state flag. fires when pressure switch activates by pantograph pressure dropping below defined level

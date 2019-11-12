@@ -598,11 +598,11 @@ debug_panel::update_section_vehicle( std::vector<text_line> &Output ) {
         // power transfers
         mover.Couplers[ end::front ].power_high.voltage,
         mover.Couplers[ end::front ].power_high.current,
-        std::string( mover.Couplers[ end::front ].power_high.is_local ? "" : "-" ).c_str(),
-        std::string( vehicle.DirectionGet() ? ":<<" : ":>>" ).c_str(),
-        mover.Voltage,
-        std::string( vehicle.DirectionGet() ? "<<:" : ">>:" ).c_str(),
-        std::string( mover.Couplers[ end::rear ].power_high.is_local ? "" : "-" ).c_str(),
+        std::string( mover.Couplers[ end::front ].power_high.is_local ? ":" : ":=" ).c_str(),
+        std::string( vehicle.DirectionGet() ? "<<" : ">>" ).c_str(),
+        mover.EngineVoltage,
+        std::string( vehicle.DirectionGet() ? "<<" : ">>" ).c_str(),
+        std::string( mover.Couplers[ end::rear ].power_high.is_local ? ":" : "=:" ).c_str(),
         mover.Couplers[ end::rear ].power_high.voltage,
         mover.Couplers[ end::rear ].power_high.current );
 

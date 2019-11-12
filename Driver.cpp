@@ -2091,7 +2091,7 @@ double TController::ESMVelocity(bool Main)
 	double R = mvControlling->RList[MCPN].R + mvControlling->CircuitRes + mvControlling->RList[MCPN].Mn*mvControlling->WindingRes;
 	double pole = mvControlling->MotorParam[SCPN].fi *
 		std::max(abs(IF) / (abs(IF) + mvControlling->MotorParam[SCPN].Isat) - mvControlling->MotorParam[SCPN].fi0, 0.0);
-	double Us = abs(mvControlling->Voltage) - IF*R;
+	double Us = abs(mvControlling->EngineVoltage) - IF*R;
 	double ns = std::max(0.0, Us / (pole*mvControlling->RList[MCPN].Mn));
 	ESMVel = ns * mvControlling->WheelDiameter*M_PI*3.6/mvControlling->Transmision.Ratio;
 	return ESMVel;
@@ -2511,7 +2511,7 @@ bool TController::PrepareEngine()
         }
     }
 
-    if (mvControlling->PantFrontVolt || mvControlling->PantRearVolt || voltfront || voltrear)
+    if ((mvControlling->PantographVoltage != 0.0) || voltfront || voltrear)
     { // najpierw ustalamy kierunek, jeśli nie został ustalony
         if( !iDirection ) {
             // jeśli nie ma ustalonego kierunku
@@ -2519,7 +2519,7 @@ bool TController::PrepareEngine()
                 iDirection = mvOccupied->CabNo; // wg wybranej kabiny
                 if( !iDirection ) {
                     // jeśli nie ma ustalonego kierunku
-                    if( ( mvControlling->PantFrontVolt != 0.0 ) || ( mvControlling->PantRearVolt != 0.0 ) || voltfront || voltrear ) {
+                    if( ( mvControlling->PantographVoltage != 0.0 ) || voltfront || voltrear ) {
                         if( mvOccupied->Couplers[ end::rear ].Connected == nullptr ) {
                             // jeśli z tyłu nie ma nic
                             iDirection = -1; // jazda w kierunku sprzęgu 1
@@ -2533,7 +2533,7 @@ bool TController::PrepareEngine()
             }
             else {
                 // ustalenie kierunku, gdy jedzie
-                if( ( mvControlling->PantFrontVolt != 0.0 ) || ( mvControlling->PantRearVolt != 0.0 ) || voltfront || voltrear ) {
+                if( ( mvControlling->PantographVoltage != 0.0 ) || voltfront || voltrear ) {
                     if( mvOccupied->V < 0 ) {
                         // jedzie do tyłu
                         iDirection = -1; // jazda w kierunku sprzęgu 1
@@ -2562,7 +2562,7 @@ bool TController::PrepareEngine()
                     }
                 }
                 if( ( mvControlling->EnginePowerSource.SourceType != TPowerSource::CurrentCollector )
-                 || ( std::max( mvControlling->GetTrainsetVoltage(), std::abs( mvControlling->RunningTraction.TractionVoltage ) ) > mvControlling->EnginePowerSource.CollectorParameters.MinV ) ) {
+                 || ( std::max( mvControlling->GetTrainsetVoltage(), mvControlling->PantographVoltage ) > mvControlling->EnginePowerSource.CollectorParameters.MinV ) ) {
                     mvControlling->MainSwitch( true );
                 }
             }
@@ -3448,7 +3448,7 @@ void TController::SpeedSet()
             if (fAccGravity < -0.10) // i jedzie pod górę większą niż 10 promil
             { // procedura wjeżdżania na ekstremalne wzniesienia
                 if (fabs(mvControlling->Im) > 0.85 * mvControlling->Imax) // a prąd jest większy niż 85% nadmiarowego
-                    if (mvControlling->Imax * mvControlling->Voltage / (fMass * fAccGravity) < -2.8) // a na niskim się za szybko nie pojedzie
+                    if (mvControlling->Imax * mvControlling->EngineVoltage / (fMass * fAccGravity) < -2.8) // a na niskim się za szybko nie pojedzie
                     { // włączenie wysokiego rozruchu;
                         // (I*U)[A*V=W=kg*m*m/sss]/(m[kg]*a[m/ss])=v[m/s]; 2.8m/ss=10km/h
                         if (mvControlling->RList[mvControlling->MainCtrlPos].Bn > 1)
@@ -4584,7 +4584,7 @@ TController::UpdateSituation(double dt) {
             }
 
             // uśrednione napięcie sieci: przy spadku poniżej wartości minimalnej opóźnić rozruch o losowy czas
-            fVoltage = 0.5 * (fVoltage + std::abs(mvControlling->RunningTraction.TractionVoltage));
+            fVoltage = 0.5 * (fVoltage + mvControlling->PantographVoltage);
             if( fVoltage < mvControlling->EnginePowerSource.CollectorParameters.MinV ) {
                 // gdy rozłączenie WS z powodu niskiego napięcia
                 if( fActionTime >= 0 ) {
