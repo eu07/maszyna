@@ -92,7 +92,7 @@ ui_layer::init( GLFWwindow *Window ) {
     if( Global.GfxRenderer == "default" ) {
         // opengl 3.3 render path
         if( Global.gfx_usegles ) {
-            ImGui_ImplOpenGL3_Init( "#version 300 es\nprecision highp float;" );
+            ImGui_ImplOpenGL3_Init( "#version 300 es" );
         }
         else {
             ImGui_ImplOpenGL3_Init( "#version 330 core" );

@@ -823,11 +823,13 @@ opengl_texture::create() {
             glTexParameteri(target, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 			glTexParameteri(target, GL_TEXTURE_WRAP_S, wrap_mode_s);
 			glTexParameteri(target, GL_TEXTURE_WRAP_T, wrap_mode_t);
-			if (data_components == GL_DEPTH_COMPONENT)
+            if (data_components == GL_DEPTH_COMPONENT)
             {
 				glTexParameteri(target, GL_TEXTURE_COMPARE_MODE, GL_COMPARE_REF_TO_TEXTURE);
-                float borderColor[] = { 0.0f, 0.0f, 0.0f, 0.0f };
-				glTexParameterfv(target, GL_TEXTURE_BORDER_COLOR, borderColor);
+                if( false == Global.gfx_usegles ) {
+                    float borderColor[] = { 0.0f, 0.0f, 0.0f, 0.0f };
+                    glTexParameterfv( target, GL_TEXTURE_BORDER_COLOR, borderColor );
+                }
 			}
 
             if (Global.gfx_usegles)
@@ -1026,7 +1028,7 @@ opengl_texture::set_filtering() const {
         ::glTexParameterf( GL_TEXTURE_2D, GL_TEXTURE_MAX_ANISOTROPY_EXT, Global.AnisotropicFiltering );
     }
 
-    if( false == Global.gfx_usegles ) {
+    if( Global.LegacyRenderer ) {
 
         bool sharpen{ false };
         for( auto const &trait : traits ) {
@@ -1040,11 +1042,11 @@ opengl_texture::set_filtering() const {
 
         if( true == sharpen ) {
             // #: sharpen more
-            ::glTexEnvf( GL_TEXTURE_FILTER_CONTROL, GL_TEXTURE_LOD_BIAS, -2.0 );
+            ::glTexEnvf( GL_TEXTURE_FILTER_CONTROL, GL_TEXTURE_LOD_BIAS, -2.0f );
         }
         else {
             // regular texture sharpening
-            ::glTexEnvf( GL_TEXTURE_FILTER_CONTROL, GL_TEXTURE_LOD_BIAS, -1.0 );
+            ::glTexEnvf( GL_TEXTURE_FILTER_CONTROL, GL_TEXTURE_LOD_BIAS, -1.0f );
         }
     }
 }

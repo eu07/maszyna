@@ -39,6 +39,8 @@ void gl::buffer::bind_base(targets target, GLuint index)
 
 void gl::buffer::unbind(targets target)
 {
+    if( binding_points[ target ] == 0 ) { return; }
+
     glBindBuffer(glenum_target(target), 0);
     binding_points[target] = 0;
 }

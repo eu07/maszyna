@@ -36,7 +36,7 @@ struct opengl_texture {
     void
         release();
     void
-        alloc_rendertarget( GLint format, GLint components, int width, int height, int samples = 1, GLint wrap = GL_CLAMP_TO_BORDER );
+        alloc_rendertarget( GLint format, GLint components, int width, int height, int samples = 1, GLint wrap = GL_CLAMP_TO_EDGE );
     void
         set_components_hint( GLint hint );
     static void

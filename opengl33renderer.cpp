@@ -26,8 +26,25 @@ int const EU07_PICKBUFFERSIZE{1024}; // size of (square) textures bound with the
 
 auto const gammacorrection { glm::vec3( 2.2f ) };
 
+void GLAPIENTRY
+ErrorCallback( GLenum source, GLenum type, GLuint id, GLenum severity, GLsizei length, const GLchar* message, const void* userParam ) {
+
+    ErrorLog(
+        "bad gfx code: " + std::string( type == GL_DEBUG_TYPE_ERROR ? "** GL ERROR **" : "" )
+        + " type = " + to_hex_str( id )
+        + ", severity = " + to_hex_str( severity )
+        + ", message = " + message );
+}
+
 bool opengl33_renderer::Init(GLFWwindow *Window)
 {
+/*
+    if( false == Global.gfx_usegles ) {
+        // enable for gles after move to 3.2+
+        glEnable( GL_DEBUG_OUTPUT );
+        glDebugMessageCallback( ErrorCallback, 0 );
+    }
+*/
 	if (!Init_caps())
 		return false;
 
@@ -172,7 +189,7 @@ bool opengl33_renderer::Init(GLFWwindow *Window)
 		WriteLog("cabshadows enabled");
 	}
 
-	if (Global.gfx_envmap_enabled)
+    if (Global.gfx_envmap_enabled)
 	{
 		m_env_rb = std::make_unique<gl::renderbuffer>();
 		m_env_rb->alloc(Global.gfx_format_depth, gl::ENVMAP_SIZE, gl::ENVMAP_SIZE);
@@ -274,7 +291,7 @@ bool opengl33_renderer::Init(GLFWwindow *Window)
 
 	WriteLog("gfx renderer setup complete");
 
-	return true;
+    return true;
 }
 /*
 bool opengl33_renderer::AddViewport(const global_settings::extraviewport_config &conf)
@@ -740,12 +757,12 @@ void opengl33_renderer::Render_pass(viewport_config &vp, rendermode const Mode)
 		glDebug("uilayer render");
 		Timer::subsystem.gfx_gui.start();
 
-		if (vp.main) {
+        if (vp.main) {
 			draw_debug_ui();
 			Application.render_ui();
 		}
 
-		Timer::subsystem.gfx_gui.stop();
+        Timer::subsystem.gfx_gui.stop();
 
 		// restore binding
 		scene_ubo->bind_uniform();
@@ -1691,11 +1708,13 @@ void opengl33_renderer::Bind_Material_Shadow(material_handle const Material)
 			m_textures.bind(0, material.textures[0]);
 			m_alpha_shadow_shader->bind();
 		}
-		else
-			m_shadow_shader->bind();
+        else {
+            m_shadow_shader->bind();
+        }
 	}
-	else
-		m_shadow_shader->bind();
+    else {
+        m_shadow_shader->bind();
+    }
 }
 
 opengl_material const &opengl33_renderer::Material(material_handle const Material) const
@@ -2400,7 +2419,7 @@ bool opengl33_renderer::Render_cab(TDynamicObject const *Dynamic, float const Li
 		::glTranslated(originoffset.x, originoffset.y, originoffset.z);
 		::glMultMatrixd(Dynamic->mMatrix.readArray());
 
-		switch (m_renderpass.draw_mode)
+        switch (m_renderpass.draw_mode)
 		{
 		case rendermode::color:
 		{
@@ -2440,14 +2459,17 @@ bool opengl33_renderer::Render_cab(TDynamicObject const *Dynamic, float const Li
 
 			break;
 		}
-		case rendermode::cabshadows:
-			if (true == Alpha)
-				// translucent parts
-				Render_Alpha(Dynamic->mdKabina, Dynamic->Material(), 0.0);
-			else
-				// opaque parts
-				Render(Dynamic->mdKabina, Dynamic->Material(), 0.0);
-			break;
+        case rendermode::cabshadows: {
+            if( true == Alpha ) {
+                // translucent parts
+                Render_Alpha( Dynamic->mdKabina, Dynamic->Material(), 0.0 );
+            }
+            else {
+                // opaque parts
+                Render( Dynamic->mdKabina, Dynamic->Material(), 0.0 );
+            }
+            break;
+        }
 		case rendermode::pickcontrols:
 		{
 			Render(Dynamic->mdKabina, Dynamic->Material(), 0.0);
@@ -2585,7 +2607,7 @@ void opengl33_renderer::Render(TSubModel *Submodel)
 				case rendermode::shadows:
 				case rendermode::cabshadows:
 				{
-					if (Submodel->m_material < 0)
+                    if (Submodel->m_material < 0)
 					{ // zmienialne skóry
 						Bind_Material_Shadow(Submodel->ReplacableSkinId[-Submodel->m_material]);
 					}
@@ -2594,8 +2616,8 @@ void opengl33_renderer::Render(TSubModel *Submodel)
 						// również 0
 						Bind_Material_Shadow(Submodel->m_material);
 					}
-					draw(Submodel->m_geometry);
-					break;
+                    draw(Submodel->m_geometry);
+                    break;
 				}
 				case rendermode::pickscenery:
 				{

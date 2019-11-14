@@ -77,9 +77,9 @@
 
 #include "glad/glad.h"
 
-#include "GL/glu.h"
+//#include "GL/glu.h"
 
-#define GLFW_INCLUDE_NONE
+#define GLFW_INCLUDE_GLU
 #include <GLFW/glfw3.h>
 
 #ifndef GLFW_TRUE

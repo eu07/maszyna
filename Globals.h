@@ -113,6 +113,7 @@ struct global_settings {
     int DynamicLightCount{ 3 };
     bool ScaleSpecularValues{ true };
     std::string GfxRenderer{ "default" };
+    bool LegacyRenderer{ false };
     bool BasicRenderer{ false };
     bool RenderShadows{ true };
     int RenderCabShadowsRange{ 0 };

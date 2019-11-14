@@ -34,7 +34,8 @@ void gl::query::end()
 
 std::optional<int64_t> gl::query::result()
 {
-	GLuint ready;
+    end(); // intercept potential error if the result check is called for still active object
+    GLuint ready;
 	glGetQueryObjectuiv(*this, GL_QUERY_RESULT_AVAILABLE, &ready);
 	int64_t value = 0;
 	if (ready) {

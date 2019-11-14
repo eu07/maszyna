@@ -371,6 +371,7 @@ global_settings::ConfigParse(cParser &Parser) {
                 GfxRenderer = "default";
             }
             BasicRenderer = ( GfxRenderer == "simple" );
+            LegacyRenderer = ( GfxRenderer != "default" );
         }
         else if( token == "shadows" ) {
             // shadow render toggle
@@ -728,7 +729,10 @@ global_settings::ConfigParse(cParser &Parser) {
 #endif
 		else if (token == "compresstex") {
             Parser.getTokens( 1 );
-            Parser >> compress_tex;
+            if( false == gfx_usegles ) {
+                // ogl es use requires compression to be disabled
+                Parser >> compress_tex;
+            }
 		}
         else if (token == "gfx.framebuffer.width")
         {
@@ -813,18 +817,22 @@ global_settings::ConfigParse(cParser &Parser) {
             Parser.getTokens(1);
             Parser >> gfx_extraeffects;
         }
-/*
+        /*
         else if (token == "gfx.usegles")
         {
             Parser.getTokens(1);
             Parser >> gfx_usegles;
+            if( true == gfx_usegles ) {
+                compress_tex = false;
+                gfx_shadergamma = true;
+            }
         }
-*/
         else if (token == "gfx.shadergamma")
         {
             Parser.getTokens(1);
             Parser >> gfx_shadergamma;
         }
+        */
         else if (token == "python.mipmaps")
 		{
 			Parser.getTokens(1);
