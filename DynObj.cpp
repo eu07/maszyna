@@ -5697,6 +5697,17 @@ void TDynamicObject::LoadMMediaFile( std::string const &TypeName, std::string co
                     parser >> JointCabs;
                 }
 
+                else if( token == "cablight:" ) {
+                    parser.getTokens( 3, false ); // low power light, ignore
+                    parser.getTokens( 3, false ); // base light
+                    parser
+                        >> InteriorLight.r
+                        >> InteriorLight.g
+                        >> InteriorLight.b;
+                    InteriorLight = glm::clamp( InteriorLight / 255.f, glm::vec3( 0.f ), glm::vec3( 1.f ) );
+                    parser.getTokens( 3, false ); // dimmed light, ignore
+                }
+
                 else if( token == "pydestinationsign:" ) {
                     DestinationSign.deserialize( parser );
                     // supply vehicle folder as script path if none is provided
