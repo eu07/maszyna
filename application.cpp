@@ -253,9 +253,13 @@ eu07_application::run() {
 				if (m_network && m_network->client)
 				{
 					// verify sync
-					if (sync != slave_sync) {
+					if (sync != slave_sync) {						
 						WriteLog("net: desync! calculated: " + std::to_string(sync)
 						         + ", received: " + std::to_string(slave_sync), logtype::net);
+
+						ImGui::Begin("NET");
+						ImGui::TextUnformatted("desync!");
+						ImGui::End();
 					}
 
 					// set total delta for rendering code

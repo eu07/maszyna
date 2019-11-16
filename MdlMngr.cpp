@@ -42,22 +42,22 @@ TModelsManager::stringmodelcontainerindex_map TModelsManager::m_modelsmap;
 
 // wczytanie modelu do tablicy
 TModel3d *
-TModelsManager::LoadModel(std::string const &Name, bool dynamic) {
+TModelsManager::LoadModel(std::string const &Name, std::string const &virtualName, bool dynamic) {
     
     m_models.emplace_back();
     auto model = m_models.back().LoadModel( Name, dynamic );
     if( model != nullptr ) {
-        m_modelsmap.emplace( Name, m_models.size() - 1 );
+		m_modelsmap.emplace( virtualName, m_models.size() - 1 );
     }
     else {
         m_models.pop_back();
-        m_modelsmap.emplace( Name, null_handle );
+		m_modelsmap.emplace( virtualName, null_handle );
     }
     return model;
 }
 
 TModel3d *
-TModelsManager::GetModel(std::string const &Name, bool const Dynamic, bool const Logerrors )
+TModelsManager::GetModel(std::string const &Name, bool const Dynamic, bool const Logerrors, int uid )
 { // model może być we wpisie "node...model" albo "node...dynamic", a także być dodatkowym w dynamic
     // (kabina, wnętrze, ładunek)
     // dla "node...dynamic" mamy podaną ścieżkę w "\dynamic\" i musi być co najmniej 1 poziom, zwkle
@@ -89,9 +89,12 @@ TModelsManager::GetModel(std::string const &Name, bool const Dynamic, bool const
     }
     erase_extension( filename );
     filename = ToLower( filename );
+	std::string postfix;
+	if (uid != 0)
+		postfix = "^^" + std::to_string(uid);
 
-    // see if we have it in the databank
-    auto banklookup { find_in_databank( filename ) };
+	// see if we have it in the databank
+	auto banklookup { find_in_databank( filename + postfix ) };
     TModel3d *model { banklookup.second };
     if( true == banklookup.first ) {
         Global.asCurrentTexturePath = buftp;
@@ -102,7 +105,7 @@ TModelsManager::GetModel(std::string const &Name, bool const Dynamic, bool const
     std::string disklookup { find_on_disk( filename ) };
 
     if( false == disklookup.empty() ) {
-        model = LoadModel( disklookup, Dynamic ); // model nie znaleziony, to wczytać
+		model = LoadModel( disklookup, disklookup + postfix, Dynamic ); // model nie znaleziony, to wczytać
     }
     else {
         // there's nothing matching in the databank nor on the disk, report failure...
@@ -110,7 +113,7 @@ TModelsManager::GetModel(std::string const &Name, bool const Dynamic, bool const
 			ErrorLog( "Bad file: failed to locate 3d model file \"" + filename + "\"", logtype::file );
         }
         // ...and link it with the error model slot
-        m_modelsmap.emplace( filename, null_handle );
+		m_modelsmap.emplace( filename + postfix, null_handle );
     }
     Global.asCurrentTexturePath = buftp; // odtworzenie ścieżki do tekstur
     return model; // NULL jeśli błąd

@@ -5315,10 +5315,11 @@ void TTrain::OnCommand_radiocall3send( TTrain *Train, command_data const &Comman
 void TTrain::OnCommand_cabchangeforward( TTrain *Train, command_data const &Command ) {
 
     if( Command.action == GLFW_PRESS ) {
-        auto const movedirection {
-            1 * ( Train->DynamicObject->ctOwner->Vehicle( end::front )->DirectionGet() == Train->DynamicObject->DirectionGet() ?
+		auto ownerDir = Train->DynamicObject->ctOwner ? Train->DynamicObject->ctOwner->Vehicle( end::front )->DirectionGet() : 1;
+		auto const movedirection {
+			1 * ( ownerDir == Train->DynamicObject->DirectionGet() ?
                     1 :
-                   -1 ) };
+			       -1 ) };
         if( false == Train->CabChange( movedirection ) ) {
             auto const exitdirection { (
                 movedirection > 0 ?
@@ -5346,8 +5347,9 @@ void TTrain::OnCommand_cabchangeforward( TTrain *Train, command_data const &Comm
 void TTrain::OnCommand_cabchangebackward( TTrain *Train, command_data const &Command ) {
 
     if( Command.action == GLFW_PRESS ) {
+		auto ownerDir = Train->DynamicObject->ctOwner ? Train->DynamicObject->ctOwner->Vehicle( end::front )->DirectionGet() : 1;
         auto const movedirection {
-            -1 * ( Train->DynamicObject->ctOwner->Vehicle( end::front )->DirectionGet() == Train->DynamicObject->DirectionGet() ?
+			-1 * ( ownerDir == Train->DynamicObject->DirectionGet() ?
                     1 :
                    -1 ) };
         if( false == Train->CabChange( movedirection ) ) {
@@ -7349,7 +7351,8 @@ bool TTrain::InitializeCab(int NewCabNo, std::string const &asFileName)
                     if( token[ 0 ] == '/' ) {
                         token.erase( 0, 1 );
                     }
-                    TModel3d *kabina = TModelsManager::GetModel(DynamicObject->asBaseDir + token, true);
+					TModel3d *kabina = TModelsManager::GetModel(DynamicObject->asBaseDir + token, true, true,
+					    (Global.network_servers.empty() && !Global.network_client) ? 0 : id());
                     // z powrotem defaultowa sciezka do tekstur
                     Global.asCurrentTexturePath = szTexturePath;
                     // if (DynamicObject->mdKabina!=k)
