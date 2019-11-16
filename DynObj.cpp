@@ -2793,7 +2793,7 @@ bool TDynamicObject::Update(double dt, double dt1)
                          || MoverParameters->PantRearUp ) {
 
                             if( ( MoverParameters->Mains )
-                             && ( MoverParameters->GetTrainsetVoltage() < 0.1f ) ) {
+                             && ( MoverParameters->GetAnyTrainsetVoltage() < 0.1f ) ) {
                                    // Ra 15-01: logować tylko, jeśli WS załączony
                                    // yB 16-03: i nie jest to asynchron zasilany z daleka 
                                    // Ra 15-01: bezwzględne współrzędne pantografu nie są dostępne,
@@ -6038,28 +6038,58 @@ int TDynamicObject::DirectionSet(int d)
 };
 
 // wskaźnik na poprzedni, nawet wirtualny
-TDynamicObject * TDynamicObject::PrevAny() {
+TDynamicObject * TDynamicObject::PrevAny() const {
     return MoverParameters->Neighbours[ iDirection ^ 1 ].vehicle;
 }
-TDynamicObject * TDynamicObject::Prev() {
+TDynamicObject * TDynamicObject::Prev() const {
     return ( MoverParameters->Couplers[ iDirection ^ 1 ].CouplingFlag != coupling::faux ?
         MoverParameters->Neighbours[ iDirection ^ 1 ].vehicle :
         nullptr );// gdy sprzęg wirtualny, to jakby nic nie było
 }
-TDynamicObject * TDynamicObject::Next() {
+TDynamicObject * TDynamicObject::Next() const {
     return ( MoverParameters->Couplers[ iDirection ].CouplingFlag != coupling::faux ?
         MoverParameters->Neighbours[ iDirection ].vehicle :
         nullptr );// gdy sprzęg wirtualny, to jakby nic nie było
 }
-TDynamicObject * TDynamicObject::PrevC(int C) {
+TDynamicObject * TDynamicObject::PrevC(int C) const {
     return ( ( MoverParameters->Couplers[ iDirection ^ 1 ].CouplingFlag & C ) == C ?
         MoverParameters->Neighbours[ iDirection ^ 1 ].vehicle :
         nullptr ); // hide neighbour lacking specified connection type
 }
-TDynamicObject * TDynamicObject::NextC(int C) {
+TDynamicObject * TDynamicObject::NextC(int C) const {
     return ( ( MoverParameters->Couplers[ iDirection ].CouplingFlag & C ) == C ?
         MoverParameters->Neighbours[ iDirection ].vehicle :
         nullptr ); // hide neighbour lacking specified connection type
+}
+
+    // checks whether there's unbroken connection of specified type to specified vehicle
+bool
+TDynamicObject::is_connected( TDynamicObject const *Vehicle, coupling const Coupling ) const {
+
+    auto *vehicle { this };
+    if( vehicle == Vehicle ) {
+        // edge case, vehicle is always "connected" with itself
+        return true;
+    }
+    // check ahead, it's more likely the "owner" using this method is located there
+    while( ( vehicle = vehicle->PrevC( Coupling ) ) != nullptr ) {
+        if( vehicle == Vehicle ) {
+            return true;
+        }
+        if( vehicle == this ) {
+            // edge case, looping consist
+            return false;
+        }
+    }
+    // start anew in the other direction
+    vehicle = this;
+    while( ( vehicle = vehicle->NextC( Coupling ) ) != nullptr ) {
+        if( vehicle == Vehicle ) {
+            return true;
+        }
+    }
+    // no lack in either direction, give up
+    return false;
 }
 
 // ustalenie następnego (1) albo poprzedniego (0) w składzie bez względu na prawidłowość iDirection

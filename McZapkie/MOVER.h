@@ -1526,7 +1526,8 @@ public:
 	double ShowEngineRotation(int VehN);
 
 	// Q *******************************************************************************************
-	double GetTrainsetVoltage(void);
+	double GetTrainsetVoltage( int const Coupling = ( coupling::heating | coupling::highvoltage ) ) const;
+    double GetAnyTrainsetVoltage() const;
 	bool switch_physics(bool const State);
 	double LocalBrakeRatio(void);
 	double ManualBrakeRatio(void);

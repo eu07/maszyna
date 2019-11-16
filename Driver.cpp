@@ -2157,11 +2157,25 @@ bool TController::CheckVehicles(TOrders user)
     if (iDrivigFlags & movePrimary)
     { // jeśli jest aktywnie prowadzącym pojazd, może zrobić własny porządek
         p = pVehicles[0];
+        // establish ownership and vehicle order
+        while (p)
+        {
+            if (p->MoverParameters->EnginePowerSource.SourceType == TPowerSource::CurrentCollector)
+            { // jeśli pojazd posiada pantograf, to przydzielamy mu maskę, którą będzie informował o jeździe bezprądowej
+                p->iOverheadMask = pantmask;
+                pantmask = pantmask << 1; // przesunięcie bitów, max. 32 pojazdy z pantografami w składzie
+            }
+
+            d = p->DirectionSet(d ? 1 : -1); // zwraca położenie następnego (1=zgodny,0=odwrócony - względem czoła składu)
+            p->ctOwner = this; // dominator oznacza swoje terytorium
+            p = p->Next(); // pojazd podłączony od tyłu (licząc od czoła)
+        }
+        // with the order established the virtual train manager can do their work
+        p = pVehicles[0];
         while (p)
         {
             if( p != pVehicle ) {
-                if( ( ( p->MoverParameters->Couplers[ end::front ].CouplingFlag & ( coupling::control ) ) == 0 )
-                 && ( ( p->MoverParameters->Couplers[ end::rear ].CouplingFlag  & ( coupling::control ) ) == 0 ) ) {
+                if( false == p->is_connected( pVehicle, coupling::control ) ) {
                     // NOTE: don't set battery in controllable vehicles, let the user/ai do it explicitly
                     // HACK: wagony muszą mieć baterię załączoną do otwarcia drzwi...
                     p->MoverParameters->BatterySwitch( true );
@@ -2177,15 +2191,9 @@ bool TController::CheckVehicles(TOrders user)
                 p->DestinationSet(TrainParams.Relation2, TrainParams.TrainName); // relacja docelowa, jeśli nie było
             if (AIControllFlag) // jeśli prowadzi komputer
                 p->RaLightsSet(0, 0); // gasimy światła
-            if (p->MoverParameters->EnginePowerSource.SourceType == TPowerSource::CurrentCollector)
-            { // jeśli pojazd posiada pantograf, to przydzielamy mu maskę, którą będzie informował o jeździe bezprądowej
-                p->iOverheadMask = pantmask;
-                pantmask = pantmask << 1; // przesunięcie bitów, max. 32 pojazdy z pantografami w składzie
-            }
-            d = p->DirectionSet(d ? 1 : -1); // zwraca położenie następnego (1=zgodny,0=odwrócony - względem czoła składu)
-            p->ctOwner = this; // dominator oznacza swoje terytorium
             p = p->Next(); // pojazd podłączony od tyłu (licząc od czoła)
         }
+
         if (AIControllFlag)
         { // jeśli prowadzi komputer
             if( true == TestFlag( OrderCurrentGet(), Obey_train ) ) {
@@ -2562,7 +2570,7 @@ bool TController::PrepareEngine()
                     }
                 }
                 if( ( mvControlling->EnginePowerSource.SourceType != TPowerSource::CurrentCollector )
-                 || ( std::max( mvControlling->GetTrainsetVoltage(), mvControlling->PantographVoltage ) > mvControlling->EnginePowerSource.CollectorParameters.MinV ) ) {
+                 || ( std::max( mvControlling->GetAnyTrainsetVoltage(), mvControlling->PantographVoltage ) > mvControlling->EnginePowerSource.CollectorParameters.MinV ) ) {
                     mvControlling->MainSwitch( true );
                 }
             }

@@ -5701,12 +5701,16 @@ bool TTrain::Update( double const Deltatime )
         }
 
         // Ra 2014-09: napięcia i prądy muszą być ustalone najpierw, bo wysyłane są ewentualnie na PoKeys
-		if ((mvControlled->EngineType != TEngineType::DieselElectric)
-         && (mvControlled->EngineType != TEngineType::ElectricInductionMotor)) // Ra 2014-09: czy taki rozdzia? ma sens?
-			fHVoltage = std::max( mvControlled->PantographVoltage, mvControlled->GetTrainsetVoltage() ); // Winger czy to nie jest zle?
+        if( ( mvControlled->EngineType != TEngineType::DieselElectric )
+         && ( mvControlled->EngineType != TEngineType::ElectricInductionMotor ) ) { // Ra 2014-09: czy taki rozdzia? ma sens?
+            fHVoltage = std::max(
+                mvControlled->PantographVoltage,
+                mvControlled->GetAnyTrainsetVoltage() ); // Winger czy to nie jest zle?
+        }
         // *mvControlled->Mains);
-        else
+        else {
             fHVoltage = mvControlled->EngineVoltage;
+        }
         if (ShowNextCurrent)
         { // jeśli pokazywać drugi człon
             if (mvSecond)

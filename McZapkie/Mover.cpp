@@ -733,7 +733,7 @@ void TMoverParameters::UpdatePantVolume(double dt)
                 // opuszczenie pantografów przy niskim ciśnieniu
                 if( TrainType != dt_EZT ) {
                     // pressure switch safety measure -- open the line breaker, unless there's alternate source of traction voltage
-                    if( GetTrainsetVoltage() < EnginePowerSource.CollectorParameters.MinV ) {
+                    if( GetAnyTrainsetVoltage() < EnginePowerSource.CollectorParameters.MinV ) {
                         // TODO: check whether line breaker should be open EMU-wide
                         MainSwitch( false, ( TrainType == dt_EZT ? range_t::unit : range_t::local ) );
                     }
@@ -1472,11 +1472,8 @@ void TMoverParameters::MainsCheck( double const Deltatime ) {
 
     // TODO: move other main circuit checks here
 
-    if( MainsInitTime == 0.0 )          { return; }
+    if( MainsInitTime == 0.0 ) { return; }
 
-    if( MainsInitTimeCountdown > 0.0 ) {
-        MainsInitTimeCountdown -= Deltatime;
-    }
     // TBD, TODO: move voltage calculation to separate method and use also in power coupler state calculation?
     auto localvoltage { 0.0 };
     switch( EnginePowerSource.SourceType ) {
@@ -1491,8 +1488,18 @@ void TMoverParameters::MainsCheck( double const Deltatime ) {
             break;
         }
     }
-    if( ( localvoltage == 0.0 )
-     && ( GetTrainsetVoltage() == 0 ) ) {
+    auto const maincircuitpowersupply {
+        ( std::abs( localvoltage ) > 0.1 )
+     || ( GetAnyTrainsetVoltage() > 0.1 ) };
+
+    if( true == maincircuitpowersupply ) {
+        // all is well
+        if( MainsInitTimeCountdown > 0.0 ) {
+            MainsInitTimeCountdown -= Deltatime;
+        }
+    }
+    else {
+        // no power supply
         MainsInitTimeCountdown = MainsInitTime;
     }
 }
@@ -1505,6 +1512,10 @@ void TMoverParameters::PowerCouplersCheck( double const Deltatime ) {
         switch( HeatingPowerSource.SourceType ) {
             case TPowerSource::Generator: {
                 localvoltage = HeatingPowerSource.EngineGenerator.voltage - TotalCurrent * 0.02;
+                break;
+            }
+            case TPowerSource::CurrentCollector: {
+                localvoltage = PantographVoltage;
                 break;
             }
             case TPowerSource::Main: {
@@ -1641,7 +1652,7 @@ void TMoverParameters::ConverterCheck( double const Timestep ) {
      && ( ConverterAllowLocal )
      && ( false == PantPressLockActive )
      && ( ( Mains )
-       || ( GetTrainsetVoltage() > 0 ) ) ) {
+       || ( GetAnyTrainsetVoltage() > 0.0 ) ) ) {
         // delay timer can be optionally configured, and is set anew whenever converter goes off
         if( ConverterStartDelayTimer <= 0.0 ) {
             ConverterFlag = true;
@@ -1697,17 +1708,22 @@ void TMoverParameters::HeatingCheck( double const Timestep ) {
     }
     // ...detailed check if we're still here
     auto const heatingpowerthreshold { 0.1 };
-    // start with external power sources
+    // start with blank slate
     auto voltage { 0.0 };
-    // then try internal ones
+    // then try specified power source
     switch( HeatingPowerSource.SourceType ) {
         case TPowerSource::Generator: {
             voltage = HeatingPowerSource.EngineGenerator.voltage;
             break;
         }
+        case TPowerSource::CurrentCollector: {
+            voltage = PantographVoltage;
+            break;
+        }
         case TPowerSource::PowerCable: {
             if( HeatingPowerSource.PowerType == TPowerType::ElectricPower ) {
-                voltage = GetTrainsetVoltage();
+                // TBD, TODO: limit input voltage to heating coupling type?
+                voltage = GetAnyTrainsetVoltage();
             }
             break;
         }
@@ -4501,12 +4517,12 @@ void TMoverParameters::ComputeTotalForce(double dt) {
 
     if( EngineType == TEngineType::ElectricSeriesMotor ) // potem ulepszyc! pantogtrafy!
     { // Ra 2014-03: uwzględnienie kierunku jazdy w napięciu na silnikach, a powinien być zdefiniowany nawrotnik
-        EngineVoltage =
-            std::max(
-                GetTrainsetVoltage(),
-                ( Mains ?
-                    PantographVoltage :
-                    0 ) );
+        EngineVoltage = (
+            Mains ?
+                std::max(
+                    GetAnyTrainsetVoltage(),
+                    PantographVoltage ) :
+                0.00 );
         if( CabNo == 0 ) {
             EngineVoltage *= ActiveDir;
         }
@@ -4515,10 +4531,12 @@ void TMoverParameters::ComputeTotalForce(double dt) {
         }
     } // bo nie dzialalo
     else {
-        EngineVoltage =
-            std::max(
-                GetTrainsetVoltage(),
-                PantographVoltage );
+        EngineVoltage = (
+            Power > 1.0 ?
+                std::max(
+                    GetAnyTrainsetVoltage(),
+                    PantographVoltage ) :
+                0.0 );
     }
 
     FTrain = (
@@ -5091,7 +5109,7 @@ double TMoverParameters::TractionForce( double dt ) {
 
         case TEngineType::ElectricSeriesMotor: {
             // update the state of voltage relays
-            auto const voltage { std::max( GetTrainsetVoltage(), PantographVoltage ) };
+            auto const voltage { std::max( GetAnyTrainsetVoltage(), PantographVoltage ) };
             NoVoltRelay =
                 ( EnginePowerSource.SourceType != TPowerSource::CurrentCollector )
              || ( voltage >= EnginePowerSource.CollectorParameters.MinV );
@@ -5110,8 +5128,8 @@ double TMoverParameters::TractionForce( double dt ) {
             // TODO: check if we can use instead the code for electricseriesmotor
             if( ( Mains ) ) {
                 // nie wchodzić w funkcję bez potrzeby
-                if( ( std::max( GetTrainsetVoltage(), PantographVoltage ) < EnginePowerSource.CollectorParameters.MinV )
-                 || ( std::max( GetTrainsetVoltage(), PantographVoltage ) > EnginePowerSource.CollectorParameters.MaxV + 200 ) ) {
+                if( ( std::max( GetAnyTrainsetVoltage(), PantographVoltage ) < EnginePowerSource.CollectorParameters.MinV )
+                 || ( std::max( GetAnyTrainsetVoltage(), PantographVoltage ) > EnginePowerSource.CollectorParameters.MaxV + 200 ) ) {
                     MainSwitch( false, ( TrainType == dt_EZT ? range_t::unit : range_t::local ) ); // TODO: check whether we need to send this EMU-wide
                 }
             }
@@ -8096,17 +8114,28 @@ std::string TMoverParameters::EngineDescription(int what) const
 // Q: 20160709
 // Funkcja zwracajaca napiecie dla calego skladu, przydatna dla EZT
 // *************************************************************************************************
-double TMoverParameters::GetTrainsetVoltage(void)
+double TMoverParameters::GetTrainsetVoltage( int const Coupling ) const
 {//ABu: funkcja zwracajaca napiecie dla calego skladu, przydatna dla EZT
     return std::max(
         ( ( ( Couplers[end::front].Connected )
-         && ( Couplers[ end::front ].Connected->Couplers[ Couplers[ end::front ].ConnectedNr ].power_high.is_live ) ) ?
+         && ( Couplers[ end::front ].Connected->Couplers[ Couplers[ end::front ].ConnectedNr ].power_high.is_live )
+         && ( ( Couplers[ end::front ].CouplingFlag & Coupling ) != 0 ) ) ?
             Couplers[end::front].Connected->Couplers[ Couplers[end::front].ConnectedNr ].power_high.voltage :
             0.0 ),
         ( ( ( Couplers[end::rear].Connected )
-         && ( Couplers[ end::rear ].Connected->Couplers[ Couplers[ end::rear ].ConnectedNr ].power_high.is_live ) ) ?
+         && ( Couplers[ end::rear ].Connected->Couplers[ Couplers[ end::rear ].ConnectedNr ].power_high.is_live )
+         && ( ( Couplers[ end::rear ].CouplingFlag & Coupling ) != 0 ) ) ?
             Couplers[ end::rear ].Connected->Couplers[ Couplers[ end::rear ].ConnectedNr ].power_high.voltage :
             0.0 ) );
+}
+
+double TMoverParameters::GetAnyTrainsetVoltage() const {
+
+    return std::max(
+            GetTrainsetVoltage( coupling::highvoltage ),
+            ( HeatingAllow ?
+                GetTrainsetVoltage( coupling::heating ) :
+                0.0 ) );
 }
 
 // *************************************************************************************************
@@ -11278,20 +11307,21 @@ bool TMoverParameters::RunCommand( std::string Command, double CValue1, double C
 	}
 	/*naladunek/rozladunek*/
     // TODO: have these commands leverage load exchange system instead
+    // TODO: CValue1 defines amount to load/unload
     else if ( issection( "Load=", Command ) )
 	{
 		OK = false; // będzie powtarzane aż się załaduje
         if( ( Vel < 0.1 ) // tolerance margin for small vehicle movements in the consist
          && ( MaxLoad > 0 )
          && ( LoadAmount < MaxLoad * ( 1.0 + OverLoadFactor ) )
-         && ( Distance( Loc, CommandIn.Location, Dim, Dim ) < 10 ) ) { // ten peron/rampa
+         && ( Distance( Loc, CommandIn.Location, Dim, Dim ) < ( CValue2 > 1.0 ? CValue2 : 10.0 ) ) ) { // ten peron/rampa
 
             auto const loadname { ToLower( extract_value( "Load", Command ) ) };
             if( LoadAmount == 0.f ) {
                 AssignLoad( loadname );
             }
             OK = LoadingDone(
-                std::min<float>( CValue2, LoadSpeed ),
+                LoadSpeed,
                 loadname ); // zmienia LoadStatus
         }
         else {
@@ -11304,10 +11334,10 @@ bool TMoverParameters::RunCommand( std::string Command, double CValue1, double C
 		OK = false; // będzie powtarzane aż się rozładuje
         if( ( Vel < 0.1 ) // tolerance margin for small vehicle movements in the consist
          && ( LoadAmount > 0 )  // czy jest co rozladowac?
-         && ( Distance( Loc, CommandIn.Location, Dim, Dim ) < 10 ) ) { // ten peron
+         && ( Distance( Loc, CommandIn.Location, Dim, Dim ) < ( CValue2 > 1.0 ? CValue2 : 10.0 ) ) ) { // ten peron
             /*mozna to rozladowac*/
             OK = LoadingDone(
-                -1.f * std::min<float>( CValue2, LoadSpeed ),
+                -1.f * LoadSpeed,
                 ToLower( extract_value( "UnLoad", Command ) ) );
         }
         else {
