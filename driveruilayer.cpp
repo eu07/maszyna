@@ -261,4 +261,11 @@ driver_ui::render_() {
 		m_pause_modal_opened = true;
 		ImGui::OpenPopup(popupheader);
 	}
+
+	if (Global.desync != 0.0f) {
+		ImGui::SetNextWindowSize(ImVec2(-1, -1));
+		if (ImGui::Begin("network", nullptr, ImGuiWindowFlags_NoCollapse))
+			ImGui::Text("desync: %0.2f", Global.desync);
+		ImGui::End();
+	}
 }

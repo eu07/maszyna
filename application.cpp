@@ -257,9 +257,7 @@ eu07_application::run() {
 						WriteLog("net: desync! calculated: " + std::to_string(sync)
 						         + ", received: " + std::to_string(slave_sync), logtype::net);
 
-						ImGui::Begin("NET");
-						ImGui::TextUnformatted("desync!");
-						ImGui::End();
+						Global.desync = slave_sync - sync;
 					}
 
 					// set total delta for rendering code

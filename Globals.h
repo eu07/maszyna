@@ -248,6 +248,7 @@ struct global_settings {
 
 	std::vector<std::pair<std::string, std::string>> network_servers;
 	std::optional<std::pair<std::string, std::string>> network_client;
+	float desync = 0.0f;
 
 	std::unordered_map<int, std::string> trainset_overrides;
 

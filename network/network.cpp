@@ -243,7 +243,11 @@ void network::client::handle_message(std::shared_ptr<connection> conn, const mes
 
 		WriteLog("net: accept received", logtype::net);
 	}
-	else if (msg.type == message::FRAME_INFO) {
+
+	if (conn->state != connection::ACTIVE)
+		return;
+
+	if (msg.type == message::FRAME_INFO) {
 		resume_frame_counter++;
 
 		auto delta = dynamic_cast<const frame_info&>(msg);
