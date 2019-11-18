@@ -311,6 +311,7 @@ private:
     double WaitingExpireTime = 31.0; // tyle ma czekać, zanim się ruszy // maksymlany czas oczekiwania do samoistnego ruszenia
     double IdleTime {}; // keeps track of time spent at a stop
     double fStopTime = 0.0; // czas postoju przed dalszą jazdą (np. na przystanku)
+    float ExchangeTime{ 0.0 }; // time needed to finish current load exchange
     double fShuntVelocity = 40.0; // maksymalna prędkość manewrowania, zależy m.in. od składu // domyślna prędkość manewrowa
     int iDrivigFlags = // flagi bitowe ruchu
         moveStopPoint | // podjedź do W4 możliwie blisko

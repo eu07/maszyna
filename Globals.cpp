@@ -467,6 +467,11 @@ global_settings::ConfigParse(cParser &Parser) {
                     iConvertModels - 128 :
                     0 );
         }
+        else if( token == "file.binary.terrain" ) {
+            // binary terrain (de)serialization
+            Parser.getTokens( 1, false );
+            Parser >> file_binary_terrain;
+        }
         else if (token == "inactivepause")
         {
             // automatyczna pauza, gdy okno nieaktywne

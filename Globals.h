@@ -64,6 +64,7 @@ struct global_settings {
     std::string SceneryFile{ "td.scn" };
     std::string asHumanCtrlVehicle{ "EU07-424" };
     int iConvertModels{ 0 }; // tworzenie plików binarnych
+    bool file_binary_terrain{ true }; // enable binary terrain (de)serialization
     // logs
     int iWriteLogEnabled{ 3 }; // maska bitowa: 1-zapis do pliku, 2-okienko, 4-nazwy torów
     bool MultipleLogs{ false };

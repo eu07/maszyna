@@ -42,7 +42,8 @@ state_serializer::deserialize( std::string const &Scenariofile ) {
     // if this fails, fall back on the legacy text format
     scene::scratch_data importscratchpad;
     importscratchpad.name = Scenariofile;
-    if( Scenariofile != "$.scn" ) {
+    if( ( true == Global.file_binary_terrain )
+     && ( Scenariofile != "$.scn" ) ) {
         // compilation to binary file isn't supported for rainsted-created overrides
         // NOTE: we postpone actual loading of the scene until we process time, season and weather data
         importscratchpad.binary.terrain = Region->is_scene( Scenariofile ) ;
@@ -53,7 +54,8 @@ state_serializer::deserialize( std::string const &Scenariofile ) {
     if( false == scenarioparser.ok() ) { return false; }
 
     deserialize( scenarioparser, importscratchpad );
-    if( ( false == importscratchpad.binary.terrain )
+    if( ( true == Global.file_binary_terrain )
+     && ( false == importscratchpad.binary.terrain )
      && ( Scenariofile != "$.scn" ) ) {
         // if we didn't find usable binary version of the scenario files, create them now for future use
         // as long as the scenario file wasn't rainsted-created base file override

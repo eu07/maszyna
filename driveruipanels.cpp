@@ -119,7 +119,7 @@ drivingaid_panel::update() {
     { // alerter, hints
         std::string expandedtext;
         if( is_expanded ) {
-            auto const stoptime { static_cast<int>( std::ceil( -1.0 * owner->fStopTime ) ) };
+            auto const stoptime { static_cast<int>( owner->ExchangeTime ) };
             if( stoptime > 0 ) {
                 std::snprintf(
                     m_buffer.data(), m_buffer.size(),

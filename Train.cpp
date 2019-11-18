@@ -4713,6 +4713,7 @@ void TTrain::OnCommand_doortoggleleft( TTrain *Train, command_data const &Comman
 void TTrain::OnCommand_doorpermitleft( TTrain *Train, command_data const &Command ) {
 
     if( Command.action == GLFW_REPEAT ) { return; }
+    if( false == Train->mvOccupied->Doors.permit_presets.empty() ) { return; }
 
     if( Command.action == GLFW_PRESS ) {
 
@@ -4749,6 +4750,7 @@ void TTrain::OnCommand_doorpermitleft( TTrain *Train, command_data const &Comman
 void TTrain::OnCommand_doorpermitright( TTrain *Train, command_data const &Command ) {
 
     if( Command.action == GLFW_REPEAT ) { return; }
+    if( false == Train->mvOccupied->Doors.permit_presets.empty() ) { return; }
 
     if( Command.action == GLFW_PRESS ) {
 

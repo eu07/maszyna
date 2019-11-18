@@ -5557,19 +5557,20 @@ TController::UpdateSituation(double dt) {
                         VelDesired,
                         VelforDriver );
             }
+            // recalculate potential load exchange duration
+            ExchangeTime = 0.f;
             if( fStopTime < 0 ) {
                 // czas postoju przed dalszą jazdą (np. na przystanku)
                 VelDesired = 0.0; // jak ma czekać, to nie ma jazdy
                 // verify progress of load exchange
-                auto exchangetime { 0.f };
                 auto *vehicle { pVehicles[ 0 ] };
                 while( vehicle != nullptr ) {
-                    exchangetime = std::max( exchangetime, vehicle->LoadExchangeTime() );
+                    ExchangeTime = std::max( ExchangeTime, vehicle->LoadExchangeTime() );
                     vehicle = vehicle->Next();
                 }
-                if( ( exchangetime > 0 )
+                if( ( ExchangeTime > 0 )
                  || ( mvOccupied->Vel > 2.0 ) ) { // HACK: force timer reset if the load exchange is cancelled due to departure
-                    WaitingSet( exchangetime );
+                    WaitingSet( ExchangeTime );
                 }
             }
 

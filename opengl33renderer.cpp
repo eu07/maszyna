@@ -3147,7 +3147,8 @@ void opengl33_renderer::Render_Alpha(TAnimModel *Instance)
 		return;
 	}
 
-	Instance->RaPrepare();
+    Instance->RaAnimate( m_framestamp ); // jednorazowe przeliczenie animacji
+    Instance->RaPrepare();
 	if (Instance->pModel)
 	{
 		// renderowanie rekurencyjne submodeli
