@@ -40,3 +40,10 @@ private:
     glm::dvec3 m_rotationoffsets; // requested changes to pitch, yaw and roll
 
 };
+
+struct viewport_proj_config {
+    glm::vec3 pa; // screen lower left corner
+    glm::vec3 pb; // screen lower right corner
+    glm::vec3 pc; // screen upper left corner
+    glm::vec3 pe; // eye position
+};

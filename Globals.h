@@ -229,9 +229,11 @@ struct global_settings {
 
 	struct extraviewport_config {
 		std::string monitor;
+
 		int width, height;
-		glm::mat4 transform;
 		float draw_range;
+
+        viewport_proj_config projection;
 	};
 	std::vector<extraviewport_config> extra_viewports;
 

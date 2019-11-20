@@ -909,18 +909,21 @@ global_settings::ConfigParse(cParser &Parser) {
 			Parser >> network_client->first;
 			Parser >> network_client->second;
 		}
-		else if (token == "extraviewport")
+        else if (token == "extraviewport")
 		{
-			Parser.getTokens(3 + 16, false);
+            Parser.getTokens(3 + 12, false);
 
 			extraviewport_config conf;
 			Parser >> conf.monitor >> conf.width >> conf.height;
 			Parser >> conf.draw_range;
-			for (size_t i = 0; i < 16; i++)
-				Parser >> conf.transform[i / 4][i % 4];
+
+            Parser >> conf.projection.pa.x >> conf.projection.pa.y >> conf.projection.pa.z;
+            Parser >> conf.projection.pb.x >> conf.projection.pb.y >> conf.projection.pb.z;
+            Parser >> conf.projection.pc.x >> conf.projection.pc.y >> conf.projection.pc.z;
+            Parser >> conf.projection.pe.x >> conf.projection.pe.y >> conf.projection.pe.z;
 
 			extra_viewports.push_back(conf);
-			if (gl::vao::use_vao) {
+            if (gl::vao::use_vao && conf.monitor != "MAIN") {
 				gl::vao::use_vao = false;
 				WriteLog("using multiple viewports, disabling vao!");
 			}

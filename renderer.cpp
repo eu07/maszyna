@@ -417,15 +417,24 @@ bool opengl_renderer::Init(GLFWwindow *Window)
 
 bool opengl_renderer::AddViewport(const global_settings::extraviewport_config &conf)
 {
-	m_viewports.push_back(std::make_unique<viewport_config>());
-	viewport_config &vp = *m_viewports.back().get();
-	vp.width = conf.width;
-	vp.height = conf.height;
-	vp.window = Application.window(-1, true, vp.width, vp.height, Application.find_monitor(conf.monitor));
-	vp.camera_transform = conf.transform;
-	vp.draw_range = conf.draw_range;
+    viewport_config *vp;
 
-	bool ret = init_viewport(vp);
+    if (conf.monitor == "MAIN") {
+        vp = m_viewports.front().get();
+    }
+    else {
+        m_viewports.push_back(std::make_unique<viewport_config>());
+        vp = m_viewports.back().get();
+        vp->window = Application.window(-1, true, conf.width, conf.height, Application.find_monitor(conf.monitor));
+    }
+
+    vp->width = conf.width;
+    vp->height = conf.height;
+    vp->projection = conf.projection;
+    vp->custom_projection = true;
+    vp->draw_range = conf.draw_range;
+
+    bool ret = init_viewport(*vp);
 	glfwMakeContextCurrent(m_window);
 	gl::buffer::unbind();
 
@@ -434,6 +443,9 @@ bool opengl_renderer::AddViewport(const global_settings::extraviewport_config &c
 
 bool opengl_renderer::init_viewport(viewport_config &vp)
 {
+    if (vp.initialized)
+        return true;
+
 	glfwMakeContextCurrent(vp.window);
 
 	WriteLog("init viewport: " + std::to_string(vp.width) + ", " + std::to_string(vp.height));
@@ -527,6 +539,7 @@ bool opengl_renderer::init_viewport(viewport_config &vp)
 			return false;
 	}
 
+    vp.initialized = true;
 	return true;
 }
 
@@ -1047,36 +1060,61 @@ bool opengl_renderer::Render_reflections(viewport_config &vp)
 	return true;
 }
 
-glm::mat4 opengl_renderer::perspective_projection(float fovy, float aspect, float znear, float zfar)
+// based on
+// https://csc.lsu.edu/~kooima/articles/genperspective/index.html
+glm::mat4 opengl_renderer::perspective_projection(const viewport_proj_config &c,
+                                                  float n, float f, glm::mat4 &frustum)
 {
-	if (GLAD_GL_ARB_clip_control || GLAD_GL_EXT_clip_control)
-	{
-		const float f = 1.0f / tan(fovy / 2.0f);
+	glm::vec3 vr, vu, vn;
+	vr = glm::normalize(c.pb - c.pa);
+	vu = glm::normalize(c.pc - c.pa);
+	vn = glm::normalize(glm::cross(vr, vu));
 
+	glm::mat4 M;
+	M[0] = glm::vec4(vr, 0.0f);
+	M[1] = glm::vec4(vu, 0.0f);
+	M[2] = glm::vec4(vn, 0.0f);
+	M = glm::transpose(M);
+
+	glm::vec3 va, vb, vc;
+	va = c.pa - c.pe;
+	vb = c.pb - c.pe;
+	vc = c.pc - c.pe;
+
+	float l, r, b, t, d;
+	d = -glm::dot(va, vn);
+
+	l = glm::dot(vr, va) * n / d;
+	r = glm::dot(vr, vb) * n / d;
+	b = glm::dot(vu, va) * n / d;
+	t = glm::dot(vu, vc) * n / d;
+
+	frustum = glm::frustum(l, r, b, t, n, f);
+	glm::mat4 R = frustum;
+    frustum = glm::translate(frustum * M, -c.pe);
+
+	if (GLAD_GL_ARB_clip_control || GLAD_GL_EXT_clip_control) {
 		// when clip_control available, use projection matrix with 1..0 Z range and infinite zfar
-		return glm::mat4( //
-		    f / aspect, 0.0f, 0.0f, 0.0f, //
-		    0.0f, f, 0.0f, 0.0f, //
-		    0.0f, 0.0f, 0.0f, -1.0f, //
-		    0.0f, 0.0f, znear, 0.0f //
-		);
-	}
-	else
+		R[2][2] = -1.0f;
+		R[3][2] = -2.0f * n;
+		R = glm::mat4( //
+		           1.0f, 0.0f, 0.0f, 0.0f, //
+		           0.0f, 1.0f, 0.0f, 0.0f, //
+		           0.0f, 0.0f, -0.5f, 0.0f, //
+		           0.0f, 0.0f, 0.5f, 1.0f //
+		           ) * R;
+	} else {
 		// or use standard matrix but with 1..-1 Z range
 		// (reverse Z don't give any extra precision without clip_control, but it is used anyway for consistency)
-		return glm::mat4( //
+		R = glm::mat4(
 		           1.0f, 0.0f, 0.0f, 0.0f, //
 		           0.0f, 1.0f, 0.0f, 0.0f, //
 		           0.0f, 0.0f, -1.0f, 0.0f, //
 		           0.0f, 0.0f, 0.0f, 1.0f //
-		           ) *
-		       glm::perspective(fovy, aspect, znear, zfar);
-}
+		           ) * R;
+	}
 
-glm::mat4 opengl_renderer::perpsective_frustumtest_projection(float fovy, float aspect, float znear, float zfar)
-{
-	// for frustum calculation, use standard opengl matrix
-	return glm::perspective(fovy, aspect, znear, zfar);
+	return glm::translate(R * M, -c.pe);
 }
 
 glm::mat4 opengl_renderer::ortho_projection(float l, float r, float b, float t, float znear, float zfar)
@@ -1168,12 +1206,19 @@ void opengl_renderer::setup_pass(viewport_config &Viewport, renderpass_config &C
 
 	glm::mat4 frustumtest_proj;
 
-	glm::ivec2 target_size(Viewport.width, Viewport.height);
-	if (Viewport.main) // TODO: update window sizes also for extra viewports
-		target_size = glm::ivec2(Global.iWindowWidth, Global.iWindowHeight);
+	if (!Viewport.custom_projection && Viewport.main) {
+		// TODO: update window sizes also for extra viewports
+		float const fovy = glm::radians(Global.FieldOfView / Global.ZoomFactor);
 
-	float const fovy = glm::radians(Global.FieldOfView / Global.ZoomFactor);
-	float const aspect = (float)target_size.x / std::max(1.f, (float)target_size.y);
+		// setup virtual screen
+		glm::vec2 screen_h = glm::vec2(Global.iWindowWidth, Global.iWindowHeight) / 2.0f;
+		float const dist = screen_h.y / glm::tan(fovy / 2.0f);
+
+		Viewport.projection.pa = glm::vec3(-screen_h.x, -screen_h.y, -dist);
+		Viewport.projection.pb = glm::vec3( screen_h.x, -screen_h.y, -dist);
+		Viewport.projection.pc = glm::vec3(-screen_h.x,  screen_h.y, -dist);
+        Viewport.projection.pe = glm::vec3(0.0f, 0.0f, 0.0f);
+	}
 
 	Config.viewport_camera.position() = Global.pCamera.Pos;
 
@@ -1181,8 +1226,6 @@ void opengl_renderer::setup_pass(viewport_config &Viewport, renderpass_config &C
 	{
 	case rendermode::color:
 	{
-		viewmatrix = glm::dmat4(Viewport.camera_transform);
-
 		// modelview
 		if ((false == DebugCameraFlag) || (true == Ignoredebug))
 		{
@@ -1199,8 +1242,7 @@ void opengl_renderer::setup_pass(viewport_config &Viewport, renderpass_config &C
 		auto const zfar = Config.draw_range * Global.fDistanceFactor * Zfar;
 		auto const znear = (Znear > 0.f ? Znear * zfar : 0.1f * Global.ZoomFactor);
 
-		camera.projection() = perspective_projection(fovy, aspect, znear, zfar);
-		frustumtest_proj = perpsective_frustumtest_projection(fovy, aspect, znear, zfar);
+		camera.projection() = perspective_projection(Viewport.projection, znear, zfar, frustumtest_proj);
 		break;
 	}
 	case rendermode::shadows:
@@ -1289,8 +1331,6 @@ void opengl_renderer::setup_pass(viewport_config &Viewport, renderpass_config &C
 	case rendermode::pickcontrols:
 	case rendermode::pickscenery:
 	{
-		viewmatrix = glm::dmat4(Viewport.camera_transform);
-
 		// modelview
 		camera.position() = Global.pCamera.Pos;
 		Global.pCamera.SetMatrix(viewmatrix);
@@ -1298,8 +1338,7 @@ void opengl_renderer::setup_pass(viewport_config &Viewport, renderpass_config &C
 		// projection
 		float znear = 0.1f * Global.ZoomFactor;
 		float zfar = Config.draw_range * Global.fDistanceFactor;
-		camera.projection() = perspective_projection(fovy, aspect, znear, zfar);
-		frustumtest_proj = perpsective_frustumtest_projection(fovy, aspect, znear, zfar);
+		camera.projection() = perspective_projection(Viewport.projection, znear, zfar, frustumtest_proj);
 		break;
 	}
 	case rendermode::reflections:
@@ -1313,8 +1352,12 @@ void opengl_renderer::setup_pass(viewport_config &Viewport, renderpass_config &C
 		// projection
 		float znear = 0.1f * Global.ZoomFactor;
 		float zfar = Config.draw_range * Global.fDistanceFactor;
-		camera.projection() = perspective_projection(glm::radians(90.f), 1.f, znear, zfar);
-		frustumtest_proj = perpsective_frustumtest_projection(glm::radians(90.f), 1.f, znear, zfar);
+
+		viewport_proj_config proj({{ -0.5f, -0.5f, -0.5f },
+		                           {  0.5f, -0.5f, -0.5f },
+		                           { -0.5f,  0.5f, -0.5f },
+		                           { 0.0f, 0.0f, 0.0f }});
+		camera.projection() = perspective_projection(proj, znear, zfar, frustumtest_proj);
 		break;
 	}
 	default:

@@ -283,7 +283,8 @@ class opengl_renderer
 		bool main = false;
 		GLFWwindow *window = nullptr;
 
-		glm::mat4 camera_transform;
+		bool custom_projection = false;
+		viewport_proj_config projection;
 
 		std::unique_ptr<gl::framebuffer> msaa_fb;
 		std::unique_ptr<gl::renderbuffer> msaa_rbc;
@@ -296,6 +297,8 @@ class opengl_renderer
 
 		std::unique_ptr<gl::framebuffer> main2_fb;
 		std::unique_ptr<opengl_texture> main2_tex;
+
+        bool initialized = false;
 	};
 
 	viewport_config *m_current_viewport = nullptr;
@@ -413,8 +416,7 @@ class opengl_renderer
 
     double m_precipitationrotation;
 
-    glm::mat4 perspective_projection(float fov, float aspect, float z_near, float z_far);
-    glm::mat4 perpsective_frustumtest_projection(float fov, float aspect, float z_near, float z_far);
+	glm::mat4 perspective_projection(const viewport_proj_config &c, float n, float f, glm::mat4 &frustum);
     glm::mat4 ortho_projection(float left, float right, float bottom, float top, float z_near, float z_far);
     glm::mat4 ortho_frustumtest_projection(float left, float right, float bottom, float top, float z_near, float z_far);
 
