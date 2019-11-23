@@ -1544,7 +1544,7 @@ public:
     bool RunInternalCommand();
 	void PutCommand(std::string NewCommand, double NewValue1, double NewValue2, const TLocation &NewLocation);
 	bool CabActivisation(void);
-	bool CabDeactivisation(void);
+	bool CabDeactivisation( bool const Force = false );
 
 	/*! funkcje zwiekszajace/zmniejszajace nastawniki*/
 	/*! glowny nastawnik:*/

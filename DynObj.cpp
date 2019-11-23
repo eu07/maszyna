@@ -4185,9 +4185,9 @@ void TDynamicObject::RenderSounds() {
      && ( MoverParameters->Vel > 5.0 ) ) {
         // scale volume with curve radius and vehicle speed
         volume =
-            MoverParameters->AccN * MoverParameters->AccN
+            MoverParameters->AccN // * MoverParameters->AccN
             * interpolate(
-                0.0, 1.0,
+                0.5, 1.0,
                 clamp(
                     MoverParameters->Vel / 40.0,
                     0.0, 1.0 ) )

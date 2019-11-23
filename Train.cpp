@@ -439,8 +439,15 @@ TTrain::TTrain() {
 bool TTrain::Init(TDynamicObject *NewDynamicObject, bool e3d)
 { // powiązanie ręcznego sterowania kabiną z pojazdem
     if( NewDynamicObject->Mechanik == nullptr ) {
+        /*
         ErrorLog( "Bad config: can't take control of inactive vehicle \"" + NewDynamicObject->asName + "\"" );
         return false;
+        */
+        auto const activecab { (
+            NewDynamicObject->MoverParameters->ActiveCab > 0 ? "1" :
+            NewDynamicObject->MoverParameters->ActiveCab < 0 ? "2" :
+            "p" ) };
+        NewDynamicObject->create_controller( activecab, NewDynamicObject->ctOwner != nullptr );
     }
 
     DynamicSet(NewDynamicObject);
@@ -452,11 +459,20 @@ bool TTrain::Init(TDynamicObject *NewDynamicObject, bool e3d)
 
     fMainRelayTimer = 0; // Hunter, do k...y nędzy, ustawiaj wartości początkowe zmiennych!
 
-	if( false == LoadMMediaFile( DynamicObject->asBaseDir + DynamicObject->MoverParameters->TypeName + ".mmd" ) ) {
-        return false;
-	}
+    iCabn = (
+        mvOccupied->ActiveCab < 0 ? 0 :
+        mvOccupied->ActiveCab > 0 ? 1 :
+        2 );
 
-    iCabn = 0;
+    {
+        Global.CurrentMaxTextureSize = Global.iMaxCabTextureSize;
+        auto const result{ LoadMMediaFile( DynamicObject->asBaseDir + DynamicObject->MoverParameters->TypeName + ".mmd" ) };
+        Global.CurrentMaxTextureSize = Global.iMaxTextureSize;
+        if( false == result ) {
+            return false;
+        }
+    }
+
     // Ra: taka proteza - przesłanie kierunku do członów connected
     if (mvControlled->ActiveDir > 0)
     { // było do przodu
@@ -4434,14 +4450,33 @@ void TTrain::OnCommand_generictoggle( TTrain *Train, command_data const &Command
         return;
     }
 */
+
     if( Command.action == GLFW_PRESS ) {
-        // only reacting to press, so the switch doesn't flip back and forth if key is held down
-        if( item.GetDesiredValue() < 0.5 ) {
+
+        if( item.type() == TGaugeType::push ) {
+            // impulse switch
             // turn on
             // visual feedback
             item.UpdateValue( 1.0 );
         }
         else {
+            // two-state switch
+            if( item.GetDesiredValue() < 0.5 ) {
+                // turn on
+                // visual feedback
+                item.UpdateValue( 1.0 );
+            }
+            else {
+                // turn off
+                // visual feedback
+                item.UpdateValue( 0.0 );
+            }
+        }
+    }
+    else if( Command.action == GLFW_RELEASE ) {
+
+        if( item.type() == TGaugeType::push ) {
+            // impulse switch
             // turn off
             // visual feedback
             item.UpdateValue( 0.0 );

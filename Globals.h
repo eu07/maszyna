@@ -53,6 +53,7 @@ struct global_settings {
     std::string asCurrentSceneryPath{ "scenery/" };
     std::string asCurrentTexturePath{ szTexturePath };
     std::string asCurrentDynamicPath;
+    int CurrentMaxTextureSize{ 4096 };
     bool GfxFramebufferSRGB { true };
     // settings
     // filesystem
@@ -129,6 +130,7 @@ struct global_settings {
     float AnisotropicFiltering{ 8.f }; // requested level of anisotropic filtering. TODO: move it to renderer object
     float FieldOfView{ 45.f }; // vertical field of view for the camera. TODO: move it to the renderer
     GLint iMaxTextureSize{ 4096 }; // maksymalny rozmiar tekstury
+    GLint iMaxCabTextureSize{ 4096 }; // largest allowed texture in vehicle cab
     int iMultisampling{ 2 }; // tryb antyaliasingu: 0=brak,1=2px,2=4px,3=8px,4=16px
     bool bSmoothTraction{ true }; // wygładzanie drutów starym sposobem
     float SplineFidelity{ 1.f }; // determines segment size during conversion of splines to geometry

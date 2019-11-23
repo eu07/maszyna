@@ -188,6 +188,14 @@ driver_mode::update() {
     if( Global.changeDynObj ) {
         // ABu zmiana pojazdu - przejście do innego
         ChangeDynamic();
+        // move inside, but only if the human is in charge (otherwise we'll get pulled in when ai switches cabs)
+        if( ( simulation::Train != nullptr )
+         && ( simulation::Train->Dynamic() != nullptr )
+         && ( simulation::Train->Dynamic()->Mechanik != nullptr )
+         && ( simulation::Train->Dynamic()->Mechanik->AIControllFlag == false )
+         && ( true == FreeFlyModeFlag ) ) {
+            InOutKey();
+        }
     }
 
     if( simulation::Train != nullptr ) {
@@ -708,7 +716,6 @@ driver_mode::OnKeyDown(int cKey) {
             }
             break;
         }
-            
         case GLFW_KEY_F4: {
             
             if( Global.shiftState ) { ExternalView(); } // with Shift, cycle through external views 
@@ -722,46 +729,76 @@ driver_mode::OnKeyDown(int cKey) {
                 break;
             }
 
-            TDynamicObject *tmp = std::get<TDynamicObject *>( simulation::Region->find_vehicle( Global.pCamera.Pos, 50, true, false ) );
+            TDynamicObject *targetvehicle = std::get<TDynamicObject *>( simulation::Region->find_vehicle( Global.pCamera.Pos, 50, false, false ) );
 
-            if( tmp != nullptr ) {
+            if( targetvehicle != nullptr ) {
 
                 if( ( true == DebugModeFlag )
-                 || ( tmp->MoverParameters->Vel <= 5.0 ) ) {
+                 || ( targetvehicle->MoverParameters->Vel <= 5.0 ) ) {
                     // works always in debug mode, or for stopped/slow moving vehicles otherwise
-                    if( simulation::Train ) { // jeśli mielismy pojazd
-                        if( simulation::Train->Dynamic()->Mechanik ) { // na skutek jakiegoś błędu może czasem zniknąć
-                            if( ( tmp->ctOwner == simulation::Train->Dynamic()->Mechanik )
-                             && ( true == Global.ctrlState ) ) {
-                                // if the vehicle we left to the ai controlled the vehicle we're about to take over
-                                // put the ai we left in charge of our old vehicle to sleep
-                                // TODO: remove ctrl key mode once manual cab (de)activation is in place
-                                simulation::Train->Dynamic()->Mechanik->primary( false );
-                                simulation::Train->Dynamic()->Mechanik->action() = TAction::actSleep;
-                                simulation::Train->Dynamic()->MoverParameters->CabDeactivisation();
-                            }
-                            simulation::Train->Dynamic()->Mechanik->TakeControl( true ); // oddajemy dotychczasowy AI
-                        }
-                    }
-
                     if( simulation::Train == nullptr ) {
                         simulation::Train = new TTrain(); // jeśli niczym jeszcze nie jeździlismy
                     }
-                    if( simulation::Train->Init( tmp ) ) {
-                        // przejmujemy sterowanie
-                        if( true == Global.ctrlState ) {
-                            // make sure we can take over the consist
-                            // TODO: remove ctrl key mode once manual cab (de)activation is in place
-                            simulation::Train->Dynamic()->Mechanik->primary( true );
-                            simulation::Train->Dynamic()->MoverParameters->CabActivisation();
+                    if( simulation::Train->Dynamic() != nullptr ) {
+                        // jeśli mielismy pojazd
+                        if( simulation::Train->Dynamic()->Mechanik ) { // na skutek jakiegoś błędu może czasem zniknąć
+                            auto const *currentvehicle { simulation::Train->Dynamic() };
+                            auto const sameconsist {
+                                ( targetvehicle->ctOwner == currentvehicle->Mechanik )
+                             || ( targetvehicle->ctOwner == currentvehicle->ctOwner ) };
+                            auto const isincharge { currentvehicle->Mechanik->primary() };
+                            auto const aidriveractive { currentvehicle->Mechanik->AIControllFlag };
+                            
+                            if( !sameconsist && isincharge ) {
+                                // oddajemy dotychczasowy AI
+                                simulation::Train->Dynamic()->Mechanik->TakeControl( true );
+                            }
+
+                            if( ( !sameconsist ) // we leave behind an ai driver which should be preserved
+                             || ( aidriveractive ) // we want to preserve existing ai driver
+                             || ( targetvehicle->Mechanik != nullptr ) ) { // .changedynobj swaps drivers but we want a takeover not a swap
+
+                                if( sameconsist && !aidriveractive ) {
+                                    // we will be taking over controller in the target vehicle, so get rid of the old one
+                                    // unless it's an active ai in which case leave it running
+                                    SafeDelete( simulation::Train->Dynamic()->Mechanik );
+                                }
+                                // HACK: by resetting owned vehicle we can reuse dynamic==nullptr code branch below
+                                // TODO: refactor into utility method
+                                simulation::Train->DynamicSet( nullptr );
+                            }
+                            else {
+                                // we can simply move the 'human' controller to the new vehicle
+                                Global.changeDynObj = targetvehicle;
+                                // TODO: choose active cab based on camera's location relative to vehicle's location
+/*
+                                Global.changeDynObj->MoverParameters->ActiveCab = (
+                                    Train->DynamicObject->MoverParameters->Neighbours[ exitdirection ].vehicle_end ?
+                                    -1 :
+                                     1 );
+*/
+                            }
                         }
-                        simulation::Train->Dynamic()->Mechanik->TakeControl( false, true );
                     }
-                    else {
-                        SafeDelete( simulation::Train ); // i nie ma czym sterować
-                    }
-                    if( simulation::Train ) {
-                        InOutKey(); // do kabiny
+                    if( simulation::Train->Dynamic() == nullptr ) {
+                        // jeśli niczym jeszcze nie jeździlismy
+                        if( simulation::Train->Init( targetvehicle ) ) {
+                            // przejmujemy sterowanie
+                            if( true == Global.ctrlState ) {
+                                // make sure we can take over the consist
+                                // TODO: remove ctrl key mode once manual cab (de)activation is in place
+                                simulation::Train->Dynamic()->Mechanik->primary( true );
+                            }
+                            simulation::Train->Dynamic()->Mechanik->TakeControl( false, true );
+                            if( true == simulation::Train->Dynamic()->Mechanik->primary() ) {
+                                simulation::Train->Dynamic()->MoverParameters->CabDeactivisation( true ); // potentially left active
+                                simulation::Train->Dynamic()->MoverParameters->CabActivisation();
+                            }
+                            InOutKey(); // do kabiny
+                        }
+                        else {
+                            SafeDelete( simulation::Train ); // i nie ma czym sterować
+                        }
                     }
                 }
             }

@@ -1728,7 +1728,7 @@ void TMoverParameters::HeatingCheck( double const Timestep ) {
             break;
         }
         case TPowerSource::Main: {
-            voltage = ( true == Mains ? PantographVoltage : 0.0 );
+            voltage = ( true == Mains ? std::max( GetAnyTrainsetVoltage(), PantographVoltage ) : 0.0 );
             break;
         }
         default: {
@@ -2355,11 +2355,11 @@ bool TMoverParameters::CabActivisation(void)
 // Q: 20160710
 // wyłączenie rozrządu
 // *************************************************************************************************
-bool TMoverParameters::CabDeactivisation(void) 
+bool TMoverParameters::CabDeactivisation( bool const Force )
 {
     bool OK = false;
 
-    OK = (CabNo == ActiveCab); // o ile obsada jest w kabinie ze sterowaniem
+    OK = Force || (CabNo == ActiveCab); // o ile obsada jest w kabinie ze sterowaniem
     if (OK)
     {
         CabNo = 0;
@@ -3736,7 +3736,7 @@ void TMoverParameters::CompressorCheck(double dt)
     if( CompressorPower == 2 ) {
         CompressorAllow = ConverterAllow;
     }
-
+    // TODO: clean up compressor CompressorFlag state code, large parts are cloned and an utter mess
     if (MaxCompressorF - MinCompressorF < 0.0001) {
         // TODO: investigate purpose of this branch and whether it can be removed as it duplicates later code
         if( ( true == CompressorAllow )
@@ -3802,10 +3802,9 @@ void TMoverParameters::CompressorCheck(double dt)
                 CompressorFlag = (
                       ( ( CompressorAllow ) || ( CompressorStart == start_t::automatic ) )
                    && ( CompressorAllowLocal )
-                   && ( Mains )
-                   && ( ( ConverterFlag )
-                     || ( CompressorPower == 0 )
-                     || ( CompressorPower == 3 ) ) );
+                   && ( CompressorPower == 0 ? Mains :
+                        CompressorPower == 3 ? Mains :
+                        ConverterFlag ) );
 
             if( Compressor > MaxCompressorF ) {
                 // wyłącznik ciśnieniowy jest niezależny od sposobu zasilania
@@ -3876,12 +3875,11 @@ void TMoverParameters::CompressorCheck(double dt)
                 }
                 else {
                     CompressorFlag = (
-                        ( ( CompressorAllow ) || ( CompressorStart == start_t::automatic ) )
-                     && ( CompressorAllowLocal )
-                     && ( Mains )
-                     && ( ( ConverterFlag )
-                       || ( CompressorPower == 0 )
-                       || ( CompressorPower == 3 ) ) );
+                          ( ( CompressorAllow ) || ( CompressorStart == start_t::automatic ) )
+                       && ( CompressorAllowLocal )
+                       && ( CompressorPower == 0 ? Mains :
+                            CompressorPower == 3 ? Mains :
+                            ConverterFlag ) );
                 }
 
                 // NOTE: crude way to enforce simultaneous activation of compressors in multi-unit setups

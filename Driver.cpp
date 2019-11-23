@@ -4592,7 +4592,7 @@ TController::UpdateSituation(double dt) {
             }
 
             // uśrednione napięcie sieci: przy spadku poniżej wartości minimalnej opóźnić rozruch o losowy czas
-            fVoltage = 0.5 * (fVoltage + mvControlling->PantographVoltage);
+            fVoltage = 0.5 * (fVoltage + std::max( mvControlling->GetAnyTrainsetVoltage(), mvControlling->PantographVoltage ) );
             if( fVoltage < mvControlling->EnginePowerSource.CollectorParameters.MinV ) {
                 // gdy rozłączenie WS z powodu niskiego napięcia
                 if( fActionTime >= 0 ) {

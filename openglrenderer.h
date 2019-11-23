@@ -218,6 +218,10 @@ private:
         Render( scene::basic_cell::path_sequence::const_iterator First, scene::basic_cell::path_sequence::const_iterator Last );
     bool
         Render_cab( TDynamicObject const *Dynamic, float const Lightlevel, bool const Alpha = false );
+    bool
+        Render_interior( bool const Alpha = false );
+    bool
+        Render_lowpoly( TDynamicObject *Dynamic, float const Squaredistance, bool const Setup, bool const Alpha = false );
     void
         Render( TMemCell *Memcell );
     void

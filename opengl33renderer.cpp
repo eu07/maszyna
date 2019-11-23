@@ -708,7 +708,9 @@ void opengl33_renderer::Render_pass(viewport_config &vp, rendermode const Mode)
 				// with active precipitation draw the opaque cab parts here to mask rain/snow placed 'inside' the cab
 				setup_drawing(false);
 				Render_cab(vehicle, vehicle->InteriorLightLevel, false);
+                Render_interior( false );
 				setup_drawing(true);
+                Render_interior( true );
 			}
 			Render_cab(vehicle, vehicle->InteriorLightLevel, true);
             if( vehicle->InteriorLightLevel > 0.f ) {
@@ -929,6 +931,104 @@ void opengl33_renderer::Render_pass(viewport_config &vp, rendermode const Mode)
 		break;
 	}
 	}
+}
+
+
+bool opengl33_renderer::Render_interior( bool const Alpha ) {
+    // TODO: early frustum based cull, camera might be pointing elsewhere
+    std::vector< std::pair<float, TDynamicObject *> > dynamics;
+    auto *dynamic { simulation::Train->Dynamic() };
+    // draw interiors of the occupied vehicle, and all vehicles behind it with permanent coupling, in case they're open-ended
+    while( dynamic != nullptr ) {
+
+        glm::dvec3 const originoffset { dynamic->vPosition - m_renderpass.pass_camera.position() };
+        float const squaredistance{ glm::length2( glm::vec3{ originoffset } / Global.ZoomFactor ) / Global.fDistanceFactor };
+        dynamics.emplace_back( squaredistance, dynamic );
+        dynamic = dynamic->NextC( coupling::permanent );
+    }
+    // draw also interiors of permanently coupled vehicles in front, if there's any
+    dynamic = simulation::Train->Dynamic()->PrevC( coupling::permanent );
+    while( dynamic != nullptr ) {
+
+        glm::dvec3 const originoffset { dynamic->vPosition - m_renderpass.pass_camera.position() };
+        float const squaredistance{ glm::length2( glm::vec3{ originoffset } / Global.ZoomFactor ) / Global.fDistanceFactor };
+        dynamics.emplace_back( squaredistance, dynamic );
+        dynamic = dynamic->PrevC( coupling::permanent );
+    }
+    if( Alpha ) {
+        std::sort(
+            std::begin( dynamics ), std::end( dynamics ),
+            []( std::pair<float, TDynamicObject *> const &Left, std::pair<float, TDynamicObject *> const &Right ) {
+               return ( Left.first ) > ( Right.first ); } );
+    }
+    for( auto &dynamic : dynamics ) {
+        Render_lowpoly( dynamic.second, dynamic.first, true, Alpha );
+    }
+
+    return true;
+}
+
+bool opengl33_renderer::Render_lowpoly( TDynamicObject *Dynamic, float const Squaredistance, bool const Setup, bool const Alpha ) {
+
+    if( Dynamic->mdLowPolyInt == nullptr ) { return false; }
+
+    // low poly interior
+    if( Setup ) {
+
+        TSubModel::iInstance = reinterpret_cast<std::uintptr_t>( Dynamic ); //żeby nie robić cudzych animacji
+        glm::dvec3 const originoffset{ Dynamic->vPosition - m_renderpass.pass_camera.position() };
+
+        Dynamic->ABuLittleUpdate( Squaredistance ); // ustawianie zmiennych submodeli dla wspólnego modelu
+
+        glm::mat4 mv = OpenGLMatrices.data( GL_MODELVIEW );
+
+        ::glPushMatrix();
+        ::glTranslated( originoffset.x, originoffset.y, originoffset.z );
+        ::glMultMatrixd( Dynamic->mMatrix.readArray() );
+    }
+    // HACK: reduce light level for vehicle interior if there's strong global lighting source
+    if( false == Alpha ) {
+        auto const luminance{ static_cast<float>( 0.5 * ( std::max( 0.3, Global.fLuminance - Global.Overcast ) ) ) };
+        setup_sunlight_intensity(
+            clamp( (
+                Dynamic->fShade > 0.f ?
+                    Dynamic->fShade :
+                    1.f )
+                - luminance,
+                0.f, 1.f ) );
+        Render( Dynamic->mdLowPolyInt, Dynamic->Material(), Squaredistance );
+        // HACK: if the model has low poly interior, we presume the load is placed inside and also affected by reduced light level
+        if( Dynamic->mdLoad ) {
+            // renderowanie nieprzezroczystego ładunku
+            Render( Dynamic->mdLoad, Dynamic->Material(), Squaredistance, { 0.f, Dynamic->LoadOffset, 0.f }, {} );
+        }
+        setup_sunlight_intensity( Dynamic->fShade > 0.f ? Dynamic->fShade : 1.f );
+    }
+    else {
+//        Render_Alpha( Dynamic->mdLowPolyInt, Dynamic->Material(), Squaredistance );
+        // HACK: some models have windows included as part of the main model instead of lowpoly
+        if( Dynamic->mdModel ) {
+            // main model
+            Render_Alpha( Dynamic->mdModel, Dynamic->Material(), Squaredistance );
+        }
+    }
+
+    if( Setup ) {
+
+        if( Dynamic->fShade > 0.0f ) {
+            // restore regular light level
+            setup_sunlight_intensity();
+        }
+
+        ::glPopMatrix();
+
+        // TODO: check if this reset is needed. In theory each object should render all parts based on its own instance data anyway?
+        if( Dynamic->btnOn ) {
+            Dynamic->TurnOff(); // przywrócenie domyślnych pozycji submodeli
+        }
+    }
+
+    return true;
 }
 
 // creates dynamic environment cubemap
@@ -2301,24 +2401,8 @@ bool opengl33_renderer::Render(TDynamicObject *Dynamic)
 		// render
         if( Dynamic->mdLowPolyInt ) {
             // low poly interior
-            // HACK: reduce light level for vehicle interior if there's strong global lighting source
-            auto const luminance { static_cast<float>( 0.5 * ( std::max( 0.3, Global.fLuminance - Global.Overcast ) ) ) };
-            setup_sunlight_intensity(
-                clamp( (
-                    Dynamic->fShade > 0.f ?
-                        Dynamic->fShade :
-                        1.f )
-                    - luminance,
-                    0.f, 1.f ) );
-           Render( Dynamic->mdLowPolyInt, Dynamic->Material(), squaredistance );
-           // HACK: if the model has low poly interior, we presume the load is placed inside and also affected by reduced light level
-           if( Dynamic->mdLoad ) {
-               // renderowanie nieprzezroczystego ładunku
-               Render( Dynamic->mdLoad, Dynamic->Material(), squaredistance, { 0.f, Dynamic->LoadOffset, 0.f }, {} );
-           }
-
-            setup_sunlight_intensity( Dynamic->fShade > 0.f ? Dynamic->fShade : 1.f );
-       }
+            Render_lowpoly( Dynamic, squaredistance, false );
+        }
         else {
             // HACK: if the model lacks low poly interior, we presume the load is placed outside
             if( Dynamic->mdLoad ) {
@@ -4069,10 +4153,12 @@ bool opengl33_renderer::Init_caps()
 		GLint texturesize;
 		::glGetIntegerv(GL_MAX_TEXTURE_SIZE, &texturesize);
 		Global.iMaxTextureSize = std::min(Global.iMaxTextureSize, texturesize);
-		WriteLog("texture sizes capped at " + std::to_string(Global.iMaxTextureSize) + "px");
-		m_shadowbuffersize = Global.shadowtune.map_size;
+        Global.iMaxCabTextureSize = std::min( Global.iMaxCabTextureSize, texturesize );
+        WriteLog( "texture sizes capped at " + std::to_string(Global.iMaxTextureSize) + "p (" + std::to_string( Global.iMaxCabTextureSize ) + "p for cab textures)" );
+        Global.CurrentMaxTextureSize = Global.iMaxTextureSize;
+        m_shadowbuffersize = Global.shadowtune.map_size;
 		m_shadowbuffersize = std::min(m_shadowbuffersize, texturesize);
-		WriteLog("shadows map size capped at " + std::to_string(m_shadowbuffersize) + "px");
+		WriteLog("shadows map size capped at " + std::to_string(m_shadowbuffersize) + "p");
 	}
 	Global.DynamicLightCount = std::min(Global.DynamicLightCount, 8);
 

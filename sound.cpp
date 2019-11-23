@@ -333,7 +333,7 @@ sound_source::play( int const Flags ) {
 
     // initialize emitter-specific pitch variation if it wasn't yet set
     if( m_pitchvariation == 0.f ) {
-        m_pitchvariation = 0.01f * static_cast<float>( Random( 97.5, 102.5 ) );
+        m_pitchvariation = 1.f; // 0.01f * static_cast<float>( Random( 97.5, 102.5 ) );
     }
 /*
     if( ( ( m_flags & sound_flags::exclusive ) != 0 )

@@ -473,7 +473,7 @@ opengl_texture::load_DDS() {
     int blockSize = ( data_format == GL_COMPRESSED_RGBA_S3TC_DXT1_EXT ? 8 : 16 );
     int offset = 0;
 
-    while( ( data_width > Global.iMaxTextureSize ) || ( data_height > Global.iMaxTextureSize ) ) {
+    while( ( data_width > Global.CurrentMaxTextureSize ) || ( data_height > Global.CurrentMaxTextureSize ) ) {
         // pomijanie zbyt dużych mipmap, jeśli wymagane jest ograniczenie rozmiaru
         offset += ( ( data_width + 3 ) / 4 ) * ( ( data_height + 3 ) / 4 ) * blockSize;
         data_width /= 2;
@@ -714,7 +714,7 @@ opengl_texture::load_TGA() {
     }
 
     downsize( GL_BGRA );
-    if( ( data_width > Global.iMaxTextureSize ) || ( data_height > Global.iMaxTextureSize ) ) {
+    if( ( data_width > Global.CurrentMaxTextureSize ) || ( data_height > Global.CurrentMaxTextureSize ) ) {
         // for non-square textures there's currently possibility the scaling routine will have to abort
         // before it gets all work done
         data_state = resource_state::failed;
@@ -1054,7 +1054,7 @@ opengl_texture::set_filtering() const {
 void
 opengl_texture::downsize( GLuint const Format ) {
 
-    while( ( data_width > Global.iMaxTextureSize ) || ( data_height > Global.iMaxTextureSize ) ) {
+    while( ( data_width > Global.CurrentMaxTextureSize ) || ( data_height > Global.CurrentMaxTextureSize ) ) {
         // scale down the base texture, if it's larger than allowed maximum
         // NOTE: scaling is uniform along both axes, meaning non-square textures can drop below the maximum
         // TODO: replace with proper scaling function once we have image middleware in place

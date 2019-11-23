@@ -293,15 +293,23 @@ global_settings::ConfigParse(cParser &Parser) {
             Parser.getTokens(1, false);
             int size;
             Parser >> size;
-                 if (size <= 64)   { iMaxTextureSize = 64; }
-            else if (size <= 128)  { iMaxTextureSize = 128; }
-            else if (size <= 256)  { iMaxTextureSize = 256; }
-            else if (size <= 512)  { iMaxTextureSize = 512; }
-            else if (size <= 1024) { iMaxTextureSize = 1024; }
-            else if (size <= 2048) { iMaxTextureSize = 2048; }
-            else if (size <= 4096) { iMaxTextureSize = 4096; }
-            else if (size <= 8192) { iMaxTextureSize = 8192; }
-            else                   { iMaxTextureSize = 16384; }
+            auto p2size { 64 }; // start with 64px
+            while( (p2size <= 16384 ) && ( p2size <= size ) ) {
+                iMaxTextureSize = p2size;
+                p2size = p2size << 1;
+            }
+        }
+        else if (token == "maxcabtexturesize")
+        {
+            // wymuszenie przeskalowania tekstur
+            Parser.getTokens( 1, false );
+            int size;
+            Parser >> size;
+            auto p2size { 64 }; // start with 64px
+            while( ( p2size <= 16384 ) && ( p2size <= size ) ) {
+                iMaxCabTextureSize = p2size;
+                p2size = p2size << 1;
+            }
         }
         else if (token == "movelight")
         {
