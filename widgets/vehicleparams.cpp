@@ -110,7 +110,7 @@ void ui::vehicleparams_panel::render_contents()
 
 		for (const auto &viewport : Global.python_viewports) {
 			for (auto const &entry : screens) {
-				if (std::get<std::string>(entry) != viewport.surface)
+                if (entry.rendererpath != viewport.surface)
 					continue;
 
 				std::string window_name = STR("Screen") + "##" + viewport.surface;
@@ -126,7 +126,7 @@ void ui::vehicleparams_panel::render_contents()
 
 					ImVec2 size = ImGui::GetContentRegionAvail();
 
-					ImGui::Image(reinterpret_cast<void*>(std::get<1>(entry)->shared_tex), size, ImVec2(uv0.x, uv0.y), ImVec2(uv1.x, uv1.y));
+                    ImGui::Image(reinterpret_cast<void*>(entry.rt->shared_tex), size, ImVec2(uv0.x, uv0.y), ImVec2(uv1.x, uv1.y));
 				}
 				ImGui::End();
 			}

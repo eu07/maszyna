@@ -228,7 +228,7 @@ class opengl_renderer
 	std::string const &info_times() const;
 	std::string const &info_stats() const;
 
-    void pick_control(std::function<void(TSubModel const *)> callback);
+    void pick_control(std::function<void(TSubModel const *, glm::vec2)> callback);
     void pick_node(std::function<void(scene::basic_node *)> callback);
 
 	// members
@@ -403,6 +403,7 @@ class opengl_renderer
 	renderpass_config m_shadowpass; // parametrs of most recent shadowmap pass
 	renderpass_config m_cabshadowpass; // parameters of most recent cab shadowmap pass
 	std::vector<TSubModel const *> m_pickcontrolsitems;
+    std::vector<TSubModel const *> m_picksurfaceitems;
 	TSubModel const *m_pickcontrolitem{nullptr};
     std::vector<scene::basic_node *> m_picksceneryitems;
     scene::basic_node *m_picksceneryitem{nullptr};
@@ -420,7 +421,7 @@ class opengl_renderer
     glm::mat4 ortho_projection(float left, float right, float bottom, float top, float z_near, float z_far);
     glm::mat4 ortho_frustumtest_projection(float left, float right, float bottom, float top, float z_near, float z_far);
 
-    std::vector<std::function<void(TSubModel const *)>> m_control_pick_requests;
+    std::vector<std::function<void(TSubModel const *, glm::vec2)>> m_control_pick_requests;
     std::vector<std::function<void(scene::basic_node *)>> m_node_pick_requests;
 
 	std::unique_ptr<gl::shader> m_vertex_shader;
@@ -452,6 +453,7 @@ class opengl_renderer
 	std::unique_ptr<gl::framebuffer> m_pick_fb;
 	std::unique_ptr<opengl_texture> m_pick_tex;
 	std::unique_ptr<gl::renderbuffer> m_pick_rb;
+    std::unique_ptr<gl::program> m_pick_surface_shader;
 	std::unique_ptr<gl::program> m_pick_shader;
 
 	std::unique_ptr<gl::cubemap> m_empty_cubemap;

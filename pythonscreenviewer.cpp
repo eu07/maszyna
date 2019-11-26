@@ -11,16 +11,29 @@ void texture_window_fb_resize(GLFWwindow *win, int w, int h)
 	texwindow->notify_window_size(win, w, h);
 }
 
-python_screen_viewer::python_screen_viewer(std::shared_ptr<python_rt> rt, std::string surfacename)
+void texture_window_mouse_button(GLFWwindow *win, int button, int action, int mods)
+{
+    python_screen_viewer *texwindow = (python_screen_viewer*)glfwGetWindowUserPointer(win);
+    texwindow->notify_click(win, button, action);
+}
+
+void texture_window_cursor_pos(GLFWwindow *win, double x, double y)
+{
+    python_screen_viewer *texwindow = (python_screen_viewer*)glfwGetWindowUserPointer(win);
+    texwindow->notify_cursor_pos(win, x, y);
+}
+
+python_screen_viewer::python_screen_viewer(std::shared_ptr<python_rt> rt, std::shared_ptr<std::vector<glm::vec2>> touchlist, std::string surfacename)
 {
 	m_rt = rt;
+    m_touchlist = touchlist;
 
 	for (const auto &viewport : Global.python_viewports) {
 		if (viewport.surface == surfacename) {
 			auto conf = std::make_unique<window_state>();
 			conf->size = viewport.size;
 			conf->offset = viewport.offset;
-			conf->scale = viewport.scale;
+            conf->scale = viewport.scale;
 
 			GLFWmonitor *monitor = Application.find_monitor(viewport.monitor);
 			if (!monitor && viewport.monitor != "window")
@@ -31,6 +44,8 @@ python_screen_viewer::python_screen_viewer(std::shared_ptr<python_rt> rt, std::s
 
 			glfwSetWindowUserPointer(conf->window, this);
 			glfwSetFramebufferSizeCallback(conf->window, texture_window_fb_resize);
+            glfwSetMouseButtonCallback(conf->window, texture_window_mouse_button);
+            glfwSetCursorPosCallback(conf->window, texture_window_cursor_pos);
 
 			m_windows.push_back(std::move(conf));
 		}
@@ -164,6 +179,34 @@ void python_screen_viewer::notify_window_size(GLFWwindow *window, int w, int h)
 			return;
 		}
 	}
+}
+
+void python_screen_viewer::notify_cursor_pos(GLFWwindow *window, double x, double y)
+{
+    for (auto &conf : m_windows) {
+        if (conf->window == window) {
+            conf->cursor_pos.x = x;
+            conf->cursor_pos.y = y;
+            return;
+        }
+    }
+}
+
+void python_screen_viewer::notify_click(GLFWwindow *window, int button, int action)
+{
+    if (button != GLFW_MOUSE_BUTTON_LEFT || action != GLFW_PRESS)
+        return;
+
+    for (auto &conf : m_windows) {
+        if (conf->window == window) {
+            auto pos = glm::vec2(conf->cursor_pos) / glm::vec2(conf->size);
+            pos.y = 1.0f - pos.y;
+            pos = (pos + conf->offset) / conf->scale;
+
+            m_touchlist->emplace_back(pos);
+            return;
+        }
+    }
 }
 
 python_screen_viewer::window_state::~window_state()

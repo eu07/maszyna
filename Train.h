@@ -107,7 +107,14 @@ class TTrain {
 		int radio_channel;
 		bool springbrake_active;
     };
-	typedef std::tuple<std::string, std::shared_ptr<python_rt>, std::unique_ptr<python_screen_viewer>> screen_entry;
+
+    struct screen_entry {
+        std::string rendererpath;
+        std::shared_ptr<python_rt> rt;
+        std::unique_ptr<python_screen_viewer> viewer;
+        std::shared_ptr<std::vector<glm::vec2>> touch_list;
+    };
+
 	typedef std::vector<screen_entry> screen_map;
 
 // methods
@@ -733,7 +740,7 @@ private:
     // checks whether specified point is within boundaries of the active cab
     bool point_inside( Math3D::vector3 const Point ) const;
     Math3D::vector3 clamp_inside( Math3D::vector3 const &Point ) const;
-	const screen_map & get_screens();
+    const screen_map & get_screens();
 
 	float get_tacho();
 	float get_tank_pressure();

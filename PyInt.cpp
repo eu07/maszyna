@@ -23,14 +23,31 @@ void render_task::run() {
 
     // convert provided input to a python dictionary
     auto *input = PyDict_New();
-    if( input == nullptr ) {
+    if (input == nullptr) {
 		cancel();
 		return;
 	}
-    for( auto const &datapair : m_input->floats )   { PyDict_SetItemString( input, datapair.first.c_str(), PyGetFloat( datapair.second ) ); }
-    for( auto const &datapair : m_input->integers ) { PyDict_SetItemString( input, datapair.first.c_str(), PyGetInt( datapair.second ) ); }
-    for( auto const &datapair : m_input->bools )    { PyDict_SetItemString( input, datapair.first.c_str(), PyGetBool( datapair.second ) ); }
-    for( auto const &datapair : m_input->strings )  { PyDict_SetItemString( input, datapair.first.c_str(), PyGetString( datapair.second.c_str() ) ); }
+    for( auto const &datapair : m_input->floats )   { auto *value{ PyGetFloat( datapair.second ) }; PyDict_SetItemString( input, datapair.first.c_str(), value ); Py_DECREF( value ); }
+    for( auto const &datapair : m_input->integers ) { auto *value{ PyGetInt( datapair.second ) }; PyDict_SetItemString( input, datapair.first.c_str(), value ); Py_DECREF( value ); }
+    for( auto const &datapair : m_input->bools )    { auto *value{ PyGetBool( datapair.second ) }; PyDict_SetItemString( input, datapair.first.c_str(), value ); }
+    for( auto const &datapair : m_input->strings )  { auto *value{ PyGetString( datapair.second.c_str() ) }; PyDict_SetItemString( input, datapair.first.c_str(), value ); Py_DECREF( value ); }
+
+    for (auto const &datapair : m_input->vec2_lists) {
+        PyObject *list = PyList_New(datapair.second.size());
+
+        for (size_t i = 0; i < datapair.second.size(); i++) {
+            auto const &vec = datapair.second[i];
+
+            PyObject *tuple = PyTuple_New(2);
+            PyTuple_SetItem(tuple, 0, PyGetFloat(vec.x)); // steals ref
+            PyTuple_SetItem(tuple, 1, PyGetFloat(vec.y)); // steals ref
+
+            PyList_SetItem(list, i, tuple); // steals ref
+        }
+
+        PyDict_SetItemString(input, datapair.first.c_str(), list);
+        Py_DECREF(list);
+    }
 
 	delete m_input;
 	m_input = nullptr;

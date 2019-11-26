@@ -6,7 +6,9 @@ class python_screen_viewer
 {
 	struct window_state {
 		GLFWwindow *window = nullptr;
+
 		glm::ivec2 size;
+        glm::ivec2 cursor_pos;
 
 		glm::vec2 offset;
 		glm::vec2 scale;
@@ -23,6 +25,7 @@ class python_screen_viewer
 	std::vector<std::unique_ptr<window_state>> m_windows;
 
 	std::shared_ptr<python_rt> m_rt;
+    std::shared_ptr<std::vector<glm::vec2>> m_touchlist;
 	std::shared_ptr<std::thread> m_renderthread;
 	gl::scene_ubs m_ubs;
 
@@ -31,8 +34,10 @@ class python_screen_viewer
 	void threadfunc();
 
 public:
-	python_screen_viewer(std::shared_ptr<python_rt> rt, std::string name);
+    python_screen_viewer(std::shared_ptr<python_rt> rt, std::shared_ptr<std::vector<glm::vec2>> touchlist, std::string name);
 	~python_screen_viewer();
 
 	void notify_window_size(GLFWwindow *window, int w, int h);
+    void notify_cursor_pos(GLFWwindow *window, double x, double y);
+    void notify_click(GLFWwindow *window, int button, int action);
 };

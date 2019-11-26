@@ -589,6 +589,7 @@ dictionary_source *TTrain::GetTrainState() {
     driver->TrainTimetable()->serialize( dict );
     dict->insert( "train_stationstart", driver->iStationStart );
     dict->insert( "train_atpassengerstop", driver->IsAtPassengerStop );
+    dict->insert( "train_length", driver->fLength );
     // world state data
     dict->insert( "scenario", Global.SceneryFile );
     dict->insert( "hours", static_cast<int>( simulation::Time.data().wHour ) );
@@ -6957,8 +6958,14 @@ void TTrain::update_sounds_radio() {
 void TTrain::update_screens() {
 	if (fScreenTimer > Global.PythonScreenUpdateRate * 0.001f) {
 		fScreenTimer = 0.f;
-		for (auto const &screen : m_screens)
-			Application.request( { std::get<0>(screen), GetTrainState(), std::get<1>(screen) } );
+        for (auto const &screen : m_screens) {
+            auto state_dict = GetTrainState();
+
+            state_dict->insert("touches", *screen.touch_list);
+            screen.touch_list->clear();
+
+            Application.request({ screen.rendererpath, state_dict, screen.rt } );
+        }
 	}
 }
 
@@ -7398,9 +7405,15 @@ bool TTrain::InitializeCab(int NewCabNo, std::string const &asFileName)
                     >> submodelname
                     >> renderername;
 
+                const std::string rendererpath {
+                    substr_path(renderername).empty() ? // supply vehicle folder as path if none is provided
+                                            DynamicObject->asBaseDir + renderername :
+                                            renderername };
+
 				opengl_texture *tex = nullptr;
+                TSubModel *submodel = nullptr;
 				if (submodelname != "none") {
-					auto const *submodel { ( DynamicObject->mdKabina ? DynamicObject->mdKabina->GetFromName( submodelname ) : nullptr ) };
+                    submodel = ( DynamicObject->mdKabina ? DynamicObject->mdKabina->GetFromName( submodelname ) : nullptr );
 					if( submodel == nullptr ) {
 						WriteLog( "Python Screen: submodel " + submodelname + " not found - Ignoring screen" );
 						continue;
@@ -7412,7 +7425,7 @@ bool TTrain::InitializeCab(int NewCabNo, std::string const &asFileName)
 						continue;
 					}
 
-					tex = &GfxRenderer.Texture(GfxRenderer.Material( material ).textures[0]);
+                    tex = &GfxRenderer.Texture(GfxRenderer.Material(material).textures[0]);
 				}
 				else {
 					// TODO: fix leak
@@ -7422,19 +7435,21 @@ bool TTrain::InitializeCab(int NewCabNo, std::string const &asFileName)
 
 				tex->create();
 
-				const std::string rendererpath {
-					substr_path(renderername).empty() ? // supply vehicle folder as path if none is provided
-					                        DynamicObject->asBaseDir + renderername :
-					                        renderername };
-
+                auto touch_list = std::make_shared<std::vector<glm::vec2>>();
 				auto rt = std::make_shared<python_rt>();
 				rt->shared_tex = tex->id;
 
+                if (submodel)
+                    submodel->screen_touch_list = touch_list;
+
                 // record renderer and material binding for future update requests
-				m_screens.emplace_back(rendererpath, rt, nullptr);
+                m_screens.emplace_back();
+                m_screens.back().rendererpath = rendererpath;
+                m_screens.back().rt = rt;
+                m_screens.back().touch_list = touch_list;
 
 				if (Global.python_displaywindows)
-					std::get<2>(m_screens.back()) = std::make_unique<python_screen_viewer>(rt, rendererpath);
+                    m_screens.back().viewer = std::make_unique<python_screen_viewer>(rt, touch_list, rendererpath);
             }
             // btLampkaUnknown.Init("unknown",mdKabina,false);
         } while (token != "");

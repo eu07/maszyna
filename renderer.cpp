@@ -245,7 +245,8 @@ bool opengl_renderer::Init(GLFWwindow *Window)
 		m_freespot_shader = make_shader("freespot.vert", "freespot.frag");
 		m_shadow_shader = make_shader("simpleuv.vert", "shadowmap.frag");
 		m_alpha_shadow_shader = make_shader("simpleuv.vert", "alphashadowmap.frag");
-		m_pick_shader = make_shader("vertexonly.vert", "pick.frag");
+        m_pick_shader = make_shader("vertexonly.vert", "pick.frag");
+        m_pick_surface_shader = make_shader("simpleuv.vert", "pick_surface.frag");
 		m_billboard_shader = make_shader("simpleuv.vert", "billboard.frag");
 		m_celestial_shader = make_shader("celestial.vert", "celestial.frag");
 		if (Global.gfx_usegles)
@@ -985,6 +986,7 @@ void opengl_renderer::Render_pass(viewport_config &vp, rendermode const Mode)
 		m_pick_fb->bind();
 		m_pick_fb->clear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
+        m_picksurfaceitems.clear();
 		m_pickcontrolsitems.clear();
 		setup_matrices();
 		setup_drawing(false);
@@ -2661,10 +2663,19 @@ void opengl_renderer::Render(TSubModel *Submodel)
 				}
 				case rendermode::pickcontrols:
 				{
-					m_pick_shader->bind();
-					// control picking applies individual colour for each submodel
-					m_pickcontrolsitems.emplace_back(Submodel);
-					model_ubs.param[0] = glm::vec4(pick_color(m_pickcontrolsitems.size()), 1.0f);
+                    if (Submodel->screen_touch_list) {
+                        // touch screen gradient
+                        m_pick_surface_shader->bind();
+                        model_ubs.param[0] = glm::vec4(1.0f - m_picksurfaceitems.size() / 255.0f, 0.0f, 0.0f, 1.0f);
+                        m_picksurfaceitems.emplace_back(Submodel);
+                    }
+                    else {
+                        // control picking applies individual colour for each submodel
+                        m_pick_shader->bind();
+                        m_pickcontrolsitems.emplace_back(Submodel);
+                        model_ubs.param[0] = glm::vec4(pick_color(m_pickcontrolsitems.size()), 1.0f);
+                    }
+
 					draw(Submodel->m_geometry);
 					break;
 				}
@@ -3647,20 +3658,24 @@ void opengl_renderer::Update_Pick_Control()
 		{
 			auto const controlindex = pick_index(glm::ivec3{pickreadout[0], pickreadout[1], pickreadout[2]});
 			TSubModel const *control{nullptr};
-			if ((controlindex > 0) && (controlindex <= m_pickcontrolsitems.size()))
-			{
+            glm::vec2 position(0.0f);
+            if ((controlindex > 0) && (controlindex <= m_pickcontrolsitems.size())) {
 				control = m_pickcontrolsitems[controlindex - 1];
-			}
+            } else if (255 - pickreadout[0] < m_picksurfaceitems.size()) {
+                control = m_picksurfaceitems[255 - pickreadout[0]];
+                position.x = pickreadout[1] / 255.0f;
+                position.y = pickreadout[2] / 255.0f;
+            }
 
 			m_pickcontrolitem = control;
 
 			for (auto f : m_control_pick_requests)
-				f(m_pickcontrolitem);
+                f(m_pickcontrolitem, position);
 			m_control_pick_requests.clear();
 		}
 
-		if (!m_control_pick_requests.empty())
-		{
+        if (!m_control_pick_requests.empty())
+        {
 			// determine point to examine
 			glm::dvec2 mousepos = Application.get_cursor_pos();
 			mousepos.y = Global.iWindowHeight - mousepos.y; // cursor coordinates are flipped compared to opengl
@@ -3716,7 +3731,7 @@ void opengl_renderer::Update_Pick_Node()
 	}
 }
 
-void opengl_renderer::pick_control(std::function<void(TSubModel const *)> callback)
+void opengl_renderer::pick_control(std::function<void(const TSubModel *, glm::vec2)> callback)
 {
 	m_control_pick_requests.push_back(callback);
 }
@@ -3851,7 +3866,7 @@ void opengl_renderer::Update(double const Deltatime)
 	}
 
 	if ((true == Global.ControlPicking) && (false == FreeFlyModeFlag))
-		pick_control([](const TSubModel *) {});
+        pick_control([](const TSubModel *, const glm::vec2) {});
 	// temporary conditions for testing. eventually will be coupled with editor mode
 	if ((true == Global.ControlPicking) && (true == DebugModeFlag) && (true == FreeFlyModeFlag))
 		pick_node([](scene::basic_node *) {});
