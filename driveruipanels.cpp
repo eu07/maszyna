@@ -52,7 +52,7 @@ drivingaid_panel::update() {
         if( is_expanded ) {
             // grade
             std::string gradetext;
-            auto const reverser { ( mover->ActiveDir > 0 ? 1 : -1 ) };
+            auto const reverser { ( mover->DirActive > 0 ? 1 : -1 ) };
             auto const grade { controlled->VectorFront().y * 100 * ( controlled->DirectionGet() == reverser ? 1 : -1 ) * reverser };
             if( std::abs( grade ) >= 0.25 ) {
                 std::snprintf(
@@ -89,7 +89,7 @@ drivingaid_panel::update() {
             locale::strings[ locale::string::driver_aid_throttle ].c_str(),
             driver->Controlling()->MainCtrlPos,
             driver->Controlling()->ScndCtrlPos,
-            ( mover->ActiveDir > 0 ? 'D' : mover->ActiveDir < 0 ? 'R' : 'N' ),
+            ( mover->DirActive > 0 ? 'D' : mover->DirActive < 0 ? 'R' : 'N' ),
             expandedtext.c_str());
 
         text_lines.emplace_back( m_buffer.data(), Global.UITextColor );
@@ -689,7 +689,7 @@ debug_panel::update_section_vehicle( std::vector<text_line> &Output ) {
         m_buffer.data(), m_buffer.size(),
         locale::strings[ locale::string::debug_vehicle_forcesaccelerationvelocityposition ].c_str(),
         // forces
-        mover.Ft * 0.001f * ( mover.ActiveCab ? mover.ActiveCab : vehicle.ctOwner ? vehicle.ctOwner->Controlling()->ActiveCab : 1 ) + 0.001f,
+        mover.Ft * 0.001f * ( mover.CabOccupied ? mover.CabOccupied : vehicle.ctOwner ? vehicle.ctOwner->Controlling()->CabOccupied : 1 ) + 0.001f,
         mover.Fb * 0.001f,
         mover.Adhesive( mover.RunningTrack.friction ),
         ( mover.SlippingWheels ? " (!)" : "" ),

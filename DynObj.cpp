@@ -623,8 +623,8 @@ void TDynamicObject::UpdateMirror( TAnim *pAnim ) {
 
     // only animate the mirror if it's located on the same end of the vehicle as the active cab
     auto const isactive { (
-        MoverParameters->ActiveCab > 0 ? ( ( pAnim->iNumber >> 4 ) == end::front ? 1.0 : 0.0 ) :
-        MoverParameters->ActiveCab < 0 ? ( ( pAnim->iNumber >> 4 ) == end::rear  ? 1.0 : 0.0 ) :
+        MoverParameters->CabOccupied > 0 ? ( ( pAnim->iNumber >> 4 ) == end::front ? 1.0 : 0.0 ) :
+        MoverParameters->CabOccupied < 0 ? ( ( pAnim->iNumber >> 4 ) == end::rear  ? 1.0 : 0.0 ) :
         0.0 ) };
 
     if( pAnim->iNumber & 1 )
@@ -1040,9 +1040,9 @@ void TDynamicObject::ABuLittleUpdate(double ObjSqrDist)
          && ( ( Mechanik->action() != TAction::actSleep )
            /* || ( MoverParameters->Battery ) */ ) ) {
             // rysowanie figurki mechanika
-            btMechanik1.Turn( MoverParameters->ActiveCab > 0 );
-            btMechanik2.Turn( MoverParameters->ActiveCab < 0 );
-            if( MoverParameters->ActiveCab != 0 ) {
+            btMechanik1.Turn( MoverParameters->CabOccupied > 0 );
+            btMechanik2.Turn( MoverParameters->CabOccupied < 0 );
+            if( MoverParameters->CabOccupied != 0 ) {
                 btnOn = true;
             }
         }
@@ -2831,12 +2831,12 @@ bool TDynamicObject::Update(double dt, double dt1)
 			if (MoverParameters->SpeedCtrl)
 				MoverParameters->CheckSpeedCtrl(dt1);
 			MoverParameters->eimic_real = std::min(MoverParameters->eimic,MoverParameters->eimicSpeedCtrl);
-			MoverParameters->SendCtrlToNext("EIMIC", MoverParameters->eimic_real, MoverParameters->CabNo);
+			MoverParameters->SendCtrlToNext("EIMIC", MoverParameters->eimic_real, MoverParameters->CabActive);
 		}
 		if( ( Mechanik->primary() )
          && ( MoverParameters->EngineType == TEngineType::ElectricInductionMotor ) ) {
             // jesli glowny i z asynchronami, to niech steruje hamulcem i napedem lacznie dla calego pociagu/ezt
-			auto const kier = (DirectionGet() * MoverParameters->ActiveCab > 0);
+			auto const kier = (DirectionGet() * MoverParameters->CabOccupied > 0);
             auto FED { 0.0 };
             auto np { 0 };
             auto masa { 0.0 };
@@ -2861,7 +2861,7 @@ bool TDynamicObject::Update(double dt, double dt1)
 			MoverParameters->eimic_real = eimic;
 			if (MoverParameters->EIMCtrlType == 2 && MoverParameters->MainCtrlPos == 0)
 				eimic = -1.0;
-			MoverParameters->SendCtrlToNext("EIMIC", Max0R(0, eimic), MoverParameters->CabNo);
+			MoverParameters->SendCtrlToNext("EIMIC", Max0R(0, eimic), MoverParameters->CabActive);
 			auto LBR = Max0R(-eimic, 0);
 			auto eim_lb = (Mechanik->AIControllFlag || !MoverParameters->LocHandleTimeTraxx ? 0 : MoverParameters->eim_localbrake);
 
@@ -2872,7 +2872,7 @@ bool TDynamicObject::Update(double dt, double dt1)
 
             // 2. ustal mozliwa do realizacji sile hamowania ED
             //   - w szczegolnosci powinien brac pod uwage rozne sily hamowania
-            for (TDynamicObject *p = GetFirstDynamic(MoverParameters->ActiveCab < 0 ? 1 : 0, 4); p;
+            for (TDynamicObject *p = GetFirstDynamic(MoverParameters->CabOccupied < 0 ? 1 : 0, 4); p;
 				(kier ? p = p->NextC(4) : p = p->PrevC(4)))
             {
                 ++np;
@@ -2891,7 +2891,7 @@ bool TDynamicObject::Update(double dt, double dt1)
                               Nmax / (p->MoverParameters->NAxles * p->MoverParameters->NBpA),
                               p->MoverParameters->MED_Vref) *
                           1000; // sila hamowania pn
-                FmaxED += ((p->MoverParameters->Mains) && (p->MoverParameters->ActiveDir != 0) &&
+                FmaxED += ((p->MoverParameters->Mains) && (p->MoverParameters->DirActive != 0) &&
 					(p->MoverParameters->eimc[eimc_p_Fh] * p->MoverParameters->NPoweredAxles >
                                                            0) ?
                                p->MoverParameters->eimc[eimc_p_Fh] * 1000 :
@@ -2997,11 +2997,11 @@ bool TDynamicObject::Update(double dt, double dt1)
             // 6. ustaw pojazdom sile hamowania ep
             //   - proporcjonalnie do masy, do liczby osi, rowne cisnienia - jak
             //   bedzie, tak bedzie dobrze
-            float Fpoj = 0; // MoverParameters->ActiveCab < 0
+            float Fpoj = 0; // MoverParameters->CabOccupied < 0
             ////ALGORYTM 2 - KAZDEMU PO ROWNO, ale nie wiecej niz eped * masa
             // 1. najpierw daj kazdemu tyle samo
             int i = 0;
-			for (TDynamicObject *p = GetFirstDynamic(MoverParameters->ActiveCab < 0 ? 1 : 0, 4); p;
+			for (TDynamicObject *p = GetFirstDynamic(MoverParameters->CabOccupied < 0 ? 1 : 0, 4); p;
 				p = (kier == true ? p->NextC(4) : p->PrevC(4)) )
 			{
                 auto const Nmax = ((p->MoverParameters->P2FTrans * p->MoverParameters->MaxBrakePress[0] -
@@ -3029,7 +3029,7 @@ bool TDynamicObject::Update(double dt, double dt1)
                 test = false;
                 i = 0;
                 float przek = 0;
-                for (TDynamicObject *p = GetFirstDynamic(MoverParameters->ActiveCab < 0 ? 1 : 0, 4); p;
+                for (TDynamicObject *p = GetFirstDynamic(MoverParameters->CabOccupied < 0 ? 1 : 0, 4); p;
                      p = (kier == true ? p->NextC(4) : p->PrevC(4)) )
                 {
                     if ((FzEP[i] > 0.01) &&
@@ -3055,7 +3055,7 @@ bool TDynamicObject::Update(double dt, double dt1)
                 }
                 i = 0;
                 przek = przek / (np - nPrzekrF);
-                for (TDynamicObject *p = GetFirstDynamic(MoverParameters->ActiveCab < 0 ? 1 : 0, 4); p;
+                for (TDynamicObject *p = GetFirstDynamic(MoverParameters->CabOccupied < 0 ? 1 : 0, 4); p;
                      (true == kier ? p = p->NextC(4) : p = p->PrevC(4)))
                 {
                     if (!PrzekrF[i])
@@ -3066,7 +3066,7 @@ bool TDynamicObject::Update(double dt, double dt1)
                 }
             }
             i = 0;
-            for (TDynamicObject *p = GetFirstDynamic(MoverParameters->ActiveCab < 0 ? 1 : 0, 4); p;
+            for (TDynamicObject *p = GetFirstDynamic(MoverParameters->CabOccupied < 0 ? 1 : 0, 4); p;
                  (true == kier ? p = p->NextC(4) : p = p->PrevC(4)))
             {
                 float Nmax = ((p->MoverParameters->P2FTrans * p->MoverParameters->MaxBrakePress[0] -
@@ -3119,7 +3119,7 @@ bool TDynamicObject::Update(double dt, double dt1)
 			{
 				MEDLogFile << MEDLogTime << "\t" << MoverParameters->Vel << "\t" << masa*0.001 << "\t" << osie << "\t" << FmaxPN*0.001 << "\t" << FmaxED*0.001 << "\t"
 					<< FfulED*0.001 << "\t" << FrED*0.001 << "\t" << Fzad*0.001 << "\t" << FzadED*0.001 << "\t" << FzadPN*0.001;
-				for (TDynamicObject *p = GetFirstDynamic(MoverParameters->ActiveCab < 0 ? 1 : 0, 4); p;
+				for (TDynamicObject *p = GetFirstDynamic(MoverParameters->CabOccupied < 0 ? 1 : 0, 4); p;
 					(true == kier ? p = p->NextC(4) : p = p->PrevC(4)))
 				{
 					MEDLogFile << "\t" << p->MoverParameters->BrakePress;
@@ -5978,7 +5978,7 @@ void TDynamicObject::RaLightsSet(int head, int rear)
         // jest tam czynna lokomotywa
         // EN57 może nie mieć końcówek od środka członu
         if (MoverParameters->Power > 1.0) // jeśli ma moc napędową
-            if (!MoverParameters->ActiveDir) // jeśli nie ma ustawionego kierunku
+            if (!MoverParameters->DirActive) // jeśli nie ma ustawionego kierunku
             { // jeśli ma zarówno światła jak i końcówki, ustalić, czy jest w stanie
                 // aktywnym
                 // np. lokomotywa na zimno będzie mieć końcówki a nie światła

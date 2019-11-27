@@ -510,7 +510,7 @@ driver_mode::update_camera( double const Deltatime ) {
      && ( false == DebugCameraFlag ) ) {
         // jeśli jazda w kabinie, przeliczyć trzeba parametry kamery
 /*
-        auto tempangle = controlled->VectorFront() * ( controlled->MoverParameters->ActiveCab == -1 ? -1 : 1 );
+        auto tempangle = controlled->VectorFront() * ( controlled->MoverParameters->CabOccupied == -1 ? -1 : 1 );
         double modelrotate = atan2( -tempangle.x, tempangle.z );
 */
         if( ( false == FreeFlyModeFlag )
@@ -524,17 +524,17 @@ driver_mode::update_camera( double const Deltatime ) {
             // Camera.Yaw powinno być wyzerowane, aby po powrocie patrzeć do przodu
             Camera.Pos = controlled->GetPosition() + simulation::Train->MirrorPosition( lr ); // pozycja lusterka
             Camera.Angle.y = 0; // odchylenie na bok od Camera.LookAt
-            if( simulation::Train->Occupied()->ActiveCab == 0 ) {
+            if( simulation::Train->Occupied()->CabOccupied == 0 ) {
                 // gdy w korytarzu
                 Camera.LookAt = Camera.Pos - simulation::Train->GetDirection();
             }
             else if( Global.shiftState ) {
                 // patrzenie w bok przez szybę
-                Camera.LookAt = Camera.Pos - ( lr ? -1 : 1 ) * controlled->VectorLeft() * simulation::Train->Occupied()->ActiveCab;
+                Camera.LookAt = Camera.Pos - ( lr ? -1 : 1 ) * controlled->VectorLeft() * simulation::Train->Occupied()->CabOccupied;
             }
             else { // patrzenie w kierunku osi pojazdu, z uwzględnieniem kabiny - jakby z lusterka,
                 // ale bez odbicia
-                Camera.LookAt = Camera.Pos - simulation::Train->GetDirection() * simulation::Train->Occupied()->ActiveCab; //-1 albo 1
+                Camera.LookAt = Camera.Pos - simulation::Train->GetDirection() * simulation::Train->Occupied()->CabOccupied; //-1 albo 1
             }
             auto const shakeangles { simulation::Train->Dynamic()->shake_angles() };
             Camera.Angle.x = 0.5 * shakeangles.second; // hustanie kamery przod tyl
@@ -591,7 +591,7 @@ driver_mode::update_camera( double const Deltatime ) {
                 Controlled->ABuSetModelShake( temp );
             // ABu: koniec rzucania
 */
-            if( simulation::Train->Occupied()->ActiveCab == 0 ) {
+            if( simulation::Train->Occupied()->CabOccupied == 0 ) {
                 // gdy w korytarzu
                 Camera.LookAt =
                     Camera.m_owner->GetWorldPosition( Camera.m_owneroffset )
@@ -602,7 +602,7 @@ driver_mode::update_camera( double const Deltatime ) {
                 Camera.LookAt =
                     Camera.m_owner->GetWorldPosition( Camera.m_owneroffset )
                     + Camera.m_owner->VectorFront() * 5.0
-                    * simulation::Train->Occupied()->ActiveCab; //-1 albo 1
+                    * simulation::Train->Occupied()->CabOccupied; //-1 albo 1
             }
             Camera.vUp = simulation::Train->GetUp();
         }
@@ -772,7 +772,7 @@ driver_mode::OnKeyDown(int cKey) {
                                 Global.changeDynObj = targetvehicle;
                                 // TODO: choose active cab based on camera's location relative to vehicle's location
 /*
-                                Global.changeDynObj->MoverParameters->ActiveCab = (
+                                Global.changeDynObj->MoverParameters->CabOccupied = (
                                     Train->DynamicObject->MoverParameters->Neighbours[ exitdirection ].vehicle_end ?
                                     -1 :
                                      1 );
@@ -792,7 +792,7 @@ driver_mode::OnKeyDown(int cKey) {
                             simulation::Train->Dynamic()->Mechanik->TakeControl( false, true );
                             if( true == simulation::Train->Dynamic()->Mechanik->primary() ) {
                                 simulation::Train->Occupied()->CabDeactivisation( true ); // potentially left active
-//                                simulation::Train->Occupied()->ActiveCab = simulation::Train->Occupied()->CabNo;
+//                                simulation::Train->Occupied()->CabOccupied = simulation::Train->Occupied()->CabActive;
                                 simulation::Train->Occupied()->CabActivisation();
                             }
                             InOutKey(); // do kabiny
@@ -935,9 +935,9 @@ driver_mode::DistantView( bool const Near ) {
     if( vehicle == nullptr ) { return; }
 
     auto const cab =
-        ( vehicle->MoverParameters->ActiveCab == 0 ?
+        ( vehicle->MoverParameters->CabOccupied == 0 ?
             1 :
-            vehicle->MoverParameters->ActiveCab );
+            vehicle->MoverParameters->CabOccupied );
     auto const left = vehicle->VectorLeft() * cab;
 
     if( true == Near ) {
@@ -951,7 +951,7 @@ driver_mode::DistantView( bool const Near ) {
 
         Camera.Pos =
             vehicle->GetPosition()
-            + vehicle->VectorFront() * vehicle->MoverParameters->ActiveCab * 50.0
+            + vehicle->VectorFront() * vehicle->MoverParameters->CabOccupied * 50.0
             + Math3D::vector3( -10.0 * left.x, 1.6, -10.0 * left.z );
     }
 
@@ -997,15 +997,15 @@ driver_mode::ExternalView() {
             else {
                 // default view setup
                 auto const offsetflip{
-                    ( vehicle->MoverParameters->ActiveCab == 0 ? 1 : vehicle->MoverParameters->ActiveCab )
-                  * ( vehicle->MoverParameters->ActiveDir == 0 ? 1 : vehicle->MoverParameters->ActiveDir ) };
+                    ( vehicle->MoverParameters->CabOccupied == 0 ? 1 : vehicle->MoverParameters->CabOccupied )
+                  * ( vehicle->MoverParameters->DirActive == 0 ? 1 : vehicle->MoverParameters->DirActive ) };
 
                 Camera.m_owneroffset = {
                       1.5 * owner->MoverParameters->Dim.W * offsetflip,
                       std::max( 5.0, 1.25 * owner->MoverParameters->Dim.H ),
                     -0.4 * owner->MoverParameters->Dim.L * offsetflip };
 
-                Camera.Angle.y = glm::radians( ( vehicle->MoverParameters->ActiveDir < 0 ? 180.0 : 0.0 ) );
+                Camera.Angle.y = glm::radians( ( vehicle->MoverParameters->DirActive < 0 ? 180.0 : 0.0 ) );
             }
             auto const shakeangles{ owner->shake_angles() };
             Camera.Angle.x -= 0.5 * shakeangles.second; // hustanie kamery przod tyl
@@ -1028,8 +1028,8 @@ driver_mode::ExternalView() {
             else {
                 // default view setup
                 auto const offsetflip{
-                    ( vehicle->MoverParameters->ActiveCab == 0 ? 1 : vehicle->MoverParameters->ActiveCab )
-                  * ( vehicle->MoverParameters->ActiveDir == 0 ? 1 : vehicle->MoverParameters->ActiveDir )
+                    ( vehicle->MoverParameters->CabOccupied == 0 ? 1 : vehicle->MoverParameters->CabOccupied )
+                  * ( vehicle->MoverParameters->DirActive == 0 ? 1 : vehicle->MoverParameters->DirActive )
                   * -1 };
 
                 Camera.m_owneroffset = {
@@ -1037,7 +1037,7 @@ driver_mode::ExternalView() {
                     std::max( 5.0, 1.25 * owner->MoverParameters->Dim.H ),
                     0.2 * owner->MoverParameters->Dim.L * offsetflip };
 
-                Camera.Angle.y = glm::radians( ( vehicle->MoverParameters->ActiveDir < 0 ? 0.0 : 180.0 ) );
+                Camera.Angle.y = glm::radians( ( vehicle->MoverParameters->DirActive < 0 ? 0.0 : 180.0 ) );
             }
             auto const shakeangles { owner->shake_angles() };
             Camera.Angle.x -= 0.5 * shakeangles.second; // hustanie kamery przod tyl
@@ -1058,15 +1058,15 @@ driver_mode::ExternalView() {
             else {
                 // default view setup
                 auto const offsetflip{
-                    ( vehicle->MoverParameters->ActiveCab == 0 ? 1 : vehicle->MoverParameters->ActiveCab )
-                  * ( vehicle->MoverParameters->ActiveDir == 0 ? 1 : vehicle->MoverParameters->ActiveDir ) };
+                    ( vehicle->MoverParameters->CabOccupied == 0 ? 1 : vehicle->MoverParameters->CabOccupied )
+                  * ( vehicle->MoverParameters->DirActive == 0 ? 1 : vehicle->MoverParameters->DirActive ) };
 
                 Camera.m_owneroffset = {
                     -0.65 * owner->MoverParameters->Dim.W * offsetflip,
                       0.90,
                       0.15 * owner->MoverParameters->Dim.L * offsetflip };
 
-                Camera.Angle.y = glm::radians( ( vehicle->MoverParameters->ActiveDir < 0 ? 180.0 : 0.0 ) );
+                Camera.Angle.y = glm::radians( ( vehicle->MoverParameters->DirActive < 0 ? 180.0 : 0.0 ) );
             }
             auto const shakeangles { owner->shake_angles() };
             Camera.Angle.x -= 0.5 * shakeangles.second; // hustanie kamery przod tyl
@@ -1110,7 +1110,7 @@ driver_mode::CabView() {
     Camera.Angle.x -= 0.5 * shakeangles.second; // hustanie kamery przod tyl
     Camera.Angle.z = shakeangles.first; // hustanie kamery na boki
 
-    if( train->Occupied()->ActiveCab == 0 ) {
+    if( train->Occupied()->CabOccupied == 0 ) {
         Camera.LookAt =
             Camera.m_owner->GetWorldPosition( Camera.m_owneroffset )
             + Camera.m_owner->VectorFront() * 5.0;
@@ -1120,7 +1120,7 @@ driver_mode::CabView() {
         Camera.LookAt =
             Camera.m_owner->GetWorldPosition( Camera.m_owneroffset )
             + Camera.m_owner->VectorFront() * 5.0
-            * Camera.m_owner->MoverParameters->ActiveCab;
+            * Camera.m_owner->MoverParameters->CabOccupied;
     }
     train->pMechOffset = Camera.m_owneroffset;
 }
@@ -1141,7 +1141,7 @@ driver_mode::ChangeDynamic() {
             // tylko jeśli ręcznie prowadzony
             // jeśli prowadzi AI, to mu nie robimy dywersji!
             occupied->CabDeactivisation();
-            occupied->ActiveCab = 0;
+            occupied->CabOccupied = 0;
             occupied->BrakeLevelSet( occupied->Handle->GetPos( bh_NP ) ); //rozwala sterowanie hamulcem GF 04-2016
             vehicle->MechInside = false;
             vehicle->Controller = AIdriver;
@@ -1169,13 +1169,13 @@ driver_mode::ChangeDynamic() {
         if( false == driver->AIControllFlag ) // tylko jeśli ręcznie prowadzony
         {
             occupied->LimPipePress = occupied->PipePress;
-            occupied->ActiveCab = occupied->CabNo;
+            occupied->CabOccupied = occupied->CabActive;
             occupied->CabActivisation( true ); // załączenie rozrządu (wirtualne kabiny)
             vehicle->MechInside = true;
             vehicle->Controller = Humandriver;
         }
     train->InitializeCab(
-        occupied->CabNo,
+        occupied->CabActive,
         vehicle->asBaseDir + occupied->TypeName + ".mmd" );
     if( false == FreeFlyModeFlag ) {
         vehicle->bDisplayCab = true;

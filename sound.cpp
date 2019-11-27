@@ -908,11 +908,11 @@ bool
 sound_source::update_soundproofing() {
     // NOTE, HACK: current cab id can vary from -1 to +1, and we use another higher priority value for open cab window
     // we use this as modifier to force re-calculations when moving between compartments or changing window state
-    int const activecab = (
+    int const occupiedcab = (
         Global.CabWindowOpen ? 2 :
         FreeFlyModeFlag ? 0 :
         ( simulation::Train ?
-            simulation::Train->Occupied()->ActiveCab :
+            simulation::Train->Occupied()->CabOccupied :
             0 ) );
     // location-based gain factor:
     std::uintptr_t soundproofingstamp = reinterpret_cast<std::uintptr_t>( (
@@ -921,7 +921,7 @@ sound_source::update_soundproofing() {
             ( simulation::Train ?
                 simulation::Train->Dynamic() :
                 nullptr ) ) )
-        + activecab;
+        + occupiedcab;
 
     if( soundproofingstamp == m_properties.soundproofing_stamp ) { return false; }
 
@@ -944,7 +944,7 @@ sound_source::update_soundproofing() {
                     EU07_SOUNDPROOFING_STRONG : // listener outside HACK: won't be true if active vehicle has open window
                     ( simulation::Train->Dynamic() != m_owner ?
                         EU07_SOUNDPROOFING_STRONG : // in another vehicle
-                        ( activecab == 0 ?
+                        ( occupiedcab == 0 ?
                             EU07_SOUNDPROOFING_STRONG : // listener in the engine compartment
                             EU07_SOUNDPROOFING_NONE ) ) ); // listener in the cab of the same vehicle
             break;
@@ -955,7 +955,7 @@ sound_source::update_soundproofing() {
                     EU07_SOUNDPROOFING_SOME : // listener outside or has a window open
                     ( simulation::Train->Dynamic() != m_owner ?
                         EU07_SOUNDPROOFING_STRONG : // in another vehicle
-                        ( activecab == 0 ?
+                        ( occupiedcab == 0 ?
                             EU07_SOUNDPROOFING_NONE : // listener in the engine compartment
                             EU07_SOUNDPROOFING_STRONG ) ) ); // listener in another compartment of the same vehicle
             break;

@@ -444,8 +444,8 @@ bool TTrain::Init(TDynamicObject *NewDynamicObject, bool e3d)
         return false;
         */
         auto const activecab { (
-            NewDynamicObject->MoverParameters->ActiveCab > 0 ? "1" :
-            NewDynamicObject->MoverParameters->ActiveCab < 0 ? "2" :
+            NewDynamicObject->MoverParameters->CabOccupied > 0 ? "1" :
+            NewDynamicObject->MoverParameters->CabOccupied < 0 ? "2" :
             "p" ) };
         NewDynamicObject->create_controller( activecab, NewDynamicObject->ctOwner != nullptr );
     }
@@ -460,8 +460,8 @@ bool TTrain::Init(TDynamicObject *NewDynamicObject, bool e3d)
     fMainRelayTimer = 0; // Hunter, do k...y nędzy, ustawiaj wartości początkowe zmiennych!
 
     iCabn = (
-        mvOccupied->ActiveCab > 0 ? 1 :
-        mvOccupied->ActiveCab < 0 ? 2 :
+        mvOccupied->CabOccupied > 0 ? 1 :
+        mvOccupied->CabOccupied < 0 ? 2 :
         0 );
 
     {
@@ -475,12 +475,12 @@ bool TTrain::Init(TDynamicObject *NewDynamicObject, bool e3d)
 
     // Ra: taka proteza - przesłanie kierunku do członów connected
     /*
-    if (mvControlled->ActiveDir > 0)
+    if (mvControlled->DirActive > 0)
     { // było do przodu
         mvControlled->DirectionBackward();
         mvControlled->DirectionForward();
     }
-    else if (mvControlled->ActiveDir < 0)
+    else if (mvControlled->DirActive < 0)
     {
         mvControlled->DirectionForward();
         mvControlled->DirectionBackward();
@@ -502,7 +502,7 @@ dictionary_source *TTrain::GetTrainState() {
     if( dict == nullptr ) { return nullptr; }
 
     dict->insert( "name", DynamicObject->asName );
-    dict->insert( "cab", mvOccupied->ActiveCab );
+    dict->insert( "cab", mvOccupied->CabOccupied );
     // basic systems state data
     dict->insert( "battery", mvControlled->Battery );
     dict->insert( "linebreaker", mvControlled->Mains );
@@ -515,7 +515,7 @@ dictionary_source *TTrain::GetTrainState() {
     dict->insert( "lights_front", mvOccupied->iLights[ end::front ] );
     dict->insert( "lights_rear", mvOccupied->iLights[ end::rear ] );
     // reverser
-    dict->insert( "direction", mvOccupied->ActiveDir );
+    dict->insert( "direction", mvOccupied->DirActive );
     // throttle
     dict->insert( "mainctrl_pos", mvControlled->MainCtrlPos );
     dict->insert( "main_ctrl_actual_pos", mvControlled->MainCtrlActualPos );
@@ -686,7 +686,7 @@ bool TTrain::is_eztoer() const {
        && ( mvOccupied->BrakeSubsystem == TBrakeSubSystem::ss_ESt )
        && ( mvControlled->Battery == true )
        && ( mvControlled->EpFuse == true )
-       && ( mvControlled->ActiveDir != 0 ) ); // od yB
+       && ( mvControlled->DirActive != 0 ) ); // od yB
 }
 
 // mover master controller to specified position
@@ -1798,7 +1798,7 @@ void TTrain::OnCommand_reverserincrease( TTrain *Train, command_data const &Comm
 
         if( Train->mvOccupied->DirectionForward() ) {
             // aktualizacja skrajnych pojazdów w składzie
-            if( ( Train->mvOccupied->ActiveDir )
+            if( ( Train->mvOccupied->DirActive )
              && ( Train->DynamicObject->Mechanik ) ) {
 
                 Train->DynamicObject->Mechanik->DirectionChange();
@@ -1813,7 +1813,7 @@ void TTrain::OnCommand_reverserdecrease( TTrain *Train, command_data const &Comm
 
         if( Train->mvOccupied->DirectionBackward() ) {
             // aktualizacja skrajnych pojazdów w składzie
-            if( ( Train->mvOccupied->ActiveDir )
+            if( ( Train->mvOccupied->DirActive )
              && ( Train->DynamicObject->Mechanik ) ) {
 
                 Train->DynamicObject->Mechanik->DirectionChange();;
@@ -1837,14 +1837,14 @@ void TTrain::OnCommand_reverserforward( TTrain *Train, command_data const &Comma
         // HACK: try to move the reverser one position back, in case it's set to "high forward"
         OnCommand_reverserdecrease( Train, Command );
 
-        if( Train->mvOccupied->ActiveDir < 1 ) {
+        if( Train->mvOccupied->DirActive < 1 ) {
 
-            while( ( Train->mvOccupied->ActiveDir < 1 )
+            while( ( Train->mvOccupied->DirActive < 1 )
                 && ( true == Train->mvOccupied->DirectionForward() ) ) {
                 // all work is done in the header
             }
             // aktualizacja skrajnych pojazdów w składzie
-            if( ( Train->mvOccupied->ActiveDir == 1 )
+            if( ( Train->mvOccupied->DirActive == 1 )
              && ( Train->DynamicObject->Mechanik ) ) {
 
                 Train->DynamicObject->Mechanik->DirectionChange();
@@ -1857,11 +1857,11 @@ void TTrain::OnCommand_reverserneutral( TTrain *Train, command_data const &Comma
 
     if( Command.action == GLFW_PRESS ) {
 
-        while( ( Train->mvOccupied->ActiveDir < 0 )
+        while( ( Train->mvOccupied->DirActive < 0 )
             && ( true == Train->mvOccupied->DirectionForward() ) ) {
             // all work is done in the header
         }
-        while( ( Train->mvOccupied->ActiveDir > 0 )
+        while( ( Train->mvOccupied->DirActive > 0 )
             && ( true == Train->mvOccupied->DirectionBackward() ) ) {
             // all work is done in the header
         }
@@ -1872,14 +1872,14 @@ void TTrain::OnCommand_reverserbackward( TTrain *Train, command_data const &Comm
 
     if( Command.action == GLFW_PRESS ) {
 
-        if( Train->mvOccupied->ActiveDir > -1 ) {
+        if( Train->mvOccupied->DirActive > -1 ) {
 
-            while( ( Train->mvOccupied->ActiveDir > -1 )
+            while( ( Train->mvOccupied->DirActive > -1 )
                 && ( true == Train->mvOccupied->DirectionBackward() ) ) {
                 // all work is done in the header
             }
             // aktualizacja skrajnych pojazdów w składzie
-            if( ( Train->mvOccupied->ActiveDir == -1 )
+            if( ( Train->mvOccupied->DirActive == -1 )
              && ( Train->DynamicObject->Mechanik ) ) {
 
                 Train->DynamicObject->Mechanik->DirectionChange();
@@ -5524,7 +5524,7 @@ void TTrain::OnCommand_cabchangeforward( TTrain *Train, command_data const &Comm
                     exitdirection == end::front ?
                         Train->DynamicObject->PrevConnected() :
                         Train->DynamicObject->NextConnected() );
-                Global.changeDynObj->MoverParameters->ActiveCab = (
+                Global.changeDynObj->MoverParameters->CabOccupied = (
                     Train->DynamicObject->MoverParameters->Neighbours[ exitdirection ].vehicle_end ?
                         -1 :
                          1 );
@@ -5557,7 +5557,7 @@ void TTrain::OnCommand_cabchangebackward( TTrain *Train, command_data const &Com
                     exitdirection == end::front ?
                         Train->DynamicObject->PrevConnected() :
                         Train->DynamicObject->NextConnected() );
-                Global.changeDynObj->MoverParameters->ActiveCab = (
+                Global.changeDynObj->MoverParameters->CabOccupied = (
                     Train->DynamicObject->MoverParameters->Neighbours[ exitdirection ].vehicle_end ?
                         -1 :
                          1 );
@@ -5578,18 +5578,18 @@ void TTrain::UpdateCab() {
      && ( DynamicObject->Mechanik->AIControllFlag ) ) { 
         
         if( iCabn != ( // numer kabiny (-1: kabina B)
-                DynamicObject->MoverParameters->ActiveCab == -1 ?
+                DynamicObject->MoverParameters->CabOccupied == -1 ?
                     2 :
-                    DynamicObject->MoverParameters->ActiveCab ) ) {
+                    DynamicObject->MoverParameters->CabOccupied ) ) {
 
             InitializeCab(
-                DynamicObject->MoverParameters->ActiveCab,
+                DynamicObject->MoverParameters->CabOccupied,
                 DynamicObject->asBaseDir + DynamicObject->MoverParameters->TypeName + ".mmd" );
         }
     }
-    iCabn = ( DynamicObject->MoverParameters->ActiveCab == -1 ?
+    iCabn = ( DynamicObject->MoverParameters->CabOccupied == -1 ?
         2 :
-        DynamicObject->MoverParameters->ActiveCab );
+        DynamicObject->MoverParameters->CabOccupied );
 }
 
 bool TTrain::Update( double const Deltatime )
@@ -5775,8 +5775,8 @@ bool TTrain::Update( double const Deltatime )
             fHCurrent[3] = mvControlled->ShowCurrent(3);
         }
 
-        bool kier = (DynamicObject->DirectionGet() * mvOccupied->ActiveCab > 0);
-        TDynamicObject *p = DynamicObject->GetFirstDynamic(mvOccupied->ActiveCab < 0 ? end::rear : end::front, 4);
+        bool kier = (DynamicObject->DirectionGet() * mvOccupied->CabOccupied > 0);
+        TDynamicObject *p = DynamicObject->GetFirstDynamic(mvOccupied->CabOccupied < 0 ? end::rear : end::front, 4);
         int in = 0;
         fEIMParams[0][6] = 0;
         iCarNo = 0;
@@ -5973,11 +5973,11 @@ bool TTrain::Update( double const Deltatime )
             TDynamicObject *tmp { nullptr };
             if (DynamicObject->NextConnected())
                 if ((TestFlag(mvControlled->Couplers[end::rear].CouplingFlag, ctrain_controll)) &&
-                    (mvOccupied->ActiveCab == 1))
+                    (mvOccupied->CabOccupied == 1))
                     tmp = DynamicObject->NextConnected();
             if (DynamicObject->PrevConnected())
                 if ((TestFlag(mvControlled->Couplers[end::front].CouplingFlag, ctrain_controll)) &&
-                    (mvOccupied->ActiveCab == -1))
+                    (mvOccupied->CabOccupied == -1))
                     tmp = DynamicObject->PrevConnected();
             if( tmp ) {
                 if( tmp->MoverParameters->Power > 0 ) {
@@ -6191,8 +6191,8 @@ bool TTrain::Update( double const Deltatime )
                     false :
                     mvOccupied->BrakePress < 1.0 ); // mozna prowadzic rozruch
 
-            if( ( ( mvControlled->ActiveCab ==  1 ) && ( TestFlag( mvControlled->Couplers[ end::rear  ].CouplingFlag, coupling::control ) ) )
-             || ( ( mvControlled->ActiveCab == -1 ) && ( TestFlag( mvControlled->Couplers[ end::front ].CouplingFlag, coupling::control ) ) ) ) {
+            if( ( ( mvControlled->CabOccupied ==  1 ) && ( TestFlag( mvControlled->Couplers[ end::rear  ].CouplingFlag, coupling::control ) ) )
+             || ( ( mvControlled->CabOccupied == -1 ) && ( TestFlag( mvControlled->Couplers[ end::front ].CouplingFlag, coupling::control ) ) ) ) {
                 btLampkaUkrotnienie.Turn( true );
             }
             else {
@@ -6220,7 +6220,7 @@ bool TTrain::Update( double const Deltatime )
                 btLampkaBoczniki.Turn( false );
             }
 
-            btLampkaNapNastHam.Turn(mvControlled->ActiveDir != 0); // napiecie na nastawniku hamulcowym
+            btLampkaNapNastHam.Turn(mvControlled->DirActive != 0); // napiecie na nastawniku hamulcowym
             btLampkaSprezarka.Turn(mvControlled->CompressorFlag); // mutopsitka dziala
             btLampkaSprezarkaOff.Turn( false == mvControlled->CompressorFlag );
             btLampkaFuelPumpOff.Turn( false == mvControlled->FuelPump.is_active );
@@ -6290,9 +6290,9 @@ bool TTrain::Update( double const Deltatime )
             btLampkaBlokadaDrzwi.Turn( mvOccupied->Doors.is_locked );
             btLampkaDoorLockOff.Turn( false == mvOccupied->Doors.lock_enabled );
             btLampkaDepartureSignal.Turn( mvControlled->DepartureSignal );
-            btLampkaNapNastHam.Turn((mvControlled->ActiveDir != 0) && (mvOccupied->EpFuse)); // napiecie na nastawniku hamulcowym
-            btLampkaForward.Turn(mvControlled->ActiveDir > 0); // jazda do przodu
-            btLampkaBackward.Turn(mvControlled->ActiveDir < 0); // jazda do tyłu
+            btLampkaNapNastHam.Turn((mvControlled->DirActive != 0) && (mvOccupied->EpFuse)); // napiecie na nastawniku hamulcowym
+            btLampkaForward.Turn(mvControlled->DirActive > 0); // jazda do przodu
+            btLampkaBackward.Turn(mvControlled->DirActive < 0); // jazda do tyłu
             btLampkaED.Turn(mvControlled->DynamicBrakeFlag); // hamulec ED
             btLampkaBrakeProfileG.Turn( TestFlag( mvOccupied->BrakeDelayFlag, bdelay_G ) );
             btLampkaBrakeProfileP.Turn( TestFlag( mvOccupied->BrakeDelayFlag, bdelay_P ) );
@@ -6392,10 +6392,10 @@ bool TTrain::Update( double const Deltatime )
             TDynamicObject *tmp { nullptr }; //=mvControlled->mvSecond; //Ra 2014-07: trzeba to jeszcze wyjąć z kabiny...
             // Ra 2014-07: no nie ma potrzeby szukać tego w każdej klatce
             if ((TestFlag(mvControlled->Couplers[1].CouplingFlag, ctrain_controll)) &&
-                (mvOccupied->ActiveCab > 0))
+                (mvOccupied->CabOccupied > 0))
                 tmp = DynamicObject->NextConnected();
             if ((TestFlag(mvControlled->Couplers[0].CouplingFlag, ctrain_controll)) &&
-                (mvOccupied->ActiveCab < 0))
+                (mvOccupied->CabOccupied < 0))
                 tmp = DynamicObject->PrevConnected();
 
             if( tmp ) {
@@ -6530,11 +6530,11 @@ bool TTrain::Update( double const Deltatime )
         if (ggDirKey.SubModel) {
             if (mvControlled->TrainType != dt_EZT)
                 ggDirKey.UpdateValue(
-                    double(mvControlled->ActiveDir),
+                    double(mvControlled->DirActive),
                     dsbReverserKey);
             else
                 ggDirKey.UpdateValue(
-                    double(mvControlled->ActiveDir) + double(mvControlled->Imin == mvControlled->IminHi),
+                    double(mvControlled->DirActive) + double(mvControlled->Imin == mvControlled->IminHi),
                     dsbReverserKey);
             ggDirKey.Update();
         }
@@ -7188,7 +7188,7 @@ void TTrain::add_distance( double const Distance ) {
 
     auto const meterenabled { ( true == ( m_distancecounter >= 0 ) ) && ( mvControlled->Battery || mvControlled->ConverterFlag ) };
 
-    if( true == meterenabled ) { m_distancecounter += Distance * Occupied()->ActiveCab; }
+    if( true == meterenabled ) { m_distancecounter += Distance * Occupied()->CabOccupied; }
     else                       { m_distancecounter  = -1.f; }
 }
 
@@ -7198,17 +7198,17 @@ bool TTrain::CabChange(int iDirection)
      || ( true == DynamicObject->Mechanik->AIControllFlag ) ) {
         // jeśli prowadzi AI albo jest w innym członie
         // jak AI prowadzi, to nie można mu mieszać
-        if (abs(DynamicObject->MoverParameters->ActiveCab + iDirection) > 1)
+        if (abs(DynamicObject->MoverParameters->CabOccupied + iDirection) > 1)
             return false; // ewentualna zmiana pojazdu
-        DynamicObject->MoverParameters->ActiveCab =
-            DynamicObject->MoverParameters->ActiveCab + iDirection;
+        DynamicObject->MoverParameters->CabOccupied =
+            DynamicObject->MoverParameters->CabOccupied + iDirection;
     }
     else
     { // jeśli pojazd prowadzony ręcznie albo wcale (wagon)
         DynamicObject->MoverParameters->CabDeactivisation();
         if( DynamicObject->MoverParameters->ChangeCab( iDirection ) ) {
             if( InitializeCab(
-                DynamicObject->MoverParameters->ActiveCab,
+                DynamicObject->MoverParameters->CabOccupied,
                 DynamicObject->asBaseDir + DynamicObject->MoverParameters->TypeName + ".mmd" ) ) {
                 // zmiana kabiny w ramach tego samego pojazdu
                 DynamicObject->MoverParameters->CabActivisation(); // załączenie rozrządu (wirtualne kabiny)
@@ -7384,7 +7384,7 @@ bool TTrain::LoadMMediaFile(std::string const &asFileName)
         return false;
     } // nie znalazl sekcji internal
 
-    if (!InitializeCab(mvOccupied->ActiveCab, asFileName))
+    if (!InitializeCab(mvOccupied->CabOccupied, asFileName))
     {
         // zle zainicjowana kabina
         return false;
@@ -7838,8 +7838,8 @@ TTrain::radio_message( sound_source *Message, int const Channel ) {
 
 void TTrain::SetLights()
 {
-    TDynamicObject *p = DynamicObject->GetFirstDynamic(mvOccupied->ActiveCab < 0 ? 1 : 0, 4);
-    bool kier = (DynamicObject->DirectionGet() * mvOccupied->ActiveCab > 0);
+    TDynamicObject *p = DynamicObject->GetFirstDynamic(mvOccupied->CabOccupied < 0 ? 1 : 0, 4);
+    bool kier = (DynamicObject->DirectionGet() * mvOccupied->CabOccupied > 0);
     int xs = (kier ? 0 : 1);
     if (kier ? p->NextC(1) : p->PrevC(1)) // jesli jest nastepny, to tylko przod
     {

@@ -1628,7 +1628,7 @@ TController::TController(bool AI, TDynamicObject *NewControll, bool InitPsyche, 
         pVehicles[ 1 ] = nullptr;
     }
     if( mvOccupied != nullptr ) {
-        iDirectionOrder = mvOccupied->CabNo; // 1=do przodu (w kierunku sprzęgu 0)
+        iDirectionOrder = mvOccupied->CabActive; // 1=do przodu (w kierunku sprzęgu 0)
         VehicleName = mvOccupied->Name;
 
         if( mvOccupied->CategoryFlag & 2 ) { // samochody: na podst. http://www.prawko-kwartnik.info/hamowanie.html
@@ -1816,7 +1816,7 @@ void TController::Activation()
                 mvOccupied->Handle->GetPos(bh_NP)); // odcięcie na zaworze maszynisty
 			BrakeLevelSet(gbh_NP); //ustawienie zmiennej GBH
         }
-        mvOccupied->ActiveCab = mvOccupied->CabNo; // użytkownik moze zmienić ActiveCab wychodząc
+        mvOccupied->CabOccupied = mvOccupied->CabActive; // użytkownik moze zmienić CabOccupied wychodząc
         mvOccupied->CabDeactivisation(); // tak jest w Train.cpp
         // przejście AI na drugą stronę EN57, ET41 itp.
         while (TestFlag(d->MoverParameters->Couplers[iDirection < 0 ? end::rear : end::front].CouplingFlag, ctrain_controll))
@@ -1831,8 +1831,8 @@ void TController::Activation()
                 if (d->DirectionGet() != pVehicle->DirectionGet()) // jeśli są przeciwne do siebie
                     iDirection = -iDirection; // to będziemy jechać w drugą stronę względem zasiedzianego pojazdu
                 pVehicle->Mechanik = drugi; // wsadzamy tego, co ewentualnie był (podwójna trakcja)
-                pVehicle->MoverParameters->CabNo = 0; // wyłączanie kabin po drodze
-                pVehicle->MoverParameters->ActiveCab = 0; // i zaznaczenie, że nie ma tam nikogo
+                pVehicle->MoverParameters->CabActive = 0; // wyłączanie kabin po drodze
+                pVehicle->MoverParameters->CabOccupied = 0; // i zaznaczenie, że nie ma tam nikogo
                 pVehicle = d; // a mechu ma nowy pojazd (no, człon)
             }
             else
@@ -1856,9 +1856,9 @@ void TController::Activation()
             }
         }
         // Ra: to przełączanie poniżej jest tu bez sensu
-        mvOccupied->ActiveCab = iDirection; // aktywacja kabiny w prowadzonym pojeżdzie (silnikowy może być odwrotnie?)
-        // mvOccupied->CabNo=iDirection;
-        // mvOccupied->ActiveDir=0; //żeby sam ustawił kierunek
+        mvOccupied->CabOccupied = iDirection; // aktywacja kabiny w prowadzonym pojeżdzie (silnikowy może być odwrotnie?)
+        // mvOccupied->CabActive=iDirection;
+        // mvOccupied->DirActive=0; //żeby sam ustawił kierunek
         mvOccupied->CabActivisation(); // uruchomienie kabin w członach
         DirectionForward(true); // nawrotnik do przodu
         if (localbrakelevel > 0.0) // hamowanie tylko jeśli był wcześniej zahamowany (bo możliwe, że jedzie!)
@@ -2102,7 +2102,7 @@ int TController::CheckDirection() {
     int d = mvOccupied->DirAbsolute; // który sprzęg jest z przodu
     if( !d ) {
         // jeśli nie ma ustalonego kierunku to jedziemy wg aktualnej kabiny
-        d = mvOccupied->CabNo;
+        d = mvOccupied->CabActive;
     }
     return d;
 }
@@ -2223,23 +2223,23 @@ bool TController::CheckVehicles(TOrders user)
             {
                 // HACK: the 'front' and 'rear' of the consist is determined by current consist direction
                 // since direction shouldn't affect Tb1 light configuration, we 'counter' this behaviour by virtually swapping end vehicles
-                if( mvOccupied->ActiveDir > 0 ) {
+                if( mvOccupied->DirActive > 0 ) {
                     Lights(
                         light::headlight_right,
-                        ( pVehicles[ 1 ]->MoverParameters->CabNo != 0 ?
+                        ( pVehicles[ 1 ]->MoverParameters->CabActive != 0 ?
                             light::headlight_left :
                             0 ) ); //światła manewrowe (Tb1) na pojeździe z napędem
                 }
                 else {
                     Lights(
-                        ( pVehicles[ 1 ]->MoverParameters->CabNo != 0 ?
+                        ( pVehicles[ 1 ]->MoverParameters->CabActive != 0 ?
                             light::headlight_left :
                             0 ),
                         light::headlight_right ); //światła manewrowe (Tb1) na pojeździe z napędem
                 }
             }
             else if( true == TestFlag( OrderCurrentGet(), Disconnect ) ) {
-                if( mvOccupied->ActiveDir > 0 ) {
+                if( mvOccupied->DirActive > 0 ) {
                     // jak ma kierunek do przodu
                     // światła manewrowe (Tb1) tylko z przodu, aby nie pozostawić odczepionego ze światłem
                     Lights( light::headlight_right, 0 );
@@ -2348,7 +2348,7 @@ void TController::DirectionInitial()
     { // jeśli na starcie jedzie
         iDirection = iDirectionOrder =
             (mvOccupied->V > 0 ? 1 : -1); // początkowa prędkość wymusza kierunek jazdy
-        DirectionForward(mvOccupied->V * mvOccupied->CabNo >= 0.0); // a dalej ustawienie nawrotnika
+        DirectionForward(mvOccupied->V * mvOccupied->CabActive >= 0.0); // a dalej ustawienie nawrotnika
     }
     CheckVehicles(); // sprawdzenie świateł oraz skrajnych pojazdów do skanowania
 };
@@ -2368,7 +2368,7 @@ int TController::OrderDirectionChange(int newdir, TMoverParameters *Vehicle)
     if (Vehicle->Vel < 0.5)
     { // jeśli prawie stoi, można zmienić kierunek, musi być wykonane dwukrotnie, bo za pierwszym
         // razem daje na zero
-        switch (newdir * Vehicle->CabNo)
+        switch (newdir * Vehicle->CabActive)
         { // DirectionBackward() i DirectionForward() to zmiany względem kabiny
         case -1: // if (!Vehicle->DirectionBackward()) testd=0; break;
             DirectionForward(false);
@@ -2382,12 +2382,12 @@ int TController::OrderDirectionChange(int newdir, TMoverParameters *Vehicle)
     }
     else // jeśli jedzie
         VelforDriver = 0; // ma się zatrzymać w celu zmiany kierunku
-    if ((Vehicle->ActiveDir == 0) && (VelforDriver < Vehicle->Vel)) // Ra: to jest chyba bez sensu
+    if ((Vehicle->DirActive == 0) && (VelforDriver < Vehicle->Vel)) // Ra: to jest chyba bez sensu
         IncBrake(); // niech hamuje
-    if (Vehicle->ActiveDir == testd * Vehicle->CabNo)
+    if (Vehicle->DirActive == testd * Vehicle->CabActive)
         VelforDriver = -1; // można jechać, bo kierunek jest zgodny z żądanym
     if (Vehicle->TrainType == dt_EZT)
-        if (Vehicle->ActiveDir > 0)
+        if (Vehicle->DirActive > 0)
             // if () //tylko jeśli jazda pociągowa (tego nie wiemy w momencie odpalania silnika)
             Vehicle->DirectionForward(); // Ra: z przekazaniem do silnikowego
     return (int)VelforDriver; // zwraca prędkość mechanika
@@ -2540,7 +2540,7 @@ bool TController::PrepareEngine()
         if( !iDirection ) {
             // jeśli nie ma ustalonego kierunku
             if( mvOccupied->Vel < 0.01 ) { // ustalenie kierunku, gdy stoi
-                iDirection = mvOccupied->CabNo; // wg wybranej kabiny
+                iDirection = mvOccupied->CabActive; // wg wybranej kabiny
                 if( !iDirection ) {
                     // jeśli nie ma ustalonego kierunku
                     if( ( mvControlling->PantographVoltage != 0.0 ) || voltfront || voltrear ) {
@@ -2622,7 +2622,7 @@ bool TController::PrepareEngine()
         OK = false;
 
     if( ( true == OK )
-     && ( mvOccupied->ActiveDir != 0 )
+     && ( mvOccupied->DirActive != 0 )
      && ( true == workingtemperature )
      && ( ( mvControlling->ScndPipePress > 4.5 ) || ( mvControlling->VeselVolume == 0.0 ) ) ) {
 
@@ -2663,7 +2663,7 @@ bool TController::ReleaseEngine() {
 
     if( false == AIControllFlag ) {
         // tylko to testujemy dla pojazdu człowieka
-        OK = ( ( mvOccupied->ActiveDir == 0 ) && ( mvControlling->Mains ) );
+        OK = ( ( mvOccupied->DirActive == 0 ) && ( mvControlling->Mains ) );
     }
     else  {
         // jeśli steruje komputer
@@ -3188,7 +3188,7 @@ bool TController::IncSpeed()
             }
         break;
     case TEngineType::WheelsDriven:
-        if (!mvControlling->CabNo)
+        if (!mvControlling->CabActive)
             mvControlling->CabActivisation();
         if (sin(mvControlling->eAngle) > 0)
             mvControlling->IncMainCtrl(3 + 3 * floor(0.5 + fabs(AccDesired)));
@@ -3278,7 +3278,7 @@ bool TController::DecSpeed(bool force)
 		OK = DecSpeedEIM();
 		break;
     case TEngineType::WheelsDriven:
-        if (!mvControlling->CabNo)
+        if (!mvControlling->CabActive)
             mvControlling->CabActivisation();
         if (sin(mvControlling->eAngle) < 0)
             mvControlling->IncMainCtrl(3 + 3 * floor(0.5 + fabs(AccDesired)));
@@ -3412,7 +3412,7 @@ void TController::SpeedSet()
                 if( fActionTime < 0.0 ) { break; }
                 if( fReady > ( mvOccupied->Vel > 5.0 ? 0.5 : 0.4 ) ) { break; }
 
-                if( mvOccupied->ActiveDir > 0 ) {
+                if( mvOccupied->DirActive > 0 ) {
                     mvOccupied->DirectionForward(); //żeby EN57 jechały na drugiej nastawie
                 }
 
@@ -3565,13 +3565,13 @@ void TController::SpeedCntrl(double DesiredSpeed)
 		else if (mvControlling->ScndCtrlPos < 1) {
 			mvControlling->IncScndCtrl(1);
 		}
-		mvControlling->RunCommand("SpeedCntrl", DesiredSpeed, mvControlling->CabNo);
+		mvControlling->RunCommand("SpeedCntrl", DesiredSpeed, mvControlling->CabActive);
 	}
 	else
 	if (mvControlling->ScndCtrlPosNo == 1)
 	{
 		mvControlling->IncScndCtrl(1);
-		mvControlling->RunCommand("SpeedCntrl", DesiredSpeed, mvControlling->CabNo);
+		mvControlling->RunCommand("SpeedCntrl", DesiredSpeed, mvControlling->CabActive);
 	}
 	else if ((mvControlling->ScndCtrlPosNo > 1) && (!mvOccupied->SpeedCtrlTypeTime))
 	{
@@ -4050,13 +4050,13 @@ bool TController::PutCommand( std::string NewCommand, double NewValue1, double N
            if (mvOccupied->V!=0.0)
             iDirectionOrder=mvOccupied->V>0?1:-1;
            else
-            iDirectionOrder=mvOccupied->ActiveCab;
+            iDirectionOrder=mvOccupied->CabOccupied;
            if (!iDirectionOrder) iDirectionOrder=1;
           }
         */
         // jeśli wysyłane z Trainset, to wszystko jest już odpowiednio ustawione
         // if (!NewLocation) //jeśli wysyłane z Trainset
-        // if (mvOccupied->CabNo*mvOccupied->V*NewValue1<0) //jeśli zadana prędkość niezgodna z
+        // if (mvOccupied->CabActive*mvOccupied->V*NewValue1<0) //jeśli zadana prędkość niezgodna z
         // aktualnym kierunkiem jazdy
         //  DirectionForward(false); //jedziemy do tyłu (nawrotnik do tyłu)
         // CheckVehicles(); //sprawdzenie składu, AI zapali światła
@@ -4376,7 +4376,7 @@ void TController::PhysicsLog()
             << int(mvControlling->ScndCtrlPos) << " "
             << mvOccupied->fBrakeCtrlPos << " "
             << mvOccupied->LocalBrakePosA << " "
-            << int(mvControlling->ActiveDir) << " "
+            << int(mvControlling->DirActive) << " "
             << ( mvOccupied->CommandIn.Command.empty() ? "none" : mvOccupied->CommandIn.Command.c_str() ) << " "
             << mvOccupied->CommandIn.Value1 << " "
             << mvOccupied->CommandIn.Value2 << " "
@@ -4842,7 +4842,7 @@ TController::UpdateSituation(double dt) {
             routescandirection = end::rear;
         }
 /*
-        if( pVehicle->MoverParameters->ActiveCab < 0 ) {
+        if( pVehicle->MoverParameters->CabOccupied < 0 ) {
             // flip the scan direction in the rear cab
             routescandirection ^= routescandirection;
         }
@@ -5357,7 +5357,7 @@ TController::UpdateSituation(double dt) {
                             mvOccupied->BrakeReleaser(1); // wyluzuj lokomotywę; a ST45?
                             mvOccupied->DecLocalBrakeLevel(LocalBrakePosNo); // zwolnienie hamulca
                             iDrivigFlags |= movePress; // następnie będzie dociskanie
-                            DirectionForward(mvOccupied->ActiveDir < 0); // zmiana kierunku jazdy na przeciwny (dociskanie)
+                            DirectionForward(mvOccupied->DirActive < 0); // zmiana kierunku jazdy na przeciwny (dociskanie)
                             CheckVehicles(); // od razu zmienić światła (zgasić) - bez tego się nie odczepi
                         }
                     }
@@ -5376,7 +5376,7 @@ TController::UpdateSituation(double dt) {
                     ZeroSpeed();
                     // ponowna zmiana kierunku
                     WriteLog( mvOccupied->Name + " ponowna zmiana kierunku" );
-                    DirectionForward(mvOccupied->ActiveDir < 0); // zmiana kierunku jazdy na właściwy
+                    DirectionForward(mvOccupied->DirActive < 0); // zmiana kierunku jazdy na właściwy
                     iDrivigFlags &= ~movePress; // koniec dociskania
                     JumpToNextOrder(); // zmieni światła
                     TableClear(); // skanowanie od nowa
@@ -5642,7 +5642,7 @@ TController::UpdateSituation(double dt) {
                         // TODO: proper system for sending/receiving radio messages
                         // place the sound in appropriate cab of the manned vehicle
                         tsGuardSignal.owner( pVehicle );
-                        tsGuardSignal.offset( { 0.f, 2.f, pVehicle->MoverParameters->Dim.L * 0.4f * ( pVehicle->MoverParameters->ActiveCab < 0 ? -1 : 1 ) } );
+                        tsGuardSignal.offset( { 0.f, 2.f, pVehicle->MoverParameters->Dim.L * 0.4f * ( pVehicle->MoverParameters->CabOccupied < 0 ? -1 : 1 ) } );
                         tsGuardSignal.play( sound_flags::exclusive );
                     }
                 }
@@ -6256,7 +6256,7 @@ TController::UpdateSituation(double dt) {
         { // tutaj, gdy pojazd jest wyłączony
             if (!AIControllFlag) // jeśli sterowanie jest w gestii użytkownika
                 if (mvOccupied->Battery) // czy użytkownik załączył baterię?
-                    if (mvOccupied->ActiveDir) // czy ustawił kierunek
+                    if (mvOccupied->DirActive) // czy ustawił kierunek
                     { // jeśli tak, to uruchomienie skanowania
                         CheckVehicles(); // sprawdzić skład
                         TableClear(); // resetowanie tabelki skanowania
@@ -6919,13 +6919,13 @@ void TController::TakeControl( bool const Aidriver, bool const Forcevehiclecheck
             }
             else {
                 // jeśli nic nie robi
-                if( pVehicle->iLights[ ( mvOccupied->CabNo < 0 ?
+                if( pVehicle->iLights[ ( mvOccupied->CabActive < 0 ?
                         end::rear :
                         end::front ) ]
                     & ( light::headlight_left | light::headlight_right | light::headlight_upper ) ) // któreś ze świateł zapalone?
                 { // od wersji 357 oczekujemy podania komend dla AI przez scenerię
                     OrderNext( Prepare_engine );
-                    if( pVehicle->iLights[ mvOccupied->CabNo < 0 ? end::rear : end::front ] & light::headlight_upper ) // górne światło zapalone
+                    if( pVehicle->iLights[ mvOccupied->CabActive < 0 ? end::rear : end::front ] & light::headlight_upper ) // górne światło zapalone
                         OrderNext( Obey_train ); // jazda pociągowa
                     else
                         OrderNext( Shunt ); // jazda manewrowa
@@ -6960,7 +6960,7 @@ void TController::DirectionForward(bool forward)
 
     if( forward ) {
         // do przodu w obecnej kabinie
-        while( ( mvOccupied->ActiveDir <= 0 )
+        while( ( mvOccupied->DirActive <= 0 )
             && ( mvOccupied->DirectionForward() ) ) {
             // force scan table update
             iTableDirection = 0;
@@ -6968,7 +6968,7 @@ void TController::DirectionForward(bool forward)
     }
     else {
         // do tyłu w obecnej kabinie
-        while( ( mvOccupied->ActiveDir >= 0 )
+        while( ( mvOccupied->DirActive >= 0 )
             && ( mvOccupied->DirectionBackward() ) ) {
             // force scan table update
             iTableDirection = 0;
@@ -6985,13 +6985,13 @@ void TController::DirectionForward(bool forward)
 
 void TController::ZeroDirection() {
 
-    while( ( mvOccupied->ActiveDir > 0 ) && ( mvOccupied->DirectionBackward() ) ) { ; }
-    while( ( mvOccupied->ActiveDir < 0 ) && ( mvOccupied->DirectionForward() ) ) { ; }
+    while( ( mvOccupied->DirActive > 0 ) && ( mvOccupied->DirectionBackward() ) ) { ; }
+    while( ( mvOccupied->DirActive < 0 ) && ( mvOccupied->DirectionForward() ) ) { ; }
 }
 
 void TController::sync_consist_reversers() {
 
-    auto const currentdirection { mvOccupied->ActiveDir };
+    auto const currentdirection { mvOccupied->DirActive };
     auto const fastforward { (
         ( mvOccupied->TrainType == dt_EZT )
      && ( mvOccupied->EngineType != TEngineType::ElectricInductionMotor ) )
@@ -7008,7 +7008,7 @@ void TController::sync_consist_reversers() {
         }
     }
     // ...then restore original setting
-    while( mvOccupied->ActiveDir != currentdirection ) {
+    while( mvOccupied->DirActive != currentdirection ) {
         if( false == (
             currentdirection >= 0 ?
                 mvOccupied->DirectionForward() :

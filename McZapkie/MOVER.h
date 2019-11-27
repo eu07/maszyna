@@ -1351,12 +1351,11 @@ public:
 	int ScndCtrlPos = 0; /*polozenie dodatkowego nastawnika*/
 	int LightsPos = 0; /*polozenie przelacznika wielopozycyjnego swiatel*/
 	int CompressorListPos = 0; /*polozenie przelacznika wielopozycyjnego sprezarek*/
-	int ActiveDir = 0; //czy lok. jest wlaczona i w ktorym kierunku:
-				   //względem wybranej kabiny: -1 - do tylu, +1 - do przodu, 0 - wylaczona
+	int DirActive = 0; //czy lok. jest wlaczona i w ktorym kierunku: względem wybranej kabiny: -1 - do tylu, +1 - do przodu, 0 - wylaczona
+    int DirAbsolute = 0; //zadany kierunek jazdy względem sprzęgów (1=w strone 0,-1=w stronę 1)
     int MaxMainCtrlPosNoDirChange { 0 }; // can't change reverser state with master controller set above this position
-	int CabNo = 0; //numer kabiny, z której jest sterowanie: 1 lub -1; w przeciwnym razie brak sterowania - rozrzad
-	int DirAbsolute = 0; //zadany kierunek jazdy względem sprzęgów (1=w strone 0,-1=w stronę 1)
-	int ActiveCab = 0; //numer kabiny, w ktorej jest obsada (zwykle jedna na skład)
+	int CabActive = 0; //numer kabiny, z której jest sterowanie: 1 lub -1; w przeciwnym razie brak sterowania - rozrzad
+	int CabOccupied = 0; //numer kabiny, w ktorej jest obsada (zwykle jedna na skład) // TODO: move to TController
 	double LastSwitchingTime = 0.0; /*czas ostatniego przelaczania czegos*/
     int WarningSignal = 0; // 0: nie trabi, 1,2,4: trabi
 	bool DepartureSignal = false; /*sygnal odjazdu*/
