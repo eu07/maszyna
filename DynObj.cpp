@@ -2719,9 +2719,8 @@ bool TDynamicObject::Update(double dt, double dt1)
 
             if( ts.R != 0.0 ) {
                 // sin(0) results in division by zero
-        //     ts.R=fabs(0.5*MoverParameters->BDist/sin(ts.R*0.5));
                 ts.R = -0.5 * MoverParameters->BDist / sin( ts.R * 0.5 );
-    }
+            }
         }
     }
     else
@@ -5284,7 +5283,7 @@ void TDynamicObject::LoadMMediaFile( std::string const &TypeName, std::string co
 
                 else if( token == "departuresignal:" ) {
 					// pliki z sygnalem odjazdu
-                    sound_source soundtemplate { sound_placement::general, 25.f };
+                    sound_source soundtemplate { sound_placement::general };
                     soundtemplate.deserialize( parser, sound_type::multipart, sound_parameters::range );
                     soundtemplate.owner( this );
                     for( auto &departuresignalsound : m_departuresignalsounds ) {
@@ -5296,7 +5295,7 @@ void TDynamicObject::LoadMMediaFile( std::string const &TypeName, std::string co
                 }
 
 				else if( token == "dooropen:" ) {
-                    sound_source soundtemplate { sound_placement::general, 25.f };
+                    sound_source soundtemplate { sound_placement::general };
                     soundtemplate.deserialize( parser, sound_type::single );
                     soundtemplate.owner( this );
                     for( auto &door : m_doorsounds ) {
@@ -5308,7 +5307,7 @@ void TDynamicObject::LoadMMediaFile( std::string const &TypeName, std::string co
                 }
 
 				else if( token == "doorclose:" ) {
-                    sound_source soundtemplate { sound_placement::general, 25.f };
+                    sound_source soundtemplate { sound_placement::general };
                     soundtemplate.deserialize( parser, sound_type::single );
                     soundtemplate.owner( this );
                     for( auto &door : m_doorsounds ) {
@@ -5320,7 +5319,7 @@ void TDynamicObject::LoadMMediaFile( std::string const &TypeName, std::string co
                 }
 
                 else if( token == "doorlock:" ) {
-                    sound_source soundtemplate { sound_placement::general, 12.5f };
+                    sound_source soundtemplate { sound_placement::general };
                     soundtemplate.deserialize( parser, sound_type::single );
                     soundtemplate.owner( this );
                     for( auto &door : m_doorsounds ) {
@@ -5332,7 +5331,7 @@ void TDynamicObject::LoadMMediaFile( std::string const &TypeName, std::string co
                 }
 
 				else if( token == "doorunlock:" ) {
-                    sound_source soundtemplate { sound_placement::general, 12.5f };
+                    sound_source soundtemplate { sound_placement::general };
                     soundtemplate.deserialize( parser, sound_type::single );
                     soundtemplate.owner( this );
                     for( auto &door : m_doorsounds ) {
@@ -5344,7 +5343,7 @@ void TDynamicObject::LoadMMediaFile( std::string const &TypeName, std::string co
                 }
 
                 else if( token == "doorstepopen:" ) {
-                    sound_source soundtemplate { sound_placement::general, 20.f };
+                    sound_source soundtemplate { sound_placement::general };
                     soundtemplate.deserialize( parser, sound_type::single );
                     soundtemplate.owner( this );
                     for( auto &door : m_doorsounds ) {
@@ -5356,7 +5355,7 @@ void TDynamicObject::LoadMMediaFile( std::string const &TypeName, std::string co
                 }
 
                 else if( token == "doorstepclose:" ) {
-                    sound_source soundtemplate { sound_placement::general, 20.f };
+                    sound_source soundtemplate { sound_placement::general };
                     soundtemplate.deserialize( parser, sound_type::single );
                     soundtemplate.owner( this );
                     for( auto &door : m_doorsounds ) {

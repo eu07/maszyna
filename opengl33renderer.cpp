@@ -2789,9 +2789,8 @@ void opengl33_renderer::Render(TTrack *Track)
 	// single path pieces are rendererd in pick scenery mode only
 	case rendermode::pickscenery:
 	{
-		m_picksceneryitems.emplace_back(Track);
-		model_ubs.param[0] = glm::vec4(pick_color(m_picksceneryitems.size() + 1), 1.0f);
-		m_pick_shader->bind();
+        m_pick_shader->bind();
+        m_picksceneryitems.emplace_back( Track );
 
 		draw(std::begin(Track->Geometry1), std::end(Track->Geometry1));
 		draw(std::begin(Track->Geometry2), std::end(Track->Geometry2));

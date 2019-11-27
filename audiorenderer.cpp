@@ -292,6 +292,7 @@ openal_renderer::init() {
         return false;
     }
     ::alDistanceModel( AL_INVERSE_DISTANCE_CLAMPED );
+    ::alDopplerFactor( 0.25f );
     // all done
     m_ready = true;
     return true;
@@ -345,20 +346,11 @@ openal_renderer::update( double const Deltatime ) {
                 glm::vec3() );
 */
         auto cameramove{ glm::dvec3{ Global.pCamera.Pos - m_camerapos} };
+        m_camerapos = Global.pCamera.Pos;
         // intercept sudden user-induced camera jumps...
         // ...from free fly mode change
         if( m_freeflymode != FreeFlyModeFlag ) {
             m_freeflymode = FreeFlyModeFlag;
-            if( true == m_freeflymode ) {
-                // cache last precipitation vector in the cab
-                m_cabcameramove = m_cameramove;
-                // don't carry previous precipitation vector to a new unrelated location
-                m_cameramove = glm::dvec3{ 0.0 };
-            }
-            else {
-                // restore last cached precipitation vector
-                m_cameramove = m_cabcameramove;
-            }
             cameramove = glm::dvec3{ 0.0 };
         }
         // ...from jump between cab and window/mirror view

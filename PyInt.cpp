@@ -19,10 +19,10 @@ void render_task::run() {
     // convert provided input to a python dictionary
     auto *input = PyDict_New();
     if( input == nullptr ) { goto exit; }
-    for( auto const &datapair : m_input->floats )   { PyDict_SetItemString( input, datapair.first.c_str(), PyGetFloat( datapair.second ) ); }
-    for( auto const &datapair : m_input->integers ) { PyDict_SetItemString( input, datapair.first.c_str(), PyGetInt( datapair.second ) ); }
-    for( auto const &datapair : m_input->bools )    { PyDict_SetItemString( input, datapair.first.c_str(), PyGetBool( datapair.second ) ); }
-    for( auto const &datapair : m_input->strings )  { PyDict_SetItemString( input, datapair.first.c_str(), PyGetString( datapair.second.c_str() ) ); }
+    for( auto const &datapair : m_input->floats )   { auto *value{ PyGetFloat( datapair.second ) }; PyDict_SetItemString( input, datapair.first.c_str(), value ); Py_DECREF( value ); }
+    for( auto const &datapair : m_input->integers ) { auto *value{ PyGetInt( datapair.second ) }; PyDict_SetItemString( input, datapair.first.c_str(), value ); Py_DECREF( value ); }
+    for( auto const &datapair : m_input->bools )    { auto *value{ PyGetBool( datapair.second ) }; PyDict_SetItemString( input, datapair.first.c_str(), value ); }
+    for( auto const &datapair : m_input->strings )  { auto *value{ PyGetString( datapair.second.c_str() ) }; PyDict_SetItemString( input, datapair.first.c_str(), value ); Py_DECREF( value ); }
 
     // call the renderer
     auto *output { PyObject_CallMethod( m_renderer, "render", "O", input ) };

@@ -2194,6 +2194,14 @@ bool TController::CheckVehicles(TOrders user)
             p = p->Next(); // pojazd podłączony od tyłu (licząc od czoła)
         }
 
+        if( ( user == Connect ) && ( true == main ) ) {
+            // HACK: with additional vehicles in the consist ensure all linked vehicles are set to move in the same direction
+            if( ( pVehicle->PrevC( coupling::control ) != nullptr )
+             || ( pVehicle->NextC( coupling::control ) != nullptr ) ) {
+                sync_consist_reversers();
+            }
+        }
+
         if (AIControllFlag)
         { // jeśli prowadzi komputer
             if( true == TestFlag( OrderCurrentGet(), Obey_train ) ) {
@@ -2248,7 +2256,15 @@ bool TController::CheckVehicles(TOrders user)
                 AutoRewident();
                 // enable door locks
                 mvOccupied->LockDoors( true );
-            }
+                 // enable train heating
+                // HACK: to account for su-45/-46 shortcomings diesel-powered engines only activate heating in cold conditions
+                // TODO: take instead into account presence of converters in attached cars, once said presence is possible to specify
+                mvControlling->HeatingAllow = (
+                    IsCargoTrain ? false :
+                    ( ( mvControlling->EngineType == TEngineType::DieselElectric )
+                   || ( mvControlling->EngineType == TEngineType::DieselEngine ) ) ? ( Global.AirTemperature < 10 ) :
+                    true );
+           }
         }
         else { // gdy człowiek i gdy nastąpiło połącznie albo rozłączenie
                // Ra 2014-02: lepiej tu niż w pętli obsługującej komendy, bo tam się zmieni informacja o składzie
@@ -2597,14 +2613,6 @@ bool TController::PrepareEngine()
                 if( lookup != brakepositions.end() ) {
                     BrakeLevelSet( lookup->second ); // GBH
                 }
-                // enable train heating
-                // HACK: to account for su-45/-46 shortcomings diesel-powered engines only activate heating in cold conditions
-                // TODO: take instead into account presence of converters in attached cars, once said presence is possible to specify
-                mvControlling->HeatingAllow = (
-                    ( ( mvControlling->EngineType == TEngineType::DieselElectric )
-                   || ( mvControlling->EngineType == TEngineType::DieselEngine ) ) ?
-                        ( Global.AirTemperature < 10 ) :
-                        true );
             }
         }
         else
@@ -3208,19 +3216,20 @@ bool TController::IncSpeed()
 			if (true == Ready)
 			{
 				bool max = (mvControlling->Vel > mvControlling->dizel_minVelfullengage)
-					|| (mvControlling->SpeedCtrl && mvControlling->ScndCtrlPos > 0);
+				    	|| (mvControlling->SpeedCtrl && mvControlling->ScndCtrlPos > 0);
 				DizelPercentage = (max ? 100 : 1);
 			}
 			break;
 		}
-		else
-        if( true == Ready ) {
-            if( ( mvControlling->Vel > mvControlling->dizel_minVelfullengage )
-             && ( mvControlling->RList[ mvControlling->MainCtrlPos ].Mn > 0 ) ) {
-                OK = mvControlling->IncMainCtrl( 1 );
-            }
-            if( mvControlling->RList[ mvControlling->MainCtrlPos ].Mn == 0 ) {
-                OK = mvControlling->IncMainCtrl( 1 );
+        else {
+            if( true == Ready ) {
+                if( ( mvControlling->Vel > mvControlling->dizel_minVelfullengage )
+                 && ( mvControlling->RList[ mvControlling->MainCtrlPos ].Mn > 0 ) ) {
+                    OK = mvControlling->IncMainCtrl( 1 );
+                }
+                if( mvControlling->RList[ mvControlling->MainCtrlPos ].Mn == 0 ) {
+                    OK = mvControlling->IncMainCtrl( 1 );
+                }
             }
         }
         if( false == mvControlling->Mains ) {
@@ -4464,9 +4473,14 @@ TController::UpdateSituation(double dt) {
 		if (bp < 0) bp = 0;
         if (Ready) {
             // bo jak coś nie odhamowane, to dalej nie ma co sprawdzać
+            if( bp >= (
+                    vehicle->EngineType == TEngineType::ElectricSeriesMotor ? 0.4 : // motor relay activation threshold
+                    mvOccupied->Vel > 5.0 ? 0.5 : // a bit of leeway if already in motion
+                    0.4 ) ) {
+                Ready = false;
+            }
             if (bp >= 0.4) // wg UIC określone sztywno na 0.04
             {
-                Ready = false; // nie gotowy
                 // Ra: odluźnianie przeładowanych lokomotyw, ciągniętych na zimno - prowizorka...
                 if (AIControllFlag) // skład jak dotąd był wyluzowany
                 {
@@ -6973,6 +6987,40 @@ void TController::ZeroDirection() {
 
     while( ( mvOccupied->ActiveDir > 0 ) && ( mvOccupied->DirectionBackward() ) ) { ; }
     while( ( mvOccupied->ActiveDir < 0 ) && ( mvOccupied->DirectionForward() ) ) { ; }
+}
+
+void TController::sync_consist_reversers() {
+
+    auto const currentdirection { mvOccupied->ActiveDir };
+    auto const fastforward { (
+        ( mvOccupied->TrainType == dt_EZT )
+     && ( mvOccupied->EngineType != TEngineType::ElectricInductionMotor ) )
+     && ( mvOccupied->Imin == mvOccupied->IminHi ) };
+
+    // move reverser all way in the opposite direction...
+    for( auto idx = 0; idx < 3; ++idx ) {
+        if( currentdirection >= 0 ) {
+            mvOccupied->DirectionBackward();
+        }
+        else {
+            mvOccupied->DirectionForward();
+
+        }
+    }
+    // ...then restore original setting
+    while( mvOccupied->ActiveDir != currentdirection ) {
+        if( false == (
+            currentdirection >= 0 ?
+                mvOccupied->DirectionForward() :
+                mvOccupied->DirectionBackward() ) ) {
+            // sanity check for potential endless loop
+            break;
+        }
+    }
+    // potentially restore 'fast forward' setting
+    if( ( currentdirection > 0 ) && ( true == fastforward ) ) {
+        mvOccupied->DirectionForward();
+    }
 }
 
 Mtable::TTrainParameters const &

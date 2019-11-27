@@ -791,8 +791,9 @@ driver_mode::OnKeyDown(int cKey) {
                             }
                             simulation::Train->Dynamic()->Mechanik->TakeControl( false, true );
                             if( true == simulation::Train->Dynamic()->Mechanik->primary() ) {
-                                simulation::Train->Dynamic()->MoverParameters->CabDeactivisation( true ); // potentially left active
-                                simulation::Train->Dynamic()->MoverParameters->CabActivisation();
+                                simulation::Train->Occupied()->CabDeactivisation( true ); // potentially left active
+//                                simulation::Train->Occupied()->ActiveCab = simulation::Train->Occupied()->CabNo;
+                                simulation::Train->Occupied()->CabActivisation();
                             }
                             InOutKey(); // do kabiny
                         }
@@ -1168,7 +1169,8 @@ driver_mode::ChangeDynamic() {
         if( false == driver->AIControllFlag ) // tylko jeśli ręcznie prowadzony
         {
             occupied->LimPipePress = occupied->PipePress;
-            occupied->CabActivisation(); // załączenie rozrządu (wirtualne kabiny)
+            occupied->ActiveCab = occupied->CabNo;
+            occupied->CabActivisation( true ); // załączenie rozrządu (wirtualne kabiny)
             vehicle->MechInside = true;
             vehicle->Controller = Humandriver;
         }

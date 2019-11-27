@@ -152,8 +152,6 @@ private:
 */
     glm::vec3 m_listenervelocity;
     glm::dvec3 m_camerapos{ 0.0 };
-    glm::dvec3 m_cameramove{ 0.0 };
-    glm::dvec3 m_cabcameramove{ 0.0 };
     bool m_freeflymode{ true };
     bool m_windowopen{ true };
     int m_activecab{ 0 };

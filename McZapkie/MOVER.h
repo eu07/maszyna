@@ -1543,7 +1543,7 @@ public:
     bool RunCommand( std::string Command, double CValue1, double CValue2, int const Couplertype = ctrain_controll );
     bool RunInternalCommand();
 	void PutCommand(std::string NewCommand, double NewValue1, double NewValue2, const TLocation &NewLocation);
-	bool CabActivisation(void);
+	bool CabActivisation( bool const Force = false );
 	bool CabDeactivisation( bool const Force = false );
 
 	/*! funkcje zwiekszajace/zmniejszajace nastawniki*/

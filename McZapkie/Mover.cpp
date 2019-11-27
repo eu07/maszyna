@@ -2336,11 +2336,11 @@ bool TMoverParameters::DecScndCtrl(int CtrlSpeed)
 // Q: 20160710
 // załączenie rozrządu
 // *************************************************************************************************
-bool TMoverParameters::CabActivisation(void) 
+bool TMoverParameters::CabActivisation( bool const Force )
 {
     bool OK = false;
 
-    OK = (CabNo == 0); // numer kabiny, z której jest sterowanie
+    OK = Force || (CabNo == 0); // numer kabiny, z której jest sterowanie
     if (OK)
     {
         CabNo = ActiveCab; // sterowanie jest z kabiny z obsadą
@@ -4412,9 +4412,16 @@ void TMoverParameters::ComputeConstans(void)
         FrictConst1 += Cx * dragarea;
     }
 
-    Curvature = abs(RunningShape.R); // zero oznacza nieskończony promień
-    if (Curvature > 0.0)
-        Curvature = 1.0 / Curvature;
+    if( CategoryFlag & 1 ) {
+        Curvature = (
+            RunningShape.R == 0.0 ? // zero oznacza nieskończony promień
+                0.0 :
+                1.0 / std::abs( RunningShape.R ) );
+    }
+    else {
+        // vehicles other than trains don't experience friction against the rail on curves
+        Curvature = 0.0;
+    }
     // opór składu na łuku (youBy): +(500*TrackW/R)*TotalMassxg*0.001 do FrictConst2s/d
     FrictConst2s = (TotalMassxg * ((500.0 * TrackW * Curvature) + 2.5 - HideModifier +
                                    2 * BearingF / dtrain_bearing)) *
@@ -5082,7 +5089,7 @@ double TMoverParameters::TractionForce( double dt ) {
     switch( EngineType ) {
         case TEngineType::Dumb: {
             PosRatio = ( MainCtrlPos + ScndCtrlPos ) / ( MainCtrlPosNo + ScndCtrlPosNo + 0.01 );
-            EnginePower = 1000.0 * Power * PosRatio;
+            EnginePower = /*1000.0 **/ Power * PosRatio;
             break;
         }
         case TEngineType::DieselEngine: {
@@ -5154,14 +5161,16 @@ double TMoverParameters::TractionForce( double dt ) {
             {
                 if (Vel > 0.1)
                 {
-                    Ft = Min0R(1000.0 * Power / abs(V), Ftmax) * PosRatio;
+                    Ft = std::min(1000.0 * Power / std::abs(V), Ftmax) * PosRatio;
                 }
-                else
+                else {
                     Ft = Ftmax * PosRatio;
+                }
                 Ft = Ft * DirAbsolute; // ActiveDir*CabNo;
             }
-            else
+            else {
                 Ft = 0;
+            }
             break;
         } // Dumb
 

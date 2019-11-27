@@ -460,9 +460,9 @@ bool TTrain::Init(TDynamicObject *NewDynamicObject, bool e3d)
     fMainRelayTimer = 0; // Hunter, do k...y nędzy, ustawiaj wartości początkowe zmiennych!
 
     iCabn = (
-        mvOccupied->ActiveCab < 0 ? 0 :
         mvOccupied->ActiveCab > 0 ? 1 :
-        2 );
+        mvOccupied->ActiveCab < 0 ? 2 :
+        0 );
 
     {
         Global.CurrentMaxTextureSize = Global.iMaxCabTextureSize;
@@ -474,6 +474,7 @@ bool TTrain::Init(TDynamicObject *NewDynamicObject, bool e3d)
     }
 
     // Ra: taka proteza - przesłanie kierunku do członów connected
+    /*
     if (mvControlled->ActiveDir > 0)
     { // było do przodu
         mvControlled->DirectionBackward();
@@ -484,6 +485,11 @@ bool TTrain::Init(TDynamicObject *NewDynamicObject, bool e3d)
         mvControlled->DirectionForward();
         mvControlled->DirectionBackward();
     }
+    */
+    if( false == DynamicObject->Mechanik->AIControllFlag ) {
+        DynamicObject->Mechanik->sync_consist_reversers();
+    }
+
     return true;
 }
 

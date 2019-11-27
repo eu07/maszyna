@@ -249,6 +249,7 @@ private:
     void DirectionForward(bool forward);
     void ZeroDirection();
     int OrderDirectionChange(int newdir, TMoverParameters *Vehicle);
+    void sync_consist_reversers();
     void Lights(int head, int rear);
     std::string StopReasonText() const;
     double BrakeAccFactor() const;
