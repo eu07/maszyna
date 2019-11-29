@@ -555,7 +555,8 @@ void opengl33_renderer::Render_pass(viewport_config &vp, rendermode const Mode)
 
 		scene_ubs.time = Timer::GetTime();
 		scene_ubs.projection = OpenGLMatrices.data(GL_PROJECTION);
-		scene_ubo->update(scene_ubs);
+        scene_ubs.inv_view = glm::inverse( glm::mat4{ glm::mat3{ m_renderpass.pass_camera.modelview() } } );
+        scene_ubo->update(scene_ubs);
 		scene_ubo->bind_uniform();
 
 		m_colorpass = m_renderpass;
@@ -1309,7 +1310,6 @@ void opengl33_renderer::setup_matrices()
 {
     OpenGLMatrices.mode(GL_PROJECTION);
 	OpenGLMatrices.load_matrix(m_renderpass.pass_camera.projection());
-
 	// trim modelview matrix just to rotation, since rendering is done in camera-centric world space
     OpenGLMatrices.mode(GL_MODELVIEW);
 	OpenGLMatrices.load_matrix(glm::mat4(glm::mat3(m_renderpass.pass_camera.modelview())));

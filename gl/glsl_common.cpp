@@ -65,6 +65,7 @@ void gl::glsl_common_setup()
     {
         mat4 projection;
         mat4 lightview;
+        mat4 inv_view;
 	    vec3 scene_extra;
         float time;
     };

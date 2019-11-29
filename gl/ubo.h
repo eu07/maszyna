@@ -37,11 +37,12 @@ namespace gl
     {
         glm::mat4 projection;
         glm::mat4 lightview;
+        glm::mat4 inv_view;
 		glm::vec3 scene_extra;
         float time;
     };
 
-    static_assert(sizeof(scene_ubs) == 144, "bad size of ubs");
+    static_assert(sizeof(scene_ubs) == 208, "bad size of ubs");
 
     const size_t MAX_PARAMS = 3;
 
