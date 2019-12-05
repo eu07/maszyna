@@ -17,7 +17,6 @@ http://mozilla.org/MPL/2.0/.
 #include "Texture.h"
 
 #include <ddraw.h>
-#include "GL/glew.h"
 
 #include "application.h"
 #include "dictionary.h"
@@ -29,10 +28,202 @@ http://mozilla.org/MPL/2.0/.
 
 #define EU07_DEFERRED_TEXTURE_UPLOAD
 
+std::array<GLuint, gl::MAX_TEXTURES + 2> opengl_texture::units = { 0 };
+GLint opengl_texture::m_activeunit = -1;
+
+std::unordered_map<GLint, int> opengl_texture::precompressed_formats =
+{
+    { GL_COMPRESSED_SRGB_ALPHA_S3TC_DXT1_EXT, 8 },
+    { GL_COMPRESSED_SRGB_ALPHA_S3TC_DXT3_EXT, 16 },
+    { GL_COMPRESSED_SRGB_ALPHA_S3TC_DXT5_EXT, 16 },
+    { GL_COMPRESSED_RGBA_S3TC_DXT1_EXT, 8 },
+    { GL_COMPRESSED_RGBA_S3TC_DXT3_EXT, 16 },
+    { GL_COMPRESSED_RGBA_S3TC_DXT5_EXT, 16 },
+};
+
+std::unordered_map<GLint, GLint> opengl_texture::drivercompressed_formats =
+{
+    { GL_SRGB8_ALPHA8, GL_COMPRESSED_SRGB_ALPHA },
+    { GL_SRGB8, GL_COMPRESSED_SRGB },
+    { GL_RGBA8, GL_COMPRESSED_RGBA },
+    { GL_RGB8, GL_COMPRESSED_RGB },
+    { GL_RG8, GL_COMPRESSED_RG },
+    { GL_R8, GL_COMPRESSED_RED },
+};
+
+std::unordered_map<GLint, std::unordered_map<GLint, GLint>> opengl_texture::mapping =
+{
+    // image have,                         material wants, gl internalformat
+    { GL_COMPRESSED_RGBA_S3TC_DXT1_EXT, { { GL_SRGB_ALPHA, GL_COMPRESSED_SRGB_ALPHA_S3TC_DXT1_EXT },
+                                          { GL_SRGB,       GL_COMPRESSED_SRGB_ALPHA_S3TC_DXT1_EXT },
+                                          { GL_RGBA,       GL_COMPRESSED_RGBA_S3TC_DXT1_EXT },
+                                          { GL_RGB,        GL_COMPRESSED_RGBA_S3TC_DXT1_EXT },
+                                          { GL_RG,         GL_COMPRESSED_RGBA_S3TC_DXT1_EXT },
+                                          { GL_RED,        GL_COMPRESSED_RGBA_S3TC_DXT1_EXT } } },
+    { GL_COMPRESSED_RGBA_S3TC_DXT3_EXT, { { GL_SRGB_ALPHA, GL_COMPRESSED_SRGB_ALPHA_S3TC_DXT3_EXT },
+                                          { GL_SRGB,       GL_COMPRESSED_SRGB_ALPHA_S3TC_DXT3_EXT },
+                                          { GL_RGBA,       GL_COMPRESSED_RGBA_S3TC_DXT3_EXT },
+                                          { GL_RGB,        GL_COMPRESSED_RGBA_S3TC_DXT3_EXT },
+                                          { GL_RG,         GL_COMPRESSED_RGBA_S3TC_DXT3_EXT },
+                                          { GL_RED,        GL_COMPRESSED_RGBA_S3TC_DXT3_EXT } } },
+    { GL_COMPRESSED_RGBA_S3TC_DXT5_EXT, { { GL_SRGB_ALPHA, GL_COMPRESSED_SRGB_ALPHA_S3TC_DXT5_EXT },
+                                          { GL_SRGB,       GL_COMPRESSED_SRGB_ALPHA_S3TC_DXT5_EXT },
+                                          { GL_RGBA,       GL_COMPRESSED_RGBA_S3TC_DXT5_EXT },
+                                          { GL_RGB,        GL_COMPRESSED_RGBA_S3TC_DXT5_EXT },
+                                          { GL_RG,         GL_COMPRESSED_RGBA_S3TC_DXT5_EXT },
+                                          { GL_RED,        GL_COMPRESSED_RGBA_S3TC_DXT5_EXT } } },
+    { GL_RGBA,                          { { GL_SRGB_ALPHA, GL_SRGB8_ALPHA8 },
+                                          { GL_SRGB,       GL_SRGB8 },
+                                          { GL_RGBA,       GL_RGBA8 },
+                                          { GL_RGB,        GL_RGB8 },
+                                          { GL_RG,         GL_RG8 },
+                                          { GL_RED,        GL_R8 } } },
+    { GL_RGB,                           { { GL_SRGB_ALPHA, GL_SRGB8 }, // bad
+                                          { GL_SRGB,       GL_SRGB8 },
+                                          { GL_RGBA,       GL_RGB8 }, // bad
+                                          { GL_RGB,        GL_RGB8 },
+                                          { GL_RG,         GL_RG8 },
+                                          { GL_RED,        GL_R8 } } },
+    { GL_RG,                            { { GL_SRGB_ALPHA, GL_SRGB8 }, // bad
+                                          { GL_SRGB,       GL_SRGB8 }, // bad
+                                          { GL_RGBA,       GL_RG8 }, // bad
+                                          { GL_RGB,        GL_RG8 }, // bad
+                                          { GL_RG,         GL_RG8 },
+                                          { GL_RED,        GL_R8 } } },
+    { GL_RED,                           { { GL_SRGB_ALPHA, GL_SRGB8 }, // bad
+                                          { GL_SRGB,       GL_SRGB8 }, // bad
+                                          { GL_RGBA,       GL_R8 }, // bad
+                                          { GL_RGB,        GL_R8 },  // bad
+                                          { GL_RG,         GL_R8 }, // bad
+                                          { GL_RED,        GL_R8 } } },
+};
+
 texture_manager::texture_manager() {
 
     // since index 0 is used to indicate no texture, we put a blank entry in the first texture slot
     m_textures.emplace_back( new opengl_texture(), std::chrono::steady_clock::time_point() );
+}
+
+// convert image to format suitable for given internalformat
+// required for GLES, on desktop GL it will be done by driver
+void opengl_texture::gles_match_internalformat(GLuint internalformat)
+{
+    // don't care about sRGB here
+    if (internalformat == GL_SRGB8)
+        internalformat = GL_RGB8;
+    if (internalformat == GL_SRGB8_ALPHA8)
+        internalformat = GL_RGBA8;
+    if (internalformat == GL_COMPRESSED_SRGB_ALPHA_S3TC_DXT1_EXT)
+        internalformat = GL_COMPRESSED_RGBA_S3TC_DXT1_EXT;
+    if (internalformat == GL_COMPRESSED_SRGB_ALPHA_S3TC_DXT3_EXT)
+        internalformat = GL_COMPRESSED_RGBA_S3TC_DXT3_EXT;
+    if (internalformat == GL_COMPRESSED_SRGB_ALPHA_S3TC_DXT5_EXT)
+        internalformat = GL_COMPRESSED_RGBA_S3TC_DXT5_EXT;
+
+    // ignore compressed formats (and hope that GLES driver will support it)
+    if (precompressed_formats.find(internalformat) != precompressed_formats.end())
+        return;
+
+    // we don't want BGR(A), reverse it
+    if (data_format == GL_BGR)
+    {
+        std::vector<unsigned char> reverse;
+        reverse.resize(data.size());
+
+        for (int y = 0; y < data_height; y++)
+            for (int x = 0; x < data_width; x++)
+            {
+                int offset = (y * data_width + x) * 3;
+                reverse[offset + 0] = data[offset + 2];
+                reverse[offset + 1] = data[offset + 1];
+                reverse[offset + 2] = data[offset + 0];
+            }
+
+        data_format = GL_RGB;
+        data = reverse;
+    }
+    else if (data_format == GL_BGRA)
+    {
+        std::vector<unsigned char> reverse;
+        reverse.resize(data.size());
+
+        for (int y = 0; y < data_height; y++)
+            for (int x = 0; x < data_width; x++)
+            {
+                int offset = (y * data_width + x) * 4;
+                reverse[offset + 0] = data[offset + 2];
+                reverse[offset + 1] = data[offset + 1];
+                reverse[offset + 2] = data[offset + 0];
+                reverse[offset + 3] = data[offset + 3];
+            }
+
+        data_format = GL_RGBA;
+        data = reverse;
+    }
+
+    // if format matches, we're done
+    if (data_format == GL_RGBA && internalformat == GL_RGBA8)
+        return;
+    if (data_format == GL_RGB && internalformat == GL_RGB8)
+        return;
+    if (data_format == GL_RG && internalformat == GL_RG8)
+        return;
+    if (data_format == GL_RED && internalformat == GL_R8)
+        return;
+
+    // do conversion
+
+    int in_c = 0;
+    if (data_format == GL_RGBA)
+        in_c = 4;
+    else if (data_format == GL_RGB)
+        in_c = 3;
+    else if (data_format == GL_RG)
+        in_c = 2;
+    else if (data_format == GL_RED)
+        in_c = 1;
+
+    int out_c = 0;
+    if (internalformat == GL_RGBA8)
+        out_c = 4;
+    else if (internalformat == GL_RGB8)
+        out_c = 3;
+    else if (internalformat == GL_RG8)
+        out_c = 2;
+    else if (internalformat == GL_R8)
+        out_c = 1;
+
+    if (!in_c || !out_c)
+        return; // conversion not supported
+
+    std::vector<unsigned char> out;
+    out.resize(data_width * data_height * out_c);
+
+    for (int y = 0; y < data_height; y++)
+        for (int x = 0; x < data_width; x++)
+        {
+            int pixel = (y * data_width + x);
+            int in_off = pixel * in_c;
+            int out_off = pixel * out_c;
+            for (int i = 0; i < out_c; i++)
+            {
+                if (i < in_c)
+                    out[out_off + i] = data[in_off + i];
+                else
+                    out[out_off + i] = 0xFF;
+            }
+        }
+
+    if (out_c == 4)
+        data_format = GL_RGBA;
+    else if (out_c == 3)
+        data_format = GL_RGB;
+    else if (out_c == 2)
+        data_format = GL_RG;
+    else if (out_c == 1)
+        data_format = GL_RED;
+
+    data = out;
 }
 
 // loads texture data from specified file
@@ -144,7 +335,7 @@ opengl_texture::load_BMP() {
     }
 
     data.resize( datasize );
-    file.read( &data[0], datasize );
+    file.read((char *)&data[0], datasize);
 
     // fill remaining data info
     if( info.bmiHeader.biBitCount == 32 ) {
@@ -282,7 +473,7 @@ opengl_texture::load_DDS() {
     int blockSize = ( data_format == GL_COMPRESSED_RGBA_S3TC_DXT1_EXT ? 8 : 16 );
     int offset = 0;
 
-    while( ( data_width > Global.iMaxTextureSize ) || ( data_height > Global.iMaxTextureSize ) ) {
+    while( ( data_width > Global.CurrentMaxTextureSize ) || ( data_height > Global.CurrentMaxTextureSize ) ) {
         // pomijanie zbyt dużych mipmap, jeśli wymagane jest ograniczenie rozmiaru
         offset += ( ( data_width + 3 ) / 4 ) * ( ( data_height + 3 ) / 4 ) * blockSize;
         data_width /= 2;
@@ -523,7 +714,7 @@ opengl_texture::load_TGA() {
     }
 
     downsize( GL_BGRA );
-    if( ( data_width > Global.iMaxTextureSize ) || ( data_height > Global.iMaxTextureSize ) ) {
+    if( ( data_width > Global.CurrentMaxTextureSize ) || ( data_height > Global.CurrentMaxTextureSize ) ) {
         // for non-square textures there's currently possibility the scaling routine will have to abort
         // before it gets all work done
         data_state = resource_state::failed;
@@ -545,21 +736,62 @@ opengl_texture::load_TGA() {
 }
 
 bool
-opengl_texture::bind() {
+opengl_texture::bind(size_t unit) {
 
     if( ( false == is_ready )
      && ( false == create() ) ) {
         return false;
     }
-    ::glBindTexture( GL_TEXTURE_2D, id );
+
+    if (units[unit] == id)
+        return true;
+
+    if (GLAD_GL_ARB_direct_state_access)
+    {
+        glBindTextureUnit(unit, id);
+    }
+    else
+    {
+        if (unit != m_activeunit)
+        {
+            glActiveTexture(GL_TEXTURE0 + unit);
+            m_activeunit = unit;
+        }
+        glBindTexture(target, id);
+    }
+
+    units[unit] = id;
+
     return true;
+}
+
+void
+opengl_texture::unbind(size_t unit)
+{
+    if (GLAD_GL_ARB_direct_state_access)
+    {
+        glBindTextureUnit(unit, 0);
+    }
+    else
+    {
+        if (unit != m_activeunit)
+        {
+            glActiveTexture(GL_TEXTURE0 + unit);
+            m_activeunit = unit;
+        }
+        //todo: for other targets
+        glBindTexture(GL_TEXTURE_2D, 0);
+    }
+
+    units[unit] = 0;
 }
 
 bool
 opengl_texture::create() {
 
-    if( data_state != resource_state::good ) {
+    if( data_state != resource_state::good && !is_rendertarget ) {
         // don't bother until we have useful texture data
+        // and it isn't rendertarget texture without loaded data
         return false;
     }
 
@@ -568,73 +800,127 @@ opengl_texture::create() {
     if( id == -1 ) {
 
         ::glGenTextures( 1, &id );
-        ::glBindTexture( GL_TEXTURE_2D, id );
+        ::glBindTexture( target, id );
 
         // analyze specified texture traits
-        bool wraps{ true };
-        bool wrapt{ true };
         for( auto const &trait : traits ) {
 
             switch( trait ) {
 
-                case 's': { wraps = false; break; }
-                case 't': { wrapt = false; break; }
+			    case 's': { wrap_mode_s = GL_CLAMP_TO_EDGE; break; }
+			    case 't': { wrap_mode_t = GL_CLAMP_TO_EDGE; break; }
             }
         }
 
-        ::glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, ( wraps == true ? GL_REPEAT : GL_CLAMP_TO_EDGE ) );
-        ::glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, ( wrapt == true ? GL_REPEAT : GL_CLAMP_TO_EDGE ) );
-
-        set_filtering();
-
-        if( data_mapcount == 1 ) {
-            // fill missing mipmaps if needed
-            ::glTexParameteri( GL_TEXTURE_2D, GL_GENERATE_MIPMAP, GL_TRUE );
-        }
         // upload texture data
         int dataoffset = 0,
             datasize = 0,
             datawidth = data_width,
             dataheight = data_height;
-        for( int maplevel = 0; maplevel < data_mapcount; ++maplevel ) {
+        if (is_rendertarget)
+        {
+            glTexParameteri(target, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+            glTexParameteri(target, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+			glTexParameteri(target, GL_TEXTURE_WRAP_S, wrap_mode_s);
+			glTexParameteri(target, GL_TEXTURE_WRAP_T, wrap_mode_t);
+            if (data_components == GL_DEPTH_COMPONENT)
+            {
+				glTexParameteri(target, GL_TEXTURE_COMPARE_MODE, GL_COMPARE_REF_TO_TEXTURE);
+                if( false == Global.gfx_usegles ) {
+                    float borderColor[] = { 0.0f, 0.0f, 0.0f, 0.0f };
+                    glTexParameterfv( target, GL_TEXTURE_BORDER_COLOR, borderColor );
+                }
+			}
 
-            if( ( data_format == GL_COMPRESSED_RGBA_S3TC_DXT1_EXT )
-             || ( data_format == GL_COMPRESSED_RGBA_S3TC_DXT3_EXT )
-             || ( data_format == GL_COMPRESSED_RGBA_S3TC_DXT5_EXT ) ) {
-                // compressed dds formats
-                int const datablocksize =
-                    ( data_format == GL_COMPRESSED_RGBA_S3TC_DXT1_EXT ?
-                    8 :
-                    16 );
-
-                datasize = ( ( std::max( datawidth, 4 ) + 3 ) / 4 ) * ( ( std::max( dataheight, 4 ) + 3 ) / 4 ) * datablocksize;
-
-                ::glCompressedTexImage2D(
-                    GL_TEXTURE_2D, maplevel, data_format,
-                    datawidth, dataheight, 0,
-                    datasize, (GLubyte *)&data[ dataoffset ] );
-
-                dataoffset += datasize;
-                datawidth = std::max( datawidth / 2, 1 );
-                dataheight = std::max( dataheight / 2, 1 );
+            if (Global.gfx_usegles)
+            {
+                if (target == GL_TEXTURE_2D || !glTexStorage2DMultisample)
+                    glTexStorage2D(target, count_trailing_zeros(std::max(data_width, data_height)) + 1, data_format, data_width, data_height);
+                else if (target == GL_TEXTURE_2D_MULTISAMPLE)
+                    glTexStorage2DMultisample(target, samples, data_format, data_width, data_height, GL_FALSE);
             }
-            else {
-                // uncompressed texture data. have the gfx card do the compression as it sees fit
-                ::glTexImage2D(
-                    GL_TEXTURE_2D, 0,
-                    ( Global.compress_tex ?
-                        GL_COMPRESSED_RGBA :
-                        GL_RGBA ),
-                    data_width, data_height, 0,
-                    data_format, GL_UNSIGNED_BYTE, (GLubyte *)&data[ 0 ] );
+            else
+            {
+                if (target == GL_TEXTURE_2D)
+                    glTexImage2D(target, 0, data_format, data_width, data_height, 0, data_components, GL_UNSIGNED_SHORT, nullptr);
+                else if (target == GL_TEXTURE_2D_MULTISAMPLE)
+                    glTexImage2DMultisample(target, samples, data_format, data_width, data_height, GL_FALSE);
             }
         }
+        else
+        {
+			::glTexParameteri(target, GL_TEXTURE_WRAP_S, wrap_mode_s);
+			::glTexParameteri(target, GL_TEXTURE_WRAP_T, wrap_mode_t);
+            set_filtering();
 
-        if( ( true == Global.ResourceMove )
-         || ( false == Global.ResourceSweep ) ) {
-            // if garbage collection is disabled we don't expect having to upload the texture more than once
-            data = std::vector<char>();
-            data_state = resource_state::none;
+            // data_format and data_type specifies how image is laid out in memory
+            // data_components specifies what useful channels image contains
+            // components_hint specifies what format we want to load
+
+            // now map that mess into opengl internal format
+
+            GLint components = data_components;
+            auto f_it = precompressed_formats.find(data_format);
+            if (f_it != precompressed_formats.end())
+                components = data_format;
+
+            if (!components_hint)
+                components_hint = GL_SRGB_ALPHA;
+
+            GLint internal_format = mapping[components][components_hint];
+
+            if (Global.gfx_usegles)
+            {
+                // GLES cannot generate mipmaps on SRGB8
+                if (internal_format == GL_SRGB8)
+                    internal_format = GL_SRGB8_ALPHA8;
+
+                gles_match_internalformat(internal_format);
+            }
+
+            auto blocksize_it = precompressed_formats.find(internal_format);
+
+            for( int maplevel = 0; maplevel < data_mapcount; ++maplevel ) {
+
+                if (blocksize_it != precompressed_formats.end())
+                {
+                    // compressed dds formats
+                    const int datablocksize = blocksize_it->second;
+
+                    datasize = ( ( std::max( datawidth, 4 ) + 3 ) / 4 ) * ( ( std::max( dataheight, 4 ) + 3 ) / 4 ) * datablocksize;
+
+                    ::glCompressedTexImage2D(
+                        target, maplevel, internal_format,
+                        datawidth, dataheight, 0,
+                        datasize, (GLubyte *)&data[ dataoffset ] );
+
+                    dataoffset += datasize;
+                    datawidth = std::max( datawidth / 2, 1 );
+                    dataheight = std::max( dataheight / 2, 1 );
+                }
+                else {
+                    GLint compressed_format = drivercompressed_formats[internal_format];
+
+                    // uncompressed texture data. have the gfx card do the compression as it sees fit
+                    ::glTexImage2D(
+                        target, 0,
+                        Global.compress_tex ? compressed_format : internal_format,
+                        data_width, data_height, 0,
+                        data_format, data_type, (GLubyte *)&data[ 0 ] );
+                }
+            }
+
+            if( data_mapcount == 1 ) {
+                // fill missing mipmaps if needed
+                glGenerateMipmap(target);
+            }
+
+            if( ( true == Global.ResourceMove )
+             || ( false == Global.ResourceSweep ) ) {
+                // if garbage collection is disabled we don't expect having to upload the texture more than once
+                data = std::vector<unsigned char>();
+                data_state = resource_state::none;
+            }
         }
 
         if( type == "make:" ) {
@@ -698,41 +984,77 @@ opengl_texture::release() {
 }
 
 void
+opengl_texture::alloc_rendertarget( GLint format, GLint components, int width, int height, int s, GLint wrap ) {
+
+    data_width = width;
+    data_height = height;
+    data_format = format;
+    data_components = components;
+    data_mapcount = 1;
+    is_rendertarget = true;
+    wrap_mode_s = wrap;
+    wrap_mode_t = wrap;
+    samples = s;
+    if( samples > 1 )
+        target = GL_TEXTURE_2D_MULTISAMPLE;
+    create();
+}
+
+void
+opengl_texture::set_components_hint( GLint hint ) {
+
+    components_hint = hint;
+}
+
+void
+opengl_texture::reset_unit_cache() {
+
+    for( auto &unit : units ) {
+        unit = 0;
+    }
+    m_activeunit = -1;
+}
+
+void
 opengl_texture::set_filtering() const {
 
     // default texture mode
     ::glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR );
     ::glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR );
 
-    if( GLEW_EXT_texture_filter_anisotropic ) {
+    if( ( Global.AnisotropicFiltering >= 0 )
+     && ( GL_EXT_texture_filter_anisotropic != 0 ) ) {
         // anisotropic filtering
         ::glTexParameterf( GL_TEXTURE_2D, GL_TEXTURE_MAX_ANISOTROPY_EXT, Global.AnisotropicFiltering );
     }
 
-    bool sharpen{ false };
-    for( auto const &trait : traits ) {
+    if( Global.LegacyRenderer ) {
 
-        switch( trait ) {
+        bool sharpen{ false };
+        for( auto const &trait : traits ) {
 
-            case '#': { sharpen = true; break; }
-            default:  {                 break; }
+            switch( trait ) {
+
+                case '#': { sharpen = true; break; }
+                default:  {                 break; }
+            }
         }
-    }
 
-    if( true == sharpen ) {
-        // #: sharpen more
-        ::glTexEnvf( GL_TEXTURE_FILTER_CONTROL, GL_TEXTURE_LOD_BIAS, -2.0 );
-    }
-    else {
-        // regular texture sharpening
-        ::glTexEnvf( GL_TEXTURE_FILTER_CONTROL, GL_TEXTURE_LOD_BIAS, -1.0 );
+        if( true == sharpen ) {
+            // #: sharpen more
+            ::glTexEnvf( GL_TEXTURE_FILTER_CONTROL, GL_TEXTURE_LOD_BIAS, -2.0f );
+        }
+        else {
+            // regular texture sharpening
+            ::glTexEnvf( GL_TEXTURE_FILTER_CONTROL, GL_TEXTURE_LOD_BIAS, -1.0f );
+        }
     }
 }
 
 void
 opengl_texture::downsize( GLuint const Format ) {
 
-    while( ( data_width > Global.iMaxTextureSize ) || ( data_height > Global.iMaxTextureSize ) ) {
+    while( ( data_width > Global.CurrentMaxTextureSize ) || ( data_height > Global.CurrentMaxTextureSize ) ) {
         // scale down the base texture, if it's larger than allowed maximum
         // NOTE: scaling is uniform along both axes, meaning non-square textures can drop below the maximum
         // TODO: replace with proper scaling function once we have image middleware in place
@@ -793,7 +1115,7 @@ texture_manager::unit( GLint const Textureunit ) {
 
 // ustalenie numeru tekstury, wczytanie jeśli jeszcze takiej nie było
 texture_handle
-texture_manager::create( std::string Filename, bool const Loadnow ) {
+texture_manager::create( std::string Filename, bool const Loadnow, GLint Formathint ) {
 
     if( Filename.find( '|' ) != std::string::npos )
         Filename.erase( Filename.find( '|' ) ); // po | może być nazwa kolejnej tekstury
@@ -866,6 +1188,7 @@ texture_manager::create( std::string Filename, bool const Loadnow ) {
     texture->name = locator.first;
     texture->type = locator.second;
     texture->traits = traits;
+    texture->components_hint = Formathint;
     auto const textureindex = (texture_handle)m_textures.size();
     m_textures.emplace_back( texture, std::chrono::steady_clock::time_point() );
     m_texturemappings.emplace( locator.first, textureindex );
@@ -888,40 +1211,18 @@ texture_manager::create( std::string Filename, bool const Loadnow ) {
 void
 texture_manager::bind( std::size_t const Unit, texture_handle const Texture ) {
 
-    m_textures[ Texture ].second = m_garbagecollector.timestamp();
-    if( m_units[ Unit ].unit == 0 ) {
-        // no texture unit, nothing to bind the texture to
-        return;
-    }
-    // even if we may skip texture binding make sure the relevant texture unit is activated
-    unit( m_units[ Unit ].unit );
-    if( Texture == m_units[ Unit ].texture ) {
-        // don't bind again what's already active
-        return;
-    }
-    // TBD, TODO: do binding in texture object, add support for other types than 2d
-    if( Texture != null_handle ) {
-#ifndef EU07_DEFERRED_TEXTURE_UPLOAD
-        // NOTE: we could bind dedicated 'error' texture here if the id isn't valid
-        ::glBindTexture( GL_TEXTURE_2D, texture(Texture).id );
-        m_units[ Unit ].texture = Texture;
-#else
-        if( true == texture( Texture ).bind() ) {
-            m_units[ Unit ].texture = Texture;
-        }
-        else {
-            // TODO: bind a special 'error' texture on failure
-            ::glBindTexture( GL_TEXTURE_2D, 0 );
-            m_units[ Unit ].texture = 0;
-        }
-#endif
-    }
-    else {
-        ::glBindTexture( GL_TEXTURE_2D, 0 );
-        m_units[ Unit ].texture = 0;
-    }
-    // all done
-    return;
+    if (Texture != null_handle)
+        mark_as_used(Texture).bind(Unit);
+    else
+        opengl_texture::unbind(Unit);
+}
+
+opengl_texture &
+texture_manager::mark_as_used(const texture_handle Texture) {
+
+    auto &pair = m_textures[ Texture ];
+    pair.second = m_garbagecollector.timestamp();
+    return *pair.first;
 }
 
 void

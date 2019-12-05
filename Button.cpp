@@ -124,6 +124,7 @@ TButton::Turn( bool const State ) {
 }
 
 void TButton::Update( bool const Power ) {
+    // TODO: remove passing manually power state when LD is in place
 
     auto const state { Power && ( bData ? *bData : m_state ) };
 

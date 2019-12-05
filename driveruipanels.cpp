@@ -14,6 +14,7 @@ http://mozilla.org/MPL/2.0/.
 #include "translation.h"
 #include "simulation.h"
 #include "simulationtime.h"
+#include "simulationenvironment.h"
 #include "Timer.h"
 #include "Event.h"
 #include "TractionPower.h"
@@ -51,7 +52,7 @@ drivingaid_panel::update() {
         if( is_expanded ) {
             // grade
             std::string gradetext;
-            auto const reverser { ( mover->ActiveDir > 0 ? 1 : -1 ) };
+            auto const reverser { ( mover->DirActive > 0 ? 1 : -1 ) };
             auto const grade { controlled->VectorFront().y * 100 * ( controlled->DirectionGet() == reverser ? 1 : -1 ) * reverser };
             if( std::abs( grade ) >= 0.25 ) {
                 std::snprintf(
@@ -88,7 +89,7 @@ drivingaid_panel::update() {
             locale::strings[ locale::string::driver_aid_throttle ].c_str(),
             driver->Controlling()->MainCtrlPos,
             driver->Controlling()->ScndCtrlPos,
-            ( mover->ActiveDir > 0 ? 'D' : mover->ActiveDir < 0 ? 'R' : 'N' ),
+            ( mover->DirActive > 0 ? 'D' : mover->DirActive < 0 ? 'R' : 'N' ),
             expandedtext.c_str());
 
         text_lines.emplace_back( m_buffer.data(), Global.UITextColor );
@@ -118,7 +119,7 @@ drivingaid_panel::update() {
     { // alerter, hints
         std::string expandedtext;
         if( is_expanded ) {
-            auto const stoptime { static_cast<int>( std::ceil( -1.0 * owner->fStopTime ) ) };
+            auto const stoptime { static_cast<int>( owner->ExchangeTime ) };
             if( stoptime > 0 ) {
                 std::snprintf(
                     m_buffer.data(), m_buffer.size(),
@@ -267,8 +268,7 @@ timetable_panel::update() {
             vehicle->ctOwner );
     if( owner == nullptr ) { return; }
 
-    auto const *table = owner->TrainTimetable();
-    if( table == nullptr ) { return; }
+    auto const &table = owner->TrainTimetable();
 
     // destination
     {
@@ -309,14 +309,14 @@ timetable_panel::update() {
             std::snprintf(
                 m_buffer.data(), m_buffer.size(),
                 locale::strings[ locale::string::driver_timetable_consistdata ].c_str(),
-                static_cast<int>( table->LocLoad ),
+                static_cast<int>( table.LocLoad ),
                 static_cast<int>( consistmass / 1000 ),
                 static_cast<int>( consistlength ) );
 
             text_lines.emplace_back( m_buffer.data(), Global.UITextColor );
         }
 
-        if( 0 == table->StationCount ) {
+        if( 0 == table.StationCount ) {
             // only bother if there's stations to list
             text_lines.emplace_back( locale::strings[ locale::string::driver_timetable_notimetable ], Global.UITextColor );
         } 
@@ -330,9 +330,9 @@ timetable_panel::update() {
             m_tablelines.emplace_back( u8"┌─────┬────────────────────────────────────┬─────────┬─────┐", Global.UITextColor );
 
             TMTableLine const *tableline;
-            for( int i = owner->iStationStart; i <= table->StationCount; ++i ) {
+            for( int i = owner->iStationStart; i <= table.StationCount; ++i ) {
                 // wyświetlenie pozycji z rozkładu
-                tableline = table->TimeTable + i; // linijka rozkładu
+                tableline = table.TimeTable + i; // linijka rozkładu
 
                 bool vmaxchange { true };
                 if( i > owner->iStationStart ) {
@@ -365,16 +365,16 @@ timetable_panel::update() {
                         to_string( int( 100 + tableline->Dh ) ).substr( 1, 2 ) + ":" + to_minutes_str( tableline->Dm, true, 3 ) :
                         u8"  │   " ) };
                 auto const candeparture { (
-                       ( owner->iStationStart < table->StationIndex )
-                    && ( i < table->StationIndex )
+                       ( owner->iStationStart < table.StationIndex )
+                    && ( i < table.StationIndex )
                     && ( ( tableline->Ah < 0 ) // pass-through, always valid
                       || ( time.wHour * 60 + time.wMinute + time.wSecond * 0.0167 >= tableline->Dh * 60 + tableline->Dm ) ) ) };
                 auto const loadchangeinprogress { ( ( static_cast<int>( std::ceil( -1.0 * owner->fStopTime ) ) ) > 0 ) };
                 auto const isatpassengerstop { ( true == owner->IsAtPassengerStop ) && ( vehicle->MoverParameters->Vel < 1.0 ) };
                 auto const traveltime { (
                     i < 2 ? "   " :
-                    tableline->Ah >= 0 ? to_minutes_str( CompareTime( table->TimeTable[ i - 1 ].Dh, table->TimeTable[ i - 1 ].Dm, tableline->Ah, tableline->Am ), false, 3 ) :
-                    to_minutes_str( std::max( 0.0, CompareTime( table->TimeTable[ i - 1 ].Dh, table->TimeTable[ i - 1 ].Dm, tableline->Dh, tableline->Dm ) - 0.5 ), false, 3 ) ) };
+                    tableline->Ah >= 0 ? to_minutes_str( CompareTime( table.TimeTable[ i - 1 ].Dh, table.TimeTable[ i - 1 ].Dm, tableline->Ah, tableline->Am ), false, 3 ) :
+                    to_minutes_str( std::max( 0.0, CompareTime( table.TimeTable[ i - 1 ].Dh, table.TimeTable[ i - 1 ].Dm, tableline->Dh, tableline->Dm ) - 0.5 ), false, 3 ) ) };
                 auto const linecolor { (
                     ( i != owner->iStationStart ) ? Global.UITextColor :
                     loadchangeinprogress ? loadingcolor :
@@ -389,7 +389,7 @@ timetable_panel::update() {
                     ( u8"│     │ " + location + tableline->StationWare + trackcount + departure + u8" │     │" ),
                     linecolor );
                 // divider/footer
-                if( i < table->StationCount ) {
+                if( i < table.StationCount ) {
                     auto const *nexttableline { tableline + 1 };
                     std::string const vmaxnext{ ( tableline->vmax == nexttableline->vmax ? u8"│     ├" : u8"├─────┼" ) };
                     auto const trackcountnext{ ( nexttableline->TrackNo == 1 ? u8"╂" : u8"╫" ) };
@@ -598,11 +598,11 @@ debug_panel::update_section_vehicle( std::vector<text_line> &Output ) {
         // power transfers
         mover.Couplers[ end::front ].power_high.voltage,
         mover.Couplers[ end::front ].power_high.current,
-        std::string( mover.Couplers[ end::front ].power_high.is_local ? "" : "-" ).c_str(),
-        std::string( vehicle.DirectionGet() ? ":<<" : ":>>" ).c_str(),
-        mover.Voltage,
-        std::string( vehicle.DirectionGet() ? "<<:" : ">>:" ).c_str(),
-        std::string( mover.Couplers[ end::rear ].power_high.is_local ? "" : "-" ).c_str(),
+        std::string( mover.Couplers[ end::front ].power_high.is_local ? ":" : ":=" ).c_str(),
+        std::string( vehicle.DirectionGet() ? "<<" : ">>" ).c_str(),
+        mover.EngineVoltage,
+        std::string( vehicle.DirectionGet() ? "<<" : ">>" ).c_str(),
+        std::string( mover.Couplers[ end::rear ].power_high.is_local ? ":" : "=:" ).c_str(),
         mover.Couplers[ end::rear ].power_high.voltage,
         mover.Couplers[ end::rear ].power_high.current );
 
@@ -689,7 +689,7 @@ debug_panel::update_section_vehicle( std::vector<text_line> &Output ) {
         m_buffer.data(), m_buffer.size(),
         locale::strings[ locale::string::debug_vehicle_forcesaccelerationvelocityposition ].c_str(),
         // forces
-        mover.Ft * 0.001f * ( mover.ActiveCab ? mover.ActiveCab : vehicle.ctOwner ? vehicle.ctOwner->Controlling()->ActiveCab : 1 ) + 0.001f,
+        mover.Ft * 0.001f * ( mover.CabOccupied ? mover.CabOccupied : vehicle.ctOwner ? vehicle.ctOwner->Controlling()->CabOccupied : 1 ) + 0.001f,
         mover.Fb * 0.001f,
         mover.Adhesive( mover.RunningTrack.friction ),
         ( mover.SlippingWheels ? " (!)" : "" ),
@@ -1092,7 +1092,7 @@ debug_panel::update_section_renderer( std::vector<text_line> &Output ) {
             // gfx renderer data
             auto textline =
                 "FoV: " + to_string( Global.FieldOfView / Global.ZoomFactor, 1 )
-                + ", Draw range x " + to_string( Global.fDistanceFactor, 1 )
+                + ", Draw range: " + to_string( Global.BaseDrawRange * Global.fDistanceFactor, 0 ) + "m"
 //                + "; sectors: " + std::to_string( GfxRenderer->m_drawcount )
 //                + ", FPS: " + to_string( Timer::GetFPS(), 2 );
                 + ", FPS: " + std::to_string( static_cast<int>(std::round(GfxRenderer->Framerate())) );
@@ -1104,9 +1104,14 @@ debug_panel::update_section_renderer( std::vector<text_line> &Output ) {
 
             textline =
                 std::string( "Rendering mode: " )
+                + ( Global.GfxRenderer == "default" ?
+                    "Shaders" :
+                    ( Global.BasicRenderer ?
+                        "Legacy Simple" :
+                        "Legacy" ) )
                 + ( Global.bUseVBO ?
-                    "VBO" :
-                    "Display Lists" )
+                    ", VBO" :
+                    ", Display Lists" )
                 + " ";
             if( false == Global.LastGLError.empty() ) {
                 textline +=

@@ -11,7 +11,21 @@ http://mozilla.org/MPL/2.0/.
 
 #include "uilayer.h"
 #include "Classes.h"
+/*
+// helper, associated bool is set when the primary value was changed and expects processing at the observer's leisure
+template<typename Type_>
+using changeable = std::pair<Type_, bool>;
 
+// helper, holds a set of changeable properties for a scene node
+struct item_properties {
+
+    scene::basic_node const *node { nullptr }; // properties' owner
+
+    changeable<std::string> name {};
+    changeable<glm::dvec3> location {};
+    changeable<glm::vec3> rotation {};
+};
+*/
 class itemproperties_panel : public ui_panel {
 
 public:

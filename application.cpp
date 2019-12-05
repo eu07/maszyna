@@ -18,21 +18,21 @@ http://mozilla.org/MPL/2.0/.
 #include "Train.h"
 #include "dictionary.h"
 #include "sceneeditor.h"
-#include "renderer.h"
+#include "openglrenderer.h"
+#include "opengl33renderer.h"
 #include "uilayer.h"
 #include "translation.h"
 #include "Logs.h"
+#include "Timer.h"
 
 #ifdef EU07_BUILD_STATIC
 #pragma comment( lib, "glfw3.lib" )
-#pragma comment( lib, "glew32s.lib" )
 #else
 #ifdef _WIN32
 #pragma comment( lib, "glfw3dll.lib" )
 #else
 #pragma comment( lib, "glfw3.lib" )
 #endif
-#pragma comment( lib, "glew32.lib" )
 #endif // build_static
 #pragma comment( lib, "opengl32.lib" )
 #pragma comment( lib, "glu32.lib" )
@@ -125,10 +125,10 @@ eu07_application::init( int Argc, char *Argv[] ) {
     if( ( result = init_glfw() ) != 0 ) {
         return result;
     }
-    init_callbacks();
     if( ( result = init_gfx() ) != 0 ) {
         return result;
     }
+    init_callbacks();
     if( ( result = init_audio() ) != 0 ) {
         return result;
     }
@@ -147,15 +147,27 @@ int
 eu07_application::run() {
 
     // main application loop
-    while( ( false == glfwWindowShouldClose( m_windows.front() ) )
-        && ( false == m_modestack.empty() )
-        && ( true == m_modes[ m_modestack.top() ]->update() )
-        && ( true == GfxRenderer->Render() ) ) {
+    while (!glfwWindowShouldClose( m_windows.front() ) && !m_modestack.empty())
+    {
+        Timer::subsystem.mainloop_total.start();
+
+        if( !m_modes[ m_modestack.top() ]->update() )
+            break;
+
+        if (!GfxRenderer->Render())
+            break;
+
         glfwPollEvents();
+
+        if (m_modestack.empty())
+            return 0;
+
         m_modes[ m_modestack.top() ]->on_event_poll();
+
+		Timer::subsystem.mainloop_total.stop();
     }
 
-    return 0;
+	return 0;
 }
 
 // issues request for a worker thread to perform specified task. returns: true if task was scheduled
@@ -255,6 +267,16 @@ eu07_application::set_cursor_pos( double const Horizontal, double const Vertical
     glfwSetCursorPos( m_windows.front(), Horizontal, Vertical );
 }
 
+glm::dvec2
+eu07_application::get_cursor_pos() const {
+
+    glm::dvec2 pos;
+    if( !m_windows.empty() ) {
+        glfwGetCursorPos( m_windows.front(), &pos.x, &pos.y );
+    }
+    return pos;
+}
+
 void
 eu07_application::get_cursor_pos( double &Horizontal, double &Vertical ) const {
 
@@ -294,7 +316,7 @@ eu07_application::on_scroll( double const Xoffset, double const Yoffset ) {
 }
 
 GLFWwindow *
-eu07_application::window( int const Windowindex ) {
+eu07_application::window(int const Windowindex, bool visible, int width, int height, GLFWmonitor *monitor, bool keep_ownership , bool share_ctx) {
 
     if( Windowindex >= 0 ) {
         return (
@@ -303,15 +325,51 @@ eu07_application::window( int const Windowindex ) {
                 nullptr );
     }
     // for index -1 create a new child window
-    glfwWindowHint( GLFW_VISIBLE, GL_FALSE );
-    auto *childwindow = glfwCreateWindow( 1, 1, "eu07helper", nullptr, m_windows.front() );
-    if( childwindow != nullptr ) {
-        m_windows.emplace_back( childwindow );
-    }
+
+	auto const *vmode { glfwGetVideoMode( monitor ? monitor : glfwGetPrimaryMonitor() ) };
+
+	glfwWindowHint( GLFW_RED_BITS, vmode->redBits );
+	glfwWindowHint( GLFW_GREEN_BITS, vmode->greenBits );
+	glfwWindowHint( GLFW_BLUE_BITS, vmode->blueBits );
+	glfwWindowHint( GLFW_REFRESH_RATE, vmode->refreshRate );
+
+	glfwWindowHint( GLFW_VISIBLE, visible );
+
+	auto *childwindow = glfwCreateWindow( width, height, "eu07window", monitor,
+	                                      share_ctx ? m_windows.front() : nullptr);
+	if (!childwindow)
+		return nullptr;
+
+	if (keep_ownership)
+		m_windows.emplace_back( childwindow );
+
+	glfwFocusWindow(m_windows.front()); // restore focus to main window
+
     return childwindow;
 }
 
 // private:
+GLFWmonitor* eu07_application::find_monitor(const std::string &str) const {
+	int monitor_count;
+	GLFWmonitor **monitors = glfwGetMonitors(&monitor_count);
+
+	for (size_t i = 0; i < monitor_count; i++) {
+		if (describe_monitor(monitors[i]) == str)
+			return monitors[i];
+	}
+
+	return nullptr;
+}
+
+std::string eu07_application::describe_monitor(GLFWmonitor *monitor) const {
+	std::string name(glfwGetMonitorName(monitor));
+	std::replace(std::begin(name), std::end(name), ' ', '_');
+
+	int x, y;
+	glfwGetMonitorPos(monitor, &x, &y);
+
+	return name + ":" + std::to_string(x) + "," + std::to_string(y);
+}
 
 void
 eu07_application::init_debug() {
@@ -438,51 +496,62 @@ eu07_application::init_glfw() {
     }
     // match requested video mode to current to allow for
     // fullwindow creation when resolution is the same
-    auto *monitor { glfwGetPrimaryMonitor() };
-    auto const *vmode { glfwGetVideoMode( monitor ) };
+	{
+		int monitor_count;
+		GLFWmonitor **monitors = glfwGetMonitors(&monitor_count);
 
-    glfwWindowHint( GLFW_RED_BITS, vmode->redBits );
-    glfwWindowHint( GLFW_GREEN_BITS, vmode->greenBits );
-    glfwWindowHint( GLFW_BLUE_BITS, vmode->blueBits );
-    glfwWindowHint( GLFW_REFRESH_RATE, vmode->refreshRate );
+		WriteLog("available monitors:");
+		for (size_t i = 0; i < monitor_count; i++) {
+			WriteLog(describe_monitor(monitors[i]));
+		}
+	}
+
+	auto *monitor { find_monitor(Global.fullscreen_monitor) };
+	if (!monitor)
+		monitor = glfwGetPrimaryMonitor();
 
     glfwWindowHint( GLFW_AUTO_ICONIFY, GLFW_FALSE );
     if( Global.iMultisampling > 0 ) {
         glfwWindowHint( GLFW_SAMPLES, 1 << Global.iMultisampling );
     }
 
-    if( Global.bFullScreen ) {
-        // match screen dimensions with selected monitor, for 'borderless window' in fullscreen mode
-        Global.iWindowWidth = vmode->width;
-        Global.iWindowHeight = vmode->height;
+    glfwWindowHint(GLFW_SRGB_CAPABLE, !Global.gfx_shadergamma);
+
+    if( Global.GfxRenderer == "default" ) {
+        // activate core profile for opengl 3.3 renderer
+        if( !Global.gfx_usegles ) {
+            glfwWindowHint( GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE );
+            glfwWindowHint( GLFW_CONTEXT_VERSION_MAJOR, 3 );
+            glfwWindowHint( GLFW_CONTEXT_VERSION_MINOR, 3 );
+        }
+        else {
+#ifdef GLFW_CONTEXT_CREATION_API
+            glfwWindowHint( GLFW_CONTEXT_CREATION_API, GLFW_EGL_CONTEXT_API );
+#endif
+            glfwWindowHint( GLFW_CLIENT_API, GLFW_OPENGL_ES_API );
+            glfwWindowHint( GLFW_CONTEXT_VERSION_MAJOR, 3 );
+            glfwWindowHint( GLFW_CONTEXT_VERSION_MINOR, 0 );
+        }
     }
 
-    auto *window {
-        glfwCreateWindow(
-            Global.iWindowWidth,
-            Global.iWindowHeight,
-            Global.AppName.c_str(),
-            ( Global.bFullScreen ?
-                monitor :
-                nullptr ),
-            nullptr ) };
+    auto *mainwindow = window(
+        -1, true, Global.iWindowWidth, Global.iWindowHeight, Global.bFullScreen ? monitor : nullptr, true, false );
 
-    if( window == nullptr ) {
+    if( mainwindow == nullptr ) {
         ErrorLog( "Bad init: failed to create glfw window" );
         return -1;
     }
 
-    glfwMakeContextCurrent( window );
+    glfwMakeContextCurrent( mainwindow );
     glfwSwapInterval( Global.VSync ? 1 : 0 ); //vsync
 
 #ifdef _WIN32
 // setup wrapper for base glfw window proc, to handle copydata messages
-    Hwnd = glfwGetWin32Window( window );
+    Hwnd = glfwGetWin32Window( mainwindow );
     BaseWindowProc = ( WNDPROC )::SetWindowLongPtr( Hwnd, GWLP_WNDPROC, (LONG_PTR)WndProc );
     // switch off the topmost flag
     ::SetWindowPos( Hwnd, HWND_NOTOPMOST, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE );
 #endif
-    m_windows.emplace_back( window );
 
     return 0;
 }
@@ -507,18 +576,43 @@ eu07_application::init_callbacks() {
 int
 eu07_application::init_gfx() {
 
-    if( glewInit() != GLEW_OK ) {
-        ErrorLog( "Bad init: failed to initialize glew" );
-        return -1;
+    if (Global.gfx_usegles)
+    {
+        if( 0 == gladLoadGLES2Loader( (GLADloadproc)glfwGetProcAddress ) ) {
+            ErrorLog( "Bad init: failed to initialize glad" );
+            return -1;
+        }
+    }
+    else
+    {
+        if( 0 == gladLoadGLLoader( (GLADloadproc)glfwGetProcAddress ) ) {
+            ErrorLog( "Bad init: failed to initialize glad" );
+            return -1;
+        }
     }
 
-    GfxRenderer = std::make_unique<opengl_renderer>();
-
-    if( ( false == GfxRenderer->Init( m_windows.front() ) )
-     || ( false == ui_layer::init( m_windows.front() ) ) ) {
-        return -1;
+    if( Global.GfxRenderer == "default" ) {
+        // default render path
+        GfxRenderer = std::make_unique<opengl33_renderer>();
+    }
+    else {
+        // legacy render path
+        GfxRenderer = std::make_unique<opengl_renderer>();
+        Global.GfxFramebufferSRGB = false;
+        Global.DisabledLogTypes |= logtype::material;
     }
 
+    if( false == GfxRenderer->Init( m_windows.front() ) ) {
+        return -1;
+    }
+    if( false == ui_layer::init( m_windows.front() ) ) {
+        return -1;
+    }
+/*
+	for (const global_settings::extraviewport_config &conf : Global.extra_viewports)
+		if (!GfxRenderer.AddViewport(conf))
+			return -1;
+*/
     return 0;
 }
 

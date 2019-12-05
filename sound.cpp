@@ -333,7 +333,7 @@ sound_source::play( int const Flags ) {
 
     // initialize emitter-specific pitch variation if it wasn't yet set
     if( m_pitchvariation == 0.f ) {
-        m_pitchvariation = 0.01f * static_cast<float>( Random( 97.5, 102.5 ) );
+        m_pitchvariation = 1.f; // 0.01f * static_cast<float>( Random( 97.5, 102.5 ) );
     }
 /*
     if( ( ( m_flags & sound_flags::exclusive ) != 0 )
@@ -886,7 +886,12 @@ sound_source::update_counter( sound_handle const Sound, int const Value ) {
             ui::Transcripts.Add( buffer.caption );
         }
     }
-    assert( sound( Sound ).playing >= 0 );
+//    assert( sound( Sound ).playing >= 0 );
+    if( sound( Sound ).playing < 0 ) {
+        // HACK: counter can occassionally go into negative values
+        // TODO: investigate and fix
+        sound( Sound ).playing = 0;
+    }
 }
 
 void
@@ -903,11 +908,11 @@ bool
 sound_source::update_soundproofing() {
     // NOTE, HACK: current cab id can vary from -1 to +1, and we use another higher priority value for open cab window
     // we use this as modifier to force re-calculations when moving between compartments or changing window state
-    int const activecab = (
+    int const occupiedcab = (
         Global.CabWindowOpen ? 2 :
         FreeFlyModeFlag ? 0 :
         ( simulation::Train ?
-            simulation::Train->Occupied()->ActiveCab :
+            simulation::Train->Occupied()->CabOccupied :
             0 ) );
     // location-based gain factor:
     std::uintptr_t soundproofingstamp = reinterpret_cast<std::uintptr_t>( (
@@ -916,7 +921,7 @@ sound_source::update_soundproofing() {
             ( simulation::Train ?
                 simulation::Train->Dynamic() :
                 nullptr ) ) )
-        + activecab;
+        + occupiedcab;
 
     if( soundproofingstamp == m_properties.soundproofing_stamp ) { return false; }
 
@@ -939,7 +944,7 @@ sound_source::update_soundproofing() {
                     EU07_SOUNDPROOFING_STRONG : // listener outside HACK: won't be true if active vehicle has open window
                     ( simulation::Train->Dynamic() != m_owner ?
                         EU07_SOUNDPROOFING_STRONG : // in another vehicle
-                        ( activecab == 0 ?
+                        ( occupiedcab == 0 ?
                             EU07_SOUNDPROOFING_STRONG : // listener in the engine compartment
                             EU07_SOUNDPROOFING_NONE ) ) ); // listener in the cab of the same vehicle
             break;
@@ -950,7 +955,7 @@ sound_source::update_soundproofing() {
                     EU07_SOUNDPROOFING_SOME : // listener outside or has a window open
                     ( simulation::Train->Dynamic() != m_owner ?
                         EU07_SOUNDPROOFING_STRONG : // in another vehicle
-                        ( activecab == 0 ?
+                        ( occupiedcab == 0 ?
                             EU07_SOUNDPROOFING_NONE : // listener in the engine compartment
                             EU07_SOUNDPROOFING_STRONG ) ) ); // listener in another compartment of the same vehicle
             break;

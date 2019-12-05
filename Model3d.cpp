@@ -90,6 +90,30 @@ TSubModel::SetDiffuseOverride( glm::vec3 const &Color, bool const Includechildre
     }
 }
 
+std::optional<glm::vec3>
+TSubModel::GetDiffuse(float Includesiblings) {
+	if (eType == TP_FREESPOTLIGHT) {
+		if (DiffuseOverride.x >= 0.0f)
+			return DiffuseOverride;
+		else
+			return glm::vec3(f4Diffuse);
+	}
+
+	if (Includesiblings) {
+		auto sibling = this;
+		while ((sibling = sibling->Next)) {
+			auto result = sibling->GetDiffuse(true);
+			if (result)
+				return result;
+		}
+	}
+
+	if (Child)
+		return Child->GetDiffuse(true);
+
+	return std::nullopt;
+}
+
 // sets visibility level (alpha component) to specified value
 void
 TSubModel::SetVisibilityLevel( float const Level, bool const Includechildren, bool const Includesiblings ) {
@@ -335,7 +359,8 @@ int TSubModel::Load( cParser &parser, TModel3d *Model, /*int Pos,*/ bool dynamic
         std::string material = parser.getToken<std::string>();
         if (material == "none")
         { // rysowanie podanym kolorem
-            m_material = null_handle;
+            Name_Material( "colored" );
+            m_material = GfxRenderer->Fetch_Material( m_materialname );
             iFlags |= 0x10; // rysowane w cyklu nieprzezroczystych
         }
         else if (material.find("replacableskin") != material.npos)
@@ -375,16 +400,49 @@ int TSubModel::Load( cParser &parser, TModel3d *Model, /*int Pos,*/ bool dynamic
             // renderowanie w cyklu przezroczystych tylko jeśli:
             // 1. Opacity=0 (przejściowo <1, czy tam <100) oraz
             // 2. tekstura ma przezroczystość
-            iFlags |=
-                ( ( ( Opacity < 1.0 )
-                 && ( ( m_material != null_handle )
-                   && ( GfxRenderer->Material( m_material ).has_alpha ) ) ) ?
+             iFlags |= (
+                ( ( Opacity < 0.01f )
+               && ( ( m_material != null_handle )
+                 && ( GfxRenderer->Material( m_material ).is_translucent() ) ) ) ?
                     0x20 :
                     0x10 ); // 0x10-nieprzezroczysta, 0x20-przezroczysta
-        };
+       };
     }
-    else
+    else if( eType == TP_STARS ) {
+        m_material = GfxRenderer->Fetch_Material( "stars" );
         iFlags |= 0x10;
+    }
+    else {
+        iFlags |= 0x10;
+    }
+
+    if (m_material > 0)
+    {
+        opengl_material const &mat = GfxRenderer->Material(m_material);
+        /*
+        if( eType == TP_FREESPOTLIGHT ) {
+            iFlags &= ~0x30;
+            iFlags |= 0x20;
+        }
+        else
+        */
+        {
+            // if material has opacity set, replace submodel opacity with it
+            auto const opacity { (
+                false == std::isnan( mat.opacity ) ?
+                    mat.opacity :
+                    Opacity ) };
+            iFlags &= ~0x30;
+            iFlags |= (
+                ( ( opacity < 0.01f )
+               && ( GfxRenderer->Material( m_material ).is_translucent() ) ) ?
+                    0x20 :
+                    0x10 ); // 0x10-nieprzezroczysta, 0x20-przezroczysta
+        }
+        // and same thing with selfillum
+        if (!std::isnan(mat.selfillum))
+            fLight = mat.selfillum;
+    }
 
     // visibility range
 	std::string discard;
@@ -554,9 +612,11 @@ int TSubModel::Load( cParser &parser, TModel3d *Model, /*int Pos,*/ bool dynamic
                                 wsp[ adjacenvertextidx ] = vertexidx; // informacja, że w tym wierzchołku jest już policzony wektor normalny
                                 vertexnormal += facenormals[ adjacenvertextidx / 3 ];
                             }
+                            /*
                             else {
                                 ErrorLog( "Bad model: opposite normals in the same smoothing group, check sub-model \"" + pName + "\" for two-sided faces and/or scaling", logtype::model );
                             }
+                            */
                             // i szukanie od kolejnego trójkąta
 							adjacenvertextidx = SeekFaceNormal(sg, adjacenvertextidx / 3 + 1, sg[faceidx], Vertices[vertexidx].position, Vertices);
                         }
@@ -974,73 +1034,75 @@ TSubModel *TSubModel::GetFromName(std::string const &search, bool i)
 // WORD hbIndices[18]={3,0,1,5,4,2,1,0,4,1,5,3,2,3,5,2,4,0};
 
 void TSubModel::RaAnimation(TAnimType a)
+{
+	glm::mat4 m = OpenGLMatrices.data(GL_MODELVIEW);
+	RaAnimation(m, a);
+	glLoadMatrixf(glm::value_ptr(m));
+}
+
+void TSubModel::RaAnimation(glm::mat4 &m, TAnimType a)
 { // wykonanie animacji niezależnie od renderowania
 	switch (a)
 	{ // korekcja położenia, jeśli submodel jest animowany
     case TAnimType::at_Translate: // Ra: było "true"
 		if (iAnimOwner != iInstance)
 			break; // cudza animacja
-		glTranslatef(v_TransVector.x, v_TransVector.y, v_TransVector.z);
+		m = glm::translate(m, glm::vec3(v_TransVector.x, v_TransVector.y, v_TransVector.z));
 		break;
 	case TAnimType::at_Rotate: // Ra: było "true"
 		if (iAnimOwner != iInstance)
 			break; // cudza animacja
-		glRotatef(f_Angle, v_RotateAxis.x, v_RotateAxis.y, v_RotateAxis.z);
+		m = glm::rotate(m, glm::radians(f_Angle), glm::vec3(v_RotateAxis.x, v_RotateAxis.y, v_RotateAxis.z));
 		break;
 	case TAnimType::at_RotateXYZ:
 		if (iAnimOwner != iInstance)
 			break; // cudza animacja
-		glTranslatef(v_TransVector.x, v_TransVector.y, v_TransVector.z);
-		glRotatef(v_Angles.x, 1.0f, 0.0f, 0.0f);
-		glRotatef(v_Angles.y, 0.0f, 1.0f, 0.0f);
-		glRotatef(v_Angles.z, 0.0f, 0.0f, 1.0f);
+		m = glm::translate(m, glm::vec3(v_TransVector.x, v_TransVector.y, v_TransVector.z));
+		m = glm::rotate(m, glm::radians(v_Angles.x), glm::vec3(1.0f, 0.0f, 0.0f));
+		m = glm::rotate(m, glm::radians(v_Angles.y), glm::vec3(0.0f, 1.0f, 0.0f));
+		m = glm::rotate(m, glm::radians(v_Angles.z), glm::vec3(0.0f, 0.0f, 1.0f));
 		break;
 	case TAnimType::at_SecondsJump: // sekundy z przeskokiem
-		glRotatef(simulation::Time.data().wSecond * 6.0, 0.0, 1.0, 0.0);
+		m = glm::rotate(m, glm::radians(simulation::Time.data().wSecond * 6.0f), glm::vec3(0.0f, 1.0f, 0.0f));
 		break;
 	case TAnimType::at_MinutesJump: // minuty z przeskokiem
-		glRotatef(simulation::Time.data().wMinute * 6.0, 0.0, 1.0, 0.0);
+		m = glm::rotate(m, glm::radians(simulation::Time.data().wMinute * 6.0f), glm::vec3(0.0f, 1.0f, 0.0f));
 		break;
 	case TAnimType::at_HoursJump: // godziny skokowo 12h/360°
-		glRotatef(simulation::Time.data().wHour * 30.0 * 0.5, 0.0, 1.0, 0.0);
+		m = glm::rotate(m, glm::radians(simulation::Time.data().wHour * 30.0f * 0.5f), glm::vec3(0.0f, 1.0f, 0.0f));
 		break;
 	case TAnimType::at_Hours24Jump: // godziny skokowo 24h/360°
-		glRotatef(simulation::Time.data().wHour * 15.0 * 0.25, 0.0, 1.0, 0.0);
+		m = glm::rotate(m, glm::radians(simulation::Time.data().wHour * 15.0f * 0.25f), glm::vec3(0.0f, 1.0f, 0.0f));
 		break;
 	case TAnimType::at_Seconds: // sekundy płynnie
-		glRotatef(simulation::Time.second() * 6.0, 0.0, 1.0, 0.0);
+		m = glm::rotate(m, glm::radians((float)simulation::Time.second() * 6.0f), glm::vec3(0.0f, 1.0f, 0.0f));
 		break;
 	case TAnimType::at_Minutes: // minuty płynnie
-		glRotatef(simulation::Time.data().wMinute * 6.0 + simulation::Time.second() * 0.1, 0.0, 1.0, 0.0);
+		m = glm::rotate(m, glm::radians(simulation::Time.data().wMinute * 6.0f + (float)simulation::Time.second() * 0.1f), glm::vec3(0.0f, 1.0f, 0.0f));
 		break;
 	case TAnimType::at_Hours: // godziny płynnie 12h/360°
-		glRotatef(2.0 * Global.fTimeAngleDeg, 0.0, 1.0, 0.0);
+				   // glRotatef(GlobalTime->hh*30.0+GlobalTime->mm*0.5+GlobalTime->mr/120.0,0.0,1.0,0.0);
+		m = glm::rotate(m, glm::radians(2.0f * (float)Global.fTimeAngleDeg), glm::vec3(0.0f, 1.0f, 0.0f));
 		break;
 	case TAnimType::at_Hours24: // godziny płynnie 24h/360°
-		glRotatef(Global.fTimeAngleDeg, 0.0, 1.0, 0.0);
+					 // glRotatef(GlobalTime->hh*15.0+GlobalTime->mm*0.25+GlobalTime->mr/240.0,0.0,1.0,0.0);
+		m = glm::rotate(m, glm::radians((float)Global.fTimeAngleDeg), glm::vec3(0.0f, 1.0f, 0.0f));
 		break;
 	case TAnimType::at_Billboard: // obrót w pionie do kamery
 	{
         Math3D::matrix4x4 mat; mat.OpenGL_Matrix( OpenGLMatrices.data_array( GL_MODELVIEW ) );
 		float3 gdzie = float3(mat[3][0], mat[3][1], mat[3][2]); // początek układu współrzędnych submodelu względem kamery
-		glLoadIdentity(); // macierz jedynkowa
-		glTranslatef(gdzie.x, gdzie.y, gdzie.z); // początek układu zostaje bez
-												 // zmian
-		glRotated(atan2(gdzie.x, gdzie.z) * 180.0 / M_PI, 0.0, 1.0,
-			0.0); // jedynie obracamy w pionie o kąt
+		m = glm::mat4(1.0f);
+		m = glm::translate(m, glm::vec3(gdzie.x, gdzie.y, gdzie.z)); // początek układu zostaje bez zmian
+		m = glm::rotate(m, (float)atan2(gdzie.x, gdzie.z), glm::vec3(0.0f, 1.0f, 0.0f)); // jedynie obracamy w pionie o kąt
 	}
 	break;
 	case TAnimType::at_Wind: // ruch pod wpływem wiatru (wiatr będziemy liczyć potem...)
-		glRotated(1.5 * std::sin(M_PI * simulation::Time.second() / 6.0), 0.0, 1.0, 0.0);
+		m = glm::rotate(m, glm::radians(1.5f * (float)sin(M_PI * simulation::Time.second() / 6.0)), glm::vec3(0.0f, 1.0f, 0.0f));
 		break;
 	case TAnimType::at_Sky: // animacja nieba
-		glRotated(Global.fLatitudeDeg, 1.0, 0.0, 0.0); // ustawienie osi OY na północ
-														// glRotatef(Global.fTimeAngleDeg,0.0,1.0,0.0); //obrót dobowy osi OX
-		glRotated(-fmod(Global.fTimeAngleDeg, 360.0), 0.0, 1.0, 0.0); // obrót dobowy osi OX
-		break;
-	case TAnimType::at_IK11: // ostatni element animacji szkieletowej (podudzie, stopa)
-		glRotatef(v_Angles.z, 0.0f, 1.0f, 0.0f); // obrót względem osi pionowej (azymut)
-		glRotatef(v_Angles.x, 1.0f, 0.0f, 0.0f); // obrót względem poziomu (deklinacja)
+		m = glm::rotate(m, glm::radians((float)Global.fLatitudeDeg), glm::vec3(0.0f, 1.0f, 0.0f)); // ustawienie osi OY na północ
+		m = glm::rotate(m, glm::radians((float)-fmod(Global.fTimeAngleDeg, 360.0)), glm::vec3(0.0f, 1.0f, 0.0f));
 		break;
 	case TAnimType::at_DigiClk: // animacja zegara cyfrowego
 	{ // ustawienie animacji w submodelach potomnych
@@ -1063,8 +1125,8 @@ void TSubModel::RaAnimation(TAnimType a)
 	}
 	if (mAnimMatrix) // można by to dać np. do at_Translate
 	{
-		glMultMatrixf(mAnimMatrix->readArray());
-		mAnimMatrix = NULL; // jak animator będzie potrzebował, to ustawi ponownie
+		m *= glm::make_mat4(mAnimMatrix->e);
+        mAnimMatrix = nullptr; // jak animator będzie potrzebował, to ustawi ponownie
 	}
 };
 
@@ -1783,13 +1845,31 @@ void TSubModel::BinInit(TSubModel *s, float4x4 *m, std::vector<std::string> *t, 
             }
 */
             m_material = GfxRenderer->Fetch_Material( m_materialname );
-            if( ( iFlags & 0x30 ) == 0 ) {
+            // if we don't have phase flags set for some reason, try to fix it
+            if (!(iFlags & 0x30) && m_material != null_handle)
+            {
+                /*
+                if( eType == TP_FREESPOTLIGHT ) {
+                    iFlags &= ~0x30;
+                    iFlags |=  0x20;
+                }
+                else
+                */
+                {
                 // texture-alpha based fallback if for some reason we don't have opacity flag set yet
-                iFlags |= (
-                    ( ( m_material != null_handle )
-                   && ( GfxRenderer->Material( m_material ).has_alpha ) ) ?
-                        0x20 :
-                        0x10 ); // 0x10-nieprzezroczysta, 0x20-przezroczysta
+                    iFlags |= (
+                        GfxRenderer->Material( m_material ).is_translucent() ?
+                            0x20 :
+                            0x10 ); // 0x10-nieprzezroczysta, 0x20-przezroczysta
+                }
+            }
+            if ( m_material != null_handle )
+            {
+                opengl_material const &mat = GfxRenderer->Material(m_material);
+
+                // replace submodel selfillum with material one
+                if (!std::isnan(mat.selfillum))
+                    fLight = mat.selfillum;
             }
         }
         else {
@@ -1798,7 +1878,12 @@ void TSubModel::BinInit(TSubModel *s, float4x4 *m, std::vector<std::string> *t, 
         }
     }
 	else
-		m_material = iTexture;
+    {
+        if( iTexture == 0 )
+            m_material = GfxRenderer->Fetch_Material( "colored" );
+        else
+            m_material = iTexture;
+    }
 
 	b_aAnim = b_Anim; // skopiowanie animacji do drugiego cyklu
 

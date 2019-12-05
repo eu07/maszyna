@@ -19,10 +19,10 @@ void render_task::run() {
     // convert provided input to a python dictionary
     auto *input = PyDict_New();
     if( input == nullptr ) { goto exit; }
-    for( auto const &datapair : m_input->floats )   { PyDict_SetItemString( input, datapair.first.c_str(), PyGetFloat( datapair.second ) ); }
-    for( auto const &datapair : m_input->integers ) { PyDict_SetItemString( input, datapair.first.c_str(), PyGetInt( datapair.second ) ); }
-    for( auto const &datapair : m_input->bools )    { PyDict_SetItemString( input, datapair.first.c_str(), PyGetBool( datapair.second ) ); }
-    for( auto const &datapair : m_input->strings )  { PyDict_SetItemString( input, datapair.first.c_str(), PyGetString( datapair.second.c_str() ) ); }
+    for( auto const &datapair : m_input->floats )   { auto *value{ PyGetFloat( datapair.second ) }; PyDict_SetItemString( input, datapair.first.c_str(), value ); Py_DECREF( value ); }
+    for( auto const &datapair : m_input->integers ) { auto *value{ PyGetInt( datapair.second ) }; PyDict_SetItemString( input, datapair.first.c_str(), value ); Py_DECREF( value ); }
+    for( auto const &datapair : m_input->bools )    { auto *value{ PyGetBool( datapair.second ) }; PyDict_SetItemString( input, datapair.first.c_str(), value ); }
+    for( auto const &datapair : m_input->strings )  { auto *value{ PyGetString( datapair.second.c_str() ) }; PyDict_SetItemString( input, datapair.first.c_str(), value ); Py_DECREF( value ); }
 
     // call the renderer
     auto *output { PyObject_CallMethod( m_renderer, "render", "O", input ) };
@@ -36,20 +36,26 @@ void render_task::run() {
          && ( outputheight != nullptr ) ) {
 
             ::glBindTexture( GL_TEXTURE_2D, m_target );
-            // setup texture parameters
-            ::glTexParameteri( GL_TEXTURE_2D, GL_GENERATE_MIPMAP, GL_TRUE );
-            ::glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR );
-            ::glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR );
-            if( GLEW_EXT_texture_filter_anisotropic ) {
-                // anisotropic filtering
-                ::glTexParameterf( GL_TEXTURE_2D, GL_TEXTURE_MAX_ANISOTROPY_EXT, Global.AnisotropicFiltering );
-            }
             // build texture
             ::glTexImage2D(
                 GL_TEXTURE_2D, 0,
-                GL_RGBA8,
+                ( Global.GfxFramebufferSRGB ? GL_SRGB8 : GL_RGBA8 ),
                 PyInt_AsLong( outputwidth ), PyInt_AsLong( outputheight ), 0,
                 GL_RGB, GL_UNSIGNED_BYTE, reinterpret_cast<GLubyte const *>( PyString_AsString( output ) ) );
+            // setup texture parameters
+            if( ( Global.AnisotropicFiltering >= 0 )
+             && ( GL_EXT_texture_filter_anisotropic != 0 ) ) {
+                // anisotropic filtering
+                ::glTexParameterf( GL_TEXTURE_2D, GL_TEXTURE_MAX_ANISOTROPY_EXT, Global.AnisotropicFiltering );
+            }
+            if( Global.python_mipmaps ) {
+                ::glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR );
+                ::glGenerateMipmap( GL_TEXTURE_2D );
+            } 
+            else {
+                glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR );
+            }
+            // all done
             ::glFlush();
         }
         if( outputheight != nullptr ) { Py_DECREF( outputheight ); }
@@ -155,7 +161,8 @@ auto python_taskqueue::insert( task_request const &Task ) -> bool {
 
     if( ( Task.renderer.empty() )
      || ( Task.input == nullptr )
-     || ( Task.target == 0 ) ) { return false; }
+     || ( Task.target == 0 )
+     || ( Task.target == (GLuint)-1 ) ) { return false; }
 
     auto *renderer { fetch_renderer( Task.renderer ) };
     if( renderer == nullptr ) { return false; }

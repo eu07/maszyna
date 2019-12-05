@@ -41,13 +41,8 @@ dictionary_source::dictionary_source( std::string const &Input ) {
                     vehicle == nullptr ? nullptr :
                     vehicle->ctOwner == nullptr ? vehicle->Mechanik :
                     vehicle->ctOwner ) };
-                auto const *timetable { (
-                    controller != nullptr ?
-                        controller->TrainTimetable() :
-                        nullptr ) };
-
-                if( timetable != nullptr ) {
-                    timetable->serialize( this );
+                if( controller != nullptr ) {
+                    controller->TrainTimetable().serialize( this );
                 }
             }
         }

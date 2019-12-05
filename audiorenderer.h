@@ -147,8 +147,14 @@ private:
     ALCdevice * m_device { nullptr };
     ALCcontext * m_context { nullptr };
     bool m_ready { false }; // renderer is initialized and functional
+/*
     glm::dvec3 m_listenerposition;
+*/
     glm::vec3 m_listenervelocity;
+    glm::dvec3 m_camerapos{ 0.0 };
+    bool m_freeflymode{ true };
+    bool m_windowopen{ true };
+    int m_activecab{ 0 };
 
     buffer_manager m_buffers;
     // TBD: list of sources as vector, sorted by distance, for openal implementations with limited number of active sources?

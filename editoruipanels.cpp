@@ -15,6 +15,7 @@ http://mozilla.org/MPL/2.0/.
 #include "AnimModel.h"
 #include "Track.h"
 #include "Event.h"
+#include "MemCell.h"
 #include "renderer.h"
 #include "utilities.h"
 #include "scenenodegroups.h"

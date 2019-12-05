@@ -11,40 +11,67 @@ http://mozilla.org/MPL/2.0/.
 
 #include "Classes.h"
 #include "Texture.h"
+#include "gl/shader.h"
+#include "gl/ubo.h"
 
 typedef int material_handle;
 
 // a collection of parameters for the rendering setup.
-// for modern opengl this translates to set of attributes for the active shaders,
-// for legacy opengl this is basically just texture(s) assigned to geometry
+// for modern opengl this translates to set of attributes for shaders
 struct opengl_material {
+    std::array<texture_handle, gl::MAX_TEXTURES> textures = { null_handle };
+    std::array<glm::vec4, gl::MAX_PARAMS> params;
+    std::vector<gl::shader::param_entry> params_state;
 
-    texture_handle texture1 { null_handle }; // primary texture, typically diffuse+apha
-    texture_handle texture2 { null_handle }; // secondary texture, typically normal+reflection
+    std::shared_ptr<gl::program> shader;
+    float opacity = std::numeric_limits<float>::quiet_NaN();
+    float selfillum = std::numeric_limits<float>::quiet_NaN();
 
-    bool has_alpha { false }; // alpha state, calculated from presence of alpha in texture1
     std::string name;
     glm::vec2 size { -1.f, -1.f }; // 'physical' size of bound texture, in meters
 
 // constructors
-    opengl_material() = default;
+    opengl_material();
 
 // methods
     bool
         deserialize( cParser &Input, bool const Loadnow );
+    void finalize(bool Loadnow);
+    float get_or_guess_opacity() const;
+    bool is_translucent() const;
 
 private:
 // methods
-    // imports member data pair from the config file, overriding existing parameter values of lower priority
+    // imports member data pair from the config file
     bool
         deserialize_mapping( cParser &Input, int const Priority, bool const Loadnow );
+        void log_error(const std::string &str);
     // extracts name of the sound file from provided data stream
     std::string
         deserialize_filename( cParser &Input );
 
 // members
-    int priority1 { -1 }; // priority of last loaded primary texture
-    int priority2 { -1 }; // priority of last loaded secondary texture
+    // priorities for textures, shader, opacity
+    int m_shader_priority = -1;
+    int m_opacity_priority = -1;
+    int m_selfillum_priority = -1;
+
+    struct parse_info_s
+    {
+        struct tex_def
+        {
+            std::string name;
+            int priority;
+        };
+        struct param_def
+        {
+            glm::vec4 data;
+            int priority;
+        };
+        std::unordered_map<std::string, tex_def> tex_mapping;
+        std::unordered_map<std::string, param_def> param_mapping;
+    };
+    std::unique_ptr<parse_info_s> parse_info;
 };
 
 class material_manager {
@@ -56,6 +83,8 @@ public:
         create( std::string const &Filename, bool const Loadnow );
     opengl_material const &
         material( material_handle const Material ) const { return m_materials[ Material ]; }
+    opengl_material &
+        material( material_handle const Material ) { return m_materials[ Material ]; }
 
 private:
 // types
@@ -71,7 +100,6 @@ private:
 // members:
     material_sequence m_materials;
     index_map m_materialmappings;
-
 };
 
 //---------------------------------------------------------------------------

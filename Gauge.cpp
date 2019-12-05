@@ -27,11 +27,14 @@ TGauge::TGauge( sound_source const &Soundtemplate ) :
 {
     m_soundfxincrease = m_soundtemplate;
     m_soundfxdecrease = m_soundtemplate;
+    m_soundfxon = m_soundtemplate;
+    m_soundfxoff = m_soundtemplate;
 }
 
-void TGauge::Init(TSubModel *Submodel, TGaugeAnimation Type, float Scale, float Offset, float Friction, float Value, float const Endvalue, float const Endscale, bool const Interpolatescale )
+void TGauge::Init(TSubModel *Submodel, TSubModel *Submodelon, TGaugeAnimation Type, float Scale, float Offset, float Friction, float Value, float const Endvalue, float const Endscale, bool const Interpolatescale )
 { // ustawienie parametrów animacji submodelu
     SubModel = Submodel;
+    SubModelOn = Submodelon;
     m_value = Value;
     m_animation = Type;
     m_scale = Scale;
@@ -41,38 +44,53 @@ void TGauge::Init(TSubModel *Submodel, TGaugeAnimation Type, float Scale, float 
     m_endvalue = Endvalue;
     m_endscale = Endscale;
 
-    if( Submodel == nullptr ) {
-        // warunek na wszelki wypadek, gdyby się submodel nie podłączył
-        return;
-    }
-
     if( m_animation == TGaugeAnimation::gt_Digital ) {
 
-        TSubModel *sm = SubModel->ChildGet();
-        do {
+        auto *sm { ( SubModel ? SubModel->ChildGet() : nullptr ) };
+        while( sm != nullptr ) {
             // pętla po submodelach potomnych i obracanie ich o kąt zależy od cyfry w (fValue)
-            if( sm->pName.size() ) { // musi mieć niepustą nazwę
-                if( sm->pName[ 0 ] >= '0' )
-                    if( sm->pName[ 0 ] <= '9' )
-                        sm->WillBeAnimated(); // wyłączenie optymalizacji
+            if( ( sm->pName.size() )// musi mieć niepustą nazwę
+             && ( std::isdigit( sm->pName[ 0 ] ) ) ) {
+                sm->WillBeAnimated(); // wyłączenie optymalizacji
             }
             sm = sm->NextGet();
-        } while( sm );
+        }
+        // do the same for the active version
+        sm = ( SubModelOn ? SubModelOn->ChildGet() : nullptr );
+        while( sm != nullptr ) {
+            // pętla po submodelach potomnych i obracanie ich o kąt zależy od cyfry w (fValue)
+            if( ( sm->pName.size() )// musi mieć niepustą nazwę
+             && ( std::isdigit( sm->pName[ 0 ] ) ) ) {
+                sm->WillBeAnimated(); // wyłączenie optymalizacji
+            }
+            sm = sm->NextGet();
+        }
     }
-    else // a banan może być z optymalizacją?
-        Submodel->WillBeAnimated(); // wyłączenie ignowania jedynkowego transformu
+    else {
+        // wyłączenie ignowania jedynkowego transformu
+        // a banan może być z optymalizacją?
+        if( SubModel   != nullptr ) { SubModel->WillBeAnimated(); }
+        if( SubModelOn != nullptr ) { SubModelOn->WillBeAnimated(); }
+    }
     // pass submodel location to defined sounds
     auto const nulloffset { glm::vec3{} };
-    auto const offset{ model_offset() };
-    if( m_soundfxincrease.offset() == nulloffset ) {
-        m_soundfxincrease.offset( offset );
+    auto const offset { model_offset() };
+    {
+        std::vector<sound_source *> soundfxs = {
+            &m_soundfxincrease,
+            &m_soundfxdecrease,
+            &m_soundfxon,
+            &m_soundfxoff
+        };
+        for( auto *soundfx : soundfxs ) {
+            if( soundfx->offset() == nulloffset ) {
+                soundfx->offset( offset );
+            }
+        }
     }
-    if( m_soundfxdecrease.offset() == nulloffset ) {
-        m_soundfxdecrease.offset( offset );
-    }
-    for( auto &soundfxrecord : m_soundfxvalues ) {
-        if( soundfxrecord.second.offset() == nulloffset ) {
-            soundfxrecord.second.offset( offset );
+    for( auto &soundfx : m_soundfxvalues ) {
+        if( soundfx.second.offset() == nulloffset ) {
+            soundfx.second.offset( offset );
         }
     }
 };
@@ -131,6 +149,8 @@ void TGauge::Load( cParser &Parser, TDynamicObject const *Owner, double const mu
     // bind defined sounds with the button owner
     m_soundfxincrease.owner( Owner );
     m_soundfxdecrease.owner( Owner );
+    m_soundfxon.owner( Owner );
+    m_soundfxoff.owner( Owner );
     for( auto &soundfxrecord : m_soundfxvalues ) {
         soundfxrecord.second.owner( Owner );
     }
@@ -147,9 +167,24 @@ void TGauge::Load( cParser &Parser, TDynamicObject const *Owner, double const mu
             // got what we wanted, bail out
             break;
         }
+        // there's a possibility the default submodel was named with _off suffix
+        if( ( source != nullptr )
+         && ( submodel = source->GetFromName( submodelname + "_off" ) ) != nullptr ) {
+            // got what we wanted, bail out
+            break;
+        }
     }
     if( submodel == nullptr ) {
         ErrorLog( "Bad model: failed to locate sub-model \"" + submodelname + "\" in 3d model(s) of \"" + Owner->name() + "\"", logtype::model );
+    }
+    // see if we can locate optional submodel for active state, with _on suffix
+    TSubModel *submodelon { nullptr };
+    for( auto const *source : sources ) {
+        if( ( source != nullptr )
+         && ( submodelon = source->GetFromName( submodelname + "_on" ) ) != nullptr ) {
+            // got what we wanted, bail out
+            break;
+        }
     }
 
     std::map<std::string, TGaugeAnimation> gaugetypes {
@@ -166,7 +201,7 @@ void TGauge::Load( cParser &Parser, TDynamicObject const *Owner, double const mu
             lookup->second :
             TGaugeAnimation::gt_Unknown );
 
-    Init( submodel, type, scale, offset, friction, 0, endvalue, endscale, interpolatescale );
+    Init( submodel, submodelon, type, scale, offset, friction, 0, endvalue, endscale, interpolatescale );
 
 //    return md2 != nullptr; // true, gdy podany model zewnętrzny, a w kabinie nie było
 };
@@ -191,6 +226,12 @@ TGauge::Load_mapping( cParser &Input ) {
     }
     else if( key == "sounddec:" ) {
         m_soundfxdecrease.deserialize( Input, sound_type::single );
+    }
+    else if( key == "soundon:" ) {
+        m_soundfxon.deserialize( Input, sound_type::single );
+    }
+    else if( key == "soundoff:" ) {
+        m_soundfxoff.deserialize( Input, sound_type::single );
     }
     else if( key.compare( 0, std::min<std::size_t>( key.size(), 5 ), "sound" ) == 0 ) {
         // sounds assigned to specific gauge values, defined by key soundFoo: where Foo = value
@@ -244,13 +285,11 @@ TGauge::UpdateValue( float fNewDesired, sound_source *Fallbacksound ) {
     // ...and if there isn't any, fall back on the basic set...
     auto const currentvalue = GetValue();
     // HACK: crude way to discern controls with continuous and quantized value range
-    if( ( currentvalue < fNewDesired )
-     && ( false == m_soundfxincrease.empty() ) ) {
+    if( currentvalue < fNewDesired ) {
         // shift up
         m_soundfxincrease.play( m_soundtype );
     }
-    else if( ( currentvalue > fNewDesired )
-          && ( false == m_soundfxdecrease.empty() ) ) {
+    else if( currentvalue > fNewDesired ) {
         // shift down
         m_soundfxdecrease.play( m_soundtype );
     }
@@ -276,8 +315,9 @@ float TGauge::GetDesiredValue() const {
     return m_targetvalue;
 }
 
-void TGauge::Update() {
-
+void TGauge::Update( bool const Power ) {
+    // update value
+    // TODO: remove passing manually power state when LD is in place
     if( m_value != m_targetvalue ) {
         float dt = Timer::GetDeltaTime();
         if( ( m_friction > 0 ) && ( dt < 0.5 * m_friction ) ) {
@@ -292,55 +332,25 @@ void TGauge::Update() {
             m_value = m_targetvalue;
         }
     }
-    if( SubModel )
-    { // warunek na wszelki wypadek, gdyby się submodel nie podłączył
-        switch (m_animation) {
-            case TGaugeAnimation::gt_Rotate: {
-                SubModel->SetRotate( float3( 0, 1, 0 ), GetScaledValue() * 360.0 );
-                break;
-            }
-            case TGaugeAnimation::gt_Move: {
-                SubModel->SetTranslate( float3( 0, 0, GetScaledValue() ) );
-                break;
-            }
-            case TGaugeAnimation::gt_Wiper: {
-                auto const scaledvalue { GetScaledValue() };
-                SubModel->SetRotate( float3( 0, 1, 0 ), scaledvalue * 360.0 );
-                auto *sm = SubModel->ChildGet();
-                if( sm ) {
-                    sm->SetRotate( float3( 0, 1, 0 ), scaledvalue * 360.0 );
-                    sm = sm->ChildGet();
-                    if( sm )
-                        sm->SetRotate( float3( 0, 1, 0 ), scaledvalue * 360.0 );
-                }
-                break;
-            }
-            case TGaugeAnimation::gt_Digital: {
-                // Ra 2014-07: licznik cyfrowy
-                auto *sm = SubModel->ChildGet();
-/*  			std::string n = FormatFloat( "0000000000", floor( fValue ) ); // na razie tak trochę bez sensu
-*/	    		std::string n( "000000000" + std::to_string( static_cast<int>( std::floor( GetScaledValue() ) ) ) );
-                if( n.length() > 10 ) { n.erase( 0, n.length() - 10 ); } // also dumb but should work for now
-                do { // pętla po submodelach potomnych i obracanie ich o kąt zależy od cyfry w (fValue)
-                    if( sm->pName.size() ) {
-                        // musi mieć niepustą nazwę
-                        if( ( sm->pName[ 0 ] >= '0' )
-                            && ( sm->pName[ 0 ] <= '9' ) ) {
-
-                            sm->SetRotate(
-                                float3( 0, 1, 0 ),
-                                -36.0 * ( n[ '0' + 9 - sm->pName[ 0 ] ] - '0' ) );
-                        }
-                    }
-                    sm = sm->NextGet();
-                } while( sm );
-                break;
-            }
-            default: {
-                break;
-            }
+    // update submodel visibility
+    auto const state { Power && ( m_stateinput ? *m_stateinput : false ) };
+    if( state != m_state ) {
+        // on state change play assigned sound
+        if( true == state ) { m_soundfxon.play(); }
+        else                { m_soundfxoff.play(); }
+    }
+    m_state = state;
+    // toggle submodel visibility only if the active state submodel is present,
+    // keep the default model always visible otherwise
+    if( SubModelOn != nullptr ) {
+        SubModelOn->iVisible = m_state;
+        if( SubModel != nullptr ) {
+            SubModel->iVisible = ( !m_state );
         }
     }
+    // update submodel animations
+    UpdateAnimation( SubModel );
+    UpdateAnimation( SubModelOn );
 };
 
 void TGauge::AssignFloat(float *fValue)
@@ -393,6 +403,11 @@ void TGauge::UpdateValue()
     }
 };
 
+void TGauge::AssignState( bool const *State ) {
+
+    m_stateinput = State;
+}
+
 float TGauge::GetScaledValue() const {
 
     return (
@@ -405,6 +420,55 @@ float TGauge::GetScaledValue() const {
                     m_value / m_endvalue,
                     0.f, 1.f ) )
             + m_offset );
+}
+
+void
+TGauge::UpdateAnimation( TSubModel *Submodel ) {
+
+    if( Submodel == nullptr ) { return; }
+
+    switch (m_animation) {
+        case TGaugeAnimation::gt_Rotate: {
+            Submodel->SetRotate( float3( 0, 1, 0 ), GetScaledValue() * 360.0 );
+            break;
+        }
+        case TGaugeAnimation::gt_Move: {
+            Submodel->SetTranslate( float3( 0, 0, GetScaledValue() ) );
+            break;
+        }
+        case TGaugeAnimation::gt_Wiper: {
+            auto const scaledvalue { GetScaledValue() };
+            Submodel->SetRotate( float3( 0, 1, 0 ), scaledvalue * 360.0 );
+            auto *sm = Submodel->ChildGet();
+            if( sm ) {
+                sm->SetRotate( float3( 0, 1, 0 ), scaledvalue * 360.0 );
+                sm = sm->ChildGet();
+                if( sm )
+                    sm->SetRotate( float3( 0, 1, 0 ), scaledvalue * 360.0 );
+            }
+            break;
+        }
+        case TGaugeAnimation::gt_Digital: {
+            // Ra 2014-07: licznik cyfrowy
+            auto *sm = Submodel->ChildGet();
+/*  			std::string n = FormatFloat( "0000000000", floor( fValue ) ); // na razie tak trochę bez sensu
+*/	    		std::string n( "000000000" + std::to_string( static_cast<int>( std::floor( GetScaledValue() ) ) ) );
+            if( n.length() > 10 ) { n.erase( 0, n.length() - 10 ); } // also dumb but should work for now
+            do { // pętla po submodelach potomnych i obracanie ich o kąt zależy od cyfry w (fValue)
+                if( ( sm->pName.size() )
+                 && ( std::isdigit( sm->pName[ 0 ] ) ) ) {
+                    sm->SetRotate(
+                        float3( 0, 1, 0 ),
+                        -36.0 * ( n[ '0' + 9 - sm->pName[ 0 ] ] - '0' ) );
+                }
+                sm = sm->NextGet();
+            } while( sm );
+            break;
+        }
+        default: {
+            break;
+        }
+    }
 }
 
 // returns offset of submodel associated with the button from the model centre

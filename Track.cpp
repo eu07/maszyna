@@ -18,6 +18,7 @@ http://mozilla.org/MPL/2.0/.
 #include "simulation.h"
 #include "Globals.h"
 #include "Event.h"
+#include "MemCell.h"
 #include "messaging.h"
 #include "DynObj.h"
 #include "AnimModel.h"
@@ -584,11 +585,11 @@ void TTrack::Load(cParser *parser, glm::dvec3 const &pOrigin)
         else if (iCategoryFlag & 2)
             if (m_material1 && fTexLength)
             { // dla drogi trzeba ustalić proporcje boków nawierzchni
-                auto const &texture1 { GfxRenderer->Texture( GfxRenderer->Material( m_material1 ).texture1 ) };
+                auto const &texture1 { GfxRenderer->Texture( GfxRenderer->Material( m_material1 ).textures[0] ) };
                 if( texture1.height() > 0 ) {
                     fTexRatio1 = static_cast<float>( texture1.width() ) / static_cast<float>( texture1.height() ); // proporcja boków
                 }
-                auto const &texture2 { GfxRenderer->Texture( GfxRenderer->Material( m_material2 ).texture1 ) };
+                auto const &texture2 { GfxRenderer->Texture( GfxRenderer->Material( m_material2 ).textures[0] ) };
                 if( texture2.height() > 0 ) {
                     fTexRatio2 = static_cast<float>( texture2.width() ) / static_cast<float>( texture2.height() ); // proporcja boków
                 }
@@ -1139,7 +1140,7 @@ void TTrack::create_geometry( gfx::geometrybank_handle const &Bank ) {
                 }
                 if( ( Bank == 0 ) && ( false == Geometry2.empty() ) ) {
                     // special variant, replace existing data for a turntable track
-                    GfxRenderer->Replace( vertices, Geometry2[ 0 ] );
+                    GfxRenderer->Replace( vertices, Geometry2[ 0 ], GL_TRIANGLE_STRIP );
                 }
             }
             if (m_material1)
@@ -1157,10 +1158,10 @@ void TTrack::create_geometry( gfx::geometrybank_handle const &Bank ) {
                 if( ( Bank == 0 ) && ( false == Geometry1.empty() ) ) {
                     // special variant, replace existing data for a turntable track
                     Segment->RenderLoft( vertices, m_origin, rpts1, iTrapezoid > 0, texturelength );
-                    GfxRenderer->Replace( vertices, Geometry1[ 0 ] );
+                    GfxRenderer->Replace( vertices, Geometry1[ 0 ], GL_TRIANGLE_STRIP );
                     vertices.clear(); // reuse the scratchpad
                     Segment->RenderLoft( vertices, m_origin, rpts2, iTrapezoid > 0, texturelength );
-                    GfxRenderer->Replace( vertices, Geometry1[ 1 ] );
+                    GfxRenderer->Replace( vertices, Geometry1[ 1 ], GL_TRIANGLE_STRIP );
                 }
             }
             break;
@@ -1788,7 +1789,7 @@ TTrack * TTrack::RaAnimate()
                     // composed from two parts: transition from blade to regular rail, and regular rail
                     SwitchExtension->Segments[ 0 ]->RenderLoft( vertices, m_origin, rpts3, true, texturelength, 1.0, 0, bladelength / 2, { SwitchExtension->fOffset2, SwitchExtension->fOffset2 / 2 } );
                     SwitchExtension->Segments[ 0 ]->RenderLoft( vertices, m_origin, rpts1, false, texturelength, 1.0, bladelength / 2, bladelength, { SwitchExtension->fOffset2 / 2, 0.f } );
-                    GfxRenderer->Replace( vertices, Geometry1[ 0 ] );
+                    GfxRenderer->Replace( vertices, Geometry1[ 0 ], GL_TRIANGLE_STRIP );
                     vertices.clear();
                 }
                 if( m_material2 ) {
@@ -1797,7 +1798,7 @@ TTrack * TTrack::RaAnimate()
                     // composed from two parts: transition from blade to regular rail, and regular rail
                     SwitchExtension->Segments[ 1 ]->RenderLoft( vertices, m_origin, rpts4, true, texturelength, 1.0, 0, bladelength / 2, { -fMaxOffset + SwitchExtension->fOffset1, ( -fMaxOffset + SwitchExtension->fOffset1 ) / 2 } );
                     SwitchExtension->Segments[ 1 ]->RenderLoft( vertices, m_origin, rpts2, false, texturelength, 1.0, bladelength / 2, bladelength, { ( -fMaxOffset + SwitchExtension->fOffset1 ) / 2, 0.f } );
-                    GfxRenderer->Replace( vertices, Geometry2[ 0 ] );
+                    GfxRenderer->Replace( vertices, Geometry2[ 0 ], GL_TRIANGLE_STRIP );
                     vertices.clear();
                 }
             }
@@ -1808,7 +1809,7 @@ TTrack * TTrack::RaAnimate()
                     // composed from two parts: transition from blade to regular rail, and regular rail
                     SwitchExtension->Segments[ 0 ]->RenderLoft( vertices, m_origin, rpts4, true, texturelength, 1.0, 0, bladelength / 2, { -SwitchExtension->fOffset2, -SwitchExtension->fOffset2 / 2 } );
                     SwitchExtension->Segments[ 0 ]->RenderLoft( vertices, m_origin, rpts2, false, texturelength, 1.0, bladelength / 2, bladelength, { -SwitchExtension->fOffset2 / 2, 0.f } );
-                    GfxRenderer->Replace( vertices, Geometry1[ 0 ] );
+                    GfxRenderer->Replace( vertices, Geometry1[ 0 ], GL_TRIANGLE_STRIP );
                     vertices.clear();
                 }
                 if( m_material2 ) {
@@ -1817,7 +1818,7 @@ TTrack * TTrack::RaAnimate()
                     // composed from two parts: transition from blade to regular rail, and regular rail
                     SwitchExtension->Segments[ 1 ]->RenderLoft( vertices, m_origin, rpts3, true, texturelength, 1.0, 0, bladelength / 2, { fMaxOffset - SwitchExtension->fOffset1, ( fMaxOffset - SwitchExtension->fOffset1 ) / 2 } );
                     SwitchExtension->Segments[ 1 ]->RenderLoft( vertices, m_origin, rpts1, false, texturelength, 1.0, bladelength / 2, bladelength, { ( fMaxOffset - SwitchExtension->fOffset1 ) / 2, 0.f } );
-                    GfxRenderer->Replace( vertices, Geometry2[ 0 ] );
+                    GfxRenderer->Replace( vertices, Geometry2[ 0 ], GL_TRIANGLE_STRIP );
                     vertices.clear();
                 }
             }

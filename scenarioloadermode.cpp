@@ -13,6 +13,7 @@ http://mozilla.org/MPL/2.0/.
 #include "Globals.h"
 #include "simulation.h"
 #include "simulationtime.h"
+#include "simulationenvironment.h"
 #include "Timer.h"
 #include "application.h"
 #include "scenarioloaderuilayer.h"

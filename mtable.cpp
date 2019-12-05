@@ -50,6 +50,13 @@ bool TTrainParameters::IsStop() const
         return true; // na ostatnim się zatrzymać zawsze
 }
 
+bool TTrainParameters::IsMaintenance() const {
+    if( ( StationIndex < StationCount ) )
+        return TimeTable[ StationIndex ].is_maintenance;
+    else
+        return false;
+}
+
 bool TTrainParameters::UpdateMTable( scenario_time const &Time, std::string const &NewName ) {
 
     return UpdateMTable( Time.data().wHour, Time.data().wMinute + Time.data().wSecond * 0.0167, NewName );
@@ -399,6 +406,7 @@ bool TTrainParameters::LoadTTfile(std::string scnpath, int iPlus, double vmax)
                                            || ( s == "2" )
                                            || fin.bad() ) ) {
                                 record->StationWare += s;
+                                record->is_maintenance = ( s.find( "pt" ) != std::string::npos );
                                 fin >> s;
                             }
                             record->TrackNo = atoi(s.c_str());

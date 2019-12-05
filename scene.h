@@ -16,11 +16,14 @@ http://mozilla.org/MPL/2.0/.
 #include <unordered_set>
 
 #include "parser.h"
-#include "openglgeometrybank.h"
+#include "geometrybank.h"
 #include "scenenode.h"
 #include "Track.h"
 #include "Traction.h"
 #include "sound.h"
+
+class opengl_renderer;
+class opengl33_renderer;
 
 namespace scene {
 
@@ -63,6 +66,7 @@ struct scratch_data {
 class basic_cell {
 
     friend opengl_renderer;
+    friend opengl33_renderer;
 
 public:
 // constructors
@@ -200,6 +204,7 @@ private:
 class basic_section {
 
     friend opengl_renderer;
+    friend opengl33_renderer;
 
 public:
 // constructors
@@ -304,6 +309,7 @@ private:
 class basic_region {
 
     friend opengl_renderer;
+    friend opengl33_renderer;
 
 public:
 // constructors

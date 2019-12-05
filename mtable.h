@@ -24,27 +24,19 @@ static char const *hrsd = ".";
 
 struct TMTableLine
 {
-    float km; // kilometraz linii
-    float vmax; // predkosc rozkladowa przed przystankiem
+    float km{ 0.f }; // kilometraz linii
+    float vmax{ -1.f }; // predkosc rozkladowa przed przystankiem
     // StationName:string[32]; //nazwa stacji ('_' zamiast spacji)
     // StationWare:string[32]; //typ i wyposazenie stacji, oddz. przecinkami}
-    std::string StationName; // nazwa stacji ('_' zamiast spacji)
+    std::string StationName{ "nowhere" }; // nazwa stacji ('_' zamiast spacji)
     std::string StationWare; // typ i wyposazenie stacji, oddz. przecinkami}
-    int TrackNo; // ilosc torow szlakowych
-    int Ah;
-    float Am; // godz. i min. przyjazdu, -1 gdy bez postoju
-    int Dh;
-    float Dm; // godz. i min. odjazdu
-    float tm; // czas jazdy do tej stacji w min. (z kolumny)
-    TMTableLine()
-    {
-        km = 0;
-        vmax = -1;
-        StationName = "nowhere", StationWare = "";
-        TrackNo = 1;
-        Ah = Am = Dh = Dm = -1;
-        tm = 0;
-    }
+    int TrackNo{ 1 }; // ilosc torow szlakowych
+    int Ah{ -1 };
+    float Am{ -1.f }; // godz. i min. przyjazdu, -1 gdy bez postoju
+    int Dh{ -1 };
+    float Dm{ -1.f }; // godz. i min. odjazdu
+    float tm{ 0.f }; // czas jazdy do tej stacji w min. (z kolumny)
+    bool is_maintenance{ false };
 };
 
 typedef TMTableLine TMTable[MaxTTableSize + 1];
@@ -73,11 +65,12 @@ class TTrainParameters
     double WatchMTable(double DistCounter);
     std::string NextStop() const;
     bool IsStop() const;
+    bool IsMaintenance() const;
     bool IsTimeToGo(double hh, double mm);
     bool UpdateMTable(double hh, double mm, std::string const &NewName);
     bool UpdateMTable( scenario_time const &Time, std::string const &NewName );
     bool RewindTimeTable( std::string actualStationName );
-    TTrainParameters( std::string const &NewTrainName );
+    TTrainParameters( std::string const &NewTrainName = "none" );
     void NewName(std::string const &NewTrainName);
     void UpdateVelocity(int StationCount, double vActual);
     bool LoadTTfile(std::string scnpath, int iPlus, double vmax);

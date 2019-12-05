@@ -19,12 +19,19 @@ public:
 
 	// update skydome
     void Update( glm::vec3 const &Sun );
-	// render skydome to screen
-	void Render();
 
     // retrieves average colour of the sky dome
     glm::vec3 GetAverageColor() { return m_averagecolour * 8.f / 6.f; }
     glm::vec3 GetAverageHorizonColor() { return m_averagehorizoncolour; }
+
+    std::vector<glm::vec3> const & vertices() const {
+        return m_vertices; }
+    std::vector<glm::vec3> & colors() {
+        return m_colours; }
+    std::vector<std::uint16_t> const & indices() const {
+        return m_indices; }
+    auto const & is_dirty() const { return m_dirty; }
+    auto & is_dirty() { return m_dirty; }
 
 private:
 	// shading parametrs
@@ -44,9 +51,7 @@ private:
     std::vector<std::uint16_t> m_indices;
 //    std::vector<float3> m_normals;
     std::vector<glm::vec3> m_colours;
-    GLuint m_vertexbuffer{ (GLuint)-1 };
-    GLuint m_indexbuffer{ (GLuint)-1 };
-    GLuint m_coloursbuffer{ (GLuint)-1 };
+    bool m_dirty { true }; // indicates sync state between simulation and gpu sides
 
 	static float m_distributionluminance[ 5 ][ 2 ];
     static float m_distributionxcomp[ 5 ][ 2 ];

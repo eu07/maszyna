@@ -630,6 +630,10 @@ struct TSecuritySystem
 	int VelocityAllowed;
 	int NextVelocityAllowed; /*predkosc pokazywana przez sygnalizacje kabinowa*/
 	bool RadioStop; // czy jest RadioStop
+
+    inline bool is_beeping() const {
+        return TestFlag( Status, s_SHPalarm );
+    }
 };
 
 struct TTransmision
@@ -1347,12 +1351,11 @@ public:
 	int ScndCtrlPos = 0; /*polozenie dodatkowego nastawnika*/
 	int LightsPos = 0; /*polozenie przelacznika wielopozycyjnego swiatel*/
 	int CompressorListPos = 0; /*polozenie przelacznika wielopozycyjnego sprezarek*/
-	int ActiveDir = 0; //czy lok. jest wlaczona i w ktorym kierunku:
-				   //względem wybranej kabiny: -1 - do tylu, +1 - do przodu, 0 - wylaczona
+	int DirActive = 0; //czy lok. jest wlaczona i w ktorym kierunku: względem wybranej kabiny: -1 - do tylu, +1 - do przodu, 0 - wylaczona
+    int DirAbsolute = 0; //zadany kierunek jazdy względem sprzęgów (1=w strone 0,-1=w stronę 1)
     int MaxMainCtrlPosNoDirChange { 0 }; // can't change reverser state with master controller set above this position
-	int CabNo = 0; //numer kabiny, z której jest sterowanie: 1 lub -1; w przeciwnym razie brak sterowania - rozrzad
-	int DirAbsolute = 0; //zadany kierunek jazdy względem sprzęgów (1=w strone 0,-1=w stronę 1)
-	int ActiveCab = 0; //numer kabiny, w ktorej jest obsada (zwykle jedna na skład)
+	int CabActive = 0; //numer kabiny, z której jest sterowanie: 1 lub -1; w przeciwnym razie brak sterowania - rozrzad
+	int CabOccupied = 0; //numer kabiny, w ktorej jest obsada (zwykle jedna na skład) // TODO: move to TController
 	double LastSwitchingTime = 0.0; /*czas ostatniego przelaczania czegos*/
     int WarningSignal = 0; // 0: nie trabi, 1,2,4: trabi
 	bool DepartureSignal = false; /*sygnal odjazdu*/
@@ -1378,7 +1381,7 @@ public:
 	//a ujemne powinien być przy odwróconej polaryzacji sieci...
 	//w wielu miejscach jest używane abs(Im)
 	int Imin = 0; int Imax = 0;      /*prad przelaczania automatycznego rozruchu, prad bezpiecznika*/
-	double Voltage = 0.0;           /*aktualne napiecie sieci zasilajacej*/
+	double EngineVoltage = 0.0; // voltage supplied to engine
 	int MainCtrlActualPos = 0; /*wskaznik RList*/
 	int ScndCtrlActualPos = 0; /*wskaznik MotorParam*/
 	bool DelayCtrlFlag = false;  //czy czekanie na 1. pozycji na załączenie?
@@ -1391,6 +1394,7 @@ public:
 	bool ResistorsFlag = false;  /*!o jazda rezystorowa*/
 	double RventRot = 0.0;          /*!s obroty wentylatorow rozruchowych*/
     bool UnBrake = false;       /*w EZT - nacisniete odhamowywanie*/
+    double PantographVoltage{ 0.0 }; // voltage supplied to pantographs
 	double PantPress = 0.0; /*Cisnienie w zbiornikach pantografow*/
     bool PantPressSwitchActive{ false }; // state of the pantograph pressure switch. gets primed at defined pressure level in pantograph air system
     bool PantPressLockActive{ false }; // pwr system state flag. fires when pressure switch activates by pantograph pressure dropping below defined level
@@ -1521,7 +1525,8 @@ public:
 	double ShowEngineRotation(int VehN);
 
 	// Q *******************************************************************************************
-	double GetTrainsetVoltage(void);
+	double GetTrainsetVoltage( int const Coupling = ( coupling::heating | coupling::highvoltage ) ) const;
+    double GetAnyTrainsetVoltage() const;
 	bool switch_physics(bool const State);
 	double LocalBrakeRatio(void);
 	double ManualBrakeRatio(void);
@@ -1537,8 +1542,8 @@ public:
     bool RunCommand( std::string Command, double CValue1, double CValue2, int const Couplertype = ctrain_controll );
     bool RunInternalCommand();
 	void PutCommand(std::string NewCommand, double NewValue1, double NewValue2, const TLocation &NewLocation);
-	bool CabActivisation(void);
-	bool CabDeactivisation(void);
+	bool CabActivisation( bool const Force = false );
+	bool CabDeactivisation( bool const Force = false );
 
 	/*! funkcje zwiekszajace/zmniejszajace nastawniki*/
 	/*! glowny nastawnik:*/

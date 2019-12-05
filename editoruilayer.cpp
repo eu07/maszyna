@@ -11,6 +11,7 @@ http://mozilla.org/MPL/2.0/.
 #include "editoruilayer.h"
 
 #include "Globals.h"
+#include "scenenode.h"
 #include "renderer.h"
 
 editor_ui::editor_ui() {

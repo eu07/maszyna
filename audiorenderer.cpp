@@ -15,6 +15,8 @@ http://mozilla.org/MPL/2.0/.
 #include "Camera.h"
 #include "Logs.h"
 #include "utilities.h"
+#include "simulation.h"
+#include "Train.h"
 
 namespace audio {
 
@@ -290,6 +292,7 @@ openal_renderer::init() {
         return false;
     }
     ::alDistanceModel( AL_INVERSE_DISTANCE_CLAMPED );
+    ::alDopplerFactor( 0.25f );
     // all done
     m_ready = true;
     return true;
@@ -333,6 +336,7 @@ openal_renderer::update( double const Deltatime ) {
     ::alListenerfv( AL_ORIENTATION, reinterpret_cast<ALfloat const *>( orientation ) );
     // velocity
     if( Deltatime > 0 ) {
+/*
         glm::dvec3 const listenerposition { Global.pCamera.Pos };
         glm::dvec3 const listenermovement { listenerposition - m_listenerposition };
         m_listenerposition = listenerposition;
@@ -340,6 +344,31 @@ openal_renderer::update( double const Deltatime ) {
             glm::length( listenermovement ) < 1000.0 ? // large jumps are typically camera changes
                 limit_velocity( listenermovement / Deltatime ) :
                 glm::vec3() );
+*/
+        auto cameramove{ glm::dvec3{ Global.pCamera.Pos - m_camerapos} };
+        m_camerapos = Global.pCamera.Pos;
+        // intercept sudden user-induced camera jumps...
+        // ...from free fly mode change
+        if( m_freeflymode != FreeFlyModeFlag ) {
+            m_freeflymode = FreeFlyModeFlag;
+            cameramove = glm::dvec3{ 0.0 };
+        }
+        // ...from jump between cab and window/mirror view
+        if( m_windowopen != Global.CabWindowOpen ) {
+            m_windowopen = Global.CabWindowOpen;
+            cameramove = glm::dvec3{ 0.0 };
+        }
+        // ... from cab change
+        if( ( simulation::Train != nullptr ) && ( simulation::Train->iCabn != m_activecab ) ) {
+            m_activecab = simulation::Train->iCabn;
+            cameramove = glm::dvec3{ 0.0 };
+        }
+        // ... from camera jump to another location
+        if( glm::length( cameramove ) > 100.0 ) {
+            cameramove = glm::dvec3{ 0.0 };
+        }
+        m_listenervelocity = limit_velocity( cameramove / Deltatime );
+
         ::alListenerfv( AL_VELOCITY, reinterpret_cast<ALfloat const *>( glm::value_ptr( m_listenervelocity ) ) );
     }
 

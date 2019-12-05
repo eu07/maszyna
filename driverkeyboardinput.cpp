@@ -138,6 +138,8 @@ driverkeyboard_input::default_bindings() {
         { user_command::radiostopsend, GLFW_KEY_PAUSE | keymodifier::shift | keymodifier::control },
         { user_command::radiostoptest, GLFW_KEY_R | keymodifier::shift | keymodifier::control },
         { user_command::radiocall3send, GLFW_KEY_BACKSPACE },
+        // radiovolumeincrease,
+        // radiovolumedecrease,
         { user_command::cabchangeforward, GLFW_KEY_HOME },
         { user_command::cabchangebackward, GLFW_KEY_END },
         // viewturn,
@@ -247,7 +249,21 @@ driverkeyboard_input::default_bindings() {
         // springbrakeshutoffenable,
         // springbrakeshutoffdisable,
         // springbrakerelease,
-        // distancecounteractivate
+        // distancecounteractivate,
+	    // speedcontrolincrease,
+	    // speedcontroldecrease,
+	    // speedcontrolpowerincrease,
+	    // speedcontrolpowerdecrease,
+	    // speedcontrolbutton0,
+	    // speedcontrolbutton1,
+	    // speedcontrolbutton2,
+	    // speedcontrolbutton3,
+	    // speedcontrolbutton4,
+	    // speedcontrolbutton5,
+	    // speedcontrolbutton6,
+	    // speedcontrolbutton7,
+	    // speedcontrolbutton8,
+	    // speedcontrolbutton9,
     };
 }
 

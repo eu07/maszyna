@@ -23,6 +23,7 @@ basic_station Station;
 double
 basic_station::update_load( TDynamicObject *First, Mtable::TTrainParameters &Schedule, int const Platform ) {
 
+    // TODO: filter out maintenance stops when determining first and last stop
     auto const firststop { Schedule.StationIndex == 1 };
     auto const laststop { Schedule.StationIndex == Schedule.StationCount };
     // HACK: determine whether current station is a (small) stop from the presence of "po" at the name end
@@ -31,6 +32,7 @@ basic_station::update_load( TDynamicObject *First, Mtable::TTrainParameters &Sch
     auto const trainstop { (
         ( ( stationname.size() >= 2 ) && ( stationname.substr( stationname.size() - 2 ) == "po" ) )
      || ( stationequipment.find( "po" ) != std::string::npos ) ) };
+    auto const maintenancestop { ( stationequipment.find( "pt" ) != std::string::npos ) };
     // train stops exchange smaller groups than regular stations
     // NOTE: this is crude and unaccurate, but for now will do
     auto const stationsizemodifier { ( trainstop ? 1.0 : 2.0 ) };
@@ -59,12 +61,14 @@ basic_station::update_load( TDynamicObject *First, Mtable::TTrainParameters &Sch
                 TestFlag( parameters.DamageFlag, dtrain_out ) ? parameters.LoadAmount :
                 laststop ? parameters.LoadAmount :
                 firststop ? 0 :
+                maintenancestop ? 0 :
                 std::min<float>(
                     parameters.LoadAmount,
                     Random( parameters.MaxLoad * 0.15f * stationsizemodifier ) ) );
             auto loadcount = static_cast<int>(
                 TestFlag( parameters.DamageFlag, dtrain_out ) ? 0 :
                 laststop ? 0 :
+                maintenancestop ? 0 :
                 Random( parameters.MaxLoad * 0.15f * stationsizemodifier ) );
             if( true == firststop ) {
                 // larger group at the initial station

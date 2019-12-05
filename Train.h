@@ -11,6 +11,7 @@ http://mozilla.org/MPL/2.0/.
 
 #include <string>
 #include "DynObj.h"
+#include "Driver.h"
 #include "Button.h"
 #include "Gauge.h"
 #include "sound.h"
@@ -20,8 +21,6 @@ http://mozilla.org/MPL/2.0/.
 #undef snprintf // pyint.h->python
 
 // typedef enum {st_Off, st_Starting, st_On, st_ShuttingDown} T4State;
-
-const int maxcab = 2;
 
 const double fCzuwakBlink = 0.15;
 const float fConverterPrzekaznik = 1.5f; // hunter-261211: do przekaznika nadmiarowego przetwornicy
@@ -102,6 +101,9 @@ class TTrain {
         float hv_voltage;
         std::array<float, 3> hv_current;
         float lv_voltage;
+		double distance;
+		int radio_channel;
+		bool springbrake_active;
     };
 
 // constructors
@@ -158,11 +160,14 @@ class TTrain {
     void update_sounds_runningnoise( sound_source &Sound );
     void update_sounds_radio();
     inline
-    end cab_to_end() const {
+    end cab_to_end( int const End ) const {
         return (
-            iCabn == 2 ?
+            End == 2 ?
                 end::rear :
                 end::front ); }
+    inline
+    end cab_to_end() const {
+        return cab_to_end( iCabn ); }
 
     // command handlers
     // NOTE: we're currently using universal handlers and static handler map but it may be beneficial to have these implemented on individual class instance basis
@@ -686,7 +691,7 @@ public: // reszta może by?publiczna
     bool bCabLightDim; // hunter-091012: czy przyciemnienie kabiny jest zapalone?
 */
     // McZapkie: opis kabiny - obszar poruszania sie mechanika oraz zajetosc
-    std::array<TCab, maxcab + 1> Cabine; // przedzial maszynowy, kabina 1 (A), kabina 2 (B)
+    std::array<TCab, 3> Cabine; // przedzial maszynowy, kabina 1 (A), kabina 2 (B)
     int iCabn { 0 }; // 0: mid, 1: front, 2: rear
     // McZapkie: do poruszania sie po kabinie
     Math3D::vector3 pMechSittingPosition; // ABu 180404
@@ -731,7 +736,6 @@ private:
     float fPPress, fNPress;
     bool m_mastercontrollerinuse { false };
     float m_mastercontrollerreturndelay { 0.f };
-    int iRadioChannel { 1 }; // numer aktualnego kana?u radiowego
     std::vector<std::pair<std::string, texture_handle>> m_screens;
     float m_distancecounter { -1.f }; // distance traveled since meter was activated or -1 if inactive
 
@@ -741,9 +745,10 @@ private:
     static std::vector<std::string> const fPress_labels;
     float fEIMParams[9][10]; // parametry dla silnikow asynchronicznych
 	float fDieselParams[9][10]; // parametry dla silnikow asynchronicznych
-    int RadioChannel() const { return iRadioChannel; };
     // plays provided sound from position of the radio
     void radio_message( sound_source *Message, int const Channel );
+    inline auto const &RadioChannel() const { return Dynamic()->Mechanik->iRadioChannel; }
+    inline auto &RadioChannel() { return Dynamic()->Mechanik->iRadioChannel; }
     inline TDynamicObject *Dynamic() { return DynamicObject; };
     inline TDynamicObject const *Dynamic() const { return DynamicObject; };
     inline TMoverParameters *Controlled() { return mvControlled; };

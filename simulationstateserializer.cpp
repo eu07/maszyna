@@ -15,12 +15,15 @@ http://mozilla.org/MPL/2.0/.
 #include "Globals.h"
 #include "simulation.h"
 #include "simulationtime.h"
+#include "simulationenvironment.h"
 #include "scenenodegroups.h"
 #include "particles.h"
 #include "Event.h"
+#include "MemCell.h"
 #include "Driver.h"
 #include "DynObj.h"
 #include "AnimModel.h"
+#include "lightarray.h"
 #include "TractionPower.h"
 #include "application.h"
 #include "renderer.h"
@@ -39,7 +42,8 @@ state_serializer::deserialize( std::string const &Scenariofile ) {
     // if this fails, fall back on the legacy text format
     scene::scratch_data importscratchpad;
     importscratchpad.name = Scenariofile;
-    if( Scenariofile != "$.scn" ) {
+    if( ( true == Global.file_binary_terrain )
+     && ( Scenariofile != "$.scn" ) ) {
         // compilation to binary file isn't supported for rainsted-created overrides
         // NOTE: we postpone actual loading of the scene until we process time, season and weather data
         importscratchpad.binary.terrain = Region->is_scene( Scenariofile ) ;
@@ -50,7 +54,8 @@ state_serializer::deserialize( std::string const &Scenariofile ) {
     if( false == scenarioparser.ok() ) { return false; }
 
     deserialize( scenarioparser, importscratchpad );
-    if( ( false == importscratchpad.binary.terrain )
+    if( ( true == Global.file_binary_terrain )
+     && ( false == importscratchpad.binary.terrain )
      && ( Scenariofile != "$.scn" ) ) {
         // if we didn't find usable binary version of the scenario files, create them now for future use
         // as long as the scenario file wasn't rainsted-created base file override
@@ -115,7 +120,7 @@ state_serializer::deserialize( cParser &Input, scene::scratch_data &Scratchpad )
         }
 
         timenow = std::chrono::steady_clock::now();
-        if( std::chrono::duration_cast<std::chrono::milliseconds>( timenow - timelast ).count() >= 200 ) {
+        if( std::chrono::duration_cast<std::chrono::milliseconds>( timenow - timelast ).count() >= 75 ) {
             timelast = timenow;
             glfwPollEvents();
             Application.set_progress( Input.getProgress(), Input.getFullProgress() );
@@ -181,7 +186,7 @@ state_serializer::deserialize_atmo( cParser &Input, scene::scratch_data &Scratch
         Global.fFogEnd =
             clamp(
                 Random( std::min( fograngestart, fograngeend ), std::max( fograngestart, fograngeend ) ),
-                10.0, 2000.0 );
+                10.0, 25000.0 );
     }
 
     std::string token { Input.getToken<std::string>() };
@@ -703,7 +708,12 @@ state_serializer::deserialize_endtrainset( cParser &Input, scene::scratch_data &
     }
     if( Scratchpad.trainset.couplings.back() == coupling::faux ) {
         // jeśli ostatni pojazd ma sprzęg 0 to założymy mu końcówki blaszane (jak AI się odpali, to sobie poprawi)
-        Scratchpad.trainset.vehicles.back()->RaLightsSet( -1, light::rearendsignals );
+        // place end signals only on trains without a driver, activate markers otherwise
+        Scratchpad.trainset.vehicles.back()->RaLightsSet(
+            -1,
+            ( Scratchpad.trainset.driver != nullptr ?
+                light::redmarker_left | light::redmarker_right | light::rearendsignals :
+                light::rearendsignals ) );
     }
     // all done
     Scratchpad.trainset.is_open = false;

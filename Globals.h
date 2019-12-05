@@ -9,12 +9,16 @@ http://mozilla.org/MPL/2.0/.
 
 #pragma once
 
+#define WITH_UART
+
 #include "Classes.h"
 #include "Camera.h"
 #include "dumb3d.h"
 #include "Float3d.h"
 #include "light.h"
+#ifdef WITH_UART
 #include "uart.h"
+#endif
 #include "utilities.h"
 
 struct global_settings {
@@ -25,6 +29,7 @@ struct global_settings {
     bool ctrlState{ false };
     bool altState{ false };
     std::mt19937 random_engine{ std::mt19937( static_cast<unsigned int>( std::time( NULL ) ) ) };
+    std::mt19937 local_random_engine{ std::mt19937( static_cast<unsigned int>( std::time( NULL ) ) ) };
     TDynamicObject *changeDynObj{ nullptr };// info o zmianie pojazdu
     TCamera pCamera; // parametry kamery
     TCamera pDebugCamera;
@@ -48,6 +53,8 @@ struct global_settings {
     std::string asCurrentSceneryPath{ "scenery/" };
     std::string asCurrentTexturePath{ szTexturePath };
     std::string asCurrentDynamicPath;
+    int CurrentMaxTextureSize{ 4096 };
+    bool GfxFramebufferSRGB { true };
     // settings
     // filesystem
     bool bLoadTraction{ true };
@@ -58,6 +65,7 @@ struct global_settings {
     std::string SceneryFile{ "td.scn" };
     std::string asHumanCtrlVehicle{ "EU07-424" };
     int iConvertModels{ 0 }; // tworzenie plików binarnych
+    bool file_binary_terrain{ true }; // enable binary terrain (de)serialization
     // logs
     int iWriteLogEnabled{ 3 }; // maska bitowa: 1-zapis do pliku, 2-okienko, 4-nazwy torów
     bool MultipleLogs{ false };
@@ -70,7 +78,7 @@ struct global_settings {
     bool bLiveTraction{ true };
     float Overcast{ 0.1f }; // NOTE: all this weather stuff should be moved elsewhere
     glm::vec3 FogColor = { 0.6f, 0.7f, 0.8f };
-    double fFogEnd{ 2000 };
+    double fFogEnd{ 7500 };
     std::string Season{}; // season of the year, based on simulation date
     std::string Weather{ "cloudy:" }; // current weather
     bool FullPhysics{ true }; // full calculations performed for each simulation step
@@ -91,7 +99,6 @@ struct global_settings {
     // ui
     int PythonScreenUpdateRate { 200 }; // delay between python-based screen updates, in milliseconds
     int iTextMode{ 0 }; // tryb pracy wyświetlacza tekstowego
-    int iScreenMode[ 12 ] = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 }; // numer ekranu wyświetlacza tekstowego
     glm::vec4 UITextColor { glm::vec4( 225.f / 255.f, 225.f / 255.f, 225.f / 255.f, 1.f ) }; // base color of UI text
     float UIBgOpacity { 0.65f }; // opacity of ui windows
     std::string asLang{ "pl" }; // domyślny język - http://tools.ietf.org/html/bcp47
@@ -99,6 +106,7 @@ struct global_settings {
     int iWindowWidth{ 800 };
     int iWindowHeight{ 600 };
     float fDistanceFactor{ iWindowHeight / 768.f }; // baza do przeliczania odległości dla LoD
+    float targetfps { 0.0f };
     bool bFullScreen{ false };
     bool VSync{ false };
     bool bWireFrame{ false };
@@ -106,6 +114,8 @@ struct global_settings {
     float BaseDrawRange{ 2500.f };
     int DynamicLightCount{ 3 };
     bool ScaleSpecularValues{ true };
+    std::string GfxRenderer{ "default" };
+    bool LegacyRenderer{ false };
     bool BasicRenderer{ false };
     bool RenderShadows{ true };
     int RenderCabShadowsRange{ 0 };
@@ -115,11 +125,12 @@ struct global_settings {
         float depth{ 250.f };
         float distance{ 500.f }; // no longer used
     } shadowtune;
-    int ReflectionUpdatesPerSecond{ static_cast<int>( 1000 / ( 1.0 / 300.0 ) ) };
+    double ReflectionUpdateInterval{ 300.0 };
     bool bUseVBO{ true }; // czy jest VBO w karcie graficznej (czy użyć)
     float AnisotropicFiltering{ 8.f }; // requested level of anisotropic filtering. TODO: move it to renderer object
     float FieldOfView{ 45.f }; // vertical field of view for the camera. TODO: move it to the renderer
     GLint iMaxTextureSize{ 4096 }; // maksymalny rozmiar tekstury
+    GLint iMaxCabTextureSize{ 4096 }; // largest allowed texture in vehicle cab
     int iMultisampling{ 2 }; // tryb antyaliasingu: 0=brak,1=2px,2=4px,3=8px,4=16px
     bool bSmoothTraction{ true }; // wygładzanie drutów starym sposobem
     float SplineFidelity{ 1.f }; // determines segment size during conversion of splines to geometry
@@ -129,7 +140,6 @@ struct global_settings {
     bool ResourceMove{ false }; // gfx resources are moved between cpu and gpu side instead of sending a copy
     bool compress_tex{ true }; // all textures are compressed on gpu side
     std::string asSky{ "1" };
-    bool bGlutFont{ false }; // czy tekst generowany przez GLUT32.DLL
     double fFpsAverage{ 20.0 }; // oczekiwana wartosć FPS
     double fFpsDeviation{ 5.0 }; // odchylenie standardowe FPS
     double fFpsMin{ 30.0 }; // dolna granica FPS, przy której promień scenerii będzie zmniejszany
@@ -169,12 +179,32 @@ struct global_settings {
         0, 0, 0, 0, 0, 0, 0 };
     int iCalibrateOutDebugInfo { -1 }; // numer wyjścia kalibrowanego dla którego wyświetlać informacje podczas kalibracji
     int iPoKeysPWM[ 7 ] = { 0, 1, 2, 3, 4, 5, 6 }; // numery wejść dla PWM
+#ifdef WITH_UART
     uart_input::conf_t uart_conf;
+#endif
     // multiplayer
     int iMultiplayer{ 0 }; // blokada działania niektórych eventów na rzecz kominikacji
     // other
     std::string AppName{ "EU07" };
     std::string asVersion{ "UNKNOWN" }; // z opisem
+    // TODO: move these to relevant areas
+    bool render_cab = true;
+    int gfx_framebuffer_width = -1;
+    int gfx_framebuffer_height = -1;
+    int gfx_framebuffer_fidelity = -1;
+    bool gfx_shadowmap_enabled = true;
+    bool gfx_envmap_enabled = true;
+    bool gfx_postfx_motionblur_enabled = true;
+    float gfx_postfx_motionblur_shutter = 0.01f;
+    GLenum gfx_postfx_motionblur_format = GL_RG16F;
+    GLenum gfx_format_color = GL_RGB16F;
+    GLenum gfx_format_depth = GL_DEPTH_COMPONENT32F;
+    bool gfx_skippipeline = false;
+    bool gfx_extraeffects = true;
+    bool gfx_shadergamma = false;
+    bool gfx_usegles = false;
+    std::string fullscreen_monitor;
+    bool python_mipmaps = true;
 
 // methods
     void LoadIniFile( std::string asFileName );

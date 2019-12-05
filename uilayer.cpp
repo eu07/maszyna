@@ -89,7 +89,19 @@ ui_layer::init( GLFWwindow *Window ) {
     ImGui_ImplOpenGL2_Init();
 #else
 //    ImGui_ImplOpenGL3_Init( "#version 140" );
-    ImGui_ImplOpenGL3_Init();
+    if( Global.GfxRenderer == "default" ) {
+        // opengl 3.3 render path
+        if( Global.gfx_usegles ) {
+            ImGui_ImplOpenGL3_Init( "#version 300 es" );
+        }
+        else {
+            ImGui_ImplOpenGL3_Init( "#version 330 core" );
+        }
+    }
+    else {
+        // legacy render path
+        ImGui_ImplOpenGL3_Init();
+    }
 #endif
 
     init_colors();
@@ -187,43 +199,7 @@ ui_layer::update() {
 
 void
 ui_layer::render() {
-
-    // legacy ui code
-	glMatrixMode(GL_PROJECTION);
-	glLoadIdentity();
-	glOrtho( 0, std::max( 1, Global.iWindowWidth ), std::max( 1, Global.iWindowHeight ), 0, -1, 1 );
-
-	glMatrixMode(GL_MODELVIEW);
-    glLoadIdentity();
-
-    glPushAttrib( GL_ENABLE_BIT | GL_COLOR_BUFFER_BIT ); // blendfunc included since 3rd party gui doesn't play nice
-	glDisable( GL_LIGHTING );
-	glDisable( GL_DEPTH_TEST );
-	glDisable( GL_ALPHA_TEST );
-    glEnable( GL_TEXTURE_2D );
-    glEnable( GL_BLEND );
-
-    ::glColor4fv( glm::value_ptr( colors::white ) );
-
-    // render code here
-    render_background();
-    render_texture();
-
-    glDisable( GL_TEXTURE_2D );
-    glDisable( GL_TEXTURE_CUBE_MAP );
-
-    render_progress();
-
-    glDisable( GL_BLEND );
-
-    glPopAttrib();
-
     // imgui ui code
-    ::glPushClientAttrib( GL_CLIENT_VERTEX_ARRAY_BIT );
-
-    ::glClientActiveTexture( m_textureunit );
-    ::glBindBuffer( GL_ARRAY_BUFFER, 0 );
-
 #ifdef EU07_USEIMGUIIMPLOPENGL2
     ImGui_ImplOpenGL2_NewFrame();
 #else
@@ -232,6 +208,8 @@ ui_layer::render() {
     ImGui_ImplGlfw_NewFrame();
     ImGui::NewFrame();
 
+    render_background();
+    render_progress();
     render_panels();
     render_tooltip();
     // template method implementation
@@ -243,8 +221,6 @@ ui_layer::render() {
 #else
     ImGui_ImplOpenGL3_RenderDrawData( ImGui::GetDrawData() );
 #endif
-
-    ::glPopClientAttrib();
 }
 
 void
@@ -265,7 +241,7 @@ void
 ui_layer::set_background( std::string const &Filename ) {
 
     if( false == Filename.empty() ) {
-        m_background = GfxRenderer->Fetch_Texture( Filename );
+        m_background = GfxRenderer->Fetch_Texture( Filename, true, GL_RGBA );
     }
     else {
         m_background = null_handle;
@@ -280,55 +256,74 @@ ui_layer::set_background( std::string const &Filename ) {
     }
 }
 
+glm::vec4
+background_placement( texture_handle const Background ) {
+
+    if( Background == null_handle ) {
+        return glm::vec4( 0.f, 0.f, Global.iWindowWidth, Global.iWindowHeight );
+    }
+
+    auto const background { GfxRenderer->Texture( Background ) };
+    // determine background placement, taking into account screen ratio may be different from background image ratio
+    auto const height { 768.0f };
+    auto const width = (
+        background.width() == background.height() ?
+            1024.0f : // legacy mode, square texture displayed as 4:3 image
+            background.width() / ( background.height() / 768.0f ) );
+    // background coordinates on virtual 1024x768 screen
+    auto const coordinates {
+        glm::vec4(
+            ( 1024.0f * 0.5f ) - ( width  * 0.5f ),
+            ( 768.0f * 0.5f ) - ( height * 0.5f ),
+            ( 1024.0f * 0.5f ) - ( width  * 0.5f ) + width,
+            ( 768.0f * 0.5f ) - ( height * 0.5f ) + height ) };
+    // convert to current screen coordinates
+    auto const screenratio { static_cast<float>( Global.iWindowWidth ) / Global.iWindowHeight };
+    auto  const screenwidth {
+        ( screenratio >= ( 4.f / 3.f ) ?
+            ( 4.f / 3.f ) * Global.iWindowHeight :
+            Global.iWindowWidth ) };
+    auto const heightratio {
+        ( screenratio >= ( 4.f / 3.f ) ?
+            Global.iWindowHeight / 768.f :
+            Global.iWindowHeight / 768.f * screenratio / ( 4.f / 3.f ) ) };
+    auto const screenheight = 768.f * heightratio;
+
+    return
+        glm::vec4{
+            0.5f * ( Global.iWindowWidth  - screenwidth )  + coordinates.x * heightratio,
+            0.5f * ( Global.iWindowHeight - screenheight ) + coordinates.y * heightratio,
+            0.5f * ( Global.iWindowWidth  - screenwidth )  + coordinates.z * heightratio,
+            0.5f * ( Global.iWindowHeight - screenheight ) + coordinates.w * heightratio };
+}
+
 void
 ui_layer::render_progress() {
 
-	if( (m_progress == 0.0f) && (m_subtaskprogress == 0.0f) ) return;
+    if ((m_progress == 0.0f) && (m_subtaskprogress == 0.0f))
+        return;
 
-    glm::vec2 origin, size;
-    if( m_progressbottom == true ) {
-        origin = glm::vec2{ 0.0f, 768.0f - 20.0f };
-        size   = glm::vec2{ 1024.0f, 20.0f };
-    }
-    else {
-        origin = glm::vec2{ 75.0f, 640.0f };
-        size   = glm::vec2{ 320.0f, 16.0f };
-    }
+    auto const area{ glm::clamp( background_placement( m_background ), glm::vec4(0.f), glm::vec4(Global.iWindowWidth, Global.iWindowHeight, Global.iWindowWidth, Global.iWindowHeight) ) };
+    auto const areasize{ ImVec2( area.z - area.x, area.w - area.y ) };
 
-    quad( glm::vec4( origin.x, origin.y, origin.x + size.x, origin.y + size.y ), glm::vec4(0.0f, 0.0f, 0.0f, 0.25f) );
-    // secondary bar
-    if( m_subtaskprogress ) {
-        quad(
-            glm::vec4( origin.x, origin.y, origin.x + size.x * m_subtaskprogress, origin.y + size.y),
-            glm::vec4( 8.0f/255.0f, 160.0f/255.0f, 8.0f/255.0f, 0.35f ) );
-    }
-    // primary bar
-	if( m_progress ) {
-        quad(
-            glm::vec4( origin.x, origin.y, origin.x + size.x * m_progress, origin.y + size.y ),
-            glm::vec4( 8.0f / 255.0f, 160.0f / 255.0f, 8.0f / 255.0f, 1.0f ) );
-    }
+    ImGui::SetNextWindowPos(ImVec2( area.x + 50, Global.iWindowHeight - 50));
+    ImGui::SetNextWindowSize(ImVec2(areasize.x - 100, 0));
+    ImGui::Begin(
+        "Loading", nullptr,
+        ImGuiWindowFlags_NoTitleBar
+        | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse
+        | ImGuiWindowFlags_NoCollapse );
 
-    if( false == m_progresstext.empty() ) {
-        float const screenratio = static_cast<float>( Global.iWindowWidth ) / Global.iWindowHeight;
-        float const width =
-            ( screenratio >= (4.0f/3.0f) ?
-                ( 4.0f / 3.0f ) * Global.iWindowHeight :
-                Global.iWindowWidth );
-        float const heightratio =
-            ( screenratio >= ( 4.0f / 3.0f ) ?
-                Global.iWindowHeight / 768.f :
-                Global.iWindowHeight / 768.f * screenratio / ( 4.0f / 3.0f ) );
-        float const height = 768.0f * heightratio;
+    const ImU32 col = ImGui::ColorConvertFloat4ToU32(  ImVec4( 8.0f / 255.0f, 160.0f / 255.0f, 8.0f / 255.0f, 1.0f ) ); // ImGui::GetColorU32( ImGuiCol_ButtonHovered );
+    const ImU32 bg = ImGui::ColorConvertFloat4ToU32( ImVec4( 8.0f / 255.0f, 160.0f / 255.0f, 8.0f / 255.0f, 0.35f ) ); // ImGui::GetColorU32( ImGuiCol_Button );
+/*
+    ImGui::Spinner( "##spinner", 8, 4, col );
+    ImGui::SetCursorPos( ImVec2( 40, 18 ) );
+*/
+    ImGui::SetCursorPos( ImVec2( 15, 15 ) );
+    ImGui::BufferingBar( "##buffer_bar", m_progress, ImVec2( areasize.x - 125, 4 ), bg, col );
 
-        ::glColor4f( 216.0f / 255.0f, 216.0f / 255.0f, 216.0f / 255.0f, 1.0f );
-        auto const charsize = 9.0f;
-        auto const textwidth = m_progresstext.size() * charsize;
-        auto const textheight = 12.0f;
-        ::glRasterPos2f(
-            ( 0.5f * ( Global.iWindowWidth  - width )  + origin.x * heightratio ) + ( ( size.x * heightratio - textwidth ) * 0.5f * heightratio ),
-            ( 0.5f * ( Global.iWindowHeight - height ) + origin.y * heightratio ) + ( charsize ) + ( ( size.y * heightratio - textheight ) * 0.5f * heightratio ) );
-    }
+    ImGui::End();
 }
 
 void
@@ -351,23 +346,24 @@ ui_layer::render_tooltip() {
 void
 ui_layer::render_background() {
 
-	if( m_background == 0 ) return;
-    // NOTE: we limit/expect the background to come with 4:3 ratio.
-    // TODO, TBD: if we expose texture width or ratio from texture object, this limitation could be lifted
-    GfxRenderer->Bind_Texture( m_background );
-    auto const height { 768.0f };
-    auto const &texture = GfxRenderer->Texture( m_background );
-    float const width = (
-        texture.width() == texture.height() ?
-            1024.0f : // legacy mode, square texture displayed as 4:3 image
-            texture.width() / ( texture.height() / 768.0f ) );
-    quad(
-        glm::vec4(
-            ( 1024.0f * 0.5f ) - ( width  * 0.5f ),
-            (  768.0f * 0.5f ) - ( height * 0.5f ),
-            ( 1024.0f * 0.5f ) - ( width  * 0.5f ) + width,
-            (  768.0f * 0.5f ) - ( height * 0.5f ) + height ),
-        colors::white );
+    if( m_background == null_handle ) { return; }
+
+    opengl_texture &background = GfxRenderer->Texture(m_background);
+    background.create();
+    // determine background placement, taking into account screen ratio may be different from background image ratio
+    auto const placement{ background_placement( m_background ) };
+    //ImVec2 size = ImGui::GetIO().DisplaySize;
+    auto const size{ ImVec2( placement.z - placement.x, placement.w - placement.y ) };
+    // ready, set, draw
+    ImGui::SetNextWindowPos(ImVec2(placement.x, placement.y));
+    ImGui::SetNextWindowSize(size);
+    ImGui::Begin(
+        "Logo", nullptr,
+        ImGuiWindowFlags_NoTitleBar
+        | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse
+        | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoBringToFrontOnFocus );
+    ImGui::Image(reinterpret_cast<void *>(background.id), size, ImVec2(0, 1), ImVec2(1, 0));
+    ImGui::End();
 }
 
 void
@@ -393,30 +389,4 @@ ui_layer::render_texture() {
 
         ::glBindTexture( GL_TEXTURE_2D, 0 );
     }
-}
-
-void
-ui_layer::quad( glm::vec4 const &Coordinates, glm::vec4 const &Color ) {
-
-    float const screenratio = static_cast<float>( Global.iWindowWidth ) / Global.iWindowHeight;
-    float const width =
-        ( screenratio >= ( 4.f / 3.f ) ?
-            ( 4.f / 3.f ) * Global.iWindowHeight :
-            Global.iWindowWidth );
-    float const heightratio =
-        ( screenratio >= ( 4.f / 3.f ) ?
-            Global.iWindowHeight / 768.f :
-            Global.iWindowHeight / 768.f * screenratio / ( 4.f / 3.f ) );
-    float const height = 768.f * heightratio;
-
-    glColor4fv(glm::value_ptr(Color));
-
-    glBegin( GL_TRIANGLE_STRIP );
-
-    glMultiTexCoord2f( m_textureunit, 0.f, 1.f ); glVertex2f( 0.5f * ( Global.iWindowWidth - width ) + Coordinates.x * heightratio, 0.5f * ( Global.iWindowHeight - height ) + Coordinates.y * heightratio );
-    glMultiTexCoord2f( m_textureunit, 0.f, 0.f ); glVertex2f( 0.5f * ( Global.iWindowWidth - width ) + Coordinates.x * heightratio, 0.5f * ( Global.iWindowHeight - height ) + Coordinates.w * heightratio );
-    glMultiTexCoord2f( m_textureunit, 1.f, 1.f ); glVertex2f( 0.5f * ( Global.iWindowWidth - width ) + Coordinates.z * heightratio, 0.5f * ( Global.iWindowHeight - height ) + Coordinates.y * heightratio );
-    glMultiTexCoord2f( m_textureunit, 1.f, 0.f ); glVertex2f( 0.5f * ( Global.iWindowWidth - width ) + Coordinates.z * heightratio, 0.5f * ( Global.iWindowHeight - height ) + Coordinates.w * heightratio );
-
-    glEnd();
 }

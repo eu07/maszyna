@@ -188,7 +188,7 @@ void TCamera::Update()
         // attached movement position update
         auto movement { Velocity * -2.0 };
         movement.y = -movement.y;
-        if( m_owner->MoverParameters->ActiveCab < 0 ) {
+        if( m_owner->MoverParameters->CabOccupied < 0 ) {
             movement *= -1.f;
             movement.y = -movement.y;
         }
