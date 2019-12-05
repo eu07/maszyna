@@ -293,11 +293,7 @@ global_settings::ConfigParse(cParser &Parser) {
             Parser.getTokens(1, false);
             int size;
             Parser >> size;
-            auto p2size { 64 }; // start with 64px
-            while( (p2size <= 16384 ) && ( p2size <= size ) ) {
-                iMaxTextureSize = p2size;
-                p2size = p2size << 1;
-            }
+            iMaxTextureSize = clamp_power_of_two( size, 512, 8192 );
         }
         else if (token == "maxcabtexturesize")
         {
@@ -305,11 +301,7 @@ global_settings::ConfigParse(cParser &Parser) {
             Parser.getTokens( 1, false );
             int size;
             Parser >> size;
-            auto p2size { 64 }; // start with 64px
-            while( ( p2size <= 16384 ) && ( p2size <= size ) ) {
-                iMaxCabTextureSize = p2size;
-                p2size = p2size << 1;
-            }
+            iMaxCabTextureSize = clamp_power_of_two( size, 512, 8192 );
         }
         else if (token == "movelight")
         {
@@ -388,11 +380,20 @@ global_settings::ConfigParse(cParser &Parser) {
        }
        else if( token == "shadowtune" ) {
             Parser.getTokens( 4, false );
+            float discard;
             Parser
                 >> shadowtune.map_size
-                >> shadowtune.width
-                >> shadowtune.depth
-                >> shadowtune.distance;
+                >> discard
+                >> shadowtune.range
+                >> discard;
+            shadowtune.map_size = clamp_power_of_two<unsigned int>( shadowtune.map_size, 512, 8192 );
+            // make sure we actually make effective use of all csm stages
+            shadowtune.range =
+                std::max(
+                    ( shadowtune.map_size <= 2048 ?
+                        75.f :
+                        75.f * shadowtune.map_size / 2048 ),
+                    shadowtune.range );
        }
        else if( token == "gfx.shadows.cab.range" ) {
             // shadow render toggle

@@ -105,7 +105,7 @@ struct global_settings {
     // gfx
     int iWindowWidth{ 800 };
     int iWindowHeight{ 600 };
-    float fDistanceFactor{ iWindowHeight / 768.f }; // baza do przeliczania odległości dla LoD
+    float fDistanceFactor{ 1.f }; // baza do przeliczania odległości dla LoD
     float targetfps { 0.0f };
     bool bFullScreen{ false };
     bool VSync{ false };
@@ -121,9 +121,7 @@ struct global_settings {
     int RenderCabShadowsRange{ 0 };
     struct shadowtune_t {
         unsigned int map_size{ 2048 };
-        float width{ 250.f }; // no longer used
-        float depth{ 250.f };
-        float distance{ 500.f }; // no longer used
+        float range{ 250.f };
     } shadowtune;
     double ReflectionUpdateInterval{ 300.0 };
     bool bUseVBO{ true }; // czy jest VBO w karcie graficznej (czy użyć)

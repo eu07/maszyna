@@ -166,8 +166,8 @@ bool opengl33_renderer::Init(GLFWwindow *Window)
 	{
 		m_shadow_fb = std::make_unique<gl::framebuffer>();
 		m_shadow_tex = std::make_unique<opengl_texture>();
-		m_shadow_tex->alloc_rendertarget(Global.gfx_format_depth, GL_DEPTH_COMPONENT, m_shadowbuffersize, m_shadowbuffersize);
-		m_shadow_fb->attach(*m_shadow_tex, GL_DEPTH_ATTACHMENT);
+		m_shadow_tex->alloc_rendertarget(Global.gfx_format_depth, GL_DEPTH_COMPONENT, m_shadowbuffersize, m_shadowbuffersize, m_shadowpass.size());
+		m_shadow_fb->attach(*m_shadow_tex, GL_DEPTH_ATTACHMENT, 0);
 
         if( !m_shadow_fb->is_complete() ) {
             ErrorLog( "shadow framebuffer setup failed" );
@@ -175,18 +175,6 @@ bool opengl33_renderer::Init(GLFWwindow *Window)
         }
 
 		WriteLog("shadows enabled");
-
-		m_cabshadows_fb = std::make_unique<gl::framebuffer>();
-		m_cabshadows_tex = std::make_unique<opengl_texture>();
-		m_cabshadows_tex->alloc_rendertarget(Global.gfx_format_depth, GL_DEPTH_COMPONENT, m_shadowbuffersize, m_shadowbuffersize);
-		m_cabshadows_fb->attach(*m_cabshadows_tex, GL_DEPTH_ATTACHMENT);
-
-        if( !m_cabshadows_fb->is_complete() ) {
-            ErrorLog( "cabshadows framebuffer setup failed" );
-            return false;
-        }
-
-		WriteLog("cabshadows enabled");
 	}
 
     if (Global.gfx_envmap_enabled)
@@ -378,7 +366,7 @@ bool opengl33_renderer::init_viewport(viewport_config &vp)
 			vp.msaa_fb->attach(*vp.msaa_rbv, GL_COLOR_ATTACHMENT1);
 
 			vp.main_tex = std::make_unique<opengl_texture>();
-			vp.main_tex->alloc_rendertarget(Global.gfx_format_color, GL_RGB, vp.width, vp.height, 1, GL_CLAMP_TO_EDGE);
+			vp.main_tex->alloc_rendertarget(Global.gfx_format_color, GL_RGB, vp.width, vp.height, 1, 1, GL_CLAMP_TO_EDGE);
 
 			vp.main_fb = std::make_unique<gl::framebuffer>();
 			vp.main_fb->attach(*vp.main_tex, GL_COLOR_ATTACHMENT0);
@@ -448,7 +436,7 @@ bool opengl33_renderer::Render()
     opengl_texture::reset_unit_cache();
 
 	m_renderpass.draw_mode = rendermode::none; // force setup anew
-	m_debugstats = debug_stats();
+	m_renderpass.draw_stats = debug_stats();
 
 	for (auto &viewport : m_viewports) {
 		Render_pass(*viewport, rendermode::color);
@@ -471,10 +459,27 @@ bool opengl33_renderer::Render()
 		if (m_gllasttime)
 			m_debugtimestext += "gpu: " + to_string((double)(m_gllasttime / 1000ULL) / 1000.0, 3) + "ms";
 	}
-
-	m_debugstatstext = "drawcalls:  " + to_string(m_debugstats.drawcalls) + "\n" + " vehicles:  " + to_string(m_debugstats.dynamics) + "\n" + " models:    " + to_string(m_debugstats.models) + "\n" +
-	                   " submodels: " + to_string(m_debugstats.submodels) + "\n" + " paths:     " + to_string(m_debugstats.paths) + "\n" + " shapes:    " + to_string(m_debugstats.shapes) + "\n" +
-	                   " traction:  " + to_string(m_debugstats.traction) + "\n" + " lines:     " + to_string(m_debugstats.lines);
+    
+    debug_stats shadowstats;
+    for( auto const &shadowpass : m_shadowpass ) {
+        shadowstats += shadowpass.draw_stats;
+    }
+    m_debugstatstext =
+          "vehicles:  " + to_string( m_colorpass.draw_stats.dynamics, 7 ) + " +" + to_string( shadowstats.dynamics, 7 )
+        + " =" + to_string( m_colorpass.draw_stats.dynamics + shadowstats.dynamics, 7 ) + "\n"
+        + "models:    " + to_string( m_colorpass.draw_stats.models, 7 ) + " +" + to_string( shadowstats.models, 7 )
+        + " =" + to_string( m_colorpass.draw_stats.models + shadowstats.models, 7 ) + "\n"
+        + "drawcalls: " + to_string( m_colorpass.draw_stats.drawcalls, 7 ) + " +" + to_string( shadowstats.drawcalls, 7 )
+        + " =" + to_string( m_colorpass.draw_stats.drawcalls + shadowstats.drawcalls, 7 ) + "\n"
+        + " submodels:" + to_string( m_colorpass.draw_stats.submodels, 7 ) + " +" + to_string( shadowstats.submodels, 7 )
+        + " =" + to_string( m_colorpass.draw_stats.submodels + shadowstats.submodels, 7 ) + "\n"
+        + " paths:    " + to_string( m_colorpass.draw_stats.paths, 7 ) + " +" + to_string( shadowstats.paths, 7 )
+        + " =" + to_string( m_colorpass.draw_stats.paths + shadowstats.paths, 7 ) + "\n"
+        + " shapes:   " + to_string( m_colorpass.draw_stats.shapes, 7 ) + " +" + to_string( shadowstats.shapes, 7 )
+        + " =" + to_string( m_colorpass.draw_stats.shapes + shadowstats.shapes, 7 ) + "\n"
+        + " traction: " + to_string( m_colorpass.draw_stats.traction, 7 ) + "\n"
+        + " lines:    " + to_string( m_colorpass.draw_stats.lines, 7 ) + "\n"
+        + "particles: " + to_string( m_colorpass.draw_stats.particles, 7 );
 
 	if (DebugModeFlag)
 		m_debugtimestext += m_textures.info();
@@ -528,7 +533,7 @@ void opengl33_renderer::draw_debug_ui()
 void opengl33_renderer::Render_pass(viewport_config &vp, rendermode const Mode)
 {
 	setup_pass(vp, m_renderpass, Mode);
-	switch (m_renderpass.draw_mode)
+    switch (m_renderpass.draw_mode)
 	{
 
 	case rendermode::color:
@@ -553,13 +558,13 @@ void opengl33_renderer::Render_pass(viewport_config &vp, rendermode const Mode)
 			break;
 		}
 
+        m_colorpass = m_renderpass; // cache pass data
+
 		scene_ubs.time = Timer::GetTime();
 		scene_ubs.projection = OpenGLMatrices.data(GL_PROJECTION);
         scene_ubs.inv_view = glm::inverse( glm::mat4{ glm::mat3{ m_renderpass.pass_camera.modelview() } } );
         scene_ubo->update(scene_ubs);
 		scene_ubo->bind_uniform();
-
-		m_colorpass = m_renderpass;
 
 		if (m_widelines_supported)
 			glLineWidth(1.0f);
@@ -572,7 +577,7 @@ void opengl33_renderer::Render_pass(viewport_config &vp, rendermode const Mode)
 				glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 		}
 
-		setup_shadow_map(nullptr, m_renderpass);
+        setup_shadow_unbind_map();
 		setup_env_map(nullptr);
 
 		if (Global.gfx_shadowmap_enabled && vp.main)
@@ -580,10 +585,9 @@ void opengl33_renderer::Render_pass(viewport_config &vp, rendermode const Mode)
 			glDebug("render shadowmap start");
 			Timer::subsystem.gfx_shadows.start();
 
-			Render_pass(vp, rendermode::shadows);
-			if (!FreeFlyModeFlag && Global.render_cab)
-				Render_pass(vp, rendermode::cabshadows);
-			setup_pass(vp, m_renderpass, Mode); // restore draw mode. TBD, TODO: render mode stack
+            m_renderpass.draw_stats = {};
+            Render_pass(vp, rendermode::shadows);
+			m_renderpass = m_colorpass; // restore draw mode. TBD, TODO: render mode stack
 
 			Timer::subsystem.gfx_shadows.stop();
 			glDebug("render shadowmap end");
@@ -592,8 +596,9 @@ void opengl33_renderer::Render_pass(viewport_config &vp, rendermode const Mode)
 		if (Global.gfx_envmap_enabled && vp.main)
 		{
 			// potentially update environmental cube map
-			if (Render_reflections(vp))
-				setup_pass(vp, m_renderpass, Mode); // restore color pass settings
+            m_renderpass.draw_stats = {};
+            if (Render_reflections(vp))
+				m_renderpass = m_colorpass; // restore color pass settings
 			setup_env_map(m_env_tex.get());
 		}
 
@@ -632,6 +637,7 @@ void opengl33_renderer::Render_pass(viewport_config &vp, rendermode const Mode)
 		Timer::subsystem.gfx_color.start();
 		setup_matrices();
 		setup_drawing(true);
+        m_renderpass.draw_stats = {};
 
 		glm::mat4 future;
 		if (Global.pCamera.m_owner != nullptr)
@@ -649,6 +655,9 @@ void opengl33_renderer::Render_pass(viewport_config &vp, rendermode const Mode)
 		scene_ubo->update(scene_ubs);
 		Render(&simulation::Environment);
 
+        if( Global.gfx_shadowmap_enabled )
+            setup_shadow_bind_map();
+
 		// opaque parts...
 		setup_drawing(false);
 
@@ -657,9 +666,6 @@ void opengl33_renderer::Render_pass(viewport_config &vp, rendermode const Mode)
 		if (!FreeFlyModeFlag && Global.Overcast <= 1.0f && Global.render_cab)
 		{
 			glDebug("render cab opaque");
-            if( Global.gfx_shadowmap_enabled ) {
-                setup_shadow_map( m_cabshadows_tex.get(), m_cabshadowpass );
-            }
             // cache shadow colour in case we need to account for cab light
             auto const *vehicle{ simulation::Train->Dynamic() };
             if( vehicle->InteriorLightLevel > 0.f ) {
@@ -674,9 +680,6 @@ void opengl33_renderer::Render_pass(viewport_config &vp, rendermode const Mode)
 		glDebug("render opaque region");
 
 		model_ubs.future = future;
-
-		if (Global.gfx_shadowmap_enabled)
-			setup_shadow_map(m_shadow_tex.get(), m_shadowpass);
 
 		Render(simulation::Region);
 
@@ -696,9 +699,6 @@ void opengl33_renderer::Render_pass(viewport_config &vp, rendermode const Mode)
 		{
 			glDebug("render translucent cab");
 			model_ubs.future = glm::mat4();
-            if( Global.gfx_shadowmap_enabled ) {
-                setup_shadow_map( m_cabshadows_tex.get(), m_cabshadowpass );
-            }
             // cache shadow colour in case we need to account for cab light
             auto *vehicle { simulation::Train->Dynamic() };
             if( vehicle->InteriorLightLevel > 0.f ) {
@@ -721,7 +721,10 @@ void opengl33_renderer::Render_pass(viewport_config &vp, rendermode const Mode)
 
 		Timer::subsystem.gfx_color.stop();
 
-		setup_shadow_map(nullptr, m_renderpass);
+        // store draw stats
+        m_colorpass.draw_stats = m_renderpass.draw_stats;
+
+        setup_shadow_unbind_map();
 		setup_env_map(nullptr);
 
 		if (!Global.gfx_usegles)
@@ -781,58 +784,46 @@ void opengl33_renderer::Render_pass(viewport_config &vp, rendermode const Mode)
 
 		glDebug("rendermode::shadows");
 
-		glEnable(GL_DEPTH_TEST);
+        glEnable(GL_DEPTH_TEST);
+        setup_drawing( false );
 
 		glViewport(0, 0, m_shadowbuffersize, m_shadowbuffersize);
-		m_shadow_fb->bind();
-		m_shadow_fb->clear(GL_DEPTH_BUFFER_BIT);
 
-		setup_matrices();
-		setup_drawing(false);
-
-		scene_ubs.projection = OpenGLMatrices.data(GL_PROJECTION);
-		scene_ubo->update(scene_ubs);
-
-        if( m_shadowcolor != colors::white ) {
-            Render( simulation::Region );
+        float csmstageboundaries[] = { 0.0f, 5.0f, 25.0f, 1.0f };
+        if( Global.shadowtune.map_size > 2048 ) {
+            // increase coverage if our shadow map is large enough to produce decent results
+            csmstageboundaries[ 1 ] *= Global.shadowtune.map_size / 2048;
+            csmstageboundaries[ 2 ] *= Global.shadowtune.map_size / 2048;
         }
-		m_shadowpass = m_renderpass;
 
+        for( auto idx = 0; idx < m_shadowpass.size(); ++idx ) {
+
+            m_shadow_fb->attach( *m_shadow_tex, GL_DEPTH_ATTACHMENT, idx );
+            m_shadow_fb->clear( GL_DEPTH_BUFFER_BIT );
+
+            setup_pass( vp, m_renderpass, rendermode::shadows, csmstageboundaries[ idx ], csmstageboundaries[ idx + 1 ] );
+            m_shadowpass[ idx ] = m_renderpass; // store pass config for reference in other stages
+
+            setup_matrices();
+            scene_ubs.projection = OpenGLMatrices.data( GL_PROJECTION );
+            auto const csmstagezfar {
+                ( csmstageboundaries[ idx + 1 ] > 1.f ? csmstageboundaries[ idx + 1 ] : Global.shadowtune.range )
+              + ( m_shadowpass.size() - idx ) }; // we can fairly safely add some extra padding in the early stages
+            scene_ubs.cascade_end[ idx ] = csmstagezfar * csmstagezfar; // store squared to allow semi-optimized length2 comparisons in the shader
+            scene_ubo->update( scene_ubs );
+
+            if( m_shadowcolor != colors::white ) {
+                Render( simulation::Region );
+                if( idx > 0 ) { continue; } // render cab only in the closest csm stage
+                if( !FreeFlyModeFlag && Global.render_cab ) {
+                    Render_cab( simulation::Train->Dynamic(), 0.0f, false );
+                    Render_cab( simulation::Train->Dynamic(), 0.0f, true );
+                }
+            }
+        }
 		m_shadow_fb->unbind();
 
-		glDebug("rendermodeshadows ::end");
-
-		break;
-	}
-
-	case rendermode::cabshadows:
-	{
-		glDebug("rendermode::cabshadows");
-
-		glEnable(GL_DEPTH_TEST);
-
-		glViewport(0, 0, m_shadowbuffersize, m_shadowbuffersize);
-		m_cabshadows_fb->bind();
-		m_cabshadows_fb->clear(GL_DEPTH_BUFFER_BIT);
-
-		setup_matrices();
-		setup_drawing(false);
-
-		scene_ubs.projection = OpenGLMatrices.data(GL_PROJECTION);
-		scene_ubo->update(scene_ubs);
-
-        if( m_shadowcolor != colors::white ) {
-            if( Global.RenderCabShadowsRange > 0 ) {
-                Render( simulation::Region );
-            }
-            Render_cab( simulation::Train->Dynamic(), 0.0f, false );
-            Render_cab( simulation::Train->Dynamic(), 0.0f, true );
-        }
-		m_cabshadowpass = m_renderpass;
-
-		m_cabshadows_fb->unbind();
-
-		glDebug("rendermode::cabshadows end");
+		glDebug("rendermode::shadows end");
 
 		break;
 	}
@@ -853,19 +844,17 @@ void opengl33_renderer::Render_pass(viewport_config &vp, rendermode const Mode)
 		setup_env_map(m_empty_cubemap.get());
 
 		setup_matrices();
-		setup_shadow_map(nullptr, m_renderpass);
 
 		// render
+        // environment...
 		setup_drawing(true);
-
+        setup_shadow_unbind_map();
 		scene_ubs.projection = OpenGLMatrices.data(GL_PROJECTION);
 		scene_ubo->update(scene_ubs);
 		Render(&simulation::Environment);
-
 		// opaque parts...
 		setup_drawing(false);
-		setup_shadow_map(m_shadow_tex.get(), m_shadowpass);
-
+		setup_shadow_bind_map();
 		scene_ubs.projection = OpenGLMatrices.data(GL_PROJECTION);
 		scene_ubo->update(scene_ubs);
 		Render(simulation::Region);
@@ -922,7 +911,7 @@ void opengl33_renderer::Render_pass(viewport_config &vp, rendermode const Mode)
 
 		scene_ubs.projection = OpenGLMatrices.data(GL_PROJECTION);
 		scene_ubo->update(scene_ubs);
-		Render(simulation::Region);
+ 		Render(simulation::Region);
 
 		break;
 	}
@@ -1124,22 +1113,18 @@ glm::mat4 opengl33_renderer::ortho_frustumtest_projection(float l, float r, floa
 void opengl33_renderer::setup_pass(viewport_config &Viewport, renderpass_config &Config, rendermode const Mode,
                                  float const Znear, float const Zfar, bool const Ignoredebug)
 {
-
 	Config.draw_mode = Mode;
 
     if( false == simulation::is_ready ) { return; }
     // setup draw range
     switch( Mode ) {
-        case rendermode::color:        { Config.draw_range = Global.BaseDrawRange; break; }
-        case rendermode::shadows:      { Config.draw_range = Global.BaseDrawRange * 0.5f; break; }
-        case rendermode::cabshadows:   { Config.draw_range = ( Global.RenderCabShadowsRange > 0 ? clamp( Global.RenderCabShadowsRange, 5, 100 ) : simulation::Train->Occupied()->Dim.L ); break; }
-        case rendermode::reflections:  { Config.draw_range = Global.BaseDrawRange; break; }
+        case rendermode::color:        { Config.draw_range = Global.BaseDrawRange * Global.fDistanceFactor * Viewport.draw_range; break; }
+        case rendermode::shadows:      { Config.draw_range = Global.shadowtune.range; break; }
+        case rendermode::reflections:  { Config.draw_range = Global.BaseDrawRange * Viewport.draw_range; break; }
         case rendermode::pickcontrols: { Config.draw_range = 50.f; break; }
-        case rendermode::pickscenery:  { Config.draw_range = Global.BaseDrawRange * 0.5f; break; }
+        case rendermode::pickscenery:  { Config.draw_range = Global.BaseDrawRange * Viewport.draw_range * 0.5f; break; }
         default:                       { Config.draw_range = 0.f; break; }
     }
-
-	Config.draw_range *= Viewport.draw_range;
 
 	// setup camera
 	auto &camera = Config.pass_camera;
@@ -1175,9 +1160,14 @@ void opengl33_renderer::setup_pass(viewport_config &Viewport, renderpass_config 
 			Global.pDebugCamera.SetMatrix(viewmatrix);
 		}
 
+        // optimization: don't bother drawing things completely blended with the background
+        // but ensure at least 2 km range to account for signals and lights
+        Config.draw_range = std::min( Config.draw_range, m_fogrange * 2 );
+        Config.draw_range = std::max( 2000.f, Config.draw_range );
+
 		// projection
-		auto const zfar = Config.draw_range * Global.fDistanceFactor * Zfar;
-		auto const znear = (Znear > 0.f ? Znear * zfar : 0.1f * Global.ZoomFactor);
+		auto const zfar  = ( Zfar  > 1.f ? Zfar : Config.draw_range * Zfar );
+		auto const znear = ( Znear > 1.f ? Znear : Znear > 0.f ? Znear * zfar : 0.1f * Global.ZoomFactor);
 
 		camera.projection() = perspective_projection(fovy, aspect, znear, zfar);
 		frustumtest_proj = perpsective_frustumtest_projection(fovy, aspect, znear, zfar);
@@ -1187,9 +1177,11 @@ void opengl33_renderer::setup_pass(viewport_config &Viewport, renderpass_config 
 	{
 		// calculate lightview boundaries based on relevant area of the world camera frustum:
 		// ...setup chunk of frustum we're interested in...
-		auto const zfar = std::min(1.f, Global.shadowtune.depth / (Global.BaseDrawRange * Global.fDistanceFactor) * std::max(1.f, Global.ZoomFactor * 0.5f));
+//        auto const zfar = std::min(1.f, Global.shadowtune.range / (Global.BaseDrawRange * Global.fDistanceFactor) * std::max(1.f, Global.ZoomFactor * 0.5f));
+//        auto const zfar = ( Zfar > 1.f ? Zfar * std::max( 1.f, Global.ZoomFactor * 0.5f ) : Zfar );
+        auto const zfar = ( Zfar > 1.f ? Zfar : Zfar * Global.shadowtune.range * std::max( Zfar, Global.ZoomFactor * 0.5f ) );
 		renderpass_config worldview;
-		setup_pass(Viewport, worldview, rendermode::color, 0.f, zfar, true);
+		setup_pass(Viewport, worldview, rendermode::color, Znear, zfar, true);
 		auto &frustumchunkshapepoints = worldview.pass_camera.frustum_points();
 		// ...modelview matrix: determine the centre of frustum chunk in world space...
 		glm::vec3 frustumchunkmin, frustumchunkmax;
@@ -1208,29 +1200,14 @@ void opengl33_renderer::setup_pass(viewport_config &Viewport, renderpass_config 
 		}
 		bounding_box(frustumchunkmin, frustumchunkmax, std::begin(frustumchunkshapepoints), std::end(frustumchunkshapepoints));
 		// quantize the frustum points and add some padding, to reduce shadow shimmer on scale changes
-		auto const quantizationstep{std::min(Global.shadowtune.depth, 50.f)};
+        auto const frustumchunkdepth { zfar - ( Znear > 1.f ? Znear : 0.f ) };
+		auto const quantizationstep{std::min(frustumchunkdepth, 50.f)};
 		frustumchunkmin = quantizationstep * glm::floor(frustumchunkmin * (1.f / quantizationstep));
 		frustumchunkmax = quantizationstep * glm::ceil(frustumchunkmax * (1.f / quantizationstep));
 		// ...use the dimensions to set up light projection boundaries...
 		// NOTE: since we only have one cascade map stage, we extend the chunk forward/back to catch areas normally covered by other stages
 		camera.projection() = ortho_projection(frustumchunkmin.x, frustumchunkmax.x, frustumchunkmin.y, frustumchunkmax.y, frustumchunkmin.z - 500.f, frustumchunkmax.z + 500.f);
 		frustumtest_proj = ortho_frustumtest_projection(frustumchunkmin.x, frustumchunkmax.x, frustumchunkmin.y, frustumchunkmax.y, frustumchunkmin.z - 500.f, frustumchunkmax.z + 500.f);
-		/*
-		        // fixed ortho projection from old build, for quick quality comparisons
-		        camera.projection() *=
-					ortho_projection(
-		                -Global.shadowtune.width, Global.shadowtune.width,
-		                -Global.shadowtune.width, Global.shadowtune.width,
-		                -Global.shadowtune.depth, Global.shadowtune.depth );
-				camera.position() = Global.pCamera.Pos - glm::dvec3{ m_sunlight.direction };
-				if( camera.position().y - Global.pCamera.Pos.y < 0.1 ) {
-					camera.position().y = Global.pCamera.Pos.y + 0.1;
-		        }
-		        viewmatrix *= glm::lookAt(
-		            camera.position(),
-					glm::dvec3{ Global.pCamera.Pos },
-		            glm::dvec3{ 0.f, 1.f, 0.f } );
-		*/
 		// ... and adjust the projection to sample complete shadow map texels:
 		// get coordinates for a sample texel...
 		auto shadowmaptexel = glm::vec2{camera.projection() * glm::mat4{viewmatrix} * glm::vec4{0.f, 0.f, 0.f, 1.f}};
@@ -1242,28 +1219,6 @@ void opengl33_renderer::setup_pass(viewport_config &Viewport, renderpass_config 
 		// ... and bake the adjustment into the projection matrix
 		camera.projection() = glm::translate(glm::mat4{1.f}, glm::vec3{shadowmapadjustment, 0.f}) * camera.projection();
 
-		break;
-	}
-	case rendermode::cabshadows:
-	{
-		// fixed size cube large enough to enclose a vehicle compartment
-		// modelview
-		auto const lightvector = glm::normalize(glm::vec3{m_sunlight.direction.x, std::min(m_sunlight.direction.y, -0.2f), m_sunlight.direction.z});
-		camera.position() = Global.pCamera.Pos - glm::dvec3{lightvector};
-		viewmatrix *= glm::lookAt(camera.position(), glm::dvec3{Global.pCamera.Pos}, glm::dvec3{0.f, 1.f, 0.f});
-		// projection
-        auto const maphalfsize { std::min( 10.f, Config.draw_range * 0.5f ) };
-		camera.projection() = ortho_projection(-maphalfsize, maphalfsize, -maphalfsize, maphalfsize, -Config.draw_range, Config.draw_range);
-		frustumtest_proj = ortho_frustumtest_projection(-maphalfsize, maphalfsize, -maphalfsize, maphalfsize, -Config.draw_range, Config.draw_range);
-
-		/*
-				// adjust the projection to sample complete shadow map texels
-				auto shadowmaptexel = glm::vec2 { camera.projection() * glm::mat4{ viewmatrix } * glm::vec4{ 0.f, 0.f, 0.f, 1.f } };
-				shadowmaptexel *= ( m_shadowbuffersize / 2 ) * 0.5f;
-				auto shadowmapadjustment = glm::round( shadowmaptexel ) - shadowmaptexel;
-				shadowmapadjustment /= ( m_shadowbuffersize / 2 ) * 0.5f;
-				camera.projection() = glm::translate( glm::mat4{ 1.f }, glm::vec3{ shadowmapadjustment, 0.f } ) * camera.projection();
-		*/
 		break;
 	}
 	case rendermode::pickcontrols:
@@ -1312,7 +1267,7 @@ void opengl33_renderer::setup_matrices()
 	OpenGLMatrices.load_matrix(m_renderpass.pass_camera.projection());
 	// trim modelview matrix just to rotation, since rendering is done in camera-centric world space
     OpenGLMatrices.mode(GL_MODELVIEW);
-	OpenGLMatrices.load_matrix(glm::mat4(glm::mat3(m_renderpass.pass_camera.modelview())));
+    OpenGLMatrices.load_matrix(glm::mat4{glm::mat3{m_renderpass.pass_camera.modelview()}});
 }
 
 void opengl33_renderer::setup_drawing(bool const Alpha)
@@ -1339,7 +1294,6 @@ void opengl33_renderer::setup_drawing(bool const Alpha)
 		break;
 	}
 	case rendermode::shadows:
-	case rendermode::cabshadows:
 	{
 		glCullFace(GL_FRONT);
 		break;
@@ -1357,50 +1311,52 @@ void opengl33_renderer::setup_drawing(bool const Alpha)
 	}
 }
 
-// configures shadow texture unit for specified shadow map and conersion matrix
-void opengl33_renderer::setup_shadow_map(opengl_texture *tex, renderpass_config conf)
+void opengl33_renderer::setup_shadow_unbind_map()
 {
-	if (tex)
-		tex->bind(gl::MAX_TEXTURES + 0);
+    opengl_texture::unbind( gl::MAX_TEXTURES + 0 );
+}
+
+// binds shadow map and updates shadow map uniform data
+void opengl33_renderer::setup_shadow_bind_map()
+{
+    m_shadow_tex->bind(gl::MAX_TEXTURES + 0);
+
+	glm::mat4 coordmove;
+
+	if (GLAD_GL_ARB_clip_control || GLAD_GL_EXT_clip_control)
+		// transform 1..-1 NDC xy coordinates to 1..0
+		coordmove = glm::mat4( //
+			0.5, 0.0, 0.0, 0.0, //
+			0.0, 0.5, 0.0, 0.0, //
+			0.0, 0.0, 1.0, 0.0, //
+			0.5, 0.5, 0.0, 1.0 //
+		);
 	else
-		opengl_texture::unbind(gl::MAX_TEXTURES + 0);
+		// without clip_control we also need to transform z
+		coordmove = glm::mat4( //
+			0.5, 0.0, 0.0, 0.0, //
+			0.0, 0.5, 0.0, 0.0, //
+			0.0, 0.0, 0.5, 0.0, //
+			0.5, 0.5, 0.5, 1.0 //
+		);
 
-	if (tex)
-	{
-		glm::mat4 coordmove;
+    for( auto idx = 0; idx < m_shadowpass.size(); ++idx ) {
 
-		if (GLAD_GL_ARB_clip_control || GLAD_GL_EXT_clip_control)
-			// transform 1..-1 NDC xy coordinates to 1..0
-			coordmove = glm::mat4( //
-			    0.5, 0.0, 0.0, 0.0, //
-			    0.0, 0.5, 0.0, 0.0, //
-			    0.0, 0.0, 1.0, 0.0, //
-			    0.5, 0.5, 0.0, 1.0 //
-			);
-		else
-			// without clip_control we also need to transform z
-			coordmove = glm::mat4( //
-			    0.5, 0.0, 0.0, 0.0, //
-			    0.0, 0.5, 0.0, 0.0, //
-			    0.0, 0.0, 0.5, 0.0, //
-			    0.5, 0.5, 0.5, 1.0 //
-			);
-		glm::mat4 depthproj = conf.pass_camera.projection();
+        glm::mat4 depthproj = m_shadowpass[ idx ].pass_camera.projection();
         // NOTE: we strip transformations from camera projections to remove jitter that occurs
         // with large (and unneded as we only need the offset) transformations back and forth
-        auto const depthcam{ glm::mat3{ conf.pass_camera.modelview()} };
+        auto const depthcam{ glm::mat3{ m_shadowpass[ idx ].pass_camera.modelview()} };
         auto const worldcam{ glm::mat3{ m_renderpass.pass_camera.modelview()} };
 
-        scene_ubs.lightview =
+        scene_ubs.lightview[ idx ] =
             coordmove
             * depthproj
             * glm::translate(
                 glm::mat4{ depthcam },
-                glm::vec3{ m_renderpass.pass_camera.position() - conf.pass_camera.position() } )
+                glm::vec3{ m_renderpass.pass_camera.position() - m_shadowpass[ idx ].pass_camera.position() } )
             * glm::mat4{ glm::inverse( worldcam ) };
-
-		scene_ubo->update(scene_ubs);
-	}
+    }
+	scene_ubo->update(scene_ubs);
 }
 
 void opengl33_renderer::setup_shadow_color( glm::vec4 const &Shadowcolor ) {
@@ -1918,7 +1874,6 @@ void opengl33_renderer::Render(scene::basic_region *Region)
 		break;
 	}
 	case rendermode::shadows:
-    case rendermode::cabshadows:
     case rendermode::pickscenery:
 	{
 		// these render modes don't bother with lights
@@ -1950,7 +1905,6 @@ void opengl33_renderer::Render(section_sequence::iterator First, section_sequenc
 	{
 	case rendermode::color:
 	case rendermode::reflections:
-    case rendermode::cabshadows:
     case rendermode::shadows:
 		break;
 	case rendermode::pickscenery:
@@ -1975,7 +1929,6 @@ void opengl33_renderer::Render(section_sequence::iterator First, section_sequenc
 		case rendermode::color:
 		case rendermode::reflections:
 		case rendermode::shadows:
-        case rendermode::cabshadows:
         case rendermode::pickscenery:
 		{
 			if (false == section->m_shapes.empty())
@@ -2006,7 +1959,6 @@ void opengl33_renderer::Render(section_sequence::iterator First, section_sequenc
 		{
 		case rendermode::color:
 		case rendermode::shadows:
-        case rendermode::cabshadows:
         case rendermode::pickscenery:
 		{
 			for (auto &cell : section->m_cells)
@@ -2033,7 +1985,6 @@ void opengl33_renderer::Render(section_sequence::iterator First, section_sequenc
 	switch (m_renderpass.draw_mode)
 	{
 	case rendermode::shadows:
-    case rendermode::cabshadows:
     {
 		break;
 	}
@@ -2099,24 +2050,6 @@ void opengl33_renderer::Render(cell_sequence::iterator First, cell_sequence::ite
 
 			break;
 		}
-		case rendermode::cabshadows:
-		{
-			// since all shapes of the section share center point we can optimize out a few calls here
-			::glPushMatrix();
-			auto const originoffset{cell->m_area.center - m_renderpass.pass_camera.position()};
-			::glTranslated(originoffset.x, originoffset.y, originoffset.z);
-
-			// render
-			// opaque non-instanced shapes
-			for (auto const &shape : cell->m_shapesopaque)
-				Render(shape, false);
-            // NOTE: tracks aren't likely to cast shadows into the cab, so we skip them in this pass
-
-			// post-render cleanup
-			::glPopMatrix();
-
-			break;
-		}
 		case rendermode::pickscenery:
 		{
 			// same procedure like with regular render, but editor-enabled nodes receive custom colour used for picking
@@ -2160,7 +2093,6 @@ void opengl33_renderer::Render(cell_sequence::iterator First, cell_sequence::ite
 		{
 		case rendermode::color:
 		case rendermode::shadows:
-        case rendermode::cabshadows:
         {
 			// opaque parts of instanced models
 			for (auto *instance : cell->m_instancesopaque)
@@ -2237,7 +2169,6 @@ void opengl33_renderer::Render(scene::shape_node const &Shape, bool const Ignore
 		switch (m_renderpass.draw_mode)
 		{
 		case rendermode::shadows:
-        case rendermode::cabshadows:
         {
 			// 'camera' for the light pass is the light source, but we need to draw what the 'real' camera sees
 			distancesquared = Math3D::SquareMagnitude((data.area.center - m_renderpass.viewport_camera.position()) / (double)Global.ZoomFactor) / Global.fDistanceFactor;
@@ -2263,7 +2194,6 @@ void opengl33_renderer::Render(scene::shape_node const &Shape, bool const Ignore
 		Bind_Material(data.material);
 		break;
 	case rendermode::shadows:
-    case rendermode::cabshadows:
         Bind_Material_Shadow(data.material);
 		break;
 	case rendermode::pickscenery:
@@ -2277,31 +2207,28 @@ void opengl33_renderer::Render(scene::shape_node const &Shape, bool const Ignore
 
 	draw(data.geometry);
 	// debug data
-	++m_debugstats.shapes;
-	++m_debugstats.drawcalls;
+	++m_renderpass.draw_stats.shapes;
+	++m_renderpass.draw_stats.drawcalls;
 }
 
 void opengl33_renderer::Render(TAnimModel *Instance)
 {
 
-	if (false == Instance->m_visible)
-	{
-		return;
-	}
+	if (false == Instance->m_visible) { return; }
+    if( false == m_renderpass.pass_camera.visible( Instance->m_area ) ) { return; }
 
-	double distancesquared;
+    double distancesquared;
 	switch (m_renderpass.draw_mode)
 	{
 	case rendermode::shadows:
-    case rendermode::cabshadows:
     {
-		// 'camera' for the light pass is the light source, but we need to draw what the 'real' camera sees
-		distancesquared = Math3D::SquareMagnitude((Instance->location() - m_renderpass.viewport_camera.position()) / (double)Global.ZoomFactor) / Global.fDistanceFactor;
+        // 'camera' for the light pass is the light source, but we need to draw what the 'real' camera sees
+		distancesquared = glm::length2((Instance->location() - m_renderpass.viewport_camera.position()) / (double)Global.ZoomFactor) / Global.fDistanceFactor;
 		break;
 	}
 	default:
 	{
-		distancesquared = Math3D::SquareMagnitude((Instance->location() - m_renderpass.pass_camera.position()) / (double)Global.ZoomFactor) / Global.fDistanceFactor;
+		distancesquared = glm::length2((Instance->location() - m_renderpass.pass_camera.position()) / (double)Global.ZoomFactor) / Global.fDistanceFactor;
 		break;
 	}
 	}
@@ -2330,6 +2257,8 @@ void opengl33_renderer::Render(TAnimModel *Instance)
 	{
 		// renderowanie rekurencyjne submodeli
 		Render(Instance->pModel, Instance->Material(), distancesquared, Instance->location() - m_renderpass.pass_camera.position(), Instance->vAngle);
+	    // debug data
+	    ++m_renderpass.draw_stats.models;
 	}
 }
 
@@ -2340,13 +2269,11 @@ bool opengl33_renderer::Render(TDynamicObject *Dynamic)
 	if (!Global.render_cab && Global.pCamera.m_owner == Dynamic)
 		return false;
 
-	Dynamic->renderme = m_renderpass.pass_camera.visible(Dynamic);
-	if (false == Dynamic->renderme)
-	{
-		return false;
-	}
-	// debug data
-	++m_debugstats.dynamics;
+    Dynamic->renderme = (
+        ( Global.pCamera.m_owner == Dynamic && !FreeFlyModeFlag )
+     || ( m_renderpass.pass_camera.visible( Dynamic ) ) );
+
+    if (false == Dynamic->renderme) { return false; }
 
 	// setup
 	TSubModel::iInstance = reinterpret_cast<std::uintptr_t>(Dynamic); //żeby nie robić cudzych animacji
@@ -2364,18 +2291,23 @@ bool opengl33_renderer::Render(TDynamicObject *Dynamic)
         }
 		break;
 	}
-    case rendermode::cabshadows: {
-        squaredistance = glm::length2( glm::vec3{ glm::dvec3{ Dynamic->vPosition - m_renderpass.viewport_camera.position() } } / Global.ZoomFactor ) / Global.fDistanceFactor;
-        // filter out small details
-        squaredistance = std::max( 100.f * 100.f, squaredistance );
-        break;
-    }
 	default:
 	{
 		squaredistance = glm::length2(glm::vec3{originoffset} / Global.ZoomFactor) / Global.fDistanceFactor;
+        // TODO: filter out small details based on fidelity setting
 		break;
 	}
 	}
+
+    // second stage visibility cull, reject vehicles too far away to be noticeable
+    Dynamic->renderme = ( Dynamic->radius() * Global.ZoomFactor / std::sqrt( squaredistance ) > 0.003 );
+    if( false == Dynamic->renderme ) {
+        return false;
+    }
+
+    // debug data
+    ++m_renderpass.draw_stats.dynamics;
+
 	Dynamic->ABuLittleUpdate(squaredistance); // ustawianie zmiennych submodeli dla wspólnego modelu
 
 	glm::mat4 future_stack = model_ubs.future;
@@ -2428,7 +2360,6 @@ bool opengl33_renderer::Render(TDynamicObject *Dynamic)
 		break;
 	}
 	case rendermode::shadows:
-    case rendermode::cabshadows:
 	{
         if( Dynamic->mdLowPolyInt ) {
             // low poly interior
@@ -2543,7 +2474,8 @@ bool opengl33_renderer::Render_cab(TDynamicObject const *Dynamic, float const Li
 
 			break;
 		}
-        case rendermode::cabshadows: {
+        case rendermode::shadows:
+        {
             if( true == Alpha ) {
                 // translucent parts
                 Render_Alpha( Dynamic->mdKabina, Dynamic->Material(), 0.0 );
@@ -2592,9 +2524,6 @@ bool opengl33_renderer::Render(TModel3d *Model, material_data const *Material, f
 	// render
 	Render(Model->Root);
 
-	// debug data
-	++m_debugstats.models;
-
 	// post-render cleanup
 
 	return true;
@@ -2627,8 +2556,8 @@ void opengl33_renderer::Render(TSubModel *Submodel)
 	{
 
 		// debug data
-		++m_debugstats.submodels;
-		++m_debugstats.drawcalls;
+		++m_renderpass.draw_stats.submodels;
+		++m_renderpass.draw_stats.drawcalls;
 
 		glm::mat4 future_stack = model_ubs.future;
 
@@ -2689,7 +2618,6 @@ void opengl33_renderer::Render(TSubModel *Submodel)
 					break;
 				}
 				case rendermode::shadows:
-				case rendermode::cabshadows:
 				{
                     if (Submodel->m_material < 0)
 					{ // zmienialne skóry
@@ -2781,8 +2709,8 @@ void opengl33_renderer::Render(TTrack *Track)
 		return;
 	}
 
-	++m_debugstats.paths;
-	++m_debugstats.drawcalls;
+	++m_renderpass.draw_stats.paths;
+	++m_renderpass.draw_stats.drawcalls;
 
 	switch (m_renderpass.draw_mode)
 	{
@@ -2813,7 +2741,6 @@ void opengl33_renderer::Render(scene::basic_cell::path_sequence::const_iterator 
 	switch (m_renderpass.draw_mode)
 	{
 	case rendermode::shadows:
-    case rendermode::cabshadows:
 	{
 		// NOTE: roads-based platforms tend to miss parts of shadows if rendered with either back or front culling
 		glDisable(GL_CULL_FACE);
@@ -2841,8 +2768,8 @@ void opengl33_renderer::Render(scene::basic_cell::path_sequence::const_iterator 
 			continue;
 		}
 
-		++m_debugstats.paths;
-		++m_debugstats.drawcalls;
+		++m_renderpass.draw_stats.paths;
+		++m_renderpass.draw_stats.drawcalls;
 
 		switch (m_renderpass.draw_mode)
 		{
@@ -2863,7 +2790,6 @@ void opengl33_renderer::Render(scene::basic_cell::path_sequence::const_iterator 
 			break;
 		}
 		case rendermode::shadows:
-        case rendermode::cabshadows:
         {
 			if ((std::abs(track->fTexHeight1) < 0.35f) || (track->iCategoryFlag != 2))
 			{
@@ -2915,7 +2841,6 @@ void opengl33_renderer::Render(scene::basic_cell::path_sequence::const_iterator 
 			break;
 		}
 		case rendermode::shadows:
-        case rendermode::cabshadows:
         {
 			if ((std::abs(track->fTexHeight1) < 0.35f) || ((track->iCategoryFlag == 1) && (track->eType != tt_Normal)))
 			{
@@ -2973,7 +2898,6 @@ void opengl33_renderer::Render(scene::basic_cell::path_sequence::const_iterator 
 			break;
 		}
 		case rendermode::shadows:
-        case rendermode::cabshadows:
         {
 			if ((std::abs(track->fTexHeight1) < 0.35f) || ((track->iCategoryFlag == 1) && (track->eType != tt_Normal)))
 			{
@@ -2997,7 +2921,6 @@ void opengl33_renderer::Render(scene::basic_cell::path_sequence::const_iterator 
 	switch (m_renderpass.draw_mode)
 	{
 	case rendermode::shadows:
-    case rendermode::cabshadows:
     {
 		// restore standard face cull mode
 		::glEnable(GL_CULL_FACE);
@@ -3024,7 +2947,6 @@ void opengl33_renderer::Render(TMemCell *Memcell)
 		break;
 	}
 	case rendermode::shadows:
-    case rendermode::cabshadows:
     case rendermode::pickscenery:
 	{
 		break;
@@ -3050,7 +2972,7 @@ void opengl33_renderer::Render_particles()
 
 	Bind_Texture(0, m_smoketexture);
 	m_particlerenderer.update(m_renderpass.pass_camera);
-	m_particlerenderer.render();
+    m_renderpass.draw_stats.particles = m_particlerenderer.render();
 }
 
 void opengl33_renderer::Render_precipitation()
@@ -3210,15 +3132,18 @@ void opengl33_renderer::Render_Alpha(cell_sequence::reverse_iterator First, cell
 void opengl33_renderer::Render_Alpha(TAnimModel *Instance)
 {
 
-	if (false == Instance->m_visible)
-	{
-		return;
-	}
+	if (false == Instance->m_visible) { return; }
+    if( false == m_renderpass.pass_camera.visible( Instance->m_area ) ) { return; }
 
-	double distancesquared;
+    double distancesquared;
 	switch (m_renderpass.draw_mode)
 	{
 	case rendermode::shadows:
+    {
+        // 'camera' for the light pass is the light source, but we need to draw what the 'real' camera sees
+		distancesquared = glm::length2((Instance->location() - m_renderpass.viewport_camera.position()) / (double)Global.ZoomFactor) / Global.fDistanceFactor;
+		break;
+	}
 	default:
 	{
 		distancesquared = glm::length2((Instance->location() - m_renderpass.pass_camera.position()) / (double)Global.ZoomFactor) / Global.fDistanceFactor;
@@ -3277,8 +3202,8 @@ void opengl33_renderer::Render_Alpha(TTraction *Traction)
 	draw(Traction->m_geometry);
 
 	// debug data
-	++m_debugstats.traction;
-	++m_debugstats.drawcalls;
+	++m_renderpass.draw_stats.traction;
+	++m_renderpass.draw_stats.drawcalls;
 
 	if (m_widelines_supported)
 		glLineWidth(1.0f);
@@ -3310,8 +3235,8 @@ void opengl33_renderer::Render_Alpha(scene::lines_node const &Lines)
 		m_line_shader->bind();
 	draw(data.geometry);
 
-	++m_debugstats.lines;
-	++m_debugstats.drawcalls;
+	++m_renderpass.draw_stats.lines;
+	++m_renderpass.draw_stats.drawcalls;
 
 	if (m_widelines_supported)
 		glLineWidth(1.0f);
@@ -3446,8 +3371,8 @@ void opengl33_renderer::Render_Alpha(TSubModel *Submodel)
 	{
 
 		// debug data
-		++m_debugstats.submodels;
-		++m_debugstats.drawcalls;
+		++m_renderpass.draw_stats.submodels;
+		++m_renderpass.draw_stats.drawcalls;
 
 		glm::mat4 future_stack = model_ubs.future;
 
@@ -3497,7 +3422,7 @@ void opengl33_renderer::Render_Alpha(TSubModel *Submodel)
 					model_ubs.emission = 0.0f;
 					break;
 				}
-				case rendermode::cabshadows:
+				case rendermode::shadows:
 				{
 					if (Submodel->m_material < 0)
 					{ // zmienialne skóry
@@ -3610,7 +3535,7 @@ void opengl33_renderer::Render_Alpha(TSubModel *Submodel)
 
 					// material configuration:
 					// limit impact of dense fog on the lights
-					auto const lightrange { std::max<float>( 500, m_fogrange * 2 ) }; // arbitrary, visibility at least 750m
+					auto const lightrange { std::max<float>( 500, m_fogrange * 2 ) }; // arbitrary, visibility at least 500m
 					model_ubs.fog_density = 1.0 / lightrange;
 
 					// main draw call
@@ -3901,12 +3826,12 @@ void opengl33_renderer::Update(double const Deltatime)
 	// TODO: it doesn't make much sense with vsync
     if( Global.targetfps == 0.0f ) {
         // automatic adjustment
-        auto const framerate = 1000.f / Timer::subsystem.gfx_color.average();
+        auto const framerate = 0.5f * ( m_framerate + 1000.f / Timer::subsystem.gfx_color.average() );
         float targetfactor;
-             if( framerate > 90.0 ) { targetfactor = 3.0f; }
-        else if( framerate > 60.0 ) { targetfactor = 1.5f; }
-        else if( framerate > 30.0 ) { targetfactor = 1.25; }
-        else                        { targetfactor = 1.0f; }
+             if( framerate > 120.0 ) { targetfactor = 3.00f; }
+        else if( framerate >  90.0 ) { targetfactor = 1.50f; }
+        else if( framerate >  60.0 ) { targetfactor = 1.25f; }
+        else                         { targetfactor = 1.00f; }
         if( targetfactor > Global.fDistanceFactor ) {
             Global.fDistanceFactor = std::min( targetfactor, Global.fDistanceFactor + 0.05f );
         }

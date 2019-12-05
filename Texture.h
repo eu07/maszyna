@@ -36,7 +36,7 @@ struct opengl_texture {
     void
         release();
     void
-        alloc_rendertarget( GLint format, GLint components, int width, int height, int samples = 1, GLint wrap = GL_CLAMP_TO_EDGE );
+        alloc_rendertarget( GLint format, GLint components, int width, int height, int layers = 1, int samples = 1, GLint wrap = GL_CLAMP_TO_EDGE );
     void
         set_components_hint( GLint hint );
     static void
@@ -78,6 +78,7 @@ private:
 // members
     bool is_rendertarget = false; // is used as postfx rendertarget, without loaded data
     int samples = 1;
+    int layers = 1;
     std::vector<unsigned char> data; // texture data (stored GL-style, bottom-left origin)
     resource_state data_state{ resource_state::none }; // current state of texture data
     int data_width{ 0 },

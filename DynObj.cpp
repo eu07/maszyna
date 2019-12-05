@@ -4334,6 +4334,17 @@ TDynamicObject::tracing_offset() const {
             axletoend + iDirection * fAxleDist );
 }
 
+// TODO: compute and cache radius during vehicle initialization
+double
+TDynamicObject::radius() const {
+
+    glm::vec3 diagonal(
+        static_cast<float>( MoverParameters->Dim.L ),
+        static_cast<float>( MoverParameters->Dim.H ),
+        static_cast<float>( MoverParameters->Dim.W ) );
+    return glm::length( diagonal ) * 0.5f;
+}
+
 // McZapkie-250202
 // wczytywanie pliku z danymi multimedialnymi (dzwieki)
 void TDynamicObject::LoadMMediaFile( std::string const &TypeName, std::string const &ReplacableSkin ) {

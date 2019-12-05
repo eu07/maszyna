@@ -25,6 +25,12 @@ void gl::framebuffer::attach(const opengl_texture &tex, GLenum location)
     glFramebufferTexture2D(GL_FRAMEBUFFER, location, tex.target, tex.id, 0);
 }
 
+void gl::framebuffer::attach(const opengl_texture &tex, GLenum location, GLint layer)
+{
+    bind();
+    glFramebufferTextureLayer(GL_FRAMEBUFFER, location, tex.id, 0, layer);
+}
+
 void gl::framebuffer::attach(const cubemap &tex, int face, GLenum location)
 {
     bind();

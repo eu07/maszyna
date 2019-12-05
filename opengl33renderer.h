@@ -139,7 +139,6 @@ class opengl33_renderer : public gfx_renderer {
 		none,
 		color,
 		shadows,
-		cabshadows,
 		reflections,
 		pickcontrols,
 		pickscenery
@@ -154,7 +153,20 @@ class opengl33_renderer : public gfx_renderer {
 		int traction{0};
 		int shapes{0};
 		int lines{0};
+        int particles{0};
 		int drawcalls{0};
+
+        debug_stats& operator+=( const debug_stats& Right ) {
+            dynamics += Right.dynamics;
+            models += Right.models;
+            submodels += Right.submodels;
+            paths += Right.paths;
+            traction += Right.traction;
+            shapes += Right.shapes;
+            lines += Right.lines;
+            particles += Right.particles;
+            drawcalls += Right.drawcalls;
+            return *this; }
 	};
 
 	using section_sequence = std::vector<scene::basic_section *>;
@@ -167,6 +179,7 @@ class opengl33_renderer : public gfx_renderer {
 		opengl_camera viewport_camera;
 		rendermode draw_mode{rendermode::none};
 		float draw_range{0.0f};
+        debug_stats draw_stats;
 	};
 
 	struct viewport_config {
@@ -203,7 +216,8 @@ class opengl33_renderer : public gfx_renderer {
 	void setup_pass(viewport_config &Viewport, renderpass_config &Config, rendermode const Mode, float const Znear = 0.f, float const Zfar = 1.f, bool const Ignoredebug = false);
 	void setup_matrices();
     void setup_drawing(bool const Alpha = false);
-    void setup_shadow_map(opengl_texture *tex, renderpass_config conf);
+    void setup_shadow_unbind_map();
+    void setup_shadow_bind_map();
     void setup_shadow_color( glm::vec4 const &Shadowcolor );
     void setup_env_map(gl::cubemap *tex);
 	void setup_environment_light(TEnvironmentType const Environment = e_flat);
@@ -269,7 +283,6 @@ class opengl33_renderer : public gfx_renderer {
 	// main shadowmap resources
 	int m_shadowbuffersize{2048};
 	glm::mat4 m_shadowtexturematrix; // conversion from camera-centric world space to light-centric clip space
-	glm::mat4 m_cabshadowtexturematrix; // conversion from cab-centric world space to light-centric clip space
 
 	int m_environmentcubetextureface{0}; // helper, currently processed cube map face
 	double m_environmentupdatetime{0}; // time of the most recent environment map update
@@ -283,7 +296,7 @@ class opengl33_renderer : public gfx_renderer {
 	double m_updateaccumulator{0.0};
 	std::string m_debugtimestext;
 	std::string m_pickdebuginfo;
-	debug_stats m_debugstats;
+	//debug_stats m_debugstats;
 	std::string m_debugstatstext;
 
 	glm::vec4 m_baseambient{0.0f, 0.0f, 0.0f, 1.0f};
@@ -298,8 +311,7 @@ class opengl33_renderer : public gfx_renderer {
 	section_sequence m_sectionqueue; // list of sections in current render pass
 	cell_sequence m_cellqueue;
     renderpass_config m_colorpass; // parametrs of most recent color pass
-	renderpass_config m_shadowpass; // parametrs of most recent shadowmap pass
-	renderpass_config m_cabshadowpass; // parameters of most recent cab shadowmap pass
+	std::array<renderpass_config, 3> m_shadowpass; // parametrs of most recent shadowmap pass for each of csm stages
 	std::vector<TSubModel const *> m_pickcontrolsitems;
 	TSubModel const *m_pickcontrolitem{nullptr};
     std::vector<scene::basic_node *> m_picksceneryitems;
@@ -355,9 +367,6 @@ class opengl33_renderer : public gfx_renderer {
 	std::unique_ptr<gl::program> m_pick_shader;
 
 	std::unique_ptr<gl::cubemap> m_empty_cubemap;
-
-	std::unique_ptr<gl::framebuffer> m_cabshadows_fb;
-	std::unique_ptr<opengl_texture> m_cabshadows_tex;
 
 	std::unique_ptr<gl::framebuffer> m_env_fb;
 	std::unique_ptr<gl::renderbuffer> m_env_rb;

@@ -113,8 +113,7 @@ std::vector<std::string> Split(const std::string &s, char delim);
 
 std::string to_string(int Value);
 std::string to_string(unsigned int Value);
-std::string to_string(int Value, int precision);
-std::string to_string(int Value, int precision, int width);
+std::string to_string(int Value, int width);
 std::string to_string(double Value);
 std::string to_string(double Value, int precision);
 std::string to_string(double Value, int precision, int width);
@@ -247,6 +246,20 @@ clamp_circular( Type_ Value, Type_ const Range = static_cast<Type_>(360) ) {
     if( Value < Type_(0) ) Value += Range;
 
     return Value;
+}
+
+// rounds down provided value to nearest power of two
+template <typename Type_>
+Type_
+clamp_power_of_two( Type_ Value, Type_ const Min = static_cast<Type_>(1), Type_ const Max = static_cast<Type_>(16384) ) {
+
+    Type_ p2size{ Min };
+    Type_ size;
+    while( ( p2size <= Max ) && ( p2size <= Value ) ) {
+        size = p2size;
+        p2size = p2size << 1;
+    }
+    return size;
 }
 
 template <typename Type_>

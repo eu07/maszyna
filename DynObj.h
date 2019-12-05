@@ -603,6 +603,7 @@ private:
         return MoverParameters->Dim.L; };
     inline double GetWidth() const {
         return MoverParameters->Dim.W; };
+    double radius() const;
     // calculates distance between event-starting axle and front of the vehicle
     double tracing_offset() const;
     inline TTrack * GetTrack() {

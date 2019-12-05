@@ -153,6 +153,7 @@ private:
         opengl_camera camera;
         rendermode draw_mode { rendermode::none };
         float draw_range { 0.0f };
+        debug_stats draw_stats;
     };
 
     struct units_state {
@@ -318,7 +319,6 @@ private:
 //    double m_pickupdateaccumulator { 0.0 };
     std::string m_debugtimestext;
     std::string m_pickdebuginfo;
-    debug_stats m_debugstats;
     std::string m_debugstatstext;
 
     glm::vec4 m_baseambient { 0.0f, 0.0f, 0.0f, 1.0f };

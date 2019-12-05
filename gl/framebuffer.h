@@ -15,6 +15,7 @@ namespace gl
         ~framebuffer();
 
         void attach(const opengl_texture &tex, GLenum location);
+        void attach( const opengl_texture &tex, GLenum location, GLint layer );
         void attach(const cubemap &tex, int face, GLenum location);
         void attach(const renderbuffer &rb, GLenum location);
         void setup_drawing(int attachments);

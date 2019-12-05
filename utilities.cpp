@@ -214,10 +214,10 @@ std::string to_string(double Value)
 	return o.str();
 };
 
-std::string to_string(int Value, int precision)
+std::string to_string(int Value, int width)
 {
 	std::ostringstream o;
-	o << std::fixed << std::setprecision(precision);
+	o.width(width);
 	o << Value;
 	return o.str();
 };
@@ -225,15 +225,6 @@ std::string to_string(int Value, int precision)
 std::string to_string(double Value, int precision)
 {
 	std::ostringstream o;
-	o << std::fixed << std::setprecision(precision);
-	o << Value;
-	return o.str();
-};
-
-std::string to_string(int Value, int precision, int width)
-{
-	std::ostringstream o;
-	o.width(width);
 	o << std::fixed << std::setprecision(precision);
 	o << Value;
 	return o.str();

@@ -330,10 +330,10 @@ opengl_renderer::Render() {
         m_sunlight.direction = glm::normalize( quantizationstep * glm::roundEven( m_sunlight.direction * ( 1.f / quantizationstep ) ) );
     }
     // generate new frame
-    m_renderpass.draw_mode = rendermode::none; // force setup anew
     opengl_texture::reset_unit_cache();
+    m_renderpass.draw_mode = rendermode::none; // force setup anew
+    m_renderpass.draw_stats = debug_stats();
     m_debugtimestext.clear();
-    m_debugstats = debug_stats();
     Render_pass( rendermode::color );
     Timer::subsystem.gfx_color.stop();
     // add user interface
@@ -358,15 +358,21 @@ opengl_renderer::Render() {
         + "frame total: " + to_string( Timer::subsystem.gfx_color.average() + Timer::subsystem.gfx_swap.average(), 2 ) + " msec";
 
     m_debugstatstext =
-        "drawcalls:  " + to_string( m_debugstats.drawcalls ) + "\n"
-        + " vehicles:  " + to_string( m_debugstats.dynamics ) + "\n"
-        + " models:    " + to_string( m_debugstats.models ) + "\n"
-        + " submodels: " + to_string( m_debugstats.submodels ) + "\n"
-        + " paths:     " + to_string( m_debugstats.paths ) + "\n"
-        + " shapes:    " + to_string( m_debugstats.shapes ) + "\n"
-        + " traction:  " + to_string( m_debugstats.traction ) + "\n"
-        + " lines:     " + to_string( m_debugstats.lines ) + "\n"
-        + "particles: " + to_string( m_debugstats.particles );
+          "vehicles:  " + to_string( m_colorpass.draw_stats.dynamics, 7 ) + " +" + to_string( m_shadowpass.draw_stats.dynamics, 7 )
+        + " =" + to_string( m_colorpass.draw_stats.dynamics + m_shadowpass.draw_stats.dynamics, 7 ) + "\n"
+        + "models:    " + to_string( m_colorpass.draw_stats.models, 7 ) + " +" + to_string( m_shadowpass.draw_stats.models, 7 )
+        + " =" + to_string( m_colorpass.draw_stats.models + m_shadowpass.draw_stats.models, 7 ) + "\n"
+        + "drawcalls: " + to_string( m_colorpass.draw_stats.drawcalls, 7 ) + " +" + to_string( m_shadowpass.draw_stats.drawcalls, 7 )
+        + " =" + to_string( m_colorpass.draw_stats.drawcalls + m_shadowpass.draw_stats.drawcalls, 7 ) + "\n"
+        + " submodels:" + to_string( m_colorpass.draw_stats.submodels, 7 ) + " +" + to_string( m_shadowpass.draw_stats.submodels, 7 )
+        + " =" + to_string( m_colorpass.draw_stats.submodels + m_shadowpass.draw_stats.submodels, 7 ) + "\n"
+        + " paths:    " + to_string( m_colorpass.draw_stats.paths, 7 ) + " +" + to_string( m_shadowpass.draw_stats.paths, 7 )
+        + " =" + to_string( m_colorpass.draw_stats.paths + m_shadowpass.draw_stats.paths, 7 ) + "\n"
+        + " shapes:   " + to_string( m_colorpass.draw_stats.shapes, 7 ) + " +" + to_string( m_shadowpass.draw_stats.shapes, 7 )
+        + " =" + to_string( m_colorpass.draw_stats.shapes + m_shadowpass.draw_stats.shapes, 7 ) + "\n"
+        + " traction: " + to_string( m_colorpass.draw_stats.traction, 7 ) + "\n"
+        + " lines:    " + to_string( m_colorpass.draw_stats.lines, 7 ) + "\n"
+        + "particles: " + to_string( m_colorpass.draw_stats.particles, 7 );
 
     ++m_framestamp;
 
@@ -436,6 +442,7 @@ opengl_renderer::Render_pass( rendermode const Mode ) {
             if( ( true == m_environmentcubetexturesupport )
              && ( true == simulation::is_ready ) ) {
                 // potentially update environmental cube map
+                m_renderpass.draw_stats = {};
                 if( true == Render_reflections() ) {
                     setup_pass( m_renderpass, Mode ); // restore draw mode. TBD, TODO: render mode stack
                 }
@@ -458,6 +465,7 @@ opengl_renderer::Render_pass( rendermode const Mode ) {
                 // render
                 setup_drawing( true );
                 setup_units( true, false, false );
+                m_renderpass.draw_stats = {};
                 Render( &simulation::Environment );
                 // opaque parts...
                 setup_drawing( false );
@@ -547,6 +555,9 @@ opengl_renderer::Render_pass( rendermode const Mode ) {
                     ::glMatrixMode( GL_MODELVIEW );
                 }
             }
+            // store draw stats
+            m_colorpass.draw_stats = m_renderpass.draw_stats;
+
             break;
         }
 
@@ -863,8 +874,8 @@ opengl_renderer::setup_pass( renderpass_config &Config, rendermode const Mode, f
     if( false == simulation::is_ready ) { return; }
     // setup draw range
     switch( Mode ) {
-        case rendermode::color:        { Config.draw_range = Global.BaseDrawRange; break; }
-        case rendermode::shadows:      { Config.draw_range = Global.BaseDrawRange * 0.5f; break; }
+        case rendermode::color:        { Config.draw_range = Global.BaseDrawRange * Global.fDistanceFactor; break; }
+        case rendermode::shadows:      { Config.draw_range = Global.shadowtune.range; break; }
         case rendermode::cabshadows:   { Config.draw_range = ( Global.RenderCabShadowsRange > 0 ? clamp( Global.RenderCabShadowsRange, 5, 100 ) : simulation::Train->Occupied()->Dim.L ); break; }
         case rendermode::reflections:  { Config.draw_range = Global.BaseDrawRange; break; }
         case rendermode::pickcontrols: { Config.draw_range = 50.f; break; }
@@ -888,12 +899,13 @@ opengl_renderer::setup_pass( renderpass_config &Config, rendermode const Mode, f
                 camera.position() = Global.pDebugCamera.Pos;
                 Global.pDebugCamera.SetMatrix( viewmatrix );
             }
+            // optimization: don't bother drawing things completely blended with the background
+            // but ensure at least 2 km range to account for signals and lights
+            Config.draw_range = std::min( Config.draw_range, m_fogrange * 2 );
+            Config.draw_range = std::max( 2000.f, Config.draw_range );
             // projection
-            auto const zfar = Config.draw_range * Global.fDistanceFactor * Zfar;
-            auto const znear = (
-                Znear > 0.f ?
-                Znear * zfar :
-                0.1f * Global.ZoomFactor );
+		    auto const zfar  = ( Zfar  > 1.f ? Zfar : Config.draw_range * Zfar );
+		    auto const znear = ( Znear > 1.f ? Znear : Znear > 0.f ? Znear * zfar : 0.1f * Global.ZoomFactor);
             camera.projection() *=
                 glm::perspective(
                     glm::radians( Global.FieldOfView / Global.ZoomFactor ),
@@ -911,9 +923,11 @@ opengl_renderer::setup_pass( renderpass_config &Config, rendermode const Mode, f
         case rendermode::shadows: {
             // calculate lightview boundaries based on relevant area of the world camera frustum:
             // ...setup chunk of frustum we're interested in...
-            auto const zfar = std::min( 1.f, Global.shadowtune.depth / ( Global.BaseDrawRange * Global.fDistanceFactor ) * std::max( 1.f, Global.ZoomFactor * 0.5f ) );
+//            auto const zfar = std::min( 1.f, Global.shadowtune.range / ( Global.BaseDrawRange * Global.fDistanceFactor ) * std::max( 1.f, Global.ZoomFactor * 0.5f ) );
+//            auto const zfar = Global.shadowtune.range * std::max( Zfar, Global.ZoomFactor * 0.5f );
+            auto const zfar = ( Zfar > 1.f ? Zfar : Zfar * Global.shadowtune.range * std::max( Zfar, Global.ZoomFactor * 0.5f ) );
             renderpass_config worldview;
-            setup_pass( worldview, rendermode::color, 0.f, zfar, true );
+            setup_pass( worldview, rendermode::color, Znear, zfar, true );
             auto &frustumchunkshapepoints = worldview.camera.frustum_points();
             // ...modelview matrix: determine the centre of frustum chunk in world space...
             glm::vec3 frustumchunkmin, frustumchunkmax;
@@ -941,7 +955,8 @@ opengl_renderer::setup_pass( renderpass_config &Config, rendermode const Mode, f
             }
             bounding_box( frustumchunkmin, frustumchunkmax, std::begin( frustumchunkshapepoints ), std::end( frustumchunkshapepoints ) );
             // quantize the frustum points and add some padding, to reduce shadow shimmer on scale changes
-            auto const quantizationstep{ std::min( Global.shadowtune.depth, 50.f ) };
+            auto const frustumchunkdepth { zfar - ( Znear > 1.f ? Znear : 0.f ) };
+		    auto const quantizationstep{std::min(frustumchunkdepth, 50.f)};
             frustumchunkmin = quantizationstep * glm::floor( frustumchunkmin * ( 1.f / quantizationstep ) );
             frustumchunkmax = quantizationstep * glm::ceil( frustumchunkmax * ( 1.f / quantizationstep ) );
             // ...use the dimensions to set up light projection boundaries...
@@ -951,22 +966,6 @@ opengl_renderer::setup_pass( renderpass_config &Config, rendermode const Mode, f
                     frustumchunkmin.x, frustumchunkmax.x,
                     frustumchunkmin.y, frustumchunkmax.y,
                     frustumchunkmin.z - 500.f, frustumchunkmax.z + 500.f );
-/*
-            // fixed ortho projection from old build, for quick quality comparisons
-            camera.projection() *=
-                glm::ortho(
-                    -Global.shadowtune.width, Global.shadowtune.width,
-                    -Global.shadowtune.width, Global.shadowtune.width,
-                    -Global.shadowtune.depth, Global.shadowtune.depth );
-            camera.position() = Global.pCameraPosition - glm::dvec3{ m_sunlight.direction };
-            if( camera.position().y - Global.pCameraPosition.y < 0.1 ) {
-                camera.position().y = Global.pCameraPosition.y + 0.1;
-            }
-            viewmatrix *= glm::lookAt(
-                camera.position(),
-                glm::dvec3{ Global.pCameraPosition },
-                glm::dvec3{ 0.f, 1.f, 0.f } );
-*/
             // ... and adjust the projection to sample complete shadow map texels:
             // get coordinates for a sample texel...
             auto shadowmaptexel = glm::vec2 { camera.projection() * glm::mat4{ viewmatrix } * glm::vec4{ 0.f, 0.f, 0.f, 1.f } };
@@ -2168,27 +2167,26 @@ opengl_renderer::Render( scene::shape_node const &Shape, bool const Ignorerange 
     // render
     m_geometry.draw( data.geometry );
     // debug data
-    ++m_debugstats.shapes;
-    ++m_debugstats.drawcalls;
+	++m_renderpass.draw_stats.shapes;
+	++m_renderpass.draw_stats.drawcalls;
 }
 
 void
 opengl_renderer::Render( TAnimModel *Instance ) {
 
-    if( false == Instance->m_visible ) {
-        return;
-    }
+    if( false == Instance->m_visible ) { return; }
+    if( false == m_renderpass.camera.visible( Instance->m_area ) ) { return; }
 
     double distancesquared;
     switch( m_renderpass.draw_mode ) {
         case rendermode::shadows:
         case rendermode::cabshadows: {
             // 'camera' for the light pass is the light source, but we need to draw what the 'real' camera sees
-            distancesquared = Math3D::SquareMagnitude( ( Instance->location() - Global.pCamera.Pos ) / Global.ZoomFactor ) / Global.fDistanceFactor;
+    		distancesquared = glm::length2((Instance->location() - m_renderpass.camera.position()) / (double)Global.ZoomFactor) / Global.fDistanceFactor;
             break;
         }
         default: {
-            distancesquared = Math3D::SquareMagnitude( ( Instance->location() - m_renderpass.camera.position() ) / (double)Global.ZoomFactor ) / Global.fDistanceFactor;
+    		distancesquared = glm::length2((Instance->location() - m_renderpass.camera.position()) / (double)Global.ZoomFactor) / Global.fDistanceFactor;
             break;
         }
     }
@@ -2223,16 +2221,19 @@ opengl_renderer::Render( TAnimModel *Instance ) {
             distancesquared,
             Instance->location() - m_renderpass.camera.position(),
             Instance->vAngle );
+        // debug data
+        ++m_renderpass.draw_stats.models;
     }
 }
 
 bool
 opengl_renderer::Render( TDynamicObject *Dynamic ) {
 
-    Dynamic->renderme = m_renderpass.camera.visible( Dynamic );
-    if( false == Dynamic->renderme ) {
-        return false;
-    }
+    Dynamic->renderme = (
+        ( Global.pCamera.m_owner == Dynamic && !FreeFlyModeFlag )
+        || ( m_renderpass.camera.visible( Dynamic ) ) );
+
+    if( false == Dynamic->renderme ) { return false; }
 
     // lod visibility ranges are defined for base (x 1.0) viewing distance. for render we adjust them for actual range multiplier and zoom
     float squaredistance;
@@ -2254,18 +2255,20 @@ opengl_renderer::Render( TDynamicObject *Dynamic ) {
         }
         default: {
             squaredistance = glm::length2( glm::vec3{ originoffset } / Global.ZoomFactor ) / Global.fDistanceFactor;
+            // TODO: filter out small details based on fidelity setting
             break;
         }
     }
 
-    // crude way to reject early items too far to affect the output (mostly relevant for shadow passes)
-    auto const drawdistancethreshold { m_renderpass.draw_range + 250 };
-    if( squaredistance > drawdistancethreshold * drawdistancethreshold ) {
+    // second stage visibility cull, reject vehicles too far away to be noticeable
+    Dynamic->renderme = ( Dynamic->radius() * Global.ZoomFactor / std::sqrt( squaredistance ) > 0.003 );
+    if( false == Dynamic->renderme ) {
         return false;
     }
 
     // debug data
-    ++m_debugstats.dynamics;
+    ++m_renderpass.draw_stats.dynamics;
+
 
     // setup
     TSubModel::iInstance = reinterpret_cast<std::uintptr_t>( Dynamic ); //żeby nie robić cudzych animacji
@@ -2472,9 +2475,6 @@ opengl_renderer::Render( TModel3d *Model, material_data const *Material, float c
     // render
     Render( Model->Root );
 
-    // debug data
-    ++m_debugstats.models;
-
     // post-render cleanup
 
     return true;
@@ -2507,8 +2507,8 @@ opengl_renderer::Render( TSubModel *Submodel ) {
      && ( TSubModel::fSquareDist <  Submodel->fSquareMaxDist ) ) {
 
         // debug data
-        ++m_debugstats.submodels;
-        ++m_debugstats.drawcalls;
+        ++m_renderpass.draw_stats.submodels;
+        ++m_renderpass.draw_stats.drawcalls;
 
         if( Submodel->iFlags & 0xC000 ) {
             ::glPushMatrix();
@@ -2719,7 +2719,7 @@ opengl_renderer::Render( TSubModel *Submodel ) {
                             // material configuration:
                             Bind_Material( null_handle );
                             // limit impact of dense fog on the lights
-                            auto const lightrange { std::max<float>( 500, m_fogrange * 2 ) }; // arbitrary, visibility at least 750m
+                            auto const lightrange { std::max<float>( 500, m_fogrange * 2 ) }; // arbitrary, visibility at least 500m
                             ::glFogf( GL_FOG_DENSITY, static_cast<GLfloat>( 1.0 / lightrange ) );
 
                             ::glPushAttrib( GL_ENABLE_BIT | GL_COLOR_BUFFER_BIT | GL_POINT_BIT );
@@ -2837,8 +2837,8 @@ opengl_renderer::Render( TTrack *Track ) {
         return;
     }
 
-    ++m_debugstats.paths;
-    ++m_debugstats.drawcalls;
+    ++m_renderpass.draw_stats.paths;
+    ++m_renderpass.draw_stats.drawcalls;
 
     switch( m_renderpass.draw_mode ) {
         // single path pieces are rendererd in pick scenery mode only
@@ -2898,8 +2898,8 @@ opengl_renderer::Render( scene::basic_cell::path_sequence::const_iterator First,
             continue;
         }
 
-        ++m_debugstats.paths;
-        ++m_debugstats.drawcalls;
+        ++m_renderpass.draw_stats.paths;
+        ++m_renderpass.draw_stats.drawcalls;
 
         switch( m_renderpass.draw_mode ) {
             case rendermode::color:
@@ -3085,7 +3085,7 @@ opengl_renderer::Render_particles() {
     ::glDepthMask( GL_FALSE );
 
     Bind_Texture( m_smoketexture );
-    m_debugstats.particles = m_particlerenderer.render( m_diffusetextureunit );
+    m_renderpass.draw_stats.particles = m_particlerenderer.render( m_diffusetextureunit );
     if( Global.bUseVBO ) {
         gfx::opengl_vbogeometrybank::reset();
     }
@@ -3258,9 +3258,8 @@ opengl_renderer::Render_Alpha( cell_sequence::reverse_iterator First, cell_seque
 void
 opengl_renderer::Render_Alpha( TAnimModel *Instance ) {
 
-    if( false == Instance->m_visible ) {
-        return;
-    }
+	if (false == Instance->m_visible) { return; }
+    if( false == m_renderpass.camera.visible( Instance->m_area ) ) { return; }
 
     double distancesquared;
     switch( m_renderpass.draw_mode ) {
@@ -3350,8 +3349,8 @@ opengl_renderer::Render_Alpha( TTraction *Traction ) {
     // render
     m_geometry.draw( Traction->m_geometry );
     // debug data
-    ++m_debugstats.traction;
-    ++m_debugstats.drawcalls;
+    ++m_renderpass.draw_stats.traction;
+    ++m_renderpass.draw_stats.drawcalls;
 }
 
 void
@@ -3398,8 +3397,8 @@ opengl_renderer::Render_Alpha( scene::lines_node const &Lines ) {
                 std::min( 1.f, linealpha ) } ) );
     // render
     m_geometry.draw( data.geometry );
-    ++m_debugstats.lines;
-    ++m_debugstats.drawcalls;
+    ++m_renderpass.draw_stats.lines;
+    ++m_renderpass.draw_stats.drawcalls;
 }
 
 bool
@@ -3543,8 +3542,8 @@ opengl_renderer::Render_Alpha( TSubModel *Submodel ) {
      && ( TSubModel::fSquareDist <  Submodel->fSquareMaxDist ) ) {
 
         // debug data
-        ++m_debugstats.submodels;
-        ++m_debugstats.drawcalls;
+        ++m_renderpass.draw_stats.submodels;
+        ++m_renderpass.draw_stats.drawcalls;
 
         if( Submodel->iFlags & 0xC000 ) {
             ::glPushMatrix();
@@ -3985,34 +3984,29 @@ opengl_renderer::Update( double const Deltatime ) {
     m_framerate = 1000.f / ( Timer::subsystem.gfx_total.average() );
 
     // adjust draw ranges etc, based on recent performance
-    auto const framerate = 1000.f / Timer::subsystem.gfx_color.average();
-
-    float targetfactor;
-         if( framerate > 90.0 ) { targetfactor = 3.0f; }
-    else if( framerate > 60.0 ) { targetfactor = 1.5f; }
-    else if( framerate > 30.0 ) { targetfactor = 1.25; }
-    else                        { targetfactor = std::max( Global.iWindowHeight / 768.f, 1.f ); }
-
-    if( targetfactor > Global.fDistanceFactor ) {
-
-        Global.fDistanceFactor = std::min( targetfactor, Global.fDistanceFactor + 0.05f );
+    if( Global.targetfps == 0.0f ) {
+        // automatic adjustment
+        auto const framerate = 0.5f * ( m_framerate + 1000.f / Timer::subsystem.gfx_color.average() );
+        float targetfactor;
+             if( framerate > 120.0 ) { targetfactor = 3.00f; }
+        else if( framerate >  90.0 ) { targetfactor = 1.50f; }
+        else if( framerate >  60.0 ) { targetfactor = 1.25f; }
+        else                         { targetfactor = 1.00f; }
+        if( targetfactor > Global.fDistanceFactor ) {
+            Global.fDistanceFactor = std::min( targetfactor, Global.fDistanceFactor + 0.05f );
+        }
+        else if( targetfactor < Global.fDistanceFactor ) {
+            Global.fDistanceFactor = std::max( targetfactor, Global.fDistanceFactor - 0.05f );
+        }
     }
-    else if( targetfactor < Global.fDistanceFactor ) {
-
-        Global.fDistanceFactor = std::max( targetfactor, Global.fDistanceFactor - 0.05f );
-    }
-
-    if( ( framerate < 15.0 ) && ( Global.iSlowMotion < 7 ) ) {
-        Global.iSlowMotion = ( Global.iSlowMotion << 1 ) + 1; // zapalenie kolejnego bitu
-        if( Global.iSlowMotionMask & 1 )
-            if( Global.iMultisampling ) // a multisampling jest włączony
-                ::glDisable( GL_MULTISAMPLE ); // wyłączenie multisamplingu powinno poprawić FPS
-    }
-    else if( ( framerate > 20.0 ) && Global.iSlowMotion ) { // FPS się zwiększył, można włączyć bajery
-        Global.iSlowMotion = ( Global.iSlowMotion >> 1 ); // zgaszenie bitu
-        if( Global.iSlowMotion == 0 ) // jeśli jest pełna prędkość
-            if( Global.iMultisampling ) // a multisampling jest włączony
-                ::glEnable( GL_MULTISAMPLE );
+    else {
+        auto const fps_diff = Global.targetfps - m_framerate;
+        if( fps_diff > 0.5f ) {
+            Global.fDistanceFactor = std::max( 1.0f, Global.fDistanceFactor - 0.05f );
+        }
+        else if( fps_diff < 1.0f ) {
+            Global.fDistanceFactor = std::min( 3.0f, Global.fDistanceFactor + 0.05f );
+        }
     }
 
     if( ( true == Global.ResourceSweep )

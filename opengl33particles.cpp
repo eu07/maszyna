@@ -99,14 +99,12 @@ opengl33_particles::update( opengl_camera const &Camera ) {
 	}
 }
 
-void
+std::size_t
 opengl33_particles::render() {
 
-	if (!Global.Smoke)
-		return;
-
-	if( m_buffercapacity == 0 ) { return; }
-	if( m_particlevertices.empty() ) { return; }
+    if( false == Global.Smoke ) { return 0; }
+	if( m_buffercapacity == 0 ) { return 0; }
+	if( m_particlevertices.empty() ) { return 0; }
 
 	if (!m_vao) {
 		m_vao.emplace();
@@ -135,6 +133,8 @@ opengl33_particles::render() {
 	m_shader->unbind();
 	m_vao->unbind();
 	m_buffer->unbind(gl::buffer::ARRAY_BUFFER);
+
+    return m_particlevertices.size() / 6;
 }
 
 //---------------------------------------------------------------------------

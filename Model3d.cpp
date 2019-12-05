@@ -2010,6 +2010,12 @@ void TModel3d::Init()
             std::size_t dataoffset = 0;
             Root->create_geometry( dataoffset, m_geometrybank );
         }
+        // determine final bounding radius from the root-level siblings
+        auto const *root { Root };
+        while( ( root = root->Next ) != nullptr ) {
+            Root->m_boundingradius = std::max( Root->m_boundingradius, root->m_boundingradius );
+        }
+
         if( ( Global.iConvertModels > 0 )
          && ( false == asBinary.empty() ) ) {
             SaveToBinFile( asBinary );

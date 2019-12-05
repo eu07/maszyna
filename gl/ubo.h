@@ -32,17 +32,18 @@ namespace gl
 
     const size_t MAX_TEXTURES = 8;
     const size_t ENVMAP_SIZE = 1024;
+    const size_t MAX_CASCADES = 3;
 
     struct scene_ubs
     {
         glm::mat4 projection;
-        glm::mat4 lightview;
         glm::mat4 inv_view;
-		glm::vec3 scene_extra;
+        glm::mat4 lightview[MAX_CASCADES];
+        glm::vec4 cascade_end;
         float time;
     };
 
-    static_assert(sizeof(scene_ubs) == 208, "bad size of ubs");
+    static_assert(sizeof(scene_ubs) == 340, "bad size of ubs");
 
     const size_t MAX_PARAMS = 3;
 

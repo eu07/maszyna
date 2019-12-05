@@ -817,34 +817,40 @@ opengl_texture::create() {
             datasize = 0,
             datawidth = data_width,
             dataheight = data_height;
+        // TBD: 
         if (is_rendertarget)
         {
-            glTexParameteri(target, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-            glTexParameteri(target, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-			glTexParameteri(target, GL_TEXTURE_WRAP_S, wrap_mode_s);
-			glTexParameteri(target, GL_TEXTURE_WRAP_T, wrap_mode_t);
             if (data_components == GL_DEPTH_COMPONENT)
             {
 				glTexParameteri(target, GL_TEXTURE_COMPARE_MODE, GL_COMPARE_REF_TO_TEXTURE);
-                if( false == Global.gfx_usegles ) {
-                    float borderColor[] = { 0.0f, 0.0f, 0.0f, 0.0f };
-                    glTexParameterfv( target, GL_TEXTURE_BORDER_COLOR, borderColor );
-                }
+                wrap_mode_s = GL_CLAMP_TO_BORDER;
+                wrap_mode_t = GL_CLAMP_TO_BORDER;
 			}
+            glTexParameteri( target, GL_TEXTURE_MAG_FILTER, GL_LINEAR );
+            glTexParameteri( target, GL_TEXTURE_MIN_FILTER, GL_LINEAR );
+            glTexParameteri( target, GL_TEXTURE_WRAP_S, wrap_mode_s );
+            glTexParameteri( target, GL_TEXTURE_WRAP_T, wrap_mode_t );
 
             if (Global.gfx_usegles)
             {
-                if (target == GL_TEXTURE_2D || !glTexStorage2DMultisample)
+                if( target == GL_TEXTURE_2D )
                     glTexStorage2D(target, count_trailing_zeros(std::max(data_width, data_height)) + 1, data_format, data_width, data_height);
-                else if (target == GL_TEXTURE_2D_MULTISAMPLE)
-                    glTexStorage2DMultisample(target, samples, data_format, data_width, data_height, GL_FALSE);
+                else if( target == GL_TEXTURE_2D_MULTISAMPLE )
+                    glTexStorage2DMultisample( target, samples, data_format, data_width, data_height, GL_FALSE );
+                else if( target == GL_TEXTURE_2D_ARRAY )
+                    glTexStorage3D( target, count_trailing_zeros( std::max( data_width, data_height ) ) + 1, data_format, data_width, data_height, layers );
+                else if( target == GL_TEXTURE_2D_MULTISAMPLE_ARRAY )
+                    glTexStorage3DMultisample( target, samples, data_format, data_width, data_height, layers, GL_FALSE );
             }
-            else
-            {
-                if (target == GL_TEXTURE_2D)
-                    glTexImage2D(target, 0, data_format, data_width, data_height, 0, data_components, GL_UNSIGNED_SHORT, nullptr);
-                else if (target == GL_TEXTURE_2D_MULTISAMPLE)
-                    glTexImage2DMultisample(target, samples, data_format, data_width, data_height, GL_FALSE);
+            else {
+                if( target == GL_TEXTURE_2D )
+                    glTexImage2D( target, 0, data_format, data_width, data_height, 0, data_components, GL_UNSIGNED_SHORT, nullptr );
+                else if( target == GL_TEXTURE_2D_MULTISAMPLE )
+                    glTexImage2DMultisample( target, samples, data_format, data_width, data_height, GL_FALSE );
+                else if( target == GL_TEXTURE_2D_ARRAY )
+                    glTexImage3D( target, 0, data_format, data_width, data_height, layers, 0, data_components, GL_UNSIGNED_SHORT, nullptr );
+                else if( target == GL_TEXTURE_2D_MULTISAMPLE_ARRAY )
+                    glTexImage3DMultisample( target, samples, data_format, data_width, data_height, layers, GL_FALSE );
             }
         }
         else
@@ -984,7 +990,7 @@ opengl_texture::release() {
 }
 
 void
-opengl_texture::alloc_rendertarget( GLint format, GLint components, int width, int height, int s, GLint wrap ) {
+opengl_texture::alloc_rendertarget( GLint format, GLint components, int width, int height, int l, int s, GLint wrap ) {
 
     data_width = width;
     data_height = height;
@@ -995,8 +1001,22 @@ opengl_texture::alloc_rendertarget( GLint format, GLint components, int width, i
     wrap_mode_s = wrap;
     wrap_mode_t = wrap;
     samples = s;
-    if( samples > 1 )
-        target = GL_TEXTURE_2D_MULTISAMPLE;
+    if( Global.gfx_usegles && !glTexStorage2DMultisample ) {
+        samples = 1;
+    }
+    layers = l;
+    if( layers > 1 ) {
+        target = (
+            samples > 1 ?
+                GL_TEXTURE_2D_MULTISAMPLE_ARRAY :
+                GL_TEXTURE_2D_ARRAY );
+    }
+    else {
+        target = (
+            samples > 1 ?
+                GL_TEXTURE_2D_MULTISAMPLE :
+                GL_TEXTURE_2D );
+    }
     create();
 }
 

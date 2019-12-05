@@ -13,6 +13,7 @@ void gl::glsl_common_setup()
     "#define EXTRAEFFECTS_ENABLED " + std::to_string((int)Global.gfx_extraeffects) + "\n" +
     "#define USE_GLES " + std::to_string((int)Global.gfx_usegles) + "\n" +
     "const uint MAX_LIGHTS = " + std::to_string(MAX_LIGHTS) + "U;\n" +
+    "const uint MAX_CASCADES = " + std::to_string(MAX_CASCADES) + "U;\n" +
     "const uint MAX_PARAMS = " + std::to_string(MAX_PARAMS) + "U;\n" +
     R"STRING(
     const uint LIGHT_SPOT = 0U;
@@ -64,9 +65,9 @@ void gl::glsl_common_setup()
     layout (std140) uniform scene_ubo
     {
         mat4 projection;
-        mat4 lightview;
         mat4 inv_view;
-	    vec3 scene_extra;
+        mat4 lightview[MAX_CASCADES];
+        vec4 cascade_end;
         float time;
     };
 
