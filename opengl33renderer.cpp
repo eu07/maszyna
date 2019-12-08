@@ -448,16 +448,18 @@ bool opengl33_renderer::Render()
 
 	m_drawcount = m_cellqueue.size();
 	m_debugtimestext.clear();
+/*
 	m_debugtimestext += "cpu: " + to_string(Timer::subsystem.gfx_color.average(), 2) + " ms (" + std::to_string(m_cellqueue.size()) + " sectors)\n" +=
 	    "cpu swap: " + to_string(Timer::subsystem.gfx_swap.average(), 2) + " ms\n" += "uilayer: " + to_string(Timer::subsystem.gfx_gui.average(), 2) + "ms\n" +=
 	    "mainloop total: " + to_string(Timer::subsystem.mainloop_total.average(), 2) + "ms\n";
-
+*/
 	if (!Global.gfx_usegles)
 	{
 		m_timequery->end();
-
+/*
 		if (m_gllasttime)
 			m_debugtimestext += "gpu: " + to_string((double)(m_gllasttime / 1000ULL) / 1000.0, 3) + "ms";
+*/
 	}
     
     debug_stats shadowstats;
@@ -481,14 +483,27 @@ bool opengl33_renderer::Render()
         + " lines:    " + to_string( m_colorpass.draw_stats.lines, 7 ) + "\n"
         + "particles: " + to_string( m_colorpass.draw_stats.particles, 7 );
 
-	if (DebugModeFlag)
-		m_debugtimestext += m_textures.info();
-
 	++m_framestamp;
 
     SwapBuffers();
 
 	Timer::subsystem.gfx_total.stop();
+
+    m_debugtimestext +=
+        "cpu frame total: " + to_string( Timer::subsystem.gfx_color.average() + Timer::subsystem.gfx_shadows.average() + Timer::subsystem.gfx_swap.average(), 2 ) + " ms\n"
+        + " color: " + to_string( Timer::subsystem.gfx_color.average(), 2 ) + " ms (" + std::to_string( m_cellqueue.size() ) + " sectors)\n";
+    if( Global.gfx_shadowmap_enabled ) {
+        m_debugtimestext +=
+            " shadows: " + to_string( Timer::subsystem.gfx_shadows.average(), 2 ) + " ms\n";
+    }
+    m_debugtimestext += " swap: " + to_string( Timer::subsystem.gfx_swap.average(), 2 ) + " ms\n";
+    if( !Global.gfx_usegles ) {
+        if (m_gllasttime)
+            m_debugtimestext += "gpu frame total: " + to_string((double)(m_gllasttime / 1000ULL) / 1000.0, 3) + " ms\n";
+    }
+    m_debugtimestext += "uilayer: " + to_string( Timer::subsystem.gfx_gui.average(), 2 ) + " ms\n";
+    if( DebugModeFlag )
+        m_debugtimestext += m_textures.info();
 
 	return true; // for now always succeed
 }
@@ -591,7 +606,7 @@ void opengl33_renderer::Render_pass(viewport_config &vp, rendermode const Mode)
 
 			Timer::subsystem.gfx_shadows.stop();
 			glDebug("render shadowmap end");
-		}
+        }
 
 		if (Global.gfx_envmap_enabled && vp.main)
 		{
@@ -1319,6 +1334,8 @@ void opengl33_renderer::setup_shadow_unbind_map()
 // binds shadow map and updates shadow map uniform data
 void opengl33_renderer::setup_shadow_bind_map()
 {
+    if( false == Global.gfx_shadowmap_enabled ) { return; }
+
     m_shadow_tex->bind(gl::MAX_TEXTURES + 0);
 
 	glm::mat4 coordmove;
@@ -2236,6 +2253,16 @@ void opengl33_renderer::Render(TAnimModel *Instance)
 	{
 		return;
 	}
+     // crude way to reject early items too far to affect the output (mostly relevant for shadow passes)
+    auto const drawdistancethreshold{ m_renderpass.draw_range + 250 };
+    if( distancesquared > drawdistancethreshold * drawdistancethreshold ) {
+        return;
+    }
+   // second stage visibility cull, reject modelstoo far away to be noticeable
+    auto const radiussquared { Instance->radius() * Instance->radius() };
+    if( radiussquared * Global.ZoomFactor / distancesquared < 0.003 * 0.003 ) {
+        return;
+    }
 
 	switch (m_renderpass.draw_mode)
 	{
@@ -2300,7 +2327,8 @@ bool opengl33_renderer::Render(TDynamicObject *Dynamic)
 	}
 
     // second stage visibility cull, reject vehicles too far away to be noticeable
-    Dynamic->renderme = ( Dynamic->radius() * Global.ZoomFactor / std::sqrt( squaredistance ) > 0.003 );
+    auto const squareradius{ Dynamic->radius() * Dynamic->radius() };
+    Dynamic->renderme = ( squareradius * Global.ZoomFactor / squaredistance > 0.003 * 0.003 );
     if( false == Dynamic->renderme ) {
         return false;
     }
@@ -3154,6 +3182,16 @@ void opengl33_renderer::Render_Alpha(TAnimModel *Instance)
 	{
 		return;
 	}
+     // crude way to reject early items too far to affect the output (mostly relevant for shadow passes)
+    auto const drawdistancethreshold{ m_renderpass.draw_range + 250 };
+    if( distancesquared > drawdistancethreshold * drawdistancethreshold ) {
+        return;
+    }
+   // second stage visibility cull, reject modelstoo far away to be noticeable
+    auto const radiussquared { Instance->radius() * Instance->radius() };
+    if( radiussquared * Global.ZoomFactor / distancesquared < 0.003 * 0.003 ) {
+        return;
+    }
 
     Instance->RaAnimate( m_framestamp ); // jednorazowe przeliczenie animacji
     Instance->RaPrepare();
@@ -3826,7 +3864,7 @@ void opengl33_renderer::Update(double const Deltatime)
 	// TODO: it doesn't make much sense with vsync
     if( Global.targetfps == 0.0f ) {
         // automatic adjustment
-        auto const framerate = 0.5f * ( m_framerate + 1000.f / Timer::subsystem.gfx_color.average() );
+        auto const framerate = interpolate( 1000.f / Timer::subsystem.gfx_color.average(), m_framerate, 0.25f );
         float targetfactor;
              if( framerate > 120.0 ) { targetfactor = 3.00f; }
         else if( framerate >  90.0 ) { targetfactor = 1.50f; }

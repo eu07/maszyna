@@ -353,9 +353,14 @@ opengl_renderer::Render() {
 
     m_drawcount = m_cellqueue.size();
     m_debugtimestext +=
-          "color: " + to_string( Timer::subsystem.gfx_color.average(), 2 ) + " msec (" + std::to_string( m_cellqueue.size() ) + " sectors)\n"
-        + "gpu side: " + to_string( Timer::subsystem.gfx_swap.average(), 2 ) + " msec\n"
-        + "frame total: " + to_string( Timer::subsystem.gfx_color.average() + Timer::subsystem.gfx_swap.average(), 2 ) + " msec";
+        "cpu frame total: " + to_string( Timer::subsystem.gfx_color.average() + Timer::subsystem.gfx_shadows.average() + Timer::subsystem.gfx_swap.average(), 2 ) + " ms\n"
+        + " color: " + to_string( Timer::subsystem.gfx_color.average(), 2 ) + " ms (" + std::to_string( m_cellqueue.size() ) + " sectors)\n";
+    if( Global.RenderShadows ) {
+        m_debugtimestext +=
+            " shadows: " + to_string( Timer::subsystem.gfx_shadows.average(), 2 ) + " ms\n";
+    }
+    m_debugtimestext += " swap: " + to_string( Timer::subsystem.gfx_swap.average(), 2 ) + " ms\n";
+    m_debugtimestext += "uilayer: " + to_string( Timer::subsystem.gfx_gui.average(), 2 ) + " ms\n";
 
     m_debugstatstext =
           "vehicles:  " + to_string( m_colorpass.draw_stats.dynamics, 7 ) + " +" + to_string( m_shadowpass.draw_stats.dynamics, 7 )
@@ -411,7 +416,6 @@ opengl_renderer::Render_pass( rendermode const Mode ) {
                 }
                 Render_pass( rendermode::shadows );
                 Timer::subsystem.gfx_shadows.stop();
-                m_debugtimestext += "shadows: " + to_string( Timer::subsystem.gfx_shadows.average(), 2 ) + " msec (" + std::to_string( m_cellqueue.size() ) + " sectors)\n";
 #ifdef EU07_USE_DEBUG_SHADOWMAP
                 UILayer.set_texture( m_shadowdebugtexture );
 #endif
@@ -2199,6 +2203,11 @@ opengl_renderer::Render( TAnimModel *Instance ) {
     if( distancesquared > drawdistancethreshold * drawdistancethreshold ) {
         return;
     }
+    // second stage visibility cull, reject modelstoo far away to be noticeable
+    auto const radiussquared { Instance->radius() * Instance->radius() };
+    if( radiussquared * Global.ZoomFactor / distancesquared < 0.003 * 0.003 ) {
+        return;
+    }
 
     switch( m_renderpass.draw_mode ) {
         case rendermode::pickscenery: {
@@ -3275,6 +3284,16 @@ opengl_renderer::Render_Alpha( TAnimModel *Instance ) {
     }
     if( ( distancesquared <  Instance->m_rangesquaredmin )
      || ( distancesquared >= Instance->m_rangesquaredmax ) ) {
+        return;
+    }
+     // crude way to reject early items too far to affect the output (mostly relevant for shadow passes)
+    auto const drawdistancethreshold{ m_renderpass.draw_range + 250 };
+    if( distancesquared > drawdistancethreshold * drawdistancethreshold ) {
+        return;
+    }
+   // second stage visibility cull, reject modelstoo far away to be noticeable
+    auto const radiussquared { Instance->radius() * Instance->radius() };
+    if( radiussquared * Global.ZoomFactor / distancesquared < 0.003 * 0.003 ) {
         return;
     }
 
