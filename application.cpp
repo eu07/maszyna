@@ -283,6 +283,12 @@ eu07_application::get_cursor_pos( double &Horizontal, double &Vertical ) const {
     glfwGetCursorPos( m_windows.front(), &Horizontal, &Vertical );
 }
 
+int
+eu07_application::get_mouse_button( int const Button ) const {
+
+    return glfwGetMouseButton( m_windows.front(), Button );
+}
+
 void
 eu07_application::on_key( int const Key, int const Scancode, int const Action, int const Mods ) {
 

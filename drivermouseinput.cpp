@@ -459,16 +459,28 @@ drivermouse_input::poll() {
     while( m_updateaccumulator > updaterate ) {
 
         if( m_mousecommandleft != user_command::none ) {
-            // NOTE: basic keyboard controls don't have any parameters
-            // as we haven't yet implemented either item id system or multiplayer, the 'local' controlled vehicle and entity have temporary ids of 0
-            // TODO: pass correct entity id once the missing systems are in place
-			m_relay.post( m_mousecommandleft, 0, 0, GLFW_REPEAT, 0 );
+            if( Application.get_mouse_button( GLFW_MOUSE_BUTTON_LEFT ) == GLFW_PRESS ) {
+                // sanity check, as our button callback can trigger after button release leaving us with desync
+                // NOTE: basic keyboard controls don't have any parameters
+                // as we haven't yet implemented either item id system or multiplayer, the 'local' controlled vehicle and entity have temporary ids of 0
+                // TODO: pass correct entity id once the missing systems are in place
+                m_relay.post( m_mousecommandleft, 0, 0, GLFW_REPEAT, 0 );
+            }
+            else {
+                m_mousecommandleft = user_command::none;
+            }
         }
         if( m_mousecommandright != user_command::none ) {
+            if( Application.get_mouse_button( GLFW_MOUSE_BUTTON_RIGHT ) == GLFW_PRESS ) {
+            // sanity check, as our button callback can trigger after button release leaving us with desync
             // NOTE: basic keyboard controls don't have any parameters
             // as we haven't yet implemented either item id system or multiplayer, the 'local' controlled vehicle and entity have temporary ids of 0
             // TODO: pass correct entity id once the missing systems are in place
-			m_relay.post( m_mousecommandright, 0, 0, GLFW_REPEAT, 0 );
+                m_relay.post( m_mousecommandright, 0, 0, GLFW_REPEAT, 0 );
+            }
+            else {
+                m_mousecommandright = user_command::none;
+            }
         }
         m_updateaccumulator -= updaterate;
     }

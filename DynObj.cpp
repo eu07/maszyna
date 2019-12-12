@@ -4052,11 +4052,13 @@ void TDynamicObject::RenderSounds() {
             }
         }
         if( door.step_folding ) {
-            for( auto &doorsounds : m_doorsounds ) {
-                if( doorsounds.placement == side ) {
-                    // determine left side doors from their offset
-                    doorsounds.step_close.play( sound_flags::exclusive );
-                    doorsounds.step_open.stop();
+            if( door.step_position < 1.0f ) { // sanity check, the vehicles may keep the doorstep unfolded until the door close
+                for( auto &doorsounds : m_doorsounds ) {
+                    if( doorsounds.placement == side ) {
+                        // determine left side doors from their offset
+                        doorsounds.step_close.play( sound_flags::exclusive );
+                        doorsounds.step_open.stop();
+                    }
                 }
             }
         }
@@ -4097,7 +4099,9 @@ void TDynamicObject::RenderSounds() {
     }
     // szum w czasie jazdy
     if( ( GetVelocity() > 0.5 )
+#ifdef EU07_SOUND_BOGIESOUNDS
      && ( false == m_bogiesounds.empty() )
+#endif
      && ( // compound test whether the vehicle belongs to user-driven consist (as these don't emit outer noise in cab view)
             FreeFlyModeFlag ? true : // in external view all vehicles emit outer noise
             // Global.pWorld->train() == nullptr ? true : // (can skip this check, with no player train the external view is a given)
@@ -4105,8 +4109,11 @@ void TDynamicObject::RenderSounds() {
             ctOwner != simulation::Train->Dynamic()->ctOwner ? true : // confirmed isn't a part of the user-driven train
             Global.CabWindowOpen ? true : // sticking head out we get to hear outer noise
             false ) ) {
-
+#ifdef EU07_SOUND_BOGIESOUNDS
         auto const &bogiesound { m_bogiesounds.front() };
+#else
+        auto const &bogiesound { m_outernoise };
+#endif
         // frequency calculation
         auto const normalizer { (
             true == bogiesound.is_combined() ?
@@ -4144,25 +4151,40 @@ void TDynamicObject::RenderSounds() {
 
         if( volume > 0.05 ) {
             // apply calculated parameters to all motor instances
+#ifdef EU07_SOUND_BOGIESOUNDS
             for( auto &bogiesound : m_bogiesounds ) {
                 bogiesound
                     .pitch( frequency ) // arbitrary limits to prevent the pitch going out of whack
                     .gain( volume )
                     .play( sound_flags::exclusive | sound_flags::looping );
             }
+#else
+            m_outernoise
+                .pitch( frequency ) // arbitrary limits to prevent the pitch going out of whack
+                .gain( volume )
+                .play( sound_flags::exclusive | sound_flags::looping );
+#endif
         }
         else {
             // stop all noise instances
+#ifdef EU07_SOUND_BOGIESOUNDS
             for( auto &bogiesound : m_bogiesounds ) {
                 bogiesound.stop();
             }
+#else
+            m_outernoise.stop();
+#endif
         }
     }
     else {
         // don't play the optional ending sound if the listener switches views
+#ifdef EU07_SOUND_BOGIESOUNDS
         for( auto &bogiesound : m_bogiesounds ) {
             bogiesound.stop( false == FreeFlyModeFlag );
         }
+#else
+        m_outernoise.stop( false == FreeFlyModeFlag );
+#endif
     }
     // flat spot sound
     if( MoverParameters->CategoryFlag == 1 ) {
@@ -5407,6 +5429,9 @@ void TDynamicObject::LoadMMediaFile( std::string const &TypeName, std::string co
                     noisetemplate.m_amplitudefactor /= ( 1 + MoverParameters->Vmax );
                     noisetemplate.m_frequencyfactor /= ( 1 + MoverParameters->Vmax );
 
+                    m_outernoise = noisetemplate;
+/*
+// disabled until we can resolve sound interferences
                     if( true == m_bogiesounds.empty() ) {
                         // fallback for cases without specified noise locations, convert sound template to a single sound source
                         m_bogiesounds.emplace_back( noisetemplate );
@@ -5421,6 +5446,7 @@ void TDynamicObject::LoadMMediaFile( std::string const &TypeName, std::string co
                             bogie.offset( bogieoffset );
                         }
                     }
+*/
                 }
 
                 else if( token == "wheelflat:" ) {
@@ -5512,7 +5538,9 @@ void TDynamicObject::LoadMMediaFile( std::string const &TypeName, std::string co
                         // add entry to the list
                         auto const location { glm::vec3 { 0.f, 0.f, offset } };
                         bogienoise.offset( location );
+#ifdef EU07_SOUND_BOGIESOUNDS
                         m_bogiesounds.emplace_back( bogienoise );
+#endif
                     }
                 }
 
@@ -6814,8 +6842,7 @@ TDynamicObject::powertrain_sounds::render( TMoverParameters const &Vehicle, doub
 
     // motor sounds
     volume = 0.0;
-    if( ( true == Vehicle.Mains )
-     && ( false == motors.empty() ) ) {
+    if( false == motors.empty() ) {
 
         if( std::abs( Vehicle.enrot ) > 0.01 ) {
 
@@ -6879,7 +6906,7 @@ TDynamicObject::powertrain_sounds::render( TMoverParameters const &Vehicle, doub
                     + std::abs( Vehicle.Mm ) / 60.0 * Deltatime,
                     0.0, 1.25 );
             volume *= std::max( 0.25f, motor_momentum );
-
+            motor_volume = interpolate( motor_volume, volume, 0.25 );
             if( motor_volume >= 0.05 ) {
                 // apply calculated parameters to all motor instances
                 for( auto &motor : motors ) {
@@ -6889,19 +6916,19 @@ TDynamicObject::powertrain_sounds::render( TMoverParameters const &Vehicle, doub
                         .play( sound_flags::exclusive | sound_flags::looping );
                 }
             }
+            else {
+                // stop all motor instances
+                for( auto &motor : motors ) {
+                    motor.stop();
+                }
+            }
         }
         else {
             // stop all motor instances
+            motor_volume = 0.0;
             for( auto &motor : motors ) {
                 motor.stop();
             }
-        }
-    }
-    motor_volume = interpolate( motor_volume, volume, 0.25 );
-    if( motor_volume < 0.05 ) {
-        // stop all motor instances
-        for( auto &motor : motors ) {
-            motor.stop();
         }
     }
     // motor blowers

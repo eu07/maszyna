@@ -60,6 +60,8 @@ public:
         get_cursor_pos() const;
     void
         get_cursor_pos( double &Horizontal, double &Vertical ) const;
+    int
+        get_mouse_button( int const Button ) const;
     // input handlers
     void
         on_key( int const Key, int const Scancode, int const Action, int const Mods );
