@@ -61,7 +61,7 @@ public:
     // assign texturing hardware unit
     static
     void
-        set_unit( GLint const Textureunit ) { m_textureunit = Textureunit; }
+        set_unit( GLint const Textureunit ) { m_textureunit = GL_TEXTURE0 + Textureunit; }
     static
     void
         shutdown();

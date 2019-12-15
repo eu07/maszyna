@@ -61,6 +61,7 @@ struct opengl_texture {
 
 	GLenum target = GL_TEXTURE_2D;
     static std::array<GLuint, gl::MAX_TEXTURES + 2> units;
+    static GLint m_activeunit;
 
 private:
 // methods
@@ -96,8 +97,6 @@ private:
     static std::unordered_map<GLint, int> precompressed_formats;
     static std::unordered_map<GLint, GLint> drivercompressed_formats;
     static std::unordered_map<GLint, std::unordered_map<GLint, GLint>> mapping;
-
-    static GLint m_activeunit;
 };
 
 typedef int texture_handle;
@@ -108,8 +107,6 @@ public:
     texture_manager();
     ~texture_manager() { delete_textures(); }
 
-    void
-        assign_units( GLint const Helper, GLint const Shadows, GLint const Normals, GLint const Diffuse );
     // activates specified texture unit
     void
         unit( GLint const Textureunit );
@@ -141,11 +138,6 @@ private:
 
     typedef std::unordered_map<std::string, std::size_t> index_map;
 
-    struct texture_unit {
-        GLint unit { 0 };
-        texture_handle texture { null_handle }; // current (most recently bound) texture
-    };
-
 // methods:
     // checks whether specified texture is in the texture bank. returns texture id, or npos.
     texture_handle
@@ -161,8 +153,6 @@ private:
     texturetimepointpair_sequence m_textures;
     index_map m_texturemappings;
     garbage_collector<texturetimepointpair_sequence> m_garbagecollector { m_textures, 600, 60, "texture" };
-    std::array<texture_unit, 4> m_units;
-    GLint m_activeunit { 0 };
 };
 
 // reduces provided data image to half of original size, using basic 2x2 average

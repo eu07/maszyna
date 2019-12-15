@@ -745,7 +745,6 @@ opengl_texture::bind(size_t unit) {
 
     if (units[unit] == id)
         return true;
-
     if (GLAD_GL_ARB_direct_state_access)
     {
         glBindTextureUnit(unit, id);
@@ -759,7 +758,6 @@ opengl_texture::bind(size_t unit) {
         }
         glBindTexture(target, id);
     }
-
     units[unit] = id;
 
     return true;
@@ -782,7 +780,6 @@ opengl_texture::unbind(size_t unit)
         //todo: for other targets
         glBindTexture(GL_TEXTURE_2D, 0);
     }
-
     units[unit] = 0;
 }
 
@@ -1116,21 +1113,12 @@ opengl_texture::flip_vertical() {
 }
 
 void
-texture_manager::assign_units( GLint const Helper, GLint const Shadows, GLint const Normals, GLint const Diffuse ) {
-
-    m_units[ 0 ].unit = Helper;
-    m_units[ 1 ].unit = Shadows;
-    m_units[ 2 ].unit = Normals;
-    m_units[ 3 ].unit = Diffuse;
-}
-
-void
 texture_manager::unit( GLint const Textureunit ) {
 
-    if( m_activeunit == Textureunit ) { return; }
+    if( opengl_texture::m_activeunit == Textureunit ) { return; }
 
-    m_activeunit = Textureunit;
-    ::glActiveTexture( Textureunit );
+    opengl_texture::m_activeunit = Textureunit;
+    ::glActiveTexture( GL_TEXTURE0 + Textureunit );
 }
 
 // ustalenie numeru tekstury, wczytanie jeśli jeszcze takiej nie było
@@ -1231,6 +1219,8 @@ texture_manager::create( std::string Filename, bool const Loadnow, GLint Formath
 void
 texture_manager::bind( std::size_t const Unit, texture_handle const Texture ) {
 
+    if( Unit == -1 ) { return; } // no texture unit, nothing to bind the texture to
+
     if (Texture != null_handle)
         mark_as_used(Texture).bind(Unit);
     else
@@ -1262,8 +1252,8 @@ void
 texture_manager::update() {
 
     if( m_garbagecollector.sweep() > 0 ) {
-        for( auto &unit : m_units ) {
-            unit.texture = -1;
+        for( auto &unit : opengl_texture::units ) {
+            unit = -1;
         }
     }
 }

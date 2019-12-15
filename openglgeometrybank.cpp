@@ -182,7 +182,7 @@ opengl_vbogeometrybank::bind_streams( gfx::stream_units const &Units, unsigned i
     }
     if( Streams & gfx::stream::texture ) {
         for( auto unit : Units.texture ) {
-            ::glClientActiveTexture( unit );
+            ::glClientActiveTexture( GL_TEXTURE0 + unit );
             ::glTexCoordPointer( 2, GL_FLOAT, sizeof( gfx::basic_vertex ), reinterpret_cast<void const *>( 24 ) );
             ::glEnableClientState( GL_TEXTURE_COORD_ARRAY );
         }
@@ -190,7 +190,7 @@ opengl_vbogeometrybank::bind_streams( gfx::stream_units const &Units, unsigned i
     }
     else {
         for( auto unit : Units.texture ) {
-            ::glClientActiveTexture( unit );
+            ::glClientActiveTexture( GL_TEXTURE0 + unit );
             ::glDisableClientState( GL_TEXTURE_COORD_ARRAY );
         }
         m_activetexturearrays.clear(); // NOTE: we're simplifying here, since we always toggle the same texture coord sets
@@ -206,7 +206,7 @@ opengl_vbogeometrybank::release_streams() {
     ::glDisableClientState( GL_NORMAL_ARRAY );
     ::glDisableClientState( GL_COLOR_ARRAY );
     for( auto unit : m_activetexturearrays ) {
-        ::glClientActiveTexture( unit );
+        ::glClientActiveTexture( GL_TEXTURE0 + unit );
         ::glDisableClientState( GL_TEXTURE_COORD_ARRAY );
     }
 

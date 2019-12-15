@@ -6844,7 +6844,7 @@ TDynamicObject::powertrain_sounds::render( TMoverParameters const &Vehicle, doub
     volume = 0.0;
     if( false == motors.empty() ) {
 
-        if( std::abs( Vehicle.enrot ) > 0.01 ) {
+        if( std::abs( Vehicle.nrot ) > 0.01 ) {
 
             auto const &motor { motors.front() };
             // frequency calculation

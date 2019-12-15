@@ -193,6 +193,19 @@ std::vector<std::string> Split(const std::string &s)
 	return elems;
 }
 
+std::pair<std::string, int>
+split_index( std::string const &Key ) {
+
+    auto const indexstart{ Key.find_first_of( "-1234567890" ) };
+    auto const indexend{ Key.find_first_not_of( "-1234567890", indexstart ) };
+    if( indexstart != std::string::npos ) {
+        return {
+            Key.substr( 0, indexstart ),
+            std::stoi( Key.substr( indexstart, indexend - indexstart ) ) };
+    }
+    return { Key, 0 };
+}
+
 std::string to_string(int Value)
 {
 	std::ostringstream o;

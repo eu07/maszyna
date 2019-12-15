@@ -51,7 +51,6 @@ opengl_renderer::Init( GLFWwindow *Window ) {
         Global.BasicRenderer ?
             std::vector<GLint>{ m_diffusetextureunit } :
             std::vector<GLint>{ m_normaltextureunit, m_diffusetextureunit } );
-    m_textures.assign_units( m_helpertextureunit, m_shadowtextureunit, m_normaltextureunit, m_diffusetextureunit ); // TODO: add reflections unit
     ui_layer::set_unit( m_diffusetextureunit );
     m_precipitationrenderer.set_unit( m_diffusetextureunit );
     select_unit( m_diffusetextureunit );
@@ -1681,9 +1680,9 @@ opengl_renderer::Bind_Material( material_handle const Material, TSubModel *sm ) 
 
     auto const &material = m_materials.material( Material );
     if( false == Global.BasicRenderer ) {
-        m_textures.bind( m_normaltextureunit - GL_TEXTURE0, material.textures[1] );
+        m_textures.bind( m_normaltextureunit, material.textures[1] );
     }
-    m_textures.bind( m_diffusetextureunit - GL_TEXTURE0, material.textures[0] );
+    m_textures.bind( m_diffusetextureunit, material.textures[0] );
 }
 
 opengl_material const &
@@ -1715,7 +1714,7 @@ opengl_renderer::Fetch_Texture( std::string const &Filename, bool const Loadnow,
 void
 opengl_renderer::Bind_Texture( texture_handle const Texture ) {
 
-    m_textures.bind( m_diffusetextureunit - GL_TEXTURE0, Texture );
+    m_textures.bind( m_diffusetextureunit, Texture );
 }
 
 void
@@ -4195,7 +4194,7 @@ opengl_renderer::Init_caps() {
     if( true == Global.BasicRenderer ) {
         WriteLog( "Basic renderer selected, shadow and reflection mapping will be disabled" );
         Global.RenderShadows = false;
-        m_diffusetextureunit = GL_TEXTURE0;
+        m_diffusetextureunit = 0;
         m_helpertextureunit = -1;
         m_shadowtextureunit = -1;
         m_normaltextureunit = -1;
@@ -4207,7 +4206,7 @@ opengl_renderer::Init_caps() {
             WriteLog( "Less than 4 texture units, shadow and reflection mapping will be disabled" );
             Global.BasicRenderer = true;
             Global.RenderShadows = false;
-            m_diffusetextureunit = GL_TEXTURE0;
+            m_diffusetextureunit = 0;
             m_helpertextureunit = -1;
             m_shadowtextureunit = -1;
             m_normaltextureunit = -1;

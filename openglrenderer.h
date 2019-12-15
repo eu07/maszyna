@@ -307,10 +307,10 @@ private:
     double m_environmentupdatetime { 0.0 }; // time of the most recent environment map update
     glm::dvec3 m_environmentupdatelocation; // coordinates of most recent environment map update
 
-    int m_helpertextureunit { GL_TEXTURE0 };
-    int m_shadowtextureunit { GL_TEXTURE1 };
-    int m_normaltextureunit { GL_TEXTURE2 };
-    int m_diffusetextureunit{ GL_TEXTURE3 };
+    int m_helpertextureunit { 0 };
+    int m_shadowtextureunit { 1 };
+    int m_normaltextureunit { 2 };
+    int m_diffusetextureunit{ 3 };
     units_state m_unitstate;
 
     unsigned int m_framestamp; // id of currently rendered gfx frame

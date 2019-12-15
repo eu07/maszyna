@@ -110,6 +110,7 @@ std::string ExchangeCharInString( std::string const &Source, char const From, ch
 std::vector<std::string> &Split(const std::string &s, char delim, std::vector<std::string> &elems);
 std::vector<std::string> Split(const std::string &s, char delim);
 //std::vector<std::string> Split(const std::string &s);
+std::pair<std::string, int> split_index( std::string const &Key );
 
 std::string to_string(int Value);
 std::string to_string(unsigned int Value);
