@@ -437,7 +437,7 @@ driver_mode::update_camera( double const Deltatime ) {
                     if( d )
                         pDynamicNearest = d; // zmiana na nowy, jeśli coś znaleziony niepusty
                     if( pDynamicNearest )
-                        Camera.LookAt = pDynamicNearest->GetPosition();
+                        Camera.LookAt = pDynamicNearest->GetPosition() + 0.5 * pDynamicNearest->VectorUp() * pDynamicNearest->MoverParameters->Dim.H;
                 }
                 Camera.RaLook(); // jednorazowe przestawienie kamery
             }

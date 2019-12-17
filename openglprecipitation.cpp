@@ -139,7 +139,7 @@ opengl_precipitation::update() {
 }
 
 void
-opengl_precipitation::render() {
+opengl_precipitation::render( GLint const Textureunit ) {
 
     if( m_texture == null_handle ) { return; }
 
@@ -154,7 +154,7 @@ opengl_precipitation::render() {
     ::glEnableClientState( GL_VERTEX_ARRAY );
     // uvs
     ::glBindBuffer( GL_ARRAY_BUFFER, m_uvbuffer );
-    ::glClientActiveTexture( m_textureunit );
+    ::glClientActiveTexture( GL_TEXTURE0 + Textureunit );
     ::glTexCoordPointer( 2, GL_FLOAT, sizeof( glm::vec2 ), reinterpret_cast<void const*>( 0 ) );
     ::glEnableClientState( GL_TEXTURE_COORD_ARRAY );
     // uv transformation matrix

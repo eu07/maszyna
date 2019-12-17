@@ -464,9 +464,22 @@ gamepad_input::process_axes() {
                     if( inputtype == input_type::value_invert ) {
                         param *= -1.0;
                     }
-                    // special case, viewturn receives some param scaling
-                    if( boundcommand1 == user_command::viewturn ) {
+                }
+                // scale passed value according to command type
+                switch( boundcommand1 ) {
+                    case user_command::viewturn: {
                         param *= 10.0 * ( Timer::GetDeltaRenderTime() * 60.0 );
+                        break;
+                    }
+                    case user_command::movehorizontal:
+                    case user_command::movehorizontalfast: {
+                        // these expect value in -1:1 range
+                        break;
+                    }
+                    default: {
+                        // commands generally expect their parameter to be in 0:1 range
+                        param = param * 0.5 + 0.5;
+                        break;
                     }
                 }
                 break;

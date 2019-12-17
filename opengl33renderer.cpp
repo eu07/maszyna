@@ -48,8 +48,6 @@ bool opengl33_renderer::Init(GLFWwindow *Window)
 	if (!Init_caps())
 		return false;
 
-	WriteLog("preparing renderer...");
-
     OpenGLMatrices.upload() = false; // set matrix stack in virtual mode
 
 	m_window = Window;
@@ -80,12 +78,10 @@ bool opengl33_renderer::Init(GLFWwindow *Window)
 		m_lights.emplace_back(light);
 	}
 	// preload some common textures
-	WriteLog("Loading common gfx data...");
 	m_glaretexture = Fetch_Texture("fx/lightglare");
 	m_suntexture = Fetch_Texture("fx/sun");
 	m_moontexture = Fetch_Texture("fx/moon");
 	m_smoketexture = Fetch_Texture("fx/smoke");
-	WriteLog("...gfx data pre-loading done");
 
 	// prepare basic geometry chunks
 	float const size = 2.5f / 2.0f;
@@ -168,6 +164,7 @@ bool opengl33_renderer::Init(GLFWwindow *Window)
 		m_shadow_tex = std::make_unique<opengl_texture>();
 		m_shadow_tex->alloc_rendertarget(Global.gfx_format_depth, GL_DEPTH_COMPONENT, m_shadowbuffersize, m_shadowbuffersize, m_shadowpass.size());
 		m_shadow_fb->attach(*m_shadow_tex, GL_DEPTH_ATTACHMENT, 0);
+        m_shadow_fb->setup_drawing(0);
 
         if( !m_shadow_fb->is_complete() ) {
             ErrorLog( "shadow framebuffer setup failed" );
@@ -277,7 +274,7 @@ bool opengl33_renderer::Init(GLFWwindow *Window)
 
 	WriteLog("picking objects created");
 
-	WriteLog("gfx renderer setup complete");
+	WriteLog("Gfx Renderer: setup complete");
 
     return true;
 }
@@ -303,7 +300,7 @@ bool opengl33_renderer::init_viewport(viewport_config &vp)
 {
 	glfwMakeContextCurrent(vp.window);
 
-	WriteLog("init viewport: " + std::to_string(vp.width) + ", " + std::to_string(vp.height));
+	WriteLog("init viewport: " + std::to_string(vp.width) + " x " + std::to_string(vp.height));
 
 	glfwSwapInterval( Global.VSync ? 1 : 0 );
 
@@ -331,8 +328,11 @@ bool opengl33_renderer::init_viewport(viewport_config &vp)
 	else if (GLAD_GL_EXT_clip_control)
 		glClipControlEXT(GL_LOWER_LEFT_EXT, GL_ZERO_TO_ONE_EXT);
 
-	if (!Global.gfx_usegles)
-		glEnable(GL_PROGRAM_POINT_SIZE);
+    if( !Global.gfx_usegles ) {
+        glEnable( GL_PROGRAM_POINT_SIZE );
+        // not present in core, but if we get compatibility profile instead we won't get gl_pointcoord without it
+        glEnable( GL_POINT_SPRITE );
+    }
 
 	if (!gl::vao::use_vao)
 	{
@@ -4035,10 +4035,9 @@ bool opengl33_renderer::Init_caps()
 {
     WriteLog(
         "Gfx Renderer: " + std::string( (char *)glGetString(GL_RENDERER))
-        + "\nVendor: " + std::string( (char *)glGetString(GL_VENDOR))
-        + "\nOpenGL Version: " + std::string((char *)glGetString(GL_VERSION)) );
+        + " Vendor: " + std::string( (char *)glGetString(GL_VENDOR))
+        + " OpenGL Version: " + std::string((char *)glGetString(GL_VERSION)) );
 
-	WriteLog("--------");
     {
         GLint extCount = 0;
         glGetIntegerv( GL_NUM_EXTENSIONS, &extCount );
@@ -4052,7 +4051,6 @@ bool opengl33_renderer::Init_caps()
         }
         WriteLog( extensions );
     }
-    WriteLog("--------");
 
 	if (!Global.gfx_usegles)
 	{
@@ -4100,15 +4098,15 @@ bool opengl33_renderer::Init_caps()
 
 	glGetError();
 	glLineWidth(2.0f);
-	if (!glGetError())
-	{
+	if (!glGetError()) {
 		WriteLog("wide lines supported");
 		m_widelines_supported = true;
 	}
-	else
-		WriteLog("warning: wide lines not supported");
+    else {
+        WriteLog( "warning: wide lines not supported" );
+    }
 
-	WriteLog("--------");
+    WriteLog( "render path: Shaders, VBO" );
 
 	// ograniczenie maksymalnego rozmiaru tekstur - parametr dla skalowania tekstur
 	{
@@ -4134,7 +4132,7 @@ bool opengl33_renderer::Init_caps()
 	if (Global.gfx_framebuffer_height == -1)
 		Global.gfx_framebuffer_height = Global.iWindowHeight;
 
-	WriteLog("main window size: " + std::to_string(Global.gfx_framebuffer_width) + "x" + std::to_string(Global.gfx_framebuffer_height));
+	WriteLog("main window size: " + std::to_string(Global.gfx_framebuffer_width) + " x " + std::to_string(Global.gfx_framebuffer_height));
 
 	return true;
 }

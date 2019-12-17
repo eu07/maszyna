@@ -52,7 +52,6 @@ opengl_renderer::Init( GLFWwindow *Window ) {
             std::vector<GLint>{ m_diffusetextureunit } :
             std::vector<GLint>{ m_normaltextureunit, m_diffusetextureunit } );
     ui_layer::set_unit( m_diffusetextureunit );
-    m_precipitationrenderer.set_unit( m_diffusetextureunit );
     select_unit( m_diffusetextureunit );
 
     ::glDepthFunc( GL_LEQUAL );
@@ -109,7 +108,6 @@ opengl_renderer::Init( GLFWwindow *Window ) {
         m_lights.emplace_back( light );
     }
     // preload some common textures
-    WriteLog( "Loading common gfx data..." );
     m_glaretexture = Fetch_Texture( "fx/lightglare" );
     m_suntexture = Fetch_Texture( "fx/sun" );
     m_moontexture = Fetch_Texture( "fx/moon" );
@@ -117,7 +115,6 @@ opengl_renderer::Init( GLFWwindow *Window ) {
         m_reflectiontexture = Fetch_Texture( "fx/reflections" );
     }
     m_smoketexture = Fetch_Texture( "fx/smoke" );
-    WriteLog( "...gfx data pre-loading done" );
 
 #ifdef EU07_USE_PICKING_FRAMEBUFFER
     // pick buffer resources
@@ -312,6 +309,8 @@ opengl_renderer::Init( GLFWwindow *Window ) {
     m_quadric = ::gluNewQuadric();
     ::gluQuadricNormals( m_quadric, GLU_FLAT );
 
+    WriteLog( "Gfx Renderer: setup complete" );
+
     return true;
 }
 
@@ -338,7 +337,7 @@ opengl_renderer::Render() {
     // add user interface
     setup_units( true, false, false );
     ::glPushClientAttrib( GL_CLIENT_VERTEX_ARRAY_BIT );
-    ::glClientActiveTexture( m_diffusetextureunit );
+    ::glClientActiveTexture( GL_TEXTURE0 + m_diffusetextureunit );
     ::glBindBuffer( GL_ARRAY_BUFFER, 0 );
     Application.render_ui();
     ::glPopClientAttrib();
@@ -3151,7 +3150,7 @@ opengl_renderer::Render_precipitation() {
     // momentarily disable depth write, to allow vehicle cab drawn afterwards to mask it instead of leaving it 'inside'
     ::glDepthMask( GL_FALSE );
 
-    m_precipitationrenderer.render();
+    m_precipitationrenderer.render( m_diffusetextureunit );
     if( Global.bUseVBO ) {
         gfx::opengl_vbogeometrybank::reset();
     }
@@ -4161,15 +4160,16 @@ opengl_renderer::Init_caps() {
     }
 #endif
 
-    WriteLog( "Supported extensions: " +  std::string((char *)glGetString( GL_EXTENSIONS )) );
+    WriteLog( "Supported extensions: \n"
+        + std::string((char *)glGetString( GL_EXTENSIONS )) );
 
-    WriteLog( std::string("Render path: ") + ( Global.bUseVBO ? "VBO" : "Display lists" ) );
+    WriteLog( std::string("render path: ") + ( Global.bUseVBO ? "VBO" : "Display lists" ) );
     if( GL_EXT_framebuffer_object ) {
         m_framebuffersupport = true;
-        WriteLog( "Framebuffer objects enabled" );
+        WriteLog( "framebuffer objects enabled" );
     }
     else {
-        WriteLog( "Framebuffer objects not supported, resorting to back buffer rendering where possible" );
+        WriteLog( "framebuffer objects not supported, resorting to back buffer rendering where possible" );
     }
     // ograniczenie maksymalnego rozmiaru tekstur - parametr dla skalowania tekstur
     {
@@ -4181,18 +4181,18 @@ opengl_renderer::Init_caps() {
         Global.CurrentMaxTextureSize = Global.iMaxTextureSize;
         m_shadowbuffersize = Global.shadowtune.map_size;
         m_shadowbuffersize = std::min( m_shadowbuffersize, texturesize );
-        WriteLog( "Shadows map size capped at " + std::to_string( m_shadowbuffersize ) + "p" );
+        WriteLog( "shadows map size capped at " + std::to_string( m_shadowbuffersize ) + "p" );
     }
     // cap the number of supported lights based on hardware
     {
         GLint maxlights;
         ::glGetIntegerv( GL_MAX_LIGHTS, &maxlights );
         Global.DynamicLightCount = std::min( Global.DynamicLightCount, maxlights - 1 );
-        WriteLog( "Dynamic light amount capped at " + std::to_string( Global.DynamicLightCount ) + " (" + std::to_string(maxlights) + " lights total supported by the gfx card)" );
+        WriteLog( "dynamic light amount capped at " + std::to_string( Global.DynamicLightCount ) + " (" + std::to_string(maxlights) + " lights total supported by the gfx card)" );
     }
     // select renderer mode
     if( true == Global.BasicRenderer ) {
-        WriteLog( "Basic renderer selected, shadow and reflection mapping will be disabled" );
+        WriteLog( "basic renderer selected, shadow and reflection mapping will be disabled" );
         Global.RenderShadows = false;
         m_diffusetextureunit = 0;
         m_helpertextureunit = -1;
@@ -4203,7 +4203,7 @@ opengl_renderer::Init_caps() {
         GLint maxtextureunits;
         ::glGetIntegerv( GL_MAX_COMBINED_TEXTURE_IMAGE_UNITS, &maxtextureunits );
         if( maxtextureunits < 4 ) {
-            WriteLog( "Less than 4 texture units, shadow and reflection mapping will be disabled" );
+            WriteLog( "less than 4 texture units, shadow and reflection mapping will be disabled" );
             Global.BasicRenderer = true;
             Global.RenderShadows = false;
             m_diffusetextureunit = 0;
@@ -4214,8 +4214,10 @@ opengl_renderer::Init_caps() {
     }
 
     if( Global.iMultisampling ) {
-        WriteLog( "Using multisampling x" + std::to_string( 1 << Global.iMultisampling ) );
+        WriteLog( "using multisampling x" + std::to_string( 1 << Global.iMultisampling ) );
     }
+
+    WriteLog( "main window size: " + std::to_string( Global.gfx_framebuffer_width ) + "x" + std::to_string( Global.gfx_framebuffer_height ) );
 
     return true;
 }

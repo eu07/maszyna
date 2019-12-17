@@ -129,7 +129,7 @@ opengl_particles::update( opengl_camera const &Camera ) {
 }
 
 std::size_t
-opengl_particles::render( int const Textureunit ) {
+opengl_particles::render( GLint const Textureunit ) {
 
     if( false == Global.Smoke ) { return 0; }
     if( m_buffercapacity == 0 ) { return 0; }
@@ -143,7 +143,7 @@ opengl_particles::render( int const Textureunit ) {
     ::glEnableClientState( GL_VERTEX_ARRAY );
     ::glColorPointer( 4, GL_UNSIGNED_BYTE, sizeof( particle_vertex ), reinterpret_cast<void const *>( sizeof( float ) * 3 ) );
     ::glEnableClientState( GL_COLOR_ARRAY );
-    ::glClientActiveTexture( Textureunit );
+    ::glClientActiveTexture( GL_TEXTURE0 + Textureunit );
     ::glTexCoordPointer( 2, GL_FLOAT, sizeof( particle_vertex ), reinterpret_cast<void const *>( sizeof( float ) * 3 + sizeof( std::uint8_t ) * 4 ) );
     ::glEnableClientState( GL_TEXTURE_COORD_ARRAY );
     // ...draw...

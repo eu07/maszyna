@@ -43,7 +43,8 @@ void opengl_material::log_error(const std::string &str)
 std::map<std::string, int> texture_bindings {
 
     { "diffuse", 0 },
-    { "normal", 1 }
+    { "normals", 1 },
+    { "normalmap", 1 }
 };
 
 void opengl_material::finalize(bool Loadnow)

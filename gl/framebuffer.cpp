@@ -56,7 +56,7 @@ bool gl::framebuffer::is_complete()
     auto const iscomplete { status == GL_FRAMEBUFFER_COMPLETE };
 
     if( false == iscomplete ) {
-        ErrorLog( "framebuffer status error: " + to_hex_str( status ) );
+        ErrorLog( "framebuffer status: error " + to_hex_str( status ) );
     }
 
     return iscomplete;
