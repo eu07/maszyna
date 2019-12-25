@@ -4212,7 +4212,7 @@ void TDynamicObject::RenderSounds() {
                 clamp(
                     MoverParameters->Vel / 40.0,
                     0.0, 1.0 ) )
-            + ( MyTrack->eType == tt_Switch ? 0.25 : 0.0 );
+            * ( MyTrack->eType == tt_Switch ? 100.0 : 1.0 );
     }
     else {
         volume = 0;

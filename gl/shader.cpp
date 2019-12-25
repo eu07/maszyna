@@ -69,7 +69,8 @@ std::unordered_map<std::string, gl::shader::defaultparam_e> gl::shader::defaultp
     { "one", defaultparam_e::one },
     { "ambient", defaultparam_e::ambient },
     { "diffuse", defaultparam_e::diffuse },
-    { "specular", defaultparam_e::specular }
+    { "specular", defaultparam_e::specular },
+    { "glossiness", defaultparam_e::glossiness }
 };
 
 void gl::shader::process_source(std::string &str)

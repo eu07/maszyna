@@ -44,7 +44,8 @@ namespace gl
             one,
             ambient,
             diffuse,
-            specular
+            specular,
+            glossiness
         };
 
         struct param_entry

@@ -220,6 +220,7 @@ bool opengl33_renderer::Init(GLFWwindow *Window)
 
 		m_depth_pointer_fb = std::make_unique<gl::framebuffer>();
 		m_depth_pointer_fb->attach(*m_depth_pointer_rb, GL_DEPTH_ATTACHMENT);
+        m_depth_pointer_fb->setup_drawing(0);
 
         if( !m_depth_pointer_fb->is_complete() ) {
             ErrorLog( "depth pointer framebuffer setup failed" );
@@ -1699,16 +1700,37 @@ void opengl33_renderer::Bind_Material(material_handle const Material, TSubModel 
 
 			glm::vec4 src(1.0f);
 
+            // submodel-based parameters
 			if (sm)
 			{
-				if (entry.defaultparam == gl::shader::defaultparam_e::ambient)
-					src = sm->f4Ambient;
-				else if (entry.defaultparam == gl::shader::defaultparam_e::diffuse)
-					src = sm->f4Diffuse;
-//                    src = glm::vec4( glm::pow( glm::vec3( sm->f4Diffuse ), gammacorrection ), sm->f4Diffuse.a );
-				else if (entry.defaultparam == gl::shader::defaultparam_e::specular)
-					src = sm->f4Specular;
+                switch( entry.defaultparam ) {
+                    case gl::shader::defaultparam_e::ambient: {
+                        src = sm->f4Ambient;
+                        break;
+                    }
+                    case gl::shader::defaultparam_e::diffuse: {
+                        src = sm->f4Diffuse;
+//                        src = glm::vec4( glm::pow( glm::vec3( sm->f4Diffuse ), gammacorrection ), sm->f4Diffuse.a );
+                        break;
+                    }
+                    case gl::shader::defaultparam_e::specular: {
+                        src = sm->f4Specular;// *( sm->Opacity > 0.f ? m_specularopaquescalefactor : m_speculartranslucentscalefactor );
+                        break;
+                    }
+                    default: {
+                        break;
+                    }
+                }
 			}
+            // material-based parameters
+            switch( entry.defaultparam ) {
+                case gl::shader::defaultparam_e::glossiness: {
+                    src = glm::vec4( material.glossiness );
+                }
+                default: {
+                    break;
+                }
+            }
 
 			for (size_t j = 0; j < entry.size; j++)
 				model_ubs.param[entry.location][entry.offset + j] = src[j];

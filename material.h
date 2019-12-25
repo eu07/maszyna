@@ -26,6 +26,7 @@ struct opengl_material {
     std::shared_ptr<gl::program> shader;
     float opacity = std::numeric_limits<float>::quiet_NaN();
     float selfillum = std::numeric_limits<float>::quiet_NaN();
+    float glossiness { 10.f };
 
     std::string name;
     glm::vec2 size { -1.f, -1.f }; // 'physical' size of bound texture, in meters
@@ -55,6 +56,7 @@ private:
     int m_shader_priority = -1;
     int m_opacity_priority = -1;
     int m_selfillum_priority = -1;
+    int m_glossiness_priority = -1;
 
     struct parse_info_s
     {

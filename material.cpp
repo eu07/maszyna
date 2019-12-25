@@ -267,6 +267,13 @@ opengl_material::deserialize_mapping( cParser &Input, int const Priority, bool c
             selfillum = std::stof(value); //m7t: handle exception
             m_selfillum_priority = Priority;
         }
+        else if (key == "glossiness:" &&
+                Priority > m_glossiness_priority)
+        {
+            std::string value = deserialize_random_set( Input );
+            glossiness = std::stof(value); //m7t: handle exception
+            m_glossiness_priority = Priority;
+        }
         else if( key == "size:" ) {
             Input.getTokens( 2 );
             Input

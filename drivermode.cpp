@@ -1169,7 +1169,6 @@ driver_mode::ChangeDynamic() {
         if( false == driver->AIControllFlag ) // tylko jeśli ręcznie prowadzony
         {
             occupied->LimPipePress = occupied->PipePress;
-            occupied->CabOccupied = occupied->CabActive;
             occupied->CabActivisation( true ); // załączenie rozrządu (wirtualne kabiny)
             vehicle->MechInside = true;
             vehicle->Controller = Humandriver;

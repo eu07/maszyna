@@ -432,7 +432,7 @@ TTrain::TTrain() {
 	{
 		for ( int j = 0; j < 3; ++j )
 			fPress[i][j] = 0.0;
-		bBrakes[i][0] = bBrakes[i][1] = 0.0;
+		bBrakes[i][0] = bBrakes[i][1] = false;
 	}
 }
 

@@ -4217,7 +4217,7 @@ opengl_renderer::Init_caps() {
         WriteLog( "using multisampling x" + std::to_string( 1 << Global.iMultisampling ) );
     }
 
-    WriteLog( "main window size: " + std::to_string( Global.gfx_framebuffer_width ) + "x" + std::to_string( Global.gfx_framebuffer_height ) );
+    WriteLog( "main window size: " + std::to_string( Global.iWindowWidth ) + "x" + std::to_string( Global.iWindowHeight ) );
 
     return true;
 }

@@ -741,7 +741,7 @@ private:
 
   public:
     float fPress[20][3]; // cisnienia dla wszystkich czlonow
-	float bBrakes[20][2]; // zalaczenie i dzialanie hamulcow
+	bool bBrakes[20][2]; // zalaczenie i dzialanie hamulcow
     static std::vector<std::string> const fPress_labels;
     float fEIMParams[9][10]; // parametry dla silnikow asynchronicznych
 	float fDieselParams[9][10]; // parametry dla silnikow asynchronicznych
