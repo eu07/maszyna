@@ -6744,7 +6744,7 @@ void TMoverParameters::CheckSpeedCtrl(double dt)
 				eimicSpeedCtrlIntegral = 0;
 			}
 			SpeedCtrlUnit.Parking = (Vel == 0.0) && (eimic <= 0) && (EngineType != TEngineType::ElectricInductionMotor);
-			SendCtrlToNext("SpeedCtrlUnit.Parking", SpeedCtrlUnit.Parking, CabNo);
+			SendCtrlToNext("SpeedCtrlUnit.Parking", SpeedCtrlUnit.Parking, CabActive);
 
 		}
 		else {

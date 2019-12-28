@@ -129,7 +129,6 @@
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <ClCompile>
       <PreprocessorDefinitions>WIN32;NDEBUG;_WINDOWS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
       <WarningLevel>Level3</WarningLevel>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
       <AdditionalIncludeDirectories>$(SolutionDir);$(SolutionDir)console;$(SolutionDir)mczapkie;$(SolutionDir)ref/glad/include;$(SolutionDir)ref/glfw/include;$(SolutionDir)ref/glm;$(SolutionDir)ref/openal/include;$(SolutionDir)ref/dr_libs/include;$(SolutionDir)ref/imgui;$(SolutionDir)ref/imgui/examples;$(SolutionDir)ref/python/include;$(SolutionDir)ref/libserialport/include;$(SolutionDir)ref/stb;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
@@ -153,7 +152,6 @@
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <ClCompile>
       <PreprocessorDefinitions>WIN32;NDEBUG;_WINDOWS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
       <WarningLevel>Level3</WarningLevel>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
       <AdditionalIncludeDirectories>$(SolutionDir);$(SolutionDir)console;$(SolutionDir)mczapkie;$(SolutionDir)ref/glad/include;$(SolutionDir)ref/glew/include;$(SolutionDir)ref/glfw/include;$(SolutionDir)ref/glm;$(SolutionDir)ref/openal/include;$(SolutionDir)ref/dr_libs/include;$(SolutionDir)ref/imgui;$(SolutionDir)ref/imgui/examples;$(SolutionDir)ref/python/include;$(SolutionDir)ref/libserialport/include;$(SolutionDir)ref/stb;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>

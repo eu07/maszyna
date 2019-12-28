@@ -5505,33 +5505,6 @@ void TTrain::OnCommand_radiovolumedecrease(TTrain *Train, command_data const &Co
 	}
 }
 
-void TTrain::OnCommand_radiovolumeincrease(TTrain *Train, command_data const &Command) {
-
-	if (Command.action == GLFW_PRESS) {
-		Global.RadioVolume = clamp(Global.RadioVolume + 0.125, 0.0, 1.0);
-		// visual feedback
-		Train->ggRadioVolumeSelector.UpdateValue(Global.RadioVolume);
-		Train->ggRadioVolumeNext.UpdateValue(1.0);
-	}
-	else if (Command.action == GLFW_RELEASE) {
-		// visual feedback
-		Train->ggRadioVolumeNext.UpdateValue(0.0);
-	}
-}
-
-void TTrain::OnCommand_radiovolumedecrease(TTrain *Train, command_data const &Command) {
-
-	if (Command.action == GLFW_PRESS) {
-		Global.RadioVolume = clamp(Global.RadioVolume - 0.125, 0.0, 1.0);
-		// visual feedback
-		Train->ggRadioVolumeSelector.UpdateValue(Global.RadioVolume);
-		Train->ggRadioVolumePrevious.UpdateValue(1.0);
-	}
-	else if (Command.action == GLFW_RELEASE) {
-		// visual feedback
-		Train->ggRadioVolumePrevious.UpdateValue(0.0);
-	}
-}
 
 void TTrain::OnCommand_cabchangeforward( TTrain *Train, command_data const &Command ) {
 
