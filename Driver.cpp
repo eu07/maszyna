@@ -746,7 +746,7 @@ void TController::TableTraceRoute(double fDistance, TDynamicObject *pVehicle)
             else if( sSpeedTable[ iLast ].trTrack == tLast ) {
                 // otherwise just mark the last added track as the final one
                 // TODO: investigate exactly how we can wind up not marking the last existing track as actual end
-                sSpeedTable[ iLast ].iFlags |= spEnd;
+                sSpeedTable[ iLast ].iFlags |= ( spEnabled | spEnd );
             }
             // to ostatnia pozycja, bo NULL nic nie da, a może się podpiąć obrotnica, czy jakieś transportery
             return;
@@ -919,25 +919,25 @@ TCommandType TController::TableUpdate(double &fVelDes, double &fDist, double &fN
                             Drugi parametr ujemny - wskazanie zatrzymania dla krótszych składów (W32).
                             Drugi paramer dodatni - długość peronu (W4).
                             */
-							auto L = 0.0;
+                            auto L = 0.0;
 							auto Par1 = sSpeedTable[i].evEvent->input_value(1);
 							auto Par2 = sSpeedTable[i].evEvent->input_value(2);
 							if ((Par2 >= 0) || (fLength < -Par2)) { //użyj tego W4
 								if (Par1 < 0) {
                                     L = -Par1;
                                 }
-								else {
+                                else {
                                     //środek
                                     L = Par1 - fMinProximityDist - fLength * 0.5;
-								}
+                                }
 								L = std::max(0.0, std::min(L, std::abs(Par2) - fMinProximityDist - fLength));
 								sSpeedTable[i].UpdateDistance(L);
 								sSpeedTable[i].bMoved = true;
-							}
-							else {
+                            }
+                            else {
 								sSpeedTable[i].iFlags = 0;
-							}
-						}
+                            }
+                        }
                         IsAtPassengerStop = (
                             ( sSpeedTable[ i ].fDist <= passengerstopmaxdistance )
                             // Ra 2F1I: odległość plus długość pociągu musi być mniejsza od długości
@@ -946,9 +946,9 @@ TCommandType TController::TableUpdate(double &fVelDes, double &fDist, double &fN
                             // przyjąć odległość fMinProximityDist
                             && ( ( iDrivigFlags & moveStopCloser ) != 0 ?
                                 sSpeedTable[ i ].fDist + fLength <=
-                                    std::max(
-                                        std::abs( sSpeedTable[ i ].evEvent->input_value( 2 ) ),
-                                        2.0 * fMaxProximityDist + fLength ) : // fmaxproximitydist typically equals ~50 m
+                                std::max(
+                                    std::abs( sSpeedTable[ i ].evEvent->input_value( 2 ) ),
+                                    2.0 * fMaxProximityDist + fLength ) : // fmaxproximitydist typically equals ~50 m
                                 sSpeedTable[ i ].fDist < d_to_next_sem ) );
 
                         if( !eSignNext ) {
@@ -959,12 +959,12 @@ TCommandType TController::TableUpdate(double &fVelDes, double &fDist, double &fN
                             // jeśli jedzie (nie trzeba czekać, aż się drgania wytłumią - drzwi zamykane od 1.0) to będzie zatrzymanie
                             sSpeedTable[ i ].fVelNext = 0;
                         } else if( true == IsAtPassengerStop ) {
-                            // jeśli się zatrzymał przy W4, albo stał w momencie zobaczenia W4
+                         // jeśli się zatrzymał przy W4, albo stał w momencie zobaczenia W4
                             if( !AIControllFlag ) {
                                 // w razie przełączenia na AI ma nie podciągać do W4, gdy użytkownik zatrzymał za daleko
                                 iDrivigFlags &= ~moveStopCloser;
                             }
-                            
+
                             if( ( iDrivigFlags & moveDoorOpened ) == 0 ) {
                                 // drzwi otwierać jednorazowo
                                 iDrivigFlags |= moveDoorOpened; // nie wykonywać drugi raz
@@ -1032,8 +1032,8 @@ TCommandType TController::TableUpdate(double &fVelDes, double &fDist, double &fN
                                 if ( ( true == IsCargoTrain )
                                   || ( true == TrainParams.IsMaintenance() )
                                   || ( TrainParams.IsTimeToGo( simulation::Time.data().wHour, simulation::Time.data().wMinute + simulation::Time.data().wSecond*0.0167 ) ) ) {
-                                    // z dalszą akcją czekamy do godziny odjazdu
-                                    // cargo trains and passenger trains at maintenance stop don't need to wait
+                                      // z dalszą akcją czekamy do godziny odjazdu
+                                      // cargo trains and passenger trains at maintenance stop don't need to wait
                                     IsAtPassengerStop = false;
                                     // przy jakim dystansie (stanie licznika) ma przesunąć na następny postój
                                     fLastStopExpDist = mvOccupied->DistCounter + 0.050 + 0.001 * fLength;
@@ -1166,8 +1166,8 @@ TCommandType TController::TableUpdate(double &fVelDes, double &fDist, double &fN
                             }
                         }
                         if( ( SemNextStopIndex == -1 )
-                         || ( ( sSpeedTable[ SemNextStopIndex ].fVelNext != 0 )
-                           && ( sSpeedTable[ i ].fVelNext == 0 ) ) ) {
+                            || ( ( sSpeedTable[ SemNextStopIndex ].fVelNext != 0 )
+                                && ( sSpeedTable[ i ].fVelNext == 0 ) ) ) {
                             SemNextStopIndex = i;
                         }
                     }
@@ -1199,9 +1199,9 @@ TCommandType TController::TableUpdate(double &fVelDes, double &fDist, double &fN
                     if( mvOccupied->Vel < 2.0 ) {
                         // stanąć nie musi, ale zwolnić przynajmniej
                         if( ( sSpeedTable[ i ].fDist < fMaxProximityDist )
-                         && ( Obstacle.distance > 1000 ) ) {
-                            // jest w maksymalnym zasięgu to można go pominąć (wziąć drugą prędkosć)
-                            // as long as there isn't any obstacle in arbitrary view range
+                            && ( Obstacle.distance > 1000 ) ) {
+                               // jest w maksymalnym zasięgu to można go pominąć (wziąć drugą prędkosć)
+                               // as long as there isn't any obstacle in arbitrary view range
                             eSignSkip = sSpeedTable[ i ].evEvent;
                             // jazda na widoczność - skanować możliwość kolizji i nie podjeżdżać zbyt blisko
                             // usunąć flagę po podjechaniu blisko semafora zezwalającego na jazdę
@@ -1285,8 +1285,8 @@ TCommandType TController::TableUpdate(double &fVelDes, double &fDist, double &fN
 
                 //sprawdzenie eventów pasywnych przed nami
                 if( ( mvOccupied->CategoryFlag & 1 )
-                 && ( sSpeedTable[ i ].fDist > Obstacle.distance - 20 ) ) {
-                    // jak sygnał jest dalej niż zawalidroga
+                    && ( sSpeedTable[ i ].fDist > Obstacle.distance - 20 ) ) {
+                       // jak sygnał jest dalej niż zawalidroga
                     v = 0.0; // to może być podany dla tamtego: jechać tak, jakby tam stop był
                 }
                 else
@@ -1318,7 +1318,7 @@ TCommandType TController::TableUpdate(double &fVelDes, double &fDist, double &fN
                                 if( sSpeedTable[ i ].fDist < 0.0 ) {
                                     // jeśli przejechany
                                     //!!! ustawienie, gdy przejechany jest lepsze niż wcale, ale to jeszcze nie to
-                                    VelSignal = v; 
+                                    VelSignal = v;
                                     // to można usunąć (nie mogą być usuwane w skanowaniu)
                                     sSpeedTable[ i ].iFlags = 0;
                                 }
@@ -1330,8 +1330,8 @@ TCommandType TController::TableUpdate(double &fVelDes, double &fDist, double &fN
                         if( go == TCommandType::cm_Unknown ) {
                             // jeśli nie było komendy wcześniej - pierwsza się liczy - ustawianie VelSignal
                             if( ( v < 0.0 )
-                             || ( v >= 1.0 ) ) {
-                                // bo wartość 0.1 służy do hamowania tylko
+                                || ( v >= 1.0 ) ) {
+                                   // bo wartość 0.1 służy do hamowania tylko
                                 go = TCommandType::cm_SetVelocity; // może odjechać
                                 // Ra 2014-06: (VelSignal) nie może być tu ustawiane, bo semafor może być daleko
                                 // VelSignal=v; //nie do końca tak, to jest druga prędkość; -1 nie wpisywać...
@@ -1346,9 +1346,9 @@ TCommandType TController::TableUpdate(double &fVelDes, double &fDist, double &fN
                                     if( sSpeedTable[ i ].iFlags & spEvent ) {
                                         // jeśli event
                                         if( ( sSpeedTable[ i ].evEvent != eSignSkip )
-                                         || ( sSpeedTable[ i ].fVelNext != VelRestricted ) ) {
-                                            // ale inny niż ten, na którym minięto S1, chyba że się już zmieniło
-                                            // sygnał zezwalający na jazdę wyłącza jazdę na widoczność (po S1 na SBL)
+                                            || ( sSpeedTable[ i ].fVelNext != VelRestricted ) ) {
+                                               // ale inny niż ten, na którym minięto S1, chyba że się już zmieniło
+                                               // sygnał zezwalający na jazdę wyłącza jazdę na widoczność (po S1 na SBL)
                                             iDrivigFlags &= ~moveVisibility;
                                             // remove restricted speed
                                             VelRestricted = -1.0;
@@ -1377,66 +1377,85 @@ TCommandType TController::TableUpdate(double &fVelDes, double &fDist, double &fN
                 } // jeśli nie ma zawalidrogi
             } // jeśli event
 
-            if (v >= 0.0) {
+            auto const railwaytrackend { ( true == TestFlag( sSpeedTable[ i ].iFlags, spEnd ) ) && ( mvOccupied->CategoryFlag & 1 ) };
+            if( ( v >= 0.0 )
+             || ( railwaytrackend ) ) {
                 // pozycje z prędkością -1 można spokojnie pomijać
                 d = sSpeedTable[i].fDist;
-                if( ( d > 0.0 )
-                 && ( false == TestFlag( sSpeedTable[ i ].iFlags, spElapsed ) ) ) {
-                    // sygnał lub ograniczenie z przodu (+32=przejechane)
-                    // 2014-02: jeśli stoi, a ma do przejechania kawałek, to niech jedzie
-                    if( ( mvOccupied->Vel < 0.01 )
-                     && ( true == TestFlag( sSpeedTable[ i ].iFlags, ( spEnabled | spEvent | spPassengerStopPoint ) ) )
-                     && ( false == IsAtPassengerStop ) ) {
-                        // ma podjechać bliżej - czy na pewno w tym miejscu taki warunek?
-                        a = ( ( d > passengerstopmaxdistance ) || ( ( iDrivigFlags & moveStopCloser ) != 0 ) ?
-                                fAcc :
-                                0.0 );
-                    }
-                    else {
-                        // przyspieszenie: ujemne, gdy trzeba hamować
-                        a = ( v * v - mvOccupied->Vel * mvOccupied->Vel ) / ( 25.92 * d );
-                        if( ( mvOccupied->Vel < v )
-                         || ( v == 0.0 ) ) {
-                            // if we're going slower than the target velocity and there's enough room for safe stop, speed up
-                            auto const brakingdistance { 1.2 * fBrakeDist * braking_distance_multiplier( v ) };
-                            if( brakingdistance > 0.0 ) {
-                                // maintain desired acc while we have enough room to brake safely, when close enough start paying attention
-                                // try to make a smooth transition instead of sharp change
-                                a = interpolate( a, AccPreferred, clamp( ( d - brakingdistance ) / brakingdistance, 0.0, 1.0 ) );
+                if( v >= 0.0 ) {
+                    if( ( d > 0.0 )
+                     && ( false == TestFlag( sSpeedTable[ i ].iFlags, spElapsed ) ) ) {
+                        // sygnał lub ograniczenie z przodu (+32=przejechane)
+                        // 2014-02: jeśli stoi, a ma do przejechania kawałek, to niech jedzie
+                        if( ( mvOccupied->Vel < 0.01 )
+                         && ( true == TestFlag( sSpeedTable[ i ].iFlags, ( spEnabled | spEvent | spPassengerStopPoint ) ) )
+                         && ( false == IsAtPassengerStop ) ) {
+                            // ma podjechać bliżej - czy na pewno w tym miejscu taki warunek?
+                            a = ( ( d > passengerstopmaxdistance ) || ( ( iDrivigFlags & moveStopCloser ) != 0 ) ?
+                                    fAcc :
+                                    0.0 );
+                        }
+                        else {
+                            // przyspieszenie: ujemne, gdy trzeba hamować
+                            if( v >= 0.0 ) {
+                                a = ( v * v - mvOccupied->Vel * mvOccupied->Vel ) / ( 25.92 * d );
+                                if( ( mvOccupied->Vel < v )
+                                 || ( v == 0.0 ) ) {
+                                    // if we're going slower than the target velocity and there's enough room for safe stop, speed up
+                                    auto const brakingdistance { 1.2 * fBrakeDist * braking_distance_multiplier( v ) };
+                                    if( brakingdistance > 0.0 ) {
+                                        // maintain desired acc while we have enough room to brake safely, when close enough start paying attention
+                                        // try to make a smooth transition instead of sharp change
+                                        a = interpolate( a, AccPreferred, clamp( ( d - brakingdistance ) / brakingdistance, 0.0, 1.0 ) );
+                                    }
+                                }
+                                if( ( d < fMinProximityDist )
+                                 && ( v < fVelDes ) ) {
+                                    // jak jest już blisko, ograniczenie aktualnej prędkości
+                                    fVelDes = v;
+                                }
                             }
                         }
-                        if( ( d < fMinProximityDist )
-                         && ( v < fVelDes ) ) {
+                    }
+                    else if (sSpeedTable[i].iFlags & spTrack) // jeśli tor
+                    { // tor ogranicza prędkość, dopóki cały skład nie przejedzie,
+                        if( v >= 1.0 ) // EU06 się zawieszało po dojechaniu na koniec toru postojowego
+                            if( d + sSpeedTable[ i ].trTrack->Length() < -fLength )
+                                if( false == railwaytrackend )
+                                    continue; // zapętlenie, jeśli już wyjechał za ten odcinek
+                        if( v < fVelDes ) {
+                            // ograniczenie aktualnej prędkości aż do wyjechania za ograniczenie
+                            fVelDes = v;
+                        }
+                        if( false == railwaytrackend )
+                            continue; // i tyle wystarczy
+                    }
+                    else {
+                        // event trzyma tylko jeśli VelNext=0, nawet po przejechaniu (nie powinno dotyczyć samochodów?)
+                        a = (v > 0.0 ?
+                            fAcc :
+                            mvOccupied->Vel < 0.01 ?
+                                 0.0 : // already standing still so no need to bother with brakes
+                                -2.0 ); // ruszanie albo hamowanie
+                    }
+                }
+                // track can potentially end, which creates another virtual point of interest with speed limit of 0 at the end of it
+                // TBD, TODO: when tracing the route create a dedicated table entry for it, to simplify the code?
+                if( ( true == TestFlag( sSpeedTable[ i ].iFlags, spEnd ) )
+                 && ( mvOccupied->CategoryFlag & 1 ) ) {
+                    // if the railway track ends here set the velnext accordingly as well
+                    // TODO: test this with turntables and such
+                    auto const stopatendacceleration = ( -1.0 * mvOccupied->Vel * mvOccupied->Vel ) / ( 25.92 * ( d + sSpeedTable[ i ].trTrack->Length() ) );
+                    if( stopatendacceleration < a ) {
+                        a = stopatendacceleration;
+                        v = 0.0;
+                        d += sSpeedTable[ i ].trTrack->Length();
+                        if( d < fMinProximityDist ) {
                             // jak jest już blisko, ograniczenie aktualnej prędkości
                             fVelDes = v;
                         }
                     }
-                    if( ( true == TestFlag( sSpeedTable[ i ].iFlags, spEnd ) )
-                     && ( mvOccupied->CategoryFlag & 1 ) ) {
-                        // if the railway track ends here set the velnext accordingly as well
-                        // TODO: test this with turntables and such
-                        fNext = 0.0;
-                    }
                 }
-                else if (sSpeedTable[i].iFlags & spTrack) // jeśli tor
-                { // tor ogranicza prędkość, dopóki cały skład nie przejedzie,
-                    // d=fLength+d; //zamiana na długość liczoną do przodu
-                    if( v >= 1.0 ) // EU06 się zawieszało po dojechaniu na koniec toru postojowego
-                        if( d + sSpeedTable[ i ].trTrack->Length() < -fLength )
-                            continue; // zapętlenie, jeśli już wyjechał za ten odcinek
-                    if( v < fVelDes ) {
-                        // ograniczenie aktualnej prędkości aż do wyjechania za ograniczenie
-                        fVelDes = v;
-                    }
-                    // if (v==0.0) fAcc=-0.9; //hamowanie jeśli stop
-                    continue; // i tyle wystarczy
-                }
-                else // event trzyma tylko jeśli VelNext=0, nawet po przejechaniu (nie powinno dotyczyć samochodów?)
-                    a = (v > 0.0 ?
-                            fAcc :
-                            mvOccupied->Vel < 0.01 ?
-                                0.0 : // already standing still so no need to bother with brakes
-                               -2.0 ); // ruszanie albo hamowanie
 
                 if ((a < fAcc) && (v == std::min(v, fNext))) {
                     // mniejsze przyspieszenie to mniejsza możliwość rozpędzenia się albo konieczność hamowania
@@ -5455,7 +5474,7 @@ TController::UpdateSituation(double dt) {
                         ActualProximityDist,
                         Obstacle.distance );
 
-                    if( ActualProximityDist <= (
+                    if( Obstacle.distance <= (
                         ( mvOccupied->CategoryFlag & 2 ) ?
                             100.0 : // cars
                             250.0 ) ) { // others

@@ -566,6 +566,7 @@ public: // reszta może by?publiczna
     TButton btLampkaNadmSil;
     TButton btLampkaWylSzybki;
     TButton btLampkaWylSzybkiOff;
+    TButton btLampkaMainBreakerReady;
     TButton btLampkaNadmWent;
     TButton btLampkaNadmSpr; // TODO: implement
     // yB: drugie lampki dla EP05 i ET42

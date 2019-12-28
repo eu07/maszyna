@@ -3079,9 +3079,7 @@ void TTrain::OnCommand_compressorenable( TTrain *Train, command_data const &Comm
 
 void TTrain::OnCommand_compressordisable( TTrain *Train, command_data const &Command ) {
 
-    if( Train->mvControlled->CompressorPower >= 2 ) {
-        return;
-    }
+    if( Train->mvControlled->CompressorPower >= 2 ) { return; }
 
     if( Command.action == GLFW_PRESS ) {
         // visual feedback
@@ -3103,12 +3101,8 @@ void TTrain::OnCommand_compressordisable( TTrain *Train, command_data const &Com
 
 void TTrain::OnCommand_compressortogglelocal( TTrain *Train, command_data const &Command ) {
 
-    if( Train->mvOccupied->CompressorPower >= 2 ) {
-        return;
-    }
-    if( Train->ggCompressorLocalButton.SubModel == nullptr ) {
-        return;
-    }
+    if( Train->mvOccupied->CompressorPower >= 2 ) { return; }
+    if( Train->ggCompressorLocalButton.SubModel == nullptr ) { return; }
 
     if( Command.action == GLFW_PRESS ) {
         // only reacting to press, so the switch doesn't flip back and forth if key is held down
@@ -3131,48 +3125,54 @@ void TTrain::OnCommand_compressortogglelocal( TTrain *Train, command_data const 
 
 void TTrain::OnCommand_compressorpresetactivatenext(TTrain *Train, command_data const &Command) {
 
-	if (Train->mvOccupied->CompressorListPosNo == 0) {
-		// lights are controlled by preset selector
-		return;
-	}
-	if (Command.action != GLFW_PRESS) {
-		// one change per key press
-		return;
-	}
+	if (Train->mvOccupied->CompressorListPosNo == 0) { return; }
+    if( Command.action == GLFW_REPEAT ) { return; }
 
-	if ((Train->mvOccupied->CompressorListPos < Train->mvOccupied->CompressorListPosNo)
-		|| (true == Train->mvOccupied->CompressorListWrap)) {
-		// active light preset is stored as value in range 1-LigthPosNo
-		Train->mvOccupied->CompressorListPos = (
-			Train->mvOccupied->CompressorListPos < Train->mvOccupied->CompressorListPosNo ?
-			Train->mvOccupied->CompressorListPos + 1 :
-			1); // wrap mode
+    if( Train->ggCompressorListButton.type() == TGaugeType::push ) {
+        // impulse switch
+        if( Train->mvOccupied->CompressorListPosNo < Train->mvOccupied->CompressorListDefPos + 1 ) { return; }
 
-		// visual feedback
-		if (Train->ggCompressorListButton.SubModel != nullptr) {
-			Train->ggCompressorListButton.UpdateValue(Train->mvOccupied->CompressorListPos - 1, Train->dsbSwitch);
-		}
-	}
+        Train->mvOccupied->ChangeCompressorPreset( (
+            Command.action == GLFW_PRESS ?
+                Train->mvOccupied->CompressorListDefPos + 1 :
+                Train->mvOccupied->CompressorListDefPos ) );
+        // visual feedback
+        Train->ggCompressorListButton.UpdateValue( Train->mvOccupied->CompressorListPos - 1, Train->dsbSwitch );
+    }
+    else {
+        // multi-state switch
+        if( Command.action == GLFW_RELEASE ) { return; }
+
+        if( ( Train->mvOccupied->CompressorListPos < Train->mvOccupied->CompressorListPosNo )
+         || ( true == Train->mvOccupied->CompressorListWrap ) ) {
+            // active light preset is stored as value in range 1-LigthPosNo
+            Train->mvOccupied->ChangeCompressorPreset( (
+                Train->mvOccupied->CompressorListPos < Train->mvOccupied->CompressorListPosNo ?
+                    Train->mvOccupied->CompressorListPos + 1 :
+                    1 ) ); // wrap mode
+            // visual feedback
+            Train->ggCompressorListButton.UpdateValue( Train->mvOccupied->CompressorListPos - 1, Train->dsbSwitch );
+        }
+    }
 }
 
 void TTrain::OnCommand_compressorpresetactivateprevious(TTrain *Train, command_data const &Command) {
 
-	if (Train->mvOccupied->CompressorListPosNo == 0) {
-		// lights are controlled by preset selector
-		return;
-	}
-	if (Command.action != GLFW_PRESS) {
-		// one change per key press
-		return;
-	}
+	if (Train->mvOccupied->CompressorListPosNo == 0) { return; }
+	if (Command.action != GLFW_PRESS) { return; } // one change per key press
+
+    if( Train->ggCompressorListButton.type() == TGaugeType::push ) {
+        // impulse switch toggles only between positions 'default' and 'default+1'
+        return;
+    } 
 
 	if ((Train->mvOccupied->CompressorListPos > 1)
 		|| (true == Train->mvOccupied->CompressorListWrap)) {
 		// active light preset is stored as value in range 1-LigthPosNo
-		Train->mvOccupied->CompressorListPos = (
+		Train->mvOccupied->ChangeCompressorPreset( (
 			Train->mvOccupied->CompressorListPos > 1 ?
 			Train->mvOccupied->CompressorListPos - 1 :
-			Train->mvOccupied->CompressorListPosNo); // wrap mode
+			Train->mvOccupied->CompressorListPosNo) ); // wrap mode
 
 		// visual feedback
 		if (Train->ggCompressorListButton.SubModel != nullptr) {
@@ -3183,18 +3183,12 @@ void TTrain::OnCommand_compressorpresetactivateprevious(TTrain *Train, command_d
 
 void TTrain::OnCommand_compressorpresetactivatedefault(TTrain *Train, command_data const &Command) {
 
-	if (Train->mvOccupied->CompressorListPosNo == 0) {
-		// lights are controlled by preset selector
-		return;
-	}
-	if (Command.action != GLFW_PRESS) {
-		// one change per key press
-		return;
-	}
+	if (Train->mvOccupied->CompressorListPosNo == 0) { return; }
+	if (Command.action != GLFW_PRESS) { return; } // one change per key press
 
-	Train->mvOccupied->CompressorListPos = Train->mvOccupied->CompressorListDefPos;
+	Train->mvOccupied->ChangeCompressorPreset( Train->mvOccupied->CompressorListDefPos );
 
-													 // visual feedback
+    // visual feedback
 	if (Train->ggCompressorListButton.SubModel != nullptr) {
 			Train->ggCompressorListButton.UpdateValue(Train->mvOccupied->CompressorListPos - 1, Train->dsbSwitch);
 	}
@@ -6166,8 +6160,12 @@ bool TTrain::Update( double const Deltatime )
                     true :
                     false ) );
             btLampkaWylSzybkiOff.Turn(
+                ( ( ( m_linebreakerstate == 2 )
+                 || ( true == mvControlled->Mains ) ) ?
+                    false :
+                    true ) );
+            btLampkaMainBreakerReady.Turn(
                 ( ( ( mvControlled->MainsInitTimeCountdown > 0.0 )
-//                 || ( fHVoltage == 0.0 )
                  || ( m_linebreakerstate == 2 )
                  || ( true == mvControlled->Mains ) ) ?
                     false :
@@ -6328,6 +6326,7 @@ bool TTrain::Update( double const Deltatime )
             btLampkaSHP.Turn( false );
             btLampkaWylSzybki.Turn( false );
             btLampkaWylSzybkiOff.Turn( false );
+            btLampkaMainBreakerReady.Turn( false );
             btLampkaWysRozr.Turn( false );
             btLampkaOpory.Turn( false );
             btLampkaStyczn.Turn( false );
@@ -6406,7 +6405,7 @@ bool TTrain::Update( double const Deltatime )
                     btLampkaWylSzybkiB.Turn( mover->Mains );
                     btLampkaWylSzybkiBOff.Turn(
                         ( false == mover->Mains )
-                     && ( mover->MainsInitTimeCountdown <= 0.0 )
+                    /*&& ( mover->MainsInitTimeCountdown <= 0.0 )*/
                    /*&& ( fHVoltage != 0.0 )*/ );
 
                     btLampkaOporyB.Turn( mover->ResistorsFlagCheck() );
@@ -8024,6 +8023,7 @@ void TTrain::clear_cab_controls()
     btLampkaWylSzybkiOff.Clear();
     btLampkaWylSzybkiB.Clear();
     btLampkaWylSzybkiBOff.Clear();
+    btLampkaMainBreakerReady.Clear();
     btLampkaBezoporowa.Clear();
     btLampkaBezoporowaB.Clear();
     btLampkaMaxSila.Clear();
@@ -8445,6 +8445,7 @@ bool TTrain::initialize_button(cParser &Parser, std::string const &Label, int co
         { "i-mainbreakerb:", btLampkaWylSzybkiB },
         { "i-mainbreakeroff:", btLampkaWylSzybkiOff },
         { "i-mainbreakerboff:", btLampkaWylSzybkiBOff },
+        { "i-mainbreakerready:", btLampkaMainBreakerReady },
         { "i-vent_ovld:", btLampkaNadmWent },
         { "i-comp_ovld:", btLampkaNadmSpr },
         { "i-resistors:", btLampkaOpory },

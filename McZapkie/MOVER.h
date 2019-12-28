@@ -1639,6 +1639,7 @@ public:
     void MainSwitch_( bool const State );
     bool ConverterSwitch( bool State, range_t const Notify = range_t::consist );/*! wl/wyl przetwornicy*/
     bool CompressorSwitch( bool State, range_t const Notify = range_t::consist );/*! wl/wyl sprezarki*/
+    bool ChangeCompressorPreset( int const Change, range_t const Notify = range_t::consist );
 
 									  /*-funkcje typowe dla lokomotywy elektrycznej*/
     void MainsCheck( double const Deltatime );
