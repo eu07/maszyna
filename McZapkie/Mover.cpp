@@ -3980,6 +3980,10 @@ void TMoverParameters::UpdatePipePressure(double dt)
 
 		if ((EngineType != TEngineType::ElectricInductionMotor)) {
 			double lbpa = LocalBrakePosA;
+			if ((EIMCtrlType > 0) && (UniCtrlIntegratedLocalBrakeCtrl))
+			{
+				lbpa = std::max(0.0, -eimic_real);
+			}
 			if (SpeedCtrlUnit.Parking) {
 				lbpa = std::max(lbpa, StopBrakeDecc);
 			}
@@ -4938,7 +4942,10 @@ double TMoverParameters::TractionForce( double dt ) {
             if( ( true == Mains )
              && ( true == FuelPump.is_active ) ) {
 
-                tmp = DElist[ MainCtrlPos ].RPM / 60.0;
+				if (EIMCtrlType > 0) //sterowanie cyfrowe
+                    tmp = (DElist[0].RPM + ((DElist[MainCtrlPosNo].RPM - DElist[0].RPM) * std::max(0.0,eimic_real))) / 60.0;
+				else
+					tmp = DElist[ MainCtrlPos ].RPM / 60.0;
 
                 if( ( true == HeatingAllow )
                  && ( HeatingPower > 0 )
@@ -5294,7 +5301,44 @@ double TMoverParameters::TractionForce( double dt ) {
         {
             //       tmpV:=V*CabActive*DirActive;
             auto const tmpV { nrot * Pirazy2 * 0.5 * WheelDiameter * DirAbsolute }; //*CabActive*DirActive;
+            auto tempUmax = 0.0;
+            auto tempImax = 0.0;
+            auto tempPmax = 0.0;
             // jazda manewrowa
+            if (EIMCtrlType > 0) //sterowanie cyfrowe
+            {
+                auto eimic_positive = std::max(0.0, eimic_real);
+                auto const rpmratio {60.0 * enrot / DElist[MainCtrlPosNo].RPM};
+                tempImax = DElist[MainCtrlPosNo].Imax * eimic_positive;
+                tempUmax = DElist[MainCtrlPosNo].Umax * std::min(eimic_positive, rpmratio);
+                tempPmax = DElist[MainCtrlPosNo].GenPower * std::min(eimic_positive, rpmratio);
+                tmp = tempPmax;
+                // NOTE: Mains in this context is working diesel engine
+                if ((true == Mains) && (MainCtrlPowerPos() > 0))
+                {
+
+                    if (tmpV < (Vhyp * tempPmax / DElist[MainCtrlPosNo].GenPower))
+                    {
+                        // czy na czesci prostej, czy na hiperboli
+                        Ft = (Ftmax -
+                              ((Ftmax - 1000.0 * DElist[MainCtrlPosNo].GenPower / (Vhyp + Vadd)) *
+                               (tmpV / Vhyp) / PowerCorRatio)) *
+                             eimic_positive; // posratio - bo sila jakos tam sie rozklada
+                    }
+                    else
+                    {
+                        // na hiperboli
+                        // 1.107 - wspolczynnik sredniej nadwyzki Ft w symku nad charakterystyka
+                        Ft = 1000.0 * tempPmax / (tmpV + Vadd) /
+                             PowerCorRatio; // tu jest zawarty stosunek mocy
+                    }
+                }
+                else
+                    Ft = 0; // jak nastawnik na zero, to sila tez zero
+
+                PosRatio = tempPmax / DElist[MainCtrlPosNo].GenPower;
+            }
+            else
             if( true == ShuntMode ) {
                 if( ( true == Mains ) && ( MainCtrlPowerPos() > 0 ) ) {
                     EngineVoltage = ( SST[ MainCtrlPos ].Umax * AnPos ) + ( SST[ MainCtrlPos ].Umin * ( 1.0 - AnPos ) );
@@ -5313,6 +5357,9 @@ double TMoverParameters::TractionForce( double dt ) {
             else // jazda ciapongowa
             {
                 auto power = Power;
+                tempImax = DElist[MainCtrlPos].Imax;
+                tempUmax = DElist[MainCtrlPos].Umax;
+				tempPmax = DElist[MainCtrlPos].GenPower;
                 if( true == Heating ) { power -= HeatingPower; }
                 if( power < 0.0 ) { power = 0.0; }
                 // NOTE: very crude way to approximate power generated at current rpm instead of instant top output
@@ -5377,10 +5424,10 @@ double TMoverParameters::TractionForce( double dt ) {
             }
             else
             {
-                if (abs(Im) > DElist[MainCtrlPos].Imax)
+                if (abs(Im) > tempImax)
                 { // nie ma nadmiarowego, tylko Imax i zwarcie na pradnicy
-                    Ft = Ft / Im * DElist[MainCtrlPos].Imax;
-                    Im = DElist[MainCtrlPos].Imax;
+                    Ft = Ft / Im * tempImax;
+                    Im = tempImax;
                 }
 
                 if( Im > 0 ) {
@@ -5390,25 +5437,26 @@ double TMoverParameters::TractionForce( double dt ) {
                         EngineVoltage = 1000.0 * tmp / std::abs( Im );
                     }
                     else {
+                        auto tempMCP = EIMCtrlType > 0 ? 1 + 99 * std::max(1.0, eimic_real) : MainCtrlPos;
+                        auto tempMCPN = EIMCtrlType > 0 ? 100 : MainCtrlPosNo;
                         // charakterystyka pradnicy obcowzbudnej (elipsa) - twierdzenie Pitagorasa
                         EngineVoltage =
                             std::sqrt(
                                 std::abs(
-                                    square( DElist[ MainCtrlPos ].Umax )
-                                    - square( DElist[ MainCtrlPos ].Umax * Im / DElist[ MainCtrlPos ].Imax ) ) )
-                            * ( MainCtrlPos - 1 )
-                            + ( 1.0 - Im / DElist[ MainCtrlPos ].Imax ) * DElist[ MainCtrlPos ].Umax * ( MainCtrlPosNo - MainCtrlPos );
-                        EngineVoltage /= ( MainCtrlPosNo - 1 );
+                                square(tempUmax) - square(tempUmax * Im / tempImax))) *
+                                            (tempMCP - 1) +
+                                        (1.0 - Im / tempImax) * tempUmax * (tempMCPN - tempMCP);
+                        EngineVoltage /= (tempMCPN - 1);
                         EngineVoltage = clamp(
                             EngineVoltage,
                             Im * 0.05, ( 1000.0 * tmp / std::abs( Im ) ) );
                     }
                 }
 
-                if( ( EngineVoltage > DElist[ MainCtrlPos ].Umax )
+                if ((EngineVoltage > tempUmax)
                  || ( Im == 0 ) ) {
                     // gdy wychodzi za duze napiecie albo przy biegu jalowym (jest cos takiego?)
-                    EngineVoltage = DElist[ MainCtrlPos ].Umax * ( ConverterFlag ? 1 : 0 ); 
+                    EngineVoltage = tempUmax * (ConverterFlag ? 1 : 0); 
                 }
 
                 EnginePower = EngineVoltage * Im / 1000.0;
@@ -6671,9 +6719,9 @@ void TMoverParameters::CheckEIMIC(double dt)
 			LastRelayTime = 0;
 			MainCtrlActualPos = MainCtrlPos;
 		}
-		if (Hamulec->GetEDBCP() > 0.3 && eimic < 0) //when braking with pneumatic brake
+		if (Hamulec->GetEDBCP() > 0.3 && eimic < 0 && !UniCtrlIntegratedLocalBrakeCtrl) //when braking with pneumatic brake
 			eimic = 0; //shut off retarder
-		if (UniCtrlIntegratedBrakeCtrl == false)
+		if ((UniCtrlIntegratedBrakeCtrl == false)&&(UniCtrlIntegratedLocalBrakeCtrl == false))
 		{
 			eimic = (LocalBrakeRatio() > 0.01 ? -LocalBrakeRatio() : eimic);
 		}
@@ -10177,6 +10225,7 @@ void TMoverParameters::LoadFIZ_UCList(std::string const &Input) {
 
 	extract_value( UniCtrlListSize, "Size", Input, "" );
 	extract_value( UniCtrlIntegratedBrakeCtrl, "IntegratedBrake", Input, "" );
+    extract_value( UniCtrlIntegratedLocalBrakeCtrl, "IntegratedLocBrake", Input, "");
 	extract_value( UniCtrlIntegratedBrakePNCtrl, "IntegratedBrakePN", Input, "" );
 
 }

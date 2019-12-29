@@ -2824,8 +2824,9 @@ bool TDynamicObject::Update(double dt, double dt1)
     if (Mechanik)
     { // Ra 2F3F: do Driver.cpp to przenieść?
         MoverParameters->EqvtPipePress = GetEPP(); // srednie cisnienie w PG
-		if ((Mechanik->primary())
-			&& (MoverParameters->EngineType == TEngineType::DieselEngine)
+		if ((Mechanik->primary()) &&
+            ((MoverParameters->EngineType == TEngineType::DieselEngine) ||
+             (MoverParameters->EngineType == TEngineType::DieselElectric))
 			&& (MoverParameters->EIMCtrlType > 0)) {
 			MoverParameters->CheckEIMIC(dt1);
 			if (MoverParameters->SpeedCtrl)
