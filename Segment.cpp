@@ -552,10 +552,20 @@ glm::vec3 TSegment::get_nearest_point(const glm::dvec3 &point, float quality) co
 	float min = std::numeric_limits<float>::max();
 
 	for (x = step; x <= 1.0f; x += step) {
-		glm::vec3 p = FastGetPoint(x);
-		float dist2 = glm::distance2(p, (glm::vec3)point);
+        glm::vec3 p1 = FastGetPoint(x);
+        glm::vec3 p2 = FastGetPoint(glm::min(1.0f, x + step));
+
+        if (p1 != p2) {
+            float l2 = glm::distance2(p1, p2);
+            float t = glm::max(0.0f, glm::min(1.0f, glm::dot((glm::vec3)point - p1, p2 - p1) / l2));
+            glm::vec3 proj = p1 + t * (p2 - p1);
+            p1 = proj;
+        }
+
+        float dist2 = glm::distance2(p1, (glm::vec3)point);
+
 		if (dist2 < min) {
-			nearest = p;
+            nearest = p1;
 			min = dist2;
 		}
 	}

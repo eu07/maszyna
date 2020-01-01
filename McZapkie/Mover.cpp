@@ -171,8 +171,7 @@ bool TSecuritySystem::is_cabsignal_beeping() const {
 }
 
 bool TSecuritySystem::is_braking() const {
-	return alert_timer > SoundSignalDelay + EmergencyBrakeDelay
-	        && (velocity > AwareMinSpeed || pressed);
+	return alert_timer > SoundSignalDelay + EmergencyBrakeDelay;
 }
 
 bool TSecuritySystem::radiostop_available() const {
@@ -3970,6 +3969,10 @@ void TMoverParameters::UpdatePipePressure(double dt)
 	 || ( true == AlarmChainFlag )
 	 || SecuritySystem.is_braking() ) {
 		dpMainValve = dpMainValve + PF( 0, PipePress, 0.15 ) * dt;
+
+        if (EIMCtrlType > 0) {
+            eimic = 0;
+        }
 	}
 
     // 0.2*Spg

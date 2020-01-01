@@ -665,10 +665,10 @@ void opengl_renderer::Render_pass(viewport_config &vp, rendermode const Mode)
 		gl::buffer::unbind();
 		m_current_viewport = &vp;
 
-		if (!simulation::is_ready)
+        if (!simulation::is_ready || Global.skip_main_render)
 		{
 			gl::framebuffer::unbind();
-			glClearColor(0.0f, 0.5f, 0.0f, 1.0f);
+            glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
 			glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 			if (vp.main)
 				Application.render_ui();
@@ -3733,6 +3733,10 @@ void opengl_renderer::Update_Pick_Node()
 
 void opengl_renderer::pick_control(std::function<void(const TSubModel *, glm::vec2)> callback)
 {
+  if (!Global.render_cab) {
+    callback(nullptr, glm::vec2());
+    return;
+  }
 	m_control_pick_requests.push_back(callback);
 }
 
@@ -3975,7 +3979,7 @@ void opengl_renderer::Update_Lights(light_array &Lights)
 		l->linear = headlight_config.falloff_linear / 10.0f;
 		l->quadratic = headlight_config.falloff_quadratic / 100.0f;
 		l->ambient = headlight_config.ambient;
-		l->intensity = headlight_config.intensity;
+        l->intensity = headlight_config.intensity * scenelight.intensity;
 		light_i++;
 
 		++renderlight;

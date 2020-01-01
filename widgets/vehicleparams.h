@@ -1,3 +1,5 @@
+#pragma once
+
 #include "uilayer.h"
 #include "translation.h"
 #include "command.h"

@@ -392,6 +392,10 @@ global_settings::ConfigParse(cParser &Parser) {
 			Parser.getTokens();
 			Parser >> render_cab;
 		}
+        else if (token == "skipmainrender") {
+            Parser.getTokens();
+            Parser >> skip_main_render;
+        }
         else if( token == "createswitchtrackbeds" ) {
             // podwójna jasność ambient
             Parser.getTokens();
@@ -741,6 +745,14 @@ global_settings::ConfigParse(cParser &Parser) {
 		else if (token == "gui.defaultwindows") {
 			Parser.getTokens(1);
 			Parser >> gui_defaultwindows;
+		}
+		else if (token == "gui.showtranscripts") {
+			Parser.getTokens(1);
+			Parser >> gui_showtranscripts;
+		}
+        else if (token == "gui.trainingdefault") {
+			Parser.getTokens(1);
+            Parser >> gui_trainingdefault;
 		}
         else if (token == "gfx.framebuffer.width")
         {

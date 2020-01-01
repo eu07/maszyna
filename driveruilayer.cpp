@@ -26,7 +26,8 @@ driver_ui::driver_ui() {
 	add_external_panel( &m_scenariopanel );
 	add_external_panel( &m_timetablepanel );
 	add_external_panel( &m_debugpanel );
-	add_external_panel( &m_transcriptspanel );
+	if (Global.gui_showtranscripts)
+        add_external_panel( &m_transcriptspanel );
 
 	add_external_panel( &m_trainingcardpanel );
 	add_external_panel( &m_vehiclelist );
@@ -55,6 +56,12 @@ driver_ui::driver_ui() {
 		m_aidpanel.is_open = true;
 		m_scenariopanel.is_open = true;
 	}
+
+    if (Global.gui_trainingdefault) {
+        m_mappanel.is_open = true;
+        m_trainingcardpanel.is_open = true;
+        m_vehiclelist.is_open = true;
+    }
 }
 
 void driver_ui::render_menu_contents() {
@@ -235,6 +242,7 @@ driver_ui::render_() {
 	const std::string *rec_name = m_trainingcardpanel.is_recording();
 	if (rec_name && m_cameraviewpanel.set_state(true)) {
 		m_cameraviewpanel.rec_name = *rec_name;
+        m_cameraviewpanel.is_open = true;
 	} else if (!rec_name)
 		m_cameraviewpanel.set_state(false);
 

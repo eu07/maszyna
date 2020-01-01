@@ -27,6 +27,7 @@ http://mozilla.org/MPL/2.0/.
 #include "renderer.h"
 #include "utilities.h"
 #include "Logs.h"
+#include "widgets/vehicleparams.h"
 
 void
 drivingaid_panel::update() {
