@@ -4071,7 +4071,7 @@ opengl_renderer::Update_Lights( light_array &Lights ) {
             if( Left.intensity  == 0.f ) { return false; }
             if( Right.intensity == 0.f ) { return true; }
             // ...otherwise prefer closer and/or brigher light sources
-            return ( glm::length2( camera - Left.position ) * ( 1.f - Left.intensity ) ) < ( glm::length2( camera - Right.position ) * ( 1.f - Right.intensity ) ); } );
+            return ( glm::length2( camera - Left.position ) / Left.intensity ) < ( glm::length2( camera - Right.position ) / Right.intensity ); } );
 
     size_t const count = std::min( m_lights.size(), Lights.data.size() );
     if( count == 0 ) { return; }

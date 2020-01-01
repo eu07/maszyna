@@ -21,6 +21,7 @@ public:
         glm::vec3 color{ 255.0f / 255.0f, 241.0f / 255.0f, 224.0f / 255.0f }; // color of the light, default is halogen light
         float intensity{ 0.0f }; // (combined) intensity of the light(s)
         int count{ 0 }; // number (or pattern) of active light(s)
+        glm::vec3 state{ 0.f }; // state of individual lights
     };
 
 // methods

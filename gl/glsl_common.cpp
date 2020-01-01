@@ -19,6 +19,7 @@ void gl::glsl_common_setup()
     const uint LIGHT_SPOT = 0U;
     const uint LIGHT_POINT = 1U;
     const uint LIGHT_DIR = 2U;
+    const uint LIGHT_HEADLIGHTS = 3U;
 
     struct light_s
     {
@@ -36,6 +37,9 @@ void gl::glsl_common_setup()
 
 	        float intensity;
 	        float ambient;
+
+            mat4 headlight_projection;
+            vec4 headlight_weights;
     };
 
     layout(std140) uniform light_ubo

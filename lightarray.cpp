@@ -46,12 +46,12 @@ light_array::update() {
         // update light parameters to match current data of the owner
         if( light.index == end::front ) {
             // front light set
-            light.position = light.owner->GetPosition() + ( light.owner->VectorFront() * light.owner->GetLength() * 0.4 );
+            light.position = light.owner->GetPosition() + ( light.owner->VectorFront() * ( std::max( 0.0, light.owner->GetLength() * 0.5 - 2.0 ) ) );// +( light.owner->VectorUp() * 0.25 );
             light.direction = glm::make_vec3( light.owner->VectorFront().getArray() );
         }
         else {
             // rear light set
-            light.position = light.owner->GetPosition() - ( light.owner->VectorFront() * light.owner->GetLength() * 0.4 );
+            light.position = light.owner->GetPosition() - ( light.owner->VectorFront() * ( std::max( 0.0, light.owner->GetLength() * 0.5 - 2.0 ) ) );// +( light.owner->VectorUp() * 0.25 );
             light.direction = glm::make_vec3( light.owner->VectorFront().getArray() );
             light.direction.x = -light.direction.x;
             light.direction.z = -light.direction.z;
@@ -72,9 +72,15 @@ light_array::update() {
                 light.intensity = std::max( 0.0f, std::log( (float)light.count  + 1.0f ) );
                 light.intensity *= ( light.owner->DimHeadlights ? 0.6f : 1.0f );
                 // TBD, TODO: intensity can be affected further by other factors
+                light.state = {
+                    ( ( lights & light::headlight_left  ) ? 1.f : 0.f ),
+                    ( ( lights & light::headlight_upper ) ? 1.f : 0.f ),
+                    ( ( lights & light::headlight_right ) ? 1.f : 0.f ) };
+                light.state *= ( light.owner->DimHeadlights ? 0.6f : 1.0f );
             }
             else {
                 light.intensity = 0.0f;
+                light.state = glm::vec3{ 0.f };
             }
         }
         else {

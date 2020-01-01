@@ -272,8 +272,9 @@ void gl::program::init()
         glUniform1i(loc, e.id);
     }
 
-    glUniform1i(glGetUniformLocation(*this, "shadowmap"), MAX_TEXTURES + 0);
-    glUniform1i(glGetUniformLocation(*this, "envmap"), MAX_TEXTURES + 1);
+    glUniform1i(glGetUniformLocation(*this, "shadowmap"), gl::SHADOW_TEX);
+    glUniform1i(glGetUniformLocation(*this, "envmap"), gl::ENV_TEX);
+    glUniform1i( glGetUniformLocation( *this, "headlightmap" ), gl::HEADLIGHT_TEX);
 
 	GLuint index;
 

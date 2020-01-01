@@ -279,6 +279,7 @@ class opengl33_renderer : public gfx_renderer {
 	texture_handle m_suntexture{-1};
     texture_handle m_moontexture{-1};
 	texture_handle m_smoketexture{-1};
+    texture_handle m_headlightstexture{-1};
 
 	// main shadowmap resources
 	int m_shadowbuffersize{2048};
@@ -396,11 +397,11 @@ class opengl33_renderer : public gfx_renderer {
 		float in_cutoff = 1.005f;
 		float out_cutoff = 0.993f;
 
-		float falloff_linear = 0.069f;
-		float falloff_quadratic = 0.03f;
+		float falloff_linear = 0.15f;
+		float falloff_quadratic = 0.15f;
 
 		float intensity = 1.0f;
-		float ambient = 0.184f;
+		float ambient = 0.0f;
 	};
 
 	headlight_config_s headlight_config;

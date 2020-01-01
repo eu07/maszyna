@@ -39,8 +39,7 @@ ErrorCallback( GLenum source, GLenum type, GLuint id, GLenum severity, GLsizei l
 bool opengl33_renderer::Init(GLFWwindow *Window)
 {
 /*
-    if( false == Global.gfx_usegles ) {
-        // enable for gles after move to 3.2+
+    if( GLAD_GL_KHR_debug ) {
         glEnable( GL_DEBUG_OUTPUT );
         glDebugMessageCallback( ErrorCallback, 0 );
     }
@@ -82,6 +81,7 @@ bool opengl33_renderer::Init(GLFWwindow *Window)
 	m_suntexture = Fetch_Texture("fx/sun");
 	m_moontexture = Fetch_Texture("fx/moon");
 	m_smoketexture = Fetch_Texture("fx/smoke");
+    m_headlightstexture = Fetch_Texture("fx/headlights:st");
 
 	// prepare basic geometry chunks
 	float const size = 2.5f / 2.0f;
@@ -1329,7 +1329,7 @@ void opengl33_renderer::setup_drawing(bool const Alpha)
 
 void opengl33_renderer::setup_shadow_unbind_map()
 {
-    opengl_texture::unbind( gl::MAX_TEXTURES + 0 );
+    opengl_texture::unbind( gl::SHADOW_TEX );
 }
 
 // binds shadow map and updates shadow map uniform data
@@ -1337,7 +1337,7 @@ void opengl33_renderer::setup_shadow_bind_map()
 {
     if( false == Global.gfx_shadowmap_enabled ) { return; }
 
-    m_shadow_tex->bind(gl::MAX_TEXTURES + 0);
+    m_shadow_tex->bind(gl::SHADOW_TEX);
 
 	glm::mat4 coordmove;
 
@@ -1386,12 +1386,12 @@ void opengl33_renderer::setup_env_map(gl::cubemap *tex)
 {
 	if (tex)
 	{
-		tex->bind(GL_TEXTURE0 + gl::MAX_TEXTURES + 1);
+		tex->bind(GL_TEXTURE0 + gl::ENV_TEX);
 		glActiveTexture(GL_TEXTURE0);
 	}
 	else
 	{
-		glActiveTexture(GL_TEXTURE0 + gl::MAX_TEXTURES + 1);
+		glActiveTexture(GL_TEXTURE0 + gl::ENV_TEX);
 		glBindTexture(GL_TEXTURE_CUBE_MAP, 0);
 		glActiveTexture(GL_TEXTURE0);
 	}
@@ -3958,43 +3958,56 @@ void opengl33_renderer::Update_Lights(light_array &Lights)
 {
 	glDebug("Update_Lights");
 
+    Bind_Texture( gl::HEADLIGHT_TEX, m_headlightstexture );
+
 	// arrange the light array from closest to farthest from current position of the camera
 	auto const camera = m_renderpass.pass_camera.position();
-	std::sort(std::begin(Lights.data), std::end(Lights.data), [&camera](light_array::light_record const &Left, light_array::light_record const &Right) {
-		// move lights which are off at the end...
-		if (Left.intensity == 0.f)
-		{
-			return false;
-		}
-		if (Right.intensity == 0.f)
-		{
-			return true;
-		}
-		// ...otherwise prefer closer and/or brigher light sources
-		return (glm::length2(camera - Left.position) * (1.f - Left.intensity)) < (glm::length2(camera - Right.position) * (1.f - Right.intensity));
-	});
+	std::sort(
+        std::begin(Lights.data), std::end(Lights.data),
+        [&camera](light_array::light_record const &Left, light_array::light_record const &Right) {
+		    // move lights which are off at the end...
+		    if (Left.intensity  == 0.f) { return false; }
+		    if (Right.intensity == 0.f) { return true; }
+		    // ...otherwise prefer closer and/or brigher light sources
+		    return (glm::length2(camera - Left.position) / Left.intensity) < (glm::length2(camera - Right.position) / Right.intensity);
+    	});
 
-	auto renderlight = m_lights.begin();
-	size_t light_i = 1;
+    // set up helpers
+   	glm::mat4 coordmove;
+	if (GLAD_GL_ARB_clip_control || GLAD_GL_EXT_clip_control)
+		// transform 1..-1 NDC xy coordinates to 1..0
+		coordmove = glm::mat4( //
+			0.5, 0.0, 0.0, 0.0, //
+			0.0, 0.5, 0.0, 0.0, //
+			0.0, 0.0, 1.0, 0.0, //
+			0.5, 0.5, 0.0, 1.0 //
+		);
+	else
+		// without clip_control we also need to transform z
+		coordmove = glm::mat4( //
+			0.5, 0.0, 0.0, 0.0, //
+			0.0, 0.5, 0.0, 0.0, //
+			0.0, 0.0, 0.5, 0.0, //
+			0.5, 0.5, 0.5, 1.0 //
+		);
+    glm::mat4 mv = OpenGLMatrices.data( GL_MODELVIEW );
 
-	glm::mat4 mv = OpenGLMatrices.data(GL_MODELVIEW);
+    // fill vehicle headlights data
+    auto renderlight = m_lights.begin();
+    size_t light_i = 1;
 
-	for (auto const &scenelight : Lights.data)
+    for (auto const &scenelight : Lights.data)
 	{
-
-		if (renderlight == m_lights.end())
-		{
+		if (renderlight == m_lights.end()) {
 			// we ran out of lights to assign
 			break;
 		}
-		if (scenelight.intensity == 0.f)
-		{
+		if (scenelight.intensity == 0.f) {
 			// all lights past this one are bound to be off
 			break;
 		}
 		auto const lightoffset = glm::vec3{scenelight.position - camera};
-		if (glm::length(lightoffset) > 1000.f)
-		{
+		if (glm::length(lightoffset) > 1000.f) {
 			// we don't care about lights past arbitrary limit of 1 km.
 			// but there could still be weaker lights which are closer, so keep looking
 			continue;
@@ -4016,39 +4029,89 @@ void opengl33_renderer::Update_Lights(light_array &Lights)
 		renderlight->apply_intensity( ( scenelight.count * 0.5 ) * ( scenelight.owner->DimHeadlights ? 0.5 : 1.0 ) );
 		renderlight->apply_angle();
 
-		gl::light_element_ubs *l = &light_ubs.lights[light_i];
-		l->pos = mv * glm::vec4(renderlight->position, 1.0f);
-		l->dir = mv * glm::vec4(renderlight->direction, 0.0f);
-		l->type = gl::light_element_ubs::SPOT;
-		l->in_cutoff = headlight_config.in_cutoff;
-		l->out_cutoff = headlight_config.out_cutoff;
-		l->color = renderlight->diffuse * renderlight->factor;
-		l->linear = headlight_config.falloff_linear / 10.0f;
-		l->quadratic = headlight_config.falloff_quadratic / 100.0f;
-		l->ambient = headlight_config.ambient;
-		l->intensity = headlight_config.intensity;
-		light_i++;
+		gl::light_element_ubs *light = &light_ubs.lights[light_i];
 
+		light->pos = mv * glm::vec4(renderlight->position, 1.0f);
+		light->dir = mv * glm::vec4(renderlight->direction, 0.0f);
+		light->type = gl::light_element_ubs::HEADLIGHTS;
+		light->in_cutoff = headlight_config.in_cutoff;
+		light->out_cutoff = headlight_config.out_cutoff;
+		light->color = renderlight->diffuse * renderlight->factor;
+		light->linear = headlight_config.falloff_linear / 10.0f;
+		light->quadratic = headlight_config.falloff_quadratic / 100.0f;
+		light->ambient = headlight_config.ambient;
+		light->intensity = headlight_config.intensity;
+        // headlights-to-world projection
+        {
+            // headlight projection is 1 km long box aligned with vehicle rotation and aimed slightly downwards
+            opengl_camera headlights;
+            auto const &ownerdimensions{ scenelight.owner->MoverParameters->Dim };
+            auto const up{ static_cast<glm::dvec3>( scenelight.owner->VectorUp() ) };
+            auto const size{ static_cast<float>( std::max( ownerdimensions.W, ownerdimensions.H ) * 1.0 ) }; // ensure square ratio
+            headlights.position() =
+                scenelight.owner->GetPosition()
+                - scenelight.direction * 150.f
+                + up * ( size * 0.5 );
+/*
+            headlights.projection() = ortho_projection(
+                -size, size,
+                -size, size,
+                ownerdimensions.L * 0.5 - 0.5, 1000.0f );
+*/
+            headlights.projection() = perspective_projection(
+                glm::radians( 2.5 ),
+                1.0,
+                ownerdimensions.L * 0.5 + 150.0 - 0.25, 1000.0f );
+            glm::dmat4 viewmatrix{ 1.0 };
+            viewmatrix *=
+                glm::lookAt(
+                    headlights.position(),
+                    headlights.position()
+                    - up * 1.0
+                    + glm::dvec3{ scenelight.direction * 1000.f },
+                    glm::dvec3{ 0.f, 1.f, 0.f } );
+            headlights.modelview() = viewmatrix;
+            // calculate world->headlight space projection matrix
+            glm::mat4 const depthproj{ headlights.projection() };
+            // NOTE: we strip transformations from camera projections to remove jitter that occurs
+            // with large (and unneded as we only need the offset) transformations back and forth
+            auto const lightcam{ glm::mat3{ headlights.modelview() } };
+            auto const worldcam{ glm::mat3{ m_renderpass.pass_camera.modelview() } };
+
+            light->headlight_projection =
+                coordmove
+                * depthproj
+                * glm::translate(
+                    glm::mat4{ lightcam },
+                    glm::vec3{ m_renderpass.pass_camera.position() - headlights.position() } )
+                * glm::mat4{ glm::inverse( worldcam ) };
+        }
+        // headlights weights
+        light->headlight_weights = { scenelight.state, 0.f };
+
+		++light_i;
 		++renderlight;
 	}
-
+    light_ubs.lights_count = light_i;
+    // fill sunlight data
     light_ubs.ambient = m_sunlight.ambient * m_sunlight.factor;// *simulation::Environment.light_intensity();
 	light_ubs.lights[0].type = gl::light_element_ubs::DIR;
 	light_ubs.lights[0].dir = mv * glm::vec4(m_sunlight.direction, 0.0f);
 	light_ubs.lights[0].color = m_sunlight.diffuse * m_sunlight.factor * simulation::Environment.light_intensity();
 	light_ubs.lights[0].ambient = 0.0f;
 	light_ubs.lights[0].intensity = 1.0f;
-	light_ubs.lights_count = light_i;
-
+    // fill fog data
 	light_ubs.fog_color = Global.FogColor;
 	if (Global.fFogEnd > 0)
 	{
 		m_fogrange = Global.fFogEnd / std::max(1.f, Global.Overcast * 2.f);
 		model_ubs.fog_density = 1.0f / m_fogrange;
 	}
-	else
-		model_ubs.fog_density = 0.0f;
-
+    else
+    {
+        model_ubs.fog_density = 0.0f;
+    }
+    // ship config data to the gpu
 	model_ubo->update(model_ubs);
 	light_ubo->update(light_ubs);
 }

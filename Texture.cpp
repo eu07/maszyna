@@ -28,7 +28,7 @@ http://mozilla.org/MPL/2.0/.
 
 #define EU07_DEFERRED_TEXTURE_UPLOAD
 
-std::array<GLuint, gl::MAX_TEXTURES + 2> opengl_texture::units = { 0 };
+std::array<GLuint, gl::MAX_TEXTURES + gl::HELPER_TEXTURES> opengl_texture::units = { 0 };
 GLint opengl_texture::m_activeunit = -1;
 
 std::unordered_map<GLint, int> opengl_texture::precompressed_formats =

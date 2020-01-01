@@ -60,7 +60,7 @@ struct opengl_texture {
     GLint components_hint = 0; // components that material wants
 
 	GLenum target = GL_TEXTURE_2D;
-    static std::array<GLuint, gl::MAX_TEXTURES + 2> units;
+    static std::array<GLuint, gl::MAX_TEXTURES + gl::HELPER_TEXTURES> units;
     static GLint m_activeunit;
 
 private:
