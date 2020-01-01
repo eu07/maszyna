@@ -3707,6 +3707,8 @@ void TMoverParameters::CompressorCheck(double dt) {
 
     CompressedVolume = std::max( 0.0, CompressedVolume - dt * AirLeakRate * 0.1 ); // nieszczelności: 0.001=1l/s
 
+    Compressor = CompressedVolume / VeselVolume;
+
     // assorted operational logic
     auto const MaxCompressorF { CompressorList[ TCompressorList::cl_MaxFactor ][ CompressorListPos ] * MaxCompressor };
     auto const MinCompressorF { CompressorList[ TCompressorList::cl_MinFactor ][ CompressorListPos ] * MinCompressor };
@@ -3792,7 +3794,8 @@ void TMoverParameters::CompressorCheck(double dt) {
                 CompressorSpeedF
                 * ( 2.0 * MaxCompressorF - Compressor ) / MaxCompressorF
                 * enginefactor
-                * dt;
+                * dt
+                * ( CompressorGovernorLock ? 0.0 : 1.0 ); // with the lock active air is vented out
             break;
         }
         default: {
@@ -3806,10 +3809,16 @@ void TMoverParameters::CompressorCheck(double dt) {
     }
 
     if( ( pressureistoohigh )
-     && ( false == governorlockispresent ) ) {
+     && ( ( false == governorlockispresent ) || ( CompressorPower == 3 ) ) ) {
         // vent some air out if there's no governor lock to stop the compressor from exceeding acceptable pressure level
         SetFlag( SoundFlag, sound::relay | sound::loud );
-        CompressedVolume *= 0.8;
+        CompressedVolume *= (
+            false == governorlockispresent ? 0.80 : // arbitrary amount
+            CompressorTankValve ? MinCompressorF / MaxCompressorF : // drop to mincompressor level
+            0.999 ); // HACK: drop a tiny bit so the sound doesn't trigger repeatedly
+        if( ( false == governorlockispresent ) || ( CompressorTankValve ) ) {
+            CompressorGovernorLock = false;
+        }
     }
 
     // tymczasowo tylko obciążenie sprężarki, tak z 5A na sprężarkę
@@ -9221,6 +9230,7 @@ void TMoverParameters::LoadFIZ_Brake( std::string const &line ) {
 */
     extract_value( MinCompressor, "MinCP", line, "" );
     extract_value( MaxCompressor, "MaxCP", line, "" );
+    extract_value( CompressorTankValve, "CompressorTankValve", line, "" );
     extract_value( CompressorSpeed, "CompressorSpeed", line, "" );
 	extract_value( EmergencyValveOff, "MinEVP", line, "" );
 	extract_value( EmergencyValveOn, "MaxEVP", line, "" );

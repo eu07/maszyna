@@ -369,6 +369,9 @@ private:
         sound_source engine_turbo { sound_placement::engine };
         double engine_turbo_pitch { 1.0 };
         sound_source oil_pump { sound_placement::engine };
+        sound_source fuel_pump { sound_placement::engine };
+        sound_source water_pump { sound_placement::engine };
+        sound_source water_heater { sound_placement::engine };
         sound_source radiator_fan { sound_placement::engine };
         sound_source radiator_fan_aux { sound_placement::engine };
         sound_source transmission { sound_placement::engine };

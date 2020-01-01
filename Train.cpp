@@ -1932,7 +1932,8 @@ void TTrain::OnCommand_batteryenable( TTrain *Train, command_data const &Command
 
     if( Command.action == GLFW_PRESS ) {
         // visual feedback
-        Train->ggBatteryButton.UpdateValue( 1.0, Train->dsbSwitch );
+        Train->ggBatteryButton.UpdateValue( 1.0f, Train->dsbSwitch );
+        Train->ggBatteryOnButton.UpdateValue( 1.0f, Train->dsbSwitch );
 
         if( true == Train->mvOccupied->Battery ) { return; } // already on
 
@@ -1953,6 +1954,7 @@ void TTrain::OnCommand_batteryenable( TTrain *Train, command_data const &Command
             // return the switch to neutral position
             Train->ggBatteryButton.UpdateValue( 0.5f );
         }
+        Train->ggBatteryOnButton.UpdateValue( 0.0f, Train->dsbSwitch );
     }
 }
 
@@ -1960,7 +1962,8 @@ void TTrain::OnCommand_batterydisable( TTrain *Train, command_data const &Comman
     // TBD, TODO: ewentualnie zablokować z FIZ, np. w samochodach się nie odłącza akumulatora
     if( Command.action == GLFW_PRESS ) {
         // visual feedback
-        Train->ggBatteryButton.UpdateValue( 0.0, Train->dsbSwitch );
+        Train->ggBatteryButton.UpdateValue( 0.0f, Train->dsbSwitch );
+        Train->ggBatteryOffButton.UpdateValue( 1.0f, Train->dsbSwitch );
 
         if( false == Train->mvOccupied->Battery ) { return; } // already off
 
@@ -1978,6 +1981,7 @@ void TTrain::OnCommand_batterydisable( TTrain *Train, command_data const &Comman
             // return the switch to neutral position
             Train->ggBatteryButton.UpdateValue( 0.5f );
         }
+        Train->ggBatteryOffButton.UpdateValue( 0.0f, Train->dsbSwitch );
     }
 }
 
@@ -2279,10 +2283,11 @@ void TTrain::OnCommand_pantographlowerall( TTrain *Train, command_data const &Co
 
 void TTrain::OnCommand_pantographcompressorvalvetoggle( TTrain *Train, command_data const &Command ) {
 
-    if( ( Train->mvControlled->TrainType == dt_EZT ?
-        ( Train->mvControlled != Train->mvOccupied ) :
-        ( Train->iCabn != 0 ) ) ) {
-        // tylko w maszynowym
+    if( ( Train->ggPantCompressorValve.SubModel == nullptr )
+     && ( Train->mvControlled->TrainType == dt_EZT ?
+            ( Train->mvControlled != Train->mvOccupied ) :
+            ( Train->iCabn != 0 ) ) ) {
+        // tylko w maszynowym, unless actual device is present
         return;
     }
 
@@ -2305,7 +2310,8 @@ void TTrain::OnCommand_pantographcompressorvalvetoggle( TTrain *Train, command_d
 
 void TTrain::OnCommand_pantographcompressoractivate( TTrain *Train, command_data const &Command ) {
 
-    if( ( Train->mvControlled->TrainType == dt_EZT ?
+    if( ( Train->ggPantCompressorValve.SubModel == nullptr )
+     && ( Train->mvControlled->TrainType == dt_EZT ?
             ( Train->mvControlled != Train->mvOccupied ) :
             ( Train->iCabn != 0 ) ) ) {
         // tylko w maszynowym
@@ -6737,6 +6743,8 @@ bool TTrain::Update( double const Deltatime )
         ggCabLightButton.Update();
         ggCabLightDimButton.Update();
         ggBatteryButton.Update();
+        ggBatteryOnButton.Update();
+        ggBatteryOffButton.Update();
 
         ggWaterPumpBreakerButton.Update();
         ggWaterPumpButton.Update();
@@ -7942,6 +7950,8 @@ void TTrain::clear_cab_controls()
     ggCabLightButton.Clear();
     ggCabLightDimButton.Clear();
     ggBatteryButton.Clear();
+    ggBatteryOnButton.Clear();
+    ggBatteryOffButton.Clear();
     //-------
     ggFuseButton.Clear();
     ggConverterFuseButton.Clear();
@@ -8529,7 +8539,8 @@ bool TTrain::initialize_button(cParser &Parser, std::string const &Label, int co
     std::unordered_map<std::string, bool const *> const autolights = {
         { "i-doorpermit_left:",  &mvOccupied->Doors.instances[ ( cab_to_end() == end::front ? side::left : side::right ) ].open_permit },
         { "i-doorpermit_right:", &mvOccupied->Doors.instances[ ( cab_to_end() == end::front ? side::right : side::left ) ].open_permit },
-        { "i-doorstep:", &mvOccupied->Doors.step_enabled }
+        { "i-doorstep:", &mvOccupied->Doors.step_enabled },
+        { "i-mainpipelock:", &mvOccupied->LockPipe }
     };
     {
         auto lookup = autolights.find( Label );
@@ -8688,6 +8699,8 @@ bool TTrain::initialize_gauge(cParser &Parser, std::string const &Label, int con
         { "cablight_sw:", ggCabLightButton },
         { "cablightdim_sw:", ggCabLightDimButton },
         { "battery_sw:", ggBatteryButton },
+        { "batteryon_sw:", ggBatteryOnButton },
+        { "batteryoff_sw:", ggBatteryOffButton },
         { "distancecounter_sw:", ggDistanceCounterButton },
         { "universal0:", ggUniversals[ 0 ] },
         { "universal1:", ggUniversals[ 1 ] },

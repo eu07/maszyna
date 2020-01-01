@@ -821,6 +821,12 @@ drivermouse_input::default_bindings() {
         { "battery_sw:", {
             user_command::batterytoggle,
             user_command::none } },
+        { "batteryon_sw:", {
+            user_command::batteryenable,
+            user_command::none } },
+        { "batteryoff_sw:", {
+            user_command::batterydisable,
+            user_command::none } },
         { "universal0:", {
             user_command::generictoggle0,
             user_command::none } },

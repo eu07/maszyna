@@ -512,6 +512,8 @@ public: // reszta może by?publiczna
     TGauge ggCabLightButton; // hunter-091012: przelacznik oswietlania kabiny
     TGauge ggCabLightDimButton; // hunter-091012: przelacznik przyciemnienia
     TGauge ggBatteryButton; // Stele 161228 hebelek baterii
+    TGauge ggBatteryOnButton;
+    TGauge ggBatteryOffButton;
     // oswietlenia kabiny
 
     // NBMX wrzesien 2003 - obsluga drzwi

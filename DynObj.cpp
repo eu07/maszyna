@@ -3782,7 +3782,8 @@ void TDynamicObject::TurnOff()
 // przeliczanie dźwięków, bo będzie słychać bez wyświetlania sektora z pojazdem
 void TDynamicObject::RenderSounds() {
 
-    if( Global.iPause != 0 ) { return; }
+    if( false == simulation::is_ready ) { return; }
+    if( Global.iPause != 0 )            { return; }
 
     if( ( m_startjoltplayed )
      && ( ( std::abs( MoverParameters->AccSVBased ) < 0.01 )
@@ -5094,9 +5095,23 @@ void TDynamicObject::LoadMMediaFile( std::string const &TypeName, std::string co
                 }
 
                 else if( token == "oilpump:" ) {
-                    // plik z dzwiekiem wentylatora, mnozniki i ofsety amp. i czest.
                     m_powertrainsounds.oil_pump.deserialize( parser, sound_type::single );
                     m_powertrainsounds.oil_pump.owner( this );
+                }
+
+                else if( token == "fuelpump:" ) {
+                    m_powertrainsounds.fuel_pump.deserialize( parser, sound_type::single );
+                    m_powertrainsounds.fuel_pump.owner( this );
+                }
+
+                else if( token == "waterpump:" ) {
+                    m_powertrainsounds.water_pump.deserialize( parser, sound_type::single );
+                    m_powertrainsounds.water_pump.owner( this );
+                }
+
+                else if( token == "waterheater:" ) {
+                    m_powertrainsounds.water_heater.deserialize( parser, sound_type::single );
+                    m_powertrainsounds.water_heater.owner( this );
                 }
 
                 else if( ( token == "tractionmotor:" )
@@ -6611,7 +6626,7 @@ TDynamicObject::powertrain_sounds::position( glm::vec3 const Location ) {
     std::vector<sound_source *> enginesounds = {
         &inverter,
         &motor_relay, &dsbWejscie_na_bezoporow, &motor_parallel, &motor_shuntfield, &rsWentylator,
-        &engine, &engine_ignition, &engine_shutdown, &engine_revving, &engine_turbo, &oil_pump, &radiator_fan, &radiator_fan_aux,
+        &engine, &engine_ignition, &engine_shutdown, &engine_revving, &engine_turbo, &oil_pump, &fuel_pump, &water_pump, &water_heater, &radiator_fan, &radiator_fan_aux,
         &transmission, &rsEngageSlippery
     };
     for( auto sound : enginesounds ) {
@@ -6639,7 +6654,36 @@ TDynamicObject::powertrain_sounds::render( TMoverParameters const &Vehicle, doub
     else {
         oil_pump.stop();
     }
-
+    // fuel pump
+    if( true == Vehicle.FuelPump.is_active ) {
+        fuel_pump
+            .pitch( fuel_pump.m_frequencyoffset + fuel_pump.m_frequencyfactor * 1.f )
+            .gain( fuel_pump.m_amplitudeoffset + fuel_pump.m_amplitudefactor * 1.f )
+            .play( sound_flags::exclusive | sound_flags::looping );
+    }
+    else {
+        fuel_pump.stop();
+    }
+    // water pump
+    if( true == Vehicle.WaterPump.is_active ) {
+        water_pump
+            .pitch( water_pump.m_frequencyoffset + water_pump.m_frequencyfactor * 1.f )
+            .gain( water_pump.m_amplitudeoffset + water_pump.m_amplitudefactor * 1.f )
+            .play( sound_flags::exclusive | sound_flags::looping );
+    }
+    else {
+        water_pump.stop();
+    }
+    // water heater
+    if( true == Vehicle.WaterHeater.is_active ) {
+        water_heater
+            .pitch( water_heater.m_frequencyoffset + water_heater.m_frequencyfactor * 1.f )
+            .gain( water_heater.m_amplitudeoffset + water_heater.m_amplitudefactor * 1.f )
+            .play( sound_flags::exclusive | sound_flags::looping );
+    }
+    else {
+        water_heater.stop();
+    }
     // engine sounds
     // ignition
     if( engine_state_last != Vehicle.Mains ) {

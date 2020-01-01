@@ -1281,6 +1281,7 @@ public:
 	bool CompressorAllow = false;            /*! zezwolenie na uruchomienie sprezarki  NBMX*/
     bool CompressorAllowLocal{ true }; // local device state override (most units don't have this fitted so it's set to true not to intefere)
     bool CompressorGovernorLock{ false }; // indicates whether compressor pressure switch was activated due to reaching cut-out pressure
+    bool CompressorTankValve{ false }; // indicates excessive pressure is vented from compressor tank directly and instantly
     start_t CompressorStart{ start_t::manual }; // whether the compressor is started manually, or another way
     start_t PantographCompressorStart{ start_t::manual };
     // TODO converter parameters, for when we start cleaning up mover parameters

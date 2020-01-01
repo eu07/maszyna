@@ -167,6 +167,8 @@ enum string {
     cab_cablight_sw,
     cab_cablightdim_sw,
     cab_battery_sw,
+    cab_batteryon_sw,
+    cab_batteryoff_sw,
     cab_universal0,
     cab_universal1,
     cab_universal2,
