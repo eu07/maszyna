@@ -611,7 +611,7 @@ struct TUniversalCtrl
 	int NextPosFastInc = 0; /*nastepna duza pozycja przy przechodzeniu szybkim*/
 	int PrevPosFastDec = 0; /*poprzednia duza pozycja przy przechodzeniu szybkim*/
 };
-typedef TUniversalCtrl TUniversalCtrlTable[UniversalCtrlArraySize + 1]; /*tablica sterowania uniwersalnego nastawnika*/
+using TUniversalCtrlTable = std::array< TUniversalCtrl, UniversalCtrlArraySize + 1>;
 
 struct TSecuritySystem
 {
@@ -1059,6 +1059,7 @@ public:
 	bool UniCtrlIntegratedBrakePNCtrl = false; /*zintegrowany nastawnik JH obsluguje hamulec PN*/
 	bool UniCtrlIntegratedBrakeCtrl = false; /*zintegrowany nastawnik JH obsluguje hamowanie*/
     bool UniCtrlIntegratedLocalBrakeCtrl = false; /*zintegrowany nastawnik JH obsluguje hamowanie hamulcem pomocniczym*/
+    int UniCtrlNoPowerPos{ 0 }; // cached highesr position not generating traction force
 
 	/*-sekcja parametrow dla lokomotywy elektrycznej*/
 	TSchemeTable RList;     /*lista rezystorow rozruchowych i polaczen silnikow, dla dizla: napelnienia*/

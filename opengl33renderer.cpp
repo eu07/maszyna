@@ -4058,9 +4058,11 @@ void opengl33_renderer::Update_Lights(light_array &Lights)
             auto const &ownerdimensions{ scenelight.owner->MoverParameters->Dim };
             auto const up{ static_cast<glm::dvec3>( scenelight.owner->VectorUp() ) };
             auto const size{ static_cast<float>( std::max( ownerdimensions.W, ownerdimensions.H ) * 1.0 ) }; // ensure square ratio
+            auto const cone{ 5.f };
+            auto const offset{ 75.f * ( 5.f / cone ) };
             headlights.position() =
                 scenelight.owner->GetPosition()
-                - scenelight.direction * 150.f
+                - scenelight.direction * offset
                 + up * ( size * 0.5 );
 /*
             headlights.projection() = ortho_projection(
@@ -4069,9 +4071,9 @@ void opengl33_renderer::Update_Lights(light_array &Lights)
                 ownerdimensions.L * 0.5 - 0.5, 1000.0f );
 */
             headlights.projection() = perspective_projection(
-                glm::radians( 2.5 ),
+                glm::radians( cone ),
                 1.0,
-                ownerdimensions.L * 0.5 + 150.0 - 0.25, 1000.0f );
+                ownerdimensions.L * 0.5 + offset - 0.25, 1000.0f );
             glm::dmat4 viewmatrix{ 1.0 };
             viewmatrix *=
                 glm::lookAt(

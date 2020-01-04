@@ -2189,7 +2189,7 @@ int TMoverParameters::MainCtrlNoPowerPos() const {
     switch( EIMCtrlType ) {
         case 1:  { return 3; }
         case 2:  { return 3; }
-        case 3:  { return 3; }
+        case 3:  { return UniCtrlNoPowerPos; }
         default: { return 0; }
     }
 }
@@ -10652,6 +10652,15 @@ bool TMoverParameters::CheckLocomotiveParameters(bool ReadyFlag, int Dir)
 */
 	// WriteLogSS("OK=", BoolTo10(OK));
 	// WriteLog("");
+
+    if( EIMCtrlType == 3 ) {
+        for( auto idx = 0; idx < MainCtrlPosNo; ++idx ) {
+            if( UniCtrlList[ idx ].MaxCtrlVal > 0.0 ) {
+                UniCtrlNoPowerPos = std::max( 0, ( idx - 1 ) );
+                break;
+            }
+        }
+    }
 
 	return OK;
 }
