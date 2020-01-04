@@ -155,6 +155,7 @@ class opengl33_renderer : public gfx_renderer {
 		int lines{0};
         int particles{0};
 		int drawcalls{0};
+        int triangles{0};
 
         debug_stats& operator+=( const debug_stats& Right ) {
             dynamics += Right.dynamics;

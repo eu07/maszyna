@@ -2665,12 +2665,14 @@ bool TController::PrepareEngine()
 bool TController::ReleaseEngine() {
     
     if( mvOccupied->Vel > 0.01 ) {
-        // TBD, TODO: make a dedicated braking procedure out of it for potential reuse
         VelDesired = 0.0;
         AccDesired = std::min( AccDesired, -1.25 ); // hamuj solidnie
-        ReactionTime = 0.1;
-        ZeroSpeed();
-        IncBrake();
+        if( true == AIControllFlag ) {
+            // TBD, TODO: make a dedicated braking procedure out of it for potential reuse
+            ZeroSpeed();
+            IncBrake();
+            ReactionTime = 0.1;
+        }
         // don't bother with the rest until we're standing still
         return false;
     }
@@ -2936,19 +2938,36 @@ bool TController::IncBrakeEIM()
 	bool OK = false;
 	switch (mvOccupied->EIMCtrlType)
 	{
-	case 0:
-		OK = mvOccupied->IncLocalBrakeLevel(1);
-		break;
-	case 1:
-		OK = mvOccupied->MainCtrlPos > 0;
-		if (OK)
-			mvOccupied->MainCtrlPos = 0;
-		break;
-	case 2:
-		OK = mvOccupied->MainCtrlPos > 1;
-		if (OK)
-			mvOccupied->MainCtrlPos = 1;
-		break;
+        case 0: {
+            OK = mvOccupied->IncLocalBrakeLevel( 1 );
+            break;
+        }
+        case 1: {
+            OK = mvOccupied->MainCtrlPos > 0;
+            if( OK )
+                mvOccupied->MainCtrlPos = 0;
+            break;
+        }
+        case 2: {
+            OK = mvOccupied->MainCtrlPos > 1;
+            if( OK )
+                mvOccupied->MainCtrlPos = 1;
+            break;
+        }
+        case 3: {
+            if( mvOccupied->UniCtrlIntegratedLocalBrakeCtrl ) {
+                OK = mvOccupied->MainCtrlPos > 0;
+                if( OK )
+                    mvOccupied->MainCtrlPos = 0;
+            }
+            else {
+                OK = mvOccupied->IncLocalBrakeLevel( 1 );
+            }
+            break;
+        }
+        default: {
+            break;
+        }
 	}
 	return OK;
 }
@@ -3041,7 +3060,12 @@ bool TController::DecBrakeEIM()
 		if (OK)
 			mvOccupied->MainCtrlPos = 3;
 		break;
-	}
+    case 3:
+        OK = mvOccupied->MainCtrlPos < mvOccupied->MaxMainCtrlPosNoDirChange;
+        if( OK )
+            mvOccupied->MainCtrlPos = mvOccupied->MaxMainCtrlPosNoDirChange;
+        break;
+    }
 	return OK;
 }
 
@@ -3188,7 +3212,9 @@ bool TController::IncSpeed()
         if (!mvControlling->FuseFlag)
             if (Ready || (iDrivigFlags & movePress)) //{(BrakePress<=0.01*MaxBrakePress)}
             {
-                OK = mvControlling->IncMainCtrl(1);
+                OK = IncSpeedEIM();
+                if( !OK )
+                    OK = mvControlling->IncMainCtrl(1);
                 if (!OK)
                     OK = mvControlling->IncScndCtrl(1);
             }

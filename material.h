@@ -40,6 +40,8 @@ struct opengl_material {
     void finalize(bool Loadnow);
     float get_or_guess_opacity() const;
     bool is_translucent() const;
+// members
+    bool is_good { false }; // indicates material was compiled without failure
 
 private:
 // methods

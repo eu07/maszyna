@@ -212,10 +212,10 @@ geometry_bank::append( gfx::vertex_array &Vertices, gfx::geometry_handle const &
 }
 
 // draws geometry stored in specified chunk
-void
+std::size_t
 geometry_bank::draw( gfx::geometry_handle const &Geometry, gfx::stream_units const &Units, unsigned int const Streams ) {
     // template method implementation
-    draw_( Geometry, Units, Streams );
+    return draw_( Geometry, Units, Streams );
 }
 
 // frees subclass-specific resources associated with the bank, typically called when the bank wasn't in use for a period of time
@@ -283,7 +283,7 @@ geometrybank_manager::draw( gfx::geometry_handle const &Geometry, unsigned int c
     auto &bankrecord = bank( Geometry );
 
     bankrecord.second = m_garbagecollector.timestamp();
-    bankrecord.first->draw( Geometry, m_units, Streams );
+    m_primitivecount += bankrecord.first->draw( Geometry, m_units, Streams );
 }
 
 // provides direct access to vertex data of specfied chunk

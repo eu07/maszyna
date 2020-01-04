@@ -438,6 +438,7 @@ bool opengl33_renderer::Render()
 
 	m_renderpass.draw_mode = rendermode::none; // force setup anew
 	m_renderpass.draw_stats = debug_stats();
+    m_geometry.primitives_count() = 0;
 
 	for (auto &viewport : m_viewports) {
 		Render_pass(*viewport, rendermode::color);
@@ -468,7 +469,8 @@ bool opengl33_renderer::Render()
         shadowstats += shadowpass.draw_stats;
     }
     m_debugstatstext =
-          "vehicles:  " + to_string( m_colorpass.draw_stats.dynamics, 7 ) + " +" + to_string( shadowstats.dynamics, 7 )
+        "triangles: " + to_string( static_cast<int>(m_geometry.primitives_count()), 7 ) + "\n"
+        + "vehicles:  " + to_string( m_colorpass.draw_stats.dynamics, 7 ) + " +" + to_string( shadowstats.dynamics, 7 )
         + " =" + to_string( m_colorpass.draw_stats.dynamics + shadowstats.dynamics, 7 ) + "\n"
         + "models:    " + to_string( m_colorpass.draw_stats.models, 7 ) + " +" + to_string( shadowstats.models, 7 )
         + " =" + to_string( m_colorpass.draw_stats.models + shadowstats.models, 7 ) + "\n"
@@ -1691,6 +1693,14 @@ void opengl33_renderer::Bind_Material(material_handle const Material, TSubModel 
 	if (Material != null_handle)
 	{
 		auto &material = m_materials.material(Material);
+
+        if( false == material.is_good ) {
+            // use failure indicator instead
+            if( Material != m_invalid_material ) {
+                Bind_Material( m_invalid_material );
+            }
+            return;
+        }
 
 		memcpy(&model_ubs.param[0], &material.params[0], sizeof(model_ubs.param));
 

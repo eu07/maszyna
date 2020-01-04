@@ -2189,6 +2189,7 @@ int TMoverParameters::MainCtrlNoPowerPos() const {
     switch( EIMCtrlType ) {
         case 1:  { return 3; }
         case 2:  { return 3; }
+        case 3:  { return 3; }
         default: { return 0; }
     }
 }
@@ -10775,14 +10776,24 @@ bool TMoverParameters::RunCommand( std::string Command, double CValue1, double C
 
 	if (Command == "MainCtrl")
 	{
-		if (MainCtrlPosNo >= floor(CValue1))
-			MainCtrlPos = static_cast<int>(floor(CValue1));
+        if( MainCtrlPosNo >= floor( CValue1 ) ) {
+            MainCtrlPos = static_cast<int>( floor( CValue1 ) );
+            if( DelayCtrlFlag ) {
+                if( ( LastRelayTime >= InitialCtrlDelay ) && ( MainCtrlPos == 1 ) )
+                    LastRelayTime = 0;
+            }
+            else if( LastRelayTime > CtrlDelay )
+                LastRelayTime = 0;
+        }
 		OK = SendCtrlToNext(Command, CValue1, CValue2, Couplertype);
 	}
 	else if (Command == "ScndCtrl")
 	{
-		if (ScndCtrlPosNo >= floor(CValue1))
-			ScndCtrlPos = static_cast<int>(floor(CValue1));
+        if( ScndCtrlPosNo >= floor( CValue1 ) ) {
+            ScndCtrlPos = static_cast<int>( floor( CValue1 ) );
+            if( LastRelayTime > CtrlDelay )
+                LastRelayTime = 0;
+        }
         OK = SendCtrlToNext( Command, CValue1, CValue2, Couplertype );
 	}
 	/*  else if command='BrakeCtrl' then

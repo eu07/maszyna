@@ -3801,12 +3801,14 @@ void TDynamicObject::RenderSounds() {
     // NBMX dzwiek przetwornicy
     if( MoverParameters->ConverterFlag ) {
         frequency = (
-            MoverParameters->EngineType == TEngineType::ElectricSeriesMotor ?
-            ( MoverParameters->PantographVoltage / MoverParameters->NominalVoltage ) * MoverParameters->RList[ MoverParameters->RlistSize ].Mn :
-            1.0 );
+            MoverParameters->EngineType != TEngineType::ElectricSeriesMotor ?
+                1.0 :
+                MoverParameters->PantographVoltage > 0.0 ?
+                    MoverParameters->PantographVoltage / ( MoverParameters->NominalVoltage * MoverParameters->RList[ MoverParameters->RlistSize ].Mn ) :
+                    1.0 );
         frequency = sConverter.m_frequencyoffset + sConverter.m_frequencyfactor * frequency;
         sConverter
-            .pitch( clamp( frequency, 0.5, 1.25 ) ) // arbitrary limits )
+            .pitch( clamp( frequency, 0.75, 1.25 ) ) // arbitrary limits )
             .play( sound_flags::exclusive | sound_flags::looping );
     }
     else {
@@ -4208,13 +4210,13 @@ void TDynamicObject::RenderSounds() {
      && ( MoverParameters->Vel > 5.0 ) ) {
         // scale volume with curve radius and vehicle speed
         volume =
-            MoverParameters->AccN // * MoverParameters->AccN
+            std::abs( MoverParameters->AccN ) // * MoverParameters->AccN
             * interpolate(
                 0.5, 1.0,
                 clamp(
                     MoverParameters->Vel / 40.0,
                     0.0, 1.0 ) )
-            * ( MyTrack->eType == tt_Switch ? 100.0 : 1.0 );
+            * ( ( ( MyTrack->eType == tt_Switch ) && ( std::abs( ts.R ) < 1500.0 ) ) ? 100.0 : 1.0 );
     }
     else {
         volume = 0;

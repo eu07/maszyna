@@ -49,6 +49,8 @@ std::map<std::string, int> texture_bindings {
 
 void opengl_material::finalize(bool Loadnow)
 {
+    is_good = true;
+
     if (parse_info)
     {
         for (auto it : parse_info->tex_mapping)
@@ -59,10 +61,13 @@ void opengl_material::finalize(bool Loadnow)
             if (key.size() > 0 && key[0] != '_')
             {
                 size_t num = std::stoi(key) - 1;
-                if (num < gl::MAX_TEXTURES)
+                if (num < gl::MAX_TEXTURES) {
                     textures[num] = GfxRenderer->Fetch_Texture(value, Loadnow);
-                else
+                }
+                else {
                     log_error("invalid texture binding: " + std::to_string(num));
+                    is_good = false;
+                }
             }
             else if (key.size() > 2)
             {
@@ -78,10 +83,13 @@ void opengl_material::finalize(bool Loadnow)
                 }
                 else {
                     log_error( "unknown texture binding: " + key );
+                    is_good = false;
                 }
             }
-            else
+            else {
                 log_error("unrecognized texture binding: " + key);
+                is_good = false;
+            }
         }
 
         if (!shader)
@@ -103,8 +111,10 @@ void opengl_material::finalize(bool Loadnow)
             }
         }
 
-        if (!shader)
+        if( !shader ) {
+            is_good = false;
             return;
+        }
 
         for (auto it : parse_info->param_mapping)
         {
@@ -114,10 +124,13 @@ void opengl_material::finalize(bool Loadnow)
             if (key.size() > 1 && key[0] != '_')
             {
                 size_t num = std::stoi(key) - 1;
-                if (num < gl::MAX_PARAMS)
+                if (num < gl::MAX_PARAMS) {
                     params[num] = value;
-                else
+                }
+                else {
                     log_error("invalid param binding: " + std::to_string(num));
+                    is_good = false;
+                }
             }
             else if (key.size() > 2)
             {
@@ -129,18 +142,24 @@ void opengl_material::finalize(bool Loadnow)
                     for (size_t i = 0; i < entry.size; i++)
                         params[entry.location][entry.offset + i] = value[i];
                 }
-                else
+                else {
                     log_error("unknown param binding: " + key);
+                    is_good = false;
+                }
             }
-            else
+            else {
                 log_error("unrecognized param binding: " + key);
+                is_good = false;
+            }
         }
 
         parse_info.reset();
     }
 
-	if (!shader)
-		return;
+    if( !shader ) {
+        is_good = false;
+        return;
+    }
 
     for (auto it : shader->param_conf)
     {
@@ -169,10 +188,13 @@ void opengl_material::finalize(bool Loadnow)
     {
         gl::shader::texture_entry &entry = it.second;
         texture_handle handle = textures[entry.id];
-        if (handle)
+        if (handle) {
             GfxRenderer->Texture(handle).set_components_hint((GLint)entry.components);
-        else
+        }
+        else {
             log_error("missing texture: " + it.first);
+            is_good = false;
+        }
     }
 }
 

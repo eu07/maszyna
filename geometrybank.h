@@ -97,12 +97,14 @@ public:
     // adds supplied vertex data at the end of specified chunk
     auto append( gfx::vertex_array &Vertices, gfx::geometry_handle const &Geometry ) -> bool;
     // draws geometry stored in specified chunk
-    void draw( gfx::geometry_handle const &Geometry, gfx::stream_units const &Units, unsigned int const Streams = basic_streams );
+    auto draw( gfx::geometry_handle const &Geometry, gfx::stream_units const &Units, unsigned int const Streams = basic_streams ) -> std::size_t;
     // draws geometry stored in supplied list of chunks
     template <typename Iterator_>
-    void draw( Iterator_ First, Iterator_ Last, gfx::stream_units const &Units, unsigned int const Streams = basic_streams ) {
+    auto draw( Iterator_ First, Iterator_ Last, gfx::stream_units const &Units, unsigned int const Streams = basic_streams ) ->std::size_t {
+            std::size_t count { 0 };
             while( First != Last ) {
-                draw( *First, Units, Streams ); ++First; } }
+                count += draw( *First, Units, Streams ); ++First; }
+            return count; }
     // frees subclass-specific resources associated with the bank, typically called when the bank wasn't in use for a period of time
     void release();
     // provides direct access to vertex data of specfied chunk
@@ -141,7 +143,7 @@ private:
     // replace() subclass details
     virtual void replace_( gfx::geometry_handle const &Geometry ) = 0;
     // draw() subclass details
-    virtual void draw_( gfx::geometry_handle const &Geometry, gfx::stream_units const &Units, unsigned int const Streams ) = 0;
+    virtual auto draw_( gfx::geometry_handle const &Geometry, gfx::stream_units const &Units, unsigned int const Streams ) -> std::size_t = 0;
     // resource release subclass details
     virtual void release_() = 0;
 };
@@ -177,6 +179,9 @@ public:
     auto vertices( gfx::geometry_handle const &Geometry ) const -> gfx::vertex_array const &;
     // sets target texture unit for the texture data stream
     auto units() -> gfx::stream_units & { return m_units; }
+    // provides access to primitives count
+    auto primitives_count() const -> std::size_t const & { return m_primitivecount; }
+    auto primitives_count() -> std::size_t & { return m_primitivecount; }
 
 private:
 // types:
@@ -200,6 +205,8 @@ private:
     auto bank( gfx::geometry_handle const Geometry ) const -> geometrybanktimepointpair_sequence::value_type const & {
             return m_geometrybanks[ Geometry.bank - 1 ]; }
 
+// members:
+    std::size_t m_primitivecount { 0 }; // number of drawn primitives
 };
 
 } // namespace gfx

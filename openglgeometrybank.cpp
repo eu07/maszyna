@@ -46,14 +46,14 @@ opengl_vbogeometrybank::replace_( gfx::geometry_handle const &Geometry ) {
 }
 
 // draw() subclass details
-void
+std::size_t
 opengl_vbogeometrybank::draw_( gfx::geometry_handle const &Geometry, gfx::stream_units const &Units, unsigned int const Streams ) {
 
     setup_buffer();
 
     auto &chunkrecord { m_chunkrecords[ Geometry.chunk - 1 ] };
     // sanity check; shouldn't be needed but, eh
-    if( chunkrecord.size == 0 ) { return; }
+    if( chunkrecord.size == 0 ) { return 0; }
     // setup...
     if( m_activebuffer != m_buffer ) {
         bind_buffer();
@@ -80,6 +80,11 @@ opengl_vbogeometrybank::draw_( gfx::geometry_handle const &Geometry, gfx::stream
     ::glDisableClientState( GL_TEXTURE_COORD_ARRAY );
     ::glBindBuffer( GL_ARRAY_BUFFER, 0 ); m_activebuffer = 0;
 */
+    switch( chunk.type ) {
+        case GL_TRIANGLES:      { return chunkrecord.size / 3; }
+        case GL_TRIANGLE_STRIP: { return chunkrecord.size - 2; }
+        default:                { return 0; }
+    }
 }
 
 // release () subclass details
@@ -231,12 +236,13 @@ opengl_dlgeometrybank::replace_( gfx::geometry_handle const &Geometry ) {
 }
 
 // draw() subclass details
-void
+std::size_t
 opengl_dlgeometrybank::draw_( gfx::geometry_handle const &Geometry, gfx::stream_units const &Units, unsigned int const Streams ) {
 
     auto &chunkrecord = m_chunkrecords[ Geometry.chunk - 1 ];
     if( chunkrecord.streams != Streams ) {
         delete_list( Geometry );
+        chunkrecord.primitive_count = 0;
     }
     if( chunkrecord.list == 0 ) {
         // we don't have a list ready, so compile one
@@ -254,9 +260,16 @@ opengl_dlgeometrybank::draw_( gfx::geometry_handle const &Geometry, gfx::stream_
         }
         ::glEnd();
         ::glEndList();
+
+        switch( chunk.type ) {
+            case GL_TRIANGLES:      { chunkrecord.primitive_count += chunk.vertices.size() / 3; break; }
+            case GL_TRIANGLE_STRIP: { chunkrecord.primitive_count += chunk.vertices.size() - 2; break; }
+            default:                { break; }
+        }
     }
     // with the list done we can just play it
     ::glCallList( chunkrecord.list );
+    return chunkrecord.primitive_count;
 }
 
 // release () subclass details

@@ -331,6 +331,7 @@ opengl_renderer::Render() {
     opengl_texture::reset_unit_cache();
     m_renderpass.draw_mode = rendermode::none; // force setup anew
     m_renderpass.draw_stats = debug_stats();
+    m_geometry.primitives_count() = 0;
     m_debugtimestext.clear();
     Render_pass( rendermode::color );
     Timer::subsystem.gfx_color.stop();
@@ -361,7 +362,8 @@ opengl_renderer::Render() {
     m_debugtimestext += "uilayer: " + to_string( Timer::subsystem.gfx_gui.average(), 2 ) + " ms\n";
 
     m_debugstatstext =
-          "vehicles:  " + to_string( m_colorpass.draw_stats.dynamics, 7 ) + " +" + to_string( m_shadowpass.draw_stats.dynamics, 7 )
+        "triangles: " + to_string( static_cast<int>(m_geometry.primitives_count()), 7 ) + "\n"
+        + "vehicles:  " + to_string( m_colorpass.draw_stats.dynamics, 7 ) + " +" + to_string( m_shadowpass.draw_stats.dynamics, 7 )
         + " =" + to_string( m_colorpass.draw_stats.dynamics + m_shadowpass.draw_stats.dynamics, 7 ) + "\n"
         + "models:    " + to_string( m_colorpass.draw_stats.models, 7 ) + " +" + to_string( m_shadowpass.draw_stats.models, 7 )
         + " =" + to_string( m_colorpass.draw_stats.models + m_shadowpass.draw_stats.models, 7 ) + "\n"
