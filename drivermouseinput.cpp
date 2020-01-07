@@ -605,6 +605,9 @@ drivermouse_input::default_bindings() {
 		{ "universalbrake3_bt:",{
 			user_command::universalbrakebutton3,
 			user_command::none } },
+		{ "epbrake_bt:",{
+			user_command::epbrakecontroltoggle,
+			user_command::none } },
         { "sand_bt:", {
             user_command::sandboxactivate,
             user_command::none } },

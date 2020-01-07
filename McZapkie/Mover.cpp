@@ -3743,10 +3743,12 @@ void TMoverParameters::CompressorCheck(double dt) {
         CompressorPower == 0 ? Mains :
         CompressorPower == 3 ? Mains :
         ( compressorowner != nullptr ) && ( compressorowner->ConverterFlag ) ) };
-    auto const compressorallow {
+    // TBD: split CompressorAllow into separate enable/disable flags, inherit compressor from basic_device
+    auto const compressorenable {
         ( CompressorAllowLocal )
      && ( ( CompressorStart == start_t::automatic )
        || ( ( compressorowner != nullptr ) && ( compressorowner->CompressorAllow ) ) ) };
+    auto const compressordisable { false == compressorenable };
 
     auto const pressureistoolow { Compressor < MinCompressorF };
     auto const pressureistoohigh { Compressor > MaxCompressorF };
@@ -3772,9 +3774,10 @@ void TMoverParameters::CompressorCheck(double dt) {
     auto const compressorflag { CompressorFlag };
     CompressorFlag =
         ( compressorpower )
+     && ( false == compressordisable )
      && ( ( false == governorlock ) || ( CompressorPower == 3 ) )
      && ( ( CompressorFlag )
-       || ( ( compressorallow ) && ( LastSwitchingTime > CtrlDelay ) ) );
+       || ( ( compressorenable ) && ( LastSwitchingTime > CtrlDelay ) ) );
 
     if( ( CompressorFlag ) && ( CompressorFlag != compressorflag ) ) {
         // jeśli została załączona to trzeba ograniczyć ponowne włączenie
@@ -3943,7 +3946,7 @@ void TMoverParameters::UpdatePipePressure(double dt)
      || ( true == s_CAtestebrake )
      || ( ( true == securitysystempresent )
        && ( false == lowvoltagepower ) ) ) {
-        dpMainValve = dpMainValve + PF( 0, PipePress, 0.15 ) * dt;
+        dpMainValve += PF( 0, PipePress, 0.15 ) * dt;
     }
     // 0.2*Spg
     Pipe->Flow(-dpMainValve);

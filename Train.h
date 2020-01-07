@@ -449,6 +449,7 @@ public: // reszta może by?publiczna
 	TGauge ggUniveralBrakeButton1;
 	TGauge ggUniveralBrakeButton2;
 	TGauge ggUniveralBrakeButton3;
+    TGauge ggEPFuseButton;
     TGauge ggSandButton; // guzik piasecznicy
 	TGauge ggAutoSandButton; // przełącznik piasecznicy
     TGauge ggAntiSlipButton;

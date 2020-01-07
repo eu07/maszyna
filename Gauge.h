@@ -21,9 +21,10 @@ enum class TGaugeAnimation {
     gt_Digital // licznik cyfrowy, np. kilometrów
 };
 
-enum class TGaugeType {
-    toggle,
+enum class TGaugeType : int {
+    toggle = 1,
     push,
+    pushtoggle = ( toggle | push ),
     push_delayed
 };
 

@@ -1610,27 +1610,43 @@ void TTrain::OnCommand_autosandboxdeactivate(TTrain *Train, command_data const &
 
 void TTrain::OnCommand_epbrakecontroltoggle( TTrain *Train, command_data const &Command ) {
 
+    if( Command.action == GLFW_REPEAT ) { return; }
+
+    auto const ispush{ ( static_cast<int>( Train->ggEPFuseButton.type() ) & static_cast<int>( TGaugeType::push ) ) != 0 };
+    auto const istoggle{ ( static_cast<int>( Train->ggEPFuseButton.type() ) & static_cast<int>( TGaugeType::toggle ) ) != 0 };
+
     if( Command.action == GLFW_PRESS ) {
-        // only reacting to press, so the switch doesn't flip back and forth if key is held down
-        if( false == Train->mvOccupied->EpFuse ) {
-            // turn on
+        if( istoggle ) {
+            // switch state
+            if( false == Train->mvOccupied->EpFuse ) {
+                // turn on
+                if( Train->mvOccupied->EpFuseSwitch( true ) ) {
+                    // audio feedback
+                    Train->dsbPneumaticSwitch.play();
+                };
+            }
+            else {
+                //turn off
+                Train->mvOccupied->EpFuseSwitch( false );
+            }
+        }
+        else if( ispush ) {
+            // potentially turn on
             if( Train->mvOccupied->EpFuseSwitch( true ) ) {
                 // audio feedback
                 Train->dsbPneumaticSwitch.play();
-                // visual feedback
-                // NOTE: there's no button for ep brake control switch
-                // TBD, TODO: add ep brake control switch?
-            }
+            };
         }
-        else {
-            //turn off
-            if( Train->mvOccupied->EpFuseSwitch( false ) ) {
-                // audio feedback
-                Train->dsbPneumaticSwitch.play();
-                // visual feedback
-                // NOTE: there's no button for ep brake control switch
-                // TBD, TODO: add ep brake control switch?
-            }
+        // visual feedback
+        Train->ggEPFuseButton.UpdateValue( (
+            ispush ? 1.0f : // push or pushtoggle
+            Train->mvOccupied->EpFuse ? 1.0f : 0.0f ), // toggle
+            Train->dsbSwitch );
+    }
+    else if( Command.action == GLFW_RELEASE ) {
+        if( ispush ) {
+            // return the switch to neutral position
+            Train->ggEPFuseButton.UpdateValue( 0.0f, Train->dsbSwitch );
         }
     }
 }
@@ -6668,6 +6684,7 @@ bool TTrain::Update( double const Deltatime )
 		ggUniveralBrakeButton1.Update();
 		ggUniveralBrakeButton2.Update();
 		ggUniveralBrakeButton3.Update();
+        ggEPFuseButton.Update();
         ggAntiSlipButton.Update();
         ggSandButton.Update();
         ggAutoSandButton.Update();
@@ -7924,6 +7941,7 @@ void TTrain::clear_cab_controls()
 	ggUniveralBrakeButton1.Clear();
 	ggUniveralBrakeButton2.Clear();
 	ggUniveralBrakeButton3.Clear();
+    ggEPFuseButton.Clear();
     ggSandButton.Clear();
     ggAutoSandButton.Clear();
     ggAntiSlipButton.Clear();
@@ -7936,7 +7954,7 @@ void TTrain::clear_cab_controls()
 	ggSpeedControlIncreaseButton.Clear();
 	ggSpeedControlDecreaseButton.Clear();
 	ggSpeedControlPowerIncreaseButton.Clear();
-	ggSpeedControlDecreaseButton.Clear();
+	ggSpeedControlPowerDecreaseButton.Clear();
 	for (auto &speedctrlbutton : ggSpeedCtrlButtons) {
 		speedctrlbutton.Clear();
 	}
@@ -8540,7 +8558,8 @@ bool TTrain::initialize_button(cParser &Parser, std::string const &Label, int co
         { "i-doorpermit_left:",  &mvOccupied->Doors.instances[ ( cab_to_end() == end::front ? side::left : side::right ) ].open_permit },
         { "i-doorpermit_right:", &mvOccupied->Doors.instances[ ( cab_to_end() == end::front ? side::right : side::left ) ].open_permit },
         { "i-doorstep:", &mvOccupied->Doors.step_enabled },
-        { "i-mainpipelock:", &mvOccupied->LockPipe }
+        { "i-mainpipelock:", &mvOccupied->LockPipe },
+        { "i-battery:", &mvOccupied->Battery }
     };
     {
         auto lookup = autolights.find( Label );
@@ -8616,6 +8635,7 @@ bool TTrain::initialize_gauge(cParser &Parser, std::string const &Label, int con
 		{ "universalbrake1_bt:", ggUniveralBrakeButton1 },
 		{ "universalbrake2_bt:", ggUniveralBrakeButton2 },
 		{ "universalbrake3_bt:", ggUniveralBrakeButton3 },
+		{ "epbrake_bt:", ggEPFuseButton },
         { "sand_bt:", ggSandButton },
 		{ "autosandallow_sw:", ggAutoSandButton },
         { "antislip_bt:", ggAntiSlipButton },

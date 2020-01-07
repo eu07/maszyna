@@ -216,9 +216,12 @@ TGauge::Load_mapping( cParser &Input ) {
     if( key == "type:" ) {
         auto const gaugetype { Input.getToken<std::string>( true, "\n\r\t  ,;" ) };
         m_type = (
+            gaugetype == "push" ? TGaugeType::push :
             gaugetype == "impulse" ? TGaugeType::push :
             gaugetype == "return" ? TGaugeType::push :
             gaugetype == "delayed" ? TGaugeType::push_delayed :
+            gaugetype == "pushtoggle" ? TGaugeType::pushtoggle :
+            gaugetype == "toggle" ? TGaugeType::toggle :
             TGaugeType::toggle ); // default
     }
     else if( key == "soundinc:" ) {
