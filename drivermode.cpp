@@ -743,12 +743,20 @@ driver_mode::OnKeyDown(int cKey) {
                         // jeśli mielismy pojazd
                         if( simulation::Train->Dynamic()->Mechanik ) { // na skutek jakiegoś błędu może czasem zniknąć
                             auto const *currentvehicle { simulation::Train->Dynamic() };
+                            auto const samevehicle { currentvehicle == targetvehicle };
+
+                            if( samevehicle ) {
+                                // we already control desired vehicle so don't overcomplicate things
+                                InOutKey(); // do kabiny
+                                break;
+                            }
+
                             auto const sameconsist {
                                 ( targetvehicle->ctOwner == currentvehicle->Mechanik )
                              || ( targetvehicle->ctOwner == currentvehicle->ctOwner ) };
                             auto const isincharge { currentvehicle->Mechanik->primary() };
                             auto const aidriveractive { currentvehicle->Mechanik->AIControllFlag };
-                            
+
                             if( !sameconsist && isincharge ) {
                                 // oddajemy dotychczasowy AI
                                 simulation::Train->Dynamic()->Mechanik->TakeControl( true );

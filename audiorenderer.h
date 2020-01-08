@@ -180,11 +180,26 @@ openal_source::bind( sound_source *Controller, uint32_sequence Sounds, Iterator_
             auto const &buffer { audio::renderer.buffer( bufferhandle ) };
             buffers.emplace_back( buffer.id ); } );
 
+    is_multipart = ( buffers.size() > 1 );
+
     if( id != audio::null_resource ) {
         ::alSourceQueueBuffers( id, static_cast<ALsizei>( buffers.size() ), buffers.data() );
         ::alSourceRewind( id );
+        // sound controller can potentially request playback to start from certain buffer point
+        if( controller->start() == 0.f ) {
+            // regular case with no offset, reset bound source just in case
+            ::alSourcei( id, AL_SAMPLE_OFFSET, 0 );
+        }
+        else {
+            // move playback start to specified point in 0-1 range
+            ALint buffersize;
+            ::alGetBufferi( buffers.front(), AL_SIZE, &buffersize );
+            ::alSourcei(
+                id,
+                AL_SAMPLE_OFFSET,
+                static_cast<ALint>( controller->start() * ( buffersize / sizeof( std::int16_t ) ) ) );
+        }
     }
-    is_multipart = ( buffers.size() > 1 );
 
     return *this;
 }

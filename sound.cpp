@@ -193,6 +193,12 @@ sound_source::deserialize_mapping( cParser &Input ) {
                 1.0f :
                 0.01f * static_cast<float>( Random( 100.0 - variation, 100.0 + variation ) ) );
     }
+    else if( key == "startoffset:" ) {
+        m_startoffset =
+            clamp(
+                Input.getToken<float>( false, "\n\r\t ,;" ),
+                0.0f, 1.0f );
+    }
     else if( key.compare( 0, std::min<std::size_t>( key.size(), 5 ), "pitch" ) == 0 ) {
         // sound chunk pitch, defined with key pitchX where X = activation threshold
         auto const indexstart { key.find_first_of( "1234567890" ) };

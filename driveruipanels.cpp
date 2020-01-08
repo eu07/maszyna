@@ -696,7 +696,7 @@ debug_panel::update_section_vehicle( std::vector<text_line> &Output ) {
         // acceleration
         Acc,
         mover.AccN + 0.001f,
-        std::string( std::abs( mover.RunningShape.R ) > 10000.0 ? "~0" : to_string( mover.RunningShape.R, 0 ) ).c_str(),
+        std::string( std::abs( mover.RunningShape.R ) > 15000.0 ? "~0" : to_string( mover.RunningShape.R, 0 ) ).c_str(),
         // velocity
         vehicle.GetVelocity(),
         mover.DistCounter,

@@ -4206,8 +4206,9 @@ void TDynamicObject::RenderSounds() {
     }
 
     // youBy: dzwiek ostrych lukow i ciasnych zwrotek
-    if( ( ts.R * ts.R > 1 )
-     && ( MoverParameters->Vel > 5.0 ) ) {
+    if( ( MoverParameters->Vel > 5.0 )
+     && ( ts.R * ts.R > 1.0 )
+     && ( std::abs( ts.R ) < 15000.0 ) ) {
         // scale volume with curve radius and vehicle speed
         volume =
             std::abs( MoverParameters->AccN ) // * MoverParameters->AccN
@@ -5440,16 +5441,13 @@ void TDynamicObject::LoadMMediaFile( std::string const &TypeName, std::string co
 
                 else if( token == "outernoise:" ) {
                     // szum podczas jazdy:
-                    sound_source noisetemplate { sound_placement::external, EU07_SOUND_RUNNINGNOISECUTOFFRANGE };
+                    sound_source noisetemplate{ sound_placement::external, EU07_SOUND_RUNNINGNOISECUTOFFRANGE };
                     noisetemplate.deserialize( parser, sound_type::single, sound_parameters::amplitude | sound_parameters::frequency, MoverParameters->Vmax );
                     noisetemplate.owner( this );
 
                     noisetemplate.m_amplitudefactor /= ( 1 + MoverParameters->Vmax );
                     noisetemplate.m_frequencyfactor /= ( 1 + MoverParameters->Vmax );
-
-                    m_outernoise = noisetemplate;
-/*
-// disabled until we can resolve sound interferences
+#ifdef EU07_SOUND_BOGIESOUNDS
                     if( true == m_bogiesounds.empty() ) {
                         // fallback for cases without specified noise locations, convert sound template to a single sound source
                         m_bogiesounds.emplace_back( noisetemplate );
@@ -5458,13 +5456,27 @@ void TDynamicObject::LoadMMediaFile( std::string const &TypeName, std::string co
                         // apply configuration to all defined bogies
                         for( auto &bogie : m_bogiesounds ) {
                             // combine potential x- and y-axis offsets of the sound template with z-axis offsets of individual motors
-                            auto bogieoffset { noisetemplate.offset() };
+                            auto bogieoffset{ noisetemplate.offset() };
                             bogieoffset.z = bogie.offset().z;
                             bogie = noisetemplate;
                             bogie.offset( bogieoffset );
                         }
                     }
-*/
+                    // apply randomized playback start offset for each bogie, to reduce potential reverb with identical nearby sources
+                    auto bogieidx( 0 );
+                    for( auto &bogie : m_bogiesounds ) {
+                        bogie.start( (
+                            bogieidx % 2 ?
+                                Random(  0.0, 30.0 ) :
+                                Random( 50.0, 80.0 ) )
+                            * 0.01 );
+                        ++bogieidx;
+                    }
+#else
+                    m_outernoise = noisetemplate;
+                    // apply randomized playback start offset, to reduce potential reverb with identical nearby sources
+                    m_outernoise.start( Random( 0.0, 80.0 ) * 0.01 );
+#endif
                 }
 
                 else if( token == "wheelflat:" ) {
@@ -5791,46 +5803,46 @@ void TDynamicObject::LoadMMediaFile( std::string const &TypeName, std::string co
         if( MoverParameters->Power > 0 ) {
             if( true == m_powertrainsounds.dsbWejscie_na_bezoporow.empty() ) {
                 // hunter-111211: domyslne, gdy brak
-                m_powertrainsounds.dsbWejscie_na_bezoporow.deserialize( "wejscie_na_bezoporow.wav", sound_type::single );
+                m_powertrainsounds.dsbWejscie_na_bezoporow.deserialize( "wejscie_na_bezoporow", sound_type::single );
                 m_powertrainsounds.dsbWejscie_na_bezoporow.owner( this );
             }
             if( true == m_powertrainsounds.motor_parallel.empty() ) {
-                m_powertrainsounds.motor_parallel.deserialize( "wescie_na_drugi_uklad.wav", sound_type::single );
+                m_powertrainsounds.motor_parallel.deserialize( "wescie_na_drugi_uklad", sound_type::single );
                 m_powertrainsounds.motor_parallel.owner( this );
             }
         }
         // braking sounds
         if( true == rsUnbrake.empty() ) {
-            rsUnbrake.deserialize( "[1007]estluz.wav", sound_type::single );
+            rsUnbrake.deserialize( "[1007]estluz", sound_type::single );
             rsUnbrake.owner( this );
         }
         // couplers
         for( auto &couplersounds : m_couplersounds ) {
             if( true == couplersounds.dsbCouplerAttach.empty() ) {
-                couplersounds.dsbCouplerAttach.deserialize( "couplerattach.wav", sound_type::single );
+                couplersounds.dsbCouplerAttach.deserialize( "couplerattach_default", sound_type::single );
                 couplersounds.dsbCouplerAttach.owner( this );
             }
             if( true == couplersounds.dsbCouplerDetach.empty() ) {
-                couplersounds.dsbCouplerDetach.deserialize( "couplerdetach.wav", sound_type::single );
+                couplersounds.dsbCouplerDetach.deserialize( "couplerdetach_default", sound_type::single );
                 couplersounds.dsbCouplerDetach.owner( this );
             }
             if( true == couplersounds.dsbCouplerStretch.empty() ) {
-                couplersounds.dsbCouplerStretch.deserialize( "en57_couplerstretch.wav", sound_type::single );
+                couplersounds.dsbCouplerStretch.deserialize( "couplerstretch_default", sound_type::single );
                 couplersounds.dsbCouplerStretch.owner( this );
             }
             if( true == couplersounds.dsbBufferClamp.empty() ) {
-                couplersounds.dsbBufferClamp.deserialize( "en57_bufferclamp.wav", sound_type::single );
+                couplersounds.dsbBufferClamp.deserialize( "bufferclamp_default", sound_type::single );
                 couplersounds.dsbBufferClamp.owner( this );
             }
         }
         // other sounds
         if( true == m_wheelflat.empty() ) {
-            m_wheelflat.deserialize( "lomotpodkucia.wav 0.23 0.0", sound_type::single, sound_parameters::frequency );
+            m_wheelflat.deserialize( "lomotpodkucia 0.23 0.0", sound_type::single, sound_parameters::frequency );
             m_wheelflat.owner( this );
         }
         if( true == rscurve.empty() ) {
             // hunter-111211: domyslne, gdy brak
-            rscurve.deserialize( "curve.wav", sound_type::single );
+            rscurve.deserialize( "curve", sound_type::single );
             rscurve.owner( this );
         }
     }
@@ -6402,15 +6414,16 @@ void TDynamicObject::DestinationSet(std::string to, std::string numer) {
 
     std::string signrequest {
           "make:"
-        + DestinationSign.script + "?"
+        + DestinationSign.script
+        + "?"
         // timetable include
         + "$timetable=" + (
             ctOwner == nullptr ?
                 MoverParameters->Name : // leading vehicle, can point to it directly
-                ctOwner->Vehicle()->MoverParameters->Name ) + "&" // owned vehicle, safer to point to owner as carriages can have identical names
+                ctOwner->Vehicle()->MoverParameters->Name ) // owned vehicle, safer to point to owner as carriages can have identical names
         // basic instancing string
         // NOTE: underscore doesn't have any magic meaning for the time being, it's just less likely to conflict with regular dictionary keys
-        + "_id1=" + (
+        + "&_id1=" + (
             ctOwner != nullptr ? ctOwner->TrainName() :
             Mechanik != nullptr ? Mechanik->TrainName() :
             "none" ) }; // shouldn't get here but, eh

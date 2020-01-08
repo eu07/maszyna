@@ -4704,7 +4704,7 @@ double TMoverParameters::CouplerForce( int const End, double dt ) {
     // potentially generate sounds on clash or stretch
     if( ( newdistance < 0.0 )
      && ( coupler.Dist > newdistance )
-     && ( dV < -0.5 ) ) {
+     && ( dV < -0.1 ) ) {
         // 090503: dzwieki pracy zderzakow
         SetFlag(
             coupler.sounds,
