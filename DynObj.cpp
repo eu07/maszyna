@@ -6520,6 +6520,9 @@ TDynamicObject::update_shake( double const Timedelta ) {
             IsHunting = ( huntingamount > 0.025 );
         }
 
+		if (FreeFlyModeFlag)
+            shakevector *= 0;
+
         auto const iVel { std::min( GetVelocity(), 150.0 ) };
         if( iVel > 0.5 ) {
             // acceleration-driven base shake
