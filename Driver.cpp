@@ -746,7 +746,10 @@ void TController::TableTraceRoute(double fDistance, TDynamicObject *pVehicle)
             else if( sSpeedTable[ iLast ].trTrack == tLast ) {
                 // otherwise just mark the last added track as the final one
                 // TODO: investigate exactly how we can wind up not marking the last existing track as actual end
-                sSpeedTable[ iLast ].iFlags |= ( spEnabled | spEnd );
+                if( false == TestFlag( sSpeedTable[ iLast ].trTrack->iCategoryFlag, 0x100 ) ) {
+                    // don't mark portals, as these aren't exactly track ends, but teleport devices
+                    sSpeedTable[ iLast ].iFlags |= ( spEnabled | spEnd );
+                }
             }
             // to ostatnia pozycja, bo NULL nic nie da, a może się podpiąć obrotnica, czy jakieś transportery
             return;

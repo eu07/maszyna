@@ -28,6 +28,8 @@ public:
     void VoltageSet(double const v) {
         NominalVoltage = v; };
     void PowerSet(TTractionPowerSource *ps);
+    bool Fuse() const {
+        return ( FastFuse || SlowFuse ); }
 // members
     TTractionPowerSource *psNode[ 2 ] = { nullptr, nullptr }; // zasilanie na końcach dla sekcji
     bool bSection = false; // czy jest sekcją

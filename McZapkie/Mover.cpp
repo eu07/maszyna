@@ -1651,8 +1651,8 @@ void TMoverParameters::ConverterCheck( double const Timestep ) {
     if( ( ConverterAllow )
      && ( ConverterAllowLocal )
      && ( false == PantPressLockActive )
-     && ( ( Mains )
-       || ( GetAnyTrainsetVoltage() > 0.0 ) ) ) {
+        // HACK: allow carriages to operate converter without (missing) fuse prerequisite
+     && ( ( Power > 1.0 ?  Mains : GetAnyTrainsetVoltage() > 0.0 ) ) ) {
         // delay timer can be optionally configured, and is set anew whenever converter goes off
         if( ConverterStartDelayTimer <= 0.0 ) {
             ConverterFlag = true;

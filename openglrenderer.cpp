@@ -751,7 +751,7 @@ bool opengl_renderer::Render_interior( bool const Alpha ) {
     while( dynamic != nullptr ) {
 
         glm::dvec3 const originoffset { dynamic->vPosition - m_renderpass.camera.position() };
-        float const squaredistance{ glm::length2( glm::vec3{ originoffset } / Global.ZoomFactor ) / Global.fDistanceFactor };
+        float const squaredistance{ glm::length2( glm::vec3{ originoffset } / Global.ZoomFactor ) };
         dynamics.emplace_back( squaredistance, dynamic );
         dynamic = dynamic->NextC( coupling::permanent );
     }
@@ -760,7 +760,7 @@ bool opengl_renderer::Render_interior( bool const Alpha ) {
     while( dynamic != nullptr ) {
 
         glm::dvec3 const originoffset { dynamic->vPosition - m_renderpass.camera.position() };
-        float const squaredistance{ glm::length2( glm::vec3{ originoffset } / Global.ZoomFactor ) / Global.fDistanceFactor };
+        float const squaredistance{ glm::length2( glm::vec3{ originoffset } / Global.ZoomFactor ) };
         dynamics.emplace_back( squaredistance, dynamic );
         dynamic = dynamic->PrevC( coupling::permanent );
     }
@@ -2249,7 +2249,7 @@ opengl_renderer::Render( TDynamicObject *Dynamic ) {
     glm::dvec3 const originoffset = Dynamic->vPosition - m_renderpass.camera.position();
     switch( m_renderpass.draw_mode ) {
         case rendermode::shadows: {
-            squaredistance = glm::length2( glm::vec3{ glm::dvec3{ Dynamic->vPosition - Global.pCamera.Pos } } / Global.ZoomFactor ) / Global.fDistanceFactor;
+            squaredistance = glm::length2( glm::vec3{ glm::dvec3{ Dynamic->vPosition - Global.pCamera.Pos } } / Global.ZoomFactor );
             if( false == FreeFlyModeFlag ) {
                 // filter out small details if we're in vehicle cab
                 squaredistance = std::max( 100.f * 100.f, squaredistance );
@@ -2257,13 +2257,13 @@ opengl_renderer::Render( TDynamicObject *Dynamic ) {
             break;
         }
         case rendermode::cabshadows: {
-            squaredistance = glm::length2( glm::vec3{ glm::dvec3{ Dynamic->vPosition - Global.pCamera.Pos } } / Global.ZoomFactor ) / Global.fDistanceFactor;
+            squaredistance = glm::length2( glm::vec3{ glm::dvec3{ Dynamic->vPosition - Global.pCamera.Pos } } / Global.ZoomFactor );
             // filter out small details
             squaredistance = std::max( 100.f * 100.f, squaredistance );
             break;
         }
         default: {
-            squaredistance = glm::length2( glm::vec3{ originoffset } / Global.ZoomFactor ) / Global.fDistanceFactor;
+            squaredistance = glm::length2( glm::vec3{ originoffset } / Global.ZoomFactor );
             // TODO: filter out small details based on fidelity setting
             break;
         }
@@ -3432,11 +3432,11 @@ opengl_renderer::Render_Alpha( TDynamicObject *Dynamic ) {
     float squaredistance;
     switch( m_renderpass.draw_mode ) {
         case rendermode::shadows: {
-            squaredistance = glm::length2( glm::vec3{ glm::dvec3{ Dynamic->vPosition - Global.pCamera.Pos } } / Global.ZoomFactor ) / Global.fDistanceFactor;
+            squaredistance = glm::length2( glm::vec3{ glm::dvec3{ Dynamic->vPosition - Global.pCamera.Pos } } / Global.ZoomFactor );
             break;
         }
         default: {
-            squaredistance = glm::length2( glm::vec3{ originoffset } / Global.ZoomFactor ) / Global.fDistanceFactor;
+            squaredistance = glm::length2( glm::vec3{ originoffset } / Global.ZoomFactor );
             break;
         }
     }

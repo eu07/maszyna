@@ -1642,7 +1642,7 @@ TDynamicObject::Init(std::string Name, // nazwa pojazdu, np. "EU07-424"
     else if (DriverType == "reardriver")
         DriverType = "2"; // sterujący kabiną -1
     else if (DriverType == "passenger")
-        DriverType = "p"; // to do przemyślenia
+        DriverType = ""; // legacy type, no longer needed
     else if (DriverType == "nobody")
         DriverType = ""; // nikt nie siedzi
 
@@ -3341,8 +3341,7 @@ bool TDynamicObject::Update(double dt, double dt1)
             ( MoverParameters->DynamicBrakeFlag && MoverParameters->ResistorsFlag ) ?
                 0 :
                 std::abs( MoverParameters->Itot ) )
-            + MoverParameters->TotalCurrent; // prąd pobierany przez pojazd - bez
-        // sensu z tym (TotalCurrent)
+            + MoverParameters->TotalCurrent; // prąd pobierany przez pojazd - bez sensu z tym (TotalCurrent)
         // TotalCurrent to bedzie prad nietrakcyjny (niezwiazany z napedem)
         // fCurrent+=fabs(MoverParameters->Voltage)*1e-6; //prąd płynący przez woltomierz, rozładowuje kondensator orgromowy 4µF
         double fPantCurrent = fCurrent; // normalnie cały prąd przez jeden pantograf
@@ -3387,8 +3386,16 @@ bool TDynamicObject::Update(double dt, double dt1)
                     if (p->hvPowerWire) {
                         auto const lastvoltage { MoverParameters->PantFrontVolt };
                         // TODO: wyliczyć trzeba prąd przypadający na pantograf i wstawić do GetVoltage()
-                        MoverParameters->PantFrontVolt = p->hvPowerWire->VoltageGet( MoverParameters->PantographVoltage, fPantCurrent );
-                        fCurrent -= fPantCurrent; // taki prąd płynie przez powyższy pantograf
+                        if( lastvoltage == 0.0 ) {
+                            // HACK: retrieve the wire voltage for calculations down the road without blowing up the supply
+                            MoverParameters->PantFrontVolt = p->hvPowerWire->VoltageGet( MoverParameters->PantographVoltage, 0.0 );
+                        }
+                        else {
+                            MoverParameters->PantFrontVolt = p->hvPowerWire->VoltageGet( MoverParameters->PantographVoltage, fPantCurrent );
+                            if( MoverParameters->PantFrontVolt > 0.0 ) {
+                                fCurrent -= fPantCurrent; // taki prąd płynie przez powyższy pantograf (unless it doesn't)
+                            }
+                        }
                         // TODO: refactor reaction to voltage change to mover as sound event for specific pantograph
                         if( ( lastvoltage == 0.0 )
                          && ( MoverParameters->PantFrontVolt > 0.0 ) ) {
@@ -3421,8 +3428,16 @@ bool TDynamicObject::Update(double dt, double dt1)
                     if (p->hvPowerWire) {
                         auto const lastvoltage { MoverParameters->PantRearVolt };
                         // TODO: wyliczyć trzeba prąd przypadający na pantograf i wstawić do GetVoltage()
-                        MoverParameters->PantRearVolt = p->hvPowerWire->VoltageGet( MoverParameters->PantographVoltage, fPantCurrent );
-                        fCurrent -= fPantCurrent; // taki prąd płynie przez powyższy pantograf
+                        if( lastvoltage == 0.0 ) {
+                            // HACK: retrieve the wire voltage for calculations down the road without blowing up the supply
+                            MoverParameters->PantRearVolt = p->hvPowerWire->VoltageGet( MoverParameters->PantographVoltage, 0.0 );
+                        }
+                        else {
+                            MoverParameters->PantRearVolt = p->hvPowerWire->VoltageGet( MoverParameters->PantographVoltage, fPantCurrent );
+                            if( MoverParameters->PantRearVolt > 0.0 ) {
+                                fCurrent -= fPantCurrent; // taki prąd płynie przez powyższy pantograf (unless it doesn't)
+                            }
+                        }
                         // TODO: refactor reaction to voltage change to mover as sound event for specific pantograph
                         if( ( lastvoltage == 0.0 )
                          && ( MoverParameters->PantRearVolt > 0.0 ) ) {

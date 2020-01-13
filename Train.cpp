@@ -6061,7 +6061,7 @@ bool TTrain::Update( double const Deltatime )
                     (std::abs(mvControlled->Im) > 0))
                 {
                     ggEngineVoltage.UpdateValue(
-                        (x * (mvControlled->PantographVoltage -
+                        (x * (std::abs(mvControlled->EngineVoltage) -
                               mvControlled->RList[mvControlled->MainCtrlActualPos].R *
                                   std::abs(mvControlled->Im)) /
                          mvControlled->RList[mvControlled->MainCtrlActualPos].Mn));

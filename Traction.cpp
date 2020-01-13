@@ -486,18 +486,21 @@ double TTraction::VoltageGet(double u, double i)
                 psPowered->CurrentGet( res ) * res :
                 0.0 );
     }
+    if( ( psPower[0] && psPower[0]->Fuse() )
+     || ( psPower[1] && psPower[1]->Fuse() ) ) {
+        // if either power source is out, so are we
+        return 0.0;
+    }
+
     double r0t, r1t, r0g, r1g;
     double i0, i1;
     r0t = fResistance[0]; //średni pomysł, ale lepsze niż nic
     r1t = fResistance[1]; // bo nie uwzględnia spadków z innych pojazdów
     if (psPower[0] && psPower[1])
     { // gdy przęsło jest zasilane z obu stron - mamy trójkąt: res, r0t, r1t
-        // yB: Gdy wywali podstacja, to zaczyna się robić nieciekawie - napięcie w sekcji na jednym
-        // końcu jest równe zasilaniu,
-        // yB: a na drugim końcu jest równe 0. Kolejna sprawa to rozróżnienie uszynienia sieci na
-        // podstacji/odłączniku (czyli
-        // yB: potencjał masy na sieci) od braku zasilania (czyli odłączenie źródła od sieci i brak
-        // jego wpływu na napięcie).
+        // yB: Gdy wywali podstacja, to zaczyna się robić nieciekawie - napięcie w sekcji na jednym końcu jest równe zasilaniu,
+        // yB: a na drugim końcu jest równe 0. Kolejna sprawa to rozróżnienie uszynienia sieci na podstacji/odłączniku (czyli
+        // yB: potencjał masy na sieci) od braku zasilania (czyli odłączenie źródła od sieci i brak jego wpływu na napięcie).
         if ((r0t > 0.0) && (r1t > 0.0))
         { // rezystancje w mianowniku nie mogą być zerowe
             r0g = res + r0t + (res * r0t) / r1t; // przeliczenie z trójkąta na gwiazdę

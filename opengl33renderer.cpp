@@ -580,7 +580,7 @@ void opengl33_renderer::Render_pass(viewport_config &vp, rendermode const Mode)
 
 		scene_ubs.time = Timer::GetTime();
 		scene_ubs.projection = OpenGLMatrices.data(GL_PROJECTION);
-        scene_ubs.inv_view = glm::inverse( glm::mat4{ glm::mat3{ m_renderpass.pass_camera.modelview() } } );
+        scene_ubs.inv_view = glm::inverse( glm::mat4{ glm::mat3{ m_colorpass.pass_camera.modelview() } } );
         scene_ubo->update(scene_ubs);
 		scene_ubo->bind_uniform();
 
@@ -657,7 +657,8 @@ void opengl33_renderer::Render_pass(viewport_config &vp, rendermode const Mode)
 		setup_drawing(true);
         m_renderpass.draw_stats = {};
 
-		glm::mat4 future;
+		model_ubs.future = glm::mat4();
+        glm::mat4 future;
 		if (Global.pCamera.m_owner != nullptr)
 		{
 			auto const *vehicle = Global.pCamera.m_owner;
@@ -665,7 +666,7 @@ void opengl33_renderer::Render_pass(viewport_config &vp, rendermode const Mode)
 			future = glm::translate(mv, -glm::vec3(vehicle->get_future_movement())) * glm::inverse(mv);
 		}
 
-		model_ubs.future = glm::mat4();
+        Update_Lights( simulation::Lights );
 
 		glDebug("render environment");
 
@@ -683,8 +684,8 @@ void opengl33_renderer::Render_pass(viewport_config &vp, rendermode const Mode)
 		// precipitation happens when overcast is in 1-2 range
 		if (!FreeFlyModeFlag && Global.Overcast <= 1.0f && Global.render_cab)
 		{
-			glDebug("render cab opaque");
-            // cache shadow colour in case we need to account for cab light
+			glDebug("render opaque cab");
+            model_ubs.future = glm::mat4();
             auto const *vehicle{ simulation::Train->Dynamic() };
             if( vehicle->InteriorLightLevel > 0.f ) {
                 setup_shadow_color( glm::min( colors::white, m_shadowcolor + glm::vec4( vehicle->InteriorLight * vehicle->InteriorLightLevel, 1.f ) ) );
@@ -715,9 +716,7 @@ void opengl33_renderer::Render_pass(viewport_config &vp, rendermode const Mode)
 		// cab render
 		if (false == FreeFlyModeFlag && Global.render_cab)
 		{
-			glDebug("render translucent cab");
 			model_ubs.future = glm::mat4();
-            // cache shadow colour in case we need to account for cab light
             auto *vehicle { simulation::Train->Dynamic() };
             if( vehicle->InteriorLightLevel > 0.f ) {
                 setup_shadow_color( glm::min( colors::white, m_shadowcolor + glm::vec4( vehicle->InteriorLight * vehicle->InteriorLightLevel, 1.f ) ) );
@@ -725,15 +724,21 @@ void opengl33_renderer::Render_pass(viewport_config &vp, rendermode const Mode)
 			if (Global.Overcast > 1.0f)
 			{
 				// with active precipitation draw the opaque cab parts here to mask rain/snow placed 'inside' the cab
-				setup_drawing(false);
+                glDebug( "render opaque cab" );
+                setup_drawing(false);
 				Render_cab(vehicle, vehicle->InteriorLightLevel, false);
-                Render_interior( false );
+                Render_interior(false);
 				setup_drawing(true);
-                Render_interior( true );
+                Render_interior(true);
 			}
-			Render_cab(vehicle, vehicle->InteriorLightLevel, true);
+            glDebug( "render translucent cab" );
+            Render_cab(vehicle, vehicle->InteriorLightLevel, true);
             if( vehicle->InteriorLightLevel > 0.f ) {
                 setup_shadow_color( m_shadowcolor );
+            }
+            if( Global.Overcast > 1.0f ) {
+                // with the cab in place we can (finally) safely draw translucent part of the occupied vehicle
+                Render_Alpha( vehicle );
             }
         }
 
@@ -950,7 +955,7 @@ bool opengl33_renderer::Render_interior( bool const Alpha ) {
     while( dynamic != nullptr ) {
 
         glm::dvec3 const originoffset { dynamic->vPosition - m_renderpass.pass_camera.position() };
-        float const squaredistance{ glm::length2( glm::vec3{ originoffset } / Global.ZoomFactor ) / Global.fDistanceFactor };
+        float const squaredistance{ glm::length2( glm::vec3{ originoffset } / Global.ZoomFactor ) };
         dynamics.emplace_back( squaredistance, dynamic );
         dynamic = dynamic->NextC( coupling::permanent );
     }
@@ -959,7 +964,7 @@ bool opengl33_renderer::Render_interior( bool const Alpha ) {
     while( dynamic != nullptr ) {
 
         glm::dvec3 const originoffset { dynamic->vPosition - m_renderpass.pass_camera.position() };
-        float const squaredistance{ glm::length2( glm::vec3{ originoffset } / Global.ZoomFactor ) / Global.fDistanceFactor };
+        float const squaredistance{ glm::length2( glm::vec3{ originoffset } / Global.ZoomFactor ) };
         dynamics.emplace_back( squaredistance, dynamic );
         dynamic = dynamic->PrevC( coupling::permanent );
     }
@@ -1909,8 +1914,6 @@ void opengl33_renderer::Render(scene::basic_region *Region)
 	{
 	case rendermode::color:
 	{
-		Update_Lights(simulation::Lights);
-
 		Render(std::begin(m_sectionqueue), std::end(m_sectionqueue));
 		// draw queue is filled while rendering sections
 		if (EditorModeFlag && m_current_viewport->main)
@@ -2343,7 +2346,7 @@ bool opengl33_renderer::Render(TDynamicObject *Dynamic)
 	{
 	case rendermode::shadows:
 	{
-		squaredistance = glm::length2(glm::vec3{glm::dvec3{Dynamic->vPosition - m_renderpass.viewport_camera.position()}} / Global.ZoomFactor) / Global.fDistanceFactor;
+		squaredistance = glm::length2(glm::vec3{glm::dvec3{Dynamic->vPosition - m_renderpass.viewport_camera.position()}} / Global.ZoomFactor);
         if( false == FreeFlyModeFlag ) {
             // filter out small details if we're in vehicle cab
             squaredistance = std::max( 100.f * 100.f, squaredistance );
@@ -2352,7 +2355,7 @@ bool opengl33_renderer::Render(TDynamicObject *Dynamic)
 	}
 	default:
 	{
-		squaredistance = glm::length2(glm::vec3{originoffset} / Global.ZoomFactor) / Global.fDistanceFactor;
+		squaredistance = glm::length2(glm::vec3{originoffset} / Global.ZoomFactor);
         // TODO: filter out small details based on fidelity setting
 		break;
 	}
@@ -3332,7 +3335,7 @@ bool opengl33_renderer::Render_Alpha(TDynamicObject *Dynamic)
 	case rendermode::shadows:
 	default:
 	{
-		squaredistance = glm::length2(glm::vec3{originoffset} / Global.ZoomFactor) / Global.fDistanceFactor;
+		squaredistance = glm::length2(glm::vec3{originoffset} / Global.ZoomFactor);
 		break;
 	}
 	}
@@ -3971,7 +3974,7 @@ void opengl33_renderer::Update_Lights(light_array &Lights)
     Bind_Texture( gl::HEADLIGHT_TEX, m_headlightstexture );
 
 	// arrange the light array from closest to farthest from current position of the camera
-	auto const camera = m_renderpass.pass_camera.position();
+	auto const camera = m_colorpass.pass_camera.position();
 	std::sort(
         std::begin(Lights.data), std::end(Lights.data),
         [&camera](light_array::light_record const &Left, light_array::light_record const &Right) {

@@ -420,7 +420,7 @@ driver_mode::update_camera( double const Deltatime ) {
             if( Camera.m_owner == nullptr ) {
                 if( controlled && LengthSquared3( controlled->GetPosition() - Camera.Pos ) < ( 1500 * 1500 ) ) {
                     // gdy bliżej niż 1.5km
-                    Camera.LookAt = controlled->GetPosition();
+                    Camera.LookAt = controlled->GetPosition() + 0.4 * controlled->VectorUp() * controlled->MoverParameters->Dim.H;
                 }
                 else {
                     TDynamicObject *d = std::get<TDynamicObject *>( simulation::Region->find_vehicle( Global.pCamera.Pos, 300, false, false ) );
@@ -437,7 +437,7 @@ driver_mode::update_camera( double const Deltatime ) {
                     if( d )
                         pDynamicNearest = d; // zmiana na nowy, jeśli coś znaleziony niepusty
                     if( pDynamicNearest )
-                        Camera.LookAt = pDynamicNearest->GetPosition() + 0.5 * pDynamicNearest->VectorUp() * pDynamicNearest->MoverParameters->Dim.H;
+                        Camera.LookAt = pDynamicNearest->GetPosition() + 0.4 * pDynamicNearest->VectorUp() * pDynamicNearest->MoverParameters->Dim.H;
                 }
                 Camera.RaLook(); // jednorazowe przestawienie kamery
             }
