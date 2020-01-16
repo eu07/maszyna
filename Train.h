@@ -155,6 +155,9 @@ class TTrain {
     void set_train_brake_speed( TDynamicObject *Vehicle, int const Speed );
     // sets the motor connector button in paired unit to specified state
     void set_paired_open_motor_connectors_button( bool const State );
+    // helper, common part of pantograph selection methods
+    void change_pantograph_selection( int const Change, bool const Force = false );
+    void change_pantograph_selection_state( bool const State );
     // update function subroutines
     void update_sounds( double const Deltatime );
     void update_sounds_runningnoise( sound_source &Sound );
@@ -249,6 +252,10 @@ class TTrain {
     static void OnCommand_pantographlowerfront( TTrain *Train, command_data const &Command );
     static void OnCommand_pantographlowerrear( TTrain *Train, command_data const &Command );
     static void OnCommand_pantographlowerall( TTrain *Train, command_data const &Command );
+    static void OnCommand_pantographselectnext( TTrain *Train, command_data const &Command );
+    static void OnCommand_pantographselectprevious( TTrain *Train, command_data const &Command );
+    static void OnCommand_pantographraiseselected( TTrain *Train, command_data const &Command );
+    static void OnCommand_pantographlowerselected( TTrain *Train, command_data const &Command );
     static void OnCommand_linebreakertoggle( TTrain *Train, command_data const &Command );
     static void OnCommand_linebreakeropen( TTrain *Train, command_data const &Command );
     static void OnCommand_linebreakerclose( TTrain *Train, command_data const &Command );
@@ -404,7 +411,6 @@ public: // reszta może by?publiczna
 
     // McZapkie: definicje wskaźników
     // Ra 2014-08: częsciowo przeniesione do tablicy w TCab
-    TGauge ggZbS;
     TGauge ggClockSInd;
     TGauge ggClockMInd;
     TGauge ggClockHInd;
@@ -539,6 +545,7 @@ public: // reszta może by?publiczna
     TGauge ggPantAllDownButton;
     TGauge ggPantSelectedButton;
     TGauge ggPantSelectedDownButton;
+    TGauge ggPantSelectButton;
     TGauge ggPantCompressorButton;
     TGauge ggPantCompressorValve;
     // Winger 020304 - wlacznik ogrzewania
@@ -742,6 +749,8 @@ private:
     float m_mastercontrollerreturndelay { 0.f };
     std::vector<std::pair<std::string, texture_handle>> m_screens;
     float m_distancecounter { -1.f }; // distance traveled since meter was activated or -1 if inactive
+    double m_brakehandlecp{ 0.0 };
+    int m_pantselection{ 0 };
 
   public:
     float fPress[20][3]; // cisnienia dla wszystkich czlonow

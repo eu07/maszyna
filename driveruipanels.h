@@ -76,7 +76,7 @@ private:
         TDynamicObject const *controlled;
         TCamera const *camera;
         TDynamicObject const *vehicle;
-        TMoverParameters const *mover;
+        TMoverParameters *mover;
         TController const *mechanik;
     };
 // methods

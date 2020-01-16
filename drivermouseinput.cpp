@@ -772,19 +772,22 @@ drivermouse_input::default_bindings() {
             user_command::none } },
         { "pantfrontoff_sw:", {
             user_command::pantographlowerfront,
-            user_command::none } }, // TODO: dedicated lower pantograph commands
+            user_command::none } },
         { "pantrearoff_sw:", {
             user_command::pantographlowerrear,
-            user_command::none } }, // TODO: dedicated lower pantograph commands
+            user_command::none } },
         { "pantalloff_sw:", {
             user_command::pantographlowerall,
             user_command::none } },
         { "pantselected_sw:", {
-            user_command::none,
-            user_command::none } }, // TODO: selected pantograph(s) operation command
+            user_command::pantographraiseselected,
+            user_command::none } }, // TBD: bind lowerselected in case of toggle switch
         { "pantselectedoff_sw:", {
-            user_command::none,
-            user_command::none } }, // TODO: lower selected pantograp(s) command
+            user_command::pantographlowerselected,
+            user_command::none } },
+        { "pantselect_sw:", {
+            user_command::pantographselectnext,
+            user_command::pantographselectprevious } },
         { "pantcompressor_sw:", {
             user_command::pantographcompressoractivate,
             user_command::none } },

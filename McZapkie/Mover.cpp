@@ -1161,6 +1161,11 @@ TMoverParameters::derail( int const Reason ) {
 
         AccS *= 0.65;
         V *= 0.65;
+        if( Vel < 5.0 ) {
+            // HACK: prevent permanent axle spin in static vehicle after a collision
+            nrot = 0.0;
+            SlippingWheels = false;
+        }
 
         WriteLog( "Bad driving: " + Name + " derailed" );
     }
@@ -6527,26 +6532,6 @@ void TMoverParameters::CheckEIMIC(double dt)
 		}
 		if (MainCtrlPos >= 3 && eimic < 0) eimic = 0;
 		if (MainCtrlPos <= 3 && eimic > 0) eimic = 0;
-		if (LocHandleTimeTraxx)
-		{
-			if (LocalBrakeRatio() < 0.05) //pozycja 0
-			{
-				eim_localbrake -= dt*0.17; //zmniejszanie
-			}
-
-			if (LocalBrakeRatio() > 0.15) //pozycja 2
-			{
-				eim_localbrake += dt*0.17; //wzrastanie
-				eim_localbrake = std::max(eim_localbrake, BrakePress / MaxBrakePress[0]);
-			}
-			else
-			{
-				if (eim_localbrake < Hamulec->GetEDBCP() / MaxBrakePress[0])
-					eim_localbrake = 0;
-			}
-			eim_localbrake = clamp(eim_localbrake, 0.0, 1.0);
-			if (eim_localbrake > 0.04 && eimic > 0) eimic = 0;
-		}
 		break;
 	case 2:
 		if ((MainCtrlActualPos != MainCtrlPos) || (LastRelayTime>InitialCtrlDelay))
@@ -6616,6 +6601,27 @@ void TMoverParameters::CheckEIMIC(double dt)
 		}
 
 	}
+   	if (LocHandleTimeTraxx)
+	{
+		if (LocalBrakeRatio() < 0.05) //pozycja 0
+		{
+			eim_localbrake -= dt*0.17; //zmniejszanie
+		}
+
+		if (LocalBrakeRatio() > 0.15) //pozycja 2
+		{
+			eim_localbrake += dt*0.17; //wzrastanie
+			eim_localbrake = std::max(eim_localbrake, BrakePress / MaxBrakePress[0]);
+		}
+		else
+		{
+			if (eim_localbrake < Hamulec->GetEDBCP() / MaxBrakePress[0])
+				eim_localbrake = 0;
+		}
+		eim_localbrake = clamp(eim_localbrake, 0.0, 1.0);
+		if (eim_localbrake > 0.04 && eimic > 0) eimic = 0;
+	}
+
     auto const eimicpowerenabled {
         ( ( true == Mains ) || ( Power == 0.0 ) )
      && ( ( Doors.instances[ side::left  ].open_permit == false )

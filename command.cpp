@@ -178,6 +178,10 @@ commanddescription_sequence Commands_descriptions = {
     { "pantographlowerfront", command_target::vehicle },
     { "pantographlowerrear", command_target::vehicle },
     { "pantographlowerall", command_target::vehicle },
+    { "pantographselectnext", command_target::vehicle },
+    { "pantographselectprevious", command_target::vehicle },
+    { "pantographraiseselected", command_target::vehicle },
+    { "pantographlowerselected", command_target::vehicle },
     { "heatingtoggle", command_target::vehicle },
     { "heatingenable", command_target::vehicle },
     { "heatingdisable", command_target::vehicle },
@@ -262,7 +266,6 @@ commanddescription_sequence Commands_descriptions = {
 	{ "speedcontrolbutton7", command_target::vehicle },
 	{ "speedcontrolbutton8", command_target::vehicle },
 	{ "speedcontrolbutton9", command_target::vehicle }
-
 };
 
 } // simulation

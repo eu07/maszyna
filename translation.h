@@ -159,6 +159,7 @@ enum string {
     cab_pantalloff_sw,
     cab_pantselected_sw,
     cab_pantselectedoff_sw,
+    cab_pantselect_sw,
     cab_pantcompressor_sw,
     cab_pantcompressorvalve_sw,
     cab_trainheating_sw,

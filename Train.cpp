@@ -233,6 +233,10 @@ TTrain::commandhandler_map const TTrain::m_commandhandlers = {
     { user_command::pantographlowerfront, &TTrain::OnCommand_pantographlowerfront },
     { user_command::pantographlowerrear, &TTrain::OnCommand_pantographlowerrear },
     { user_command::pantographlowerall, &TTrain::OnCommand_pantographlowerall },
+    { user_command::pantographselectnext, &TTrain::OnCommand_pantographselectnext },
+    { user_command::pantographselectprevious, &TTrain::OnCommand_pantographselectprevious },
+    { user_command::pantographraiseselected, &TTrain::OnCommand_pantographraiseselected },
+    { user_command::pantographlowerselected, &TTrain::OnCommand_pantographlowerselected },
     { user_command::linebreakertoggle, &TTrain::OnCommand_linebreakertoggle },
     { user_command::linebreakeropen, &TTrain::OnCommand_linebreakeropen },
     { user_command::linebreakerclose, &TTrain::OnCommand_linebreakerclose },
@@ -2020,18 +2024,9 @@ void TTrain::OnCommand_pantographtogglefront( TTrain *Train, command_data const 
         if( Train->mvOccupied->PantSwitchType == "impulse" ) {
             if( Train->ggPantFrontButton.SubModel )
                 Train->ggPantFrontButton.UpdateValue( 0.0, Train->dsbSwitch );
-            // NOTE: currently we animate the selectable pantograph control based on standard key presses
-            // TODO: implement actual selection control, and refactor handling this control setup in a separate method
-            if( Train->ggPantSelectedButton.SubModel )
-                Train->ggPantSelectedButton.UpdateValue( 0.0, Train->dsbSwitch );
             // also the switch off button, in cabs which have it
             if( Train->ggPantFrontButtonOff.SubModel )
                 Train->ggPantFrontButtonOff.UpdateValue( 0.0, Train->dsbSwitch );
-            if( Train->ggPantSelectedDownButton.SubModel ) {
-                // NOTE: currently we animate the selectable pantograph control based on standard key presses
-                // TODO: implement actual selection control, and refactor handling this control setup in a separate method
-                Train->ggPantSelectedDownButton.UpdateValue( 0.0, Train->dsbSwitch );
-            }
         }
     }
 }
@@ -2055,40 +2050,25 @@ void TTrain::OnCommand_pantographtogglerear( TTrain *Train, command_data const &
         if( Train->mvOccupied->PantSwitchType == "impulse" ) {
             if( Train->ggPantRearButton.SubModel )
                 Train->ggPantRearButton.UpdateValue( 0.0, Train->dsbSwitch );
-            // NOTE: currently we animate the selectable pantograph control based on standard key presses
-            // TODO: implement actual selection control, and refactor handling this control setup in a separate method
-            if( Train->ggPantSelectedButton.SubModel )
-                Train->ggPantSelectedButton.UpdateValue( 0.0, Train->dsbSwitch );
             // also the switch off button, in cabs which have it
             if( Train->ggPantRearButtonOff.SubModel )
                 Train->ggPantRearButtonOff.UpdateValue( 0.0, Train->dsbSwitch );
-            if( Train->ggPantSelectedDownButton.SubModel ) {
-                // NOTE: currently we animate the selectable pantograph control based on standard key presses
-                // TODO: implement actual selection control, and refactor handling this control setup in a separate method
-                Train->ggPantSelectedDownButton.UpdateValue( 0.0, Train->dsbSwitch );
-            }
         }
     }
 }
 
 void TTrain::OnCommand_pantographraisefront( TTrain *Train, command_data const &Command ) {
 
+    if( Train->ggPantFrontButton.SubModel == nullptr ) { return; }
+
     if( Command.action == GLFW_PRESS ) {
         // only reacting to press, so the switch doesn't flip back and forth if key is held down
         // visual feedback
         if( Train->ggPantFrontButton.SubModel )
             Train->ggPantFrontButton.UpdateValue( 1.0, Train->dsbSwitch );
-        // NOTE: currently we animate the selectable pantograph control based on standard key presses
-        // TODO: implement actual selection control, and refactor handling this control setup in a separate method
-        if( Train->ggPantSelectedButton.SubModel )
-            Train->ggPantSelectedButton.UpdateValue( 1.0, Train->dsbSwitch );
         // pantograph control can have two-button setup
         if( Train->ggPantFrontButtonOff.SubModel )
             Train->ggPantFrontButtonOff.UpdateValue( 0.0, Train->dsbSwitch );
-        // NOTE: currently we animate the selectable pantograph control based on standard key presses
-        // TODO: implement actual selection control, and refactor handling this control setup in a separate method
-        if( Train->ggPantSelectedDownButton.SubModel )
-            Train->ggPantSelectedDownButton.UpdateValue( 0.0, Train->dsbSwitch );
 
         if( true == Train->mvControlled->PantFrontUp ) { return; } // already up
 
@@ -2106,22 +2086,16 @@ void TTrain::OnCommand_pantographraisefront( TTrain *Train, command_data const &
 
 void TTrain::OnCommand_pantographraiserear( TTrain *Train, command_data const &Command ) {
 
+    if( Train->ggPantRearButton.SubModel == nullptr ) { return; }
+
     if( Command.action == GLFW_PRESS ) {
         // only reacting to press, so the switch doesn't flip back and forth if key is held down
         // visual feedback
         if( Train->ggPantRearButton.SubModel )
             Train->ggPantRearButton.UpdateValue( 1.0, Train->dsbSwitch );
-        // NOTE: currently we animate the selectable pantograph control based on standard key presses
-        // TODO: implement actual selection control, and refactor handling this control setup in a separate method
-        if( Train->ggPantSelectedButton.SubModel )
-            Train->ggPantSelectedButton.UpdateValue( 1.0, Train->dsbSwitch );
         // pantograph control can have two-button setup
         if( Train->ggPantRearButtonOff.SubModel )
             Train->ggPantRearButtonOff.UpdateValue( 0.0, Train->dsbSwitch );
-        // NOTE: currently we animate the selectable pantograph control based on standard key presses
-        // TODO: implement actual selection control, and refactor handling this control setup in a separate method
-        if( Train->ggPantSelectedDownButton.SubModel )
-            Train->ggPantSelectedDownButton.UpdateValue( 0.0, Train->dsbSwitch );
 
         if( true == Train->mvControlled->PantRearUp ) { return; } // already up
 
@@ -2139,32 +2113,28 @@ void TTrain::OnCommand_pantographraiserear( TTrain *Train, command_data const &C
 
 void TTrain::OnCommand_pantographlowerfront( TTrain *Train, command_data const &Command ) {
 
+    if( ( Train->ggPantFrontButton.SubModel == nullptr )
+     && ( Train->ggPantFrontButtonOff.SubModel == nullptr ) ) {
+        // no buttons, either there's other switch types or none whatsoever
+        return;
+    }
+
     if( Command.action == GLFW_PRESS ) {
 
         if( Train->mvOccupied->PantSwitchType == "impulse" ) {
-            if( ( Train->ggPantFrontButtonOff.SubModel == nullptr )
-             && ( Train->ggPantSelectedDownButton.SubModel == nullptr ) ) {
+            if( Train->ggPantFrontButtonOff.SubModel == nullptr ) {
                 // with impulse buttons we expect a dedicated switch to lower the pantograph, and if the cabin lacks it
                 // then another control has to be used (like pantographlowerall)
                 // TODO: we should have a way to define presence of cab controls without having to bind these to 3d submodels
                 return;
             }
         }
-
         // visual feedback
         if( Train->ggPantFrontButton.SubModel )
             Train->ggPantFrontButton.UpdateValue( 0.0, Train->dsbSwitch );
-        // NOTE: currently we animate the selectable pantograph control based on standard key presses
-        // TODO: implement actual selection control, and refactor handling this control setup in a separate method
-        if( Train->ggPantSelectedButton.SubModel )
-            Train->ggPantSelectedButton.UpdateValue( 0.0, Train->dsbSwitch );
         // pantograph control can have two-button setup
         if( Train->ggPantFrontButtonOff.SubModel )
             Train->ggPantFrontButtonOff.UpdateValue( 1.0, Train->dsbSwitch );
-        // NOTE: currently we animate the selectable pantograph control based on standard key presses
-        // TODO: implement actual selection control, and refactor handling this control setup in a separate method
-        if( Train->ggPantSelectedDownButton.SubModel )
-            Train->ggPantSelectedDownButton.UpdateValue( 1.0, Train->dsbSwitch );
 
         if( false == Train->mvControlled->PantFrontUp ) { return; } // already down
 
@@ -2182,32 +2152,28 @@ void TTrain::OnCommand_pantographlowerfront( TTrain *Train, command_data const &
 
 void TTrain::OnCommand_pantographlowerrear( TTrain *Train, command_data const &Command ) {
 
+    if( ( Train->ggPantRearButton.SubModel == nullptr )
+     && ( Train->ggPantRearButtonOff.SubModel == nullptr ) ) {
+        // no buttons, either there's other switch types or none whatsoever
+        return;
+    }
+
     if( Command.action == GLFW_PRESS ) {
 
         if( Train->mvOccupied->PantSwitchType == "impulse" ) {
-            if( ( Train->ggPantRearButtonOff.SubModel == nullptr )
-             && ( Train->ggPantSelectedDownButton.SubModel == nullptr ) ) {
+            if( Train->ggPantRearButtonOff.SubModel == nullptr ) {
                 // with impulse buttons we expect a dedicated switch to lower the pantograph, and if the cabin lacks it
                 // then another control has to be used (like pantographlowerall)
                 // TODO: we should have a way to define presence of cab controls without having to bind these to 3d submodels
                 return;
             }
         }
-
         // visual feedback
         if( Train->ggPantRearButton.SubModel )
             Train->ggPantRearButton.UpdateValue( 0.0, Train->dsbSwitch );
-        // NOTE: currently we animate the selectable pantograph control based on standard key presses
-        // TODO: implement actual selection control, and refactor handling this control setup in a separate method
-        if( Train->ggPantSelectedButton.SubModel )
-            Train->ggPantSelectedButton.UpdateValue( 0.0, Train->dsbSwitch );
         // pantograph control can have two-button setup
         if( Train->ggPantRearButtonOff.SubModel )
             Train->ggPantRearButtonOff.UpdateValue( 1.0, Train->dsbSwitch );
-        // NOTE: currently we animate the selectable pantograph control based on standard key presses
-        // TODO: implement actual selection control, and refactor handling this control setup in a separate method
-        if( Train->ggPantSelectedDownButton.SubModel )
-            Train->ggPantSelectedDownButton.UpdateValue( 1.0, Train->dsbSwitch );
 
         if( false == Train->mvControlled->PantRearUp ) { return; } // already down
 
@@ -2227,8 +2193,7 @@ void TTrain::OnCommand_pantographlowerall( TTrain *Train, command_data const &Co
 
     if( Command.action == GLFW_REPEAT ) { return; }
 
-    if( ( Train->ggPantAllDownButton.SubModel == nullptr )
-     && ( Train->ggPantSelectedDownButton.SubModel == nullptr ) ) {
+    if( Train->ggPantAllDownButton.SubModel == nullptr ) {
         // TODO: expand definition of cab controls so we can know if the control is present without testing for presence of 3d switch
         if( Command.action == GLFW_PRESS ) {
             WriteLog( "Lower All Pantographs switch is missing, or wasn't defined" );
@@ -2248,20 +2213,12 @@ void TTrain::OnCommand_pantographlowerall( TTrain *Train, command_data const &Co
             Train->mvControlled->PantRearSP = false;
             Train->mvControlled->PantRear( false );
             // visual feedback
-            if( Train->ggPantAllDownButton.SubModel )
-                Train->ggPantAllDownButton.UpdateValue( 1.0, Train->dsbSwitch );
-            if( Train->ggPantSelectedDownButton.SubModel ) {
-                Train->ggPantSelectedDownButton.UpdateValue( 1.0, Train->dsbSwitch );
-            }
+            Train->ggPantAllDownButton.UpdateValue( 1.0, Train->dsbSwitch );
         }
         else if( Command.action == GLFW_RELEASE ) {
             // release the button
             // visual feedback
-            if( Train->ggPantAllDownButton.SubModel )
-                Train->ggPantAllDownButton.UpdateValue( 0.0 );
-            if( Train->ggPantSelectedDownButton.SubModel ) {
-                Train->ggPantSelectedDownButton.UpdateValue( 0.0 );
-            }
+            Train->ggPantAllDownButton.UpdateValue( 0.0 );
         }
     }
     else {
@@ -2278,21 +2235,142 @@ void TTrain::OnCommand_pantographlowerall( TTrain *Train, command_data const &Co
                 Train->mvControlled->PantRearSP = false;
                 Train->mvControlled->PantRear( false );
                 // visual feedback
-                if( Train->ggPantAllDownButton.SubModel )
-                    Train->ggPantAllDownButton.UpdateValue( 1.0, Train->dsbSwitch );
-                if( Train->ggPantSelectedDownButton.SubModel ) {
-                    Train->ggPantSelectedDownButton.UpdateValue( 1.0, Train->dsbSwitch );
-                }
+                Train->ggPantAllDownButton.UpdateValue( 1.0, Train->dsbSwitch );
             }
             else {
                 // currently active, move it back to neutral position
                 // visual feedback
-                if( Train->ggPantAllDownButton.SubModel )
-                    Train->ggPantAllDownButton.UpdateValue( 0.0 );
-                if( Train->ggPantSelectedDownButton.SubModel ) {
-                    Train->ggPantSelectedDownButton.UpdateValue( 0.0 );
-                }
+                Train->ggPantAllDownButton.UpdateValue( 0.0 );
             }
+        }
+    }
+}
+
+void TTrain::OnCommand_pantographselectnext( TTrain *Train, command_data const &Command ) {
+
+    if( Command.action != GLFW_PRESS ) { return; }
+
+    Train->change_pantograph_selection( 1 );
+}
+
+void TTrain::OnCommand_pantographselectprevious( TTrain *Train, command_data const &Command ) {
+
+    if( Command.action != GLFW_PRESS ) { return; }
+
+    Train->change_pantograph_selection( -1 );
+}
+
+void TTrain::OnCommand_pantographraiseselected( TTrain *Train, command_data const &Command ) {
+
+    if( Command.action == GLFW_REPEAT ) { return; }
+
+    if( Train->ggPantSelectedButton.type() == TGaugeType::push ) {
+        // impulse switch
+        if( Command.action == GLFW_PRESS ) {
+            // visual feedback
+            Train->ggPantSelectedButton.UpdateValue( 1.0, Train->dsbSwitch );
+            // raise selected
+            Train->change_pantograph_selection_state( true );
+        }
+        else if( Command.action == GLFW_RELEASE ) {
+            // visual feedback
+            Train->ggPantSelectedButton.UpdateValue( 0.0, Train->dsbSwitch );
+        }
+    }
+    else {
+        // two-state switch, only cares about press events
+        if( Command.action == GLFW_PRESS ) {
+            // visual feedback
+            Train->ggPantSelectedButton.UpdateValue( 1.0, Train->dsbSwitch );
+            // raise selected
+            Train->change_pantograph_selection_state( true );
+        }
+    }
+}
+
+void TTrain::OnCommand_pantographlowerselected( TTrain *Train, command_data const &Command ) {
+
+    if( Command.action == GLFW_REPEAT ) { return; }
+
+    if( Train->ggPantSelectedDownButton.type() == TGaugeType::push ) {
+        // impulse switch
+        if( Command.action == GLFW_PRESS ) {
+            // visual feedback
+            Train->ggPantSelectedDownButton.UpdateValue( 1.0, Train->dsbSwitch );
+            // lower selected
+            Train->change_pantograph_selection_state( false );
+        }
+        else if( Command.action == GLFW_RELEASE ) {
+            // visual feedback
+            Train->ggPantSelectedDownButton.UpdateValue( 0.0, Train->dsbSwitch );
+        }
+    }
+    else {
+        // two-state switch, only cares about press events
+        if( Command.action == GLFW_PRESS ) {
+            // visual feedback
+            Train->ggPantSelectedDownButton.UpdateValue( 0.0, Train->dsbSwitch );
+            // lower selected
+            Train->change_pantograph_selection_state( false );
+        }
+    }
+}
+
+void TTrain::change_pantograph_selection( int const Change, bool const Force ) {
+
+    auto const initialstate { m_pantselection };
+
+    m_pantselection = clamp( m_pantselection + Change, 0, 3 );
+    // visual feedback
+    ggPantSelectButton.UpdateValue( m_pantselection );
+
+    if( ( m_pantselection == initialstate ) && ( false == Force ) ) { return; } // no change, nothing to do
+
+    // crude way to determine whether pantograph state change is automatic
+    // if there's button to raise/lower selected panthograph, we presume the change has to be invoked manually
+    if( ggPantSelectedButton.SubModel != nullptr ) { return; }
+
+    // raise or lower pantographs according to new requested state
+    auto const swapends{ cab_to_end() != end::front };
+    // check desired states for both pantographs; value: whether the pantograph should be raised
+    auto const frontstate{ ( m_pantselection == 2 ) || ( m_pantselection == ( swapends ? 1 : 3 ) ) };
+    auto const rearstate{ ( m_pantselection == 2 ) || ( m_pantselection == ( swapends ? 3 : 1 ) ) };
+    // potentially adjust front pantograph state
+    if( mvControlled->PantFrontUp != frontstate ) {
+           // TBD, TODO: impulse switch should only work when the power is on?
+        if( mvControlled->PantFront( frontstate ) == frontstate ) {
+            mvControlled->PantFrontSP = false;
+        }
+    }
+    // potentially adjust rear pantograph state
+    if( mvControlled->PantRearUp != rearstate ) {
+           // TBD, TODO: impulse switch should only work when the power is on?
+        if( mvControlled->PantRear( rearstate ) == rearstate ) {
+            mvControlled->PantRearSP = false;
+        }
+    }
+}
+
+void TTrain::change_pantograph_selection_state( bool const State ) {
+
+    auto const swapends { cab_to_end() != end::front };
+    // check desired states for both pantographs; value: whether the pantograph should be raised
+    auto const frontselected { ( m_pantselection == 0 ) || ( m_pantselection == 2 ) || ( m_pantselection == ( swapends ? 1 : 3 ) ) };
+    auto const rearselected  { ( m_pantselection == 0 ) || ( m_pantselection == 2 ) || ( m_pantselection == ( swapends ? 3 : 1 ) ) };
+    // potentially adjust front pantograph state
+    if( ( true == frontselected )
+     && ( mvControlled->PantFrontUp != State ) ) {
+        // TBD, TODO: impulse switch should only work when the power is on?
+        if( mvControlled->PantFront( State ) == State ) {
+            mvControlled->PantFrontSP = false;
+        }
+    }
+    // potentially adjust rear pantograph state
+    if( ( true == rearselected )
+     && ( mvControlled->PantRearUp != State ) ) {
+        // TBD, TODO: impulse switch should only work when the power is on?
+        if( mvControlled->PantRear( State ) == State ) {
+            mvControlled->PantRearSP = false;
         }
     }
 }
@@ -6036,11 +6114,15 @@ bool TTrain::Update( double const Deltatime )
         }
 
         Cabine[iCabn].Update( lowvoltagepower ); // nowy sposób ustawienia animacji
+/*
         if (ggZbS.SubModel)
         {
             ggZbS.UpdateValue(mvOccupied->Handle->GetCP());
             ggZbS.Update();
         }
+*/
+        // replacement for the above. TODO: move it to a more suitable place
+        m_brakehandlecp = mvOccupied->Handle->GetCP();
 
         // youBy - napiecie na silnikach
         if (ggEngineVoltage.SubModel)
@@ -6710,6 +6792,7 @@ bool TTrain::Update( double const Deltatime )
         ggPantRearButtonOff.Update();
         ggPantSelectedDownButton.Update();
         ggPantAllDownButton.Update();
+        ggPantSelectButton.Update();
         ggPantCompressorButton.Update();
         ggPantCompressorValve.Update();
 
@@ -6832,6 +6915,18 @@ bool TTrain::Update( double const Deltatime )
                 if( ( false == mvControlled->PantRearUp )
                  && ( ggPantRearButton.GetDesiredValue() >= 0.95 ) ) {
                     mvControlled->PantRear( true );
+                }
+            }
+            if( ggPantSelectButton.SubModel ) {
+                if( ggPantSelectedButton.SubModel ) {
+                    if( ( ggPantSelectedButton.type() == TGaugeType::toggle )
+                     && ( ggPantSelectedButton.GetDesiredValue() >= 0.95 ) ) {
+                        change_pantograph_selection_state( true );
+                    }
+                }
+                else {
+                    // HACK: force pantographs into currently selected state
+                    change_pantograph_selection( 0, true );
                 }
             }
         }
@@ -8012,9 +8107,9 @@ void TTrain::clear_cab_controls()
     ggPantRearButtonOff.Clear();
     ggPantSelectedDownButton.Clear();
     ggPantAllDownButton.Clear();
+    ggPantSelectButton.Clear();
     ggPantCompressorButton.Clear();
     ggPantCompressorValve.Clear();
-    ggZbS.Clear();
     ggI1B.Clear();
     ggI2B.Clear();
     ggI3B.Clear();
@@ -8168,20 +8263,6 @@ void TTrain::set_cab_controls( int const Cab ) {
                     0.f :
                     1.f ) );
         }
-        // NOTE: currently we animate the selectable pantograph control for both pantographs
-        // TODO: implement actual selection control, and refactor handling this control setup in a separate method
-        if( ggPantSelectedButton.SubModel ) {
-            ggPantSelectedButton.PutValue(
-                ( mvControlled->PantFrontUp ?
-                    1.f :
-                    0.f ) );
-        }
-        if( ggPantSelectedDownButton.SubModel ) {
-            ggPantSelectedDownButton.PutValue(
-                ( mvControlled->PantFrontUp ?
-                    0.f :
-                    1.f ) );
-        }
     }
     if( mvOccupied->PantSwitchType != "impulse" ) {
         if( ggPantRearButton.SubModel ) {
@@ -8196,17 +8277,41 @@ void TTrain::set_cab_controls( int const Cab ) {
                     0.f :
                     1.f ) );
         }
-        // NOTE: currently we animate the selectable pantograph control for both pantographs
-        // TODO: implement actual selection control, and refactor handling this control setup in a separate method
-        if( ggPantSelectedButton.SubModel ) {
+    }
+    // front/end pantograph selection is relative to occupied cab
+    m_pantselection = (
+        m_pantselection == 1 ? ( cab_to_end( Cab ) == cab_to_end() ? 1 : 3 ) :
+        m_pantselection == 3 ? ( cab_to_end( Cab ) == cab_to_end() ? 3 : 1 ) :
+        m_pantselection ); // other settings affect both pantographs
+    if( ggPantSelectButton.SubModel ) {
+        ggPantSelectButton.PutValue( m_pantselection );
+    }
+    if( ggPantSelectedButton.type() == TGaugeType::toggle ) {
+        if( ggPantSelectButton.SubModel ) {
+            auto const swapends{ cab_to_end( Cab ) != end::front };
+            auto const pantraised{ (
+                m_pantselection == 0 ? false :
+                m_pantselection == 1 ? ( swapends ? mvControlled->PantFrontUp : mvControlled->PantRearUp ) :
+                m_pantselection == 2 ? ( mvControlled->PantFrontUp & mvControlled->PantRearUp ) :
+                m_pantselection == 3 ? ( swapends ? mvControlled->PantRearUp : mvControlled->PantFrontUp ) :
+                false ) };
             ggPantSelectedButton.PutValue(
-                ( mvControlled->PantRearUp ?
+                ( pantraised ?
                     1.f :
                     0.f ) );
         }
+    }
+    if( ggPantSelectedDownButton.type() == TGaugeType::toggle ) {
         if( ggPantSelectedDownButton.SubModel ) {
+            auto const swapends{ cab_to_end( Cab ) != end::front };
+            auto const pantraised{ (
+                m_pantselection == 0 ? false :
+                m_pantselection == 1 ? ( swapends ? mvControlled->PantFrontUp : mvControlled->PantRearUp ) :
+                m_pantselection == 2 ? ( mvControlled->PantFrontUp & mvControlled->PantRearUp ) :
+                m_pantselection == 3 ? ( swapends ? mvControlled->PantRearUp : mvControlled->PantFrontUp ) :
+                false ) };
             ggPantSelectedDownButton.PutValue(
-                ( mvControlled->PantRearUp ?
+                ( pantraised ?
                     0.f :
                     1.f ) );
         }
@@ -8707,6 +8812,7 @@ bool TTrain::initialize_gauge(cParser &Parser, std::string const &Label, int con
         { "pantalloff_sw:", ggPantAllDownButton },
         { "pantselected_sw:", ggPantSelectedButton },
         { "pantselectedoff_sw:", ggPantSelectedDownButton },
+        { "pantselect_sw:", ggPantSelectButton },
         { "pantcompressor_sw:", ggPantCompressorButton },
         { "pantcompressorvalve_sw:", ggPantCompressorValve },
         { "trainheating_sw:", ggTrainHeatingButton },
@@ -8896,7 +9002,9 @@ bool TTrain::initialize_gauge(cParser &Parser, std::string const &Label, int con
     else if (Label == "limpipepress:")
     {
         // manometr zbiornika sterujacego zaworu maszynisty
-        ggZbS.Load(Parser, DynamicObject, 0.1);
+        auto &gauge = Cabine[ Cabindex ].Gauge( -1 ); // pierwsza wolna gałka
+        gauge.Load( Parser, DynamicObject, 0.1 );
+        gauge.AssignDouble( &m_brakehandlecp );
     }
     else if (Label == "cntrlpress:")
     {

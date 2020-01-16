@@ -523,7 +523,22 @@ debug_panel::render() {
         }
         // sections
         ImGui::Separator();
-        render_section( "Vehicle", m_vehiclelines );
+        if( true == render_section( "Vehicle", m_vehiclelines ) ) {
+            if( ( m_input.mover )
+             && ( m_input.mover->DamageFlag != 0 ) ) {
+                if( true == ImGui::Button( "Fix Status" ) ) {
+                    // TODO: refactor status reset into mover method
+                    m_input.mover->DamageFlag = 0;
+                    m_input.mover->EngDmgFlag = 0;
+                    m_input.mover->V = 0.0001; // HACK: force vehicle position re-calculation
+                    m_input.mover->DistCounter = 0.0;
+                    m_input.mover->WheelFlat = 0.0;
+                    m_input.mover->AlarmChainFlag = false;
+                    m_input.mover->OffsetTrackH = 0.0;
+                    m_input.mover->OffsetTrackV = 0.0;
+                }
+            }
+        }
         render_section( "Vehicle Engine", m_enginelines );
         render_section( "Vehicle AI", m_ailines );
         render_section( "Vehicle Scan Table", m_scantablelines );
