@@ -156,8 +156,7 @@ class TTrain {
     // sets the motor connector button in paired unit to specified state
     void set_paired_open_motor_connectors_button( bool const State );
     // helper, common part of pantograph selection methods
-    void change_pantograph_selection( int const Change, bool const Force = false );
-    void change_pantograph_selection_state( bool const State );
+    void change_pantograph_selection( int const Change );
     // update function subroutines
     void update_sounds( double const Deltatime );
     void update_sounds_runningnoise( sound_source &Sound );
@@ -538,10 +537,12 @@ public: // reszta może by?publiczna
     TGauge ggDepartureSignalButton;
 
     // Winger 160204 - obsluga pantografow - ZROBIC
+/*
     TGauge ggPantFrontButton;
     TGauge ggPantRearButton;
     TGauge ggPantFrontButtonOff; // EZT
     TGauge ggPantRearButtonOff;
+*/
     TGauge ggPantAllDownButton;
     TGauge ggPantSelectedButton;
     TGauge ggPantSelectedDownButton;

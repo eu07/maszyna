@@ -2403,7 +2403,11 @@ opengl_renderer::Render_cab( TDynamicObject const *Dynamic, float const Lightlev
                 }
                 if( Lightlevel > 0.f ) {
                     // crude way to light the cabin, until we have something more complete in place
-                    ::glLightModelfv( GL_LIGHT_MODEL_AMBIENT, glm::value_ptr( Dynamic->InteriorLight * Lightlevel ) );
+                    ::glLightModelfv(
+                        GL_LIGHT_MODEL_AMBIENT,
+                        glm::value_ptr(
+                            glm::vec3( m_baseambient )
+                            + ( Dynamic->InteriorLight * Lightlevel ) * static_cast<float>( clamp( 1.25 - Global.fLuminance, 0.0, 1.0 ) ) ) );
                 }
                 // render
                 if( true == Alpha ) {

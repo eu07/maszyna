@@ -1816,6 +1816,10 @@ void TTrain::OnCommand_reverserincrease( TTrain *Train, command_data const &Comm
 
     if( Command.action == GLFW_PRESS ) {
 
+        // HACK: master controller position isn't set in occupied vehicle in E(D)MUs
+        // so we do a manual check in relevant vehicle here
+        if( false == Train->mvControlled->EIMDirectionChangeAllow() ) { return; }
+
         if( Train->mvOccupied->DirectionForward() ) {
             // aktualizacja skrajnych pojazdów w składzie
             if( ( Train->mvOccupied->DirActive )
@@ -1830,6 +1834,10 @@ void TTrain::OnCommand_reverserincrease( TTrain *Train, command_data const &Comm
 void TTrain::OnCommand_reverserdecrease( TTrain *Train, command_data const &Command ) {
 
     if( Command.action == GLFW_PRESS ) {
+
+        // HACK: master controller position isn't set in occupied vehicle in E(D)MUs
+        // so we do a manual check in relevant vehicle here
+        if( false == Train->mvControlled->EIMDirectionChangeAllow() ) { return; }
 
         if( Train->mvOccupied->DirectionBackward() ) {
             // aktualizacja skrajnych pojazdów w składzie
@@ -1854,6 +1862,11 @@ void TTrain::OnCommand_reverserforwardhigh( TTrain *Train, command_data const &C
 void TTrain::OnCommand_reverserforward( TTrain *Train, command_data const &Command ) {
 
     if( Command.action == GLFW_PRESS ) {
+
+        // HACK: master controller position isn't set in occupied vehicle in E(D)MUs
+        // so we do a manual check in relevant vehicle here
+        if( false == Train->mvControlled->EIMDirectionChangeAllow() ) { return; }
+
         // HACK: try to move the reverser one position back, in case it's set to "high forward"
         OnCommand_reverserdecrease( Train, Command );
 
@@ -1877,6 +1890,10 @@ void TTrain::OnCommand_reverserneutral( TTrain *Train, command_data const &Comma
 
     if( Command.action == GLFW_PRESS ) {
 
+        // HACK: master controller position isn't set in occupied vehicle in E(D)MUs
+        // so we do a manual check in relevant vehicle here
+        if( false == Train->mvControlled->EIMDirectionChangeAllow() ) { return; }
+
         while( ( Train->mvOccupied->DirActive < 0 )
             && ( true == Train->mvOccupied->DirectionForward() ) ) {
             // all work is done in the header
@@ -1891,6 +1908,10 @@ void TTrain::OnCommand_reverserneutral( TTrain *Train, command_data const &Comma
 void TTrain::OnCommand_reverserbackward( TTrain *Train, command_data const &Command ) {
 
     if( Command.action == GLFW_PRESS ) {
+
+        // HACK: master controller position isn't set in occupied vehicle in E(D)MUs
+        // so we do a manual check in relevant vehicle here
+        if( false == Train->mvControlled->EIMDirectionChangeAllow() ) { return; }
 
         if( Train->mvOccupied->DirActive > -1 ) {
 
@@ -1987,14 +2008,7 @@ void TTrain::OnCommand_batterydisable( TTrain *Train, command_data const &Comman
 
         if( false == Train->mvOccupied->Battery ) { return; } // already off
 
-        if( Train->mvOccupied->BatterySwitch( false ) ) {
-            // side-effects
-            if( false == Train->mvControlled->ConverterFlag ) {
-                // if there's no (low voltage) power source left, drop pantographs
-                Train->mvControlled->PantFront( false );
-                Train->mvControlled->PantRear( false );
-            }
-        }
+        Train->mvOccupied->BatterySwitch( false );
     }
     else if( Command.action == GLFW_RELEASE ) {
         if( Train->ggBatteryButton.type() == TGaugeType::push ) {
@@ -2007,78 +2021,66 @@ void TTrain::OnCommand_batterydisable( TTrain *Train, command_data const &Comman
 
 void TTrain::OnCommand_pantographtogglefront( TTrain *Train, command_data const &Command ) {
 
+    // HACK: presence of pantograph selector prevents manual operation of the individual valves
+    if( Train->ggPantSelectButton.SubModel ) { return; }
+
     if( Command.action == GLFW_PRESS ) {
         // only reacting to press, so the switch doesn't flip back and forth if key is held down
-        if( false == Train->mvControlled->PantFrontUp ) {
-            // turn on...
-            OnCommand_pantographraisefront( Train, Command );
+        auto const &pantograph { Train->mvControlled->Pantographs[ end::front ] };
+        auto const state {
+            pantograph.valve.is_enabled
+          | pantograph.is_active }; // fallback for impulse switches
+        if( state ) {
+            OnCommand_pantographlowerfront( Train, Command );
         }
         else {
-            // ...or turn off
-            OnCommand_pantographlowerfront( Train, Command );
+            OnCommand_pantographraisefront( Train, Command );
         }
     }
     else if( Command.action == GLFW_RELEASE ) {
         // impulse switches return automatically to neutral position
-        // NOTE: this routine is used also by dedicated raise and lower commands
         if( Train->mvOccupied->PantSwitchType == "impulse" ) {
-            if( Train->ggPantFrontButton.SubModel )
-                Train->ggPantFrontButton.UpdateValue( 0.0, Train->dsbSwitch );
-            // also the switch off button, in cabs which have it
-            if( Train->ggPantFrontButtonOff.SubModel )
-                Train->ggPantFrontButtonOff.UpdateValue( 0.0, Train->dsbSwitch );
+            Train->mvControlled->OperatePantographValve( end::front, operation_t::none );
         }
     }
 }
 
 void TTrain::OnCommand_pantographtogglerear( TTrain *Train, command_data const &Command ) {
 
+    // HACK: presence of pantograph selector prevents manual operation of the individual valves
+    if( Train->ggPantSelectButton.SubModel ) { return; }
+
     if( Command.action == GLFW_PRESS ) {
         // only reacting to press, so the switch doesn't flip back and forth if key is held down
-        if( false == Train->mvControlled->PantRearUp ) {
-            // turn on...
-            OnCommand_pantographraiserear( Train, Command );
+        auto const &pantograph { Train->mvControlled->Pantographs[ end::rear ] };
+        auto const state {
+            pantograph.valve.is_enabled
+          | pantograph.is_active }; // fallback for impulse switches
+        if( state ) {
+            OnCommand_pantographlowerrear( Train, Command );
         }
         else {
-            // ...or turn off
-            OnCommand_pantographlowerrear( Train, Command );
+            OnCommand_pantographraiserear( Train, Command );
         }
     }
     else if( Command.action == GLFW_RELEASE ) {
         // impulse switches return automatically to neutral position
-        // NOTE: this routine is used also by dedicated raise and lower commands
         if( Train->mvOccupied->PantSwitchType == "impulse" ) {
-            if( Train->ggPantRearButton.SubModel )
-                Train->ggPantRearButton.UpdateValue( 0.0, Train->dsbSwitch );
-            // also the switch off button, in cabs which have it
-            if( Train->ggPantRearButtonOff.SubModel )
-                Train->ggPantRearButtonOff.UpdateValue( 0.0, Train->dsbSwitch );
+            Train->mvControlled->OperatePantographValve( end::rear, operation_t::none );
         }
     }
 }
 
 void TTrain::OnCommand_pantographraisefront( TTrain *Train, command_data const &Command ) {
 
-    if( Train->ggPantFrontButton.SubModel == nullptr ) { return; }
+    // HACK: presence of pantograph selector prevents manual operation of the individual valves
+    if( Train->ggPantSelectButton.SubModel ) { return; }
 
     if( Command.action == GLFW_PRESS ) {
         // only reacting to press, so the switch doesn't flip back and forth if key is held down
-        // visual feedback
-        if( Train->ggPantFrontButton.SubModel )
-            Train->ggPantFrontButton.UpdateValue( 1.0, Train->dsbSwitch );
-        // pantograph control can have two-button setup
-        if( Train->ggPantFrontButtonOff.SubModel )
-            Train->ggPantFrontButtonOff.UpdateValue( 0.0, Train->dsbSwitch );
-
-        if( true == Train->mvControlled->PantFrontUp ) { return; } // already up
-
-        // TBD, TODO: impulse switch should only work when the power is on?
-        if( Train->mvControlled->PantFront( true ) ) {
-            Train->mvControlled->PantFrontSP = false;
-        }
+        Train->mvControlled->OperatePantographValve( end::front, operation_t::enable );
     }
     else if( Command.action == GLFW_RELEASE ) {
-        // visual feedback
         // NOTE: bit of a hax here, we're reusing button reset routine so we don't need a copy in every branch
         OnCommand_pantographtogglefront( Train, Command );
     }
@@ -2086,26 +2088,14 @@ void TTrain::OnCommand_pantographraisefront( TTrain *Train, command_data const &
 
 void TTrain::OnCommand_pantographraiserear( TTrain *Train, command_data const &Command ) {
 
-    if( Train->ggPantRearButton.SubModel == nullptr ) { return; }
+    // HACK: presence of pantograph selector prevents manual operation of the individual valves
+    if( Train->ggPantSelectButton.SubModel ) { return; }
 
     if( Command.action == GLFW_PRESS ) {
         // only reacting to press, so the switch doesn't flip back and forth if key is held down
-        // visual feedback
-        if( Train->ggPantRearButton.SubModel )
-            Train->ggPantRearButton.UpdateValue( 1.0, Train->dsbSwitch );
-        // pantograph control can have two-button setup
-        if( Train->ggPantRearButtonOff.SubModel )
-            Train->ggPantRearButtonOff.UpdateValue( 0.0, Train->dsbSwitch );
-
-        if( true == Train->mvControlled->PantRearUp ) { return; } // already up
-
-        // TBD, TODO: impulse switch should only work when the power is on?
-        if( Train->mvControlled->PantRear( true ) ) {
-            Train->mvControlled->PantRearSP = false;
-        }
+        Train->mvControlled->OperatePantographValve( end::rear, operation_t::enable );
     }
     else if( Command.action == GLFW_RELEASE ) {
-        // visual feedback
         // NOTE: bit of a hax here, we're reusing button reset routine so we don't need a copy in every branch
         OnCommand_pantographtogglerear( Train, Command );
     }
@@ -2113,38 +2103,14 @@ void TTrain::OnCommand_pantographraiserear( TTrain *Train, command_data const &C
 
 void TTrain::OnCommand_pantographlowerfront( TTrain *Train, command_data const &Command ) {
 
-    if( ( Train->ggPantFrontButton.SubModel == nullptr )
-     && ( Train->ggPantFrontButtonOff.SubModel == nullptr ) ) {
-        // no buttons, either there's other switch types or none whatsoever
-        return;
-    }
+    // HACK: presence of pantograph selector prevents manual operation of the individual valves
+    if( Train->ggPantSelectButton.SubModel ) { return; }
 
     if( Command.action == GLFW_PRESS ) {
-
-        if( Train->mvOccupied->PantSwitchType == "impulse" ) {
-            if( Train->ggPantFrontButtonOff.SubModel == nullptr ) {
-                // with impulse buttons we expect a dedicated switch to lower the pantograph, and if the cabin lacks it
-                // then another control has to be used (like pantographlowerall)
-                // TODO: we should have a way to define presence of cab controls without having to bind these to 3d submodels
-                return;
-            }
-        }
-        // visual feedback
-        if( Train->ggPantFrontButton.SubModel )
-            Train->ggPantFrontButton.UpdateValue( 0.0, Train->dsbSwitch );
-        // pantograph control can have two-button setup
-        if( Train->ggPantFrontButtonOff.SubModel )
-            Train->ggPantFrontButtonOff.UpdateValue( 1.0, Train->dsbSwitch );
-
-        if( false == Train->mvControlled->PantFrontUp ) { return; } // already down
-
-        // TBD, TODO: impulse switch should only work when the power is on?
-        if( Train->mvControlled->PantFront( false ) ) {
-            Train->mvControlled->PantFrontSP = false;
-        }
+        // only reacting to press, so the switch doesn't flip back and forth if key is held down
+        Train->mvControlled->OperatePantographValve( end::front, operation_t::disable );
     }
     else if( Command.action == GLFW_RELEASE ) {
-        // visual feedback
         // NOTE: bit of a hax here, we're reusing button reset routine so we don't need a copy in every branch
         OnCommand_pantographtogglefront( Train, Command );
     }
@@ -2152,40 +2118,16 @@ void TTrain::OnCommand_pantographlowerfront( TTrain *Train, command_data const &
 
 void TTrain::OnCommand_pantographlowerrear( TTrain *Train, command_data const &Command ) {
 
-    if( ( Train->ggPantRearButton.SubModel == nullptr )
-     && ( Train->ggPantRearButtonOff.SubModel == nullptr ) ) {
-        // no buttons, either there's other switch types or none whatsoever
-        return;
-    }
+    // HACK: presence of pantograph selector prevents manual operation of the individual valves
+    if( Train->ggPantSelectButton.SubModel ) { return; }
 
     if( Command.action == GLFW_PRESS ) {
-
-        if( Train->mvOccupied->PantSwitchType == "impulse" ) {
-            if( Train->ggPantRearButtonOff.SubModel == nullptr ) {
-                // with impulse buttons we expect a dedicated switch to lower the pantograph, and if the cabin lacks it
-                // then another control has to be used (like pantographlowerall)
-                // TODO: we should have a way to define presence of cab controls without having to bind these to 3d submodels
-                return;
-            }
-        }
-        // visual feedback
-        if( Train->ggPantRearButton.SubModel )
-            Train->ggPantRearButton.UpdateValue( 0.0, Train->dsbSwitch );
-        // pantograph control can have two-button setup
-        if( Train->ggPantRearButtonOff.SubModel )
-            Train->ggPantRearButtonOff.UpdateValue( 1.0, Train->dsbSwitch );
-
-        if( false == Train->mvControlled->PantRearUp ) { return; } // already down
-
-        // TBD, TODO: impulse switch should only work when the power is on?
-        if( Train->mvControlled->PantRear( false ) ) {
-            Train->mvControlled->PantRearSP = false;
-        }
+        // only reacting to press, so the switch doesn't flip back and forth if key is held down
+        Train->mvControlled->OperatePantographValve( end::rear, operation_t::disable );
     }
     else if( Command.action == GLFW_RELEASE ) {
-        // visual feedback
         // NOTE: bit of a hax here, we're reusing button reset routine so we don't need a copy in every branch
-        OnCommand_pantographtogglerear( Train, Command );
+        OnCommand_pantographtogglefront( Train, Command );
     }
 }
 
@@ -2201,48 +2143,19 @@ void TTrain::OnCommand_pantographlowerall( TTrain *Train, command_data const &Co
         return;
     }
 
-    if( Train->ggPantAllDownButton.type() == TGaugeType::push ) {
-        // impulse switch
+    if( Train->ggPantAllDownButton.type() == TGaugeType::toggle ) {
+        // two-state switch, only cares about press events
         if( Command.action == GLFW_PRESS ) {
-            // press the button
-            // since we're just lowering all potential pantographs we don't need to test for state and effect
-            // front...
-            Train->mvControlled->PantFrontSP = false;
-            Train->mvControlled->PantFront( false );
-            // ...and rear
-            Train->mvControlled->PantRearSP = false;
-            Train->mvControlled->PantRear( false );
+            Train->mvControlled->DropAllPantographs( false == Train->mvControlled->PantAllDown );
             // visual feedback
-            Train->ggPantAllDownButton.UpdateValue( 1.0, Train->dsbSwitch );
-        }
-        else if( Command.action == GLFW_RELEASE ) {
-            // release the button
-            // visual feedback
-            Train->ggPantAllDownButton.UpdateValue( 0.0 );
+            Train->ggPantAllDownButton.UpdateValue( ( Train->mvControlled->PantAllDown ? 1.0 : 0.0 ), Train->dsbSwitch );
         }
     }
     else {
-        // two-state switch, only cares about press events
-        if( Command.action == GLFW_PRESS ) {
-            // HACK: use current switch position to determine (intended) state
-            if( Train->ggPantAllDownButton.GetDesiredValue() < 0.05 ) {
-                // currenty inactive, activate it
-                // since we're just lowering all potential pantographs we don't need to test for state and effect
-                // front...
-                Train->mvControlled->PantFrontSP = false;
-                Train->mvControlled->PantFront( false );
-                // ...and rear
-                Train->mvControlled->PantRearSP = false;
-                Train->mvControlled->PantRear( false );
-                // visual feedback
-                Train->ggPantAllDownButton.UpdateValue( 1.0, Train->dsbSwitch );
-            }
-            else {
-                // currently active, move it back to neutral position
-                // visual feedback
-                Train->ggPantAllDownButton.UpdateValue( 0.0 );
-            }
-        }
+        // impulse switch
+        Train->mvControlled->DropAllPantographs( Command.action == GLFW_PRESS );
+        // visual feedback
+        Train->ggPantAllDownButton.UpdateValue( ( Command.action == GLFW_PRESS ? 1.0 : 0.0 ), Train->dsbSwitch );
     }
 }
 
@@ -2250,12 +2163,16 @@ void TTrain::OnCommand_pantographselectnext( TTrain *Train, command_data const &
 
     if( Command.action != GLFW_PRESS ) { return; }
 
+    if( Train->ggPantSelectButton.SubModel == nullptr ) { return; }
+
     Train->change_pantograph_selection( 1 );
 }
 
 void TTrain::OnCommand_pantographselectprevious( TTrain *Train, command_data const &Command ) {
 
-    if( Command.action != GLFW_PRESS ) { return; }
+    if( Command.action != GLFW_PRESS )  { return; }
+
+    if( Train->ggPantSelectButton.SubModel == nullptr ) { return; }
 
     Train->change_pantograph_selection( -1 );
 }
@@ -2264,26 +2181,20 @@ void TTrain::OnCommand_pantographraiseselected( TTrain *Train, command_data cons
 
     if( Command.action == GLFW_REPEAT ) { return; }
 
-    if( Train->ggPantSelectedButton.type() == TGaugeType::push ) {
-        // impulse switch
-        if( Command.action == GLFW_PRESS ) {
-            // visual feedback
-            Train->ggPantSelectedButton.UpdateValue( 1.0, Train->dsbSwitch );
-            // raise selected
-            Train->change_pantograph_selection_state( true );
-        }
-        else if( Command.action == GLFW_RELEASE ) {
+    if( Command.action == GLFW_PRESS ) {
+        // raise selected
+        Train->mvControlled->OperatePantographsValve(
+            Train->ggPantSelectedButton.type() == TGaugeType::toggle ?
+                operation_t::enable :
+                operation_t::enable_on );
+        // visual feedback
+        Train->ggPantSelectedButton.UpdateValue( 1.0, Train->dsbSwitch );
+    }
+    else if( Command.action == GLFW_RELEASE ) {
+        if( Train->ggPantSelectedButton.type() != TGaugeType::toggle ) {
+            Train->mvControlled->OperatePantographsValve( operation_t::enable_off );
             // visual feedback
             Train->ggPantSelectedButton.UpdateValue( 0.0, Train->dsbSwitch );
-        }
-    }
-    else {
-        // two-state switch, only cares about press events
-        if( Command.action == GLFW_PRESS ) {
-            // visual feedback
-            Train->ggPantSelectedButton.UpdateValue( 1.0, Train->dsbSwitch );
-            // raise selected
-            Train->change_pantograph_selection_state( true );
         }
     }
 }
@@ -2292,31 +2203,25 @@ void TTrain::OnCommand_pantographlowerselected( TTrain *Train, command_data cons
 
     if( Command.action == GLFW_REPEAT ) { return; }
 
-    if( Train->ggPantSelectedDownButton.type() == TGaugeType::push ) {
-        // impulse switch
-        if( Command.action == GLFW_PRESS ) {
-            // visual feedback
-            Train->ggPantSelectedDownButton.UpdateValue( 1.0, Train->dsbSwitch );
-            // lower selected
-            Train->change_pantograph_selection_state( false );
-        }
-        else if( Command.action == GLFW_RELEASE ) {
-            // visual feedback
-            Train->ggPantSelectedDownButton.UpdateValue( 0.0, Train->dsbSwitch );
-        }
+    if( Command.action == GLFW_PRESS ) {
+        // lower selected
+        Train->mvControlled->OperatePantographsValve(
+            Train->ggPantSelectedDownButton.type() == TGaugeType::toggle ?
+            operation_t::disable :
+            operation_t::disable_on );
+        // visual feedback
+        Train->ggPantSelectedDownButton.UpdateValue( 1.0, Train->dsbSwitch );
     }
-    else {
-        // two-state switch, only cares about press events
-        if( Command.action == GLFW_PRESS ) {
+    else if( Command.action == GLFW_RELEASE ) {
+        if( Train->ggPantSelectedDownButton.type() != TGaugeType::toggle ) {
+            Train->mvControlled->OperatePantographsValve( operation_t::disable_off );
             // visual feedback
             Train->ggPantSelectedDownButton.UpdateValue( 0.0, Train->dsbSwitch );
-            // lower selected
-            Train->change_pantograph_selection_state( false );
         }
     }
 }
 
-void TTrain::change_pantograph_selection( int const Change, bool const Force ) {
+void TTrain::change_pantograph_selection( int const Change ) {
 
     auto const initialstate { m_pantselection };
 
@@ -2324,55 +2229,16 @@ void TTrain::change_pantograph_selection( int const Change, bool const Force ) {
     // visual feedback
     ggPantSelectButton.UpdateValue( m_pantselection );
 
-    if( ( m_pantselection == initialstate ) && ( false == Force ) ) { return; } // no change, nothing to do
+    if( m_pantselection == initialstate ) { return; } // no change, nothing to do
 
-    // crude way to determine whether pantograph state change is automatic
-    // if there's button to raise/lower selected panthograph, we presume the change has to be invoked manually
-    if( ggPantSelectedButton.SubModel != nullptr ) { return; }
-
-    // raise or lower pantographs according to new requested state
-    auto const swapends{ cab_to_end() != end::front };
+    // configure pantograph valves matching the new state
+    auto const swapends { cab_to_end() != end::front };
     // check desired states for both pantographs; value: whether the pantograph should be raised
     auto const frontstate{ ( m_pantselection == 2 ) || ( m_pantselection == ( swapends ? 1 : 3 ) ) };
     auto const rearstate{ ( m_pantselection == 2 ) || ( m_pantselection == ( swapends ? 3 : 1 ) ) };
-    // potentially adjust front pantograph state
-    if( mvControlled->PantFrontUp != frontstate ) {
-           // TBD, TODO: impulse switch should only work when the power is on?
-        if( mvControlled->PantFront( frontstate ) == frontstate ) {
-            mvControlled->PantFrontSP = false;
-        }
-    }
-    // potentially adjust rear pantograph state
-    if( mvControlled->PantRearUp != rearstate ) {
-           // TBD, TODO: impulse switch should only work when the power is on?
-        if( mvControlled->PantRear( rearstate ) == rearstate ) {
-            mvControlled->PantRearSP = false;
-        }
-    }
-}
-
-void TTrain::change_pantograph_selection_state( bool const State ) {
-
-    auto const swapends { cab_to_end() != end::front };
-    // check desired states for both pantographs; value: whether the pantograph should be raised
-    auto const frontselected { ( m_pantselection == 0 ) || ( m_pantselection == 2 ) || ( m_pantselection == ( swapends ? 1 : 3 ) ) };
-    auto const rearselected  { ( m_pantselection == 0 ) || ( m_pantselection == 2 ) || ( m_pantselection == ( swapends ? 3 : 1 ) ) };
-    // potentially adjust front pantograph state
-    if( ( true == frontselected )
-     && ( mvControlled->PantFrontUp != State ) ) {
-        // TBD, TODO: impulse switch should only work when the power is on?
-        if( mvControlled->PantFront( State ) == State ) {
-            mvControlled->PantFrontSP = false;
-        }
-    }
-    // potentially adjust rear pantograph state
-    if( ( true == rearselected )
-     && ( mvControlled->PantRearUp != State ) ) {
-        // TBD, TODO: impulse switch should only work when the power is on?
-        if( mvControlled->PantRear( State ) == State ) {
-            mvControlled->PantRearSP = false;
-        }
-    }
+    // potentially adjust pantograph valves
+    mvControlled->OperatePantographValve( end::front, ( frontstate ? operation_t::enable : operation_t::disable ) );
+    mvControlled->OperatePantographValve( end::rear, ( rearstate ? operation_t::enable : operation_t::disable ) );
 }
 
 void TTrain::OnCommand_pantographcompressorvalvetoggle( TTrain *Train, command_data const &Command ) {
@@ -3030,11 +2896,6 @@ void TTrain::OnCommand_converterdisable( TTrain *Train, command_data const &Comm
             if( ( Train->mvControlled->TrainType == dt_EZT )
              && ( false == TestFlag( Train->mvControlled->EngDmgFlag, 4 ) ) ) {
                 Train->mvControlled->ConvOvldFlag = false;
-            }
-            // if there's no (low voltage) power source left, drop pantographs
-            if( false == Train->mvControlled->Battery ) {
-                Train->mvControlled->PantFront( false );
-                Train->mvControlled->PantRear( false );
             }
         }
     }
@@ -5909,8 +5770,8 @@ bool TTrain::Update( double const Deltatime )
                 cCode[i] = p->MoverParameters->TypeName[p->MoverParameters->TypeName.length() - 1];
                 asCarName[i] = p->name();
                 if( p->MoverParameters->EnginePowerSource.SourceType == TPowerSource::CurrentCollector ) {
-				    bPants[iUnitNo - 1][end::front] = ( bPants[iUnitNo - 1][end::front] || p->MoverParameters->PantFrontUp );
-                    bPants[iUnitNo - 1][end::rear]  = ( bPants[iUnitNo - 1][end::rear]  || p->MoverParameters->PantRearUp );
+				    bPants[iUnitNo - 1][end::front] = ( bPants[iUnitNo - 1][end::front] || p->MoverParameters->Pantographs[end::front].is_active );
+                    bPants[iUnitNo - 1][end::rear]  = ( bPants[iUnitNo - 1][end::rear]  || p->MoverParameters->Pantographs[end::rear].is_active );
                 }
 				bComp[iUnitNo - 1][0] = (bComp[iUnitNo - 1][0] || p->MoverParameters->CompressorAllow || (p->MoverParameters->CompressorStart == start_t::automatic));
 				bSlip[i] = p->MoverParameters->SlippingWheels;
@@ -6784,14 +6645,15 @@ bool TTrain::Update( double const Deltatime )
 		ggRadioVolumePrevious.Update();
 		ggRadioVolumeNext.Update();
         ggDepartureSignalButton.Update();
-
+/*
         ggPantFrontButton.Update();
         ggPantRearButton.Update();
-        ggPantSelectedButton.Update();
         ggPantFrontButtonOff.Update();
         ggPantRearButtonOff.Update();
-        ggPantSelectedDownButton.Update();
+*/
         ggPantAllDownButton.Update();
+        ggPantSelectedDownButton.Update();
+        ggPantSelectedButton.Update();
         ggPantSelectButton.Update();
         ggPantCompressorButton.Update();
         ggPantCompressorValve.Update();
@@ -6898,7 +6760,7 @@ bool TTrain::Update( double const Deltatime )
             mvControlled->AntiSlippingBrake();
         }
     }
-
+/*
     // NOTE: crude way to have the pantographs go back up if they're dropped due to insufficient pressure etc
     // TODO: rework it into something more elegant, when redoing the whole consist/unit/cab etc arrangement
     if( ( DynamicObject->Mechanik == nullptr )
@@ -6931,6 +6793,7 @@ bool TTrain::Update( double const Deltatime )
             }
         }
     }
+*/
 /*
     // check whether we should raise the pantographs, based on volume in pantograph tank
     // NOTE: disabled while switch state isn't preserved while moving between compartments
@@ -8100,13 +7963,15 @@ void TTrain::clear_cab_controls()
     ggConverterOffButton.Clear();
     ggConverterLocalButton.Clear();
     ggMainButton.Clear();
+/*
     ggPantFrontButton.Clear();
     ggPantRearButton.Clear();
-    ggPantSelectedButton.Clear();
     ggPantFrontButtonOff.Clear();
     ggPantRearButtonOff.Clear();
-    ggPantSelectedDownButton.Clear();
+*/
     ggPantAllDownButton.Clear();
+    ggPantSelectedButton.Clear();
+    ggPantSelectedDownButton.Clear();
     ggPantSelectButton.Clear();
     ggPantCompressorButton.Clear();
     ggPantCompressorValve.Clear();
@@ -8250,34 +8115,36 @@ void TTrain::set_cab_controls( int const Cab ) {
     }
     ggRadioChannelSelector.PutValue( RadioChannel() - 1 );
     // pantographs
+/*
     if( mvOccupied->PantSwitchType != "impulse" ) {
         if( ggPantFrontButton.SubModel ) {
             ggPantFrontButton.PutValue(
-                ( mvControlled->PantFrontUp ?
+                ( mvControlled->Pantographs[end::front].valve.is_enabled ?
                     1.f :
                     0.f ) );
         }
         if( ggPantFrontButtonOff.SubModel ) {
             ggPantFrontButtonOff.PutValue(
-                ( mvControlled->PantFrontUp ?
-                    0.f :
-                    1.f ) );
+                ( mvControlled->Pantographs[end::front].valve.is_disabled ?
+                    1.f :
+                    0.f ) );
         }
     }
     if( mvOccupied->PantSwitchType != "impulse" ) {
         if( ggPantRearButton.SubModel ) {
             ggPantRearButton.PutValue(
-                ( mvControlled->PantRearUp ?
+                ( mvControlled->Pantographs[end::rear].valve.is_enabled ?
                     1.f :
                     0.f ) );
         }
         if( ggPantRearButtonOff.SubModel ) {
             ggPantRearButtonOff.PutValue(
-                ( mvControlled->PantRearUp ?
-                    0.f :
-                    1.f ) );
+                ( mvControlled->Pantographs[end::rear].valve.is_disabled ?
+                    1.f :
+                    0.f ) );
         }
     }
+*/
     // front/end pantograph selection is relative to occupied cab
     m_pantselection = (
         m_pantselection == 1 ? ( cab_to_end( Cab ) == cab_to_end() ? 1 : 3 ) :
@@ -8287,34 +8154,16 @@ void TTrain::set_cab_controls( int const Cab ) {
         ggPantSelectButton.PutValue( m_pantselection );
     }
     if( ggPantSelectedButton.type() == TGaugeType::toggle ) {
-        if( ggPantSelectButton.SubModel ) {
-            auto const swapends{ cab_to_end( Cab ) != end::front };
-            auto const pantraised{ (
-                m_pantselection == 0 ? false :
-                m_pantselection == 1 ? ( swapends ? mvControlled->PantFrontUp : mvControlled->PantRearUp ) :
-                m_pantselection == 2 ? ( mvControlled->PantFrontUp & mvControlled->PantRearUp ) :
-                m_pantselection == 3 ? ( swapends ? mvControlled->PantRearUp : mvControlled->PantFrontUp ) :
-                false ) };
-            ggPantSelectedButton.PutValue(
-                ( pantraised ?
-                    1.f :
-                    0.f ) );
-        }
+        ggPantSelectedButton.PutValue(
+            ( mvControlled->PantsValve.is_enabled ?
+                1.f :
+                0.f ) );
     }
     if( ggPantSelectedDownButton.type() == TGaugeType::toggle ) {
-        if( ggPantSelectedDownButton.SubModel ) {
-            auto const swapends{ cab_to_end( Cab ) != end::front };
-            auto const pantraised{ (
-                m_pantselection == 0 ? false :
-                m_pantselection == 1 ? ( swapends ? mvControlled->PantFrontUp : mvControlled->PantRearUp ) :
-                m_pantselection == 2 ? ( mvControlled->PantFrontUp & mvControlled->PantRearUp ) :
-                m_pantselection == 3 ? ( swapends ? mvControlled->PantRearUp : mvControlled->PantFrontUp ) :
-                false ) };
-            ggPantSelectedDownButton.PutValue(
-                ( pantraised ?
-                    0.f :
-                    1.f ) );
-        }
+        ggPantSelectedDownButton.PutValue(
+            ( mvControlled->PantsValve.is_disabled ?
+                1.f :
+                0.f ) );
     }
     // auxiliary compressor
     ggPantCompressorValve.PutValue(
@@ -8805,10 +8654,12 @@ bool TTrain::initialize_gauge(cParser &Parser, std::string const &Label, int con
 		{ "radiovolume_sw:", ggRadioVolumeSelector },
 		{ "radiovolumeprev_sw:", ggRadioVolumePrevious },
 		{ "radiovolumenext_sw:", ggRadioVolumeNext },
+/*
         { "pantfront_sw:", ggPantFrontButton },
         { "pantrear_sw:", ggPantRearButton },
         { "pantfrontoff_sw:", ggPantFrontButtonOff },
         { "pantrearoff_sw:", ggPantRearButtonOff },
+*/
         { "pantalloff_sw:", ggPantAllDownButton },
         { "pantselected_sw:", ggPantSelectedButton },
         { "pantselectedoff_sw:", ggPantSelectedDownButton },
@@ -8879,7 +8730,11 @@ bool TTrain::initialize_gauge(cParser &Parser, std::string const &Label, int con
     std::unordered_map<std::string, bool *> const autoboolgauges = {
         { "doormode_sw:", &mvOccupied->Doors.remote_only },
         { "doorstep_sw:", &mvOccupied->Doors.step_enabled },
-        { "coolingfans_sw:", &mvControlled->RVentForceOn }
+        { "coolingfans_sw:", &mvControlled->RVentForceOn },
+        { "pantfront_sw:", &mvControlled->Pantographs[end::front].valve.is_enabled },
+        { "pantrear_sw:", &mvControlled->Pantographs[end::rear].valve.is_enabled },
+        { "pantfrontoff_sw:", &mvControlled->Pantographs[end::front].valve.is_disabled },
+        { "pantrearoff_sw:", &mvControlled->Pantographs[end::rear].valve.is_disabled }
     };
     {
         auto lookup = autoboolgauges.find( Label );

@@ -2508,10 +2508,12 @@ bool opengl33_renderer::Render_cab(TDynamicObject const *Dynamic, float const Li
 				setup_sunlight_intensity(Dynamic->fShade);
             }
 
-			// crude way to light the cabin, until we have something more complete in place
-			glm::vec3 old_ambient = light_ubs.ambient;
-			light_ubs.ambient += Dynamic->InteriorLight * Lightlevel;
-			light_ubo->update(light_ubs);
+            auto const old_ambient { light_ubs.ambient };
+            if( Lightlevel > 0.f ) {
+                // crude way to light the cabin, until we have something more complete in place
+                light_ubs.ambient += ( Dynamic->InteriorLight * Lightlevel ) * static_cast<float>( clamp( 1.25 - Global.fLuminance, 0.0, 1.0 ) );
+                light_ubo->update( light_ubs );
+            }
 
 			// render
 			if (true == Alpha)
@@ -2532,8 +2534,10 @@ bool opengl33_renderer::Render_cab(TDynamicObject const *Dynamic, float const Li
             }
 
 			// restore ambient
-			light_ubs.ambient = old_ambient;
-			light_ubo->update(light_ubs);
+            if( Lightlevel > 0.f ) {
+                light_ubs.ambient = old_ambient;
+                light_ubo->update( light_ubs );
+            }
 
 			break;
 		}

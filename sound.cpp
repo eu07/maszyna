@@ -917,8 +917,8 @@ sound_source::update_location() {
     m_properties.location = location();
 }
 
-float const EU07_SOUNDPROOFING_STRONG { 0.25f };
-float const EU07_SOUNDPROOFING_SOME { 0.65f };
+float const EU07_SOUNDPROOFING_STRONG { 0.5f }; // 0.25 after squaring
+float const EU07_SOUNDPROOFING_SOME { 0.8f }; // ~0.65 after squaring
 float const EU07_SOUNDPROOFING_NONE { 1.f };
 
 bool

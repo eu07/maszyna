@@ -13,6 +13,8 @@ http://mozilla.org/MPL/2.0/.
 #include "ResourceManager.h"
 #include "uitranscripts.h"
 
+#define EU07_SOUND_PROOFINGUSESRANGE
+
 class opengl_renderer;
 class sound_source;
 

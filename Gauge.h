@@ -23,7 +23,7 @@ enum class TGaugeAnimation {
 
 enum class TGaugeType : int {
     toggle = 1,
-    push,
+    push = 2,
     pushtoggle = ( toggle | push ),
     push_delayed
 };

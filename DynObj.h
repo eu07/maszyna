@@ -447,6 +447,8 @@ private:
     sound_source m_brakecylinderpistonrecede { sound_placement::external };
     float m_lastbrakepressure { -1.f }; // helper, cached level of pressure in the brake cylinder
     float m_brakepressurechange { 0.f }; // recent change of pressure in the brake cylinder
+    sound_source m_emergencybrake { sound_placement::engine };
+    double m_emergencybrakeflow{ 0.f };
     sound_source sReleaser { sound_placement::external };
     sound_source rsSlippery { sound_placement::external, EU07_SOUND_BRAKINGCUTOFFRANGE }; // moved from cab
     sound_source sSand { sound_placement::external };

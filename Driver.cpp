@@ -2537,8 +2537,9 @@ bool TController::PrepareEngine()
         }
         if (mvControlling->EnginePowerSource.SourceType == TPowerSource::CurrentCollector)
         { // jeśli silnikowy jest pantografującym
-            mvOccupied->PantFront( true );
-            mvOccupied->PantRear( true );
+            mvControlling->OperatePantographsValve( operation_t::enable );
+            mvControlling->OperatePantographValve( end::front, operation_t::enable );
+            mvControlling->OperatePantographValve( end::rear, operation_t::enable );
             if (mvControlling->PantPress < 4.2) {
                 // załączenie małej sprężarki
                 if( false == mvControlling->PantAutoValve ) {
@@ -2726,8 +2727,8 @@ bool TController::ReleaseEngine() {
             // line breaker/engine
             OK = mvControlling->MainSwitch( false );
             if( mvControlling->EnginePowerSource.SourceType == TPowerSource::CurrentCollector ) {
-                mvControlling->PantFront( false );
-                mvControlling->PantRear( false );
+                mvControlling->OperatePantographValve( end::front, operation_t::disable );
+                mvControlling->OperatePantographValve( end::rear, operation_t::disable );
             }
         }
         else {
@@ -3064,9 +3065,9 @@ bool TController::DecBrakeEIM()
 			mvOccupied->MainCtrlPos = 3;
 		break;
     case 3:
-        OK = mvOccupied->MainCtrlPos < mvOccupied->MaxMainCtrlPosNoDirChange;
+        OK = mvOccupied->MainCtrlPos < mvOccupied->MainCtrlMaxDirChangePos;
         if( OK )
-            mvOccupied->MainCtrlPos = mvOccupied->MaxMainCtrlPosNoDirChange;
+            mvOccupied->MainCtrlPos = mvOccupied->MainCtrlMaxDirChangePos;
         break;
     }
 	return OK;
@@ -4685,42 +4686,59 @@ TController::UpdateSituation(double dt) {
 
         if (mvControlling->EnginePowerSource.SourceType == TPowerSource::CurrentCollector) {
 
+            auto const useregularpantographlayout {
+                ( pVehicle->NextC( coupling::control ) == nullptr ) // standalone
+             || ( mvControlling->TrainType == dt_EZT ) // special case
+             || ( mvControlling->TrainType == dt_ET41 ) }; // special case
+
             if( mvOccupied->Vel > 0.05 ) {
                 // is moving
                 if( ( fOverhead2 >= 0.0 ) || iOverheadZero ) {
                     // jeśli jazda bezprądowa albo z opuszczonym pantografem
                     ZeroSpeed();
                 }
+
                 if( ( fOverhead2 > 0.0 ) || iOverheadDown ) {
                     // jazda z opuszczonymi pantografami
-                    mvControlling->PantFront( false );
-                    mvControlling->PantRear( false );
+                    mvControlling->OperatePantographValve( end::front, operation_t::disable );
+                    mvControlling->OperatePantographValve( end::rear, operation_t::disable );
                 }
                 else {
                     // jeśli nie trzeba opuszczać pantografów
                     // jazda na tylnym
-                    if( iDirection >= 0 ) {
+                    if( ( iDirection >= 0 ) && ( useregularpantographlayout ) ) {
                         // jak jedzie w kierunku sprzęgu 0
-                        mvControlling->PantRear( true );
+                        if( ( mvControlling->PantRearVolt == 0.0 )
+                            // filter out cases with single _other_ working pantograph so we don't try to raise something we can't
+                         && ( ( mvControlling->PantographVoltage == 0.0 )
+                           || ( mvControlling->EnginePowerSource.CollectorParameters.CollectorsNo > 1 ) ) ) {
+                            mvControlling->OperatePantographValve( end::rear, operation_t::enable );
+                        }
                     }
                     else {
-                        mvControlling->PantFront( true );
+                        // jak jedzie w kierunku sprzęgu 0
+                        if( ( mvControlling->PantFrontVolt == 0.0 )
+                            // filter out cases with single _other_ working pantograph so we don't try to raise something we can't
+                         && ( ( mvControlling->PantographVoltage == 0.0 )
+                           || ( mvControlling->EnginePowerSource.CollectorParameters.CollectorsNo > 1 ) ) ) {
+                            mvControlling->OperatePantographValve( end::front, operation_t::enable );
+                        }
                     }
                 }
                 if( mvOccupied->Vel > 5 ) {
                     // opuszczenie przedniego po rozpędzeniu się o ile jest więcej niż jeden
                     if( mvControlling->EnginePowerSource.CollectorParameters.CollectorsNo > 1 ) {
-                        if( iDirection >= 0 ) // jak jedzie w kierunku sprzęgu 0
+                        if( ( iDirection >= 0 ) && ( useregularpantographlayout ) ) // jak jedzie w kierunku sprzęgu 0
                         { // poczekać na podniesienie tylnego
-                            if( mvControlling->PantRearVolt != 0.0 ) {
-                                // czy jest napięcie zasilające na tylnym?
-                                mvControlling->PantFront( false ); // opuszcza od sprzęgu 0
+                            if( ( mvControlling->PantFrontVolt != 0.0 )
+                             && ( mvControlling->PantRearVolt != 0.0 ) ) { // czy jest napięcie zasilające na tylnym?
+                                mvControlling->OperatePantographValve( end::front, operation_t::disable ); // opuszcza od sprzęgu 0
                             }
                         }
                         else { // poczekać na podniesienie przedniego
-                            if( mvControlling->PantFrontVolt != 0.0 ) {
-                                // czy jest napięcie zasilające na przednim?
-                                mvControlling->PantRear( false ); // opuszcza od sprzęgu 1
+                            if( ( mvControlling->PantRearVolt != 0.0 )
+                             && ( mvControlling->PantFrontVolt != 0.0 ) ) { // czy jest napięcie zasilające na przednim?
+                                mvControlling->OperatePantographValve( end::rear, operation_t::disable ); // opuszcza od sprzęgu 1
                             }
                         }
                     }
@@ -4761,10 +4779,17 @@ TController::UpdateSituation(double dt) {
                     // NOTE: abs(stoptime) covers either at least 15 sec remaining for a scheduled stop, or 15+ secs spent at a basic stop
                  && ( std::abs( fStopTime ) > 15.0 ) ) {
                     // spending a longer at a stop, raise also front pantograph
-                    if( iDirection >= 0 ) // jak jedzie w kierunku sprzęgu 0
-                        mvControlling->PantFront( true );
-                    else
-                        mvControlling->PantRear( true );
+                    if( ( iDirection >= 0 ) && ( useregularpantographlayout ) ) {
+                        // jak jedzie w kierunku sprzęgu 0
+                        if( mvControlling->PantFrontVolt == 0.0 ) {
+                            mvControlling->OperatePantographValve( end::front, operation_t::enable );
+                        }
+                    }
+                    else {
+                        if( mvControlling->PantRearVolt == 0.0 ) {
+                            mvControlling->OperatePantographValve( end::rear, operation_t::enable );
+                        }
+                    }
                 }
             }
         }
@@ -7004,7 +7029,7 @@ void TController::DirectionForward(bool forward)
 { // ustawienie jazdy do przodu dla true i do tyłu dla false (zależy od kabiny)
     ZeroSpeed( true ); // TODO: check if force switch is needed anymore here
     // HACK: make sure the master controller isn't set in position which prevents direction change
-    mvControlling->MainCtrlPos = std::min( mvControlling->MainCtrlPos, mvControlling->MaxMainCtrlPosNoDirChange );
+    mvControlling->MainCtrlPos = std::min( mvControlling->MainCtrlPos, mvControlling->MainCtrlMaxDirChangePos );
 
     if( forward ) {
         // do przodu w obecnej kabinie

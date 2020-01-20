@@ -168,6 +168,16 @@ enum class range_t {
     unit,
     consist
 };
+// possible settings of enable/disable input pair; exclusive
+enum class operation_t {
+    enable_on = 1,
+    enable_off = -1,
+    disable_on = 2,
+    disable_off = -2,
+    none = 0,
+    enable,
+    disable,
+};
 // start method for devices; exclusive
 enum class start_t {
     manual,
@@ -778,6 +788,23 @@ private:
         bool breaker { true }; // device is allowed to operate
     };
 
+    // basic approximation of a solenoid valve
+    struct basic_valve : basic_device {
+        // config
+        bool solenoid { true }; // requires electric power to operate
+        bool spring { true }; // spring return or double acting actuator
+    };
+
+    // basic approximation of a pantograph
+    struct basic_pantograph {
+        // ld inputs
+        basic_valve valve; // associated pneumatic valve
+        // ld outputs
+        bool is_active { false }; // device is working
+        bool sound_event { false }; // indicates last state which generated sound event
+        double voltage { 0.0 };
+    };
+
     // basic approximation of doors
     struct basic_door {
         // config
@@ -1085,8 +1112,7 @@ public:
 	int FastSerialCircuit = 0;/*0 - po kolei zamyka styczniki az do osiagniecia szeregowej, 1 - natychmiastowe wejscie na szeregowa*/ /*hunter-111012*/
 	int AutoRelayType = 0;    /*0 -brak, 1 - jest, 2 - opcja*/
 	bool CoupledCtrl = false;   /*czy mainctrl i scndctrl sa sprzezone*/
-						//CouplerNr: TCouplerNr;  {ABu: nr sprzegu podlaczonego w drugim obiekcie}
-	bool IsCoupled = false;     /*czy jest sprzezony ale jedzie z tylu*/
+    bool HasCamshaft { false };
 	int DynamicBrakeType = 0; /*patrz dbrake_**/
 	int DynamicBrakeAmpmeters = 2; /*liczba amperomierzy przy hamowaniu ED*/
 	double DynamicBrakeRes = 5.8; /*rezystancja oporników przy hamowaniu ED*/
@@ -1265,7 +1291,11 @@ public:
 	bool SandDoseAutoAllow = true; /*zezwolenie na automatyczne piaskowanie*/
 	double Sand = 0.0;                         /*ilosc piasku*/
 	double BrakeSlippingTimer = 0.0;            /*pomocnicza zmienna do wylaczania przeciwposlizgu*/
-	double dpBrake = 0.0; double dpPipe = 0.0; double dpMainValve = 0.0; double dpLocalValve = 0.0;
+	double dpBrake = 0.0;
+    double dpPipe = 0.0;
+    double dpMainValve = 0.0;
+    double dpLocalValve = 0.0;
+    double EmergencyValveFlow = 0.0; // air flow through alerter valve during last simulation step
 	/*! przyrosty cisnienia w kroku czasowym*/
 	double ScndPipePress = 0.0;                /*cisnienie w przewodzie zasilajacym*/
 	double BrakePress = 0.0;                    /*!o cisnienie w cylindrach hamulcowych*/
@@ -1356,7 +1386,7 @@ public:
 	int CompressorListPos = 0; /*polozenie przelacznika wielopozycyjnego sprezarek*/
 	int DirActive = 0; //czy lok. jest wlaczona i w ktorym kierunku: względem wybranej kabiny: -1 - do tylu, +1 - do przodu, 0 - wylaczona
     int DirAbsolute = 0; //zadany kierunek jazdy względem sprzęgów (1=w strone 0,-1=w stronę 1)
-    int MaxMainCtrlPosNoDirChange { 0 }; // can't change reverser state with master controller set above this position
+    int MainCtrlMaxDirChangePos { 0 }; // can't change reverser state with master controller set above this position
 	int CabActive = 0; //numer kabiny, z której jest sterowanie: 1 lub -1; w przeciwnym razie brak sterowania - rozrzad
 	int CabOccupied = 0; //numer kabiny, w ktorej jest obsada (zwykle jedna na skład) // TODO: move to TController
 	double LastSwitchingTime = 0.0; /*czas ostatniego przelaczania czegos*/
@@ -1474,10 +1504,9 @@ public:
 	bool DoorRightOpened = false;
     double DoorRightOpenTimer{ -1.0 }; // right door closing timer for automatic door type
 #endif
-    bool PantFrontUp = false;  //stan patykow 'Winger 160204
-	bool PantRearUp = false;
-	bool PantFrontSP = true;  //dzwiek patykow 'Winger 010304
-    bool PantRearSP = true;
+    basic_valve PantsValve;
+    std::array<basic_pantograph, 2> Pantographs;
+    bool PantAllDown { false };
 	double PantFrontVolt = 0.0;   //pantograf pod napieciem? 'Winger 160404
 	double PantRearVolt = 0.0;
     // TODO: move these switch types where they belong, cabin definition
@@ -1515,6 +1544,7 @@ public:
     void derail( int const Reason );
 	bool DirectionForward();
     bool DirectionBackward( void );/*! kierunek ruchu*/
+    bool EIMDirectionChangeAllow( void ) const;
 	void BrakeLevelSet(double b);
 	bool BrakeLevelAdd(double b);
 	bool IncBrakeLevel(); // wersja na użytek AI
@@ -1552,8 +1582,10 @@ public:
 	/*! glowny nastawnik:*/
 	bool IncMainCtrl(int CtrlSpeed);
 	bool DecMainCtrl(int CtrlSpeed);
+    bool IsMainCtrlActualNoPowerPos() const; // whether the master controller is actually set to position which won't generate any extra power
     bool IsMainCtrlNoPowerPos() const; // whether the master controller is set to position which won't generate any extra power
     int MainCtrlNoPowerPos() const; // highest setting of master controller which won't cause engine to generate extra power
+    int MainCtrlActualPowerPos() const; // current actual setting of master controller, relative to the highest setting not generating extra power
     int MainCtrlPowerPos() const; // current setting of master controller, relative to the highest setting not generating extra power
 	/*! pomocniczy nastawnik:*/
 	bool IncScndCtrl(int CtrlSpeed);
@@ -1654,6 +1686,7 @@ public:
     void FuelPumpCheck( double const Timestep );
     void OilPumpCheck( double const Timestep );
     void MotorBlowersCheck( double const Timestep );
+    void PantographsCheck( double const Timestep );
     bool FuseOn(void); //bezpiecznik nadamiary
 	bool FuseFlagCheck(void) const; // sprawdzanie flagi nadmiarowego
 	void FuseOff(void); // wylaczenie nadmiarowego
@@ -1675,10 +1708,11 @@ public:
 	bool AutoRelaySwitch(bool State); //przelacznik automatycznego rozruchu
 	bool AutoRelayCheck();//symulacja automatycznego rozruchu
     bool MotorConnectorsCheck();
-
 	bool ResistorsFlagCheck(void) const; //sprawdzenie kontrolki oporow rozruchowych NBMX
-    bool PantFront( bool const State, range_t const Notify = range_t::consist ); //obsluga pantografou przedniego
-    bool PantRear( bool const State, range_t const Notify = range_t::consist ); //obsluga pantografu tylnego
+
+    bool OperatePantographsValve( operation_t const State, range_t const Notify = range_t::consist );
+    bool OperatePantographValve( end const End, operation_t const State, range_t const Notify = range_t::consist );
+    bool DropAllPantographs( bool const State, range_t const Notify = range_t::consist );
 
 	void CheckEIMIC(double dt); //sprawdzenie i zmiana nastawy zintegrowanego nastawnika jazdy/hamowania
 	void CheckSpeedCtrl(double dt);
@@ -1768,7 +1802,6 @@ private:
 	bool readCompressorList(std::string const &Input);
     void BrakeValveDecode( std::string const &s );                                                            //Q 20160719
 	void BrakeSubsystemDecode();                                                                     //Q 20160719
-    bool EIMDirectionChangeAllow( void );
 };
 
 //double Distance(TLocation Loc1, TLocation Loc2, TDimension Dim1, TDimension Dim2);

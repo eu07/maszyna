@@ -155,14 +155,18 @@ openal_source::sync_with( sound_properties const &State ) {
         ::alSourcefv( id, AL_POSITION, glm::value_ptr( glm::vec3() ) );
     }
     // gain
-    if( ( State.soundproofing_stamp != properties.soundproofing_stamp )
-     || ( State.gain != properties.gain ) ) {
+    if( ( State.gain != properties.gain )
+     || ( State.soundproofing_stamp != properties.soundproofing_stamp ) ) {
         // gain value has changed
         properties.gain = State.gain;
         properties.soundproofing = State.soundproofing;
         properties.soundproofing_stamp = State.soundproofing_stamp;
-
         ::alSourcef( id, AL_GAIN, properties.gain * properties.soundproofing );
+        auto const range { (
+            sound_range >= 0 ?
+                sound_range :
+                5 ) }; // range of -1 means sound of unlimited range, positioned at the listener
+        ::alSourcef( id, AL_REFERENCE_DISTANCE, range * ( 1.f / 16.f ) * properties.soundproofing );
     }
     if( sound_range > 0 ) {
         auto const rangesquared { sound_range * sound_range };

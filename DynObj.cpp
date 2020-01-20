@@ -2788,8 +2788,8 @@ bool TDynamicObject::Update(double dt, double dt1)
                     if( MoverParameters->Vel > 0.5 ) {
                         // jeśli jedzie
                         // Ra 2014-07: doraźna blokada logowania zimnych lokomotyw - zrobić to trzeba inaczej
-                        if( MoverParameters->PantFrontUp
-                         || MoverParameters->PantRearUp ) {
+                        if( MoverParameters->Pantographs[end::front].is_active
+                         || MoverParameters->Pantographs[end::rear].is_active ) {
 
                             if( ( MoverParameters->Mains )
                              && ( MoverParameters->GetAnyTrainsetVoltage() < 0.1f ) ) {
@@ -3380,7 +3380,7 @@ bool TDynamicObject::Update(double dt, double dt1)
                             0.95 * MoverParameters->EnginePowerSource.MaxVoltage :
                             0.0;
                 }
-                else if( ( true == MoverParameters->PantFrontUp )
+                else if( ( true == MoverParameters->Pantographs[ end::front ].is_active )
                       && ( PantDiff < 0.01 ) ) // tolerancja niedolegania
                 {
                     if (p->hvPowerWire) {
@@ -3422,7 +3422,7 @@ bool TDynamicObject::Update(double dt, double dt1)
                             0.95 * MoverParameters->EnginePowerSource.MaxVoltage :
                             0.0;
                 }
-                else if ( ( true == MoverParameters->PantRearUp )
+                else if ( ( true == MoverParameters->Pantographs[ end::rear ].is_active )
                        && ( PantDiff < 0.01 ) )
                 {
                     if (p->hvPowerWire) {
@@ -3476,9 +3476,7 @@ bool TDynamicObject::Update(double dt, double dt1)
             pantspeedfactor = std::max( 0.0, pantspeedfactor );
             k = p->fAngleL;
             if( ( pantspeedfactor > 0.0 )
-             && ( i ?
-                    MoverParameters->PantRearUp :
-                    MoverParameters->PantFrontUp ) )// jeśli ma być podniesiony
+             && ( MoverParameters->Pantographs[i].is_active ) )// jeśli ma być podniesiony
             {
                 if (PantDiff > 0.001) // jeśli nie dolega do drutu
                 { // jeśli poprzednia wysokość jest mniejsza niż pożądana, zwiększyć kąt dolnego
@@ -3522,39 +3520,39 @@ bool TDynamicObject::Update(double dt, double dt1)
                 }
             }
         } // koniec pętli po pantografach
-        if ((MoverParameters->PantFrontSP == false) && (MoverParameters->PantFrontUp == false))
-        {
-            for( auto &pantograph : m_pantographsounds ) {
-                if( pantograph.sPantDown.offset().z > 0 ) {
-                    // limit to pantographs located in the front half of the vehicle
-                    pantograph.sPantDown.play( sound_flags::exclusive );
+        // TBD, TODO: generate sound event during mover update instead?
+        if( MoverParameters->Pantographs[end::front].sound_event != MoverParameters->Pantographs[ end::front ].is_active ) {
+            if( MoverParameters->Pantographs[ end::front ].is_active ) {
+                // pantograph moving up
+                // TBD: add a sound?
+            }
+            else {
+                // pantograph dropping
+                for( auto &pantograph : m_pantographsounds ) {
+                    if( pantograph.sPantDown.offset().z > 0 ) {
+                        // limit to pantographs located in the front half of the vehicle
+                        pantograph.sPantDown.play( sound_flags::exclusive );
+                    }
                 }
             }
-            MoverParameters->PantFrontSP = true;
+            MoverParameters->Pantographs[ end::front ].sound_event = MoverParameters->Pantographs[ end::front ].is_active;
         }
-        if ((MoverParameters->PantRearSP == false) && (MoverParameters->PantRearUp == false))
-        {
-            for( auto &pantograph : m_pantographsounds ) {
-                if( pantograph.sPantDown.offset().z < 0 ) {
-                    // limit to pantographs located in the rear half of the vehicle
-                    pantograph.sPantDown.play( sound_flags::exclusive );
+        if( MoverParameters->Pantographs[ end::rear ].sound_event != MoverParameters->Pantographs[ end::rear ].is_active ) {
+            if( MoverParameters->Pantographs[ end::rear ].is_active ) {
+                // pantograph moving up
+                // TBD: add a sound?
+            }
+            else {
+                // pantograph dropping
+                for( auto &pantograph : m_pantographsounds ) {
+                    if( pantograph.sPantDown.offset().z < 0 ) {
+                        // limit to pantographs located in the front half of the vehicle
+                        pantograph.sPantDown.play( sound_flags::exclusive );
+                    }
                 }
             }
-            MoverParameters->PantRearSP = true;
+            MoverParameters->Pantographs[ end::rear ].sound_event = MoverParameters->Pantographs[ end::rear ].is_active;
         }
-/*
-        // NOTE: disabled because it's both redundant and doesn't take into account alternative power sources
-        // converter and compressor will (should) turn off during their individual checks, in the mover's (fast)computemovement() calls
-        if (MoverParameters->EnginePowerSource.SourceType == CurrentCollector)
-        { // Winger 240404 - wylaczanie sprezarki i
-            // przetwornicy przy braku napiecia
-            if (tmpTraction.TractionVoltage == 0)
-            { // to coś wyłączało dźwięk silnika w ST43!
-                MoverParameters->ConverterFlag = false;
-                MoverParameters->CompressorFlag = false; // Ra: to jest wątpliwe - wyłączenie sprężarki powinno być w jednym miejscu!
-            }
-        }
-*/
     }
     else if (MoverParameters->EnginePowerSource.SourceType == TPowerSource::InternalSource)
         if (MoverParameters->EnginePowerSource.PowerType == TPowerType::SteamPower)
@@ -3885,6 +3883,25 @@ void TDynamicObject::RenderSounds() {
                         m_brakecylinderpistonrecede.m_frequencyoffset + m_brakecylinderpistonrecede.m_frequencyfactor * 1.f )
                 .play();
         }
+    }
+
+    // emergency brake
+    if( MoverParameters->EmergencyValveFlow > 0.025 ) {
+        // smooth out air flow rate
+        m_emergencybrakeflow = (
+            m_emergencybrakeflow == 0.0 ?
+                MoverParameters->EmergencyValveFlow :
+                interpolate( m_emergencybrakeflow, MoverParameters->EmergencyValveFlow, 0.1 ) );
+        // scale volume based on the flow rate and on the pressure in the main pipe
+        auto const flowpressure { clamp( m_emergencybrakeflow, 0.0, 1.0 ) + clamp( 0.1 * MoverParameters->PipePress, 0.0, 0.5 ) };
+         m_emergencybrake
+            .pitch( m_emergencybrake.m_frequencyoffset + 1.0 * m_emergencybrake.m_frequencyfactor )
+            .gain( m_emergencybrake.m_amplitudeoffset + clamp( flowpressure, 0.0, 1.0 ) * m_emergencybrake.m_amplitudefactor )
+            .play( sound_flags::exclusive | sound_flags::looping );
+   }
+    else if( MoverParameters->EmergencyValveFlow < 0.015 ) {
+        m_emergencybrakeflow = 0.0;
+        m_emergencybrake.stop();
     }
 
     // air release
@@ -5249,6 +5266,12 @@ void TDynamicObject::LoadMMediaFile( std::string const &TypeName, std::string co
                     // brake cylinder pressure decrease sounds
                     m_brakecylinderpistonrecede.deserialize( parser, sound_type::single );
                     m_brakecylinderpistonrecede.owner( this );
+                }
+
+                else if( token == "emergencybrake:" ) {
+					// emergency brake sound
+                    m_emergencybrake.deserialize( parser, sound_type::single );
+                    m_emergencybrake.owner( this );
                 }
 
 				else if( token == "brakeacc:" ) {
@@ -7193,11 +7216,8 @@ vehicle_table::update_traction( TDynamicObject *Vehicle ) {
 
     for( int pantographindex = 0; pantographindex < Vehicle->iAnimType[ ANIM_PANTS ]; ++pantographindex ) {
         // pętla po pantografach
-        auto pantograph { Vehicle->pants[ pantographindex ].fParamPants };
-        if( true == (
-                pantographindex == end::front ?
-                    Vehicle->MoverParameters->PantFrontUp :
-                    Vehicle->MoverParameters->PantRearUp ) ) {
+        auto *pantograph { Vehicle->pants[ pantographindex ].fParamPants };
+        if( true == Vehicle->MoverParameters->Pantographs[ pantographindex ].is_active ) {
             // jeśli pantograf podniesiony
             auto const pant0 { position + ( vLeft * pantograph->vPos.z ) + ( vUp * pantograph->vPos.y ) + ( vFront * pantograph->vPos.x ) };
             if( pantograph->hvPowerWire != nullptr ) {

@@ -531,7 +531,9 @@ bool TMoverParameters::Dettach(int ConnectNo)
 
 bool TMoverParameters::DirectionForward()
 {
-    if ((MainCtrlPosNo > 0) && (DirActive < 1) && (EIMDirectionChangeAllow()))
+    if( false == EIMDirectionChangeAllow() ) { return false; }
+
+    if ((MainCtrlPosNo > 0) && (DirActive < 1))
     {
         ++DirActive;
         DirAbsolute = DirActive * CabActive;
@@ -678,23 +680,19 @@ TMoverParameters::CurrentSwitch(bool const State) {
     return false;
 };
 
-void TMoverParameters::UpdatePantVolume(double dt)
-{ // KURS90 - sprężarka pantografów; Ra 2014-07: teraz jest to zbiornik rozrządu, chociaż to jeszcze nie tak
-
+ // KURS90 - sprężarka pantografów; Ra 2014-07: teraz jest to zbiornik rozrządu, chociaż to jeszcze nie tak
+void TMoverParameters::UpdatePantVolume(double dt) {
     // check the pantograph compressor while at it
-    if( ( PantPress < 4.2 )
+    // TODO: move the check to a separate method
+    // automatic start if the pressure is too low
+    PantCompFlag |= (
+        ( PantPress < 4.2 )
+     && ( true == ( Pantographs[ end::front ].is_active | Pantographs[ end::rear ].is_active ) ) // TODO: any_pantograph_is_active method
      && ( ( PantographCompressorStart == start_t::automatic )
-       || ( PantographCompressorStart == start_t::manualwithautofallback ) )
-     && ( ( true == PantRearUp )
-       || ( true == PantFrontUp ) ) ) {
-        // automatic start if the pressure is too low
-        PantCompFlag = true;
-    }
-    if( ( true == PantCompFlag )
-     && ( false == Battery )
-     && ( false == ConverterFlag ) ) {
-        PantCompFlag = false;
-    }
+       || ( PantographCompressorStart == start_t::manualwithautofallback ) ) );
+
+    auto const lowvoltagepower { Battery | ConverterFlag };
+    PantCompFlag &= lowvoltagepower;
 
     if (EnginePowerSource.SourceType == TPowerSource::CurrentCollector) // tylko jeśli pantografujący
     {
@@ -768,20 +766,6 @@ void TMoverParameters::UpdatePantVolume(double dt)
                 }
             }
         }
-/*
-        // NOTE: pantograph tank pressure sharing experimentally disabled for more accurate simulation
-        if (TrainType != dt_EZT) // w EN57 pompuje się tylko w silnikowym
-            // pierwotnie w CHK pantografy miały również rozrządcze EZT
-            for (int b = 0; b <= 1; ++b)
-                if (TestFlag(Couplers[b].CouplingFlag, ctrain_controll))
-                    if (Couplers[b].Connected->PantVolume <
-                        PantVolume) // bo inaczej trzeba w obydwu członach przestawiać
-                        Couplers[b].Connected->PantVolume =
-                            PantVolume; // przekazanie ciśnienia do sąsiedniego członu
-        // czy np. w ET40, ET41, ET42 pantografy członów mają połączenie pneumatyczne?
-        // Ra 2014-07: raczej nie - najpierw się załącza jeden człon, a potem można podnieść w
-        // drugim
-*/
     }
     else
     { // a tu coś dla SM42 i SM31, aby pokazywać na manometrze
@@ -1430,6 +1414,8 @@ void TMoverParameters::compute_movement_( double const Deltatime ) {
     // TODO: gather and move current calculations to dedicated method
     TotalCurrent = 0;
 
+    // power sources
+    PantographsCheck( Deltatime );
     // main circuit
     MainsCheck( Deltatime );
     // traction motors
@@ -1849,7 +1835,9 @@ void TMoverParameters::MotorBlowersCheck( double const Timestep ) {
 //         && ( true == blower.breaker )
          && ( false == blower.is_disabled )
          && ( ( true == blower.is_active )
-           || ( blower.start_type == start_t::manual ? blower.is_enabled : true ) ) );
+           || ( blower.start_type == start_t::manual ?
+                    blower.is_enabled :
+                    true ) ) );
     }
     // update
     for( auto &fan : MotorBlowers ) {
@@ -1873,6 +1861,46 @@ void TMoverParameters::MotorBlowersCheck( double const Timestep ) {
     }
 }
 
+void TMoverParameters::PantographsCheck( double const Timestep ) {
+
+    {
+        auto &valve { PantsValve };
+        auto const lowvoltagepower{ valve.solenoid ? ( Battery || ConverterFlag ) : true };
+        auto const autostart{ valve.start_type == start_t::automatic || valve.start_type == start_t::manualwithautofallback };
+        auto const manualcontrol{ valve.start_type == start_t::manual || valve.start_type == start_t::manualwithautofallback };
+
+        PantsValve.is_active = (
+            ( ( valve.spring ? lowvoltagepower : true ) ) // spring actuator needs power to maintain non-default state
+         && ( ( ( manualcontrol && lowvoltagepower ) ? false == valve.is_disabled : true ) ) // needs power to change state
+         && ( ( valve.is_active )
+           || (  autostart ? lowvoltagepower :
+                !autostart ? ( lowvoltagepower && valve.is_enabled ) :
+                false ) ) ); // shouldn't ever get this far but, eh
+    }
+
+    for( auto &pantograph : Pantographs ) {
+
+        auto &valve { pantograph.valve };
+        auto const lowvoltagepower { valve.solenoid ? ( Battery || ConverterFlag ) : true };
+        auto const autostart { valve.start_type == start_t::automatic || valve.start_type == start_t::manualwithautofallback };
+        auto const manualcontrol { valve.start_type == start_t::manual || valve.start_type == start_t::manualwithautofallback };
+
+        valve.is_active = (
+            ( ( valve.spring ? lowvoltagepower : true ) ) // spring actuator needs power to maintain non-default state
+         && ( ( ( manualcontrol && lowvoltagepower ) ? false == valve.is_disabled : true ) ) // needs power to change state
+         && ( ( ( manualcontrol && lowvoltagepower ) ? false == PantAllDown : true ) )
+         && ( ( valve.is_active )
+           || (  autostart ? lowvoltagepower :
+                !autostart ? ( lowvoltagepower && valve.is_enabled ) :
+                false ) ) ); // shouldn't ever get this far but, eh
+
+        pantograph.is_active = (
+            ( valve.is_active )
+         && ( PantsValve.is_active )
+//         && ( ) // TODO: add other checks
+            );
+    }
+}
 
 double TMoverParameters::ShowCurrent(int AmpN) const
 { // Odczyt poboru prądu na podanym amperomierzu
@@ -2184,6 +2212,11 @@ bool TMoverParameters::DecMainCtrl(int CtrlSpeed)
     return OK;
 }
 
+bool TMoverParameters::IsMainCtrlActualNoPowerPos() const {
+    // TODO: wrap controller pieces into a class for potential specializations, similar to brake subsystems
+    return MainCtrlActualPos <= MainCtrlNoPowerPos();
+}
+
 bool TMoverParameters::IsMainCtrlNoPowerPos() const {
     // TODO: wrap controller pieces into a class for potential specializations, similar to brake subsystems
     return MainCtrlPos <= MainCtrlNoPowerPos();
@@ -2197,6 +2230,11 @@ int TMoverParameters::MainCtrlNoPowerPos() const {
         case 3:  { return UniCtrlNoPowerPos; }
         default: { return 0; }
     }
+}
+
+int TMoverParameters::MainCtrlActualPowerPos() const {
+
+    return MainCtrlActualPos - MainCtrlNoPowerPos();
 }
 
 int TMoverParameters::MainCtrlPowerPos() const {
@@ -2765,39 +2803,39 @@ bool TMoverParameters::SpringBrakeRelease()
 // *************************************************************************************************
 bool TMoverParameters::DirectionBackward(void)
 {
-    bool DB = false;
+    if( false == EIMDirectionChangeAllow() ) { return false; }
+
     if ((DirActive == 1) && (MainCtrlPos == 0) && (TrainType == dt_EZT) && (EngineType != TEngineType::ElectricInductionMotor))
         if (MinCurrentSwitch(false))
         {
-            DB = true; //
-            return DB; // exit;  TODO: czy dobrze przetlumaczone?
+            return true;
         }
-    if ((MainCtrlPosNo > 0) && (DirActive > -1) && (EIMDirectionChangeAllow()))
+    if ((MainCtrlPosNo > 0) && (DirActive > -1))
     {
         if (EngineType == TEngineType::WheelsDriven)
-            CabActive--;
+            --CabActive;
         //    else
-        DirActive--;
+        --DirActive;
         DirAbsolute = DirActive * CabActive;
+        // TODO: move shp activation to shp check
         if (DirAbsolute != 0)
             if (Battery) // jeśli bateria jest już załączona
                 BatterySwitch(true); // to w ten oto durny sposób aktywuje się CA/SHP
-        DB = true;
         SendCtrlToNext("Direction", DirActive, CabActive);
+        return true;
     }
-    else
-        DB = false;
-    return DB;
+
+    return false;
 }
 
-bool TMoverParameters::EIMDirectionChangeAllow(void)
+bool TMoverParameters::EIMDirectionChangeAllow(void) const
 {
     bool OK = false;
 /*
     // NOTE: disabled while eimic variables aren't immediately synced with master controller changes inside ai module
     OK = (EngineType != TEngineType::ElectricInductionMotor || ((eimic <= 0) && (eimic_real <= 0) && (Vel < 0.1)));
 */
-    OK = ( MainCtrlPos <= MaxMainCtrlPosNoDirChange );
+    OK = ( MainCtrlPos <= MainCtrlMaxDirChangePos );
     return OK;
 }
 
@@ -3936,6 +3974,8 @@ void TMoverParameters::UpdatePipePressure(double dt)
     }
 
     // ulepszony hamulec bezp.
+    EmergencyValveFlow = 0.0;
+
     auto const securitysystempresent { SecuritySystem.RadioStop || ( SecuritySystem.SystemType > 0 ) };
     auto const lowvoltagepower { Battery || ConverterFlag };
 
@@ -3951,8 +3991,10 @@ void TMoverParameters::UpdatePipePressure(double dt)
      || ( true == s_CAtestebrake )
      || ( ( true == securitysystempresent )
        && ( false == lowvoltagepower ) ) ) {
-        dpMainValve += PF( 0, PipePress, 0.15 ) * dt;
+        EmergencyValveFlow = PF( 0, PipePress, 0.15 ) * dt;
     }
+    dpMainValve += EmergencyValveFlow;
+
     // 0.2*Spg
     Pipe->Flow(-dpMainValve);
     Pipe->Flow(-(PipePress)*0.001 * dt);
@@ -5045,6 +5087,8 @@ double TMoverParameters::TractionForce( double dt ) {
         case TEngineType::DieselElectric: {
             // TODO: move this to the auto relay check when the electric engine code paths are unified
             StLinFlag = MotorConnectorsCheck();
+            StLinFlag &= IsMainCtrlNoPowerPos();
+
             break;
         }
 
@@ -6105,7 +6149,8 @@ bool TMoverParameters::AutoRelayCheck(void)
 
     // Ra 2014-06: dla SN61 nie działa prawidłowo
     // yBARC - rozlaczenie stycznikow liniowych
-    if( false == motorconnectors ) {
+    if( ( false == motorconnectors )
+     || ( HasCamshaft ? IsMainCtrlActualNoPowerPos() : IsMainCtrlNoPowerPos() ) ) {
         StLinFlag = false;
         OK = false;
         if( false == DynamicBrakeFlag ) {
@@ -6301,7 +6346,7 @@ bool TMoverParameters::AutoRelayCheck(void)
              && ( ( MainCtrlActualPos > 0 )
                || ( ScndCtrlActualPos > 0 ) ) ) {
 
-                if( true == CoupledCtrl ) {
+                if( CoupledCtrl ) {
 
                     if( TrainType == dt_EZT ) {
                         // EN57 wal jednokierunkowy calosciowy
@@ -6374,7 +6419,6 @@ bool TMoverParameters::MotorConnectorsCheck() {
         ( false == Mains )
      || ( true == FuseFlag )
      || ( true == StLinSwitchOff )
-     || ( IsMainCtrlNoPowerPos() )
      || ( DirActive == 0 ) };
 
     if( connectorsoff ) { return false; }
@@ -6389,106 +6433,70 @@ bool TMoverParameters::MotorConnectorsCheck() {
     return connectorson;
 }
 
-// *************************************************************************************************
-// Q: 20160713
-// Podnosi / opuszcza przedni pantograf. Returns: state of the pantograph after the operation
-// *************************************************************************************************
-bool TMoverParameters::PantFront( bool const State, range_t const Notify )
-{
-/*
-    if( ( true == Battery )
-     || ( true == ConverterFlag ) ) {
-*/
-        if( PantFrontUp != State ) {
-            PantFrontUp = State;
-            if( State == true ) {
-                if( Notify != range_t::local ) {
-                    // wysłanie wyłączenia do pozostałych?
-                    SendCtrlToNext(
-                        "PantFront", 1, CabActive,
-                        ( Notify == range_t::unit ?
-                            ctrain_controll | ctrain_depot :
-                            ctrain_controll ) );
-                }
-            }
-            else {
-                if( Notify != range_t::local ) {
-                    // wysłanie wyłączenia do pozostałych?
-                    SendCtrlToNext(
-                        "PantFront", 0, CabActive,
-                        ( Notify == range_t::unit ?
-                            ctrain_controll | ctrain_depot :
-                            ctrain_controll ) );
-                }
-            }
-        }
-/*
+bool TMoverParameters::OperatePantographsValve( operation_t const State, range_t const Notify ) {
+
+    auto const lowvoltagepower { PantsValve.solenoid ? ( Battery || ConverterFlag ) : true };
+
+    auto &valve { PantsValve };
+
+    valve.is_enabled = ( State == operation_t::enable );
+    valve.is_disabled = ( State == operation_t::disable );
+
+    if( Notify != range_t::local ) {
+        SendCtrlToNext(
+            "PantsValve",
+            static_cast<double>( State ),
+            CabActive,
+            ( Notify == range_t::unit ?
+                coupling::control | coupling::permanent :
+                coupling::control ) );
     }
-    else {
-        // no power, drop the pantograph
-        // NOTE: this is a simplification as it should just drop on its own with loss of pressure without resupply from (dead) compressor
-        PantFrontStart = (
-            PantFrontUp ?
-                1 :
-                0 );
-        PantFrontUp = false;
-        if( true == Multiunitcontrol ) {
-            SendCtrlToNext( "PantFront", 0, CabActive );
-        }
-    }
-*/
-    return PantFrontUp;
+
+    return true;
 }
 
-// *************************************************************************************************
-// Q: 20160713
-// Podnoszenie / opuszczanie pantografu tylnego
-// *************************************************************************************************
-bool TMoverParameters::PantRear( bool const State, range_t const Notify )
-{
-/*
-    if( ( true == Battery )
-     || ( true == ConverterFlag ) ) {
-*/
-        if( PantRearUp != State ) {
-            PantRearUp = State;
-            if( State == true ) {
-                if( Notify != range_t::local ) {
-                    // wysłanie wyłączenia do pozostałych?
-                    SendCtrlToNext(
-                        "PantRear", 1, CabActive,
-                        ( Notify == range_t::unit ?
-                            ctrain_controll | ctrain_depot :
-                            ctrain_controll ) );
-                }
-            }
-            else {
-                if( Notify != range_t::local ) {
-                    // wysłanie wyłączenia do pozostałych?
-                    SendCtrlToNext(
-                        "PantRear", 0, CabActive,
-                        ( Notify == range_t::unit ?
-                            ctrain_controll | ctrain_depot :
-                            ctrain_controll ) );
-                }
-            }
-        }
-/*
+bool TMoverParameters::OperatePantographValve( end const End, operation_t const State, range_t const Notify ) {
+
+    auto &valve { Pantographs[ End ].valve };
+    
+    valve.is_enabled = ( State == operation_t::enable );
+    valve.is_disabled = ( State == operation_t::disable );
+
+    if( Notify != range_t::local ) {
+        SendCtrlToNext(
+            "PantValve",
+            // HACK: pack the state, pantograph index and sender cab into 8-bit value
+            // with high bit storing front/rear pantograph, and 7th bit storing sender cab
+            static_cast<double>(
+                  0x80 * ( End == end::front ? 0 : 1 )
+                + 0x40 * ( CabActive != -1 ? 1 : 0 )
+                + static_cast<int>( State ) ),
+            CabActive,
+            ( Notify == range_t::unit ?
+                coupling::control | coupling::permanent :
+                coupling::control ) );
     }
-    else {
-        // no power, drop the pantograph
-        // NOTE: this is a simplification as it should just drop on its own with loss of pressure without resupply from (dead) compressor
-        PantRearStart = (
-            PantRearUp ?
-                1 :
-                0 );
-        PantRearUp = false;
-        if( true == Multiunitcontrol ) {
-            SendCtrlToNext( "PantRear", 0, CabActive );
-        }
+
+    return true;
+}
+
+bool TMoverParameters::DropAllPantographs( bool const State, range_t const Notify ) {
+
+    auto const initialstate{ PantAllDown };
+
+    PantAllDown = State;
+
+    if( Notify != range_t::local ) {
+        SendCtrlToNext(
+            "PantAllDown",
+            ( State ? 1 : 0 ),
+            CabActive,
+            ( Notify == range_t::unit ?
+                coupling::control | coupling::permanent :
+                coupling::control ) );
     }
-*/
-    return PantRearUp;
+
+    return State != initialstate;
 }
 
 void TMoverParameters::CheckEIMIC(double dt)
@@ -7509,12 +7517,12 @@ TMoverParameters::AssignLoad( std::string const &Name, float const Amount ) {
                 DoubleTr = -1;
             }
             if( pantographsetup & ( 1 << 0 ) ) {
-                if( DoubleTr == 1 ) { PantFront( true ); }
-                else                { PantRear( true ); }
+                if( DoubleTr == 1 ) { OperatePantographValve( end::front, operation_t::enable, range_t::local ); }
+                else                { OperatePantographValve( end::rear, operation_t::enable, range_t::local ); }
             }
             if( pantographsetup & ( 1 << 1 ) ) {
-                if( DoubleTr == 1 ) { PantRear( true ); }
-                else                { PantFront( true ); }
+                if( DoubleTr == 1 ) { OperatePantographValve( end::rear, operation_t::enable, range_t::local ); }
+                else                { OperatePantographValve( end::front, operation_t::enable, range_t::local ); }
             }
             return true;
         }
@@ -9586,7 +9594,7 @@ void TMoverParameters::LoadFIZ_Cntrl( std::string const &line ) {
     extract_value( MainCtrlPosNo, "MCPN", line, "" );
     extract_value( ScndCtrlPosNo, "SCPN", line, "" );
     extract_value( ScndInMain, "SCIM", line, "" );
-    extract_value( MaxMainCtrlPosNoDirChange, "DirChangeMaxPos", line, "" );
+    extract_value( MainCtrlMaxDirChangePos, "DirChangeMaxPos", line, "" );
 
     auto const autorelay { ToLower( extract_value( "AutoRelay", line ) ) };
          if( autorelay == "optional" ) { AutoRelayType = 2; }
@@ -9594,7 +9602,8 @@ void TMoverParameters::LoadFIZ_Cntrl( std::string const &line ) {
     else                               { AutoRelayType = 0; }
 
     extract_value( CoupledCtrl, "CoupledCtrl", line, "" );
-	extract_value( EIMCtrlType, "EIMCtrlType", line, "" );
+    extract_value( HasCamshaft, "Camshaft", line, "" );
+    extract_value( EIMCtrlType, "EIMCtrlType", line, "" );
     EIMCtrlType = clamp( EIMCtrlType, 0, 3 );
 	extract_value( LocHandleTimeTraxx, "LocalBrakeTraxx", line, "" );
 	extract_value( EIMCtrlAdditionalZeros, "EIMCtrlAddZeros", line, "" );
@@ -9656,6 +9665,32 @@ void TMoverParameters::LoadFIZ_Cntrl( std::string const &line ) {
     // pantograph compressor valve
     PantAutoValve = ( TrainType == dt_EZT ); // legacy code behaviour, automatic valve was initially installed in all EMUs
     extract_value( PantAutoValve, "PantAutoValve", line, "" );
+    // pantographs valve
+    {
+        auto lookup = starts.find( extract_value( "PantEPValveStart", line ) );
+        PantsValve.start_type =
+            lookup != starts.end() ?
+                lookup->second :
+                start_t::automatic; // legacy code behaviour, there was no pantographs valve
+        extract_value( PantsValve.spring, "PantEPValveSpring", line, "" );
+    }
+    // pantograph valve configuration
+    {
+        auto lookup = starts.find( extract_value( "PantValveStart", line ) );
+        auto valvestarttype =
+            lookup != starts.end() ?
+                lookup->second :
+                start_t::manual;
+        auto valvespring { true };
+        extract_value( valvespring, "PantValveSpring", line, "" );
+        auto valvesolenoid { true };
+        extract_value( valvesolenoid, "PantValveSolenoid", line, "" );
+        for( auto &pantograph : Pantographs ) {
+            pantograph.valve.spring = valvespring;
+            pantograph.valve.solenoid = valvesolenoid;
+            pantograph.valve.start_type = valvestarttype;
+        }
+    }
     // fuel pump
     {
         auto lookup = starts.find( extract_value( "FuelStart", line ) );
@@ -11146,86 +11181,31 @@ bool TMoverParameters::RunCommand( std::string Command, double CValue1, double C
                 false );
         OK = SendCtrlToNext( Command, CValue1, CValue2, Couplertype );
     }
-	else if (Command == "PantFront") /*Winger 160204*/
+    else if (Command == "PantValve") //Winger 160204
 	{ // Ra: uwzględnić trzeba jeszcze zgodność sprzęgów
-	  // Czemu EZT ma być traktowane inaczej? Ukrotnienie ma, a człon może być odwrócony
-		if ((TrainType == dt_EZT)
-         || (TrainType == dt_ET41))
-		{ //'ezt'
-			if ((CValue1 == 1))
-			{
-				PantFrontUp = true;
-			}
-			else if ((CValue1 == 0))
-			{
-				PantFrontUp = false;
-			}
-		}
-		else
-		{ // nie 'ezt' - odwrotne ustawienie pantografów: ^-.-^ zamiast ^-.^-
-			if ((CValue1 == 1))
-				if ((TestFlag(Couplers[1].CouplingFlag, ctrain_controll) && (CValue2 == 1)) ||
-					(TestFlag(Couplers[0].CouplingFlag, ctrain_controll) && (CValue2 == -1)))
-				{
-					PantFrontUp = true;
-				}
-				else
-				{
-					PantRearUp = true;
-				}
-			else if ((CValue1 == 0))
-				if ((TestFlag(Couplers[1].CouplingFlag, ctrain_controll) && (CValue2 == 1)) ||
-					(TestFlag(Couplers[0].CouplingFlag, ctrain_controll) && (CValue2 == -1)))
-				{
-					PantFrontUp = false;
-				}
-				else
-				{
-					PantRearUp = false;
-				}
-		}
+        auto const inputend { ( static_cast<int>( CValue1 ) & 0x80 ) != 0 ? 1 : 0 };
+        auto const inputcab { ( static_cast<int>( CValue1 ) & 0x40 ) != 0 ? 1 : 0 };
+        auto const inputoperation { static_cast<int>( CValue1 ) & ~( 0x80 | 0x40 ) };
+        auto const noswap { ( TrainType == dt_EZT ) || ( TrainType == dt_ET41 ) };
+        auto swap {
+            ( false == noswap )
+         && ( TestFlag( Couplers[ ( CValue2 == -1 ? end::rear : end::front ) ].CouplingFlag, coupling::control ) ) };
+        auto const reversed { inputcab != ( CabActive != -1 ? 1 : 0 ) };
+        if( reversed ) { swap = !swap; }  // TODO: check whether this part has RL equivalent
+        OperatePantographValve(
+            static_cast<end>( swap ? 1 - inputend : inputend ),
+            static_cast<operation_t>( inputoperation ),
+            range_t::local );
         OK = SendCtrlToNext( Command, CValue1, CValue2, Couplertype );
 	}
-	else if (Command == "PantRear") /*Winger 160204, ABu 310105 i 030305*/
-	{ // Ra: uwzględnić trzeba jeszcze zgodność sprzęgów
-		if ((TrainType == dt_EZT)
-          ||(TrainType == dt_ET41))
-		{ //'ezt'
-			if ((CValue1 == 1))
-			{
-				PantRearUp = true;
-			}
-			else if ((CValue1 == 0))
-			{
-				PantRearUp = false;
-			}
-		}
-		else
-		{ //nie 'ezt'
-			if ((CValue1 == 1))
-				//if ostatni polaczony sprz. sterowania
-				if ((TestFlag(Couplers[1].CouplingFlag, ctrain_controll) && (CValue2 == 1)) ||
-					(TestFlag(Couplers[0].CouplingFlag, ctrain_controll) && (CValue2 == -1)))
-				{
-					PantRearUp = true;
-				}
-				else
-				{
-					PantFrontUp = true;
-				}
-			else if ((CValue1 == 0))
-				if ((TestFlag(Couplers[1].CouplingFlag, ctrain_controll) && (CValue2 == 1)) ||
-					(TestFlag(Couplers[0].CouplingFlag, ctrain_controll) && (CValue2 == -1)))
-				{
-					PantRearUp = false;
-				}
-				else
-				{
-					PantFrontUp = false;
-				}
-		}
+    else if( Command == "PantsValve" ) {
+        OperatePantographsValve( static_cast<operation_t>( static_cast<int>( CValue1 ) ), range_t::local );
         OK = SendCtrlToNext( Command, CValue1, CValue2, Couplertype );
-	}
+    }
+    else if( Command == "PantAllDown" ) {
+        DropAllPantographs( CValue1 == 1, range_t::local );
+        OK = SendCtrlToNext( Command, CValue1, CValue2, Couplertype );
+    }
 	else if (Command == "MaxCurrentSwitch")
 	{
 		OK = MaxCurrentSwitch(CValue1 == 1);
