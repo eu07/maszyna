@@ -1523,7 +1523,7 @@ opengl_renderer::Render( world_environment *Environment ) {
 
     auto const &modelview = OpenGLMatrices.data( GL_MODELVIEW );
 
-    auto const fogfactor { clamp<float>( Global.fFogEnd / 2000.f, 0.f, 1.f ) }; // closer/denser fog reduces opacity of the celestial bodies
+    auto const fogfactor { clamp( Global.fFogEnd / 2000.f, 0.f, 1.f ) }; // closer/denser fog reduces opacity of the celestial bodies
     float const duskfactor = 1.0f - clamp( std::abs( Environment->m_sun.getAngle() ), 0.0f, 12.0f ) / 12.0f;
     glm::vec3 suncolor = interpolate(
         glm::vec3( 255.0f / 255.0f, 242.0f / 255.0f, 231.0f / 255.0f ),
@@ -2758,7 +2758,7 @@ opengl_renderer::Render( TSubModel *Submodel ) {
                                 float const fogfactor {
                                     interpolate(
                                         2.f, 1.f,
-                                        clamp<float>( Global.fFogEnd / 2000, 0.f, 1.f ) )
+                                        clamp( Global.fFogEnd / 2000, 0.f, 1.f ) )
                                     * std::max( 1.f, Global.Overcast ) };
 
                                 ::glPointSize( pointsize * resolutionratio * fogfactor );

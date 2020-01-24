@@ -1498,7 +1498,7 @@ bool opengl33_renderer::Render(world_environment *Environment)
 
 	auto const &modelview = OpenGLMatrices.data(GL_MODELVIEW);
 
-    auto const fogfactor{clamp<float>(Global.fFogEnd / 2000.f, 0.f, 1.f)}; // stronger fog reduces opacity of the celestial bodies
+    auto const fogfactor{clamp(Global.fFogEnd / 2000.f, 0.f, 1.f)}; // stronger fog reduces opacity of the celestial bodies
 	float const duskfactor = 1.0f - clamp(std::abs(Environment->m_sun.getAngle()), 0.0f, 12.0f) / 12.0f;
 	glm::vec3 suncolor = interpolate(glm::vec3(255.0f / 255.0f, 242.0f / 255.0f, 231.0f / 255.0f), glm::vec3(235.0f / 255.0f, 140.0f / 255.0f, 36.0f / 255.0f), duskfactor);
 
@@ -3634,7 +3634,7 @@ void opengl33_renderer::Render_Alpha(TSubModel *Submodel)
 					if (Global.Overcast > 1.0f)
 					{
 						// fake fog halo
-						float const fogfactor{interpolate(2.f, 1.f, clamp<float>(Global.fFogEnd / 2000, 0.f, 1.f)) * std::max(1.f, Global.Overcast)};
+						float const fogfactor{interpolate(2.f, 1.f, clamp(Global.fFogEnd / 2000, 0.f, 1.f)) * std::max(1.f, Global.Overcast)};
 						model_ubs.param[1].x = pointsize * resolutionratio * fogfactor * 3.0f;
 						model_ubs.param[0] = glm::vec4(glm::vec3(lightcolor), Submodel->fVisible * std::min(1.f, lightlevel) * 0.5f);
 

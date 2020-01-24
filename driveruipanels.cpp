@@ -543,6 +543,12 @@ debug_panel::render() {
         render_section( "Vehicle AI", m_ailines );
         render_section( "Vehicle Scan Table", m_scantablelines );
         if( true == render_section( "Scenario", m_scenariolines ) ) {
+            // fog slider
+            auto fogrange = std::log( Global.fFogEnd );
+            if( ImGui::SliderFloat(
+                ( to_string( std::exp( fogrange ), 0 ) + " m###fogend" ).c_str(), &fogrange, std::log( 10.0f ), std::log( 25000.0f ), "Fog distance" ) ) {
+                Global.fFogEnd = clamp( std::exp( fogrange ), 10.0f, 25000.0f );
+            }
             // cloud cover slider
             if( ImGui::SliderFloat(
                 ( to_string(Global.Overcast, 2 ) + " (" + Global.Weather + ")###overcast" ).c_str(), &Global.Overcast, 0.0f, 2.0f, "Cloud cover" ) ) {
