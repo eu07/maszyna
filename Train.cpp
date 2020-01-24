@@ -40,10 +40,18 @@ extern user_command command;
 }
 */
 void
+control_mapper::clear() {
+
+    *this = control_mapper();
+}
+
+void
 control_mapper::insert( TGauge const &Gauge, std::string const &Label ) {
 
     if( Gauge.SubModel   != nullptr ) { m_controlnames.emplace( Gauge.SubModel, Label ); }
     if( Gauge.SubModelOn != nullptr ) { m_controlnames.emplace( Gauge.SubModelOn, Label ); }
+
+    m_names.emplace( Label );
 }
 
 std::string
@@ -56,6 +64,12 @@ control_mapper::find( TSubModel const *Control ) const {
     else {
         return "";
     }
+}
+
+bool
+control_mapper::contains( std::string const Control ) const {
+
+    return ( m_names.find( Control ) != m_names.end() );
 }
 
 void TCab::Load(cParser &Parser)
@@ -2075,10 +2089,16 @@ void TTrain::OnCommand_pantographraisefront( TTrain *Train, command_data const &
 
     // HACK: presence of pantograph selector prevents manual operation of the individual valves
     if( Train->ggPantSelectButton.SubModel ) { return; }
+    // prevent operation without submodel outside of engine compartment
+    if( ( Train->iCabn != 0 )
+     && ( false == Train->m_controlmapper.contains( "pantfront_sw:" ) ) ) { return; }
 
     if( Command.action == GLFW_PRESS ) {
         // only reacting to press, so the switch doesn't flip back and forth if key is held down
-        Train->mvControlled->OperatePantographValve( end::front, operation_t::enable );
+        Train->mvControlled->OperatePantographValve( end::front,
+            Train->mvOccupied->PantSwitchType == "impulse" ?
+                operation_t::enable_on :
+                operation_t::enable );
     }
     else if( Command.action == GLFW_RELEASE ) {
         // NOTE: bit of a hax here, we're reusing button reset routine so we don't need a copy in every branch
@@ -2090,11 +2110,17 @@ void TTrain::OnCommand_pantographraiserear( TTrain *Train, command_data const &C
 
     // HACK: presence of pantograph selector prevents manual operation of the individual valves
     if( Train->ggPantSelectButton.SubModel ) { return; }
+    // prevent operation without submodel outside of engine compartment
+    if( ( Train->iCabn != 0 )
+     && ( false == Train->m_controlmapper.contains( "pantrear_sw:" ) ) ) { return; }
 
     if( Command.action == GLFW_PRESS ) {
         // only reacting to press, so the switch doesn't flip back and forth if key is held down
-        Train->mvControlled->OperatePantographValve( end::rear, operation_t::enable );
-    }
+        Train->mvControlled->OperatePantographValve( end::rear,
+             Train->mvOccupied->PantSwitchType == "impulse" ?
+                operation_t::enable_on :
+                operation_t::enable );
+   }
     else if( Command.action == GLFW_RELEASE ) {
         // NOTE: bit of a hax here, we're reusing button reset routine so we don't need a copy in every branch
         OnCommand_pantographtogglerear( Train, Command );
@@ -2105,10 +2131,21 @@ void TTrain::OnCommand_pantographlowerfront( TTrain *Train, command_data const &
 
     // HACK: presence of pantograph selector prevents manual operation of the individual valves
     if( Train->ggPantSelectButton.SubModel ) { return; }
+    // prevent operation without submodel outside of engine compartment
+    if( ( Train->iCabn != 0 )
+     && ( false == Train->m_controlmapper.contains(
+         Train->mvOccupied->PantSwitchType == "impulse" ?
+            "pantfrontoff_sw:" :
+            "pantfront_sw:" ) ) ) {
+        return;
+    }
 
     if( Command.action == GLFW_PRESS ) {
         // only reacting to press, so the switch doesn't flip back and forth if key is held down
-        Train->mvControlled->OperatePantographValve( end::front, operation_t::disable );
+        Train->mvControlled->OperatePantographValve( end::front,
+            Train->mvOccupied->PantSwitchType == "impulse" ?
+                operation_t::disable_on :
+                operation_t::disable );
     }
     else if( Command.action == GLFW_RELEASE ) {
         // NOTE: bit of a hax here, we're reusing button reset routine so we don't need a copy in every branch
@@ -2120,14 +2157,24 @@ void TTrain::OnCommand_pantographlowerrear( TTrain *Train, command_data const &C
 
     // HACK: presence of pantograph selector prevents manual operation of the individual valves
     if( Train->ggPantSelectButton.SubModel ) { return; }
+    if( ( Train->iCabn != 0 )
+     && ( false == Train->m_controlmapper.contains(
+         Train->mvOccupied->PantSwitchType == "impulse" ?
+            "pantrearoff_sw:" :
+            "pantrear_sw:" ) ) ) {
+        return;
+    }
 
     if( Command.action == GLFW_PRESS ) {
         // only reacting to press, so the switch doesn't flip back and forth if key is held down
-        Train->mvControlled->OperatePantographValve( end::rear, operation_t::disable );
+        Train->mvControlled->OperatePantographValve( end::rear,
+            Train->mvOccupied->PantSwitchType == "impulse" ?
+                operation_t::disable_on :
+                operation_t::disable );
     }
     else if( Command.action == GLFW_RELEASE ) {
         // NOTE: bit of a hax here, we're reusing button reset routine so we don't need a copy in every branch
-        OnCommand_pantographtogglefront( Train, Command );
+        OnCommand_pantographtogglerear( Train, Command );
     }
 }
 
@@ -6150,9 +6197,9 @@ bool TTrain::Update( double const Deltatime )
              || ( mvControlled->MainCtrlActualPos == 0 ) ); // do EU04
 
             btLampkaStyczn.Turn(
-                mvControlled->StLinFlag ?
+                ( ( mvOccupied->StLinFlag ) /* || ( mvOccupied->BrakePress > 2.0 ) || ( mvOccupied->PipePress < 3.6 ) */ ) ?
                     false :
-                    mvOccupied->BrakePress < 1.0 ); // mozna prowadzic rozruch
+                    ( mvOccupied->BrakePress < 1.0 ) ); // mozna prowadzic rozruch
 
             if( ( ( mvControlled->CabOccupied ==  1 ) && ( TestFlag( mvControlled->Couplers[ end::rear  ].CouplingFlag, coupling::control ) ) )
              || ( ( mvControlled->CabOccupied == -1 ) && ( TestFlag( mvControlled->Couplers[ end::front ].CouplingFlag, coupling::control ) ) ) ) {
@@ -6380,7 +6427,7 @@ bool TTrain::Update( double const Deltatime )
 
                     if( ( mover->StLinFlag )
                      || ( mover->BrakePress > 2.0 )
-                     || ( mover->PipePress < 0.36 ) ) {
+                     || ( mover->PipePress < 3.6 ) ) {
                         btLampkaStycznB.Turn( false );
                     }
                     else if( mover->BrakePress < 1.0 ) {
@@ -6760,57 +6807,6 @@ bool TTrain::Update( double const Deltatime )
             mvControlled->AntiSlippingBrake();
         }
     }
-/*
-    // NOTE: crude way to have the pantographs go back up if they're dropped due to insufficient pressure etc
-    // TODO: rework it into something more elegant, when redoing the whole consist/unit/cab etc arrangement
-    if( ( DynamicObject->Mechanik == nullptr )
-     || ( false == DynamicObject->Mechanik->AIControllFlag ) ) {
-        // don't mess with the ai driving, at least not while switches don't follow ai-set vehicle state
-        if( ( mvControlled->Battery )
-         || ( mvControlled->ConverterFlag ) ) {
-            if( ggPantAllDownButton.GetDesiredValue() < 0.05 ) {
-                // the 'lower all' button overrides state of switches, while active itself
-                if( ( false == mvControlled->PantFrontUp )
-                 && ( ggPantFrontButton.GetDesiredValue() >= 0.95 ) ) {
-                    mvControlled->PantFront( true );
-                }
-                if( ( false == mvControlled->PantRearUp )
-                 && ( ggPantRearButton.GetDesiredValue() >= 0.95 ) ) {
-                    mvControlled->PantRear( true );
-                }
-            }
-            if( ggPantSelectButton.SubModel ) {
-                if( ggPantSelectedButton.SubModel ) {
-                    if( ( ggPantSelectedButton.type() == TGaugeType::toggle )
-                     && ( ggPantSelectedButton.GetDesiredValue() >= 0.95 ) ) {
-                        change_pantograph_selection_state( true );
-                    }
-                }
-                else {
-                    // HACK: force pantographs into currently selected state
-                    change_pantograph_selection( 0, true );
-                }
-            }
-        }
-    }
-*/
-/*
-    // check whether we should raise the pantographs, based on volume in pantograph tank
-    // NOTE: disabled while switch state isn't preserved while moving between compartments
-    if( mvControlled->PantPress > (
-            mvControlled->TrainType == dt_EZT ?
-                2.4 :
-                3.5 ) ) {
-        if( ( false == mvControlled->PantFrontUp )
-         && ( ggPantFrontButton.GetValue() > 0.95 ) ) {
-            mvControlled->PantFront( true );
-        }
-        if( ( false == mvControlled->PantRearUp )
-         && ( ggPantRearButton.GetValue() > 0.95 ) ) {
-            mvControlled->PantRear( true );
-        }
-    }
-*/
     // screens
     fScreenTimer += Deltatime;
     if( ( fScreenTimer > Global.PythonScreenUpdateRate * 0.001f )
@@ -7718,6 +7714,7 @@ Math3D::vector3 TTrain::MirrorPosition(bool lewe)
                    1.5 + Cabine[iCabn].CabPos1.y,
                    Cabine[iCabn].CabPos1.z);
     case 1: // przednia (1)
+        [[fallthrough]];
     default:
         return DynamicObject->mMatrix *
                Math3D::vector3(

@@ -459,6 +459,7 @@ private:
     double fMass = 0.0; // całkowita masa do liczenia stycznej składowej grawitacji
     double fAccGravity = 0.0; // przyspieszenie składowej stycznej grawitacji
     int iVehicles = 0; // ilość pojazdów w składzie
+    int ControlledEnginesCount{ 0 }; // number of powered vehicles under driver's control
     bool iEngineActive{ false }; // ABu: Czy silnik byl juz zalaczony
     bool IsCargoTrain{ false };
     bool IsHeavyCargoTrain{ false };

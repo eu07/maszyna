@@ -169,15 +169,16 @@ world_environment::update() {
     Global.FogColor = m_skydome.GetAverageHorizonColor();
 
     // weather-related simulation factors
-    // TODO: dynamic change of air temperature and overcast levels
+    Global.FrictionWeatherFactor = (
+        Global.Weather == "rain:" ? 0.85f :
+        Global.Weather == "snow:" ? 0.75f :
+        1.0f );
+
     if( Global.Weather == "rain:" ) {
-        // reduce friction in rain
-        Global.FrictionWeatherFactor = 0.85f;
         m_precipitationsound.play( sound_flags::exclusive | sound_flags::looping );
     }
-    else if( Global.Weather == "snow:" ) {
-        // reduce friction due to snow
-        Global.FrictionWeatherFactor = 0.75f;
+    else {
+        m_precipitationsound.stop();
     }
 
     update_wind();

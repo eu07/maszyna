@@ -66,6 +66,9 @@ public:
         poll();
     user_command
         command() const;
+    // returns pair of bindings associated with specified cab control
+    std::pair<user_command, user_command>
+        bindings( std::string const &Control ) const;
 
 private:
 // types

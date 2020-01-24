@@ -39,6 +39,11 @@ public:
         set_progress( float const Progress = 0.f, float const Subtaskprogress = 0.f ) {
             if( m_userinterface != nullptr ) {
                 m_userinterface->set_progress( Progress, Subtaskprogress ); } }
+    inline
+    void
+        set_tooltip( std::string const &Tooltip ) {
+            if( m_userinterface != nullptr ) {
+                m_userinterface->set_tooltip( Tooltip ); } }
     // maintenance method, called when the mode is activated
     virtual
     void

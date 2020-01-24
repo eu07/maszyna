@@ -353,6 +353,9 @@ int TSubModel::Load( cParser &parser, TModel3d *Model, /*int Pos,*/ bool dynamic
         if( Opacity > 1.f ) {
             Opacity = std::min( 1.f, Opacity * 0.01f );
         }
+        if( Opacity < -1.f ) {
+            Opacity = std::max( -1.f, Opacity * 0.01f );
+        }
 
         if (!parser.expectToken("map:"))
             Error("Model map parse failure!");

@@ -113,7 +113,7 @@ OnCommandGet(multiplayer::DaneRozkaz *pRozkaz)
             if (*pRozkaz->iPar == 0) // sprawdzenie czasu
                 if (*pRozkaz->iPar & 1) // ustawienie czasu
                 {
-                    double t = pRozkaz->fPar[1];
+                    auto t = pRozkaz->fPar[1];
                     simulation::Time.data().wDay = std::floor(t); // niby nie powinno być dnia, ale...
                     if (Global.fMoveLight >= 0)
                         Global.fMoveLight = t; // trzeba by deklinację Słońca przeliczyć

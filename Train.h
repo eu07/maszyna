@@ -59,13 +59,17 @@ private:
 class control_mapper {
     typedef std::unordered_map< TSubModel const *, std::string> submodelstring_map;
     submodelstring_map m_controlnames;
+    using stringset = std::unordered_set<std::string>;
+    stringset m_names; // names of registered controls
 public:
     void
-        clear() { m_controlnames.clear(); }
+        clear();
     void
         insert( TGauge const &Gauge, std::string const &Label );
     std::string
         find( TSubModel const *Control ) const;
+    bool
+        contains( std::string const Control ) const;
 };
 
 class TTrain {

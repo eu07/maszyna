@@ -117,20 +117,23 @@ sound_source::deserialize( cParser &Input, sound_type const Legacytype, int cons
         }
 
         if( Legacyparameters & sound_parameters::range ) {
-            Input.getTokens( 1, false );
-            Input >> m_range;
+            if( Input.getTokens( 1, false ) ) {
+                Input >> m_range;
+            }
         }
         if( Legacyparameters & sound_parameters::amplitude ) {
-            Input.getTokens( 2, false );
-            Input
-                >> m_amplitudefactor
-                >> m_amplitudeoffset;
+            if( Input.getTokens( 2, false ) ) {
+                Input
+                    >> m_amplitudefactor
+                    >> m_amplitudeoffset;
+            }
         }
         if( Legacyparameters & sound_parameters::frequency ) {
-            Input.getTokens( 2, false );
-            Input
-                >> m_frequencyfactor
-                >> m_frequencyoffset;
+            if( Input.getTokens( 2, false ) ) {
+                Input
+                    >> m_frequencyfactor
+                    >> m_frequencyoffset;
+            }
         }
     }
     // restore parser behaviour

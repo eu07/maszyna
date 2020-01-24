@@ -17,6 +17,8 @@ http://mozilla.org/MPL/2.0/.
 #include "Globals.h"
 #include "Logs.h"
 
+opengl_material::path_data opengl_material::paths;
+
 opengl_material::opengl_material()
 {
     for (size_t i = 0; i < params.size(); i++)
@@ -30,6 +32,21 @@ opengl_material::deserialize( cParser &Input, bool const Loadnow ) {
     bool result { false };
     while( true == deserialize_mapping( Input, 0, Loadnow ) ) {
         result = true; // once would suffice but, eh
+    }
+
+    if( ( path == -1 )
+     && ( update_on_weather_change || update_on_season_change ) ) {
+        // record current texture path in the material, potentially needed when material is reloaded on environment change
+        // NOTE: we're storing this only for textures that can actually change, to keep the size of path database modest
+        auto const lookup{ paths.index_map.find( Global.asCurrentTexturePath ) };
+        if( lookup != paths.index_map.end() ) {
+            path = lookup->second;
+        }
+        else {
+            path = paths.data.size();
+            paths.data.emplace_back( Global.asCurrentTexturePath );
+            paths.index_map.emplace( Global.asCurrentTexturePath, path );
+        }
     }
 
     return result;
@@ -94,19 +111,20 @@ void opengl_material::finalize(bool Loadnow)
 
         if (!shader)
         {
+// TODO: add error severity to logging, re-enable these errors as low severity messages
             if (textures[0] == null_handle)
             {
-                log_error("shader not specified, assuming \"default_0\"");
+//                log_error("shader not specified, assuming \"default_0\"");
                 shader = GfxRenderer->Fetch_Shader("default_0");
             }
             else if (textures[1] == null_handle)
             {
-                log_error("shader not specified, assuming \"default_1\"");
+//                log_error("shader not specified, assuming \"default_1\"");
                 shader = GfxRenderer->Fetch_Shader("default_1");
             }
             else if (textures[2] == null_handle)
             {
-                log_error("shader not specified, assuming \"default_2\"");
+//                log_error("shader not specified, assuming \"default_2\"");
                 shader = GfxRenderer->Fetch_Shader("default_2");
             }
         }
@@ -198,6 +216,55 @@ void opengl_material::finalize(bool Loadnow)
     }
 }
 
+bool opengl_material::update() {
+
+    auto const texturepathbackup { Global.asCurrentTexturePath };
+    auto const namebackup { name };
+    auto const pathbackup { path };
+    cParser materialparser( name + ".mat", cParser::buffer_FILE ); // fairly safe to presume .mat is present for branching materials
+
+    // temporarily set texture path to state recorded in the material
+    Global.asCurrentTexturePath = paths.data[ path ];
+
+    // clean material slate, restore relevant members
+    *this = opengl_material();
+    name = namebackup;
+    path = pathbackup;
+
+    auto result { false };
+
+    if( true == deserialize( materialparser, true ) ) {
+        try {
+            finalize( true );
+            result = true;
+        }
+        catch( gl::shader_exception const &e ) {
+            ErrorLog( "invalid shader: " + std::string( e.what() ) );
+        }
+    }
+    // restore texture path
+    Global.asCurrentTexturePath = texturepathbackup;
+
+    return result;
+}
+
+std::unordered_set<std::string> seasons = {
+    "winter:", "spring:", "summer:", "autumn:"
+};
+
+bool is_season( std::string const &String ) {
+
+    return ( seasons.find( String ) != seasons.end() );
+}
+
+std::unordered_set<std::string> weather = {
+    "clear:", "cloudy:", "rain:", "snow:" };
+
+bool is_weather( std::string const &String ) {
+
+    return ( weather.find( String ) != weather.end() );
+}
+
 // imports member data pair from the config file
 bool
 opengl_material::deserialize_mapping( cParser &Input, int const Priority, bool const Loadnow ) {
@@ -209,6 +276,11 @@ opengl_material::deserialize_mapping( cParser &Input, int const Priority, bool c
 
     if( Priority != -1 ) {
         // regular attribute processing mode
+
+        // mark potential material change
+        update_on_weather_change |= is_weather( key );
+        update_on_season_change  |= is_season( key );
+
         if( key == Global.Weather ) {
             // weather textures override generic (pri 0) and seasonal (pri 1) textures
             // seasonal weather textures (pri 1+2=3) override generic weather (pri 2) textures
@@ -433,14 +505,13 @@ material_manager::create( std::string const &Filename, bool const Loadnow ) {
 
 	if( false == material.name.empty() ) {
 		// if we have material name and shader it means resource was processed succesfully
-		try {
+        materialhandle = m_materials.size();
+        m_materialmappings.emplace( material.name, materialhandle );
+        try {
 			material.finalize(Loadnow);
-			materialhandle = m_materials.size();
-			m_materialmappings.emplace( material.name, materialhandle );
 			m_materials.emplace_back( std::move(material) );
 		} catch (gl::shader_exception const &e) {
 			ErrorLog("invalid shader: " + std::string(e.what()));
-			m_materialmappings.emplace( filename, materialhandle );
 		}
     }
     else {
@@ -450,6 +521,22 @@ material_manager::create( std::string const &Filename, bool const Loadnow ) {
 
     return materialhandle;
 };
+
+void
+material_manager::on_weather_change() {
+
+    for( auto &material : m_materials ) {
+        if( material.update_on_weather_change ) { material.update(); }
+    }
+}
+
+void
+material_manager::on_season_change() {
+
+    for( auto &material : m_materials ) {
+        if( material.update_on_season_change ) { material.update(); }
+    }
+}
 
 // checks whether specified material is in the material bank. returns handle to the material, or a null handle
 material_handle

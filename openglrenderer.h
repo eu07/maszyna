@@ -320,6 +320,10 @@ private:
     std::string m_debugtimestext;
     std::string m_pickdebuginfo;
     std::string m_debugstatstext;
+    struct simulation_state {
+        std::string weather;
+        std::string season;
+    } m_simulationstate;
 
     glm::vec4 m_baseambient { 0.0f, 0.0f, 0.0f, 1.0f };
     glm::vec4 m_shadowcolor { colors::shadow };

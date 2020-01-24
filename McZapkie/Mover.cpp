@@ -3193,6 +3193,7 @@ void TMoverParameters::MainSwitch_( bool const State ) {
        && ( true == NoVoltRelay )
        && ( true == OvervoltageRelay )
        && ( LastSwitchingTime > CtrlDelay )
+       && ( HasCamshaft ? IsMainCtrlActualNoPowerPos() : ( LineBreakerClosesAtNoPowerPosOnly ? IsMainCtrlNoPowerPos() : true ) )
        && ( false == TestFlag( DamageFlag, dtrain_out ) )
        && ( false == TestFlag( EngDmgFlag, 1 ) ) ) ) {
 
@@ -5086,8 +5087,12 @@ double TMoverParameters::TractionForce( double dt ) {
 
         case TEngineType::DieselElectric: {
             // TODO: move this to the auto relay check when the electric engine code paths are unified
-            StLinFlag = MotorConnectorsCheck();
-            StLinFlag &= IsMainCtrlNoPowerPos();
+            StLinFlag &= MotorConnectorsCheck();
+            StLinFlag |= (
+                ( MainCtrlActualPos == 0 )
+             && ( TrainType != dt_EZT ?
+                    MainCtrlPowerPos() == 1 :
+                    MainCtrlPowerPos() > 0 ) );
 
             break;
         }
@@ -6145,12 +6150,14 @@ bool TMoverParameters::AutoRelayCheck(void)
     bool OK = false; // b:int;
     bool ARC = false;
 
-    auto const motorconnectors { MotorConnectorsCheck() };
+    auto const motorconnectorsoff { false == MotorConnectorsCheck() };
 
     // Ra 2014-06: dla SN61 nie działa prawidłowo
     // yBARC - rozlaczenie stycznikow liniowych
-    if( ( false == motorconnectors )
-     || ( HasCamshaft ? IsMainCtrlActualNoPowerPos() : IsMainCtrlNoPowerPos() ) ) {
+    if( ( motorconnectorsoff )
+     || ( HasCamshaft ?
+            IsMainCtrlActualNoPowerPos() :
+            IsMainCtrlNoPowerPos() ) ) {
         StLinFlag = false;
         OK = false;
         if( false == DynamicBrakeFlag ) {
@@ -6329,7 +6336,12 @@ bool TMoverParameters::AutoRelayCheck(void)
         {
             OK = false;
             // ybARC - zalaczenie stycznikow liniowych
-            if( true == motorconnectors ) {
+            if( ( false == motorconnectorsoff )
+             && ( MainCtrlActualPos == 0 )
+             && ( ( TrainType == dt_EZT || HasCamshaft ) ?
+                    MainCtrlPowerPos() >  0 :
+                    MainCtrlPowerPos() == 1 ) ) {
+
                 DelayCtrlFlag = true;
                 if( LastRelayTime >= InitialCtrlDelay ) {
                     StLinFlag = true;
@@ -6339,14 +6351,15 @@ bool TMoverParameters::AutoRelayCheck(void)
                     OK = true;
                 }
             }
-            else
+            else {
                 DelayCtrlFlag = false;
+            }
 
             if( ( false == StLinFlag )
              && ( ( MainCtrlActualPos > 0 )
                || ( ScndCtrlActualPos > 0 ) ) ) {
 
-                if( CoupledCtrl ) {
+                if( CoupledCtrl || HasCamshaft ) {
 
                     if( TrainType == dt_EZT ) {
                         // EN57 wal jednokierunkowy calosciowy
@@ -6380,7 +6393,8 @@ bool TMoverParameters::AutoRelayCheck(void)
                     else {
                         // wal kulakowy dwukierunkowy
                         if( LastRelayTime > CtrlDownDelay ) {
-                            if( ScndCtrlActualPos > 0 ) {
+                            if( ( CoupledCtrl )
+                             && ( ScndCtrlActualPos > 0 ) ) {
                                 --ScndCtrlActualPos;
                                 SetFlag( SoundFlag, sound::shuntfield );
                             }
@@ -6421,16 +6435,7 @@ bool TMoverParameters::MotorConnectorsCheck() {
      || ( true == StLinSwitchOff )
      || ( DirActive == 0 ) };
 
-    if( connectorsoff ) { return false; }
-
-    auto const connectorson {
-        ( true == StLinFlag )
-     || ( ( MainCtrlActualPos == 0 )
-       && ( ( TrainType != dt_EZT ?
-                MainCtrlPowerPos() == 1 :
-                MainCtrlPowerPos() >  0 ) ) ) };
-
-    return connectorson;
+    return ( false == connectorsoff );
 }
 
 bool TMoverParameters::OperatePantographsValve( operation_t const State, range_t const Notify ) {
@@ -6439,8 +6444,15 @@ bool TMoverParameters::OperatePantographsValve( operation_t const State, range_t
 
     auto &valve { PantsValve };
 
-    valve.is_enabled = ( State == operation_t::enable );
-    valve.is_disabled = ( State == operation_t::disable );
+    switch( State ) {
+        case operation_t::none: { valve.is_enabled = false; valve.is_disabled = false; break; }
+        case operation_t::enable: { valve.is_enabled = true; valve.is_disabled = false; break; }
+        case operation_t::disable: { valve.is_enabled = false; valve.is_disabled = true; break; }
+        case operation_t::enable_on: { valve.is_enabled = true; break; }
+        case operation_t::enable_off: { valve.is_enabled = false; break; }
+        case operation_t::disable_on: { valve.is_disabled = true; break; }
+        case operation_t::disable_off: { valve.is_disabled = false; break; }
+    }
 
     if( Notify != range_t::local ) {
         SendCtrlToNext(
@@ -6458,9 +6470,16 @@ bool TMoverParameters::OperatePantographsValve( operation_t const State, range_t
 bool TMoverParameters::OperatePantographValve( end const End, operation_t const State, range_t const Notify ) {
 
     auto &valve { Pantographs[ End ].valve };
-    
-    valve.is_enabled = ( State == operation_t::enable );
-    valve.is_disabled = ( State == operation_t::disable );
+
+    switch( State ) {
+        case operation_t::none: { valve.is_enabled = false; valve.is_disabled = false; break; }
+        case operation_t::enable: { valve.is_enabled = true; valve.is_disabled = false; break; }
+        case operation_t::disable: { valve.is_enabled = false; valve.is_disabled = true; break; }
+        case operation_t::enable_on: { valve.is_enabled = true; break; }
+        case operation_t::enable_off: { valve.is_enabled = false; break; }
+        case operation_t::disable_on: { valve.is_disabled = true; break; }
+        case operation_t::disable_off: { valve.is_disabled = false; break; }
+    }
 
     if( Notify != range_t::local ) {
         SendCtrlToNext(

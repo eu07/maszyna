@@ -372,70 +372,70 @@ drivermouse_input::button( int const Button, int const Action ) {
                     bool pickwaiting = m_pickwaiting;
                     m_pickwaiting = false;
 
-                    auto const lookup = m_buttonbindings.find( simulation::Train->GetLabel( control ) );
-                    if( lookup != m_buttonbindings.end() ) {
-                        // if the recognized element under the cursor has a command associated with the pressed button, notify the recipient
-                        mousecommand = (
-                            Button == GLFW_MOUSE_BUTTON_LEFT ?
-                                lookup->second.left :
-                                lookup->second.right
-                            );
-                        if( mousecommand == user_command::none ) { return; }
-                        // check manually for commands which have 'fast' variants launched with shift modifier
-                        if( Global.shiftState ) {
-                            switch( mousecommand ) {
-                                case user_command::mastercontrollerincrease: { mousecommand = user_command::mastercontrollerincreasefast; break; }
-                                case user_command::mastercontrollerdecrease: { mousecommand = user_command::mastercontrollerdecreasefast; break; }
-                                case user_command::secondcontrollerincrease: { mousecommand = user_command::secondcontrollerincreasefast; break; }
-                                case user_command::secondcontrollerdecrease: { mousecommand = user_command::secondcontrollerdecreasefast; break; }
-                                case user_command::independentbrakeincrease: { mousecommand = user_command::independentbrakeincreasefast; break; }
-                                case user_command::independentbrakedecrease: { mousecommand = user_command::independentbrakedecreasefast; break; }
-                                default: { break; }
-                            }
+                    auto const controlbindings { bindings( simulation::Train->GetLabel( control ) ) };
+                    // if the recognized element under the cursor has a command associated with the pressed button, notify the recipient
+                    mousecommand = (
+                        Button == GLFW_MOUSE_BUTTON_LEFT ?
+                            controlbindings.first :
+                            controlbindings.second
+                        );
+
+                    if( mousecommand == user_command::none ) {
+                        // if we don't have any recognized element under the cursor and the right button was pressed, enter view panning mode
+                        if( Button == GLFW_MOUSE_BUTTON_RIGHT ) {
+                            m_pickmodepanning = true;
                         }
+                        return;
+                    }
+                    // check manually for commands which have 'fast' variants launched with shift modifier
+                    if( Global.shiftState ) {
+                        switch( mousecommand ) {
+                            case user_command::mastercontrollerincrease: { mousecommand = user_command::mastercontrollerincreasefast; break; }
+                            case user_command::mastercontrollerdecrease: { mousecommand = user_command::mastercontrollerdecreasefast; break; }
+                            case user_command::secondcontrollerincrease: { mousecommand = user_command::secondcontrollerincreasefast; break; }
+                            case user_command::secondcontrollerdecrease: { mousecommand = user_command::secondcontrollerdecreasefast; break; }
+                            case user_command::independentbrakeincrease: { mousecommand = user_command::independentbrakeincreasefast; break; }
+                            case user_command::independentbrakedecrease: { mousecommand = user_command::independentbrakedecreasefast; break; }
+                            default: { break; }
+                        }
+                    }
 
-					    switch( mousecommand ) {
-					        case user_command::mastercontrollerincrease:
-					        case user_command::mastercontrollerdecrease:
-					        case user_command::secondcontrollerincrease:
-					        case user_command::secondcontrollerdecrease:
-					        case user_command::trainbrakeincrease:
-					        case user_command::trainbrakedecrease:
-					        case user_command::independentbrakeincrease:
-					        case user_command::independentbrakedecrease: {
-						        // these commands trigger varying repeat rate mode,
-						        // which scales the rate based on the distance of the cursor from its point when the command was first issued
-						        m_varyingpollrateorigin = m_cursorposition;
-							    m_varyingpollrate = true;
-							    break;
-					        }
-					        case user_command::jointcontrollerset:
-					        case user_command::mastercontrollerset:
-					        case user_command::secondcontrollerset:
-					        case user_command::trainbrakeset:
-					        case user_command::independentbrakeset: {
-						        m_slider.bind( mousecommand );
-							    mousecommand = user_command::none;
-							    return;
-					        }
-					        default: {
-						        break;
-					        }
+					switch( mousecommand ) {
+					    case user_command::mastercontrollerincrease:
+					    case user_command::mastercontrollerdecrease:
+					    case user_command::secondcontrollerincrease:
+					    case user_command::secondcontrollerdecrease:
+					    case user_command::trainbrakeincrease:
+					    case user_command::trainbrakedecrease:
+					    case user_command::independentbrakeincrease:
+					    case user_command::independentbrakedecrease: {
+						    // these commands trigger varying repeat rate mode,
+						    // which scales the rate based on the distance of the cursor from its point when the command was first issued
+						    m_varyingpollrateorigin = m_cursorposition;
+							m_varyingpollrate = true;
+							break;
 					    }
-
-					    // NOTE: basic keyboard controls don't have any parameters
-					    // NOTE: as we haven't yet implemented either item id system or multiplayer, the 'local' controlled vehicle and entity have temporary ids of 0
-					    // TODO: pass correct entity id once the missing systems are in place
-					    m_relay.post( mousecommand, 0, 0, Action, 0 );
-					    if (!pickwaiting) // already depressed
-						    m_relay.post( mousecommand, 0, 0, GLFW_RELEASE, 0 );
-					    m_updateaccumulator = -0.25; // prevent potential command repeat right after issuing one
-				    }
-				    else {
-					    // if we don't have any recognized element under the cursor and the right button was pressed, enter view panning mode
-					    if( Button == GLFW_MOUSE_BUTTON_RIGHT ) {
-						    m_pickmodepanning = true;
-					    } } } );
+					    case user_command::jointcontrollerset:
+					    case user_command::mastercontrollerset:
+					    case user_command::secondcontrollerset:
+					    case user_command::trainbrakeset:
+					    case user_command::independentbrakeset: {
+						    m_slider.bind( mousecommand );
+							mousecommand = user_command::none;
+							return;
+					    }
+					    default: {
+						    break;
+					    }
+					}
+					// NOTE: basic keyboard controls don't have any parameters
+					// NOTE: as we haven't yet implemented either item id system or multiplayer, the 'local' controlled vehicle and entity have temporary ids of 0
+					// TODO: pass correct entity id once the missing systems are in place
+					m_relay.post( mousecommand, 0, 0, Action, 0 );
+					if (!pickwaiting) // already depressed
+						m_relay.post( mousecommand, 0, 0, GLFW_RELEASE, 0 );
+					m_updateaccumulator = -0.25; // prevent potential command repeat right after issuing one
+				} );
         }
     }
 }
@@ -493,6 +493,19 @@ drivermouse_input::command() const {
         m_slider.command() != user_command::none ? m_slider.command() :
         m_mousecommandleft != user_command::none ? m_mousecommandleft :
         m_mousecommandright );
+}
+
+// returns pair of bindings associated with specified cab control
+std::pair<user_command, user_command>
+drivermouse_input::bindings( std::string const &Control ) const {
+
+    auto const lookup{ m_buttonbindings.find( Control ) };
+
+    if( lookup != m_buttonbindings.end() )
+        return { lookup->second.left, lookup->second.right };
+    else {
+        return { user_command::none, user_command::none };
+    }
 }
 
 void

@@ -2194,6 +2194,7 @@ bool TController::CheckVehicles(TOrders user)
         }
         // with the order established the virtual train manager can do their work
         p = pVehicles[0];
+        ControlledEnginesCount = ( p->MoverParameters->Power > 1.0 ? 1 : 0 );
         while (p)
         {
             if( p != pVehicle ) {
@@ -2205,6 +2206,11 @@ bool TController::CheckVehicles(TOrders user)
                     if( p->MoverParameters->HeatingPower > 0 ) {
                         p->MoverParameters->HeatingAllow = true;
                         p->MoverParameters->ConverterSwitch( true, range_t::local );
+                    }
+                }
+                else {
+                    if( p->MoverParameters->Power > 1.0 ) {
+                        ++ControlledEnginesCount;
                     }
                 }
             }
@@ -2537,9 +2543,6 @@ bool TController::PrepareEngine()
         }
         if (mvControlling->EnginePowerSource.SourceType == TPowerSource::CurrentCollector)
         { // jeśli silnikowy jest pantografującym
-            mvControlling->OperatePantographsValve( operation_t::enable );
-            mvControlling->OperatePantographValve( end::front, operation_t::enable );
-            mvControlling->OperatePantographValve( end::rear, operation_t::enable );
             if (mvControlling->PantPress < 4.2) {
                 // załączenie małej sprężarki
                 if( false == mvControlling->PantAutoValve ) {
@@ -2550,10 +2553,14 @@ bool TController::PrepareEngine()
             }
             else {
                 // jeżeli jest wystarczające ciśnienie w pantografach
-                if ((!mvControlling->bPantKurek3) ||
-                    (mvControlling->PantPress <=
-                     mvControlling->ScndPipePress)) // kurek przełączony albo główna już pompuje
+                if ((!mvControlling->bPantKurek3)
+                 || (mvControlling->PantPress <= mvControlling->ScndPipePress)) // kurek przełączony albo główna już pompuje
                     mvControlling->PantCompFlag = false; // sprężarkę pantografów można już wyłączyć
+            }
+            if( ( fOverhead2 == -1.0 ) && ( iOverheadDown == 0 ) ) {
+                mvControlling->OperatePantographsValve( operation_t::enable );
+                mvControlling->OperatePantographValve( end::front, operation_t::enable );
+                mvControlling->OperatePantographValve( end::rear, operation_t::enable );
             }
         }
     }
@@ -3163,7 +3170,7 @@ bool TController::IncSpeed()
                         if( usefieldshunting ) {
                             // to dać bocznik
                             // engage the shuntfield only if there's sufficient power margin to draw from
-                            auto const sufficientpowermargin { fVoltage - useseriesmodevoltage > ( IsHeavyCargoTrain ? 100.0 : 75.0 ) };
+                            auto const sufficientpowermargin { fVoltage - useseriesmodevoltage > ( IsHeavyCargoTrain ? 100.0 : 75.0 ) * ControlledEnginesCount };
 
                             OK = (
                                 sufficientpowermargin ?
@@ -3183,7 +3190,7 @@ bool TController::IncSpeed()
                                     mvControlling->RList[ std::min( mvControlling->MainCtrlPos + 1, mvControlling->MainCtrlPosNo ) ].Bn == 1 ? 
                                         mvControlling->EnginePowerSource.CollectorParameters.MinV :
                                         useseriesmodevoltage )
-                                > ( IsHeavyCargoTrain ? 80.0 : 60.0 ) };
+                                > ( IsHeavyCargoTrain ? 80.0 : 60.0 ) * ControlledEnginesCount };
 
                             OK = (
                                 ( sufficientpowermargin && ( false == mvControlling->DelayCtrlFlag ) ) ?
@@ -3994,8 +4001,7 @@ bool TController::PutCommand( std::string NewCommand, double NewValue1, double N
 
     if (NewCommand == "Overhead")
     { // informacja o stanie sieci trakcyjnej
-        fOverhead1 =
-            NewValue1; // informacja o napięciu w sieci trakcyjnej (0=brak drutu, zatrzymaj!)
+        fOverhead1 = NewValue1; // informacja o napięciu w sieci trakcyjnej (0=brak drutu, zatrzymaj!)
         fOverhead2 = NewValue2; // informacja o sposobie jazdy (-1=normalnie, 0=bez prądu, >0=z
         // opuszczonym i ograniczeniem prędkości)
         return true; // załatwione
@@ -4700,8 +4706,12 @@ TController::UpdateSituation(double dt) {
 
                 if( ( fOverhead2 > 0.0 ) || iOverheadDown ) {
                     // jazda z opuszczonymi pantografami
-                    mvControlling->OperatePantographValve( end::front, operation_t::disable );
-                    mvControlling->OperatePantographValve( end::rear, operation_t::disable );
+                    if( mvControlling->Pantographs[ end::front ].is_active ) {
+                        mvControlling->OperatePantographValve( end::front, operation_t::disable );
+                    }
+                    if( mvControlling->Pantographs[ end::rear ].is_active ) {
+                        mvControlling->OperatePantographValve( end::rear, operation_t::disable );
+                    }
                 }
                 else {
                     // jeśli nie trzeba opuszczać pantografów
@@ -4779,15 +4789,17 @@ TController::UpdateSituation(double dt) {
                     // NOTE: abs(stoptime) covers either at least 15 sec remaining for a scheduled stop, or 15+ secs spent at a basic stop
                  && ( std::abs( fStopTime ) > 15.0 ) ) {
                     // spending a longer at a stop, raise also front pantograph
-                    if( ( iDirection >= 0 ) && ( useregularpantographlayout ) ) {
-                        // jak jedzie w kierunku sprzęgu 0
-                        if( mvControlling->PantFrontVolt == 0.0 ) {
-                            mvControlling->OperatePantographValve( end::front, operation_t::enable );
+                    if( mvControlling->EnginePowerSource.CollectorParameters.CollectorsNo > 1 ) {
+                        if( ( iDirection >= 0 ) && ( useregularpantographlayout ) ) {
+                            // jak jedzie w kierunku sprzęgu 0
+                            if( mvControlling->PantFrontVolt == 0.0 ) {
+                                mvControlling->OperatePantographValve( end::front, operation_t::enable );
+                            }
                         }
-                    }
-                    else {
-                        if( mvControlling->PantRearVolt == 0.0 ) {
-                            mvControlling->OperatePantographValve( end::rear, operation_t::enable );
+                        else {
+                            if( mvControlling->PantRearVolt == 0.0 ) {
+                                mvControlling->OperatePantographValve( end::rear, operation_t::enable );
+                            }
                         }
                     }
                 }

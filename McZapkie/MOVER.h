@@ -170,13 +170,13 @@ enum class range_t {
 };
 // possible settings of enable/disable input pair; exclusive
 enum class operation_t {
-    enable_on = 1,
-    enable_off = -1,
-    disable_on = 2,
-    disable_off = -2,
     none = 0,
     enable,
     disable,
+    enable_on,
+    enable_off,
+    disable_on,
+    disable_off,
 };
 // start method for devices; exclusive
 enum class start_t {
@@ -1380,6 +1380,7 @@ public:
 	bool Mains = false;    /*polozenie glownego wylacznika*/
     double MainsInitTime{ 0.0 }; // config, initialization time (in seconds) of the main circuit after it receives power, before it can be closed
     double MainsInitTimeCountdown{ 0.0 }; // current state of main circuit initialization, remaining time (in seconds) until it's ready
+    bool LineBreakerClosesAtNoPowerPosOnly{ false };
 	int MainCtrlPos = 0; /*polozenie glownego nastawnika*/
 	int ScndCtrlPos = 0; /*polozenie dodatkowego nastawnika*/
 	int LightsPos = 0; /*polozenie przelacznika wielopozycyjnego swiatel*/

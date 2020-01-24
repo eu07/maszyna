@@ -77,6 +77,10 @@ private:
 
         bool init();
         void poll();
+        std::string
+            command_hints( std::pair<user_command, user_command> const &Commands ) const;
+        std::pair<user_command, user_command>
+            command_fallback( user_command const Command ) const;
     };
 
 // methods

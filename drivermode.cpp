@@ -13,6 +13,7 @@ http://mozilla.org/MPL/2.0/.
 
 #include "Globals.h"
 #include "application.h"
+#include "translation.h"
 #include "simulation.h"
 #include "simulationtime.h"
 #include "simulationenvironment.h"
@@ -79,6 +80,50 @@ driver_mode::drivermode_input::init() {
 
     return result;
 }
+
+std::string
+driver_mode::drivermode_input::command_hints( std::pair<user_command, user_command> const &Commands ) const {
+
+    auto const inputhintleft { keyboard.mapping( Commands.first ) };
+    auto const inputhintright { keyboard.mapping( Commands.second ) };
+    std::string inputhints =
+        inputhintleft
+        + ( inputhintright.empty() ? "" :
+            inputhintleft.empty() ?
+                inputhintright :
+                "] [" + inputhintright );
+
+    return inputhints;
+}
+
+std::unordered_map<user_command, std::pair<user_command, user_command>> commandfallbacks = {
+    { user_command::mastercontrollerset, { user_command::mastercontrollerincrease, user_command::mastercontrollerdecrease } },
+    { user_command::secondcontrollerset, { user_command::secondcontrollerincrease, user_command::secondcontrollerdecrease } },
+    { user_command::trainbrakeset, { user_command::trainbrakeincrease, user_command::trainbrakedecrease } },
+    { user_command::independentbrakeset, { user_command::independentbrakeincrease, user_command::independentbrakedecrease } },
+    { user_command::linebreakeropen, { user_command::linebreakertoggle, user_command::none } },
+    { user_command::linebreakerclose, { user_command::linebreakertoggle, user_command::none } },
+    { user_command::pantographlowerfront, { user_command::pantographtogglefront, user_command::none } },
+    { user_command::pantographlowerrear, { user_command::pantographtogglerear, user_command::none } },
+};
+
+std::pair<user_command, user_command>
+driver_mode::drivermode_input::command_fallback( user_command const Command ) const {
+
+    if( Command == user_command::none ) {
+        return { user_command::none, user_command::none };
+    }
+
+    auto const lookup { commandfallbacks.find( Command ) };
+
+    if( lookup == commandfallbacks.end() ) {
+        return { user_command::none, user_command::none };
+    }
+    
+    return lookup->second;
+}
+
+
 
 driver_mode::driver_mode() {
 
@@ -217,6 +262,7 @@ driver_mode::update() {
     // fixed step render time routines
 
     fTime50Hz += deltarealtime; // w pauzie też trzeba zliczać czas, bo przy dużym FPS będzie problem z odczytem ramek
+    bool runonce { false };
     while( fTime50Hz >= 1.0 / 50.0 ) {
         Console::Update(); // to i tak trzeba wywoływać
         ui::Transcripts.Update(); // obiekt obsługujący stenogramy dźwięków na ekranie
@@ -231,6 +277,52 @@ driver_mode::update() {
         if( std::abs( DebugCamera.Velocity.x ) < 0.01 ) { DebugCamera.Velocity.x = 0.0; }
         if( std::abs( DebugCamera.Velocity.y ) < 0.01 ) { DebugCamera.Velocity.y = 0.0; }
         if( std::abs( DebugCamera.Velocity.z ) < 0.01 ) { DebugCamera.Velocity.z = 0.0; }
+
+        if( false == runonce ) {
+            // tooltip update
+            set_tooltip( "" );
+            auto const *train{ simulation::Train };
+            if( ( train != nullptr ) && ( false == FreeFlyModeFlag ) ) {
+                if( false == DebugModeFlag ) {
+                    // in regular mode show control functions, for defined controls
+                    auto const controlname { train->GetLabel( GfxRenderer->Pick_Control() ) };
+                    if( false == controlname.empty() ) {
+                        auto const bindings { m_input.mouse.bindings( controlname ) };
+                        auto inputhints { m_input.command_hints( bindings ) };
+                        // if the commands bound with the control don't have any assigned keys try potential fallbacks
+                        if( inputhints.empty() ) {
+                            inputhints = m_input.command_hints( m_input.command_fallback( bindings.first ) );
+                        }
+                        if( inputhints.empty() ) {
+                            inputhints = m_input.command_hints( m_input.command_fallback( bindings.second ) );
+                        }
+                        // ready or not, here we go
+                        if( inputhints.empty() ) {
+                            set_tooltip( locale::label_cab_control( controlname ) );
+                        }
+                        else {
+                            set_tooltip(
+                                locale::label_cab_control( controlname )
+                                + " [" + inputhints + "]" );
+                        }
+                    }
+                }
+                else {
+                    // in debug mode show names of submodels, to help with cab setup and/or debugging
+                    auto const cabcontrol = GfxRenderer->Pick_Control();
+                    set_tooltip( ( cabcontrol ? cabcontrol->pName : "" ) );
+                }
+            }
+            if( ( true == Global.ControlPicking ) && ( true == FreeFlyModeFlag ) && ( true == DebugModeFlag ) ) {
+                auto const scenerynode = GfxRenderer->Pick_Node();
+                set_tooltip(
+                    ( scenerynode ?
+                        scenerynode->name() :
+                        "" ) );
+            }
+
+            runonce = true;
+        }
 
         fTime50Hz -= 1.0 / 50.0;
     }

@@ -1597,9 +1597,14 @@ bool opengl33_renderer::Render(world_environment *Environment)
 	if (Environment->m_clouds.mdCloud)
 	{
 		// setup
-		glm::vec3 color = interpolate(Environment->m_skydome.GetAverageColor(), suncolor, duskfactor * 0.25f) * interpolate(1.f, 0.35f, Global.Overcast / 2.f) // overcast darkens the clouds
-		                  * 0.5f;
-
+		glm::vec3 color =
+            interpolate(
+                Environment->m_skydome.GetAverageColor(), suncolor,
+                duskfactor * 0.25f)
+            * interpolate(
+                1.f, 0.35f,
+                Global.Overcast / 2.f) // overcast darkens the clouds
+            * 0.5f;
 		// write cloud color into material
 		TSubModel *mdl = Environment->m_clouds.mdCloud->Root;
 		if (mdl->m_material != null_handle)
@@ -1751,17 +1756,18 @@ void opengl33_renderer::Bind_Material(material_handle const Material, TSubModel 
 				model_ubs.param[entry.location][entry.offset + j] = src[j];
 		}
 
-		if (m_blendingenabled)
-		{
-			model_ubs.opacity = -1.0f;
-		}
-		else
-		{
-			if (!std::isnan(material.opacity))
-				model_ubs.opacity = material.opacity;
-			else
-				model_ubs.opacity = 0.5f;
-		}
+        if( !std::isnan( material.opacity ) ) {
+            model_ubs.opacity = (
+                m_blendingenabled ?
+                    -material.opacity :
+                     material.opacity );
+        }
+        else {
+            model_ubs.opacity = (
+                m_blendingenabled ?
+                     0.0f :
+                     0.5f );
+        }
 
 		if (sm)
 			model_ubs.alpha_mult = sm->fVisible;
@@ -3924,6 +3930,19 @@ void opengl33_renderer::Update(double const Deltatime)
         else if( fps_diff < 1.0f ) {
             Global.fDistanceFactor = std::min( 3.0f, Global.fDistanceFactor + 0.05f );
         }
+    }
+
+    // update resources if there was environmental change
+    simulation_state simulationstate {
+        Global.Weather,
+        Global.Season
+    };
+    std::swap( m_simulationstate, simulationstate );
+    if( ( m_simulationstate.season != simulationstate.season ) && ( false == simulationstate.season.empty() ) ) {
+        m_materials.on_season_change();
+    }
+    if( ( m_simulationstate.weather != simulationstate.weather ) && ( false == simulationstate.weather.empty() ) ) {
+        m_materials.on_weather_change();
     }
 
 	if ((true == Global.ResourceSweep) && (true == simulation::is_ready))

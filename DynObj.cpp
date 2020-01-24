@@ -3805,24 +3805,28 @@ void TDynamicObject::RenderSounds() {
         m_startjoltplayed = false;
     }
 
-    double const dt{ Timer::GetDeltaRenderTime() };
-    double volume{ 0.0 };
-    double frequency{ 1.0 };
-
+    auto const dt{ Timer::GetDeltaRenderTime() };
     m_powertrainsounds.render( *MoverParameters, dt );
+
+    auto volume{ 0.0 };
+    auto frequency{ 1.0 };
 
     // NBMX dzwiek przetwornicy
     if( MoverParameters->ConverterFlag ) {
-        frequency = (
-            MoverParameters->EngineType != TEngineType::ElectricSeriesMotor ?
-                1.0 :
-                MoverParameters->PantographVoltage > 0.0 ?
-                    MoverParameters->PantographVoltage / ( MoverParameters->NominalVoltage * MoverParameters->RList[ MoverParameters->RlistSize ].Mn ) :
-                    1.0 );
-        frequency = sConverter.m_frequencyoffset + sConverter.m_frequencyfactor * frequency;
-        sConverter
-            .pitch( clamp( frequency, 0.75, 1.25 ) ) // arbitrary limits )
-            .play( sound_flags::exclusive | sound_flags::looping );
+        if( MoverParameters->EngineType == TEngineType::ElectricSeriesMotor ) {
+            auto const voltage { std::max( MoverParameters->GetAnyTrainsetVoltage(), MoverParameters->PantographVoltage ) };
+            if( voltage > 0.0 ) {
+                // NOTE: we do sound modulation here to avoid sudden jump on voltage loss
+                frequency = ( voltage / ( MoverParameters->NominalVoltage * MoverParameters->RList[ MoverParameters->RlistSize ].Mn ) );
+                frequency *= sConverter.m_frequencyfactor + sConverter.m_frequencyoffset;
+                sConverter.pitch( clamp( frequency, 0.75, 1.25 ) ); // arbitrary limits )
+            }
+        }
+        else {
+            frequency = sConverter.m_frequencyoffset + sConverter.m_frequencyfactor * frequency;
+            sConverter.pitch( clamp( frequency, 0.75, 1.25 ) ); // arbitrary limits )
+        }
+        sConverter.play( sound_flags::exclusive | sound_flags::looping );
     }
     else {
         sConverter.stop();
@@ -6522,14 +6526,12 @@ void TDynamicObject::OverheadTrack(float o)
         }
         else if (o > 0.0)
         { // opuszczenie pantografów
-            ctOwner->iOverheadZero |=
-                iOverheadMask; // ustawienie bitu - ma jechać bez pobierania prądu
+            ctOwner->iOverheadZero |= iOverheadMask; // ustawienie bitu - ma jechać bez pobierania prądu
             ctOwner->iOverheadDown |= iOverheadMask; // ustawienie bitu - ma opuścić pantograf
         }
         else
         { // jazda bezprądowa z podniesionym pantografem
-            ctOwner->iOverheadZero |=
-                iOverheadMask; // ustawienie bitu - ma jechać bez pobierania prądu
+            ctOwner->iOverheadZero |=  iOverheadMask; // ustawienie bitu - ma jechać bez pobierania prądu
             ctOwner->iOverheadDown &= ~iOverheadMask; // zerowanie bitu - może podnieść pantograf
         }
     }

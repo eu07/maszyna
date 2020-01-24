@@ -3601,14 +3601,14 @@ opengl_renderer::Render_Alpha( TSubModel *Submodel ) {
 #endif
                         // material configuration:
                         // textures...
-                        if( Submodel->m_material < 0 ) { // zmienialne skóry
-                            Bind_Material( Submodel->ReplacableSkinId[ -Submodel->m_material ] );
-                        }
-                        else {
-                            // również 0
-                            Bind_Material( Submodel->m_material );
-                        }
-                        // ...colors...
+                        auto const material { (
+                            Submodel->m_material < 0 ?
+                                Submodel->ReplacableSkinId[ -Submodel->m_material ] : // zmienialne skóry
+                                Submodel->m_material ) }; // również 0
+                        // textures...
+                        Bind_Material( material );
+                        // ...colors and opacity...
+                        auto const opacity { clamp( Material( material ).get_or_guess_opacity(), 0.f, 1.f ) };
                         if( Submodel->fVisible < 1.f ) {
                             ::glColor4f(
                                 Submodel->f4Diffuse.r,
@@ -3618,6 +3618,10 @@ opengl_renderer::Render_Alpha( TSubModel *Submodel ) {
                         }
                         else {
                             ::glColor3fv( glm::value_ptr( Submodel->f4Diffuse ) ); // McZapkie-240702: zamiast ub
+                        }
+                        if( opacity != 0.f ) {
+                            // discard fragments with opacity exceeding the threshold
+                            ::glAlphaFunc( GL_LEQUAL, opacity );
                         }
                         if( ( true == m_renderspecular ) && ( m_sunlight.specular.a > 0.01f ) ) {
                             ::glMaterialfv( GL_FRONT, GL_SPECULAR, glm::value_ptr( Submodel->f4Specular * m_sunlight.specular.a * m_speculartranslucentscalefactor ) );
@@ -3639,6 +3643,10 @@ opengl_renderer::Render_Alpha( TSubModel *Submodel ) {
                         m_geometry.draw( Submodel->m_geometry );
 
                         // post-draw reset
+                        if( opacity != 0.f ) {
+                            // discard fragments with opacity exceeding the threshold
+                            ::glAlphaFunc( GL_GREATER, 0.0f );
+                        }
                         if( ( true == m_renderspecular ) && ( m_sunlight.specular.a > 0.01f ) ) {
                             ::glMaterialfv( GL_FRONT, GL_SPECULAR, glm::value_ptr( colors::none ) );
                         }
@@ -4030,6 +4038,19 @@ opengl_renderer::Update( double const Deltatime ) {
         else if( fps_diff < 1.0f ) {
             Global.fDistanceFactor = std::min( 3.0f, Global.fDistanceFactor + 0.05f );
         }
+    }
+
+    // update resources if there was environmental change
+    simulation_state simulationstate {
+        Global.Weather,
+        Global.Season
+    };
+    std::swap( m_simulationstate, simulationstate );
+    if( ( m_simulationstate.season != simulationstate.season ) && ( false == simulationstate.season.empty() ) ) {
+        m_materials.on_season_change();
+    }
+    if( ( m_simulationstate.weather != simulationstate.weather ) && ( false == simulationstate.weather.empty() ) ) {
+        m_materials.on_weather_change();
     }
 
     if( ( true == Global.ResourceSweep )

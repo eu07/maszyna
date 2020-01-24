@@ -542,7 +542,25 @@ debug_panel::render() {
         render_section( "Vehicle Engine", m_enginelines );
         render_section( "Vehicle AI", m_ailines );
         render_section( "Vehicle Scan Table", m_scantablelines );
-        render_section( "Scenario", m_scenariolines );
+        if( true == render_section( "Scenario", m_scenariolines ) ) {
+            // cloud cover slider
+            if( ImGui::SliderFloat(
+                ( to_string(Global.Overcast, 2 ) + " (" + Global.Weather + ")###overcast" ).c_str(), &Global.Overcast, 0.0f, 2.0f, "Cloud cover" ) ) {
+                Global.Overcast = clamp( Global.Overcast, 0.0f, 2.0f );
+                simulation::Environment.compute_weather();
+            }
+            // day of year slider
+            if( ImGui::SliderFloat( ( to_string( Global.fMoveLight, 0, 4 ) + " (" + Global.Season + ")###movelight" ).c_str(), &Global.fMoveLight, 0.0f, 355.0f, "Day of year" ) ) {
+                Global.fMoveLight = clamp( Global.fMoveLight, 0.0f, 355.0f );
+                auto const weather { Global.Weather };
+                simulation::Environment.compute_season( Global.fMoveLight );
+                simulation::Time.init();
+                if( weather != Global.Weather ) {
+                    // HACK: force re-calculation of precipitation
+                    Global.Overcast = clamp( Global.Overcast - 0.0001f, 0.0f, 2.0f );
+                }
+            }
+        }
         if( true == render_section( "Scenario Event Queue", m_eventqueuelines ) ) {
             // event queue filter
             ImGui::Checkbox( "By This Vehicle Only", &m_eventqueueactivevehicleonly );
@@ -597,8 +615,8 @@ debug_panel::update_section_vehicle( std::vector<text_line> &Output ) {
         ( mover.Mains ? 'M' : '.' ),
         ( mover.FuseFlag ? '!' : '.' ),
         ( mover.PantsValve.is_active ? '+' : '.' ),
-        ( mover.Pantographs[ end::rear ].valve.is_enabled ? ( mover.Pantographs[ end::rear ].valve.is_active ? 'O' : 'o' ) : '.' ),
-        ( mover.Pantographs[end::front].valve.is_enabled ? ( mover.Pantographs[ end::front ].valve.is_active ? 'P' : 'p' ) : '.' ),
+        ( mover.Pantographs[ end::rear  ].valve.is_active ? 'O' : ( mover.Pantographs[ end::rear  ].valve.is_enabled ? 'o' : '.' ) ),
+        ( mover.Pantographs[ end::front ].valve.is_active ? 'P' : ( mover.Pantographs[ end::front ].valve.is_enabled ? 'p' : '.' ) ),
         ( mover.PantPressLockActive ? '!' : ( mover.PantPressSwitchActive ? '*' : '.' ) ),
         ( mover.WaterPump.is_active ? 'W' : ( false == mover.WaterPump.breaker ? '-' : ( mover.WaterPump.is_enabled ? 'w' : '.' ) ) ),
         ( true == mover.WaterHeater.is_damaged ? '!' : ( mover.WaterHeater.is_active ? 'H' : ( false == mover.WaterHeater.breaker ? '-' : ( mover.WaterHeater.is_enabled ? 'h' : '.' ) ) ) ),
@@ -987,8 +1005,7 @@ debug_panel::update_section_scenario( std::vector<text_line> &Output ) {
 
     Output.emplace_back( textline, Global.UITextColor );
     // current luminance level
-    textline = "Cloud cover: " + to_string( Global.Overcast, 3 );
-    textline += "\nLight level: " + to_string( Global.fLuminance, 3 );
+    textline = "Light level: " + to_string( Global.fLuminance, 3 ) + ( Global.FakeLight ? "(*)" : "" );
     if( Global.FakeLight ) { textline += "(*)"; }
     textline +=
         "\nWind: azimuth "

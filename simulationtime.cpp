@@ -34,7 +34,7 @@ scenario_time::init() {
     // cache requested elements, if any
     ::GetLocalTime( &m_time );
 
-    if( Global.fMoveLight > 0.0 ) {
+    if( Global.fMoveLight > 0.f ) {
         // day and month of the year can be overriden by scenario setup
         daymonth( m_time.wDay, m_time.wMonth, m_time.wYear, static_cast<WORD>( Global.fMoveLight ) );
     }
