@@ -542,31 +542,7 @@ debug_panel::render() {
         render_section( "Vehicle Engine", m_enginelines );
         render_section( "Vehicle AI", m_ailines );
         render_section( "Vehicle Scan Table", m_scantablelines );
-        if( true == render_section( "Scenario", m_scenariolines ) ) {
-            // fog slider
-            auto fogrange = std::log( Global.fFogEnd );
-            if( ImGui::SliderFloat(
-                ( to_string( std::exp( fogrange ), 0 ) + " m###fogend" ).c_str(), &fogrange, std::log( 10.0f ), std::log( 25000.0f ), "Fog distance" ) ) {
-                Global.fFogEnd = clamp( std::exp( fogrange ), 10.0f, 25000.0f );
-            }
-            // cloud cover slider
-            if( ImGui::SliderFloat(
-                ( to_string(Global.Overcast, 2 ) + " (" + Global.Weather + ")###overcast" ).c_str(), &Global.Overcast, 0.0f, 2.0f, "Cloud cover" ) ) {
-                Global.Overcast = clamp( Global.Overcast, 0.0f, 2.0f );
-                simulation::Environment.compute_weather();
-            }
-            // day of year slider
-            if( ImGui::SliderFloat( ( to_string( Global.fMoveLight, 0, 4 ) + " (" + Global.Season + ")###movelight" ).c_str(), &Global.fMoveLight, 0.0f, 355.0f, "Day of year" ) ) {
-                Global.fMoveLight = clamp( Global.fMoveLight, 0.0f, 355.0f );
-                auto const weather { Global.Weather };
-                simulation::Environment.compute_season( Global.fMoveLight );
-                simulation::Time.init();
-                if( weather != Global.Weather ) {
-                    // HACK: force re-calculation of precipitation
-                    Global.Overcast = clamp( Global.Overcast - 0.0001f, 0.0f, 2.0f );
-                }
-            }
-        }
+        render_section_scenario();
         if( true == render_section( "Scenario Event Queue", m_eventqueuelines ) ) {
             // event queue filter
             ImGui::Checkbox( "By This Vehicle Only", &m_eventqueueactivevehicleonly );
@@ -582,6 +558,63 @@ debug_panel::render() {
         ImGui::Checkbox( "Debug Mode", &DebugModeFlag );
     }
     ImGui::End();
+}
+
+bool
+debug_panel::render_section_scenario() {
+
+    if( false == render_section( "Scenario", m_scenariolines ) ) { return false; }
+
+    // fog slider
+    {
+        auto fogrange = std::log( Global.fFogEnd );
+        if( ImGui::SliderFloat(
+            ( to_string( std::exp( fogrange ), 0, 5 ) + " m###fogend" ).c_str(), &fogrange, std::log( 10.0f ), std::log( 25000.0f ), "Fog distance" ) ) {
+            Global.fFogEnd = clamp( std::exp( fogrange ), 10.0f, 25000.0f );
+        }
+    }
+    // cloud cover slider
+    {
+        if( ImGui::SliderFloat(
+            ( to_string( Global.Overcast, 2, 5 ) + " (" + Global.Weather + ")###overcast" ).c_str(), &Global.Overcast, 0.0f, 2.0f, "Cloud cover" ) ) {
+            Global.Overcast = clamp( Global.Overcast, 0.0f, 2.0f );
+            simulation::Environment.compute_weather();
+        }
+    }
+    // day of year slider
+    {
+        if( ImGui::SliderFloat( ( to_string( Global.fMoveLight, 0, 5 ) + " (" + Global.Season + ")###movelight" ).c_str(), &Global.fMoveLight, 0.0f, 364.0f, "Day of year" ) ) {
+            Global.fMoveLight = clamp( Global.fMoveLight, 0.0f, 365.0f );
+            auto const weather{ Global.Weather };
+            simulation::Environment.compute_season( Global.fMoveLight );
+            simulation::Time.init();
+            if( weather != Global.Weather ) {
+                // HACK: force re-calculation of precipitation
+                Global.Overcast = clamp( Global.Overcast - 0.0001f, 0.0f, 2.0f );
+            }
+        }
+    }
+    // time of day slider
+    {
+        ImGui::PushStyleColor( ImGuiCol_Text, { Global.UITextColor.r, Global.UITextColor.g, Global.UITextColor.b, Global.UITextColor.a } );
+        ImGui::TextUnformatted( "CAUTION: time change will affect simulation state" );
+        ImGui::PopStyleColor();
+        auto time = simulation::Time.data().wHour * 60 + simulation::Time.data().wMinute;
+        auto const timestring{
+            std::string( to_string( int( 100 + simulation::Time.data().wHour ) ).substr( 1, 2 )
+                + ":"
+                + std::string( to_string( int( 100 + simulation::Time.data().wMinute ) ).substr( 1, 2 ) ) ) };
+        if( ImGui::SliderInt( ( timestring + " (" + Global.Period + ")###simulationtime" ).c_str(), &time, 0, 1439, "Time of day" ) ) {
+            time = clamp( time, 0, 1439 );
+            auto const hour{ std::floor( time / 60 ) };
+            auto const minute{ time % 60 };
+            simulation::Time.data().wHour = hour;
+            simulation::Time.data().wMinute = minute;
+        }
+    }
+
+
+    return true;
 }
 
 void

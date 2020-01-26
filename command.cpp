@@ -180,6 +180,7 @@ commanddescription_sequence Commands_descriptions = {
     { "pantographlowerall", command_target::vehicle },
     { "pantographselectnext", command_target::vehicle },
     { "pantographselectprevious", command_target::vehicle },
+    { "pantographtoggleselected", command_target::vehicle },
     { "pantographraiseselected", command_target::vehicle },
     { "pantographlowerselected", command_target::vehicle },
     { "heatingtoggle", command_target::vehicle },

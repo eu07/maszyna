@@ -14,6 +14,7 @@ http://mozilla.org/MPL/2.0/.
 #include "Globals.h"
 #include "AnimModel.h"
 #include "simulationenvironment.h"
+#include "Logs.h"
 
 
 void
@@ -428,6 +429,9 @@ particle_manager::find( std::string const &Template ) {
         m_sourcetemplates.emplace( templatename, source );
         // should be 'safe enough' to return lookup result directly afterwards
         return &( m_sourcetemplates.find( templatename )->second );
+    }
+    else {
+        ErrorLog( "Bad file: failed do locate particle source configuration file \"" + std::string( templatepath + templatename + ".txt" ) + "\"", logtype::file );
     }
     // if fetching data from the file fails too, give up
     return nullptr;

@@ -6222,9 +6222,8 @@ bool TMoverParameters::AutoRelayCheck(void)
                 // main bez samoczynnego rozruchu
                 if( ( MainCtrlActualPos < ( sizeof( RList ) / sizeof( TScheme ) - 1 ) ) // crude guard against running out of current fixed table
                  && ( ( RList[ MainCtrlActualPos ].Relay < MainCtrlPos )
-                   || ( RList[ MainCtrlActualPos + 1 ].Relay == MainCtrlPos )
-                   || ( ( TrainType == dt_ET22 )
-                     && ( DelayCtrlFlag ) ) ) ) {
+                   || ( ( RList[ MainCtrlActualPos + 1 ].Relay == MainCtrlPos ) && ( MainCtrlActualPos < RlistSize ) )
+                   || ( ( TrainType == dt_ET22 ) && ( DelayCtrlFlag ) ) ) ) {
 
                     if( ( RList[MainCtrlPos].R == 0 )
                      && ( MainCtrlPos > 0 )
@@ -6359,7 +6358,7 @@ bool TMoverParameters::AutoRelayCheck(void)
              && ( ( MainCtrlActualPos > 0 )
                || ( ScndCtrlActualPos > 0 ) ) ) {
 
-                if( CoupledCtrl || HasCamshaft ) {
+                if( CoupledCtrl ) {
 
                     if( TrainType == dt_EZT ) {
                         // EN57 wal jednokierunkowy calosciowy
@@ -6393,8 +6392,7 @@ bool TMoverParameters::AutoRelayCheck(void)
                     else {
                         // wal kulakowy dwukierunkowy
                         if( LastRelayTime > CtrlDownDelay ) {
-                            if( ( CoupledCtrl )
-                             && ( ScndCtrlActualPos > 0 ) ) {
+                            if( ScndCtrlActualPos > 0 ) {
                                 --ScndCtrlActualPos;
                                 SetFlag( SoundFlag, sound::shuntfield );
                             }
@@ -6403,6 +6401,16 @@ bool TMoverParameters::AutoRelayCheck(void)
                             }
                             OK = true;
                         }
+                    }
+                }
+                else if( HasCamshaft ) {
+                    // wal kulakowy dwukierunkowy
+                    if( LastRelayTime > CtrlDownDelay ) {
+                        if( MainCtrlActualPos > 0 ) {
+                            --MainCtrlActualPos;
+                        }
+                        ScndCtrlActualPos = 0;
+                        OK = true;
                     }
                 }
                 else {
@@ -6424,6 +6432,7 @@ bool TMoverParameters::MotorConnectorsCheck() {
     // hunter-111211: wylacznik cisnieniowy
     auto const pressureswitch {
         ( TrainType != dt_EZT )
+     && ( HasPressureSwitch )
      && ( ( BrakePress > 2.0 )
        || ( PipePress < 3.6 ) ) };
 
@@ -10090,6 +10099,8 @@ void TMoverParameters::LoadFIZ_Engine( std::string const &Input ) {
     // traction motors
     extract_value( MotorBlowers[ end::front ].speed, "MotorBlowersSpeed", Input, "" );
     MotorBlowers[ end::rear ] = MotorBlowers[ end::front ];
+    // pressure switch
+    extract_value( HasPressureSwitch, "PressureSwitch", Input, "" );
 }
 
 void TMoverParameters::LoadFIZ_Switches( std::string const &Input ) {

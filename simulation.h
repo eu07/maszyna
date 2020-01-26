@@ -18,11 +18,15 @@ class state_manager {
 
 public:
 // methods
+    void
+        init_scripting_interface();
     // legacy method, calculates changes in simulation state over specified time
     void
         update( double Deltatime, int Iterationcount );
     void
         update_clocks();
+    void
+        update_scripting_interface();
     // restores simulation data from specified file. returns: true on success, false otherwise
     bool
         deserialize( std::string const &Scenariofile );
@@ -33,6 +37,9 @@ public:
 private:
 // members
     state_serializer m_serializer;
+    struct {
+        std::shared_ptr<TMemCell> weather, time, date;
+    } m_scriptinginterface;
 };
 
 // passes specified sound to all vehicles within range as a radio message broadcasted on specified channel

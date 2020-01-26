@@ -38,6 +38,8 @@ state_serializer::deserialize( std::string const &Scenariofile ) {
     SafeDelete( Region );
     Region = new scene::basic_region();
 
+    simulation::State.init_scripting_interface();
+
     // TODO: check first for presence of serialized binary files
     // if this fails, fall back on the legacy text format
     scene::scratch_data importscratchpad;

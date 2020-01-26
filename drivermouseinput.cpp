@@ -793,7 +793,7 @@ drivermouse_input::default_bindings() {
             user_command::pantographlowerall,
             user_command::none } },
         { "pantselected_sw:", {
-            user_command::pantographraiseselected,
+            user_command::pantographtoggleselected,
             user_command::none } }, // TBD: bind lowerselected in case of toggle switch
         { "pantselectedoff_sw:", {
             user_command::pantographlowerselected,

@@ -257,6 +257,7 @@ class TTrain {
     static void OnCommand_pantographlowerall( TTrain *Train, command_data const &Command );
     static void OnCommand_pantographselectnext( TTrain *Train, command_data const &Command );
     static void OnCommand_pantographselectprevious( TTrain *Train, command_data const &Command );
+    static void OnCommand_pantographtoggleselected( TTrain *Train, command_data const &Command );
     static void OnCommand_pantographraiseselected( TTrain *Train, command_data const &Command );
     static void OnCommand_pantographlowerselected( TTrain *Train, command_data const &Command );
     static void OnCommand_linebreakertoggle( TTrain *Train, command_data const &Command );

@@ -174,6 +174,11 @@ world_environment::update() {
         Global.Weather == "snow:" ? 0.75f :
         1.0f );
 
+    Global.Period = (
+        m_sun.getAngle() > -12.0f ?
+            "day:" :
+            "night:" );
+
     if( Global.Weather == "rain:" ) {
         m_precipitationsound.play( sound_flags::exclusive | sound_flags::looping );
     }

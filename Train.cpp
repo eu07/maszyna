@@ -249,6 +249,7 @@ TTrain::commandhandler_map const TTrain::m_commandhandlers = {
     { user_command::pantographlowerall, &TTrain::OnCommand_pantographlowerall },
     { user_command::pantographselectnext, &TTrain::OnCommand_pantographselectnext },
     { user_command::pantographselectprevious, &TTrain::OnCommand_pantographselectprevious },
+    { user_command::pantographtoggleselected, &TTrain::OnCommand_pantographtoggleselected },
     { user_command::pantographraiseselected, &TTrain::OnCommand_pantographraiseselected },
     { user_command::pantographlowerselected, &TTrain::OnCommand_pantographlowerselected },
     { user_command::linebreakertoggle, &TTrain::OnCommand_linebreakertoggle },
@@ -2224,6 +2225,37 @@ void TTrain::OnCommand_pantographselectprevious( TTrain *Train, command_data con
     Train->change_pantograph_selection( -1 );
 }
 
+void TTrain::OnCommand_pantographtoggleselected( TTrain *Train, command_data const &Command ) {
+
+    if( Command.action == GLFW_REPEAT ) { return; }
+
+    if( Command.action == GLFW_PRESS ) {
+        // only reacting to press, so the switch doesn't flip back and forth if key is held down
+        auto const state {
+            Train->mvControlled->PantsValve.is_enabled
+          | Train->mvControlled->PantsValve.is_active }; // fallback for impulse switches
+        if( state ) {
+            OnCommand_pantographlowerselected( Train, Command );
+        }
+        else {
+            OnCommand_pantographraiseselected( Train, Command );
+        }
+    }
+    else if( Command.action == GLFW_RELEASE ) {
+        // impulse switches return automatically to neutral position
+        if( Train->ggPantSelectedButton.type() != TGaugeType::toggle ) {
+            Train->mvControlled->OperatePantographsValve( operation_t::enable_off );
+            // visual feedback
+            Train->ggPantSelectedButton.UpdateValue( 0.0, Train->dsbSwitch );
+        }
+        if( Train->ggPantSelectedDownButton.type() != TGaugeType::toggle ) {
+            Train->mvControlled->OperatePantographsValve( operation_t::disable_off );
+            // visual feedback
+            Train->ggPantSelectedDownButton.UpdateValue( 0.0, Train->dsbSwitch );
+        }
+    }
+}
+
 void TTrain::OnCommand_pantographraiseselected( TTrain *Train, command_data const &Command ) {
 
     if( Command.action == GLFW_REPEAT ) { return; }
@@ -2231,18 +2263,15 @@ void TTrain::OnCommand_pantographraiseselected( TTrain *Train, command_data cons
     if( Command.action == GLFW_PRESS ) {
         // raise selected
         Train->mvControlled->OperatePantographsValve(
-            Train->ggPantSelectedButton.type() == TGaugeType::toggle ?
-                operation_t::enable :
-                operation_t::enable_on );
+            Train->ggPantSelectedButton.type() != TGaugeType::toggle ?
+                operation_t::enable_on :
+                operation_t::enable );
         // visual feedback
         Train->ggPantSelectedButton.UpdateValue( 1.0, Train->dsbSwitch );
     }
     else if( Command.action == GLFW_RELEASE ) {
-        if( Train->ggPantSelectedButton.type() != TGaugeType::toggle ) {
-            Train->mvControlled->OperatePantographsValve( operation_t::enable_off );
-            // visual feedback
-            Train->ggPantSelectedButton.UpdateValue( 0.0, Train->dsbSwitch );
-        }
+        // NOTE: bit of a hax here, we're reusing button reset routine so we don't need a copy in every branch
+        OnCommand_pantographtoggleselected( Train, Command );
     }
 }
 
@@ -2253,18 +2282,18 @@ void TTrain::OnCommand_pantographlowerselected( TTrain *Train, command_data cons
     if( Command.action == GLFW_PRESS ) {
         // lower selected
         Train->mvControlled->OperatePantographsValve(
-            Train->ggPantSelectedDownButton.type() == TGaugeType::toggle ?
-            operation_t::disable :
-            operation_t::disable_on );
+            Train->ggPantSelectedDownButton.type() != TGaugeType::toggle ?
+                operation_t::disable_on :
+                operation_t::disable );
         // visual feedback
         Train->ggPantSelectedDownButton.UpdateValue( 1.0, Train->dsbSwitch );
+        if( Train->ggPantSelectedButton.type() == TGaugeType::toggle ) {
+            Train->ggPantSelectedButton.UpdateValue( 0.0, Train->dsbSwitch );
+        }
     }
     else if( Command.action == GLFW_RELEASE ) {
-        if( Train->ggPantSelectedDownButton.type() != TGaugeType::toggle ) {
-            Train->mvControlled->OperatePantographsValve( operation_t::disable_off );
-            // visual feedback
-            Train->ggPantSelectedDownButton.UpdateValue( 0.0, Train->dsbSwitch );
-        }
+        // NOTE: bit of a hax here, we're reusing button reset routine so we don't need a copy in every branch
+        OnCommand_pantographtoggleselected( Train, Command );
     }
 }
 
@@ -5682,7 +5711,8 @@ bool TTrain::Update( double const Deltatime )
          && ( false == DynamicObject->Mechanik->AIControllFlag ) ) {
             // nie blokujemy AI
             if( ( mvOccupied->TrainType == dt_ET40 )
-             || ( mvOccupied->TrainType == dt_EP05 ) ) {
+             || ( mvOccupied->TrainType == dt_EP05 )
+             || ( mvOccupied->HasCamshaft ) ) {
                    // dla ET40 i EU05 automatyczne cofanie nastawnika - i tak nie będzie to działać dobrze...
                    // TODO: use deltatime to stabilize speed
 /*
@@ -5691,7 +5721,7 @@ bool TTrain::Update( double const Deltatime )
                  || ( input::command == user_command::mastercontrollerincrease )
                  || ( input::command == user_command::mastercontrollerdecrease ) ) ) {
 */
-                if( false == m_mastercontrollerinuse ) {
+                if( false == ( m_mastercontrollerinuse || Global.ctrlState ) ) {
                     m_mastercontrollerreturndelay -= Deltatime;
                     if( m_mastercontrollerreturndelay < 0.f ) {
                         m_mastercontrollerreturndelay = EU07_CONTROLLER_BASERETURNDELAY;

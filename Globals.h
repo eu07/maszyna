@@ -81,6 +81,7 @@ struct global_settings {
     float fFogEnd{ 7500 };
     std::string Season{}; // season of the year, based on simulation date
     std::string Weather{ "cloudy:" }; // current weather
+    std::string Period{}; // time of the day, based on sun position
     bool FullPhysics{ true }; // full calculations performed for each simulation step
     bool bnewAirCouplers{ true };
     float fMoveLight{ -1.f }; // numer dnia w roku albo -1

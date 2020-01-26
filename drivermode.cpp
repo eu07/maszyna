@@ -151,6 +151,7 @@ driver_mode::update() {
         simulation::Time.update( deltatime );
     }
     simulation::State.update_clocks();
+    simulation::State.update_scripting_interface();
     simulation::Environment.update();
 
     // fixed step, simulation time based updates

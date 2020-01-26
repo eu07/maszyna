@@ -173,6 +173,7 @@ enum class user_command {
     pantographlowerall,
     pantographselectnext,
     pantographselectprevious,
+    pantographtoggleselected,
     pantographraiseselected,
     pantographlowerselected,
     heatingtoggle,

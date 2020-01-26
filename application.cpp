@@ -256,6 +256,14 @@ eu07_application::set_progress( float const Progress, float const Subtaskprogres
 }
 
 void
+eu07_application::set_tooltip( std::string const &Tooltip ) {
+
+    if( m_modestack.empty() ) { return; }
+
+    m_modes[ m_modestack.top() ]->set_tooltip( Tooltip );
+}
+
+void
 eu07_application::set_cursor( int const Mode ) {
 
     ui_layer::set_cursor( Mode );
@@ -288,7 +296,16 @@ eu07_application::get_mouse_button( int const Button ) const {
 
     return glfwGetMouseButton( m_windows.front(), Button );
 }
+/*
+// provides keyboard mapping associated with specified control item
+std::string
+eu07_application::get_input_hint( user_command const Command ) const {
 
+    if( m_modestack.empty() ) { return ""; }
+
+    return m_modes[ m_modestack.top() ]->get_input_hint( Command );
+}
+*/
 void
 eu07_application::on_key( int const Key, int const Scancode, int const Action, int const Mods ) {
 

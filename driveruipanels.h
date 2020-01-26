@@ -95,6 +95,7 @@ private:
     std::string update_vehicle_brake() const;
     // renders provided lines, under specified collapsing header
     bool render_section( std::string const &Header, std::vector<text_line> const &Lines );
+    bool render_section_scenario();
 // members
     std::array<char, 1024> m_buffer;
     input_data m_input;

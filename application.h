@@ -53,6 +53,8 @@ public:
     void
         set_progress( float const Progress = 0.f, float const Subtaskprogress = 0.f );
     void
+        set_tooltip( std::string const &Tooltip );
+    void
         set_cursor( int const Mode );
     void
         set_cursor_pos( double const Horizontal, double const Vertical );
@@ -62,6 +64,11 @@ public:
         get_cursor_pos( double &Horizontal, double &Vertical ) const;
     int
         get_mouse_button( int const Button ) const;
+/*
+    // provides inputs associated with specified command
+    std::string
+        get_input_hint( user_command const Command ) const;
+*/
     // input handlers
     void
         on_key( int const Key, int const Scancode, int const Action, int const Mods );

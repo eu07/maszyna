@@ -10,6 +10,7 @@ http://mozilla.org/MPL/2.0/.
 #include "stdafx.h"
 #include "simulation.h"
 #include "simulationtime.h"
+#include "simulationenvironment.h"
 
 #include "Globals.h"
 #include "Event.h"
@@ -57,6 +58,36 @@ state_manager::export_as_text( std::string const &Scenariofile ) const {
     return m_serializer.export_as_text( Scenariofile );
 }
 
+void
+state_manager::init_scripting_interface() {
+
+    // create scenario data memory cells
+    {
+        auto *memorycell = new TMemCell( {
+            0, -1,
+            "__simulation.weather",
+            "memcell" } );
+        simulation::Memory.insert( memorycell );
+        simulation::Region->insert( memorycell );
+    }
+    {
+        auto *memorycell = new TMemCell( {
+            0, -1,
+            "__simulation.time",
+            "memcell" } );
+        simulation::Memory.insert( memorycell );
+        simulation::Region->insert( memorycell );
+    }
+    {
+        auto *memorycell = new TMemCell( {
+            0, -1,
+            "__simulation.date",
+            "memcell" } );
+        simulation::Memory.insert( memorycell );
+        simulation::Region->insert( memorycell );
+    }
+}
+
 // legacy method, calculates changes in simulation state over specified time
 void
 state_manager::update( double const Deltatime, int Iterationcount ) {
@@ -85,6 +116,54 @@ state_manager::update_clocks() {
     Global.fClockAngleDeg[ 3 ] = 36.0 * ( time.wMinute / 10 ); // dziesiątki minut
     Global.fClockAngleDeg[ 4 ] = 36.0 * ( time.wHour % 10 ); // jednostki godzin
     Global.fClockAngleDeg[ 5 ] = 36.0 * ( time.wHour / 10 ); // dziesiątki godzin
+}
+
+void
+state_manager::update_scripting_interface() {
+
+    auto *weather{ Memory.find( "__simulation.weather" ) };
+    auto *time{ Memory.find( "__simulation.time" ) };
+    auto *date{ Memory.find( "__simulation.date" ) };
+
+    if( simulation::is_ready ) {
+        // potentially adjust weather
+        if( weather->Value1() != m_scriptinginterface.weather->Value1() ) {
+            Global.Overcast = clamp<float>( weather->Value1(), 0, 2 );
+            simulation::Environment.compute_weather();
+        }
+        if( weather->Value2() != m_scriptinginterface.weather->Value2() ) {
+            Global.fFogEnd = clamp<float>( weather->Value2(), 10, 25000 );
+        }
+    }
+    else {
+        m_scriptinginterface.weather = std::make_shared<TMemCell>( scene::node_data() );
+        m_scriptinginterface.date = std::make_shared<TMemCell>( scene::node_data() );
+        m_scriptinginterface.time = std::make_shared<TMemCell>( scene::node_data() );
+    }
+
+    // update scripting interface
+    weather->UpdateValues(
+        Global.Weather,
+        Global.Overcast,
+        Global.fFogEnd,
+        basic_event::flags::text | basic_event::flags::value_1 | basic_event::flags::value_2 );
+
+    time->UpdateValues(
+        Global.Period,
+        Time.data().wHour,
+        Time.data().wMinute,
+        basic_event::flags::text | basic_event::flags::value_1 | basic_event::flags::value_2 );
+
+    date->UpdateValues(
+        Global.Season,
+        Time.year_day(),
+        0,
+        basic_event::flags::text | basic_event::flags::value_1 );
+
+    // cache cell state to detect potential script-issued changes on next cycle
+    *m_scriptinginterface.weather = *weather;
+    *m_scriptinginterface.time = *time;
+    *m_scriptinginterface.date = *date;
 }
 
 // passes specified sound to all vehicles within range as a radio message broadcasted on specified channel
