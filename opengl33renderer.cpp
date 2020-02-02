@@ -3634,13 +3634,13 @@ void opengl33_renderer::Render_Alpha(TSubModel *Submodel)
 					if (Global.Overcast > 1.0f)
 					{
 						// fake fog halo
-						float const fogfactor{interpolate(2.f, 1.f, clamp(Global.fFogEnd / 2000, 0.f, 1.f)) * std::max(1.f, Global.Overcast)};
-						model_ubs.param[1].x = pointsize * resolutionratio * fogfactor * 3.0f;
+						float const fogfactor{interpolate(1.5f, 1.f, clamp(Global.fFogEnd / 2000, 0.f, 1.f)) * std::max(1.f, Global.Overcast)};
+						model_ubs.param[1].x = pointsize * resolutionratio * fogfactor * 4.0f;
 						model_ubs.param[0] = glm::vec4(glm::vec3(lightcolor), Submodel->fVisible * std::min(1.f, lightlevel) * 0.5f);
 
 						draw(Submodel->m_geometry);
 					}
-					model_ubs.param[1].x = pointsize * resolutionratio * 3.0f;
+					model_ubs.param[1].x = pointsize * resolutionratio * 4.0f;
 					model_ubs.param[0] = glm::vec4(glm::vec3(lightcolor), Submodel->fVisible * std::min(1.f, lightlevel));
 
 					if (!Submodel->occlusion_query)

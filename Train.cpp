@@ -1151,7 +1151,16 @@ void TTrain::OnCommand_independentbrakeincrease( TTrain *Train, command_data con
     if( Command.action != GLFW_RELEASE ) {
 
         if( Train->mvOccupied->LocalBrake != TLocalBrake::ManualBrake ) {
-            Train->mvOccupied->IncLocalBrakeLevel( 1 );
+            if( ( Train->ggJointCtrl.SubModel != nullptr )
+             && ( Train->mvOccupied->MainCtrlPos > 0 ) ) {
+                OnCommand_mastercontrollerdecrease( Train, Command );
+            }
+            else {
+                Train->mvOccupied->IncLocalBrakeLevel( 1 );
+                if( Train->ggJointCtrl.SubModel != nullptr ) {
+                    Train->m_mastercontrollerinuse = true;
+                }
+            }
         }
     }
 }
@@ -1161,7 +1170,16 @@ void TTrain::OnCommand_independentbrakeincreasefast( TTrain *Train, command_data
     if( Command.action != GLFW_RELEASE ) {
 
         if( Train->mvOccupied->LocalBrake != TLocalBrake::ManualBrake ) {
-            Train->mvOccupied->IncLocalBrakeLevel( LocalBrakePosNo );
+            if( ( Train->ggJointCtrl.SubModel != nullptr )
+                && ( Train->mvOccupied->MainCtrlPos > 0 ) ) {
+                OnCommand_mastercontrollerdecreasefast( Train, Command );
+            }
+            else {
+                Train->mvOccupied->IncLocalBrakeLevel( LocalBrakePosNo );
+                if( Train->ggJointCtrl.SubModel != nullptr ) {
+                    Train->m_mastercontrollerinuse = true;
+                }
+            }
         }
     }
 }
@@ -1174,7 +1192,16 @@ void TTrain::OnCommand_independentbrakedecrease( TTrain *Train, command_data con
             // Ra 1014-06: AI potrafi zahamować pomocniczym mimo jego braku - odhamować jakoś trzeba
             // TODO: sort AI out so it doesn't do things it doesn't have equipment for
          || ( Train->mvOccupied->LocalBrakePosA > 0 ) ) {
-            Train->mvOccupied->DecLocalBrakeLevel( 1 );
+            if( ( Train->ggJointCtrl.SubModel != nullptr )
+             && ( Train->mvOccupied->LocalBrakePosA == 0.0 ) ) {
+                OnCommand_mastercontrollerincrease( Train, Command );
+            }
+            else {
+                Train->mvOccupied->DecLocalBrakeLevel( 1 );
+                if( Train->ggJointCtrl.SubModel != nullptr ) {
+                    Train->m_mastercontrollerinuse = true;
+                }
+            }
         }
     }
 }
@@ -1187,7 +1214,16 @@ void TTrain::OnCommand_independentbrakedecreasefast( TTrain *Train, command_data
             // Ra 1014-06: AI potrafi zahamować pomocniczym mimo jego braku - odhamować jakoś trzeba
             // TODO: sort AI out so it doesn't do things it doesn't have equipment for
          || ( Train->mvOccupied->LocalBrakePosA > 0 ) ) {
-            Train->mvOccupied->DecLocalBrakeLevel( LocalBrakePosNo );
+            if( ( Train->ggJointCtrl.SubModel != nullptr )
+             && ( Train->mvOccupied->LocalBrakePosA == 0.0 ) ) {
+                OnCommand_mastercontrollerincreasefast( Train, Command );
+            }
+            else {
+                Train->mvOccupied->DecLocalBrakeLevel( LocalBrakePosNo );
+                if( Train->ggJointCtrl.SubModel != nullptr ) {
+                    Train->m_mastercontrollerinuse = true;
+                }
+            }
         }
     }
 }
@@ -2243,15 +2279,27 @@ void TTrain::OnCommand_pantographtoggleselected( TTrain *Train, command_data con
     }
     else if( Command.action == GLFW_RELEASE ) {
         // impulse switches return automatically to neutral position
-        if( Train->ggPantSelectedButton.type() != TGaugeType::toggle ) {
-            Train->mvControlled->OperatePantographsValve( operation_t::enable_off );
-            // visual feedback
-            Train->ggPantSelectedButton.UpdateValue( 0.0, Train->dsbSwitch );
+        if( Train->m_controlmapper.contains( "pantselectedoff_sw:" ) ) {
+            // two buttons setup
+            if( Train->ggPantSelectedButton.type() != TGaugeType::toggle ) {
+                Train->mvControlled->OperatePantographsValve( operation_t::enable_off );
+                // visual feedback
+                Train->ggPantSelectedButton.UpdateValue( 0.0, Train->dsbSwitch );
+            }
+            if( Train->ggPantSelectedDownButton.type() != TGaugeType::toggle ) {
+                Train->mvControlled->OperatePantographsValve( operation_t::disable_off );
+                // visual feedback
+                Train->ggPantSelectedDownButton.UpdateValue( 0.0, Train->dsbSwitch );
+            }
         }
-        if( Train->ggPantSelectedDownButton.type() != TGaugeType::toggle ) {
-            Train->mvControlled->OperatePantographsValve( operation_t::disable_off );
-            // visual feedback
-            Train->ggPantSelectedDownButton.UpdateValue( 0.0, Train->dsbSwitch );
+        else {
+            if( Train->ggPantSelectedButton.type() != TGaugeType::toggle ) {
+                // special case, just one impulse switch controlling both states
+                // with neutral position mid-way
+                Train->mvControlled->OperatePantographsValve( operation_t::none );
+                // visual feedback
+                Train->ggPantSelectedButton.UpdateValue( 0.5, Train->dsbSwitch );
+            }
         }
     }
 }
@@ -2286,8 +2334,12 @@ void TTrain::OnCommand_pantographlowerselected( TTrain *Train, command_data cons
                 operation_t::disable_on :
                 operation_t::disable );
         // visual feedback
-        Train->ggPantSelectedDownButton.UpdateValue( 1.0, Train->dsbSwitch );
-        if( Train->ggPantSelectedButton.type() == TGaugeType::toggle ) {
+        if( Train->m_controlmapper.contains( "pantselectedoff_sw:" ) ) {
+            // two button setup
+            Train->ggPantSelectedDownButton.UpdateValue( 1.0, Train->dsbSwitch );
+        }
+        else {
+            // single button
             Train->ggPantSelectedButton.UpdateValue( 0.0, Train->dsbSwitch );
         }
     }
@@ -2391,9 +2443,9 @@ void TTrain::OnCommand_linebreakertoggle( TTrain *Train, command_data const &Com
     else if( Command.action == GLFW_RELEASE ) {
         // release...
         if( ( Train->ggMainOnButton.SubModel != nullptr )
-         || ( Train->mvControlled->TrainType == dt_EZT ) ) {
-            // only impulse switches react to release events; since we don't have switch type definition for the line breaker,
-            // we detect it from presence of relevant button, or presume such switch arrangement for EMUs
+         || ( Train->ggMainButton.type() != TGaugeType::toggle ) ) {
+            // only impulse switches react to release events
+            // NOTE: we presume dedicated state switch is of impulse type
             if( Train->m_linebreakerstate == 0 ) {
                 // ...after opening circuit, or holding for too short time to close it
                 OnCommand_linebreakeropen( Train, Command );
@@ -2411,37 +2463,20 @@ void TTrain::OnCommand_linebreakeropen( TTrain *Train, command_data const &Comma
 
     if( Command.action == GLFW_PRESS ) {
         // visual feedback
-        if( Train->ggMainOffButton.SubModel != nullptr ) {
-            // two separate switches to close and break the circuit
+        if( Train->m_controlmapper.contains( "main_off_bt:" ) ) {
             Train->ggMainOffButton.UpdateValue( 1.0, Train->dsbSwitch );
         }
-        else if( Train->ggMainButton.SubModel != nullptr ) {
-            // single two-state switch
-            // NOTE: we don't have switch type definition for the line breaker switch
-            // so for the time being we have hard coded "impulse" switches for all EMUs
-            // TODO: have proper switch type config for all switches, and put it in the cab switch descriptions, not in the .fiz
-            if( Train->mvControlled->TrainType == dt_EZT ) {
-                Train->ggMainButton.UpdateValue( 1.0, Train->dsbSwitch );
-            }
-            else {
-                Train->ggMainButton.UpdateValue( 0.0, Train->dsbSwitch );
-            }
+        else if( Train->m_controlmapper.contains( "main_sw:" ) ) {
+            Train->ggMainButton.UpdateValue( 0.0, Train->dsbSwitch );
         }
         else {
-            // fallback for cabs with no submodel
-            Train->ggMainButton.UpdateValue( 0.0, Train->dsbSwitch );
+            // there's no switch capable of doing the job
+            return;
         }
         // play sound immediately when the switch is hit, not after release
         Train->fMainRelayTimer = 0.0f;
 
         if( Train->m_linebreakerstate == 0 ) { return; } // already in the desired state
-        // NOTE: we don't have switch type definition for the line breaker switch
-        // so for the time being we have hard coded "impulse" switches for all EMUs
-        // TODO: have proper switch type config for all switches, and put it in the cab switch descriptions, not in the .fiz
-        if( Train->mvControlled->TrainType == dt_EZT ) {
-            // a single impulse switch can't open the circuit, only close it
-            return;
-        }
 
         if( true == Train->mvControlled->MainSwitch( false ) ) {
             Train->m_linebreakerstate = 0;
@@ -2459,7 +2494,11 @@ void TTrain::OnCommand_linebreakeropen( TTrain *Train, command_data const &Comma
         }
         // and the two-state switch too, for good measure
         if( Train->ggMainButton.SubModel != nullptr ) {
-            Train->ggMainButton.UpdateValue( 0.0, Train->dsbSwitch );
+            Train->ggMainButton.UpdateValue( (
+                Train->ggMainButton.type() != TGaugeType::toggle ?
+                    0.5 :
+                    0.0 ),
+                Train->dsbSwitch );
         }
     }
 }
@@ -2472,15 +2511,10 @@ void TTrain::OnCommand_linebreakerclose( TTrain *Train, command_data const &Comm
             // two separate switches to close and break the circuit
             Train->ggMainOnButton.UpdateValue( 1.0, Train->dsbSwitch );
         }
-        else if( Train->ggMainButton.SubModel != nullptr ) {
+        else {
             // single two-state switch
             Train->ggMainButton.UpdateValue( 1.0, Train->dsbSwitch );
         }
-        else {
-            // fallback for cabs with no submodel
-            Train->ggMainButton.UpdateValue( 1.0, Train->dsbSwitch );
-        }
-
         // the actual closing of the line breaker is handled in the train update routine
     }
     else if( Command.action == GLFW_RELEASE ) {
@@ -2489,12 +2523,9 @@ void TTrain::OnCommand_linebreakerclose( TTrain *Train, command_data const &Comm
             // setup with two separate switches
             Train->ggMainOnButton.UpdateValue( 0.0, Train->dsbSwitch );
         }
-        // NOTE: we don't have switch type definition for the line breaker switch
-        // so for the time being we have hard coded "impulse" switches for all EMUs
-        // TODO: have proper switch type config for all switches, and put it in the cab switch descriptions, not in the .fiz
-        if( Train->mvControlled->TrainType == dt_EZT ) {
-            if( Train->ggMainButton.SubModel != nullptr ) {
-                Train->ggMainButton.UpdateValue( 0.0, Train->dsbSwitch );
+        else {
+            if( Train->ggMainButton.type() != TGaugeType::toggle ) {
+                Train->ggMainButton.UpdateValue( 0.5, Train->dsbSwitch );
             }
         }
 
@@ -8131,6 +8162,11 @@ void TTrain::set_cab_controls( int const Cab ) {
         ( ggBatteryButton.type() == TGaugeType::push ? 0.5f :
           mvOccupied->Battery ? 1.f :
           0.f ) );
+    // line breaker
+    ggMainButton.PutValue(
+        ( ggMainButton.type() == TGaugeType::push ? 0.5f :
+            m_linebreakerstate > 0 ? 1.f :
+            0.f ) );
     // motor connectors
     ggStLinOffButton.PutValue(
         ( mvControlled->StLinSwitchOff ?
@@ -8185,6 +8221,12 @@ void TTrain::set_cab_controls( int const Cab ) {
             ( mvControlled->PantsValve.is_enabled ?
                 1.f :
                 0.f ) );
+    }
+    else {
+        if( false == m_controlmapper.contains( "pantselectedoff_sw:" ) ) {
+            // single impulse switch arrangement, with neutral position mid-way
+            ggPantSelectedButton.PutValue( 0.5f );
+        }
     }
     if( ggPantSelectedDownButton.type() == TGaugeType::toggle ) {
         ggPantSelectedDownButton.PutValue(

@@ -636,7 +636,7 @@ bool TMoverParameters::ChangeCab(int direction)
             BrakeLevelSet(Handle->GetPos(bh_NP));
         //   if not TestFlag(BrakeStatus,b_dmg) then
         //    BrakeStatus:=b_off; //z Megapacka
-        MainCtrlPos = 0;
+        MainCtrlPos = MainCtrlNoPowerPos();
         ScndCtrlPos = 0;
         // Ra: to poniżej jest bez sensu - można przejść nie wyłączając
         // if ((EngineType!=DieselEngine)&&(EngineType!=DieselElectric))
@@ -7878,8 +7878,7 @@ TMoverParameters::update_doors( double const Deltatime ) {
 
         auto const autoopenrequest {
             ( Doors.open_control == control_t::autonomous )
-         && ( ( false == Doors.permit_needed ) || door.open_permit )
-        };
+         && ( ( false == Doors.permit_needed ) || door.open_permit ) };
         auto const openrequest {
             ( localopencontrol && door.local_open )
          || ( remoteopencontrol && door.remote_open )

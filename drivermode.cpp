@@ -1244,6 +1244,8 @@ driver_mode::ChangeDynamic() {
             occupied->CabDeactivisation();
             occupied->CabOccupied = 0;
             occupied->BrakeLevelSet( occupied->Handle->GetPos( bh_NP ) ); //rozwala sterowanie hamulcem GF 04-2016
+            occupied->MainCtrlPos = occupied->MainCtrlNoPowerPos();
+            occupied->ScndCtrlPos = 0;
             vehicle->MechInside = false;
             vehicle->Controller = AIdriver;
         }

@@ -1890,7 +1890,11 @@ void TSubModel::BinInit(TSubModel *s, float4x4 *m, std::vector<std::string> *t, 
 
 	b_aAnim = b_Anim; // skopiowanie animacji do drugiego cyklu
 
-    if( (eType == TP_FREESPOTLIGHT) && (iFlags & 0x10)) {
+    if( eType == TP_STARS ) {
+        m_material = GfxRenderer->Fetch_Material( "stars" );
+        iFlags |= 0x10;
+    }
+    else if( (eType == TP_FREESPOTLIGHT) && (iFlags & 0x10)) {
         // we've added light glare which needs to be rendered during transparent phase,
         // but models converted to e3d before addition won't have the render flag set correctly for this
         // so as a workaround we're doing it here manually

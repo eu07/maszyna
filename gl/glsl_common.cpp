@@ -12,9 +12,9 @@ void gl::glsl_common_setup()
     "#define POSTFX_ENABLED " + std::to_string((int)!Global.gfx_skippipeline) + "\n" +
     "#define EXTRAEFFECTS_ENABLED " + std::to_string((int)Global.gfx_extraeffects) + "\n" +
     "#define USE_GLES " + std::to_string((int)Global.gfx_usegles) + "\n" +
-    "const uint MAX_LIGHTS = " + std::to_string(MAX_LIGHTS) + "U;\n" +
-    "const uint MAX_CASCADES = " + std::to_string(MAX_CASCADES) + "U;\n" +
-    "const uint MAX_PARAMS = " + std::to_string(MAX_PARAMS) + "U;\n" +
+    "#define MAX_LIGHTS " + std::to_string(MAX_LIGHTS) + "U\n" +
+    "#define MAX_CASCADES " + std::to_string(MAX_CASCADES) + "U\n" +
+    "#define MAX_PARAMS " + std::to_string(MAX_PARAMS) + "U\n" +
     R"STRING(
     const uint LIGHT_SPOT = 0U;
     const uint LIGHT_POINT = 1U;

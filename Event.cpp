@@ -687,6 +687,16 @@ putvalues_event::run_() {
             m_input.data_value_2,
             loc );
     }
+    else if( m_activator->ctOwner ) {
+        // send the command to consist owner,
+        // we're acting on presumption there's hardly ever need to issue command to unmanned vehicle
+        // and the intended recipient moved between vehicles after the event was queued
+        m_activator->ctOwner->PutCommand(
+            m_input.data_text,
+            m_input.data_value_1,
+            m_input.data_value_2,
+            loc );
+    }
     else {
         // przekazanie do pojazdu
         m_activator->MoverParameters->PutCommand(
