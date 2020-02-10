@@ -169,6 +169,9 @@ eu07_application::run() {
         Timer::subsystem.mainloop_total.start();
         glfwPollEvents();
 
+        if (m_headtrack)
+            m_headtrack->update();
+
 		begin_ui_frame();
 
 		// -------------------------------------------------------------------
@@ -771,6 +774,9 @@ eu07_application::init_gfx() {
 	for (const global_settings::extraviewport_config &conf : Global.extra_viewports)
 		if (!GfxRenderer.AddViewport(conf))
 			return -1;
+
+    if (!Global.headtrack_conf.joy.empty())
+        m_headtrack.emplace();
 
     return 0;
 }

@@ -953,6 +953,15 @@ global_settings::ConfigParse(cParser &Parser) {
 			Parser.getTokens(1);
 			Parser >> crash_damage;
 		}
+        else if (token == "headtrack") {
+            Parser.getTokens(14);
+            Parser >> headtrack_conf.joy;
+            Parser >> headtrack_conf.magic_window;
+            Parser >> headtrack_conf.move_axes[0] >> headtrack_conf.move_axes[1] >> headtrack_conf.move_axes[2];
+            Parser >> headtrack_conf.move_mul[0] >> headtrack_conf.move_mul[1] >> headtrack_conf.move_mul[2];
+            Parser >> headtrack_conf.rot_axes[0] >> headtrack_conf.rot_axes[1] >> headtrack_conf.rot_axes[2];
+            Parser >> headtrack_conf.rot_mul[0] >> headtrack_conf.rot_mul[1] >> headtrack_conf.rot_mul[2];
+        }
     } while ((token != "") && (token != "endconfig")); //(!Parser->EndOfFile)
     // na koniec trochę zależności
     if (!bLoadTraction) // wczytywanie drutów i słupów

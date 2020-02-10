@@ -1222,16 +1222,25 @@ void opengl_renderer::setup_pass(viewport_config &Viewport, renderpass_config &C
         Viewport.projection.pe = glm::vec3(0.0f, 0.0f, 0.0f);
 	}
 
-	Config.viewport_camera.position() = Global.pCamera.Pos;
+    if (Global.headtrack_conf.magic_window)
+        Viewport.projection.pe = Global.viewport_move;
+
+    Config.viewport_camera.position() = Global.pCamera.Pos;
 
 	switch (Mode)
 	{
 	case rendermode::color:
 	{
+        if (!Global.headtrack_conf.magic_window) {
+            Global.pCamera.Pos += Global.viewport_move;
+            Global.pCamera.LookAt += Global.viewport_move;
+            Global.pCamera.Angle += Global.viewport_rotate;
+        }
+
 		// modelview
 		if ((false == DebugCameraFlag) || (true == Ignoredebug))
 		{
-			camera.position() = Global.pCamera.Pos;
+            camera.position() = Global.pCamera.Pos;
 			Global.pCamera.SetMatrix(viewmatrix);
 		}
 		else

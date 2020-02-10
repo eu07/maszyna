@@ -128,6 +128,8 @@ set(SOURCES
 "pythonscreenviewer.cpp"
 "dictionary.cpp"
 "particles.cpp"
+"headtrack.cpp"
+"headtrack.h"
 
 "network/network.cpp"
 "network/message.cpp"

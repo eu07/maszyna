@@ -251,6 +251,22 @@ struct global_settings {
 	};
 	std::vector<pythonviewport_config> python_viewports;
 
+    struct headtrack_config {
+        std::string joy;
+
+        bool magic_window = false;
+
+        glm::ivec3 move_axes;
+        glm::vec3 move_mul;
+
+        glm::ivec3 rot_axes;
+        glm::vec3 rot_mul;
+    };
+    headtrack_config headtrack_conf;
+
+    glm::vec3 viewport_move;
+    glm::vec3 viewport_rotate;
+
 	std::vector<std::pair<std::string, std::string>> network_servers;
 	std::optional<std::pair<std::string, std::string>> network_client;
 	float desync = 0.0f;

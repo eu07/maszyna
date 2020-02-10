@@ -12,6 +12,7 @@ http://mozilla.org/MPL/2.0/.
 #include "applicationmode.h"
 #include "PyInt.h"
 #include "network/manager.h"
+#include "headtrack.h"
 
 class eu07_application {
 	const int MAX_NETWORK_PER_FRAME = 1000;
@@ -117,6 +118,7 @@ private:
     std::vector<GLFWwindow *> m_windows;
 
 	std::optional<network::manager> m_network;
+    std::optional<headtrack> m_headtrack;
 };
 
 extern eu07_application Application;
