@@ -381,6 +381,9 @@ TTrain::commandhandler_map const TTrain::m_commandhandlers = {
     { user_command::generictoggle7, &TTrain::OnCommand_generictoggle },
     { user_command::generictoggle8, &TTrain::OnCommand_generictoggle },
     { user_command::generictoggle9, &TTrain::OnCommand_generictoggle },
+    { user_command::vehiclemoveforwards, &TTrain::OnCommand_vehiclemoveforwards },
+    { user_command::vehiclemovebackwards, &TTrain::OnCommand_vehiclemovebackwards },
+    { user_command::vehicleboost, &TTrain::OnCommand_vehicleboost },
 	{ user_command::springbraketoggle, &TTrain::OnCommand_springbraketoggle },
 	{ user_command::springbrakeenable, &TTrain::OnCommand_springbrakeenable },
 	{ user_command::springbrakedisable, &TTrain::OnCommand_springbrakedisable },
@@ -5582,14 +5585,15 @@ void TTrain::OnCommand_cabchangeforward( TTrain *Train, command_data const &Comm
                     end::rear ) };
             if( TestFlag( Train->DynamicObject->MoverParameters->Couplers[ exitdirection ].CouplingFlag, coupling::gangway ) ) {
                 // przejscie do nastepnego pojazdu
-                Global.changeDynObj = (
+                auto *targetvehicle = (
                     exitdirection == end::front ?
                         Train->DynamicObject->PrevConnected() :
                         Train->DynamicObject->NextConnected() );
-                Global.changeDynObj->MoverParameters->CabOccupied = (
+                targetvehicle->MoverParameters->CabOccupied = (
                     Train->DynamicObject->MoverParameters->Neighbours[ exitdirection ].vehicle_end ?
                         -1 :
                          1 );
+                Train->MoveToVehicle( targetvehicle );
             }
         }
         // HACK: match consist door permit state with the preset in the active cab
@@ -5615,14 +5619,15 @@ void TTrain::OnCommand_cabchangebackward( TTrain *Train, command_data const &Com
                     end::rear ) };
             if( TestFlag( Train->DynamicObject->MoverParameters->Couplers[ exitdirection ].CouplingFlag, coupling::gangway ) ) {
                 // przejscie do nastepnego pojazdu
-                Global.changeDynObj = (
+                auto *targetvehicle = (
                     exitdirection == end::front ?
                         Train->DynamicObject->PrevConnected() :
                         Train->DynamicObject->NextConnected() );
-                Global.changeDynObj->MoverParameters->CabOccupied = (
+                targetvehicle->MoverParameters->CabOccupied = (
                     Train->DynamicObject->MoverParameters->Neighbours[ exitdirection ].vehicle_end ?
                         -1 :
                          1 );
+                Train->MoveToVehicle( targetvehicle );
             }
         }
         // HACK: match consist door permit state with the preset in the active cab
@@ -5630,6 +5635,38 @@ void TTrain::OnCommand_cabchangebackward( TTrain *Train, command_data const &Com
             Train->mvOccupied->ChangeDoorPermitPreset( 0 );
         }
     }
+}
+
+void TTrain::OnCommand_vehiclemoveforwards(TTrain *Train, const command_data &Command) {
+	if (Command.action == GLFW_RELEASE || !DebugModeFlag)
+		return;
+
+	Train->DynamicObject->move_set(100.0);
+}
+
+void TTrain::OnCommand_vehiclemovebackwards(TTrain *Train, const command_data &Command) {
+	if (Command.action == GLFW_RELEASE || !DebugModeFlag)
+		return;
+
+	Train->DynamicObject->move_set(-100.0);
+}
+
+void TTrain::OnCommand_vehicleboost(TTrain *Train, const command_data &Command) {
+	if (Command.action == GLFW_RELEASE || !DebugModeFlag)
+		return;
+
+	double boost = Command.param1 != 0.0 ? Command.param1 : 2.78;
+
+	TDynamicObject *d = Train->DynamicObject;
+	while( d ) {
+		d->MoverParameters->V += d->DirectionGet() * boost;
+		d = d->Next(); // pozostałe też
+	}
+	d = Train->DynamicObject->Prev();
+	while( d ) {
+		d->MoverParameters->V += d->DirectionGet() * boost;
+		d = d->Prev(); // w drugą stronę też
+	}
 }
 
 // cab movement update, fixed step part
@@ -5720,7 +5757,7 @@ bool TTrain::Update( double const Deltatime )
     command_data commanddata;
     // NOTE: currently we're only storing commands for local vehicle and there's no id system in place,
     // so we're supplying 'default' vehicle id of 0
-    while( simulation::Commands.pop( commanddata, static_cast<std::size_t>( command_target::vehicle ) | 0 ) ) {
+    while( simulation::Commands.pop( commanddata, static_cast<std::size_t>( command_target::vehicle ) | id() ) ) {
 
         auto lookup = m_commandhandlers.find( commanddata.command );
         if( lookup != m_commandhandlers.end() ) {
@@ -7829,6 +7866,95 @@ void TTrain::DynamicSet(TDynamicObject *d)
         }
 };
 
+void
+TTrain::MoveToVehicle(TDynamicObject *target) {
+	// > Ra: to nie może być tak robione, to zbytnia proteza jest
+	// indeed, too much hacks...
+	// TODO: cleanup
+
+	TTrain *target_train = simulation::Trains.find(target->name());
+	if (target_train) {
+		// let's try to destroy this TTrain and move to already existing one
+
+		if (!Dynamic()->Mechanik || !Dynamic()->Mechanik->AIControllFlag) {
+			// tylko jeśli ręcznie prowadzony
+			// jeśli prowadzi AI, to mu nie robimy dywersji!
+			Occupied()->CabDeactivisation();
+			Occupied()->CabOccupied = 0;
+			Occupied()->BrakeLevelSet(Occupied()->Handle->GetPos(bh_NP)); //rozwala sterowanie hamulcem GF 04-2016
+			Dynamic()->MechInside = false;
+			Dynamic()->Controller = AIdriver;
+
+			Dynamic()->bDisplayCab = false;
+			Dynamic()->ABuSetModelShake( {} );
+
+			Dynamic()->Mechanik->MoveTo(target);
+
+			target_train->Occupied()->LimPipePress = target_train->Occupied()->PipePress;
+			target_train->Occupied()->CabActivisation(); // załączenie rozrządu (wirtualne kabiny)
+			target_train->Dynamic()->MechInside = true;
+			target_train->Dynamic()->Controller = Humandriver;
+		} else {
+			target_train->Dynamic()->bDisplayCab = false;
+			target_train->Dynamic()->ABuSetModelShake( {} );
+		}
+
+		target_train->Dynamic()->bDisplayCab = true;
+		target_train->Dynamic()->ABuSetModelShake( {} ); // zerowanie przesunięcia przed powrotem?
+
+		// potentially move player
+		if (simulation::Train == this) {
+			simulation::Train = target_train;
+		}
+
+		// delete this TTrain
+		pending_delete = true;
+	} else {
+		// move this TTrain to other dynamic
+
+		// remove TTrain from global list, we're going to change dynamic anyway
+		simulation::Trains.detach(Dynamic()->name());
+
+		if (!Dynamic()->Mechanik || !Dynamic()->Mechanik->AIControllFlag) {
+			// tylko jeśli ręcznie prowadzony
+			// jeśli prowadzi AI, to mu nie robimy dywersji!
+
+			Occupied()->CabDeactivisation();
+			Occupied()->CabOccupied = 0;
+			Occupied()->BrakeLevelSet(Occupied()->Handle->GetPos(bh_NP)); //rozwala sterowanie hamulcem GF 04-2016
+			Dynamic()->MechInside = false;
+			Dynamic()->Controller = AIdriver;
+
+			Dynamic()->bDisplayCab = false;
+			Dynamic()->ABuSetModelShake( {} );
+
+			Dynamic()->Mechanik->MoveTo(target);
+
+			DynamicSet(target);
+
+			Occupied()->LimPipePress = Occupied()->PipePress;
+			Occupied()->CabActivisation(); // załączenie rozrządu (wirtualne kabiny)
+			Dynamic()->MechInside = true;
+			Dynamic()->Controller = Humandriver;
+		} else {
+			Dynamic()->bDisplayCab = false;
+			Dynamic()->ABuSetModelShake( {} );
+
+			DynamicSet(target);
+		}
+
+		InitializeCab(
+		    Occupied()->CabActive,
+		    Dynamic()->asBaseDir + Occupied()->TypeName + ".mmd" );
+
+		Dynamic()->bDisplayCab = true;
+		Dynamic()->ABuSetModelShake( {} ); // zerowanie przesunięcia przed powrotem?
+
+		// add it back with updated dynamic name
+		simulation::Trains.insert(this);
+	}
+}
+
 // checks whether specified point is within boundaries of the active cab
 bool
 TTrain::point_inside( Math3D::vector3 const Point ) const {
@@ -9105,4 +9231,34 @@ bool TTrain::initialize_gauge(cParser &Parser, std::string const &Label, int con
     }
 
     return true;
+}
+
+uint16_t TTrain::id() {
+	if (vid == 0) {
+		vid = ++simulation::prev_train_id;
+		WriteLog("net: assigning id " + std::to_string(vid) + " to vehicle " + Dynamic()->name(), logtype::net);
+	}
+	return vid;
+}
+
+void train_table::update(double dt)
+{
+	for (TTrain *train : m_items) {
+		if (!train)
+			continue;
+
+		train->Update(dt);
+
+		if (train->pending_delete) {
+			purge(train->Dynamic()->name());
+			if (simulation::Train == train)
+				simulation::Train = nullptr;
+		}
+
+		// for single-player destroy non-player trains
+		if (simulation::Train != train
+		        && Global.network_servers.empty() && !Global.network_client) {
+			purge(train->Dynamic()->name());
+		}
+	}
 }

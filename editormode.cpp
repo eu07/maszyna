@@ -182,6 +182,11 @@ editor_mode::on_key( int const Key, int const Scancode, int const Action, int co
 }
 
 void
+editor_mode::on_char( unsigned int const Char ) {
+    // TODO: implement
+}
+
+void
 editor_mode::on_cursor_pos( double const Horizontal, double const Vertical ) {
 
     auto const mousemove { glm::dvec2{ Horizontal, Vertical } - m_input.mouse.position() };
@@ -264,6 +269,12 @@ void
 editor_mode::on_event_poll() {
 
     m_input.poll();
+}
+
+bool
+editor_mode::is_command_processor() {
+
+    return false;
 }
 
 bool

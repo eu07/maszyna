@@ -27,9 +27,27 @@ public:
         update_clocks();
     void
         update_scripting_interface();
-    // restores simulation data from specified file. returns: true on success, false otherwise
-    bool
-        deserialize( std::string const &Scenariofile );
+    // process input commands
+    void
+        process_commands();
+ 	// create model from node string
+	TAnimModel *
+	    create_model(const std::string &src, const std::string &name, const glm::dvec3 &position);
+	// create eventlauncher from node string
+	TEventLauncher *
+	    create_eventlauncher(const std::string &src, const std::string &name, const glm::dvec3 &position);
+	// delete TAnimModel instance
+	void
+	    delete_model(TAnimModel *model);
+	// delete TEventLauncher instance
+	void
+	    delete_eventlauncher(TEventLauncher *launcher);
+	// starts deserialization from specified file, returns context pointer on success, throws otherwise
+	std::shared_ptr<deserializer_state>
+	    deserialize_begin(std::string const &Scenariofile);
+	// continues deserialization for given context, amount limited by time, returns true if needs to be called again
+	bool
+	    deserialize_continue(std::shared_ptr<deserializer_state> state);
     // stores class data in specified file, in legacy (text) format
     void
         export_as_text( std::string const &Scenariofile ) const;
@@ -54,13 +72,17 @@ extern powergridsource_table Powergrid;
 extern sound_table Sounds;
 extern instance_table Instances;
 extern vehicle_table Vehicles;
+extern train_table Trains;
 extern light_array Lights;
 extern particle_manager Particles;
 
 extern scene::basic_region *Region;
 extern TTrain *Train;
 
+extern uint16_t prev_train_id;
 extern bool is_ready;
+
+struct deserializer_state;
 
 } // simulation
 

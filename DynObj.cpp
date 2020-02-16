@@ -1615,6 +1615,36 @@ TDynamicObject::~TDynamicObject() {
     SafeDeleteArray( pAnimated ); // lista animowanych submodeli
 }
 
+void TDynamicObject::place_on_track(TTrack *Track, double fDist, bool Reversed)
+{
+	for( auto &axle : m_axlesounds ) {
+		// wyszukiwanie osi (0 jest na końcu, dlatego dodajemy długość?)
+		axle.distance = (
+		    Reversed ?
+		         -axle.offset :
+		        ( axle.offset + MoverParameters->Dim.L ) ) + fDist;
+	}
+	double fAxleDistHalf = fAxleDist * 0.5;
+	// przesuwanie pojazdu tak, aby jego początek był we wskazanym miejcu
+	fDist -= 0.5 * MoverParameters->Dim.L; // dodajemy pół długości pojazdu, bo ustawiamy jego środek (zliczanie na minus)
+	switch (iNumAxles) {
+	    // Ra: pojazdy wstawiane są na tor początkowy, a potem przesuwane
+	case 2: // ustawianie osi na torze
+		Axle0.Init(Track, this, iDirection ? 1 : -1);
+		Axle0.Reset();
+		Axle0.Move((iDirection ? fDist : -fDist) + fAxleDistHalf, false);
+		Axle1.Init(Track, this, iDirection ? 1 : -1);
+		Axle1.Reset();
+		Axle1.Move((iDirection ? fDist : -fDist) - fAxleDistHalf, false); // false, żeby nie generować eventów
+		break;
+	}
+	// potrzebne do wyliczenia aktualnej pozycji; nie może być zero, bo nie przeliczy pozycji
+	// teraz jeszcze trzeba przypisać pojazdy do nowego toru, bo przesuwanie początkowe osi nie
+	// zrobiło tego
+	Move( 0.0001 );
+	ABuCheckMyTrack(); // zmiana toru na ten, co oś Axle0 (oś z przodu)
+}
+
 double
 TDynamicObject::Init(std::string Name, // nazwa pojazdu, np. "EU07-424"
                      std::string BaseDir, // z którego katalogu wczytany, np. "PKP/EU07"
@@ -2190,7 +2220,7 @@ TDynamicObject::create_controller( std::string const Type, bool const Trainset )
 
     if( Type == "" ) { return; }
 
-    if( asName == Global.asHumanCtrlVehicle ) {
+    if( asName == Global.local_start_vehicle ) {
         // jeśli pojazd wybrany do prowadzenia
         if( MoverParameters->EngineType != TEngineType::Dumb ) {
             // wsadzamy tam sterującego
@@ -6542,6 +6572,20 @@ glm::dvec3 TDynamicObject::get_future_movement() const {
     return m_future_movement;
 }
 
+void TDynamicObject::move_set(double distance)
+{
+	TDynamicObject *d = this;
+	while( d ) {
+		d->Move( distance * d->DirectionGet() );
+		d = d->Next(); // pozostałe też
+	    }
+	d = Prev();
+	while( d ) {
+		d->Move( distance * d->DirectionGet() );
+		d = d->Prev(); // w drugą stronę też
+	}
+}
+
 // returns type of the nearest functional power source present in the trainset
 TPowerSource
 TDynamicObject::ConnectedEnginePowerSource( TDynamicObject const *Caller ) const {
@@ -6640,13 +6684,13 @@ TDynamicObject::update_shake( double const Timedelta ) {
 
         auto shake { 1.25 * ShakeSpring.ComputateForces( shakevector, ShakeState.offset ) };
 
-        if( Random( iVel ) > 25.0 ) {
+        if( LocalRandom( iVel ) > 25.0 ) {
             // extra shake at increased velocity
             shake += ShakeSpring.ComputateForces(
                 Math3D::vector3(
-                ( Random( iVel * 2 ) - iVel ) / ( ( iVel * 2 ) * 4 ) * BaseShake.jolt_scale.x,
-                ( Random( iVel * 2 ) - iVel ) / ( ( iVel * 2 ) * 4 ) * BaseShake.jolt_scale.y,
-                ( Random( iVel * 2 ) - iVel ) / ( ( iVel * 2 ) * 4 ) * BaseShake.jolt_scale.z )
+                ( LocalRandom( iVel * 2 ) - iVel ) / ( ( iVel * 2 ) * 4 ) * BaseShake.jolt_scale.x,
+                ( LocalRandom( iVel * 2 ) - iVel ) / ( ( iVel * 2 ) * 4 ) * BaseShake.jolt_scale.y,
+                ( LocalRandom( iVel * 2 ) - iVel ) / ( ( iVel * 2 ) * 4 ) * BaseShake.jolt_scale.z )
 //                * (( 200 - DynamicObject->MyTrack->iQualityFlag ) * 0.0075 ) // scale to 75-150% based on track quality
                 * 1.25,
                 ShakeState.offset );
@@ -6986,7 +7030,7 @@ TDynamicObject::powertrain_sounds::render( TMoverParameters const &Vehicle, doub
                 if( ( volume < 1.0 )
                  && ( Vehicle.EnginePower < 100 ) ) {
 
-                    auto const volumevariation { Random( 100 ) * Vehicle.enrot / ( 1 + Vehicle.nmax ) };
+                    auto const volumevariation { LocalRandom( 100 ) * Vehicle.enrot / ( 1 + Vehicle.nmax ) };
                     if( volumevariation < 2 ) {
                         volume += volumevariation / 200;
                     }
@@ -7362,6 +7406,7 @@ vehicle_table::erase_disabled() {
                 // TBD, TODO: kill vehicle sounds
                 SafeDelete( simulation::Train );
             }
+			simulation::Trains.purge(vehicle->name());
             // remove potential entries in the light array
             simulation::Lights.remove( vehicle );
 /*

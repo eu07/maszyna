@@ -11,8 +11,10 @@ http://mozilla.org/MPL/2.0/.
 
 #include "applicationmode.h"
 #include "PyInt.h"
+#include "network/manager.h"
 
 class eu07_application {
+	const int MAX_NETWORK_PER_FRAME = 1000;
 
 public:
 // types
@@ -73,14 +75,23 @@ public:
     void
         on_key( int const Key, int const Scancode, int const Action, int const Mods );
     void
+        on_char( unsigned int const Char );
+    void
         on_cursor_pos( double const Horizontal, double const Vertical );
     void
         on_mouse_button( int const Button, int const Action, int const Mods );
     void
         on_scroll( double const Xoffset, double const Yoffset );
+	void
+	    on_focus_change(bool focus);
     // gives access to specified window, creates a new window if index == -1
     GLFWwindow *
         window( int const Windowindex = 0, bool visible = false, int width = 1, int height = 1, GLFWmonitor *monitor = nullptr, bool keep_ownership = true, bool share_ctx = true );
+	// generate network sync verification number
+	double
+	    generate_sync();
+	void
+	    queue_quit();
 
 private:
 // types
@@ -97,6 +108,7 @@ private:
     int  init_audio();
     int  init_data();
     int  init_modes();
+	bool init_network();
     GLFWmonitor * find_monitor( const std::string &str ) const;
     std::string describe_monitor( GLFWmonitor *monitor ) const;
 // members
@@ -104,6 +116,8 @@ private:
     mode_stack m_modestack; // current behaviour mode
     python_taskqueue m_taskqueue;
     std::vector<GLFWwindow *> m_windows;
+
+	std::optional<network::manager> m_network;
 };
 
 extern eu07_application Application;

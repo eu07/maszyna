@@ -1966,14 +1966,19 @@ event_manager::update() {
     CheckQuery();
     // test list of global events for possible new additions to the queue
     for( auto *launcher : m_launcherqueue ) {
+		if (launcher->check_conditions() && launcher->Event1) {
+			// NOTE: we're presuming global events aren't going to use event2
 
-        if( true == ( launcher->check_activation() && launcher->check_conditions() ) ) {
-            // NOTE: we're presuming global events aren't going to use event2
-            WriteLog( "Eventlauncher " + launcher->name() );
-            if( launcher->Event1 ) {
-                AddToQuery( launcher->Event1, nullptr );
-            }
-        }
+			if (launcher->check_activation()) {
+				WriteLog( "Eventlauncher: " + launcher->name() );
+				AddToQuery( launcher->Event1, nullptr );
+			}
+
+			if (launcher->check_activation_key()) {
+				WriteLog( "Eventlauncher: " + launcher->name() );
+				m_relay.post(user_command::queueevent, 0.0, 0.0, GLFW_PRESS, 0, glm::vec3(0.0f), &launcher->Event1->name());
+			}
+		}
     }
 }
 

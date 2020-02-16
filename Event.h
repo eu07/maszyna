@@ -77,6 +77,7 @@ public:
     virtual glm::dvec3 input_location() const;
     void group( scene::group_handle Group );
     scene::group_handle group() const;
+	std::string const &name() const { return m_name; }
 // members
     basic_event *m_next { nullptr }; // następny w kolejce // TODO: replace with event list in the manager
     basic_event *m_sibling { nullptr }; // kolejny event z tą samą nazwą - od wersji 378
@@ -584,6 +585,10 @@ public:
     // legacy method, returns pointer to specified event, or null
     basic_event *
         FindEvent( std::string const &Name );
+	inline TEventLauncher* FindEventlauncher(std::string const &Name) {
+		auto ptr = m_inputdrivenlaunchers.find(Name);
+		return ptr ? ptr : m_radiodrivenlaunchers.find(Name);
+	}
     // legacy method, inserts specified event in the event query
     bool
         AddToQuery( basic_event *Event, TDynamicObject const *Owner );
@@ -618,6 +623,7 @@ private:
     basic_table<TEventLauncher> m_inputdrivenlaunchers;
     basic_table<TEventLauncher> m_radiodrivenlaunchers;
     eventlauncher_sequence m_launcherqueue;
+	command_relay m_relay;
 };
 
 

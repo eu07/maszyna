@@ -58,6 +58,9 @@ public:
         on_key( int const Key, int const Scancode, int const Action, int const Mods ) = 0;
     virtual
     void
+        on_char( unsigned int const Char ) = 0;
+    virtual
+    void
         on_cursor_pos( double const X, double const Y ) = 0;
     virtual
     void
@@ -68,6 +71,9 @@ public:
     virtual
     void
         on_event_poll() = 0;
+	virtual
+	bool
+	    is_command_processor() = 0;
 
 protected:
 // members

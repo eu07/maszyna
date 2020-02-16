@@ -52,7 +52,7 @@ global_settings::ConfigParse(cParser &Parser) {
         {
 
             Parser.getTokens();
-            Parser >> asHumanCtrlVehicle;
+            Parser >> local_start_vehicle;
         }
         else if( token == "fieldofview" ) {
 
@@ -768,6 +768,18 @@ global_settings::ConfigParse(cParser &Parser) {
             Parser.getTokens(1);
             Parser >> gfx_shadowmap_enabled;
         }
+		else if (token == "fpslimit")
+		{
+			Parser.getTokens(1);
+			float fpslimit;
+			Parser >> fpslimit;
+			minframetime = std::chrono::duration<float>(1.0f / fpslimit);
+		}
+		else if (token == "randomseed")
+		{
+			Parser.getTokens(1);
+			Parser >> Global.random_seed;
+		}
         else if (token == "gfx.envmap.enabled")
         {
             Parser.getTokens(1);
@@ -851,6 +863,29 @@ global_settings::ConfigParse(cParser &Parser) {
 		{
 			Parser.getTokens(1);
 			Parser >> python_mipmaps;
+		}
+		else if (token == "network.server")
+		{
+			Parser.getTokens(2);
+
+			std::string backend;
+			std::string conf;
+			Parser >> backend >> conf;
+
+			network_servers.push_back(std::make_pair(backend, conf));
+		}
+		else if (token == "network.client")
+		{
+			Parser.getTokens(2);
+
+			network_client.emplace();
+			Parser >> network_client->first;
+			Parser >> network_client->second;
+		}
+		else if (token == "execonexit") {
+			Parser.getTokens(1);
+			Parser >> exec_on_exit;
+			std::replace(std::begin(exec_on_exit), std::end(exec_on_exit), '_', ' ');
 		}
 /*
 		else if (token == "crashdamage") {

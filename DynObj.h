@@ -544,6 +544,7 @@ private:
 
     TDynamicObject();
     ~TDynamicObject();
+	void place_on_track(TTrack *Track, double fDist, bool Reversed);
     // zwraca długość pojazdu albo 0, jeśli błąd
     double Init(
         std::string Name, std::string BaseDir, std::string asReplacableSkin, std::string Type_Name,
@@ -672,6 +673,7 @@ private:
     material_handle DestinationFind( std::string Destination );
     void OverheadTrack(float o);
     glm::dvec3 get_future_movement() const;
+	void move_set(double distance);
 
     double MED[9][8]; // lista zmiennych do debugowania hamulca ED
     static std::string const MED_labels[ 8 ];

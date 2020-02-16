@@ -40,6 +40,7 @@ class memory_table;
 class powergridsource_table;
 class instance_table;
 class vehicle_table;
+class train_table;
 struct light_array;
 class particle_manager;
 struct dictionary_source;
@@ -76,5 +77,9 @@ enum class TCommandType
 
 using material_handle = int;
 using texture_handle = int;
+
+struct invalid_scenery_exception : std::runtime_error {
+	invalid_scenery_exception() : std::runtime_error("cannot load scenery") {}
+};
 
 #endif

@@ -37,20 +37,33 @@ scenarioloader_mode::init() {
 bool
 scenarioloader_mode::update() {
 
-    WriteLog( "\nLoading scenario \"" + Global.SceneryFile + "\"..." );
+	if (!Global.ready_to_load)
+		// waiting for network connection
+		return true;
 
-    auto timestart = std::chrono::system_clock::now();
+	if (!state) {
+		WriteLog("using simulation seed: " + std::to_string(Global.random_seed), logtype::generic);
 
-    if( true == simulation::State.deserialize( Global.SceneryFile ) ) {
-        WriteLog( "Scenario loading time: " + std::to_string( std::chrono::duration_cast<std::chrono::seconds>( ( std::chrono::system_clock::now() - timestart ) ).count() ) + " seconds" );
-        // TODO: implement and use next mode cue
-        Application.pop_mode();
-        Application.push_mode( eu07_application::mode::driver );
-    }
-    else {
-        ErrorLog( "Bad init: scenario loading failed" );
-        Application.pop_mode();
-    }
+		WriteLog( "\nLoading scenario \"" + Global.SceneryFile + "\"..." );
+
+		timestart = std::chrono::system_clock::now();
+		state = simulation::State.deserialize_begin(Global.SceneryFile);
+	}
+
+	try {
+		if (simulation::State.deserialize_continue(state))
+			return true;
+	}
+	catch (invalid_scenery_exception &e) {
+		ErrorLog( "Bad init: scenario loading failed" );
+		Application.pop_mode();
+	}
+
+	WriteLog( "Scenario loading time: " + std::to_string( std::chrono::duration_cast<std::chrono::seconds>( ( std::chrono::system_clock::now() - timestart ) ).count() ) + " seconds" );
+	// TODO: implement and use next mode cue
+
+	Application.pop_mode();
+    Application.push_mode( eu07_application::mode::driver );
 
     return true;
 }
@@ -75,6 +88,6 @@ scenarioloader_mode::enter() {
 void
 scenarioloader_mode::exit() {
 
-    simulation::Time.init();
+    simulation::Time.init( Global.starting_timestamp );
     simulation::Environment.init();
 }

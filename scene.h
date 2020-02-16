@@ -173,7 +173,7 @@ private:
     using memorycell_sequence = std::vector<TMemCell *>;
 // methods
     void
-        launch_event( TEventLauncher *Launcher );
+	    launch_event(TEventLauncher *Launcher, bool local_only);
     void
         enclose_area( scene::basic_node *Node );
 // members

@@ -38,6 +38,8 @@ public:
     void
         on_key( int const Key, int const Scancode, int const Action, int const Mods ) override;
     void
+        on_char( unsigned int const Char ) override;
+    void
         on_cursor_pos( double const Horizontal, double const Vertical ) override;
     void
         on_mouse_button( int const Button, int const Action, int const Mods ) override;
@@ -45,6 +47,8 @@ public:
         on_scroll( double const Xoffset, double const Yoffset ) override;
     void
         on_event_poll() override;
+    bool
+        is_command_processor() override;
 
 private:
 // types

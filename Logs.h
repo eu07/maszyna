@@ -20,7 +20,7 @@ enum logtype : unsigned int {
 //    lua = ( 1 << 4 ),
     material = ( 1 << 5 ),
 	shader = ( 1 << 6 ),
-//    net = ( 1 << 7 )
+    net = ( 1 << 7 )
 };
 
 void WriteLog( const char *str, logtype const Type = logtype::generic );

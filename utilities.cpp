@@ -28,7 +28,7 @@ Copyright (C) 2007-2014 Maciej Cierniak
 #include "parser.h"
 
 bool DebugModeFlag = false;
-bool FreeFlyModeFlag = false;
+bool FreeFlyModeFlag = true;
 bool EditorModeFlag = false;
 bool DebugCameraFlag = false;
 bool DebugTractionFlag = false;
@@ -106,8 +106,8 @@ bool ClearFlag( int &Flag, int const Value ) {
 
 double Random(double a, double b)
 {
-    std::uniform_real_distribution<> dis(a, b);
-    return dis(Global.random_engine);
+	uint32_t val = Global.random_engine();
+	return interpolate(a, b, (double)val / Global.random_engine.max());
 }
 
 double LocalRandom(double a, double b)

@@ -342,6 +342,10 @@ public:
         group( scene::group_handle Group );
     scene::group_handle
         group() const;
+	void
+	    mark_dirty() { m_dirty = true; }
+	bool
+	    dirty() const { return m_dirty; }
 
 protected:
 // members
@@ -351,6 +355,7 @@ protected:
     double m_rangesquaredmax { 0.0 }; // visibility range, max
     bool m_visible { true }; // visibility flag
     std::string m_name;
+	bool m_dirty { false };
 
 private:
 // methods

@@ -28,8 +28,11 @@ struct global_settings {
     bool shiftState{ false }; //m7todo: brzydko
     bool ctrlState{ false };
     bool altState{ false };
-    std::mt19937 random_engine{ std::mt19937( static_cast<unsigned int>( std::time( NULL ) ) ) };
-    std::mt19937 local_random_engine{ std::mt19937( static_cast<unsigned int>( std::time( NULL ) ) ) };
+	std::mt19937 random_engine;
+	std::mt19937 local_random_engine;
+	bool ready_to_load { false };
+	std::time_t starting_timestamp = 0; // starting time, in local timezone
+	uint32_t random_seed = 0;
     TDynamicObject *changeDynObj{ nullptr };// info o zmianie pojazdu
     TCamera pCamera; // parametry kamery
     TCamera pDebugCamera;
@@ -63,7 +66,7 @@ struct global_settings {
     std::string szTexturesDDS{ ".dds" }; // lista tekstur od DDS
     std::string szDefaultExt{ szTexturesDDS };
     std::string SceneryFile{ "td.scn" };
-    std::string asHumanCtrlVehicle{ "EU07-424" };
+    std::string local_start_vehicle{ "EU07-424" };
     int iConvertModels{ 0 }; // tworzenie plików binarnych
     bool file_binary_terrain{ true }; // enable binary terrain (de)serialization
     // logs
@@ -188,6 +191,13 @@ struct global_settings {
     std::string asVersion{ "UNKNOWN" }; // z opisem
     // TODO: move these to relevant areas
     bool render_cab = true;
+
+	std::chrono::duration<float> minframetime {0.0f};
+
+    std::string fullscreen_monitor;
+
+    bool python_mipmaps = true;
+
     int gfx_framebuffer_width = -1;
     int gfx_framebuffer_height = -1;
     int gfx_framebuffer_fidelity = -1;
@@ -202,8 +212,12 @@ struct global_settings {
     bool gfx_extraeffects = true;
     bool gfx_shadergamma = false;
     bool gfx_usegles = false;
-    std::string fullscreen_monitor;
-    bool python_mipmaps = true;
+
+    std::string exec_on_exit;
+
+    std::vector<std::pair<std::string, std::string>> network_servers;
+    std::optional<std::pair<std::string, std::string>> network_client;
+    double desync = 0.0;
 
 // methods
     void LoadIniFile( std::string asFileName );

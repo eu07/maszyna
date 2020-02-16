@@ -130,6 +130,9 @@ class TTrain {
     bool LoadMMediaFile(std::string const &asFileName);
     dictionary_source *GetTrainState();
     state_t get_state() const;
+    inline
+    std::string name() const {
+        return Dynamic()->name(); }
 
   private:
 // types
@@ -384,6 +387,9 @@ class TTrain {
     static void OnCommand_cabchangeforward( TTrain *Train, command_data const &Command );
     static void OnCommand_cabchangebackward( TTrain *Train, command_data const &Command );
     static void OnCommand_generictoggle( TTrain *Train, command_data const &Command );
+	static void OnCommand_vehiclemoveforwards( TTrain *Train, command_data const &Command );
+	static void OnCommand_vehiclemovebackwards( TTrain *Train, command_data const &Command );
+	static void OnCommand_vehicleboost( TTrain *Train, command_data const &Command );
 	static void OnCommand_springbraketoggle(TTrain *Train, command_data const &Command);
 	static void OnCommand_springbrakeenable(TTrain *Train, command_data const &Command);
 	static void OnCommand_springbrakedisable(TTrain *Train, command_data const &Command);
@@ -754,6 +760,7 @@ private:
     bool m_mastercontrollerinuse { false };
     float m_mastercontrollerreturndelay { 0.f };
     std::vector<std::pair<std::string, texture_handle>> m_screens;
+	uint16_t vid { 0 }; // train network recipient id
     float m_distancecounter { -1.f }; // distance traveled since meter was activated or -1 if inactive
     double m_brakehandlecp{ 0.0 };
     int m_pantselection{ 0 };
@@ -775,9 +782,18 @@ private:
     inline TMoverParameters *Occupied() { return mvOccupied; };
     inline TMoverParameters const *Occupied() const { return mvOccupied; };
     void DynamicSet(TDynamicObject *d);
+    void MoveToVehicle( TDynamicObject *target );
     // checks whether specified point is within boundaries of the active cab
     bool point_inside( Math3D::vector3 const Point ) const;
     Math3D::vector3 clamp_inside( Math3D::vector3 const &Point ) const;
 
+	uint16_t id();
+	bool pending_delete = false;
 };
+
+class train_table : public basic_table<TTrain> {
+public:
+    void update( double dt );
+};
+
 //---------------------------------------------------------------------------

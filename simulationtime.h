@@ -16,7 +16,7 @@ public:
     scenario_time() {
         m_time.wHour = 10; m_time.wMinute = 30; }
     void
-        init();
+	    init(time_t timestamp = 0);
     void
         update( double const Deltatime );
     inline
@@ -41,6 +41,8 @@ public:
     double
         zone_bias() const {
             return m_timezonebias; }
+	void
+	    set_time(int yearday, int minute);
 
 private:
     // converts provided time transition date to regular date
