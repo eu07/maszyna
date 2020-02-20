@@ -181,8 +181,14 @@ driver_ui::render_() {
             }
             if( ImGui::Button( locale::strings[ locale::string::driver_pause_quit ].c_str(), ImVec2( popupwidth, 0 ) ) ) {
                 ImGui::CloseCurrentPopup();
-                command_relay commandrelay;
-    			commandrelay.post(user_command::quitsimulation, 0.0, 0.0, GLFW_PRESS, 0);
+                // NOTE: server shuts down entire network, client or standalone instance only shuts down self
+                if( Application.is_server() ) {
+                    command_relay commandrelay;
+                    commandrelay.post( user_command::quitsimulation, 0.0, 0.0, GLFW_PRESS, 0 );
+                }
+                else {
+                    Application.queue_quit();
+                }
             }
             ImGui::EndPopup();
         }

@@ -2220,17 +2220,6 @@ TDynamicObject::create_controller( std::string const Type, bool const Trainset )
 
     if( Type == "" ) { return; }
 
-    if( asName == Global.local_start_vehicle ) {
-        // jeśli pojazd wybrany do prowadzenia
-        if( MoverParameters->EngineType != TEngineType::Dumb ) {
-            // wsadzamy tam sterującego
-            Controller = Humandriver;
-        }
-        else {
-            // w przeciwnym razie trzeba włączyć pokazywanie kabiny
-            bDisplayCab = true;
-        }
-    }
     // McZapkie-151102: rozkład jazdy czytany z pliku *.txt z katalogu w którym jest sceneria
     if( ( Type == "1" )
      || ( Type == "2" ) ) {
@@ -5539,8 +5528,8 @@ void TDynamicObject::LoadMMediaFile( std::string const &TypeName, std::string co
                     for( auto &bogie : m_bogiesounds ) {
                         bogie.start( (
                             bogieidx % 2 ?
-                                Random(  0.0, 30.0 ) :
-                                Random( 50.0, 80.0 ) )
+                                LocalRandom(  0.0, 30.0 ) :
+                                LocalRandom( 50.0, 80.0 ) )
                             * 0.01 );
                         ++bogieidx;
                     }

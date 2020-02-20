@@ -27,8 +27,10 @@ Copyright (C) 2007-2014 Maciej Cierniak
 #include "Globals.h"
 #include "parser.h"
 
+#include "Logs.h"
+
 bool DebugModeFlag = false;
-bool FreeFlyModeFlag = true;
+bool FreeFlyModeFlag = false;
 bool EditorModeFlag = false;
 bool DebugCameraFlag = false;
 bool DebugTractionFlag = false;
@@ -107,7 +109,12 @@ bool ClearFlag( int &Flag, int const Value ) {
 double Random(double a, double b)
 {
 	uint32_t val = Global.random_engine();
-	return interpolate(a, b, (double)val / Global.random_engine.max());
+#ifdef EU07_DEBUG_NETSYNC
+    auto const value = interpolate( a, b, (double)val / Global.random_engine.max() );
+    WriteLog( "random: [" + to_string(a,0) + "-" + to_string(b,0) + "] = " + std::to_string( value ) );
+    return value;
+#endif
+    return interpolate(a, b, (double)val / Global.random_engine.max());
 }
 
 double LocalRandom(double a, double b)

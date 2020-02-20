@@ -11,6 +11,7 @@ http://mozilla.org/MPL/2.0/.
 #include "driveruipanels.h"
 
 #include "Globals.h"
+#include "application.h"
 #include "translation.h"
 #include "simulation.h"
 #include "simulationtime.h"
@@ -564,34 +565,45 @@ bool
 debug_panel::render_section_scenario() {
 
     if( false == render_section( "Scenario", m_scenariolines ) ) { return false; }
-
+    if( Application.is_client() ) {
+        // NOTE: simulation clients can't adjust scenarion state, this is reserved for the server/standalone instance
+        return true;
+    }
     // fog slider
     {
         auto fogrange = std::log( Global.fFogEnd );
         if( ImGui::SliderFloat(
             ( to_string( std::exp( fogrange ), 0, 5 ) + " m###fogend" ).c_str(), &fogrange, std::log( 10.0f ), std::log( 25000.0f ), "Fog distance" ) ) {
-            Global.fFogEnd = clamp( std::exp( fogrange ), 10.0f, 25000.0f );
+            command_relay relay;
+            relay.post(
+                user_command::setweather,
+                clamp( std::exp( fogrange ), 10.0f, 25000.0f ),
+                Global.Overcast,
+                GLFW_PRESS, 0 );
         }
     }
     // cloud cover slider
     {
         if( ImGui::SliderFloat(
             ( to_string( Global.Overcast, 2, 5 ) + " (" + Global.Weather + ")###overcast" ).c_str(), &Global.Overcast, 0.0f, 2.0f, "Cloud cover" ) ) {
-            Global.Overcast = clamp( Global.Overcast, 0.0f, 2.0f );
-            simulation::Environment.compute_weather();
+            command_relay relay;
+            relay.post(
+                user_command::setweather,
+                Global.fFogEnd,
+                clamp( Global.Overcast, 0.0f, 2.0f ),
+                GLFW_PRESS, 0 );
         }
     }
     // day of year slider
     {
-        if( ImGui::SliderFloat( ( to_string( Global.fMoveLight, 0, 5 ) + " (" + Global.Season + ")###movelight" ).c_str(), &Global.fMoveLight, 0.0f, 364.0f, "Day of year" ) ) {
-            Global.fMoveLight = clamp( Global.fMoveLight, 0.0f, 365.0f );
-            auto const weather{ Global.Weather };
-            simulation::Environment.compute_season( Global.fMoveLight );
-            simulation::Time.init();
-            if( weather != Global.Weather ) {
-                // HACK: force re-calculation of precipitation
-                Global.Overcast = clamp( Global.Overcast - 0.0001f, 0.0f, 2.0f );
-            }
+        if( ImGui::SliderFloat(
+            ( to_string( Global.fMoveLight, 0, 5 ) + " (" + Global.Season + ")###movelight" ).c_str(), &Global.fMoveLight, 0.0f, 364.0f, "Day of year" ) ) {
+            command_relay relay;
+            relay.post(
+                user_command::setdatetime,
+                clamp( Global.fMoveLight, 0.0f, 365.0f ),
+                simulation::Time.data().wHour * 60 + simulation::Time.data().wMinute,
+                GLFW_PRESS, 0 );
         }
     }
     // time of day slider
@@ -605,14 +617,14 @@ debug_panel::render_section_scenario() {
                 + ":"
                 + std::string( to_string( int( 100 + simulation::Time.data().wMinute ) ).substr( 1, 2 ) ) ) };
         if( ImGui::SliderInt( ( timestring + " (" + Global.Period + ")###simulationtime" ).c_str(), &time, 0, 1439, "Time of day" ) ) {
-            time = clamp( time, 0, 1439 );
-            auto const hour{ std::floor( time / 60 ) };
-            auto const minute{ time % 60 };
-            simulation::Time.data().wHour = hour;
-            simulation::Time.data().wMinute = minute;
+            command_relay relay;
+            relay.post(
+                user_command::setdatetime,
+                Global.fMoveLight,
+                clamp( time, 0, 1439 ),
+                GLFW_PRESS, 0 );
         }
     }
-
 
     return true;
 }

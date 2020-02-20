@@ -18,12 +18,16 @@ void network::server_hello::serialize(std::ostream &stream) const
 {
 	sn_utils::ls_uint32(stream, seed);
 	sn_utils::ls_int64(stream, timestamp);
+    sn_utils::ls_int64(stream, config);
+    sn_utils::s_str(stream, scenario);
 }
 
 void network::server_hello::deserialize(std::istream &stream)
 {
 	seed = sn_utils::ld_uint32(stream);
 	timestamp = sn_utils::ld_int64(stream);
+    config = sn_utils::ld_int64(stream);
+    scenario = sn_utils::d_str(stream);
 }
 
 void ::network::request_command::serialize(std::ostream &stream) const
@@ -41,7 +45,6 @@ void ::network::request_command::serialize(std::ostream &stream) const
 			sn_utils::ls_float64(stream, data.param2);
 			sn_utils::ls_float64(stream, data.time_delta);
 
-			sn_utils::s_bool(stream, data.freefly);
 			sn_utils::s_vec3(stream, data.location);
 
 			sn_utils::s_str(stream, data.payload);
@@ -67,7 +70,6 @@ void network::request_command::deserialize(std::istream &stream)
 			data.param2 = sn_utils::ld_float64(stream);
 			data.time_delta = sn_utils::ld_float64(stream);
 
-			data.freefly = sn_utils::d_bool(stream);
 			data.location = sn_utils::d_vec3(stream);
 
 			data.payload = sn_utils::d_str(stream);

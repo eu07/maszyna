@@ -36,7 +36,6 @@ scenarioloader_mode::init() {
 // mode-specific update of simulation data. returns: false on error, true otherwise
 bool
 scenarioloader_mode::update() {
-
 	if (!Global.ready_to_load)
 		// waiting for network connection
 		return true;
@@ -44,7 +43,8 @@ scenarioloader_mode::update() {
 	if (!state) {
 		WriteLog("using simulation seed: " + std::to_string(Global.random_seed), logtype::generic);
 
-		WriteLog( "\nLoading scenario \"" + Global.SceneryFile + "\"..." );
+        Application.set_title( Global.AppName + " (" + Global.SceneryFile + ")" );
+        WriteLog( "\nLoading scenario \"" + Global.SceneryFile + "\"..." );
 
 		timestart = std::chrono::system_clock::now();
 		state = simulation::State.deserialize_begin(Global.SceneryFile);
@@ -63,7 +63,7 @@ scenarioloader_mode::update() {
 	// TODO: implement and use next mode cue
 
 	Application.pop_mode();
-    Application.push_mode( eu07_application::mode::driver );
+	Application.push_mode( eu07_application::mode::driver );
 
     return true;
 }
@@ -78,7 +78,7 @@ scenarioloader_mode::enter() {
     simulation::is_ready = false;
 
     m_userinterface->set_background( "logo" );
-    Application.set_title( Global.AppName + " (" + Global.SceneryFile + ")" );
+    Application.set_title( Global.AppName );
     m_userinterface->set_progress();
     m_userinterface->set_progress( "Loading scenery / Wczytywanie scenerii" );
     GfxRenderer->Render();

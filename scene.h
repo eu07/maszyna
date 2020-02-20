@@ -59,6 +59,7 @@ struct scratch_data {
 
     std::string name;
     bool initialized { false };
+	bool time_initialized { false };
 };
 
 // basic element of rudimentary partitioning scheme for the section. fixed size, no further subdivision

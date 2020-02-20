@@ -324,7 +324,6 @@ struct command_data {
     double param2;
     double time_delta;
 
-    bool freefly;
     glm::vec3 location;
 
     std::string payload;

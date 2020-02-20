@@ -92,6 +92,10 @@ public:
 	    generate_sync();
 	void
 	    queue_quit();
+    bool
+        is_server() const;
+    bool
+        is_client() const;
 
 private:
 // types

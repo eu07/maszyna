@@ -58,20 +58,20 @@ smoke_source::particle_emitter::deserialize( cParser &Input ) {
 void
 smoke_source::particle_emitter::initialize( smoke_particle &Particle ) {
 
-    auto const polarangle { glm::radians( Random( inclination[ value_limit::min ], inclination[ value_limit::max ] ) ) }; // theta
-    auto const azimuthalangle { glm::radians( Random( -180, 180 ) ) }; // phi
+    auto const polarangle { glm::radians( LocalRandom( inclination[ value_limit::min ], inclination[ value_limit::max ] ) ) }; // theta
+    auto const azimuthalangle { glm::radians( LocalRandom( -180, 180 ) ) }; // phi
     // convert spherical coordinates to opengl coordinates
     auto const launchvector { glm::vec3(
         std::sin( polarangle ) * std::sin( azimuthalangle ) * -1,
         std::cos( polarangle ),
         std::sin( polarangle ) * std::cos( azimuthalangle ) ) };
-        auto const launchvelocity { static_cast<float>( Random( velocity[ value_limit::min ], velocity[ value_limit::max ] ) ) };
+        auto const launchvelocity { static_cast<float>( LocalRandom( velocity[ value_limit::min ], velocity[ value_limit::max ] ) ) };
     
     Particle.velocity = launchvector * launchvelocity;
 
-    Particle.rotation = glm::radians( Random( 0, 360 ) );
-    Particle.size = Random( size[ value_limit::min ], size[ value_limit::max ] );
-    Particle.opacity = Random( opacity[ value_limit::min ], opacity[ value_limit::max ] ) / Global.SmokeFidelity;
+    Particle.rotation = glm::radians( LocalRandom( 0, 360 ) );
+    Particle.size = LocalRandom( size[ value_limit::min ], size[ value_limit::max ] );
+    Particle.opacity = LocalRandom( opacity[ value_limit::min ], opacity[ value_limit::max ] ) / Global.SmokeFidelity;
     Particle.age = 0;
 }
 

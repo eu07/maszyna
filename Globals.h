@@ -33,7 +33,6 @@ struct global_settings {
 	bool ready_to_load { false };
 	std::time_t starting_timestamp = 0; // starting time, in local timezone
 	uint32_t random_seed = 0;
-    TDynamicObject *changeDynObj{ nullptr };// info o zmianie pojazdu
     TCamera pCamera; // parametry kamery
     TCamera pDebugCamera;
     std::array<Math3D::vector3, 10> FreeCameraInit; // pozycje kamery

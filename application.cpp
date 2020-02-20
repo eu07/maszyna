@@ -167,13 +167,26 @@ void eu07_application::queue_quit() {
 	glfwSetWindowShouldClose(m_windows[0], GLFW_TRUE);
 }
 
+bool
+eu07_application::is_server() const {
+
+    return ( m_network && m_network->servers );
+}
+
+bool
+eu07_application::is_client() const {
+
+    return ( m_network && m_network->client );
+}
+
 int
 eu07_application::run() {
-
+    auto frame{ 0 };
     // main application loop
     while (!glfwWindowShouldClose( m_windows.front() ) && !m_modestack.empty())
     {
         Timer::subsystem.mainloop_total.start();
+        glfwPollEvents();
 
 		// -------------------------------------------------------------------
 		// multiplayer command relaying logic can seem a bit complex
@@ -191,6 +204,9 @@ eu07_application::run() {
 			int loop_remaining = MAX_NETWORK_PER_FRAME;
 			while (--loop_remaining > 0)
 			{
+#ifdef EU07_DEBUG_NETSYNC
+                WriteLog( "net: frame " + std::to_string(++frame) + " start", logtype::net );
+#endif
 				command_queue::commands_map commands_to_exec;
 				command_queue::commands_map local_commands = simulation::Commands.pop_intercept_queue();
 				double slave_sync;
@@ -272,7 +288,7 @@ eu07_application::run() {
 				float awaiting = m_network->client->get_awaiting_frames();
 
 				// TODO: don't meddle with mode progresbar
-				m_modes[m_modestack.top()]->set_progress(100.0f, 100.0f * (received - awaiting) / received);
+				m_modes[m_modestack.top()]->set_progress(100.0f * (received - awaiting) / received);
 			} else {
 				m_modes[m_modestack.top()]->set_progress(0.0f, 0.0f);
 			}
@@ -294,8 +310,6 @@ eu07_application::run() {
 
         if (!GfxRenderer->Render())
             return 0;
-
-        glfwPollEvents();
 
         if (m_modestack.empty())
             return 0;

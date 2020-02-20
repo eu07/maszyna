@@ -716,6 +716,7 @@ public: // reszta może by?publiczna
     // McZapkie: opis kabiny - obszar poruszania sie mechanika oraz zajetosc
     std::array<TCab, 3> Cabine; // przedzial maszynowy, kabina 1 (A), kabina 2 (B)
     int iCabn { 0 }; // 0: mid, 1: front, 2: rear
+    bool is_cab_initialized { false };
     // McZapkie: do poruszania sie po kabinie
     Math3D::vector3 pMechSittingPosition; // ABu 180404
     Math3D::vector3 MirrorPosition( bool lewe );
@@ -773,7 +774,7 @@ private:
 	float fDieselParams[9][10]; // parametry dla silnikow asynchronicznych
     // plays provided sound from position of the radio
     void radio_message( sound_source *Message, int const Channel );
-    inline auto const &RadioChannel() const { return Dynamic()->Mechanik->iRadioChannel; }
+    inline auto const RadioChannel() const { return ( Dynamic()->Mechanik ? Dynamic()->Mechanik->iRadioChannel : 1 ); }
     inline auto &RadioChannel() { return Dynamic()->Mechanik->iRadioChannel; }
     inline TDynamicObject *Dynamic() { return DynamicObject; };
     inline TDynamicObject const *Dynamic() const { return DynamicObject; };
@@ -794,6 +795,7 @@ private:
 class train_table : public basic_table<TTrain> {
 public:
     void update( double dt );
+    TTrain *find_id( std::uint16_t const Id ) const;
 };
 
 //---------------------------------------------------------------------------

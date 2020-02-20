@@ -386,7 +386,7 @@ command_relay::post(user_command const Command, double const Param1, double cons
 		Position = Global.pCamera.Pos;
 
 	uint32_t combined_recipient = static_cast<uint32_t>( command.target ) | Recipient;
-	command_data commanddata({Command, Action, Param1, Param2, Timer::GetDeltaTime(), FreeFlyModeFlag, Position });
+	command_data commanddata({Command, Action, Param1, Param2, Timer::GetDeltaTime(), Position });
 	if (Payload)
 		commanddata.payload = *Payload;
 

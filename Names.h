@@ -58,13 +58,6 @@ public:
 
 		m_itemmap.erase(lookup);
 	}
-	uint32_t find_id( std::string const &Name) const {
-		auto lookup = m_itemmap.find( Name );
-		return (
-		    lookup != m_itemmap.end() ?
-		        lookup->second :
-		        -1 );
-	}
 	void purge (Type_ *Item)
 	{
 		for (auto it = m_items.begin(); it != m_items.end(); it++) {

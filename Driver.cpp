@@ -3080,8 +3080,8 @@ bool TController::DecBrakeEIM()
 
 bool TController::IncSpeed()
 { // zwiększenie prędkości; zwraca false, jeśli dalej się nie da zwiększać
-    if( true == tsGuardSignal.is_playing() ) {
-        // jeśli gada, to nie jedziemy
+    if( fActionTime < 0.0 ) {
+        // gdy jest nakaz poczekać z jazdą, to nie ruszać
         return false;
     }
     bool OK = true;
@@ -3093,6 +3093,7 @@ bool TController::IncSpeed()
 	if (mvOccupied->SpringBrake.IsActive && mvOccupied->SpringBrake.Activate) {
 		mvOccupied->SpringBrakeActivate(false);
 	}
+    // Doors() call can potentially adjust fActionTime
     if( fActionTime < 0.0 ) {
         // gdy jest nakaz poczekać z jazdą, to nie ruszać
         return false;
@@ -5717,6 +5718,8 @@ TController::UpdateSituation(double dt) {
                         // place virtual conductor some distance away
                         tsGuardSignal.offset( { pVehicle->MoverParameters->Dim.W * -0.75f, 1.7f, std::min( -20.0, -0.2 * fLength ) } );
                         tsGuardSignal.play( sound_flags::exclusive );
+                        // NOTE: we can't rely on is_playing() check as sound playback is based on distance from local camera
+                        fActionTime = -5.0; // niech trochę potrzyma
                     }
                     else {
                         // if (iGuardRadio==iRadioChannel) //zgodność kanału
@@ -5727,6 +5730,8 @@ TController::UpdateSituation(double dt) {
                         tsGuardSignal.owner( pVehicle );
                         tsGuardSignal.offset( { 0.f, 2.f, pVehicle->MoverParameters->Dim.L * 0.4f * ( pVehicle->MoverParameters->CabOccupied < 0 ? -1 : 1 ) } );
                         tsGuardSignal.play( sound_flags::exclusive );
+                        // NOTE: we can't rely on is_playing() check as sound playback is based on distance from local camera
+                        fActionTime = -5.0; // niech trochę potrzyma
                     }
                 }
             }
@@ -6984,7 +6989,7 @@ void TController::UpdateDelayFlag() {
 
 void TController::TakeControl( bool const Aidriver, bool const Forcevehiclecheck )
 { // przejęcie kontroli przez AI albo oddanie
-    if (AIControllFlag == Aidriver)
+    if ((AIControllFlag == Aidriver) && (!Forcevehiclecheck))
         return; // już jest jak ma być
     if (Aidriver) //żeby nie wykonywać dwa razy
     { // teraz AI prowadzi
@@ -7145,12 +7150,29 @@ TController::TrackBlock() const {
 
 void TController::MoveTo(TDynamicObject *to)
 { // przesunięcie AI do innego pojazdu (przy zmianie kabiny)
-    // mvOccupied->CabDeactivisation(); //wyłączenie kabiny w opuszczanym
-    pVehicle->Mechanik = to->Mechanik; //żeby się zamieniły, jak jest jakieś drugie
+    if( ( to->Mechanik != nullptr )
+     && ( to->Mechanik != this ) ) {
+        // ai controller thunderdome, there can be only one
+        if( to->Mechanik->AIControllFlag ) {
+            if( to->Mechanik->primary() ) {
+                // take over boss duties
+                primary( true );
+            }
+            SafeDelete( to->Mechanik );
+        }
+        else {
+            // can't quite delete a human
+            if( AIControllFlag ) {
+                delete this;
+            }
+            return;
+        }
+    }
+    pVehicle->Mechanik = nullptr;
     pVehicle = to;
     ControllingSet(); // utworzenie połączenia do sterowanego pojazdu
     pVehicle->Mechanik = this;
-    // iDirection=0; //kierunek jazdy trzeba dopiero zgadnąć
+
 };
 
 void TController::ControllingSet()

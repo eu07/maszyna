@@ -320,6 +320,9 @@ state_serializer::deserialize_firstinit( cParser &Input, scene::scratch_data &Sc
     simulation::Events.InitLaunchers();
     simulation::Memory.InitCells();
 
+	if (!Scratchpad.time_initialized)
+		init_time();
+
     Scratchpad.initialized = true;
 }
 
@@ -628,20 +631,14 @@ state_serializer::deserialize_time( cParser &Input, scene::scratch_data &Scratch
         >> time.wHour
         >> time.wMinute;
 
-    if( true == Global.ScenarioTimeCurrent ) {
-        // calculate time shift required to match scenario time with local clock
-        auto timenow = std::time( 0 );
-        auto const *localtime = std::localtime( &timenow );
-        Global.ScenarioTimeOffset = ( ( localtime->tm_hour * 60 + localtime->tm_min ) - ( time.wHour * 60 + time.wMinute ) ) / 60.f;
-    }
-    else if( false == std::isnan( Global.ScenarioTimeOverride ) ) {
-        // scenario time override takes precedence over scenario time offset
-        Global.ScenarioTimeOffset = ( ( Global.ScenarioTimeOverride * 60 ) - ( time.wHour * 60 + time.wMinute ) ) / 60.f;
-    }
-
     // remaining sunrise and sunset parameters are no longer used, as they're now calculated dynamically
     // anything else left in the section has no defined meaning
     skip_until( Input, "endtime" );
+
+	if (!Scratchpad.time_initialized)
+		Scratchpad.time_initialized = true;
+
+	init_time();
 }
 
 void
@@ -972,6 +969,19 @@ state_serializer::deserialize_sound( cParser &Input, scene::scratch_data &Scratc
     skip_until( Input, "endsound" );
 
     return sound;
+}
+
+void state_serializer::init_time() {
+	auto &time = simulation::Time.data();
+	if( true == Global.ScenarioTimeCurrent ) {
+		// calculate time shift required to match scenario time with local clock
+		auto const *localtime = std::gmtime( &Global.starting_timestamp );
+		Global.ScenarioTimeOffset = ( ( localtime->tm_hour * 60 + localtime->tm_min ) - ( time.wHour * 60 + time.wMinute ) ) / 60.f;
+	}
+	else if( false == std::isnan( Global.ScenarioTimeOverride ) ) {
+		// scenario time override takes precedence over scenario time offset
+		Global.ScenarioTimeOffset = ( ( Global.ScenarioTimeOverride * 60 ) - ( time.wHour * 60 + time.wMinute ) ) / 60.f;
+	}
 }
 
 // skips content of stream until specified token

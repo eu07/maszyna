@@ -218,28 +218,58 @@ void state_manager::process_commands() {
 
 		if (commanddata.command == user_command::entervehicle) {
 			// przesiadka do innego pojazdu
-			if (!commanddata.freefly)
-				// only available in free fly mode
+            // NOTE: because malformed scenario can have vehicle name duplicates we first try to locate vehicle in world, with name search as fallback
+            TDynamicObject *targetvehicle = std::get<TDynamicObject *>( simulation::Region->find_vehicle( commanddata.location, 50, false, false ) );
+            if( ( targetvehicle == nullptr ) || ( targetvehicle->name() != commanddata.payload ) ) {
+                targetvehicle = simulation::Vehicles.find( commanddata.payload );
+            }
+
+			if (!targetvehicle)
 				continue;
 
-			TDynamicObject *dynamic = std::get<TDynamicObject *>( simulation::Region->find_vehicle( commanddata.location, 50, false, false ) );
+            auto *senderlocaltrain { simulation::Trains.find_id( static_cast<std::uint16_t>( commanddata.param2 ) ) };
+            if( senderlocaltrain  ) {
+                auto *currentvehicle { senderlocaltrain->Dynamic() };
+                auto const samevehicle { currentvehicle == targetvehicle };
 
-			if (!dynamic)
-				continue;
+                if( samevehicle ) {
+                    // we already control desired vehicle so don't overcomplicate things
+                    continue;
+                }
 
-			TTrain *train = simulation::Trains.find(dynamic->name());
-			if (train)
-				continue;
+                auto const sameconsist{
+                    ( targetvehicle->ctOwner == currentvehicle->Mechanik )
+                 || ( targetvehicle->ctOwner == currentvehicle->ctOwner ) };
+                auto const isincharge{ currentvehicle->Mechanik->primary() };
+                auto const aidriveractive{ currentvehicle->Mechanik->AIControllFlag };
+                // TODO: support for primary mode request passed as commanddata.param1
+                if( !sameconsist && isincharge ) {
+                    // oddajemy dotychczasowy AI
+                    currentvehicle->Mechanik->TakeControl( true );
+                }
+
+                if( sameconsist && !aidriveractive ) {
+                    // since we're consist owner we can simply move to the destination vehicle
+                    senderlocaltrain->MoveToVehicle( targetvehicle );
+                    senderlocaltrain->Dynamic()->Mechanik->TakeControl( false, true );
+                }
+            }
+
+            auto *train { simulation::Trains.find( targetvehicle->name() ) };
+
+            if (train)
+                continue;
 
 			train = new TTrain();
-			if (train->Init(dynamic)) {
+			if (train->Init(targetvehicle)) {
 				simulation::Trains.insert(train);
 			}
 			else {
 				delete train;
 				train = nullptr;
 			}
-		}
+
+        }
 
 		if (commanddata.command == user_command::queueevent) {
 			std::istringstream ss(commanddata.payload);
@@ -268,11 +298,16 @@ void state_manager::process_commands() {
 
 		if (commanddata.command == user_command::setdatetime) {
 			int yearday = std::round(commanddata.param1);
-			int minute = std::round(commanddata.param2 * 60.0);
+			int minute = std::round(commanddata.param2);
 			simulation::Time.set_time(yearday, minute);
 
-			simulation::Environment.compute_season(yearday);
-		}
+            auto const weather { Global.Weather };
+            simulation::Environment.compute_season(yearday);
+            if( weather != Global.Weather ) {
+                // HACK: force re-calculation of precipitation
+                Global.Overcast = clamp( Global.Overcast - 0.0001f, 0.0f, 2.0f );
+            }
+        }
 
 		if (commanddata.command == user_command::setweather) {
 			Global.fFogEnd = commanddata.param1;
@@ -394,6 +429,7 @@ void state_manager::process_commands() {
 		}
 
 		if (commanddata.command == user_command::quitsimulation) {
+            // TBD: allow clients to go into offline mode?
 			Application.queue_quit();
 		}
 

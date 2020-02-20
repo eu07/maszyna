@@ -7,6 +7,8 @@
 #include "application.h"
 #include "Globals.h"
 
+std::uint32_t const EU07_NETWORK_VERSION = 2;
+
 namespace network {
 
 backend_list_t& backend_list() {
@@ -40,7 +42,7 @@ void network::connection::connected()
 
 	if (is_client) {
 		client_hello msg;
-		msg.version = 1;
+		msg.version = EU07_NETWORK_VERSION;
 		msg.start_packet = packet_counter;
 		send_message(msg);
 	}
@@ -125,7 +127,7 @@ void network::server::handle_message(std::shared_ptr<connection> conn, const mes
 	if (msg.type == message::CLIENT_HELLO) {
 		auto cmd = dynamic_cast<const client_hello&>(msg);
 
-		if (cmd.version != 1 // wrong version
+		if (cmd.version != EU07_NETWORK_VERSION // wrong version
 		        || !Global.ready_to_load) { // not ready yet
 			conn->disconnect();
 			return;
@@ -134,6 +136,8 @@ void network::server::handle_message(std::shared_ptr<connection> conn, const mes
 		server_hello reply;
 		reply.seed = Global.random_seed;
 		reply.timestamp = Global.starting_timestamp;
+        reply.config = 0; // TODO: pass bitfield with state of relevant setting switches
+        reply.scenario = Global.SceneryFile;
 		conn->state = connection::CATCHING_UP;
 		conn->backbuffer = backbuffer;
 		conn->backbuffer_pos = 0;
@@ -244,6 +248,8 @@ void network::client::handle_message(std::shared_ptr<connection> conn, const mes
 			Global.random_seed = cmd.seed;
 			Global.random_engine.seed(Global.random_seed);
 			Global.starting_timestamp = cmd.timestamp;
+            // TODO: configure simulation settings according to received cmd.config
+            Global.SceneryFile = cmd.scenario;
 			Global.ready_to_load = true;
 		} else if (Global.random_seed != cmd.seed) {
 			ErrorLog("net: seed mismatch", logtype::net);

@@ -91,7 +91,6 @@ private:
     void update_camera( const double Deltatime );
     // handles vehicle change flag
     void OnKeyDown( int cKey );
-    void ChangeDynamic();
     void InOutKey();
     void CabView();
     void ExternalView();

@@ -5827,7 +5827,7 @@ bool TTrain::Update( double const Deltatime )
             if (ff != fTachoTimer) // jesli w tej sekundzie nie zmienial
             {
                 if (fTachoVelocity > 1) // jedzie
-                    fTachoVelocityJump = fTachoVelocity + (2.0 - Random(3) + Random(3)) * 0.5;
+                    fTachoVelocityJump = fTachoVelocity + (2.0 - LocalRandom(3) + LocalRandom(3)) * 0.5;
                 else
                     fTachoVelocityJump = 0; // stoi
                 fTachoTimer = ff; // juz zmienil
@@ -6049,7 +6049,8 @@ bool TTrain::Update( double const Deltatime )
             if ((mvControlled->CompressorFlag == true) && (mvControlled->CompressorPower == 1) &&
                 ((mvControlled->EngineType == TEngineType::ElectricSeriesMotor) ||
                  (mvControlled->TrainType == dt_EZT)) &&
-                (DynamicObject->Controller == Humandriver)) // hunter-110212: poprawka dla EZT
+                (DynamicObject->Controller == Humandriver) // hunter-110212: poprawka dla EZT
+                && ( false == DynamicObject->Mechanik->AIControllFlag ) )
             { // hunter-091012: poprawka (zmiana warunku z CompressorPower /rozne od 0/ na /rowne 1/)
                 if (fConverterTimer < fConverterPrzekaznik)
                 {
@@ -7496,6 +7497,9 @@ bool TTrain::InitializeCab(int NewCabNo, std::string const &asFileName)
     }
     // reset view angles
     pMechViewAngle = { 0.0, 0.0 };
+
+    is_cab_initialized = true; // the attempt may fail, but it's the attempt that counts
+
     bool parse = false;
     int cabindex = 0;
     DynamicObject->mdKabina = NULL; // likwidacja wskaźnika na dotychczasową kabinę
@@ -7871,7 +7875,6 @@ TTrain::MoveToVehicle(TDynamicObject *target) {
 	// > Ra: to nie może być tak robione, to zbytnia proteza jest
 	// indeed, too much hacks...
 	// TODO: cleanup
-
 	TTrain *target_train = simulation::Trains.find(target->name());
 	if (target_train) {
 		// let's try to destroy this TTrain and move to already existing one
@@ -7882,18 +7885,22 @@ TTrain::MoveToVehicle(TDynamicObject *target) {
 			Occupied()->CabDeactivisation();
 			Occupied()->CabOccupied = 0;
 			Occupied()->BrakeLevelSet(Occupied()->Handle->GetPos(bh_NP)); //rozwala sterowanie hamulcem GF 04-2016
-			Dynamic()->MechInside = false;
+            Occupied()->MainCtrlPos = Occupied()->MainCtrlNoPowerPos();
+            Occupied()->ScndCtrlPos = 0;
+            Dynamic()->MechInside = false;
 			Dynamic()->Controller = AIdriver;
 
 			Dynamic()->bDisplayCab = false;
 			Dynamic()->ABuSetModelShake( {} );
 
-			Dynamic()->Mechanik->MoveTo(target);
+            if( Dynamic()->Mechanik ) {
+                Dynamic()->Mechanik->MoveTo( target );
+            }
 
 			target_train->Occupied()->LimPipePress = target_train->Occupied()->PipePress;
-			target_train->Occupied()->CabActivisation(); // załączenie rozrządu (wirtualne kabiny)
+			target_train->Occupied()->CabActivisation( true ); // załączenie rozrządu (wirtualne kabiny)
 			target_train->Dynamic()->MechInside = true;
-			target_train->Dynamic()->Controller = Humandriver;
+			target_train->Dynamic()->Controller = ( target_train->Dynamic()->Mechanik ? !target_train->Dynamic()->Mechanik->AIControllFlag : Humandriver );
 		} else {
 			target_train->Dynamic()->bDisplayCab = false;
 			target_train->Dynamic()->ABuSetModelShake( {} );
@@ -7922,20 +7929,24 @@ TTrain::MoveToVehicle(TDynamicObject *target) {
 			Occupied()->CabDeactivisation();
 			Occupied()->CabOccupied = 0;
 			Occupied()->BrakeLevelSet(Occupied()->Handle->GetPos(bh_NP)); //rozwala sterowanie hamulcem GF 04-2016
-			Dynamic()->MechInside = false;
+            Occupied()->MainCtrlPos = Occupied()->MainCtrlNoPowerPos();
+            Occupied()->ScndCtrlPos = 0;
+            Dynamic()->MechInside = false;
 			Dynamic()->Controller = AIdriver;
 
 			Dynamic()->bDisplayCab = false;
 			Dynamic()->ABuSetModelShake( {} );
 
-			Dynamic()->Mechanik->MoveTo(target);
+            if( Dynamic()->Mechanik ) {
+                Dynamic()->Mechanik->MoveTo( target );
+            }
 
 			DynamicSet(target);
 
 			Occupied()->LimPipePress = Occupied()->PipePress;
-			Occupied()->CabActivisation(); // załączenie rozrządu (wirtualne kabiny)
+			Occupied()->CabActivisation( true ); // załączenie rozrządu (wirtualne kabiny)
 			Dynamic()->MechInside = true;
-			Dynamic()->Controller = Humandriver;
+			Dynamic()->Controller = ( Dynamic()->Mechanik ? !Dynamic()->Mechanik->AIControllFlag : Humandriver );
 		} else {
 			Dynamic()->bDisplayCab = false;
 			Dynamic()->ABuSetModelShake( {} );
@@ -7953,6 +7964,7 @@ TTrain::MoveToVehicle(TDynamicObject *target) {
 		// add it back with updated dynamic name
 		simulation::Trains.insert(this);
 	}
+
 }
 
 // checks whether specified point is within boundaries of the active cab
@@ -8302,7 +8314,7 @@ void TTrain::set_cab_controls( int const Cab ) {
     if( true == mvOccupied->Radio ) {
         ggRadioButton.PutValue( 1.f );
     }
-    ggRadioChannelSelector.PutValue( RadioChannel() - 1 );
+    ggRadioChannelSelector.PutValue( ( Dynamic()->Mechanik ? Dynamic()->Mechanik->iRadioChannel : 1 ) - 1 );
     // pantographs
 /*
     if( mvOccupied->PantSwitchType != "impulse" ) {
@@ -9261,4 +9273,20 @@ void train_table::update(double dt)
 			purge(train->Dynamic()->name());
 		}
 	}
+}
+
+TTrain *
+train_table::find_id( std::uint16_t const Id ) const {
+
+    if( Id == 0 ) { return nullptr; }
+
+    for( TTrain *train : m_items ) {
+        if( !train ) {
+            continue;
+        }
+        if( train->id() == Id ) {
+            return train;
+        }
+    }
+    return nullptr;
 }
