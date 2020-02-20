@@ -28,22 +28,41 @@ auto const gammacorrection { glm::vec3( 2.2f ) };
 
 void GLAPIENTRY
 ErrorCallback( GLenum source, GLenum type, GLuint id, GLenum severity, GLsizei length, const GLchar* message, const void* userParam ) {
+/*
+    auto const typestring {
+        type == GL_DEBUG_TYPE_ERROR ? "error" :
+        type == GL_DEBUG_TYPE_DEPRECATED_BEHAVIOR ? "deprecated behavior" :
+        type == GL_DEBUG_TYPE_UNDEFINED_BEHAVIOR ? "undefined behavior" :
+        type == GL_DEBUG_TYPE_PORTABILITY ? "portability" :
+        type == GL_DEBUG_TYPE_PERFORMANCE ? "performance" :
+        type == GL_DEBUG_TYPE_OTHER ? "other" :
+        "unknown" };
+*/
+    auto const severitystring {
+        severity == GL_DEBUG_SEVERITY_HIGH ? "high severity" :
+        severity == GL_DEBUG_SEVERITY_MEDIUM ? "medium severity" :
+        severity == GL_DEBUG_SEVERITY_LOW ? "low severity" :
+        severity == GL_DEBUG_SEVERITY_NOTIFICATION ? "notification" :
+        "unknown" };
 
     ErrorLog(
-        "bad gfx code: " + std::string( type == GL_DEBUG_TYPE_ERROR ? "** GL ERROR **" : "" )
-        + " type = " + to_hex_str( id )
-        + ", severity = " + to_hex_str( severity )
-        + ", message = " + message );
+        "bad gfx code: " + std::string( type == GL_DEBUG_TYPE_ERROR ? "** GL ERROR ** " : "" )
+        + to_hex_str( id )
+        + " (" + severitystring + ") "
+        + message );
 }
 
 bool opengl33_renderer::Init(GLFWwindow *Window)
 {
-/*
+#ifdef EU07_DEBUG_OPENGL
     if( GLAD_GL_KHR_debug ) {
         glEnable( GL_DEBUG_OUTPUT );
+        glEnable( GL_DEBUG_OUTPUT_SYNCHRONOUS );
+        glDebugMessageControl( GL_DONT_CARE, GL_DONT_CARE, GL_DEBUG_SEVERITY_NOTIFICATION, 0, nullptr, GL_FALSE );
+        glDebugMessageControl( GL_DONT_CARE, GL_DEBUG_TYPE_PERFORMANCE, GL_DONT_CARE, 0, nullptr, GL_FALSE );
         glDebugMessageCallback( ErrorCallback, 0 );
     }
-*/
+#endif
 	if (!Init_caps())
 		return false;
 
@@ -332,7 +351,9 @@ bool opengl33_renderer::init_viewport(viewport_config &vp)
     if( !Global.gfx_usegles ) {
         glEnable( GL_PROGRAM_POINT_SIZE );
         // not present in core, but if we get compatibility profile instead we won't get gl_pointcoord without it
-        glEnable( GL_POINT_SPRITE );
+        if( std::string( (char *)glGetString( GL_VERSION ) ).find( "3.3" ) != 0 ) {
+            glEnable( GL_POINT_SPRITE );
+        }
     }
 
 	if (!gl::vao::use_vao)
@@ -565,6 +586,7 @@ void opengl33_renderer::Render_pass(viewport_config &vp, rendermode const Mode)
 
 		if (!simulation::is_ready)
 		{
+            gl::program::unbind();
 			gl::framebuffer::unbind();
 			glClearColor( 51.0f / 255.f, 102.0f / 255.f, 85.0f / 255.f, 1.f ); // initial background Color
 			glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -1597,6 +1619,7 @@ bool opengl33_renderer::Render(world_environment *Environment)
 	if (Environment->m_clouds.mdCloud)
 	{
 		// setup
+/*
 		glm::vec3 color =
             interpolate(
                 Environment->m_skydome.GetAverageColor(), suncolor,
@@ -1605,6 +1628,14 @@ bool opengl33_renderer::Render(world_environment *Environment)
                 1.f, 0.35f,
                 Global.Overcast / 2.f) // overcast darkens the clouds
             * 0.5f;
+*/
+		auto const color {
+			glm::clamp(
+			    ( glm::vec3 { Global.DayLight.ambient }
+                + 0.35f * glm::vec3{ Global.DayLight.diffuse } ) * simulation::Environment.light_intensity()
+                * 0.5f,
+			    glm::vec3{ 0.f }, glm::vec3{ 1.f } ) };
+
 		// write cloud color into material
 		TSubModel *mdl = Environment->m_clouds.mdCloud->Root;
 		if (mdl->m_material != null_handle)

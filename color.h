@@ -4,7 +4,7 @@ namespace colors {
 
 glm::vec4 const none{ 0.f, 0.f, 0.f, 1.f };
 glm::vec4 const white{ 1.f, 1.f, 1.f, 1.f };
-glm::vec4 const shadow{ 0.35f, 0.40f, 0.45f, 1.f };
+glm::vec4 const shadow{ 0.25f, 0.30f, 0.35f, 1.f };
 
 inline
 glm::vec3

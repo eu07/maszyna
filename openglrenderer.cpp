@@ -3148,7 +3148,7 @@ opengl_renderer::Render_precipitation() {
     }
     if( Global.Weather == "rain:" ) {
         // oddly enough random streaks produce more natural looking rain than ones the eye can follow
-        ::glRotated( Random() * 360, 0.0, 1.0, 0.0 );
+        ::glRotated( LocalRandom() * 360, 0.0, 1.0, 0.0 );
     }
 
     // TBD: leave lighting on to allow vehicle lights to affect it?
