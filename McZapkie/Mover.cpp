@@ -8912,6 +8912,13 @@ bool TMoverParameters::LoadFIZ(std::string chkpath)
             continue;
         }
 
+        if( issection( "AI:", inputline ) ) {
+            startBPT = false;
+            fizlines.emplace( "AI", inputline );
+            LoadFIZ_AI( inputline );
+            continue;
+        }
+
         if( issection( "RList:", inputline ) )
         {
 			startBPT = false;
@@ -10149,6 +10156,11 @@ void TMoverParameters::LoadFIZ_Circuit( std::string const &Input ) {
 	extract_value( TUHEX_Sum3, "TUHEX_Sum3", Input, "" );
 	extract_value( TUHEX_Stages, "TUHEX_Stages", Input, "0" );
 	
+}
+
+void TMoverParameters::LoadFIZ_AI( std::string const &Input ) {
+
+    extract_value( AIHintPantstate, "Pantstate", Input, "" );
 }
 
 void TMoverParameters::LoadFIZ_RList( std::string const &Input ) {

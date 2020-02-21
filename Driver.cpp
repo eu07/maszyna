@@ -4714,40 +4714,58 @@ TController::UpdateSituation(double dt) {
                 }
                 else {
                     // jeśli nie trzeba opuszczać pantografów
-                    // jazda na tylnym
-                    if( ( iDirection >= 0 ) && ( useregularpantographlayout ) ) {
-                        // jak jedzie w kierunku sprzęgu 0
-                        if( ( mvControlling->PantRearVolt == 0.0 )
-                            // filter out cases with single _other_ working pantograph so we don't try to raise something we can't
-                         && ( ( mvControlling->PantographVoltage == 0.0 )
-                           || ( mvControlling->EnginePowerSource.CollectorParameters.CollectorsNo > 1 ) ) ) {
-                            mvControlling->OperatePantographValve( end::rear, operation_t::enable );
+                    if( mvOccupied->AIHintPantstate == 0 ) {
+                        // jazda na tylnym
+                        if( ( iDirection >= 0 ) && ( useregularpantographlayout ) ) {
+                            // jak jedzie w kierunku sprzęgu 0
+                            if( ( mvControlling->PantRearVolt == 0.0 )
+                                // filter out cases with single _other_ working pantograph so we don't try to raise something we can't
+                                && ( ( mvControlling->PantographVoltage == 0.0 )
+                                || ( mvControlling->EnginePowerSource.CollectorParameters.CollectorsNo > 1 ) ) ) {
+                                mvControlling->OperatePantographValve( end::rear, operation_t::enable );
+                            }
                         }
-                    }
-                    else {
-                        // jak jedzie w kierunku sprzęgu 0
-                        if( ( mvControlling->PantFrontVolt == 0.0 )
-                            // filter out cases with single _other_ working pantograph so we don't try to raise something we can't
-                         && ( ( mvControlling->PantographVoltage == 0.0 )
-                           || ( mvControlling->EnginePowerSource.CollectorParameters.CollectorsNo > 1 ) ) ) {
-                            mvControlling->OperatePantographValve( end::front, operation_t::enable );
+                        else {
+                            // jak jedzie w kierunku sprzęgu 0
+                            if( ( mvControlling->PantFrontVolt == 0.0 )
+                                // filter out cases with single _other_ working pantograph so we don't try to raise something we can't
+                                && ( ( mvControlling->PantographVoltage == 0.0 )
+                                || ( mvControlling->EnginePowerSource.CollectorParameters.CollectorsNo > 1 ) ) ) {
+                                mvControlling->OperatePantographValve( end::front, operation_t::enable );
+                            }
                         }
                     }
                 }
                 if( mvOccupied->Vel > 5 ) {
-                    // opuszczenie przedniego po rozpędzeniu się o ile jest więcej niż jeden
-                    if( mvControlling->EnginePowerSource.CollectorParameters.CollectorsNo > 1 ) {
-                        if( ( iDirection >= 0 ) && ( useregularpantographlayout ) ) // jak jedzie w kierunku sprzęgu 0
-                        { // poczekać na podniesienie tylnego
-                            if( ( mvControlling->PantFrontVolt != 0.0 )
-                             && ( mvControlling->PantRearVolt != 0.0 ) ) { // czy jest napięcie zasilające na tylnym?
-                                mvControlling->OperatePantographValve( end::front, operation_t::disable ); // opuszcza od sprzęgu 0
+                    if( mvOccupied->AIHintPantstate != 0 ) {
+                        // use suggested pantograph setup
+                        auto const pantographsetup { mvOccupied->AIHintPantstate };
+                            mvControlling->OperatePantographValve(
+                                end::front,
+                                ( pantographsetup & ( 1 << 0 ) ?
+                                    operation_t::enable :
+                                    operation_t::disable ) );
+                            mvControlling->OperatePantographValve(
+                                end::rear,
+                                ( pantographsetup & ( 1 << 1 ) ?
+                                    operation_t::enable :
+                                    operation_t::disable ) );
+                    }
+                    else {
+                        // opuszczenie przedniego po rozpędzeniu się o ile jest więcej niż jeden
+                        if( mvControlling->EnginePowerSource.CollectorParameters.CollectorsNo > 1 ) {
+                            if( ( iDirection >= 0 ) && ( useregularpantographlayout ) ) // jak jedzie w kierunku sprzęgu 0
+                            { // poczekać na podniesienie tylnego
+                                if( ( mvControlling->PantFrontVolt != 0.0 )
+                                 && ( mvControlling->PantRearVolt != 0.0 ) ) { // czy jest napięcie zasilające na tylnym?
+                                    mvControlling->OperatePantographValve( end::front, operation_t::disable ); // opuszcza od sprzęgu 0
+                                }
                             }
-                        }
-                        else { // poczekać na podniesienie przedniego
-                            if( ( mvControlling->PantRearVolt != 0.0 )
-                             && ( mvControlling->PantFrontVolt != 0.0 ) ) { // czy jest napięcie zasilające na przednim?
-                                mvControlling->OperatePantographValve( end::rear, operation_t::disable ); // opuszcza od sprzęgu 1
+                            else { // poczekać na podniesienie przedniego
+                                if( ( mvControlling->PantRearVolt != 0.0 )
+                                 && ( mvControlling->PantFrontVolt != 0.0 ) ) { // czy jest napięcie zasilające na przednim?
+                                    mvControlling->OperatePantographValve( end::rear, operation_t::disable ); // opuszcza od sprzęgu 1
+                                }
                             }
                         }
                     }

@@ -1534,6 +1534,8 @@ public:
 	int iProblem = 0; // flagi problemów z taborem, aby AI nie musiało porównywać; 0=może jechać
 	int iLights[2]; // bity zapalonych świateł tutaj, żeby dało się liczyć pobór prądu
 
+    int AIHintPantstate{ 0 }; // suggested pantograph setup
+
 public:
 	TMoverParameters(double VelInitial, std::string TypeNameInit, std::string NameInit, int Cab);
 	// obsługa sprzęgów
@@ -1777,6 +1779,7 @@ private:
     void LoadFIZ_Switches( std::string const &Input );
     void LoadFIZ_MotorParamTable( std::string const &Input );
     void LoadFIZ_Circuit( std::string const &Input );
+    void LoadFIZ_AI( std::string const &Input );
     void LoadFIZ_RList( std::string const &Input );
 	void LoadFIZ_UCList(std::string const &Input);
     void LoadFIZ_DList( std::string const &Input );

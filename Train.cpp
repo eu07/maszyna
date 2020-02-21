@@ -6908,7 +6908,8 @@ bool TTrain::Update( double const Deltatime )
     }
     // screens
     fScreenTimer += Deltatime;
-    if( ( fScreenTimer > Global.PythonScreenUpdateRate * 0.001f )
+    if( ( this == simulation::Train ) // no point in drawing screens for vehicles other than our own
+     && ( fScreenTimer > Global.PythonScreenUpdateRate * 0.001f )
      && ( false == FreeFlyModeFlag ) ) { // don't bother if we're outside
         fScreenTimer = 0.f;
         for( auto const &screen : m_screens ) {
