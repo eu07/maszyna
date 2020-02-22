@@ -6913,7 +6913,12 @@ bool TTrain::Update( double const Deltatime )
      && ( false == FreeFlyModeFlag ) ) { // don't bother if we're outside
         fScreenTimer = 0.f;
         for( auto const &screen : m_screens ) {
-            Application.request( { screen.first, GetTrainState(), GfxRenderer->Texture( screen.second ).id } );
+            auto state_dict = GetTrainState();
+/*
+            state_dict->insert("touches", *screen.touch_list);
+            screen.touch_list->clear();
+*/
+            Application.request({ screen.rendererpath, state_dict, screen.rt } );
         }
     }
     // sounds
@@ -7707,23 +7712,53 @@ bool TTrain::InitializeCab(int NewCabNo, std::string const &asFileName)
                     >> submodelname
                     >> renderername;
 
-                auto const *submodel { ( DynamicObject->mdKabina ? DynamicObject->mdKabina->GetFromName( submodelname ) : nullptr ) };
-                if( submodel == nullptr ) {
-                    WriteLog( "Python Screen: submodel " + submodelname + " not found - Ignoring screen" );
-                    continue;
-                }
-                auto const material { submodel->GetMaterial() };
-                if( material <= 0 ) {
-                    // sub model nie posiada tekstury lub tekstura wymienna - nie obslugiwana
-                    WriteLog( "Python Screen: invalid texture id " + std::to_string( material ) + " - Ignoring screen" );
-                    continue;
-                }
+                const std::string rendererpath {
+                    substr_path(renderername).empty() ? // supply vehicle folder as path if none is provided
+                                            DynamicObject->asBaseDir + renderername :
+                                            renderername };
+
+				opengl_texture *tex = nullptr;
+                TSubModel *submodel = nullptr;
+				if (submodelname != "none") {
+                    submodel = ( DynamicObject->mdKabina ? DynamicObject->mdKabina->GetFromName( submodelname ) : nullptr );
+					if( submodel == nullptr ) {
+						WriteLog( "Python Screen: submodel " + submodelname + " not found - Ignoring screen" );
+						continue;
+					}
+					auto const material { submodel->GetMaterial() };
+					if( material <= 0 ) {
+						// sub model nie posiada tekstury lub tekstura wymienna - nie obslugiwana
+						WriteLog( "Python Screen: invalid texture id " + std::to_string( material ) + " - Ignoring screen" );
+						continue;
+					}
+
+                    tex = &GfxRenderer->Texture(GfxRenderer->Material(material).textures[0]);
+				}
+				else {
+					// TODO: fix leak
+					tex = new opengl_texture();
+					tex->make_stub();
+				}
+
+				tex->create();
+
+                auto touch_list = std::make_shared<std::vector<glm::vec2>>();
+				auto rt = std::make_shared<python_rt>();
+				rt->shared_tex = tex->id;
+/*
+                if (submodel)
+                    submodel->screen_touch_list = touch_list;
+*/
                 // record renderer and material binding for future update requests
-                m_screens.emplace_back(
-                    ( substr_path(renderername).empty() ? // supply vehicle folder as path if none is provided
-                        DynamicObject->asBaseDir + renderername :
-                        renderername ),
-                    GfxRenderer->Material( material ).textures[0] );
+                m_screens.emplace_back();
+                m_screens.back().rendererpath = rendererpath;
+                m_screens.back().rt = rt;
+/*
+                m_screens.back().touch_list = touch_list;
+
+				if (Global.python_displaywindows)
+                    m_screens.back().viewer = std::make_unique<python_screen_viewer>(rt, touch_list, rendererpath);
+*/
             }
             // btLampkaUnknown.Init("unknown",mdKabina,false);
         } while (token != "");

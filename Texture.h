@@ -36,6 +36,8 @@ struct opengl_texture {
     void
         release();
     void
+        make_stub();
+    void
         alloc_rendertarget( GLint format, GLint components, int width, int height, int layers = 1, int samples = 1, GLint wrap = GL_CLAMP_TO_EDGE );
     void
         set_components_hint( GLint hint );
@@ -65,7 +67,6 @@ struct opengl_texture {
 
 private:
 // methods
-    void make_stub();
     void make_request();
     void load_BMP();
     void load_DDS();

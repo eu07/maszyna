@@ -859,6 +859,16 @@ global_settings::ConfigParse(cParser &Parser) {
             Parser >> gfx_shadergamma;
         }
         */
+		else if (token == "python.threadedupload")
+		{
+			Parser.getTokens(1);
+			Parser >> python_threadedupload;
+		}
+		else if (token == "python.uploadmain")
+		{
+			Parser.getTokens(1);
+			Parser >> python_uploadmain;
+		}
         else if (token == "python.mipmaps")
 		{
 			Parser.getTokens(1);

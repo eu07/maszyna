@@ -110,6 +110,17 @@ class TTrain {
 		bool springbrake_active;
     };
 
+    struct screen_entry {
+        std::string rendererpath;
+        std::shared_ptr<python_rt> rt;
+/*
+        std::unique_ptr<python_screen_viewer> viewer;
+        std::shared_ptr<std::vector<glm::vec2>> touch_list;
+*/
+    };
+
+	typedef std::vector<screen_entry> screen_map;
+
 // constructors
     TTrain();
 // methods
@@ -760,7 +771,7 @@ private:
     float fPPress, fNPress;
     bool m_mastercontrollerinuse { false };
     float m_mastercontrollerreturndelay { 0.f };
-    std::vector<std::pair<std::string, texture_handle>> m_screens;
+	screen_map m_screens;
 	uint16_t vid { 0 }; // train network recipient id
     float m_distancecounter { -1.f }; // distance traveled since meter was activated or -1 if inactive
     double m_brakehandlecp{ 0.0 };

@@ -195,7 +195,9 @@ struct global_settings {
 
     std::string fullscreen_monitor;
 
-    bool python_mipmaps = true;
+	bool python_mipmaps = true;
+	bool python_threadedupload = true;
+	bool python_uploadmain = true;
 
     int gfx_framebuffer_width = -1;
     int gfx_framebuffer_height = -1;

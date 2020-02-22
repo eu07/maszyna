@@ -293,7 +293,10 @@ opengl_texture::make_request() {
     auto *dictionary { new dictionary_source( components.back() ) };
     if( dictionary == nullptr ) { return; }
 
-    Application.request( { ToLower( components.front() ), dictionary, id } );
+	auto rt = std::make_shared<python_rt>();
+	rt->shared_tex = id;
+
+	Application.request( { ToLower( components.front() ), dictionary, rt } );
 }
 
 void

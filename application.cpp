@@ -306,7 +306,7 @@ eu07_application::run() {
 		// -------------------------------------------------------------------
 
         // TODO: re-enable after python changes merge
-		// m_taskqueue.update();
+		m_taskqueue.update();
 
         if (!GfxRenderer->Render())
             return 0;
