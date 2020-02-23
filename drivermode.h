@@ -51,8 +51,11 @@ public:
         on_scroll( double const Xoffset, double const Yoffset ) override;
     void
         on_event_poll() override;
+    // provides key code associated with specified command
+    int
+        key_binding( user_command const Command ) const override;
     bool
-        is_command_processor() override;
+        is_command_processor() const override;
 
 private:
 // types
@@ -82,7 +85,7 @@ private:
         bool init();
         void poll();
         std::string
-            command_hints( std::pair<user_command, user_command> const &Commands ) const;
+            binding_hints( std::pair<user_command, user_command> const &Commands ) const;
         std::pair<user_command, user_command>
             command_fallback( user_command const Command ) const;
     };

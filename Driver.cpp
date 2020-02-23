@@ -1719,6 +1719,9 @@ TController::TController(bool AI, TDynamicObject *NewControll, bool InitPsyche, 
 #endif
         LogFile.flush();
     }
+
+    // HACK: give the simulation a small window to potentially replace the AI with a human driver
+    fActionTime = -2.0;
 };
 
 void TController::CloseLog()
@@ -2511,7 +2514,10 @@ void TController::SetDriverPsyche()
 
 bool TController::PrepareEngine()
 { // odpalanie silnika
-	bool OK = false,
+    // HACK: don't immediately activate inert vehicle in case the simulation is about to replace us with human driver
+    if( /* ( mvOccupied->Vel < 1.0 ) && */ ( fActionTime < 0.0 ) ) { return false; }
+    
+    bool OK = false,
 		voltfront = false,
 		voltrear = false;
     LastReactionTime = 0.0;
@@ -4663,7 +4669,7 @@ TController::UpdateSituation(double dt) {
             fVoltage = 0.5 * (fVoltage + std::max( mvControlling->GetAnyTrainsetVoltage(), mvControlling->PantographVoltage ) );
             if( fVoltage < mvControlling->EnginePowerSource.CollectorParameters.MinV ) {
                 // gdy rozłączenie WS z powodu niskiego napięcia
-                if( fActionTime >= 0 ) {
+                if( fActionTime >= PrepareTime ) {
                     // jeśli czas oczekiwania nie został ustawiony, losowy czas oczekiwania przed ponownym załączeniem jazdy
                     fActionTime = -2.0 - Random( 10 );
                 }
