@@ -129,7 +129,7 @@ void TIsolated::Modify(int i, TDynamicObject *o)
                 multiplayer::WyslijString(asName, 10); // wysłanie pakietu o zwolnieniu
             if (pMemCell) // w powiązanej komórce
                 pMemCell->UpdateValues( "", 0, int( pMemCell->Value2() ) & ~0xFF,
-                basic_event::flags::value_2 ); //"zerujemy" ostatnią wartość
+                basic_event::flags::value2 ); //"zerujemy" ostatnią wartość
         }
     }
     else
@@ -142,7 +142,7 @@ void TIsolated::Modify(int i, TDynamicObject *o)
             if (Global.iMultiplayer) // jeśli multiplayer
                 multiplayer::WyslijString(asName, 11); // wysłanie pakietu o zajęciu
             if (pMemCell) // w powiązanej komórce
-                pMemCell->UpdateValues( "", 0, int( pMemCell->Value2() ) | 1, basic_event::flags::value_2 ); // zmieniamy ostatnią wartość na nieparzystą
+                pMemCell->UpdateValues( "", 0, int( pMemCell->Value2() ) | 1, basic_event::flags::value2 ); // zmieniamy ostatnią wartość na nieparzystą
         }
     }
     // pass the event to the parent

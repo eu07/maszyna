@@ -358,6 +358,7 @@
     <ClInclude Include="Classes.h" />
     <ClInclude Include="color.h" />
     <ClInclude Include="command.h" />
+    <ClInclude Include="comparison.h" />
     <ClInclude Include="Console.h" />
     <ClInclude Include="Console\LPT.h" />
     <ClInclude Include="Console\PoKeys55.h" />

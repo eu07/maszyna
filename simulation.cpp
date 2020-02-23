@@ -153,19 +153,19 @@ state_manager::update_scripting_interface() {
         Global.Weather,
         Global.Overcast,
         Global.fFogEnd,
-        basic_event::flags::text | basic_event::flags::value_1 | basic_event::flags::value_2 );
+        basic_event::flags::text | basic_event::flags::value1 | basic_event::flags::value2 );
 
     time->UpdateValues(
         Global.Period,
         Time.data().wHour,
         Time.data().wMinute,
-        basic_event::flags::text | basic_event::flags::value_1 | basic_event::flags::value_2 );
+        basic_event::flags::text | basic_event::flags::value1 | basic_event::flags::value2 );
 
     date->UpdateValues(
         Global.Season,
         Time.year_day(),
         0,
-        basic_event::flags::text | basic_event::flags::value_1 );
+        basic_event::flags::text | basic_event::flags::value1 );
 
     // cache cell state to detect potential script-issued changes on next cycle
     *m_scriptinginterface.weather = *weather;

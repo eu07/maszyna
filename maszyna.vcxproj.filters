@@ -848,6 +848,9 @@
     <ClInclude Include="network\backend\asio.h">
       <Filter>Header Files\application\network\backend</Filter>
     </ClInclude>
+    <ClInclude Include="comparison.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="maszyna.rc">

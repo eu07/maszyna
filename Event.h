@@ -13,6 +13,7 @@ http://mozilla.org/MPL/2.0/.
 #include "scene.h"
 #include "Names.h"
 #include "EvLaunch.h"
+#include "comparison.h"
 
 // common event interface
 class basic_event {
@@ -22,8 +23,8 @@ public:
     enum flags {
         // shared values
         text        = 1 << 0,
-        value_1     = 1 << 1,
-        value_2     = 1 << 2,
+        value1      = 1 << 1,
+        value2      = 1 << 2,
         // update values
         mode_add    = 1 << 3,
         // whois
@@ -98,10 +99,14 @@ protected:
     struct event_conditions {
         unsigned int flags { 0 };
         float probability { 0.0 }; // used by conditional_probability
-        double match_value_1 { 0.0 }; // used by conditional_memcompare
-        double match_value_2 { 0.0 }; // used by conditional_memcompare
-        std::string match_text; // used by conditional_memcompare
-        basic_event::node_sequence *cells; // used by conditional_memcompare
+        double memcompare_value1 { 0.0 }; // used by conditional_memcompare
+        double memcompare_value2 { 0.0 }; // used by conditional_memcompare
+        std::string memcompare_text; // used by conditional_memcompare
+        comparison_operator memcompare_value1_operator { comparison_operator::eq }; // used by conditional_memcompare
+        comparison_operator memcompare_value2_operator { comparison_operator::eq }; // used by conditional_memcompare
+        comparison_operator memcompare_text_operator { comparison_operator::eq }; // used by conditional_memcompare
+        comparison_pass memcompare_pass { comparison_pass::all }; // used by conditional_memcompare
+        basic_event::node_sequence *memcompare_cells; // used by conditional_memcompare
         std::vector<TTrack *> tracks; // used by conditional_track
         bool has_else { false };
 

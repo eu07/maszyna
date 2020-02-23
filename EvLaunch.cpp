@@ -112,7 +112,7 @@ bool TEventLauncher::Load(cParser *parser)
         *parser >> token;
         if (token != "*") //*=nie brać wartości 1. pod uwagę
         {
-            iCheckMask |= basic_event::flags::value_1;
+            iCheckMask |= basic_event::flags::value1;
             fVal1 = atof(token.c_str());
         }
         else
@@ -121,7 +121,7 @@ bool TEventLauncher::Load(cParser *parser)
         *parser >> token;
         if (token.compare("*") != 0) //*=nie brać wartości 2. pod uwagę
         {
-            iCheckMask |= basic_event::flags::value_2;
+            iCheckMask |= basic_event::flags::value2;
             fVal2 = atof(token.c_str());
         }
         else
@@ -314,8 +314,8 @@ TEventLauncher::export_as_text_( std::ostream &Output ) const {
             << "condition "
             << asMemCellName << ' '
             << szText << ' '
-            << ( ( iCheckMask & basic_event::flags::value_1 ) != 0 ? to_string( fVal1 ) : "*" ) << ' '
-            << ( ( iCheckMask & basic_event::flags::value_2 ) != 0 ? to_string( fVal2 ) : "*" ) << ' ';
+            << ( ( iCheckMask & basic_event::flags::value1 ) != 0 ? to_string( fVal1 ) : "*" ) << ' '
+            << ( ( iCheckMask & basic_event::flags::value2 ) != 0 ? to_string( fVal2 ) : "*" ) << ' ';
     }
     // footer
     Output
