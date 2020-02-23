@@ -30,6 +30,10 @@ uniform sampler2D dudvmap;
 #texture (diffuse, 2, sRGB_A)
 uniform sampler2D diffuse;
 
+#texture (specgloss, 3, RGBA)
+uniform sampler2D specgloss;
+
+
 //wave distortion variables
 float move_factor = 0.0;
 
@@ -58,8 +62,9 @@ void main()
 	normal.z = sqrt(1.0 - clamp((dot(normal.xy, normal.xy)), 0.0, 1.0));
 	vec3 fragnormal = normalize(f_tbn * normalize(normal.xyz));
 	float reflectivity = param[1].z * texture(normalmap, texture_coords ).a;
-	float specularity = 1.0;
-	glossiness = abs(param[1].w);
+	float specularity = texture(specgloss, f_coord).r;
+	glossiness = texture(specgloss, f_coord).g * 8;
+	metalic = (texture(specgloss, f_coord).b > 0.5) ? true : false;
 	
 	fragcolor = apply_lights(fragcolor, fragnormal, tex_color.rgb, reflectivity, specularity, shadow_tone);
 

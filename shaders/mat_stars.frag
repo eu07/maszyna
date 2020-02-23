@@ -15,6 +15,7 @@ void main()
 	float dist2 = abs(x * x + y * y);
 	if (dist2 > 0.5f * 0.5f)
 		discard;
+
 	// color data space is shared with normals, ugh
 	vec4 color = vec4(pow(f_normal_raw.rgb, vec3(2.2)), 1.0f);
 #if POSTFX_ENABLED

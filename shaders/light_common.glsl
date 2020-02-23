@@ -42,6 +42,7 @@ float calc_shadow()
 #endif
 }
 
+float glossiness = 1.0;
 // [0] - diffuse, [1] - specular
 // do magic here
 vec2 calc_light(vec3 light_dir, vec3 fragnormal)
@@ -50,7 +51,7 @@ vec2 calc_light(vec3 light_dir, vec3 fragnormal)
 	vec3 halfway_dir = normalize(light_dir + view_dir);
 
 	float diffuse_v = max(dot(fragnormal, light_dir), 0.0);
-	float specular_v = pow(max(dot(fragnormal, halfway_dir), 0.0), max(abs(param[1].w), 0.01)) * diffuse_v;
+	float specular_v = pow(max(dot(fragnormal, halfway_dir), 0.0), max(glossiness, 0.01)) * diffuse_v;
 
 	return vec2(diffuse_v, specular_v);
 }
@@ -106,6 +107,8 @@ vec2 calc_headlights(light_s light, vec3 fragnormal)
 	return part * atten * lightintensity;
 }
 
+	bool metalic = false;
+
 vec3 apply_lights(vec3 fragcolor, vec3 fragnormal, vec3 texturecolor, float reflectivity, float specularity, float shadowtone)
 {
 	vec3 emissioncolor = param[0].rgb * emission;
@@ -147,15 +150,15 @@ vec3 apply_lights(vec3 fragcolor, vec3 fragnormal, vec3 texturecolor, float refl
 	}
 	fragcolor += emissioncolor;
 	vec3 specularcolor = specularamount * lights[0].color;
-	if (param[1].w >= 0.0)
+	if ((param[1].w < 0.0) || (metalic == true))
 	{
-		fragcolor *= texturecolor;
 		fragcolor += specularcolor;
+		fragcolor *= texturecolor;
 	}
 	else
 	{
-		fragcolor += specularcolor;
 		fragcolor *= texturecolor;
+		fragcolor += specularcolor;
 	}
 
 	return fragcolor;

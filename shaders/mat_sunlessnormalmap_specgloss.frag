@@ -25,6 +25,10 @@ uniform sampler2D diffuse;
 #texture (normalmap, 1, RGBA)
 uniform sampler2D normalmap;
 
+#texture (specgloss, 2, RGBA)
+uniform sampler2D specgloss;
+
+
 #define NORMALMAP
 #include <light_common.glsl>
 #include <apply_fog.glsl>
@@ -43,7 +47,6 @@ vec3 apply_lights_sunless(vec3 fragcolor, vec3 fragnormal, vec3 texturecolor, fl
 	float diffuseamount = (sunlight.x * param[1].x) * lights[0].intensity;
 	fragcolor += envcolor * reflectivity;
 	float specularamount = (sunlight.y * param[1].y * specularity) * lights[0].intensity;
-	glossiness = abs(param[1].w);
 
 	for (uint i = 1U; i < lights_count; i++)
 	{
@@ -91,7 +94,9 @@ void main()
 	normal.z = sqrt(1.0 - clamp((dot(normal.xy, normal.xy)), 0.0, 1.0));
 	vec3 fragnormal = normalize(f_tbn * normalize(normal.xyz));
 	float reflectivity = param[1].z * texture(normalmap, f_coord).a;
-	float specularity = (tex_color.r + tex_color.g + tex_color.b) * 0.5;
+	float specularity = texture(specgloss, f_coord).r;
+	glossiness = texture(specgloss, f_coord).g * 8;
+	metalic = (texture(specgloss, f_coord).b > 0.5) ? true : false;
 	
 	fragcolor = apply_lights_sunless(fragcolor, fragnormal, tex_color.rgb, reflectivity, specularity, shadow_tone);
 	vec4 color = vec4(apply_fog(fragcolor), tex_color.a * alpha_mult);
