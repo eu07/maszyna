@@ -106,6 +106,10 @@ std::unordered_map<user_command, std::pair<user_command, user_command>> commandf
     { user_command::linebreakerclose, { user_command::linebreakertoggle, user_command::none } },
     { user_command::pantographlowerfront, { user_command::pantographtogglefront, user_command::none } },
     { user_command::pantographlowerrear, { user_command::pantographtogglerear, user_command::none } },
+    { user_command::compartmentlightsenable, { user_command::compartmentlightstoggle, user_command::none } },
+    { user_command::compartmentlightsdisable, { user_command::compartmentlightstoggle, user_command::none } },
+    { user_command::batteryenable, { user_command::batterytoggle, user_command::none } },
+    { user_command::batterydisable, { user_command::batterytoggle, user_command::none } },
 };
 
 std::pair<user_command, user_command>

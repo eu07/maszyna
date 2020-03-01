@@ -1439,6 +1439,8 @@ void TMoverParameters::compute_movement_( double const Deltatime ) {
     }
     // heating
     HeatingCheck( Deltatime );
+    // lighting
+    LightsCheck( Deltatime );
 
     UpdateBrakePressure(Deltatime);
     UpdatePipePressure(Deltatime);
@@ -1900,6 +1902,35 @@ void TMoverParameters::PantographsCheck( double const Timestep ) {
 //         && ( ) // TODO: add other checks
             );
     }
+}
+
+void TMoverParameters::LightsCheck( double const Timestep ) {
+
+    auto const lowvoltagepower { (
+        ( ConverterFlag )
+     || ( ( ( Couplers[ end::front ].CouplingFlag & coupling::permanent ) != 0 ) && ( Couplers[ end::front ].Connected->ConverterFlag ) )
+     || ( ( ( Couplers[ end::rear  ].CouplingFlag & coupling::permanent ) != 0 ) && ( Couplers[ end::rear  ].Connected->ConverterFlag ) ) ) };
+
+    auto &light { CompartmentLights };
+
+    light.is_active = (
+        // TODO: bind properly power source when ld is in place
+        ( Battery || lowvoltagepower ) // power source
+     && ( false == light.is_disabled )
+     && ( ( true == light.is_active )
+       || ( light.start_type == start_t::manual ?
+           light.is_enabled :
+            true ) ) );
+
+    light.intensity =
+        ( light.is_active ?
+            1.0f :
+            0.0f )
+        // TODO: bind properly power source when ld is in place
+        * ( lowvoltagepower ? 1.0f :
+            Battery ? 0.5f :
+            0.0f )
+        * light.dimming;
 }
 
 double TMoverParameters::ShowCurrent(int AmpN) const
@@ -3149,6 +3180,55 @@ bool TMoverParameters::MotorBlowersSwitchOff( bool State, end const Side, range_
     }
 
     return ( fan.is_disabled != initialstate );
+}
+
+bool TMoverParameters::CompartmentLightsSwitch( bool State, range_t const Notify ) {
+
+    if( CompartmentLights.start_type == start_t::automatic ) {
+        // automatic lights ignore 'manual' state commands
+        return false;
+    }
+
+    bool const initialstate { CompartmentLights.is_enabled };
+
+    CompartmentLights.is_enabled = State;
+
+    if( Notify != range_t::local ) {
+        SendCtrlToNext(
+            "CompartmentLightsSwitch",
+            ( CompartmentLights.is_enabled ? 1 : 0 ),
+            CabActive,
+            ( Notify == range_t::unit ?
+                coupling::control | coupling::permanent :
+                coupling::control ) );
+    }
+
+    return ( CompartmentLights.is_enabled != initialstate );
+}
+
+// water pump state toggle
+bool TMoverParameters::CompartmentLightsSwitchOff( bool State, range_t const Notify ) {
+
+    if( CompartmentLights.start_type == start_t::automatic ) {
+        // automatic lights ignore 'manual' state commands
+        return false;
+    }
+
+    bool const initialstate { CompartmentLights.is_disabled };
+
+    CompartmentLights.is_disabled = State;
+
+    if( Notify != range_t::local ) {
+        SendCtrlToNext(
+            "CompartmentLightsSwitchOff",
+            ( CompartmentLights.is_disabled ? 1 : 0 ),
+            CabActive,
+            ( Notify == range_t::unit ?
+                coupling::control | coupling::permanent :
+                coupling::control ) );
+    }
+
+    return ( CompartmentLights.is_disabled != initialstate );
 }
 
 // *************************************************************************************************
@@ -9758,6 +9838,15 @@ void TMoverParameters::LoadFIZ_Cntrl( std::string const &line ) {
                 lookup->second :
                 start_t::manual;
     }
+    // compartment lights
+    {
+        auto lookup = starts.find( extract_value( "CompartmentLightsStart", line ) );
+        CompartmentLights.start_type =
+            lookup != starts.end() ?
+                lookup->second :
+                start_t::automatic;
+    }
+
 }
 
 void TMoverParameters::LoadFIZ_Blending(std::string const &line) {
@@ -11039,6 +11128,22 @@ bool TMoverParameters::RunCommand( std::string Command, double CValue1, double C
          && ( MotorBlowers[ end::rear ].start_type != start_t::manualwithautofallback ) ) {
             // automatic device ignores 'manual' state commands
             MotorBlowers[end::rear].is_disabled = ( CValue1 == 1 );
+        }
+        OK = SendCtrlToNext( Command, CValue1, CValue2, Couplertype );
+    }
+    else if( Command == "CompartmentLightsSwitch" ) {
+
+        if( CompartmentLights.start_type != start_t::automatic ) {
+            // automatic lights ignore 'manual' state commands
+            CompartmentLights.is_enabled = ( CValue1 == 1 );
+        }
+        OK = SendCtrlToNext( Command, CValue1, CValue2, Couplertype );
+    }
+    else if( Command == "CompartmentLightsSwitchOff" ) {
+
+        if( CompartmentLights.start_type != start_t::automatic ) {
+            // automatic lights ignore 'manual' state commands
+            CompartmentLights.is_disabled = ( CValue1 == 1 );
         }
         OK = SendCtrlToNext( Command, CValue1, CValue2, Couplertype );
     }

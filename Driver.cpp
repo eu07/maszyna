@@ -1721,7 +1721,7 @@ TController::TController(bool AI, TDynamicObject *NewControll, bool InitPsyche, 
     }
 
     // HACK: give the simulation a small window to potentially replace the AI with a human driver
-    fActionTime = -2.0;
+    fActionTime = -5.0;
 };
 
 void TController::CloseLog()
@@ -2229,6 +2229,11 @@ bool TController::CheckVehicles(TOrders user)
              || ( pVehicle->NextC( coupling::control ) != nullptr ) ) {
                 sync_consist_reversers();
             }
+            // potentially sync compartment lighting state for the newly connected vehicles
+            if( mvOccupied->CompartmentLights.start_type == start_t::manual ) {
+                mvOccupied->CompartmentLightsSwitchOff( mvOccupied->CompartmentLights.is_disabled );
+                mvOccupied->CompartmentLightsSwitch( mvOccupied->CompartmentLights.is_enabled );
+            }
         }
 
         if (AIControllFlag)
@@ -2515,7 +2520,7 @@ void TController::SetDriverPsyche()
 bool TController::PrepareEngine()
 { // odpalanie silnika
     // HACK: don't immediately activate inert vehicle in case the simulation is about to replace us with human driver
-    if( /* ( mvOccupied->Vel < 1.0 ) && */ ( fActionTime < 0.0 ) ) { return false; }
+    if( ( mvOccupied->Vel < 1.0 ) && ( fActionTime < 0.0 ) ) { return false; }
     
     bool OK = false,
 		voltfront = false,
@@ -4525,6 +4530,7 @@ TController::UpdateSituation(double dt) {
     double dy; // składowa styczna grawitacji, w przedziale <0,1>
     double AbsAccS = 0;
     IsAnyDoorOpen[ side::right ] = IsAnyDoorOpen[ side::left ] = false;
+    ConsistShade = 0.0;
     TDynamicObject *p = pVehicles[0]; // pojazd na czole składu
     while (p)
     { // sprawdzenie odhamowania wszystkich połączonych pojazdów
@@ -4573,9 +4579,13 @@ TController::UpdateSituation(double dt) {
         IsAnyDoorOpen[ side::left ] =
             IsAnyDoorOpen[ side::left ]
          || ( false == vehicle->Doors.instances[ ( switchsides ? side::right : side::left ) ].is_closed );
-
+        // measure lighting level
+        // TBD: apply weight (multiplier) to partially lit vehicles?
+        ConsistShade += ( p->fShade > 0.0 ? p->fShade : 1.0 );
         p = p->Next(); // pojazd podłączony z tyłu (patrząc od czoła)
     }
+    // calculate average amount of received sunlight
+    ConsistShade /= iVehicles;
 
     // test state of main switch in all powered vehicles under control
     IsLineBreakerClosed = ( mvOccupied->Power > 0.01 ? mvOccupied->Mains : true );
@@ -4720,32 +4730,35 @@ TController::UpdateSituation(double dt) {
                 }
                 else {
                     // jeśli nie trzeba opuszczać pantografów
-                    if( mvOccupied->AIHintPantstate == 0 ) {
-                        // jazda na tylnym
-                        if( ( iDirection >= 0 ) && ( useregularpantographlayout ) ) {
-                            // jak jedzie w kierunku sprzęgu 0
-                            if( ( mvControlling->PantRearVolt == 0.0 )
-                                // filter out cases with single _other_ working pantograph so we don't try to raise something we can't
-                                && ( ( mvControlling->PantographVoltage == 0.0 )
-                                || ( mvControlling->EnginePowerSource.CollectorParameters.CollectorsNo > 1 ) ) ) {
-                                mvControlling->OperatePantographValve( end::rear, operation_t::enable );
+                    if( fActionTime > 0.0 ) {
+                        if( mvOccupied->AIHintPantstate == 0 ) {
+                            // jazda na tylnym
+                            if( ( iDirection >= 0 ) && ( useregularpantographlayout ) ) {
+                                // jak jedzie w kierunku sprzęgu 0
+                                if( ( mvControlling->PantRearVolt == 0.0 )
+                                    // filter out cases with single _other_ working pantograph so we don't try to raise something we can't
+                                    && ( ( mvControlling->PantographVoltage == 0.0 )
+                                        || ( mvControlling->EnginePowerSource.CollectorParameters.CollectorsNo > 1 ) ) ) {
+                                    mvControlling->OperatePantographValve( end::rear, operation_t::enable );
+                                }
                             }
-                        }
-                        else {
-                            // jak jedzie w kierunku sprzęgu 0
-                            if( ( mvControlling->PantFrontVolt == 0.0 )
-                                // filter out cases with single _other_ working pantograph so we don't try to raise something we can't
-                                && ( ( mvControlling->PantographVoltage == 0.0 )
-                                || ( mvControlling->EnginePowerSource.CollectorParameters.CollectorsNo > 1 ) ) ) {
-                                mvControlling->OperatePantographValve( end::front, operation_t::enable );
+                            else {
+                                // jak jedzie w kierunku sprzęgu 0
+                                if( ( mvControlling->PantFrontVolt == 0.0 )
+                                    // filter out cases with single _other_ working pantograph so we don't try to raise something we can't
+                                    && ( ( mvControlling->PantographVoltage == 0.0 )
+                                        || ( mvControlling->EnginePowerSource.CollectorParameters.CollectorsNo > 1 ) ) ) {
+                                    mvControlling->OperatePantographValve( end::front, operation_t::enable );
+                                }
                             }
                         }
                     }
                 }
                 if( mvOccupied->Vel > 5 ) {
-                    if( mvOccupied->AIHintPantstate != 0 ) {
-                        // use suggested pantograph setup
-                        auto const pantographsetup { mvOccupied->AIHintPantstate };
+                    if( fActionTime > 0.0 ) {
+                        if( mvOccupied->AIHintPantstate != 0 ) {
+                            // use suggested pantograph setup
+                            auto const pantographsetup{ mvOccupied->AIHintPantstate };
                             mvControlling->OperatePantographValve(
                                 end::front,
                                 ( pantographsetup & ( 1 << 0 ) ?
@@ -4756,21 +4769,22 @@ TController::UpdateSituation(double dt) {
                                 ( pantographsetup & ( 1 << 1 ) ?
                                     operation_t::enable :
                                     operation_t::disable ) );
-                    }
-                    else {
-                        // opuszczenie przedniego po rozpędzeniu się o ile jest więcej niż jeden
-                        if( mvControlling->EnginePowerSource.CollectorParameters.CollectorsNo > 1 ) {
-                            if( ( iDirection >= 0 ) && ( useregularpantographlayout ) ) // jak jedzie w kierunku sprzęgu 0
-                            { // poczekać na podniesienie tylnego
-                                if( ( mvControlling->PantFrontVolt != 0.0 )
-                                 && ( mvControlling->PantRearVolt != 0.0 ) ) { // czy jest napięcie zasilające na tylnym?
-                                    mvControlling->OperatePantographValve( end::front, operation_t::disable ); // opuszcza od sprzęgu 0
+                        }
+                        else {
+                            // opuszczenie przedniego po rozpędzeniu się o ile jest więcej niż jeden
+                            if( mvControlling->EnginePowerSource.CollectorParameters.CollectorsNo > 1 ) {
+                                if( ( iDirection >= 0 ) && ( useregularpantographlayout ) ) // jak jedzie w kierunku sprzęgu 0
+                                { // poczekać na podniesienie tylnego
+                                    if( ( mvControlling->PantFrontVolt != 0.0 )
+                                     && ( mvControlling->PantRearVolt != 0.0 ) ) { // czy jest napięcie zasilające na tylnym?
+                                        mvControlling->OperatePantographValve( end::front, operation_t::disable ); // opuszcza od sprzęgu 0
+                                    }
                                 }
-                            }
-                            else { // poczekać na podniesienie przedniego
-                                if( ( mvControlling->PantRearVolt != 0.0 )
-                                 && ( mvControlling->PantFrontVolt != 0.0 ) ) { // czy jest napięcie zasilające na przednim?
-                                    mvControlling->OperatePantographValve( end::rear, operation_t::disable ); // opuszcza od sprzęgu 1
+                                else { // poczekać na podniesienie przedniego
+                                    if( ( mvControlling->PantRearVolt != 0.0 )
+                                     && ( mvControlling->PantFrontVolt != 0.0 ) ) { // czy jest napięcie zasilające na przednim?
+                                        mvControlling->OperatePantographValve( end::rear, operation_t::disable ); // opuszcza od sprzęgu 1
+                                    }
                                 }
                             }
                         }
@@ -4860,6 +4874,21 @@ TController::UpdateSituation(double dt) {
 
 	if (AIControllFlag) {
 		CheckTimeControllers();
+
+        // low priority operations
+        // compartment lights
+        if( mvOccupied->CompartmentLights.start_type == start_t::manual ) {
+            auto const currentlightstate { mvOccupied->CompartmentLights.is_enabled };
+            auto const lightlevel { Global.fLuminance * ConsistShade };
+            auto const desiredlightstate { (
+                currentlightstate ?
+                    lightlevel < 0.40 : // turn off if lighting level goes above 0.4
+                    lightlevel < 0.35 ) }; // turn on if lighting level goes below 0.35
+            if( desiredlightstate != currentlightstate ) {
+                mvOccupied->CompartmentLightsSwitch( desiredlightstate );
+                mvOccupied->CompartmentLightsSwitchOff( !desiredlightstate );
+            }
+        }
 	}
 
     LastReactionTime -= reactiontime;

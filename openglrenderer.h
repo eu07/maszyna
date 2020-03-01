@@ -67,7 +67,7 @@ public:
     material_handle
         Fetch_Material( std::string const &Filename, bool const Loadnow = true ) override;
     void
-        Bind_Material( material_handle const Material, TSubModel *sm = nullptr ) override;
+        Bind_Material( material_handle const Material, TSubModel const *sm = nullptr, lighting_data const *lighting = nullptr ) override;
     opengl_material const &
         Material( material_handle const Material ) const override;
     // shader methods

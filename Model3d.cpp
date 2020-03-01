@@ -151,6 +151,23 @@ TSubModel::SetLightLevel( glm::vec4 const &Level, bool const Includechildren, bo
     }
 }
 
+// sets activation threshold of self-illumination to specitied value
+void TSubModel::SetSelfIllum( float const Threshold, bool const Includechildren, bool const Includesiblings ) {
+
+    fLight = Threshold;
+    if( true == Includesiblings ) {
+        auto sibling { this };
+        while( ( sibling = sibling->Next ) != nullptr ) {
+            sibling->SetSelfIllum( Threshold, Includechildren, false ); // no need for all siblings to duplicate the work
+        }
+    }
+    if( ( true == Includechildren )
+     && ( Child != nullptr ) ) {
+        Child->SetSelfIllum( Threshold, Includechildren, true ); // node's children include child's siblings and children
+    }
+}
+
+
 int TSubModel::SeekFaceNormal(std::vector<unsigned int> const &Masks, int const Startface, unsigned int const Mask, glm::vec3 const &Position, gfx::vertex_array const &Vertices)
 { // szukanie punktu stycznego do (pt), zwraca numer wierzchołka, a nie trójkąta
 	int facecount = iNumVerts / 3; // bo maska powierzchni jest jedna na trójkąt

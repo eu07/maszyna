@@ -97,7 +97,7 @@
     </ClCompile>
     <Link>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalLibraryDirectories>$(DXSKD_DIR)lib/$(PlatformShortName);$(SolutionDir)ref/glew/lib/msvc-$(MSBuildToolsVersion)/$(PlatformShortName);$(SolutionDir)ref/glfw/lib/msvc-$(MSBuildToolsVersion)/$(PlatformShortName);$(SolutionDir)ref/openal/lib/$(PlatformShortName);$(SolutionDir)ref/python/lib/$(PlatformShortName);$(SolutionDir)ref/libserialport/lib/$(PlatformShortName);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>$(DXSKD_DIR)lib/$(PlatformShortName);$(SolutionDir)ref/glfw/lib/msvc-$(MSBuildToolsVersion)/$(PlatformShortName);$(SolutionDir)ref/openal/lib/$(PlatformShortName);$(SolutionDir)ref/python/lib/$(PlatformShortName);$(SolutionDir)ref/libserialport/lib/$(PlatformShortName);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <SubSystem>Windows</SubSystem>
       <IgnoreSpecificDefaultLibraries>
       </IgnoreSpecificDefaultLibraries>
@@ -120,7 +120,7 @@
     </ClCompile>
     <Link>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalLibraryDirectories>$(DXSKD_DIR)lib/$(PlatformShortName);$(SolutionDir)ref/glew/lib/msvc-$(MSBuildToolsVersion)/$(PlatformShortName);$(SolutionDir)ref/glfw/lib/msvc-$(MSBuildToolsVersion)/$(PlatformShortName);$(SolutionDir)ref/openal/lib/$(PlatformShortName);$(SolutionDir)ref/python/lib/$(PlatformShortName);$(SolutionDir)ref/libserialport/lib/$(PlatformShortName);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>$(DXSKD_DIR)lib/$(PlatformShortName);$(SolutionDir)ref/glfw/lib/msvc-$(MSBuildToolsVersion)/$(PlatformShortName);$(SolutionDir)ref/openal/lib/$(PlatformShortName);$(SolutionDir)ref/python/lib/$(PlatformShortName);$(SolutionDir)ref/libserialport/lib/$(PlatformShortName);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <SubSystem>Windows</SubSystem>
       <IgnoreSpecificDefaultLibraries>
       </IgnoreSpecificDefaultLibraries>
@@ -142,7 +142,7 @@
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
-      <AdditionalLibraryDirectories>$(DXSKD_DIR)lib/$(PlatformShortName);$(SolutionDir)ref/glew/lib/msvc-$(MSBuildToolsVersion)/$(PlatformShortName);$(SolutionDir)ref/glfw/lib/msvc-$(MSBuildToolsVersion)/$(PlatformShortName);$(SolutionDir)ref/openal/lib/$(PlatformShortName);$(SolutionDir)ref/python/lib/$(PlatformShortName);$(SolutionDir)ref/libserialport/lib/$(PlatformShortName);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>$(DXSKD_DIR)lib/$(PlatformShortName);$(SolutionDir)ref/glfw/lib/msvc-$(MSBuildToolsVersion)/$(PlatformShortName);$(SolutionDir)ref/openal/lib/$(PlatformShortName);$(SolutionDir)ref/python/lib/$(PlatformShortName);$(SolutionDir)ref/libserialport/lib/$(PlatformShortName);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <SubSystem>Windows</SubSystem>
       <IgnoreSpecificDefaultLibraries>libcmt.lib</IgnoreSpecificDefaultLibraries>
       <LargeAddressAware>true</LargeAddressAware>
@@ -166,7 +166,7 @@
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
-      <AdditionalLibraryDirectories>$(DXSKD_DIR)lib/$(PlatformShortName);$(SolutionDir)ref/glew/lib/msvc-$(MSBuildToolsVersion)/$(PlatformShortName);$(SolutionDir)ref/glfw/lib/msvc-$(MSBuildToolsVersion)/$(PlatformShortName);$(SolutionDir)ref/openal/lib/$(PlatformShortName);$(SolutionDir)ref/python/lib/$(PlatformShortName);$(SolutionDir)ref/libserialport/lib/$(PlatformShortName);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>$(DXSKD_DIR)lib/$(PlatformShortName);$(SolutionDir)ref/glfw/lib/msvc-$(MSBuildToolsVersion)/$(PlatformShortName);$(SolutionDir)ref/openal/lib/$(PlatformShortName);$(SolutionDir)ref/python/lib/$(PlatformShortName);$(SolutionDir)ref/libserialport/lib/$(PlatformShortName);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <SubSystem>Windows</SubSystem>
       <IgnoreSpecificDefaultLibraries>libcmt.lib</IgnoreSpecificDefaultLibraries>
       <LinkTimeCodeGeneration>UseLinkTimeCodeGeneration</LinkTimeCodeGeneration>

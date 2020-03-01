@@ -361,6 +361,9 @@ class TTrain {
     static void OnCommand_interiorlightdimtoggle( TTrain *Train, command_data const &Command );
     static void OnCommand_interiorlightdimenable( TTrain *Train, command_data const &Command );
     static void OnCommand_interiorlightdimdisable( TTrain *Train, command_data const &Command );
+    static void OnCommand_compartmentlightstoggle( TTrain *Train, command_data const &Command );
+    static void OnCommand_compartmentlightsenable( TTrain *Train, command_data const &Command );
+    static void OnCommand_compartmentlightsdisable( TTrain *Train, command_data const &Command );
     static void OnCommand_instrumentlighttoggle( TTrain *Train, command_data const &Command );
     static void OnCommand_instrumentlightenable( TTrain *Train, command_data const &Command );
     static void OnCommand_instrumentlightdisable( TTrain *Train, command_data const &Command );
@@ -539,10 +542,13 @@ public: // reszta może by?publiczna
     TGauge ggTimetableLightButton;
     TGauge ggCabLightButton; // hunter-091012: przelacznik oswietlania kabiny
     TGauge ggCabLightDimButton; // hunter-091012: przelacznik przyciemnienia
+    // oswietlenia kabiny
+    TGauge ggCompartmentLightsButton;
+    TGauge ggCompartmentLightsOnButton;
+    TGauge ggCompartmentLightsOffButton;
     TGauge ggBatteryButton; // Stele 161228 hebelek baterii
     TGauge ggBatteryOnButton;
     TGauge ggBatteryOffButton;
-    // oswietlenia kabiny
 
     // NBMX wrzesien 2003 - obsluga drzwi
     TGauge ggDoorLeftPermitButton;
@@ -661,7 +667,6 @@ public: // reszta może by?publiczna
     TButton btLampkaPrzekrMaxSila;
     TButton btLampkaDoorLeft;
     TButton btLampkaDoorRight;
-    TButton btLampkaDoors;
     TButton btLampkaDepartureSignal;
     TButton btLampkaBlokadaDrzwi;
     TButton btLampkaDoorLockOff;
@@ -776,6 +781,7 @@ private:
     float m_distancecounter { -1.f }; // distance traveled since meter was activated or -1 if inactive
     double m_brakehandlecp{ 0.0 };
     int m_pantselection{ 0 };
+    bool m_doors{ false }; // helper, true if any door is open
 
   public:
     float fPress[20][3]; // cisnienia dla wszystkich czlonow

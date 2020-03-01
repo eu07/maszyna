@@ -797,7 +797,14 @@ bool opengl_renderer::Render_lowpoly( TDynamicObject *Dynamic, float const Squar
     }
     // HACK: reduce light level for vehicle interior if there's strong global lighting source
     if( false == Alpha ) {
-        auto const luminance{ static_cast<float>( 0.5 * ( std::max( 0.3, Global.fLuminance - Global.Overcast ) ) ) };
+        auto const luminance{ static_cast<float>(
+            0.5
+            * ( std::max(
+                0.3,
+                ( Global.fLuminance - Global.Overcast )
+                * ( Dynamic->fShade > 0.0 ?
+                    Dynamic->fShade :
+                    1.0 ) ) ) ) };
         m_sunlight.apply_intensity(
             clamp( (
                 Dynamic->fShade > 0.f ?
@@ -1677,7 +1684,7 @@ opengl_renderer::Fetch_Material( std::string const &Filename, bool const Loadnow
 }
 
 void
-opengl_renderer::Bind_Material( material_handle const Material, TSubModel *sm ) {
+opengl_renderer::Bind_Material( material_handle const Material, TSubModel const *sm, lighting_data const *lighting ) {
 
     auto const &material = m_materials.material( Material );
     if( false == Global.BasicRenderer ) {
@@ -2403,11 +2410,12 @@ opengl_renderer::Render_cab( TDynamicObject const *Dynamic, float const Lightlev
                 }
                 if( Lightlevel > 0.f ) {
                     // crude way to light the cabin, until we have something more complete in place
+                    auto const luminance { Global.fLuminance * ( Dynamic->fShade > 0.0f ? Dynamic->fShade : 1.0f ) };
                     ::glLightModelfv(
                         GL_LIGHT_MODEL_AMBIENT,
                         glm::value_ptr(
                             glm::vec3( m_baseambient )
-                            + ( Dynamic->InteriorLight * Lightlevel ) * static_cast<float>( clamp( 1.25 - Global.fLuminance, 0.0, 1.0 ) ) ) );
+                            + ( Dynamic->InteriorLight * Lightlevel ) * static_cast<float>( clamp( 1.25 - luminance, 0.0, 1.0 ) ) ) );
                 }
                 // render
                 if( true == Alpha ) {

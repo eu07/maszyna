@@ -550,7 +550,7 @@ private:
         std::string Name, std::string BaseDir, std::string asReplacableSkin, std::string Type_Name,
         TTrack *Track, double fDist, std::string DriverType, double fVel, std::string TrainName,
         float Load, std::string LoadType, bool Reversed, std::string);
-    int init_sections( TModel3d const *Model, std::string const &Nameprefix );
+    int init_sections( TModel3d const *Model, std::string const &Nameprefix, bool const Overrideselfillum );
     bool init_destination( TModel3d *Model );
     void create_controller( std::string const Type, bool const Trainset );
     void AttachPrev(TDynamicObject *Object, int iType = 1);

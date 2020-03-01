@@ -837,6 +837,15 @@ drivermouse_input::default_bindings() {
         { "cablightdim_sw:", {
             user_command::interiorlightdimtoggle,
             user_command::none } },
+        { "compartmentlights_sw:", {
+            user_command::compartmentlightstoggle,
+            user_command::none } },
+        { "compartmentlightson_sw:", {
+            user_command::compartmentlightsenable,
+            user_command::none } },
+        { "compartmentlightsoff_sw:", {
+            user_command::compartmentlightsdisable,
+            user_command::none } },
         { "battery_sw:", {
             user_command::batterytoggle,
             user_command::none } },

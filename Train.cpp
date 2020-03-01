@@ -335,6 +335,9 @@ TTrain::commandhandler_map const TTrain::m_commandhandlers = {
     { user_command::interiorlightdimtoggle, &TTrain::OnCommand_interiorlightdimtoggle },
     { user_command::interiorlightdimenable, &TTrain::OnCommand_interiorlightdimenable },
     { user_command::interiorlightdimdisable, &TTrain::OnCommand_interiorlightdimdisable },
+    { user_command::compartmentlightstoggle, &TTrain::OnCommand_compartmentlightstoggle },
+    { user_command::compartmentlightsenable, &TTrain::OnCommand_compartmentlightsenable },
+    { user_command::compartmentlightsdisable, &TTrain::OnCommand_compartmentlightsdisable },
     { user_command::instrumentlighttoggle, &TTrain::OnCommand_instrumentlighttoggle },
     { user_command::instrumentlightenable, &TTrain::OnCommand_instrumentlightenable },
     { user_command::instrumentlightdisable, &TTrain::OnCommand_instrumentlightdisable },
@@ -536,6 +539,7 @@ dictionary_source *TTrain::GetTrainState() {
     dict->insert( "pant_compressor", mvControlled->PantCompFlag );
     dict->insert( "lights_front", mvOccupied->iLights[ end::front ] );
     dict->insert( "lights_rear", mvOccupied->iLights[ end::rear ] );
+    dict->insert( "lights_compartments", mvOccupied->CompartmentLights.is_active || mvOccupied->CompartmentLights.is_disabled );
     // reverser
     dict->insert( "direction", mvOccupied->DirActive );
     // throttle
@@ -757,8 +761,8 @@ void TTrain::zero_charging_train_brake() {
      && ( DynamicObject->Controller != AIdriver )
      && ( Global.iFeedbackMode < 3 )
      && ( ( mvOccupied->BrakeHandle == TBrakeHandle::FVel6 )
-		 || (mvOccupied->BrakeHandle == TBrakeHandle::MHZ_EN57)
-		 || (mvOccupied->BrakeHandle == TBrakeHandle::MHZ_K8P)) ) {
+       || ( mvOccupied->BrakeHandle == TBrakeHandle::MHZ_EN57 )
+       || ( mvOccupied->BrakeHandle == TBrakeHandle::MHZ_K8P ) ) ) {
         // Odskakiwanie hamulce EP
         set_train_brake( 0 );
     }
@@ -2466,14 +2470,16 @@ void TTrain::OnCommand_linebreakeropen( TTrain *Train, command_data const &Comma
 
     if( Command.action == GLFW_PRESS ) {
         // visual feedback
-        if( Train->m_controlmapper.contains( "main_off_bt:" ) ) {
+        if( Train->ggMainOffButton.SubModel != nullptr ) {
             Train->ggMainOffButton.UpdateValue( 1.0, Train->dsbSwitch );
         }
-        else if( Train->m_controlmapper.contains( "main_sw:" ) ) {
+        else if( Train->ggMainButton.SubModel != nullptr ) {
             Train->ggMainButton.UpdateValue( 0.0, Train->dsbSwitch );
         }
-        else {
-            // there's no switch capable of doing the job
+        else if( Train->ggMainOnButton.SubModel != nullptr ) {
+            // NOTE: legacy behaviour, for vehicles equipped only with impulse close switch
+            // it doesn't make any real sense to animate this one, but some people can't get over how there's no visual reaction to their keypress
+            Train->ggMainOnButton.UpdateValue( 1.0, Train->dsbSwitch );
             return;
         }
         // play sound immediately when the switch is hit, not after release
@@ -2514,9 +2520,13 @@ void TTrain::OnCommand_linebreakerclose( TTrain *Train, command_data const &Comm
             // two separate switches to close and break the circuit
             Train->ggMainOnButton.UpdateValue( 1.0, Train->dsbSwitch );
         }
-        else {
+        else if( Train->ggMainButton.SubModel != nullptr ) {
             // single two-state switch
             Train->ggMainButton.UpdateValue( 1.0, Train->dsbSwitch );
+        }
+        else {
+            // no switch capable of doing the job
+            return;
         }
         // the actual closing of the line breaker is handled in the train update routine
     }
@@ -2526,7 +2536,7 @@ void TTrain::OnCommand_linebreakerclose( TTrain *Train, command_data const &Comm
             // setup with two separate switches
             Train->ggMainOnButton.UpdateValue( 0.0, Train->dsbSwitch );
         }
-        else {
+        else if( Train->ggMainButton.SubModel != nullptr ) {
             if( Train->ggMainButton.type() != TGaugeType::toggle ) {
                 Train->ggMainButton.UpdateValue( 0.5, Train->dsbSwitch );
             }
@@ -2536,8 +2546,9 @@ void TTrain::OnCommand_linebreakerclose( TTrain *Train, command_data const &Comm
 
         if( Train->m_linebreakerstate == 2 ) {
             // we don't need to start the diesel twice, but the other types (with impulse switch setup) still need to be launched
-            if( ( Train->mvControlled->EngineType != TEngineType::DieselEngine )
-             && ( Train->mvControlled->EngineType != TEngineType::DieselElectric ) ) {
+            // NOTE: this behaviour should depend on MainOnButton presence and type_delayed
+            // TODO: change it when/if vehicle definition files get their proper switch types
+            if( Train->mvControlled->EngineType == TEngineType::ElectricSeriesMotor ) {
                 // try to finalize state change of the line breaker, set the state based on the outcome
                 Train->m_linebreakerstate = (
                     Train->mvControlled->MainSwitch( true ) ?
@@ -4356,6 +4367,79 @@ void TTrain::OnCommand_interiorlightdimdisable( TTrain *Train, command_data cons
     }
 }
 
+void TTrain::OnCommand_compartmentlightstoggle( TTrain *Train, command_data const &Command ) {
+
+    if( Command.action == GLFW_REPEAT ) { return; }
+
+    // keep the switch from flipping back and forth if key is held down
+    if( ( false == Train->mvOccupied->CompartmentLights.is_active )
+     && ( false == Train->mvOccupied->CompartmentLights.is_enabled ) ) {
+        // turn on
+        OnCommand_compartmentlightsenable( Train, Command );
+    }
+    else {
+        //turn off
+        OnCommand_compartmentlightsdisable( Train, Command );
+    }
+}
+
+void TTrain::OnCommand_compartmentlightsenable( TTrain *Train, command_data const &Command ) {
+
+    if( Command.action == GLFW_PRESS ) {
+        Train->mvOccupied->CompartmentLightsSwitch( true );
+        // visual feedback
+        if( Train->m_controlmapper.contains( "compartmentlights_sw:" ) ) {
+            Train->ggCompartmentLightsButton.UpdateValue( 1.0f, Train->dsbSwitch );
+        }
+        if( Train->m_controlmapper.contains( "compartmentlightson_sw:" ) ) {
+            Train->ggCompartmentLightsOnButton.UpdateValue( 1.0f, Train->dsbSwitch );
+        }
+    }
+    else if( Command.action == GLFW_RELEASE ) {
+        if( Train->m_controlmapper.contains( "compartmentlights_sw:" ) ) {
+            if( Train->ggCompartmentLightsButton.type() == TGaugeType::push ) {
+                // return the switch to neutral position
+                Train->mvOccupied->CompartmentLightsSwitch( false );
+                Train->mvOccupied->CompartmentLightsSwitchOff( false );
+                Train->ggCompartmentLightsButton.UpdateValue( 0.5f );
+            }
+        }
+        if( Train->m_controlmapper.contains( "compartmentlightson_sw:" ) ) {
+            Train->mvOccupied->CompartmentLightsSwitch( false );
+            Train->ggCompartmentLightsOnButton.UpdateValue( 0.0f, Train->dsbSwitch );
+        }
+    }
+}
+
+void TTrain::OnCommand_compartmentlightsdisable( TTrain *Train, command_data const &Command ) {
+
+    if( Command.action == GLFW_PRESS ) {
+        // visual feedback
+        if( Train->m_controlmapper.contains( "compartmentlights_sw:" ) ) {
+            Train->ggCompartmentLightsButton.UpdateValue( 0.0f, Train->dsbSwitch );
+        }
+        if( Train->m_controlmapper.contains( "compartmentlightsoff_sw:" ) ) {
+            Train->ggCompartmentLightsOffButton.UpdateValue( 1.0f, Train->dsbSwitch );
+        }
+
+        Train->mvOccupied->CompartmentLightsSwitchOff( true );
+    }
+    else if( Command.action == GLFW_RELEASE ) {
+        if( Train->m_controlmapper.contains( "compartmentlights_sw:" ) ) {
+            if( Train->ggCompartmentLightsButton.type() == TGaugeType::push ) {
+                // return the switch to neutral position
+                Train->mvOccupied->CompartmentLightsSwitch( false );
+                Train->mvOccupied->CompartmentLightsSwitchOff( false );
+                Train->ggCompartmentLightsButton.UpdateValue( 0.5f );
+            }
+        }
+        if( Train->m_controlmapper.contains( "compartmentlightsoff_sw:" ) ) {
+            Train->mvOccupied->CompartmentLightsSwitchOff( false );
+            Train->ggCompartmentLightsOffButton.UpdateValue( 0.0f, Train->dsbSwitch );
+        }
+    }
+}
+
 void TTrain::OnCommand_instrumentlighttoggle( TTrain *Train, command_data const &Command ) {
 
     if( Command.action == GLFW_PRESS ) {
@@ -5709,8 +5793,8 @@ bool TTrain::Update( double const Deltatime )
         }
     }
 
-    if( ( ggMainButton.GetDesiredValue() > 0.95 )
-     || ( ggMainOnButton.GetDesiredValue() > 0.95 ) ) {
+    if( ( ( ggMainButton.SubModel != nullptr ) && ( ggMainButton.GetDesiredValue() > 0.95 ) )
+     || ( ( ggMainOnButton.SubModel != nullptr ) && ( ggMainOnButton.GetDesiredValue() > 0.95 ) ) ) {
         // keep track of period the line breaker button is held down, to determine when/if circuit closes
         if( ( mvControlled->MainsInitTimeCountdown <= 0.0 )
          && ( ( fHVoltage > 0.5 * mvControlled->EnginePowerSource.MaxVoltage )
@@ -5733,15 +5817,15 @@ bool TTrain::Update( double const Deltatime )
     if( m_linebreakerstate == 0 ) {
         if( fMainRelayTimer > mvControlled->InitialCtrlDelay ) {
             // wlaczanie WSa z opoznieniem
-            // mark the line breaker as ready to close; for electric vehicles with impulse switch the setup is completed on button release
+            // mark the line breaker as ready to close; for electric series vehicles with impulse switch the setup is completed on button release
             m_linebreakerstate = 2;
         }
     }
     if( m_linebreakerstate == 2 ) {
         // for diesels and/or vehicles with toggle switch setup we complete the engine start here
+        // TODO: make it a test for main_on_bt of type push_delayed instead
         if( ( ggMainOnButton.SubModel == nullptr )
-         || ( ( mvControlled->EngineType == TEngineType::DieselEngine )
-           || ( mvControlled->EngineType == TEngineType::DieselElectric ) ) ) {
+         || ( mvControlled->EngineType != TEngineType::ElectricSeriesMotor ) ) {
             // try to finalize state change of the line breaker, set the state based on the outcome
             m_linebreakerstate = (
                 mvControlled->MainSwitch( true ) ?
@@ -5749,6 +5833,8 @@ bool TTrain::Update( double const Deltatime )
                     0 );
         }
     }
+    // helper variables
+    m_doors = ( DynamicObject->Mechanik->IsAnyDoorOpen[ side::right ] || DynamicObject->Mechanik->IsAnyDoorOpen[ side::left ] );
 
     // check for received user commands
     // NOTE: this is a temporary arrangement, for the transition period from old command setup to the new one
@@ -6204,8 +6290,8 @@ bool TTrain::Update( double const Deltatime )
                     ( mvControlled->Mains )
                  || ( mvControlled->dizel_startup )
                  || ( fMainRelayTimer > 0.f )
-                 || ( ggMainButton.GetDesiredValue() > 0.95 )
-                 || ( ggMainOnButton.GetDesiredValue() > 0.95 ) );
+                 || ( ( ggMainButton.SubModel != nullptr ) && ( ggMainButton.GetDesiredValue() > 0.95 ) )
+                 || ( ( ggMainOnButton.SubModel != nullptr ) && ( ggMainOnButton.GetDesiredValue() > 0.95 ) ) );
                 ggIgnitionKey.Update();
             }
         }
@@ -6395,7 +6481,6 @@ bool TTrain::Update( double const Deltatime )
             // NBMX wrzesien 2003 - drzwi oraz sygnał odjazdu
             btLampkaDoorLeft.Turn( DynamicObject->Mechanik->IsAnyDoorOpen[ ( cab_to_end() == end::front ? side::left : side::right ) ] );
             btLampkaDoorRight.Turn( DynamicObject->Mechanik->IsAnyDoorOpen[ ( cab_to_end() == end::front ? side::right : side::left ) ] );
-            btLampkaDoors.Turn( DynamicObject->Mechanik->IsAnyDoorOpen[ side::right ] || DynamicObject->Mechanik->IsAnyDoorOpen[ side::left ] );
             btLampkaBlokadaDrzwi.Turn( mvOccupied->Doors.is_locked );
             btLampkaDoorLockOff.Turn( false == mvOccupied->Doors.lock_enabled );
             btLampkaDepartureSignal.Turn( mvControlled->DepartureSignal );
@@ -6467,7 +6552,6 @@ bool TTrain::Update( double const Deltatime )
             btLampkaHamulecReczny.Turn( false );
             btLampkaDoorLeft.Turn( false );
             btLampkaDoorRight.Turn( false );
-            btLampkaDoors.Turn( false );
             btLampkaBlokadaDrzwi.Turn( false );
             btLampkaDoorLockOff.Turn( false );
             btLampkaDepartureSignal.Turn( false );
@@ -6850,6 +6934,9 @@ bool TTrain::Update( double const Deltatime )
         ggTimetableLightButton.Update();
         ggCabLightButton.Update();
         ggCabLightDimButton.Update();
+        ggCompartmentLightsButton.Update();
+        ggCompartmentLightsOnButton.Update();
+        ggCompartmentLightsOffButton.Update();
         ggBatteryButton.Update();
         ggBatteryOnButton.Update();
         ggBatteryOffButton.Update();
@@ -7942,13 +8029,14 @@ TTrain::MoveToVehicle(TDynamicObject *target) {
 			target_train->Dynamic()->ABuSetModelShake( {} );
 		}
 
-		target_train->Dynamic()->bDisplayCab = true;
 		target_train->Dynamic()->ABuSetModelShake( {} ); // zerowanie przesunięcia przed powrotem?
 
 		// potentially move player
 		if (simulation::Train == this) {
 			simulation::Train = target_train;
-		}
+            // our local driver may potentially be in external view mode, in which case we shouldn't activate cab visualization
+            target_train->Dynamic()->bDisplayCab |= !FreeFlyModeFlag;
+        }
 
 		// delete this TTrain
 		pending_delete = true;
@@ -7982,7 +8070,7 @@ TTrain::MoveToVehicle(TDynamicObject *target) {
 			Occupied()->LimPipePress = Occupied()->PipePress;
 			Occupied()->CabActivisation( true ); // załączenie rozrządu (wirtualne kabiny)
 			Dynamic()->MechInside = true;
-			Dynamic()->Controller = ( Dynamic()->Mechanik ? !Dynamic()->Mechanik->AIControllFlag : Humandriver );
+			Dynamic()->Controller = ( Dynamic()->Mechanik ? Dynamic()->Mechanik->AIControllFlag : Humandriver );
 		} else {
 			Dynamic()->bDisplayCab = false;
 			Dynamic()->ABuSetModelShake( {} );
@@ -7994,8 +8082,12 @@ TTrain::MoveToVehicle(TDynamicObject *target) {
 		    Occupied()->CabActive,
 		    Dynamic()->asBaseDir + Occupied()->TypeName + ".mmd" );
 
-		Dynamic()->bDisplayCab = true;
 		Dynamic()->ABuSetModelShake( {} ); // zerowanie przesunięcia przed powrotem?
+
+        if( simulation::Train == this ) {
+            // our local driver may potentially be in external view mode, in which case we shouldn't activate cab visualization
+            Dynamic()->bDisplayCab |= !FreeFlyModeFlag;
+        }
 
 		// add it back with updated dynamic name
 		simulation::Trains.insert(this);
@@ -8157,6 +8249,9 @@ void TTrain::clear_cab_controls()
     // hunter-091012
     ggCabLightButton.Clear();
     ggCabLightDimButton.Clear();
+    ggCompartmentLightsButton.Clear();
+    ggCompartmentLightsOnButton.Clear();
+    ggCompartmentLightsOffButton.Clear();
     ggBatteryButton.Clear();
     ggBatteryOnButton.Clear();
     ggBatteryOffButton.Clear();
@@ -8262,7 +8357,6 @@ void TTrain::clear_cab_controls()
     btLampkaWentZaluzje.Clear();
     btLampkaDoorLeft.Clear();
     btLampkaDoorRight.Clear();
-    btLampkaDoors.Clear();
     btLampkaDepartureSignal.Clear();
     btLampkaRezerwa.Clear();
     btLampkaBoczniki.Clear();
@@ -8337,10 +8431,12 @@ void TTrain::set_cab_controls( int const Cab ) {
           mvOccupied->Battery ? 1.f :
           0.f ) );
     // line breaker
-    ggMainButton.PutValue(
-        ( ggMainButton.type() == TGaugeType::push ? 0.5f :
-            m_linebreakerstate > 0 ? 1.f :
-            0.f ) );
+    if( ggMainButton.SubModel != nullptr ) { // instead of single main button there can be on/off pair
+        ggMainButton.PutValue(
+            ( ggMainButton.type() == TGaugeType::push ? 0.5f :
+                m_linebreakerstate > 0 ? 1.f :
+                0.f ) );
+    }
     // motor connectors
     ggStLinOffButton.PutValue(
         ( mvControlled->StLinSwitchOff ?
@@ -8487,7 +8583,12 @@ void TTrain::set_cab_controls( int const Cab ) {
     if( true == Cabine[Cab].bLightDim ) {
         ggCabLightDimButton.PutValue( 1.f );
     }
-
+    // compartment lights
+    ggCompartmentLightsButton.PutValue(
+        ( ggCompartmentLightsButton.type() == TGaugeType::push ? 0.5f :
+          mvOccupied->CompartmentLights.is_enabled ? 1.f :
+          0.f ) );
+    // instrument lights
     ggInstrumentLightButton.PutValue( (
         InstrumentLightActive ?
             1.f :
@@ -8687,7 +8788,6 @@ bool TTrain::initialize_button(cParser &Parser, std::string const &Label, int co
         { "i-security_cabsignal:", btLampkaSHP },
         { "i-door_left:", btLampkaDoorLeft },
         { "i-door_right:", btLampkaDoorRight },
-        { "i-doors:", btLampkaDoors },
         { "i-departure_signal:", btLampkaDepartureSignal },
         { "i-reserve:", btLampkaRezerwa },
         { "i-scnd:", btLampkaBoczniki },
@@ -8752,6 +8852,7 @@ bool TTrain::initialize_button(cParser &Parser, std::string const &Label, int co
     }
     // TODO: move viable dedicated lights to the automatic light array
     std::unordered_map<std::string, bool const *> const autolights = {
+        { "i-doors:", &m_doors },
         { "i-doorpermit_left:",  &mvOccupied->Doors.instances[ ( cab_to_end() == end::front ? side::left : side::right ) ].open_permit },
         { "i-doorpermit_right:", &mvOccupied->Doors.instances[ ( cab_to_end() == end::front ? side::right : side::left ) ].open_permit },
         { "i-doorstep:", &mvOccupied->Doors.step_enabled },
@@ -8844,8 +8945,6 @@ bool TTrain::initialize_gauge(cParser &Parser, std::string const &Label, int con
         { "fuse_bt:", ggFuseButton },
         { "converterfuse_bt:", ggConverterFuseButton },
         { "stlinoff_bt:", ggStLinOffButton },
-        { "doorleftpermit_sw:", ggDoorLeftPermitButton },
-        { "doorrightpermit_sw:", ggDoorRightPermitButton },
         { "doorpermitpreset_sw:", ggDoorPermitPresetButton },
         { "door_left_sw:", ggDoorLeftButton },
         { "door_right_sw:", ggDoorRightButton },
@@ -8854,7 +8953,6 @@ bool TTrain::initialize_gauge(cParser &Parser, std::string const &Label, int con
         { "doorleftoff_sw:", ggDoorLeftOffButton },
         { "doorrightoff_sw:", ggDoorRightOffButton },
         { "doorallon_sw:", ggDoorAllOnButton },
-        { "dooralloff_sw:", ggDoorAllOffButton },
         { "departure_signal_bt:", ggDepartureSignalButton },
         { "upperlight_sw:", ggUpperLightButton },
         { "leftlight_sw:", ggLeftLightButton },
@@ -8918,6 +9016,9 @@ bool TTrain::initialize_gauge(cParser &Parser, std::string const &Label, int con
         { "timetablelight_sw:", ggTimetableLightButton },
         { "cablight_sw:", ggCabLightButton },
         { "cablightdim_sw:", ggCabLightDimButton },
+        { "compartmentlights_sw:", ggCompartmentLightsButton },
+        { "compartmentlightson_sw:", ggCompartmentLightsOnButton },
+        { "compartmentlightsoff_sw:", ggCompartmentLightsOffButton },
         { "battery_sw:", ggBatteryButton },
         { "batteryon_sw:", ggBatteryOnButton },
         { "batteryoff_sw:", ggBatteryOffButton },
@@ -8957,7 +9058,10 @@ bool TTrain::initialize_gauge(cParser &Parser, std::string const &Label, int con
 		{ "speedbutton6:", { ggSpeedCtrlButtons[ 6 ], &mvOccupied->SpeedCtrlUnit.IsActive } },
 		{ "speedbutton7:", { ggSpeedCtrlButtons[ 7 ], &mvOccupied->SpeedCtrlUnit.IsActive } },
 		{ "speedbutton8:", { ggSpeedCtrlButtons[ 8 ], &mvOccupied->SpeedCtrlUnit.IsActive } },
-		{ "speedbutton9:", { ggSpeedCtrlButtons[ 9 ], &mvOccupied->SpeedCtrlUnit.IsActive } }
+		{ "speedbutton9:", { ggSpeedCtrlButtons[ 9 ], &mvOccupied->SpeedCtrlUnit.IsActive } },
+        { "doorleftpermit_sw:", { ggDoorLeftPermitButton, &mvOccupied->Doors.instances[ ( cab_to_end() == end::front ? side::left : side::right ) ].open_permit } },
+        { "doorrightpermit_sw:", { ggDoorRightPermitButton, &mvOccupied->Doors.instances[ ( cab_to_end() == end::front ? side::right : side::left ) ].open_permit } },
+        { "dooralloff_sw:", { ggDoorAllOffButton, &m_doors } },
     };
     {
         auto const lookup { stategauges.find( Label ) };
