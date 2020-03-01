@@ -24,6 +24,10 @@ uniform sampler2D diffuse;
 #texture (reflmap, 1, RGBA)
 uniform sampler2D reflmap;
 
+#texture (specgloss, 2, RGBA)
+uniform sampler2D specgloss;
+
+
 #include <light_common.glsl>
 #include <apply_fog.glsl>
 #include <tonemapping.glsl>
@@ -41,8 +45,9 @@ void main()
 	vec3 fragcolor = ambient;
 	vec3 fragnormal = normalize(f_normal);
 	float reflectivity = param[1].z * texture(reflmap, f_coord).a;
-	float specularity = (tex_color.r + tex_color.g + tex_color.b) * 0.5;
-	glossiness = abs(param[1].w);
+	float specularity = texture(specgloss, f_coord).r;
+	glossiness = texture(specgloss, f_coord).g * 8;
+	metalic = (texture(specgloss, f_coord).b > 0.5) ? true : false;
 	
 	fragcolor = apply_lights(fragcolor, fragnormal, tex_color.rgb, reflectivity, specularity, shadow_tone);
 

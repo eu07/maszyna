@@ -7,22 +7,22 @@ in vec4 f_clip_future_pos;
 
 #include <common>
 
-layout(location = 0) out vec4 out_color;
-#if MOTIONBLUR_ENABLED
-layout(location = 1) out vec4 out_motion;
-#endif
-
 #param (color, 0, 0, 4, diffuse)
 #param (diffuse, 1, 0, 1, diffuse)
 #param (specular, 1, 1, 1, specular)
-#param (reflection, 1, 2, 1, one)
+#param (reflection, 1, 2, 1, zero)
 #param (glossiness, 1, 3, 1, glossiness)
 
 #texture (diffuse, 0, sRGB_A)
 uniform sampler2D diffuse;
 
-#texture (reflmap, 1, RGBA)
-uniform sampler2D reflmap;
+#texture (specgloss, 1, RGBA)
+uniform sampler2D specgloss;
+
+layout(location = 0) out vec4 out_color;
+#if MOTIONBLUR_ENABLED
+layout(location = 1) out vec4 out_motion;
+#endif
 
 #include <light_common.glsl>
 #include <apply_fog.glsl>
@@ -40,28 +40,31 @@ void main()
 
 	vec3 fragcolor = ambient;
 	vec3 fragnormal = normalize(f_normal);
-	float reflectivity = param[1].z * texture(reflmap, f_coord).a;
-	float specularity = (tex_color.r + tex_color.g + tex_color.b) * 0.5;
-	glossiness = abs(param[1].w);
+	float reflectivity = param[1].z;
+	float specularity = texture(specgloss, f_coord).r;
+	glossiness = texture(specgloss, f_coord).g * 8;
+	metalic = (texture(specgloss, f_coord).b > 0.5) ? true : false;
 	
 	fragcolor = apply_lights(fragcolor, fragnormal, tex_color.rgb, reflectivity, specularity, shadow_tone);
-
-	if(alphatestfail)
-		fragcolor.r = 1.0;
-
 	vec4 color = vec4(apply_fog(fragcolor), tex_color.a * alpha_mult);
-
+/*
+	float distance = dot(f_pos.xyz, f_pos.xyz);
+	     if( distance <= cascade_end.x ) { color.r += 0.25; }
+	else if( distance <= cascade_end.y ) { color.g += 0.25; }
+	else if( distance <= cascade_end.z ) { color.b += 0.25; }
+*/
 #if POSTFX_ENABLED
     out_color = color;
 #else
     out_color = tonemap(color);
 #endif
+
 #if MOTIONBLUR_ENABLED
 	{
         vec2 a = (f_clip_future_pos.xy / f_clip_future_pos.w) * 0.5 + 0.5;;
         vec2 b = (f_clip_pos.xy / f_clip_pos.w) * 0.5 + 0.5;;
         
-        out_motion = vec4(a - b, 0.0f, 0.0f);
+        out_motion = vec4(a - b, 0.0f, tex_color.a * alpha_mult);
 	}
 #endif
 }

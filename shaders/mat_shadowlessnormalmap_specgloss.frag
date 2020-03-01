@@ -1,6 +1,7 @@
 in vec3 f_normal;
 in vec2 f_coord;
 in vec4 f_pos;
+in mat3 f_tbn;
 
 in vec4 f_clip_pos;
 in vec4 f_clip_future_pos;
@@ -15,15 +16,20 @@ layout(location = 1) out vec4 out_motion;
 #param (color, 0, 0, 4, diffuse)
 #param (diffuse, 1, 0, 1, diffuse)
 #param (specular, 1, 1, 1, specular)
-#param (reflection, 1, 2, 1, one)
+#param (reflection, 1, 2, 1, zero)
 #param (glossiness, 1, 3, 1, glossiness)
 
 #texture (diffuse, 0, sRGB_A)
 uniform sampler2D diffuse;
 
-#texture (reflmap, 1, RGBA)
-uniform sampler2D reflmap;
+#texture (normalmap, 1, RGBA)
+uniform sampler2D normalmap;
 
+#texture (specgloss, 2, RGBA)
+uniform sampler2D specgloss;
+
+
+#define NORMALMAP
 #include <light_common.glsl>
 #include <apply_fog.glsl>
 #include <tonemapping.glsl>
@@ -39,18 +45,18 @@ void main()
 //		discard;
 
 	vec3 fragcolor = ambient;
-	vec3 fragnormal = normalize(f_normal);
-	float reflectivity = param[1].z * texture(reflmap, f_coord).a;
-	float specularity = (tex_color.r + tex_color.g + tex_color.b) * 0.5;
-	glossiness = abs(param[1].w);
+
+	vec3 normal;
+	normal.xy = (texture(normalmap, f_coord).rg * 2.0 - 1.0);
+	normal.z = sqrt(1.0 - clamp((dot(normal.xy, normal.xy)), 0.0, 1.0));
+	vec3 fragnormal = normalize(f_tbn * normalize(normal.xyz));
+	float reflectivity = param[1].z * texture(normalmap, f_coord).a;
+	float specularity = texture(specgloss, f_coord).r;
+	glossiness = texture(specgloss, f_coord).g * 8;
+	metalic = (texture(specgloss, f_coord).b > 0.5) ? true : false;
 	
-	fragcolor = apply_lights(fragcolor, fragnormal, tex_color.rgb, reflectivity, specularity, shadow_tone);
-
-	if(alphatestfail)
-		fragcolor.r = 1.0;
-
+	fragcolor = apply_lights(fragcolor, fragnormal, tex_color.rgb, reflectivity, specularity, 1.0);
 	vec4 color = vec4(apply_fog(fragcolor), tex_color.a * alpha_mult);
-
 #if POSTFX_ENABLED
     out_color = color;
 #else
