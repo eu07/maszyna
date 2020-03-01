@@ -404,9 +404,14 @@ opengl_renderer::Render_pass( rendermode const Mode ) {
 
             m_colorpass = m_renderpass;
 
+            if( ( !simulation::is_ready ) || ( Global.gfx_skiprendering ) ) {
+                ::glClearColor( 51.0f / 255.f, 102.0f / 255.f, 85.0f / 255.f, 1.f ); // initial background Color
+                ::glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT );
+                break;
+            }
+
             if( ( true == Global.RenderShadows )
              && ( false == Global.bWireFrame )
-             && ( true == simulation::is_ready )
              && ( m_shadowcolor != colors::white ) ) {
 
                 // run shadowmaps pass before color
@@ -443,8 +448,7 @@ opengl_renderer::Render_pass( rendermode const Mode ) {
                 }
             }
 
-            if( ( true == m_environmentcubetexturesupport )
-             && ( true == simulation::is_ready ) ) {
+            if( true == m_environmentcubetexturesupport ) {
                 // potentially update environmental cube map
                 m_renderpass.draw_stats = {};
                 if( true == Render_reflections() ) {
@@ -454,110 +458,103 @@ opengl_renderer::Render_pass( rendermode const Mode ) {
 
             ::glViewport( 0, 0, Global.iWindowWidth, Global.iWindowHeight );
 
-            if( simulation::is_ready ) {
-                auto const skydomecolour = simulation::Environment.m_skydome.GetAverageColor();
-                ::glClearColor( skydomecolour.x, skydomecolour.y, skydomecolour.z, 0.f ); // kolor nieba
-            }
-            else {
-                ::glClearColor( 51.0f / 255.f, 102.0f / 255.f, 85.0f / 255.f, 1.f ); // initial background Color
-            }
+            auto const skydomecolour = simulation::Environment.m_skydome.GetAverageColor();
+            ::glClearColor( skydomecolour.x, skydomecolour.y, skydomecolour.z, 0.f ); // kolor nieba
             ::glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT );
 
-            if( simulation::is_ready ) {
-                // setup
-                setup_matrices();
-                // render
-                setup_drawing( true );
-                setup_units( true, false, false );
-                m_renderpass.draw_stats = {};
-                Render( &simulation::Environment );
-                // opaque parts...
-                setup_drawing( false );
-                setup_units( true, true, true );
+            // setup
+            setup_matrices();
+            // render
+            setup_drawing( true );
+            setup_units( true, false, false );
+            m_renderpass.draw_stats = {};
+            Render( &simulation::Environment );
+            // opaque parts...
+            setup_drawing( false );
+            setup_units( true, true, true );
 #ifdef EU07_USE_DEBUG_CAMERA
-                if( DebugModeFlag ) {
-                    // draw light frustum
-                    ::glLineWidth( 2.f );
-                    ::glColor4f( 1.f, 0.9f, 0.8f, 1.f );
-                    ::glDisable( GL_LIGHTING );
-                    ::glDisable( GL_TEXTURE_2D );
-                    if( ( true == Global.RenderShadows ) && ( false == Global.bWireFrame ) ) {
-                        m_shadowpass.camera.draw( m_renderpass.camera.position() - m_shadowpass.camera.position() );
-                    }
-                    if( DebugCameraFlag ) {
-                        ::glColor4f( 0.8f, 1.f, 0.9f, 1.f );
-                        m_worldcamera.camera.draw( m_renderpass.camera.position() - m_worldcamera.camera.position() );
-                    }
-                    ::glLineWidth( 1.f );
-                    ::glEnable( GL_LIGHTING );
-                    ::glEnable( GL_TEXTURE_2D );
+            if( DebugModeFlag ) {
+                // draw light frustum
+                ::glLineWidth( 2.f );
+                ::glColor4f( 1.f, 0.9f, 0.8f, 1.f );
+                ::glDisable( GL_LIGHTING );
+                ::glDisable( GL_TEXTURE_2D );
+                if( ( true == Global.RenderShadows ) && ( false == Global.bWireFrame ) ) {
+                    m_shadowpass.camera.draw( m_renderpass.camera.position() - m_shadowpass.camera.position() );
                 }
+                if( DebugCameraFlag ) {
+                    ::glColor4f( 0.8f, 1.f, 0.9f, 1.f );
+                    m_worldcamera.camera.draw( m_renderpass.camera.position() - m_worldcamera.camera.position() );
+                }
+                ::glLineWidth( 1.f );
+                ::glEnable( GL_LIGHTING );
+                ::glEnable( GL_TEXTURE_2D );
+            }
 #endif
-                // without rain/snow we can render the cab early to limit the overdraw
-                if( ( false == FreeFlyModeFlag )
-                 && ( Global.Overcast <= 1.f ) ) { // precipitation happens when overcast is in 1-2 range
+            // without rain/snow we can render the cab early to limit the overdraw
+            if( ( false == FreeFlyModeFlag )
+             && ( Global.Overcast <= 1.f ) ) { // precipitation happens when overcast is in 1-2 range
 #ifdef EU07_DISABLECABREFLECTIONS
-                    switch_units( true, true, false );
+                switch_units( true, true, false );
 #endif
-                    setup_shadow_map( m_cabshadowtexture, m_cabshadowtexturematrix );
-                    // cache shadow colour in case we need to account for cab light
-                    auto const shadowcolor { m_shadowcolor };
-                    auto const *vehicle{ simulation::Train->Dynamic() };
-                    if( vehicle->InteriorLightLevel > 0.f ) {
-                        setup_shadow_color( glm::min( colors::white, shadowcolor + glm::vec4( vehicle->InteriorLight * vehicle->InteriorLightLevel, 1.f ) ) );
-                    }
+                setup_shadow_map( m_cabshadowtexture, m_cabshadowtexturematrix );
+                // cache shadow colour in case we need to account for cab light
+                auto const shadowcolor { m_shadowcolor };
+                auto const *vehicle{ simulation::Train->Dynamic() };
+                if( vehicle->InteriorLightLevel > 0.f ) {
+                    setup_shadow_color( glm::min( colors::white, shadowcolor + glm::vec4( vehicle->InteriorLight * vehicle->InteriorLightLevel, 1.f ) ) );
+                }
+                Render_cab( vehicle, vehicle->InteriorLightLevel, false );
+                if( vehicle->InteriorLightLevel > 0.f ) {
+                    setup_shadow_color( shadowcolor );
+                }
+            }
+            switch_units( true, true, true );
+            setup_shadow_map( m_shadowtexture, m_shadowtexturematrix );
+            Render( simulation::Region );
+            // ...translucent parts
+            setup_drawing( true );
+            Render_Alpha( simulation::Region );
+            // particles
+            Render_particles();
+            // precipitation; done at the end, only before cab render
+            Render_precipitation();
+            // cab render
+            if( false == FreeFlyModeFlag ) {
+#ifdef EU07_DISABLECABREFLECTIONS
+                switch_units( true, true, false );
+#endif
+                setup_shadow_map( m_cabshadowtexture, m_cabshadowtexturematrix );
+                // cache shadow colour in case we need to account for cab light
+                auto const shadowcolor{ m_shadowcolor };
+                auto *vehicle { simulation::Train->Dynamic() };
+                if( vehicle->InteriorLightLevel > 0.f ) {
+                    setup_shadow_color( glm::min( colors::white, shadowcolor + glm::vec4( vehicle->InteriorLight * vehicle->InteriorLightLevel, 1.f ) ) );
+                }
+                if( Global.Overcast > 1.f ) {
+                    // with active precipitation draw the opaque cab parts here to mask rain/snow placed 'inside' the cab
+                    setup_drawing( false );
                     Render_cab( vehicle, vehicle->InteriorLightLevel, false );
-                    if( vehicle->InteriorLightLevel > 0.f ) {
-                        setup_shadow_color( shadowcolor );
-                    }
+                    Render_interior( false);
+                    setup_drawing( true );
+                    Render_interior( true );
                 }
-                switch_units( true, true, true );
-                setup_shadow_map( m_shadowtexture, m_shadowtexturematrix );
-                Render( simulation::Region );
-                // ...translucent parts
-                setup_drawing( true );
-                Render_Alpha( simulation::Region );
-                // particles
-                Render_particles();
-                // precipitation; done at the end, only before cab render
-                Render_precipitation();
-                // cab render
-                if( false == FreeFlyModeFlag ) {
-#ifdef EU07_DISABLECABREFLECTIONS
-                    switch_units( true, true, false );
-#endif
-                    setup_shadow_map( m_cabshadowtexture, m_cabshadowtexturematrix );
-                    // cache shadow colour in case we need to account for cab light
-                    auto const shadowcolor{ m_shadowcolor };
-                    auto *vehicle { simulation::Train->Dynamic() };
-                    if( vehicle->InteriorLightLevel > 0.f ) {
-                        setup_shadow_color( glm::min( colors::white, shadowcolor + glm::vec4( vehicle->InteriorLight * vehicle->InteriorLightLevel, 1.f ) ) );
-                    }
-                    if( Global.Overcast > 1.f ) {
-                        // with active precipitation draw the opaque cab parts here to mask rain/snow placed 'inside' the cab
-                        setup_drawing( false );
-                        Render_cab( vehicle, vehicle->InteriorLightLevel, false );
-                        Render_interior( false);
-                        setup_drawing( true );
-                        Render_interior( true );
-                    }
-                    Render_cab( vehicle, vehicle->InteriorLightLevel, true );
-                    if( vehicle->InteriorLightLevel > 0.f ) {
-                        setup_shadow_color( shadowcolor );
-                    }
-                    // with the cab in place we can (finally) safely draw translucent part of the occupied vehicle
-                    Render_Alpha( vehicle );
+                Render_cab( vehicle, vehicle->InteriorLightLevel, true );
+                if( vehicle->InteriorLightLevel > 0.f ) {
+                    setup_shadow_color( shadowcolor );
                 }
+                // with the cab in place we can (finally) safely draw translucent part of the occupied vehicle
+                Render_Alpha( vehicle );
+            }
 
-                if( m_environmentcubetexturesupport ) {
-                    // restore default texture matrix for reflections cube map
-                    select_unit( m_helpertextureunit );
-                    ::glMatrixMode( GL_TEXTURE );
-//                    ::glPopMatrix();
-                    ::glLoadIdentity();
-                    select_unit( m_diffusetextureunit );
-                    ::glMatrixMode( GL_MODELVIEW );
-                }
+            if( m_environmentcubetexturesupport ) {
+                // restore default texture matrix for reflections cube map
+                select_unit( m_helpertextureunit );
+                ::glMatrixMode( GL_TEXTURE );
+//                ::glPopMatrix();
+                ::glLoadIdentity();
+                select_unit( m_diffusetextureunit );
+                ::glMatrixMode( GL_MODELVIEW );
             }
             // store draw stats
             m_colorpass.draw_stats = m_renderpass.draw_stats;

@@ -486,7 +486,6 @@ public: // reszta może by?publiczna
     TGauge ggFuseButton;
     TGauge ggConverterFuseButton; // hunter-261211: przycisk odblokowania nadmiarowego przetwornic i ogrzewania
     TGauge ggStLinOffButton;
-    TGauge ggRadioButton;
     TGauge ggRadioChannelSelector;
     TGauge ggRadioChannelPrevious;
     TGauge ggRadioChannelNext;

@@ -4738,7 +4738,7 @@ TController::UpdateSituation(double dt) {
                                 if( ( mvControlling->PantRearVolt == 0.0 )
                                     // filter out cases with single _other_ working pantograph so we don't try to raise something we can't
                                     && ( ( mvControlling->PantographVoltage == 0.0 )
-                                        || ( mvControlling->EnginePowerSource.CollectorParameters.CollectorsNo > 1 ) ) ) {
+                                      || ( mvControlling->EnginePowerSource.CollectorParameters.CollectorsNo > 1 ) ) ) {
                                     mvControlling->OperatePantographValve( end::rear, operation_t::enable );
                                 }
                             }
@@ -4747,45 +4747,45 @@ TController::UpdateSituation(double dt) {
                                 if( ( mvControlling->PantFrontVolt == 0.0 )
                                     // filter out cases with single _other_ working pantograph so we don't try to raise something we can't
                                     && ( ( mvControlling->PantographVoltage == 0.0 )
-                                        || ( mvControlling->EnginePowerSource.CollectorParameters.CollectorsNo > 1 ) ) ) {
+                                      || ( mvControlling->EnginePowerSource.CollectorParameters.CollectorsNo > 1 ) ) ) {
                                     mvControlling->OperatePantographValve( end::front, operation_t::enable );
                                 }
                             }
-                        }
-                    }
-                }
-                if( mvOccupied->Vel > 5 ) {
-                    if( fActionTime > 0.0 ) {
-                        if( mvOccupied->AIHintPantstate != 0 ) {
-                            // use suggested pantograph setup
-                            auto const pantographsetup{ mvOccupied->AIHintPantstate };
-                            mvControlling->OperatePantographValve(
-                                end::front,
-                                ( pantographsetup & ( 1 << 0 ) ?
-                                    operation_t::enable :
-                                    operation_t::disable ) );
-                            mvControlling->OperatePantographValve(
-                                end::rear,
-                                ( pantographsetup & ( 1 << 1 ) ?
-                                    operation_t::enable :
-                                    operation_t::disable ) );
+
+                            if( mvOccupied->Vel > 5 ) {
+                                // opuszczenie przedniego po rozpędzeniu się o ile jest więcej niż jeden
+                                if( mvControlling->EnginePowerSource.CollectorParameters.CollectorsNo > 1 ) {
+                                    if( ( iDirection >= 0 ) && ( useregularpantographlayout ) ) // jak jedzie w kierunku sprzęgu 0
+                                    { // poczekać na podniesienie tylnego
+                                        if( ( mvControlling->PantFrontVolt != 0.0 )
+                                         && ( mvControlling->PantRearVolt != 0.0 ) ) { // czy jest napięcie zasilające na tylnym?
+                                            mvControlling->OperatePantographValve( end::front, operation_t::disable ); // opuszcza od sprzęgu 0
+                                        }
+                                    }
+                                    else { // poczekać na podniesienie przedniego
+                                        if( ( mvControlling->PantRearVolt != 0.0 )
+                                         && ( mvControlling->PantFrontVolt != 0.0 ) ) { // czy jest napięcie zasilające na przednim?
+                                            mvControlling->OperatePantographValve( end::rear, operation_t::disable ); // opuszcza od sprzęgu 1
+                                        }
+                                    }
+                                }
+                            }
+
                         }
                         else {
-                            // opuszczenie przedniego po rozpędzeniu się o ile jest więcej niż jeden
-                            if( mvControlling->EnginePowerSource.CollectorParameters.CollectorsNo > 1 ) {
-                                if( ( iDirection >= 0 ) && ( useregularpantographlayout ) ) // jak jedzie w kierunku sprzęgu 0
-                                { // poczekać na podniesienie tylnego
-                                    if( ( mvControlling->PantFrontVolt != 0.0 )
-                                     && ( mvControlling->PantRearVolt != 0.0 ) ) { // czy jest napięcie zasilające na tylnym?
-                                        mvControlling->OperatePantographValve( end::front, operation_t::disable ); // opuszcza od sprzęgu 0
-                                    }
-                                }
-                                else { // poczekać na podniesienie przedniego
-                                    if( ( mvControlling->PantRearVolt != 0.0 )
-                                     && ( mvControlling->PantFrontVolt != 0.0 ) ) { // czy jest napięcie zasilające na przednim?
-                                        mvControlling->OperatePantographValve( end::rear, operation_t::disable ); // opuszcza od sprzęgu 1
-                                    }
-                                }
+                            // use suggested pantograph setup
+                            if( mvOccupied->Vel > 5 ) {
+                                auto const pantographsetup{ mvOccupied->AIHintPantstate };
+                                mvControlling->OperatePantographValve(
+                                    end::front,
+                                    ( pantographsetup & ( 1 << 0 ) ?
+                                        operation_t::enable :
+                                        operation_t::disable ) );
+                                mvControlling->OperatePantographValve(
+                                    end::rear,
+                                    ( pantographsetup & ( 1 << 1 ) ?
+                                        operation_t::enable :
+                                        operation_t::disable ) );
                             }
                         }
                     }
@@ -4875,18 +4875,20 @@ TController::UpdateSituation(double dt) {
 	if (AIControllFlag) {
 		CheckTimeControllers();
 
+        if( fActionTime > 0.0 ) {
         // low priority operations
         // compartment lights
-        if( mvOccupied->CompartmentLights.start_type == start_t::manual ) {
-            auto const currentlightstate { mvOccupied->CompartmentLights.is_enabled };
-            auto const lightlevel { Global.fLuminance * ConsistShade };
-            auto const desiredlightstate { (
-                currentlightstate ?
-                    lightlevel < 0.40 : // turn off if lighting level goes above 0.4
-                    lightlevel < 0.35 ) }; // turn on if lighting level goes below 0.35
-            if( desiredlightstate != currentlightstate ) {
-                mvOccupied->CompartmentLightsSwitch( desiredlightstate );
-                mvOccupied->CompartmentLightsSwitchOff( !desiredlightstate );
+            if( mvOccupied->CompartmentLights.start_type == start_t::manual ) {
+                auto const currentlightstate{ mvOccupied->CompartmentLights.is_enabled };
+                auto const lightlevel{ Global.fLuminance * ConsistShade };
+                auto const desiredlightstate{ (
+                    currentlightstate ?
+                        lightlevel < 0.40 : // turn off if lighting level goes above 0.4
+                        lightlevel < 0.35 ) }; // turn on if lighting level goes below 0.35
+                if( desiredlightstate != currentlightstate ) {
+                    mvOccupied->CompartmentLightsSwitch( desiredlightstate );
+                    mvOccupied->CompartmentLightsSwitchOff( !desiredlightstate );
+                }
             }
         }
 	}

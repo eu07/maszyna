@@ -454,6 +454,7 @@ private:
     // returns true if any vehicle in the consist has an open door
     bool doors_open() const;
     void AutoRewident(); // ustawia hamulce w składzie
+    void UpdatePantographs();
 // members
     double fLength = 0.0; // długość składu (do wyciągania z ograniczeń)
     double fMass = 0.0; // całkowita masa do liczenia stycznej składowej grawitacji

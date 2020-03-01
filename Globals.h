@@ -195,10 +195,12 @@ struct global_settings {
 
     std::string fullscreen_monitor;
 
+    bool python_enabled = true;
 	bool python_mipmaps = true;
 	bool python_threadedupload = true;
 	bool python_uploadmain = true;
 
+    bool gfx_skiprendering = false;
     int gfx_framebuffer_width = -1;
     int gfx_framebuffer_height = -1;
     int gfx_framebuffer_fidelity = -1;
@@ -209,6 +211,7 @@ struct global_settings {
     GLenum gfx_postfx_motionblur_format = GL_RG16F;
     GLenum gfx_format_color = GL_RGB16F;
     GLenum gfx_format_depth = GL_DEPTH_COMPONENT32F;
+    bool gfx_postfx_chromaticaberration_enabled = true;
     bool gfx_skippipeline = false;
     bool gfx_extraeffects = true;
     bool gfx_shadergamma = false;

@@ -986,16 +986,33 @@ void TTrain::OnCommand_mastercontrollerset( TTrain *Train, command_data const &C
 
 void TTrain::OnCommand_secondcontrollerincrease( TTrain *Train, command_data const &Command ) {
 
-    if( Command.action != GLFW_RELEASE ) {
-        // on press or hold
-        if( ( Train->mvControlled->EngineType == TEngineType::DieselElectric )
-         && ( true == Train->mvControlled->ShuntMode ) ) {
+    if( ( Train->mvControlled->EngineType == TEngineType::DieselElectric )
+     && ( true == Train->mvControlled->ShuntModeAllow )
+     && ( true == Train->mvControlled->ShuntMode ) ) {
+        if( Command.action != GLFW_RELEASE ) {
             Train->mvControlled->AnPos = clamp(
                 Train->mvControlled->AnPos + 0.025,
                 0.0, 1.0 );
         }
+    }
+    else {
+        if( Train->ggScndCtrl.type() == TGaugeType::push ) {
+            // two-state control, active while the button is down
+            if( Command.action == GLFW_PRESS ) {
+                // activate on press
+                Train->mvControlled->IncScndCtrl( 1 );
+            }
+            else if( Command.action == GLFW_RELEASE ) {
+                // zero on release
+                Train->mvControlled->DecScndCtrl( 2 );
+            }
+        }
         else {
-            Train->mvControlled->IncScndCtrl( 1 );
+            // multi-state control
+            if( Command.action != GLFW_RELEASE ) {
+                // on press or hold
+                Train->mvControlled->IncScndCtrl( 1 );
+            }
         }
     }
 }
@@ -5521,30 +5538,22 @@ void TTrain::OnCommand_whistleactivate( TTrain *Train, command_data const &Comma
 
 void TTrain::OnCommand_radiotoggle( TTrain *Train, command_data const &Command ) {
 
-    if( Train->ggRadioButton.SubModel == nullptr ) {
-        if( Command.action == GLFW_PRESS ) {
-            WriteLog( "Radio switch is missing, or wasn't defined" );
-        }
-/*
-        // NOTE: we ignore the lack of 3d model to allow system reset after receiving radio-stop signal
-        return;
-*/
-    }
+    if( Command.action != GLFW_PRESS ) { return; }
 
-    if( Command.action == GLFW_PRESS ) {
-        // only reacting to press, so the sound can loop uninterrupted
-        if( false == Train->mvOccupied->Radio ) {
-            // turn on
-            Train->mvOccupied->Radio = true;
-            // visual feedback
-            Train->ggRadioButton.UpdateValue( 1.0, Train->dsbSwitch );
-        }
-        else {
-            // turn off
-            Train->mvOccupied->Radio = false;
-            // visual feedback
-            Train->ggRadioButton.UpdateValue( 0.0, Train->dsbSwitch );
-        }
+    // NOTE: we ignore the lack of 3d model to allow system reset after receiving radio-stop signal
+/*
+    if( false == Train->m_controlmapper.contains( "radio_sw:" ) ) {
+        return;
+    }
+*/
+    // only reacting to press, so the sound can loop uninterrupted
+    if( false == Train->mvOccupied->Radio ) {
+        // turn on
+        Train->mvOccupied->Radio = true;
+    }
+    else {
+        // turn off
+        Train->mvOccupied->Radio = false;
     }
 }
 
@@ -6864,7 +6873,6 @@ bool TTrain::Update( double const Deltatime )
         ggFuseButton.Update();
         ggConverterFuseButton.Update();
         ggStLinOffButton.Update();
-        ggRadioButton.Update();
         ggRadioChannelSelector.Update();
         ggRadioChannelPrevious.Update();
         ggRadioChannelNext.Update();
@@ -6996,6 +7004,7 @@ bool TTrain::Update( double const Deltatime )
     // screens
     fScreenTimer += Deltatime;
     if( ( this == simulation::Train ) // no point in drawing screens for vehicles other than our own
+     && ( Global.PythonScreenUpdateRate > 0 )
      && ( fScreenTimer > Global.PythonScreenUpdateRate * 0.001f )
      && ( false == FreeFlyModeFlag ) ) { // don't bother if we're outside
         fScreenTimer = 0.f;
@@ -7883,9 +7892,6 @@ bool TTrain::InitializeCab(int NewCabNo, std::string const &asFileName)
         if( m_radiosound.offset() == nullvector ) {
             m_radiosound.offset( btLampkaRadio.model_offset() );
         }
-        if( m_radiosound.offset() == nullvector ) {
-            m_radiosound.offset( ggRadioButton.model_offset() );
-        }
         if( m_radiostop.offset() == nullvector ) {
             m_radiostop.offset( m_radiosound.offset() );
         }
@@ -8259,7 +8265,6 @@ void TTrain::clear_cab_controls()
     ggFuseButton.Clear();
     ggConverterFuseButton.Clear();
     ggStLinOffButton.Clear();
-    ggRadioButton.Clear();
     ggRadioChannelSelector.Clear();
     ggRadioChannelPrevious.Clear();
     ggRadioChannelNext.Clear();
@@ -8443,9 +8448,6 @@ void TTrain::set_cab_controls( int const Cab ) {
             1.f :
             0.f ) );
     // radio
-    if( true == mvOccupied->Radio ) {
-        ggRadioButton.PutValue( 1.f );
-    }
     ggRadioChannelSelector.PutValue( ( Dynamic()->Mechanik ? Dynamic()->Mechanik->iRadioChannel : 1 ) - 1 );
     // pantographs
 /*
@@ -8985,7 +8987,6 @@ bool TTrain::initialize_gauge(cParser &Parser, std::string const &Label, int con
         { "motorblowersfront_sw:", ggMotorBlowersFrontButton },
         { "motorblowersrear_sw:", ggMotorBlowersRearButton },
         { "motorblowersalloff_sw:", ggMotorBlowersAllOffButton },
-        { "radio_sw:", ggRadioButton },
         { "radiochannel_sw:", ggRadioChannelSelector },
         { "radiochannelprev_sw:", ggRadioChannelPrevious },
         { "radiochannelnext_sw:", ggRadioChannelNext },
@@ -9081,7 +9082,8 @@ bool TTrain::initialize_gauge(cParser &Parser, std::string const &Label, int con
         { "pantfront_sw:", &mvControlled->Pantographs[end::front].valve.is_enabled },
         { "pantrear_sw:", &mvControlled->Pantographs[end::rear].valve.is_enabled },
         { "pantfrontoff_sw:", &mvControlled->Pantographs[end::front].valve.is_disabled },
-        { "pantrearoff_sw:", &mvControlled->Pantographs[end::rear].valve.is_disabled }
+        { "pantrearoff_sw:", &mvControlled->Pantographs[end::rear].valve.is_disabled },
+        { "radio_sw:", &mvOccupied->Radio },
     };
     {
         auto lookup = autoboolgauges.find( Label );

@@ -151,6 +151,7 @@ bool opengl33_renderer::Init(GLFWwindow *Window)
 
 	m_pfx_motionblur = std::make_unique<gl::postfx>("motionblur");
 	m_pfx_tonemapping = std::make_unique<gl::postfx>("tonemapping");
+    m_pfx_chromaticaberration = std::make_unique<gl::postfx>( "chromaticaberration" );
 
 	m_empty_cubemap = std::make_unique<gl::cubemap>();
 	m_empty_cubemap->alloc(Global.gfx_format_color, 16, 16, GL_RGB, GL_FLOAT);
@@ -584,7 +585,7 @@ void opengl33_renderer::Render_pass(viewport_config &vp, rendermode const Mode)
 		gl::buffer::unbind();
 		m_current_viewport = &vp;
 
-		if (!simulation::is_ready)
+		if ((!simulation::is_ready) || (Global.gfx_skiprendering))
 		{
             gl::program::unbind();
 			gl::framebuffer::unbind();
@@ -796,9 +797,14 @@ void opengl33_renderer::Render_pass(viewport_config &vp, rendermode const Mode)
 			if (!Global.gfx_usegles && !Global.gfx_shadergamma)
 				glEnable(GL_FRAMEBUFFER_SRGB);
 
-			glViewport(0, 0, target_size.x, target_size.y);
+            glViewport(0, 0, target_size.x, target_size.y);
 			m_pfx_tonemapping->apply(*vp.main2_tex, nullptr);
-			opengl_texture::reset_unit_cache();
+
+            if( Global.gfx_postfx_chromaticaberration_enabled ) {
+                m_pfx_chromaticaberration->apply( *vp.main2_tex, nullptr );
+            }
+
+            opengl_texture::reset_unit_cache();
 		}
 
 		if (!Global.gfx_usegles && !Global.gfx_shadergamma)

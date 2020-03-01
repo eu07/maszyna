@@ -2281,7 +2281,7 @@ bool TMoverParameters::IncScndCtrl(int CtrlSpeed)
 {
     bool OK = false;
 
-    if ((IsMainCtrlNoPowerPos()) && (CabActive != 0) && (TrainType == dt_ET42) && (ScndCtrlPos == 0) && (DynamicBrakeFlag))
+    if ( ( DynamicBrakeFlag ) && ( TrainType == dt_ET42 ) && ( CabActive != 0 ) && ( IsMainCtrlNoPowerPos() ) && ( ScndCtrlPos == 0 ) )
     {
         OK = DynamicBrakeSwitch(false);
     }
@@ -2291,18 +2291,23 @@ bool TMoverParameters::IncScndCtrl(int CtrlSpeed)
     {
         //     if (RList[MainCtrlPos].R=0) and (MainCtrlPos>0) and (ScndCtrlPos<ScndCtrlPosNo) and
         //     (not CoupledCtrl) then
-        if ((ScndCtrlPos < ScndCtrlPosNo) && (!CoupledCtrl) &&
-            ((EngineType != TEngineType::DieselElectric) || (!AutoRelayFlag)))
+        if ((ScndCtrlPos < ScndCtrlPosNo) && (!CoupledCtrl))
         {
-            if (CtrlSpeed == 1)
-            {
-                ScndCtrlPos++;
+            // TBD, TODO: refactor this validation as part of relay check routine (currently in tractionforce()
+            // TBD, TODO: diesel electric engine utilize scndctrlactualpos like the other types?
+            if( ( EngineType == TEngineType::DieselElectric )
+             && ( ( IsMainCtrlNoPowerPos() ) || ( AutoRelayFlag ) || ( ShuntMode ) || ( false == Mains ) ) ) {
+                OK = false;
             }
-            else if (CtrlSpeed > 1)
-            {
-                ScndCtrlPos = ScndCtrlPosNo; // takie chamskie, potem poprawie
+            else {
+                if( CtrlSpeed == 1 ) {
+                    ScndCtrlPos++;
+                }
+                else if( CtrlSpeed > 1 ) {
+                    ScndCtrlPos = ScndCtrlPosNo; // takie chamskie, potem poprawie
+                }
+                OK = true;
             }
-            OK = true;
         }
         else // nie mozna zmienic
             OK = false;

@@ -247,7 +247,8 @@ void python_taskqueue::exit() {
 // adds specified task along with provided collection of data to the work queue. returns true on success
 auto python_taskqueue::insert( task_request const &Task ) -> bool {
 
-    if( ( Task.renderer.empty() )
+    if( ( false == Global.python_enabled )
+     || ( Task.renderer.empty() )
      || ( Task.input == nullptr )
      || ( Task.target == 0 ) ) { return false; }
 

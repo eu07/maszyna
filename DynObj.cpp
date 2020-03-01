@@ -2194,7 +2194,7 @@ TDynamicObject::init_sections( TModel3d const *Model, std::string const &Namepre
         if( sectionsubmodel != nullptr ) {
             // HACK: disable automatic self-illumination threshold, at least until 3d model update
             if( Overrideselfillum ) {
-                sectionsubmodel->SetSelfIllum( 2.0f, true, true );
+                sectionsubmodel->SetSelfIllum( 2.0f, true, false );
             }
             Sections.push_back( {
                 sectionsubmodel,
@@ -2615,7 +2615,7 @@ TDynamicObject::update_load_sections() {
             SectionLoadVisibility.push_back( { section.load, false } );
             // HACK: disable automatic self-illumination threshold, at least until 3d model update
             if( MoverParameters->CompartmentLights.start_type == start_t::manual ) {
-                section.load->SetSelfIllum( 2.0f, true, true );
+                section.load->SetSelfIllum( 2.0f, true, false );
             }
         }
     }
@@ -3696,9 +3696,9 @@ bool TDynamicObject::Update(double dt, double dt1)
 
     // compartment lights
     // if the vehicle has a controller, we base the light state on state of the controller otherwise we check the vehicle itself
-    if( ( ctOwner != nullptr ?
-            ctOwner->Controlling()->Battery != SectionLightsActive :
-            MoverParameters->CompartmentLights.is_active == true ) ) { // without controller lights are off. NOTE: this likely mess up the EMU
+    if( ( ctOwner != nullptr ? ctOwner->Controlling()->Battery != SectionLightsActive :
+          Mechanik != nullptr ? Mechanik->primary() == false : // don't touch lights in a stand-alone manned vehicle
+          MoverParameters->CompartmentLights.is_active == true ) ) { // without controller switch the lights off
         toggle_lights();
     }
 

@@ -363,6 +363,7 @@ class opengl33_renderer : public gfx_renderer {
 
 	std::unique_ptr<gl::postfx> m_pfx_motionblur;
 	std::unique_ptr<gl::postfx> m_pfx_tonemapping;
+    std::unique_ptr<gl::postfx> m_pfx_chromaticaberration;
 
 	std::unique_ptr<gl::program> m_shadow_shader;
 	std::unique_ptr<gl::program> m_alpha_shadow_shader;
