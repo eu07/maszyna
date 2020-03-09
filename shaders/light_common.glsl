@@ -111,12 +111,15 @@ vec2 calc_headlights(light_s light, vec3 fragnormal)
 
 vec3 apply_lights(vec3 fragcolor, vec3 fragnormal, vec3 texturecolor, float reflectivity, float specularity, float shadowtone)
 {
+	fragcolor *= param[0].rgb;
+
 	vec3 emissioncolor = param[0].rgb * emission;
 	vec3 envcolor = envmap_color(fragnormal);
 
 	if(lights_count == 0U) 
 		return (fragcolor + emissioncolor + envcolor * reflectivity) * texturecolor;
 
+//	fragcolor *= lights[0].intensity;
 	vec2 sunlight = calc_dir_light(lights[0], fragnormal);
 
 	float diffuseamount = (sunlight.x * param[1].x) * lights[0].intensity;
