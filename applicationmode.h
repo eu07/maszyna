@@ -71,9 +71,13 @@ public:
     virtual
     void
         on_event_poll() = 0;
-	virtual
+    // provides key code associated with specified command
+    virtual
+    int
+        key_binding( user_command const Command ) const = 0;
+    virtual
 	bool
-	    is_command_processor() = 0;
+	    is_command_processor() const = 0;
 
 protected:
 // members

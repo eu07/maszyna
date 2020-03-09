@@ -756,6 +756,13 @@ private:
         bool is_active { false }; // device is working
     };
 
+    struct basic_light : public basic_device {
+        // config
+        float dimming { 1.0f }; // light strength multiplier
+        // ld outputs
+        float intensity { 0.0f }; // current light strength
+    };
+
     struct cooling_fan : public basic_device {
         // config
         float speed { 0.f }; // cooling fan rpm; either fraction of parent rpm, or absolute value if negative
@@ -1315,6 +1322,11 @@ public:
     bool CompressorTankValve{ false }; // indicates excessive pressure is vented from compressor tank directly and instantly
     start_t CompressorStart{ start_t::manual }; // whether the compressor is started manually, or another way
     start_t PantographCompressorStart{ start_t::manual };
+    basic_valve PantsValve;
+    std::array<basic_pantograph, 2> Pantographs;
+    bool PantAllDown { false };
+	double PantFrontVolt = 0.0;   //pantograf pod napieciem? 'Winger 160404
+	double PantRearVolt = 0.0;
     // TODO converter parameters, for when we start cleaning up mover parameters
     start_t ConverterStart{ start_t::manual }; // whether converter is started manually, or by other means
     float ConverterStartDelay{ 0.0f }; // delay (in seconds) before the converter is started, once its activation conditions are met
@@ -1506,11 +1518,6 @@ public:
 	bool DoorRightOpened = false;
     double DoorRightOpenTimer{ -1.0 }; // right door closing timer for automatic door type
 #endif
-    basic_valve PantsValve;
-    std::array<basic_pantograph, 2> Pantographs;
-    bool PantAllDown { false };
-	double PantFrontVolt = 0.0;   //pantograf pod napieciem? 'Winger 160404
-	double PantRearVolt = 0.0;
     // TODO: move these switch types where they belong, cabin definition
 	std::string PantSwitchType;
 	std::string ConvSwitchType;
@@ -1519,6 +1526,7 @@ public:
 	bool Heating = false; //ogrzewanie 'Winger 020304
     bool HeatingAllow { false }; // heating switch // TODO: wrap heating in a basic device
 	int DoubleTr = 1; //trakcja ukrotniona - przedni pojazd 'Winger 160304
+    basic_light CompartmentLights;
 
 	bool PhysicActivation = true;
 
@@ -1674,6 +1682,8 @@ public:
     bool OilPumpSwitchOff( bool State, range_t const Notify = range_t::consist ); // oil pump state toggle
     bool MotorBlowersSwitch( bool State, end const Side, range_t const Notify = range_t::consist ); // traction motor fan state toggle
     bool MotorBlowersSwitchOff( bool State, end const Side, range_t const Notify = range_t::consist ); // traction motor fan state toggle
+    bool CompartmentLightsSwitch( bool State, range_t const Notify = range_t::consist ); // compartment lights state toggle
+    bool CompartmentLightsSwitchOff( bool State, range_t const Notify = range_t::consist ); // compartment lights state toggle
     bool MainSwitch( bool const State, range_t const Notify = range_t::consist );/*! wylacznik glowny*/
     void MainSwitch_( bool const State );
     bool ConverterSwitch( bool State, range_t const Notify = range_t::consist );/*! wl/wyl przetwornicy*/
@@ -1691,6 +1701,7 @@ public:
     void OilPumpCheck( double const Timestep );
     void MotorBlowersCheck( double const Timestep );
     void PantographsCheck( double const Timestep );
+    void LightsCheck( double const Timestep );
     bool FuseOn(void); //bezpiecznik nadamiary
 	bool FuseFlagCheck(void) const; // sprawdzanie flagi nadmiarowego
 	void FuseOff(void); // wylaczenie nadmiarowego

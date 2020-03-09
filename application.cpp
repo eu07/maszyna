@@ -470,6 +470,14 @@ eu07_application::get_input_hint( user_command const Command ) const {
     return m_modes[ m_modestack.top() ]->get_input_hint( Command );
 }
 */
+int
+eu07_application::key_binding( user_command const Command ) const {
+
+    if( m_modestack.empty() ) { return -1; }
+
+    return m_modes[ m_modestack.top() ]->key_binding( Command );
+}
+
 void
 eu07_application::on_key( int const Key, int const Scancode, int const Action, int const Mods ) {
 

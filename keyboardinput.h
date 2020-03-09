@@ -45,8 +45,10 @@ public:
     user_command const
         command() const {
             return m_command; }
+    int
+        binding( user_command const Command ) const;
     std::string
-        mapping( user_command const Command ) const;
+        binding_hint( user_command const Command ) const;
 
 protected:
 // types
@@ -92,8 +94,6 @@ private:
     };
 
 // methods
-    int
-        binding( user_command const Command ) const;
     bool
         is_movement_key( int const Key ) const;
 

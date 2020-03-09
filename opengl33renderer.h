@@ -73,7 +73,7 @@ class opengl33_renderer : public gfx_renderer {
     material_handle
         Fetch_Material( std::string const &Filename, bool const Loadnow = true ) override;
     void
-        Bind_Material( material_handle const Material, TSubModel *sm = nullptr ) override;
+        Bind_Material( material_handle const Material, TSubModel const *sm = nullptr, lighting_data const *lighting = nullptr ) override;
     opengl_material const &
         Material( material_handle const Material ) const override;
     // shader methods
@@ -363,6 +363,7 @@ class opengl33_renderer : public gfx_renderer {
 
 	std::unique_ptr<gl::postfx> m_pfx_motionblur;
 	std::unique_ptr<gl::postfx> m_pfx_tonemapping;
+    std::unique_ptr<gl::postfx> m_pfx_chromaticaberration;
 
 	std::unique_ptr<gl::program> m_shadow_shader;
 	std::unique_ptr<gl::program> m_alpha_shadow_shader;

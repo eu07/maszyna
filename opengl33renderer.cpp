@@ -151,6 +151,7 @@ bool opengl33_renderer::Init(GLFWwindow *Window)
 
 	m_pfx_motionblur = std::make_unique<gl::postfx>("motionblur");
 	m_pfx_tonemapping = std::make_unique<gl::postfx>("tonemapping");
+    m_pfx_chromaticaberration = std::make_unique<gl::postfx>( "chromaticaberration" );
 
 	m_empty_cubemap = std::make_unique<gl::cubemap>();
 	m_empty_cubemap->alloc(Global.gfx_format_color, 16, 16, GL_RGB, GL_FLOAT);
@@ -584,7 +585,7 @@ void opengl33_renderer::Render_pass(viewport_config &vp, rendermode const Mode)
 		gl::buffer::unbind();
 		m_current_viewport = &vp;
 
-		if (!simulation::is_ready)
+		if ((!simulation::is_ready) || (Global.gfx_skiprendering))
 		{
             gl::program::unbind();
 			gl::framebuffer::unbind();
@@ -713,10 +714,9 @@ void opengl33_renderer::Render_pass(viewport_config &vp, rendermode const Mode)
                 setup_shadow_color( glm::min( colors::white, m_shadowcolor + glm::vec4( vehicle->InteriorLight * vehicle->InteriorLightLevel, 1.f ) ) );
             }
             Render_cab( vehicle, vehicle->InteriorLightLevel, false );
-            if( vehicle->InteriorLightLevel > 0.f ) {
-                setup_shadow_color( m_shadowcolor );
-            }
 		}
+
+        setup_shadow_color( m_shadowcolor );
 
 		glDebug("render opaque region");
 
@@ -755,9 +755,9 @@ void opengl33_renderer::Render_pass(viewport_config &vp, rendermode const Mode)
 			}
             glDebug( "render translucent cab" );
             Render_cab(vehicle, vehicle->InteriorLightLevel, true);
-            if( vehicle->InteriorLightLevel > 0.f ) {
-                setup_shadow_color( m_shadowcolor );
-            }
+
+            setup_shadow_color( m_shadowcolor );
+
             if( Global.Overcast > 1.0f ) {
                 // with the cab in place we can (finally) safely draw translucent part of the occupied vehicle
                 Render_Alpha( vehicle );
@@ -797,9 +797,14 @@ void opengl33_renderer::Render_pass(viewport_config &vp, rendermode const Mode)
 			if (!Global.gfx_usegles && !Global.gfx_shadergamma)
 				glEnable(GL_FRAMEBUFFER_SRGB);
 
-			glViewport(0, 0, target_size.x, target_size.y);
+            glViewport(0, 0, target_size.x, target_size.y);
 			m_pfx_tonemapping->apply(*vp.main2_tex, nullptr);
-			opengl_texture::reset_unit_cache();
+
+            if( Global.gfx_postfx_chromaticaberration_enabled ) {
+                m_pfx_chromaticaberration->apply( *vp.main2_tex, nullptr );
+            }
+
+            opengl_texture::reset_unit_cache();
 		}
 
 		if (!Global.gfx_usegles && !Global.gfx_shadergamma)
@@ -1023,7 +1028,19 @@ bool opengl33_renderer::Render_lowpoly( TDynamicObject *Dynamic, float const Squ
     }
     // HACK: reduce light level for vehicle interior if there's strong global lighting source
     if( false == Alpha ) {
-        auto const luminance{ static_cast<float>( 0.5 * ( std::max( 0.3, Global.fLuminance - Global.Overcast ) ) ) };
+/*
+        auto const luminance { static_cast<float>( std::min(
+            ( Dynamic->fShade > 0.0 ? Dynamic->fShade * Global.fLuminance : Global.fLuminance ),
+            Global.fLuminance - 0.5 * ( std::max( 0.3, Global.fLuminance - Global.Overcast ) ) ) ) };
+*/
+        auto const luminance{ static_cast<float>(
+            0.5
+            * ( std::max(
+                0.3,
+                ( Global.fLuminance - Global.Overcast )
+                * ( Dynamic->fShade > 0.0 ?
+                    Dynamic->fShade :
+                    1.0 ) ) ) ) };
         setup_sunlight_intensity(
             clamp( (
                 Dynamic->fShade > 0.f ?
@@ -1729,7 +1746,7 @@ std::shared_ptr<gl::program> opengl33_renderer::Fetch_Shader(const std::string &
 	return m_shaders[name];
 }
 
-void opengl33_renderer::Bind_Material(material_handle const Material, TSubModel *sm)
+void opengl33_renderer::Bind_Material( material_handle const Material, TSubModel const *sm, lighting_data const *lighting )
 {
 	if (Material != null_handle)
 	{
@@ -1773,6 +1790,26 @@ void opengl33_renderer::Bind_Material(material_handle const Material, TSubModel 
                     }
                 }
 			}
+            if( lighting )                 
+            {
+                switch( entry.defaultparam ) {
+                    case gl::shader::defaultparam_e::ambient: {
+                        src = lighting->ambient;
+                        break;
+                    }
+                    case gl::shader::defaultparam_e::diffuse: {
+                        src = lighting->diffuse;
+                        break;
+                    }
+                    case gl::shader::defaultparam_e::specular: {
+                        src = lighting->specular;
+                        break;
+                    }
+                    default: {
+                        break;
+                    }
+                }
+            }
             // material-based parameters
             switch( entry.defaultparam ) {
                 case gl::shader::defaultparam_e::glossiness: {
@@ -2280,7 +2317,7 @@ void opengl33_renderer::Render(scene::shape_node const &Shape, bool const Ignore
 	{
 	case rendermode::color:
 	case rendermode::reflections:
-		Bind_Material(data.material);
+		Bind_Material(data.material, nullptr, &Shape.data().lighting );
 		break;
 	case rendermode::shadows:
         Bind_Material_Shadow(data.material);
@@ -2546,9 +2583,10 @@ bool opengl33_renderer::Render_cab(TDynamicObject const *Dynamic, float const Li
             }
 
             auto const old_ambient { light_ubs.ambient };
+            auto const luminance { Global.fLuminance * ( Dynamic->fShade > 0.0f ? Dynamic->fShade : 1.0f ) };
             if( Lightlevel > 0.f ) {
                 // crude way to light the cabin, until we have something more complete in place
-                light_ubs.ambient += ( Dynamic->InteriorLight * Lightlevel ) * static_cast<float>( clamp( 1.25 - Global.fLuminance, 0.0, 1.0 ) );
+                light_ubs.ambient += ( Dynamic->InteriorLight * Lightlevel ) * static_cast<float>( clamp( 1.25 - luminance, 0.0, 1.0 ) );
                 light_ubo->update( light_ubs );
             }
 
@@ -2564,17 +2602,8 @@ bool opengl33_renderer::Render_cab(TDynamicObject const *Dynamic, float const Li
 				Render(Dynamic->mdKabina, Dynamic->Material(), 0.0);
 			}
 			// post-render restore
-			if (Dynamic->fShade > 0.0f)
-			{
-				// change light level based on light level of the occupied track
-				setup_sunlight_intensity();
-            }
-
-			// restore ambient
-            if( Lightlevel > 0.f ) {
-                light_ubs.ambient = old_ambient;
-                light_ubo->update( light_ubs );
-            }
+            light_ubs.ambient = old_ambient;
+            setup_sunlight_intensity();
 
 			break;
 		}

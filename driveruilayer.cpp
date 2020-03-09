@@ -47,8 +47,10 @@ driver_ui::driver_ui() {
 bool
 driver_ui::on_key_( int const Key, int const Scancode, int const Action, int const Mods ) {
 
-    // if the pause is on ignore block other input
-    if( m_paused ) { return true; }
+    if( m_paused ) {
+        // if the pause is on block input except for the pause key which we let the owner deal with
+        return ( Key != Application.key_binding( user_command::pausetoggle ) );
+    }
 
     switch( Key ) {
 

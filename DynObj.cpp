@@ -664,13 +664,7 @@ TDynamicObject::toggle_lights() {
 
     if( true == SectionLightsActive ) {
         // switch all lights off...
-        for( auto &section : Sections ) {
-            // ... but skip cab sections, their lighting ignores battery state
-            auto const sectionname { section.compartment->pName };
-            if( sectionname.find( "cab" ) == 0 ) { continue; }
-
-            section.light_level = 0.0f;
-        }
+        MoverParameters->BatterySwitch( false );
         SectionLightsActive = false;
     }
     else {
@@ -690,6 +684,7 @@ TDynamicObject::toggle_lights() {
                 section.light_level = ( Random() < 0.75 ? 0.75f : 0.15f );
             }
         }
+        MoverParameters->BatterySwitch( true );
         SectionLightsActive = true;
     }
 }
@@ -1092,15 +1087,20 @@ void TDynamicObject::ABuLittleUpdate(double ObjSqrDist)
     }
     // interior light levels
     auto sectionlightcolor { glm::vec4( 1.f ) };
+    bool cabsection{ true };
     for( auto const &section : Sections ) {
-        /*
-        sectionlightcolor = glm::vec4( InteriorLight, section.light_level );
-        */
+        if( cabsection ) {
+            // check whether we're still processing cab sections
+            auto const &sectionname { section.compartment->pName };
+            cabsection &= ( ( sectionname.size() >= 4 ) && ( sectionname.substr( 0, 3 ) == "cab" ) );
+        }
+        // TODO: add cablight devices
+        auto const sectionlightlevel { section.light_level * ( cabsection ? 1.0f : MoverParameters->CompartmentLights.intensity ) };
         sectionlightcolor = glm::vec4(
-            ( ( ( section.light_level == 0.f ) || ( Global.fLuminance > section.compartment->fLight ) ) ?
+            ( ( ( sectionlightlevel == 0.f ) || ( Global.fLuminance > section.compartment->fLight ) ) ?
                 glm::vec3( 240.f / 255.f ) : // TBD: save and restore initial submodel diffuse instead of enforcing one?
                 InteriorLight ), // TODO: per-compartment (type) light color
-            section.light_level );
+            sectionlightlevel );
         section.compartment->SetLightLevel( sectionlightcolor, true );
         if( section.load != nullptr ) {
             section.load->SetLightLevel( sectionlightcolor, true );
@@ -2069,7 +2069,7 @@ TDynamicObject::Init(std::string Name, // nazwa pojazdu, np. "EU07-424"
         // passenger car compartments
         std::vector<std::string> nameprefixes = { "corridor", "korytarz", "compartment", "przedzial" };
         for( auto const &nameprefix : nameprefixes ) {
-            init_sections( mdLowPolyInt, nameprefix );
+            init_sections( mdLowPolyInt, nameprefix, MoverParameters->CompartmentLights.start_type == start_t::manual );
         }
     }
     // destination sign 
@@ -2078,7 +2078,7 @@ TDynamicObject::Init(std::string Name, // nazwa pojazdu, np. "EU07-424"
     }
     // 'external_load' is an optional special section in the main model, pointing to submodel of external load
     if( mdModel ) {
-        init_sections( mdModel, "external_load" );
+        init_sections( mdModel, "external_load", false );
     }
     update_load_sections();
     update_load_visibility();
@@ -2176,7 +2176,7 @@ TDynamicObject::Init(std::string Name, // nazwa pojazdu, np. "EU07-424"
 }
 
 int
-TDynamicObject::init_sections( TModel3d const *Model, std::string const &Nameprefix ) {
+TDynamicObject::init_sections( TModel3d const *Model, std::string const &Nameprefix, bool const Overrideselfillum ) {
 
     auto sectioncount = 0;
     auto sectionindex = 0;
@@ -2192,6 +2192,10 @@ TDynamicObject::init_sections( TModel3d const *Model, std::string const &Namepre
             sectionsubmodel = Model->GetFromName( Nameprefix + "0" + sectionindexname );
         }
         if( sectionsubmodel != nullptr ) {
+            // HACK: disable automatic self-illumination threshold, at least until 3d model update
+            if( Overrideselfillum ) {
+                sectionsubmodel->SetSelfIllum( 2.0f, true, false );
+            }
             Sections.push_back( {
                 sectionsubmodel,
                 nullptr, // pointers to load sections are generated afterwards
@@ -2609,6 +2613,10 @@ TDynamicObject::update_load_sections() {
         if( ( section.load != nullptr )
          && ( section.load->count_children() > 0 ) ) {
             SectionLoadVisibility.push_back( { section.load, false } );
+            // HACK: disable automatic self-illumination threshold, at least until 3d model update
+            if( MoverParameters->CompartmentLights.start_type == start_t::manual ) {
+                section.load->SetSelfIllum( 2.0f, true, false );
+            }
         }
     }
     shuffle_load_sections();
@@ -3688,9 +3696,9 @@ bool TDynamicObject::Update(double dt, double dt1)
 
     // compartment lights
     // if the vehicle has a controller, we base the light state on state of the controller otherwise we check the vehicle itself
-    if( ( ctOwner != nullptr ?
-            ctOwner->Controlling()->Battery != SectionLightsActive :
-            SectionLightsActive == true ) ) { // without controller lights are off. NOTE: this likely mess up the EMU
+    if( ( ctOwner != nullptr ? ctOwner->Controlling()->Battery != SectionLightsActive :
+          Mechanik != nullptr ? Mechanik->primary() == false : // don't touch lights in a stand-alone manned vehicle
+          MoverParameters->CompartmentLights.is_active == true ) ) { // without controller switch the lights off
         toggle_lights();
     }
 

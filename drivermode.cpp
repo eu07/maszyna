@@ -83,10 +83,10 @@ driver_mode::drivermode_input::init() {
 }
 
 std::string
-driver_mode::drivermode_input::command_hints( std::pair<user_command, user_command> const &Commands ) const {
+driver_mode::drivermode_input::binding_hints( std::pair<user_command, user_command> const &Commands ) const {
 
-    auto const inputhintleft { keyboard.mapping( Commands.first ) };
-    auto const inputhintright { keyboard.mapping( Commands.second ) };
+    auto const inputhintleft { keyboard.binding_hint( Commands.first ) };
+    auto const inputhintright { keyboard.binding_hint( Commands.second ) };
     std::string inputhints =
         inputhintleft
         + ( inputhintright.empty() ? "" :
@@ -106,6 +106,10 @@ std::unordered_map<user_command, std::pair<user_command, user_command>> commandf
     { user_command::linebreakerclose, { user_command::linebreakertoggle, user_command::none } },
     { user_command::pantographlowerfront, { user_command::pantographtogglefront, user_command::none } },
     { user_command::pantographlowerrear, { user_command::pantographtogglerear, user_command::none } },
+    { user_command::compartmentlightsenable, { user_command::compartmentlightstoggle, user_command::none } },
+    { user_command::compartmentlightsdisable, { user_command::compartmentlightstoggle, user_command::none } },
+    { user_command::batteryenable, { user_command::batterytoggle, user_command::none } },
+    { user_command::batterydisable, { user_command::batterytoggle, user_command::none } },
 };
 
 std::pair<user_command, user_command>
@@ -296,14 +300,14 @@ driver_mode::update() {
                     // in regular mode show control functions, for defined controls
                     auto const controlname { train->GetLabel( GfxRenderer->Pick_Control() ) };
                     if( false == controlname.empty() ) {
-                        auto const bindings { m_input.mouse.bindings( controlname ) };
-                        auto inputhints { m_input.command_hints( bindings ) };
+                        auto const mousecommands { m_input.mouse.bindings( controlname ) };
+                        auto inputhints { m_input.binding_hints( mousecommands ) };
                         // if the commands bound with the control don't have any assigned keys try potential fallbacks
                         if( inputhints.empty() ) {
-                            inputhints = m_input.command_hints( m_input.command_fallback( bindings.first ) );
+                            inputhints = m_input.binding_hints( m_input.command_fallback( mousecommands.first ) );
                         }
                         if( inputhints.empty() ) {
-                            inputhints = m_input.command_hints( m_input.command_fallback( bindings.second ) );
+                            inputhints = m_input.binding_hints( m_input.command_fallback( mousecommands.second ) );
                         }
                         // ready or not, here we go
                         if( inputhints.empty() ) {
@@ -411,6 +415,13 @@ driver_mode::exit() {
 
 }
 
+// provides key code associated with specified command
+int
+driver_mode::key_binding( user_command const Command ) const {
+
+    return m_input.keyboard.binding( Command );
+}
+
 void
 driver_mode::on_key( int const Key, int const Scancode, int const Action, int const Mods ) {
 
@@ -496,7 +507,7 @@ driver_mode::on_event_poll() {
 }
 
 bool
-driver_mode::is_command_processor() {
+driver_mode::is_command_processor() const {
 
     return true;
 }

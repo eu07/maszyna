@@ -648,10 +648,11 @@ global_settings::ConfigParse(cParser &Parser) {
             // old variable, repurposed as update rate of python screen renderer
             Parser.getTokens();
             Parser >> token;
-            auto const priority { ToLower( token ) };
+            auto const priority { token };
             PythonScreenUpdateRate = (
                 priority == "lower" ? 500 :
                 priority == "lowest" ? 1000 :
+                priority == "off" ? 0 :
                 200 );
         }
         else if( token == "python.updatetime" )
@@ -805,6 +806,11 @@ global_settings::ConfigParse(cParser &Parser) {
             else if (token == "rg32f")
                 gfx_postfx_motionblur_format = GL_RG32F;
         }
+        else if (token == "gfx.postfx.chromaticaberration.enabled")
+        {
+            Parser.getTokens(1);
+            Parser >> gfx_postfx_chromaticaberration_enabled;
+        }
         else if (token == "gfx.format.color")
         {
             Parser.getTokens(1);
@@ -833,6 +839,11 @@ global_settings::ConfigParse(cParser &Parser) {
             else if (token == "z32f")
                 gfx_format_depth = GL_DEPTH_COMPONENT32F;
         }
+        else if (token == "gfx.skiprendering")
+        {
+            Parser.getTokens(1);
+            Parser >> gfx_skiprendering;
+        }
         else if (token == "gfx.skippipeline")
         {
             Parser.getTokens(1);
@@ -859,6 +870,11 @@ global_settings::ConfigParse(cParser &Parser) {
             Parser >> gfx_shadergamma;
         }
         */
+		else if (token == "python.enabled")
+		{
+			Parser.getTokens(1);
+			Parser >> python_enabled;
+		}
 		else if (token == "python.threadedupload")
 		{
 			Parser.getTokens(1);

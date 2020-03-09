@@ -271,8 +271,14 @@ editor_mode::on_event_poll() {
     m_input.poll();
 }
 
+int
+editor_mode::key_binding( user_command const Command ) const {
+
+    return m_input.keyboard.binding( Command );
+}
+
 bool
-editor_mode::is_command_processor() {
+editor_mode::is_command_processor() const {
 
     return false;
 }

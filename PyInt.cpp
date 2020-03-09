@@ -76,7 +76,7 @@ void render_task::run() {
 			if (!Global.gfx_usegles)
 			{
 				int size = width * height * 3;
-				format = GL_SRGB8;
+				format = ( Global.GfxFramebufferSRGB ? GL_SRGB8 : GL_RGBA8 );
 				components = GL_RGB;
 				m_target->image = new unsigned char[size];
 				memcpy(m_target->image, image, size);
@@ -247,7 +247,8 @@ void python_taskqueue::exit() {
 // adds specified task along with provided collection of data to the work queue. returns true on success
 auto python_taskqueue::insert( task_request const &Task ) -> bool {
 
-    if( ( Task.renderer.empty() )
+    if( ( false == Global.python_enabled )
+     || ( Task.renderer.empty() )
      || ( Task.input == nullptr )
      || ( Task.target == 0 ) ) { return false; }
 

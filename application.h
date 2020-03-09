@@ -71,6 +71,9 @@ public:
     std::string
         get_input_hint( user_command const Command ) const;
 */
+    // provides key code associated with specified command
+    int
+        key_binding( user_command const Command ) const;
     // input handlers
     void
         on_key( int const Key, int const Scancode, int const Action, int const Mods );

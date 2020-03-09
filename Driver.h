@@ -454,6 +454,7 @@ private:
     // returns true if any vehicle in the consist has an open door
     bool doors_open() const;
     void AutoRewident(); // ustawia hamulce w składzie
+    void UpdatePantographs();
 // members
     double fLength = 0.0; // długość składu (do wyciągania z ograniczeń)
     double fMass = 0.0; // całkowita masa do liczenia stycznej składowej grawitacji
@@ -466,6 +467,7 @@ private:
     bool IsLineBreakerClosed{ false }; // state of line breaker in all powered vehicles under control
     double fReady = 0.0; // poziom odhamowania wagonów
     bool Ready = false; // ABu: stan gotowosci do odjazdu - sprawdzenie odhamowania wagonow
+    double ConsistShade{ 1.0 }; // averaged amount of sunlight received by the consist
     TDynamicObject *pVehicles[ 2 ]; // skrajne pojazdy w składzie (niekoniecznie bezpośrednio sterowane)
     bool IsAnyDoorOpen[ 2 ]; // state of door in the consist
 

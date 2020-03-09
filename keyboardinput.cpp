@@ -298,7 +298,7 @@ std::unordered_map<int, std::string> keytonamemap = {
 };
 
 std::string
-keyboard_input::mapping( user_command const Command ) const {
+keyboard_input::binding_hint( user_command const Command ) const {
 
     if( Command == user_command::none ) { return ""; }
 
@@ -308,16 +308,16 @@ keyboard_input::mapping( user_command const Command ) const {
     auto const lookup { keytonamemap.find( binding & 0xffff ) };
     if( lookup == keytonamemap.end() ) { return ""; }
 
-    std::string mapping;
+    std::string hint;
     if( ( binding & keymodifier::shift ) != 0 ) {
-        mapping += "SHIFT ";
+        hint += "SHIFT ";
     }
     if( ( binding & keymodifier::control ) != 0 ) {
-        mapping += "CTRL ";
+        hint += "CTRL ";
     }
-    mapping += lookup->second;
+    hint += lookup->second;
 
-    return mapping;
+    return hint;
 }
 
 //---------------------------------------------------------------------------

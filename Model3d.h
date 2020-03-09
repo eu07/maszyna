@@ -214,6 +214,8 @@ public:
     void SetVisibilityLevel( float const Level, bool const Includechildren = false, bool const Includesiblings = false );
     // sets light level (alpha component of illumination color) to specified value
     void SetLightLevel( glm::vec4 const &Level, bool const Includechildren = false, bool const Includesiblings = false );
+    // sets activation threshold of self-illumination to specitied value
+    void SetSelfIllum( float const Threshold, bool const Includechildren = false, bool const Includesiblings = false );
 	inline float3 Translation1Get() {
 		return fMatrix ? *(fMatrix->TranslationGet()) + v_TransVector : v_TransVector; }
 	inline float3 Translation2Get() {

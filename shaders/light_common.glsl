@@ -111,7 +111,7 @@ vec2 calc_headlights(light_s light, vec3 fragnormal)
 
 vec3 apply_lights(vec3 fragcolor, vec3 fragnormal, vec3 texturecolor, float reflectivity, float specularity, float shadowtone)
 {
-	fragcolor *= param[0].rgb;
+	fragcolor *= param[1].x;
 
 	vec3 emissioncolor = param[0].rgb * emission;
 	vec3 envcolor = envmap_color(fragnormal);
