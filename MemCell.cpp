@@ -157,12 +157,12 @@ bool TMemCell::Compare( std::string const &szTestText, double const fTestValue1,
         checkfailed |= ( !result );
     }
     if( TestFlag( CheckMask, basic_event::flags::value1 ) ) {
-        auto const result { compare( fValue1, fTestValue1, TextOperator ) };
+        auto const result { compare( fValue1, fTestValue1, Value1Operator ) };
         checkpassed |=    result;
         checkfailed |= ( !result );
     }
     if( TestFlag( CheckMask, basic_event::flags::value2 ) ) {
-        auto const result { compare( fValue2, fTestValue2, TextOperator ) };
+        auto const result { compare( fValue2, fTestValue2, Value2Operator ) };
         checkpassed |=    result;
         checkfailed |= ( !result );
     }

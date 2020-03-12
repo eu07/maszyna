@@ -459,7 +459,6 @@ public: // reszta może by?publiczna
     TGauge ggDirKey;
     TGauge ggBrakeCtrl;
     TGauge ggLocalBrake;
-    TGauge ggManualBrake;
     TGauge ggAlarmChain;
     TGauge ggBrakeProfileCtrl; // nastawiacz GPR - przelacznik obrotowy
     TGauge ggBrakeProfileG; // nastawiacz GP - hebelek towarowy
@@ -539,7 +538,7 @@ public: // reszta może by?publiczna
     TGauge ggInstrumentLightButton;
     TGauge ggDashboardLightButton;
     TGauge ggTimetableLightButton;
-    TGauge ggCabLightButton; // hunter-091012: przelacznik oswietlania kabiny
+//    TGauge ggCabLightButton; // hunter-091012: przelacznik oswietlania kabiny
     TGauge ggCabLightDimButton; // hunter-091012: przelacznik przyciemnienia
     // oswietlenia kabiny
     TGauge ggCompartmentLightsButton;
@@ -691,7 +690,7 @@ public: // reszta może by?publiczna
     TButton btLampkaTempomat;
     TButton btLampkaDistanceCounter;
 
-    TButton btCabLight; // hunter-171012: lampa oswietlajaca kabine
+//    TButton btCabLight; // hunter-171012: lampa oswietlajaca kabine
     // Ra 2013-12: wirtualne "lampki" do odbijania na haslerze w PoKeys
     TButton btHaslerBrakes; // ciśnienie w cylindrach
     TButton btHaslerCurrent; // prąd na silnikach
