@@ -155,6 +155,8 @@ commanddescription_sequence Commands_descriptions = {
     // TBD, TODO: make coupling controls entity-centric
     { "carcouplingincrease", command_target::vehicle },
     { "carcouplingdisconnect", command_target::vehicle },
+    { "carcoupleradapterattach", command_target::vehicle },
+    { "carcoupleradapterremove", command_target::vehicle },
     { "doortoggleleft", command_target::vehicle },
     { "doortoggleright", command_target::vehicle },
     { "doorpermitleft", command_target::vehicle },

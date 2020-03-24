@@ -386,6 +386,8 @@ class TTrain {
     static void OnCommand_doormodetoggle( TTrain *Train, command_data const &Command );
     static void OnCommand_carcouplingincrease( TTrain *Train, command_data const &Command );
     static void OnCommand_carcouplingdisconnect( TTrain *Train, command_data const &Command );
+    static void OnCommand_carcoupleradapterattach( TTrain *Train, command_data const &Command );
+    static void OnCommand_carcoupleradapterremove( TTrain *Train, command_data const &Command );
     static void OnCommand_departureannounce( TTrain *Train, command_data const &Command );
     static void OnCommand_hornlowactivate( TTrain *Train, command_data const &Command );
     static void OnCommand_hornhighactivate( TTrain *Train, command_data const &Command );

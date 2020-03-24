@@ -1988,6 +1988,8 @@ void TController::AutoRewident()
                     break;
                 }
             }
+            // potentially release manual brake
+            d->MoverParameters->DecManualBrakeLevel( ManualBrakePosNo );
         }
         d = d->Next(); // kolejny pojazd, podłączony od tyłu (licząc od czoła)
     }
@@ -2347,6 +2349,10 @@ bool TController::CheckVehicles(TOrders user)
                 break;
             }
             } // switch
+            if( OrderCurrentGet() & ( Shunt | Loose_shunt | Obey_train | Bank ) ) {
+                // nastawianie hamulca do jazdy pociągowej
+                AutoRewident();
+            }
         }
         // Ra 2014-09: tymczasowo prymitywne ustawienie warunku pod kątem SN61
         if( ( mvOccupied->TrainType == dt_EZT )
@@ -2767,7 +2773,14 @@ bool TController::ReleaseEngine() {
             }
             // gasimy światła
             Lights( 0, 0 );
+            // activate parking brake
+            // TBD: do it earlier?
 			mvOccupied->SpringBrakeActivate(true);
+            if( ( mvOccupied->LocalBrake == TLocalBrake::ManualBrake )
+             || ( mvOccupied->MBrake == true ) ) {
+                mvOccupied->IncManualBrakeLevel( ManualBrakePosNo );
+            }
+            // switch off remaining power
             mvOccupied->BatterySwitch( false );
         }
     }
@@ -2959,7 +2972,14 @@ bool TController::IncBrakeEIM()
 	switch (mvOccupied->EIMCtrlType)
 	{
         case 0: {
-            OK = mvOccupied->IncLocalBrakeLevel( 1 );
+            if( mvOccupied->MED_amax != 9.81 ) {
+                auto const brakeposition{ clamp( -1.0 * mvOccupied->AIHintLocalBrakeAccFactor * AccDesired / mvOccupied->MED_amax, 0.0, 1.0 ) };
+                OK = ( brakeposition != mvOccupied->LocalBrakePosA );
+                mvOccupied->LocalBrakePosA = brakeposition;
+            }
+            else {
+                OK = mvOccupied->IncLocalBrakeLevel( 1 );
+            }
             break;
         }
         case 1: {
@@ -3067,24 +3087,35 @@ bool TController::DecBrakeEIM()
 	bool OK = false;
 	switch (mvOccupied->EIMCtrlType)
 	{
-	case 0:
-		OK = mvOccupied->DecLocalBrakeLevel(1);
-		break;
-	case 1:
-		OK = mvOccupied->MainCtrlPos < 2;
-		if (OK)
-			mvOccupied->MainCtrlPos = 2;
-		break;
-	case 2:
-		OK = mvOccupied->MainCtrlPos < 3;
-		if (OK)
-			mvOccupied->MainCtrlPos = 3;
-		break;
-    case 3:
-        OK = mvOccupied->MainCtrlPos < mvOccupied->MainCtrlMaxDirChangePos;
-        if( OK )
-            mvOccupied->MainCtrlPos = mvOccupied->MainCtrlMaxDirChangePos;
-        break;
+        case 0: {
+            if( mvOccupied->MED_amax != 9.81 ) {
+                auto const brakeposition { clamp( -1.0 * mvOccupied->AIHintLocalBrakeAccFactor * AccDesired / mvOccupied->MED_amax, 0.0, 1.0 ) };
+                OK = ( brakeposition != mvOccupied->LocalBrakePosA );
+                mvOccupied->LocalBrakePosA = brakeposition;
+            }
+            else {
+                OK = mvOccupied->DecLocalBrakeLevel( 1 );
+            }
+            break;
+        }
+        case 1: {
+            OK = mvOccupied->MainCtrlPos < 2;
+            if( OK )
+                mvOccupied->MainCtrlPos = 2;
+            break;
+        }
+        case 2: {
+            OK = mvOccupied->MainCtrlPos < 3;
+            if( OK )
+                mvOccupied->MainCtrlPos = 3;
+            break;
+        }
+        case 3: {
+            OK = mvOccupied->MainCtrlPos < mvOccupied->MainCtrlMaxDirChangePos;
+            if( OK )
+                mvOccupied->MainCtrlPos = mvOccupied->MainCtrlMaxDirChangePos;
+            break;
+        }
     }
 	return OK;
 }
@@ -4468,6 +4499,7 @@ void TController::PhysicsLog()
 void
 TController::UpdateSituation(double dt) {
     // uruchamiać przynajmniej raz na sekundę
+    if( false == simulation::is_ready ) { return; }
     if( ( iDrivigFlags & movePrimary ) == 0 ) { return; } // pasywny nic nie robi
 
     // update timers
@@ -5068,18 +5100,30 @@ TController::UpdateSituation(double dt) {
                 int const end { ( vehicle->DirectionGet() > 0 ? end::front : end::rear ) };
                 auto const &neighbour { vehicleparameters->Neighbours[ end ] };
                 if( neighbour.vehicle != nullptr ) {
-                    // próba podczepienia
-                    vehicleparameters->Attach(
-                        end, neighbour.vehicle_end,
-                        neighbour.vehicle->MoverParameters,
-                        iCoupler );
-                    if( vehicleparameters->Couplers[ end ].CouplingFlag == iCoupler ) {
-                        // jeżeli został podłączony
-                        iCoupler = 0; // dalsza jazda manewrowa już bez łączenia
-                        iDrivigFlags &= ~moveConnect; // zdjęcie flagi doczepiania
-                        SetVelocity( 0, 0, stopJoin ); // wyłączyć przyspieszanie
-                        CheckVehicles( Connect ); // sprawdzić światła nowego składu
-                        JumpToNextOrder(); // wykonanie następnej komendy
+                    if( neighbour.distance < 10 ) {
+                        // check whether we don't need to attach coupler adapter
+                        auto &coupler{ vehicleparameters->Couplers[ end ] };
+                        if( coupler.type() != TCouplerType::Automatic ) {
+                            auto &othercoupler = neighbour.vehicle->MoverParameters->Couplers[ ( neighbour.vehicle_end != 2 ? neighbour.vehicle_end : coupler.ConnectedNr ) ];
+                            if( othercoupler.type() == TCouplerType::Automatic ) {
+                                vehicle->attach_coupler_adapter( end );
+                            }
+                        }
+                        if( neighbour.distance < 2 ) {
+                            // próba podczepienia
+                            vehicleparameters->Attach(
+                                end, neighbour.vehicle_end,
+                                neighbour.vehicle->MoverParameters,
+                                iCoupler );
+                            if( vehicleparameters->Couplers[ end ].CouplingFlag == iCoupler ) {
+                                // jeżeli został podłączony
+                                iCoupler = 0; // dalsza jazda manewrowa już bez łączenia
+                                iDrivigFlags &= ~moveConnect; // zdjęcie flagi doczepiania
+                                SetVelocity( 0, 0, stopJoin ); // wyłączyć przyspieszanie
+                                CheckVehicles( Connect ); // sprawdzić światła nowego składu
+                                JumpToNextOrder(); // wykonanie następnej komendy
+                            }
+                        }
                     }
                 }
             } // if (AIControllFlag) //koniec zblokowania, bo była zmienna lokalna
@@ -5463,7 +5507,12 @@ TController::UpdateSituation(double dt) {
                             // tylko jeśli odepnie
                             WriteLog( mvOccupied->Name + " odczepiony." );
                             iVehicleCount = -2;
-                            CheckVehicles( Disconnect ); // update trainset state
+                            // potentially remove coupler adapter
+                            if( p->MoverParameters->Couplers[ d ].has_adapter() ) {
+                                p->remove_coupler_adapter( d );
+                            }
+                            // update trainset state
+                            CheckVehicles( Disconnect );
                         } // a jak nie, to dociskać dalej
                     }
                     if ((mvOccupied->Vel < 0.01) && !(iDrivigFlags & movePress))

@@ -360,6 +360,8 @@ TTrain::commandhandler_map const TTrain::m_commandhandlers = {
     { user_command::doormodetoggle, &TTrain::OnCommand_doormodetoggle },
     { user_command::carcouplingincrease, &TTrain::OnCommand_carcouplingincrease },
     { user_command::carcouplingdisconnect, &TTrain::OnCommand_carcouplingdisconnect },
+    { user_command::carcoupleradapterattach, &TTrain::OnCommand_carcoupleradapterattach },
+    { user_command::carcoupleradapterremove, &TTrain::OnCommand_carcoupleradapterremove },
     { user_command::departureannounce, &TTrain::OnCommand_departureannounce },
     { user_command::hornlowactivate, &TTrain::OnCommand_hornlowactivate },
     { user_command::hornhighactivate, &TTrain::OnCommand_hornhighactivate },
@@ -2430,22 +2432,20 @@ void TTrain::OnCommand_pantographcompressoractivate( TTrain *Train, command_data
         return;
     }
 
-    if( ( Train->mvControlled->PantPress > 4.8 )
-     || ( false == Train->mvControlled->Battery ) ) {
-        // needs live power source and low enough pressure to work
-        return;
-    }
-
     if( Command.action != GLFW_RELEASE ) {
         // press or hold to activate
-        Train->mvControlled->PantCompFlag = true;
-        // visual feedback:
+        if( ( Train->mvControlled->PantPress < 4.8 )
+         && ( true == Train->mvControlled->Battery ) ) {
+            // needs live power source and low enough pressure to work
+            Train->mvControlled->PantCompFlag = true;
+        }
+        // visual feedback
         Train->ggPantCompressorButton.UpdateValue( 1.0 );
     }
     else {
         // release to disable
         Train->mvControlled->PantCompFlag = false;
-        // visual feedback:
+        // visual feedback
         Train->ggPantCompressorButton.UpdateValue( 0.0 );
     }
 }
@@ -2480,6 +2480,8 @@ void TTrain::OnCommand_linebreakertoggle( TTrain *Train, command_data const &Com
                 OnCommand_linebreakerclose( Train, Command );
             }
         }
+        // HACK: ignition key ignores lack of submodel, so we can start vehicles without any modeled controls
+        Train->ggIgnitionKey.UpdateValue( 0.0 );
     }
 }
 
@@ -2543,6 +2545,8 @@ void TTrain::OnCommand_linebreakerclose( TTrain *Train, command_data const &Comm
         }
         else {
             // no switch capable of doing the job
+            // HACK: ignition key ignores lack of submodel, so we can start vehicles without any modeled controls
+            Train->ggIgnitionKey.UpdateValue( 1.0 );
             return;
         }
         // the actual closing of the line breaker is handled in the train update routine
@@ -5400,6 +5404,40 @@ void TTrain::OnCommand_carcouplingdisconnect( TTrain *Train, command_data const 
     }
 }
 
+void TTrain::OnCommand_carcoupleradapterattach( TTrain *Train, command_data const &Command ) {
+
+    if( ( true == FreeFlyModeFlag )
+     && ( Command.action == GLFW_PRESS ) ) {
+        // tryb freefly, press only
+        auto *vehicle { std::get<TDynamicObject *>( simulation::Region->find_vehicle( Command.location, 50, false, true ) ) };
+        if( vehicle == nullptr ) { return; }
+
+        auto const coupler = (
+            glm::length2( glm::vec3 { vehicle->CouplerPosition( end::front ) } - Command.location ) < glm::length2( glm::vec3 { vehicle->CouplerPosition( end::rear ) } - Command.location ) ?
+                end::front :
+                end::rear );
+
+        vehicle->attach_coupler_adapter( coupler );
+    }
+}
+
+void TTrain::OnCommand_carcoupleradapterremove( TTrain *Train, command_data const &Command ) {
+
+    if( ( true == FreeFlyModeFlag )
+     && ( Command.action == GLFW_PRESS ) ) {
+        // tryb freefly, press only
+        auto *vehicle { std::get<TDynamicObject *>( simulation::Region->find_vehicle( Command.location, 50, false, true ) ) };
+        if( vehicle == nullptr ) { return; }
+
+        auto const coupler = (
+            glm::length2( glm::vec3 { vehicle->CouplerPosition( end::front ) } - Command.location ) < glm::length2( glm::vec3 { vehicle->CouplerPosition( end::rear ) } - Command.location ) ?
+                end::front :
+                end::rear );
+
+        vehicle->remove_coupler_adapter( coupler );
+    }
+}
+
 void TTrain::OnCommand_departureannounce( TTrain *Train, command_data const &Command ) {
 
     if( Train->ggDepartureSignalButton.SubModel == nullptr ) {
@@ -5797,7 +5835,8 @@ bool TTrain::Update( double const Deltatime )
     }
 
     if( ( ( ggMainButton.SubModel != nullptr ) && ( ggMainButton.GetDesiredValue() > 0.95 ) )
-     || ( ( ggMainOnButton.SubModel != nullptr ) && ( ggMainOnButton.GetDesiredValue() > 0.95 ) ) ) {
+     || ( ( ggMainOnButton.SubModel != nullptr ) && ( ggMainOnButton.GetDesiredValue() > 0.95 )
+     || ( ggIgnitionKey.GetDesiredValue() > 0.95 ) ) ) { // HACK: fallback
         // keep track of period the line breaker button is held down, to determine when/if circuit closes
         if( ( mvControlled->MainsInitTimeCountdown <= 0.0 )
          && ( ( fHVoltage > 0.5 * mvControlled->EnginePowerSource.MaxVoltage )

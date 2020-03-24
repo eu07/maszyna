@@ -22,7 +22,7 @@ http://mozilla.org/MPL/2.0/.
 // Jeśli jakieś zmienne nie są używane w mover.pas, też można je przenosić.
 // Przeniesienie wszystkiego na raz zrobiło by zbyt wielki chaos do ogarnięcia.
 
-const double dEpsilon = 0.01; // 1cm (zależy od typu sprzęgu...)
+const double dEpsilon = 0.025; // 1cm (zależy od typu sprzęgu...)
 const double CouplerTune = 0.1; // skalowanie tlumiennosci
 
 int ConversionError = 0;
@@ -438,13 +438,13 @@ bool TMoverParameters::Attach(int ConnectNo, int ConnectToNr, TMoverParameters *
     
     auto &coupler { Couplers[ ConnectNo ] };
     auto &othercoupler = ConnectTo->Couplers[ ( ConnectToNr != 2 ? ConnectToNr : coupler.ConnectedNr ) ];
-    auto const distance { CouplerDist( this, ConnectTo ) };
+    auto const distance { CouplerDist( this, ConnectTo ) - ( coupler.adapter_length + othercoupler.adapter_length ) };
 
     auto const couplercheck {
         ( Forced )
      || ( ( distance <= dEpsilon )
-       && ( coupler.CouplerType != TCouplerType::NoCoupler )
-       && ( coupler.CouplerType == othercoupler.CouplerType ) ) };
+       && ( coupler.type() != TCouplerType::NoCoupler )
+       && ( coupler.type() == othercoupler.type() ) ) };
 
     if( false == couplercheck ) { return false; }
 
@@ -495,7 +495,7 @@ int TMoverParameters::DettachStatus(int ConnectNo)
     if (TestFlag(DamageFlag, dtrain_coupling))
         return -Couplers[ConnectNo].CouplingFlag; // hak urwany - rozłączanie jest OK
 //    CouplerDist(ConnectNo);
-    if (Couplers[ConnectNo].CouplerType == TCouplerType::Screw ? Neighbours[ConnectNo].distance < 0.01 : true)
+    if ( (Couplers[ConnectNo].type() != TCouplerType::Screw) || (Neighbours[ConnectNo].distance < 0.01) )
         return -Couplers[ConnectNo].CouplingFlag; // można rozłączać, jeśli dociśnięty
     return (Neighbours[ConnectNo].distance > 0.2) ? -Couplers[ConnectNo].CouplingFlag :
                                                     Couplers[ConnectNo].CouplingFlag;
@@ -1102,7 +1102,7 @@ TMoverParameters::damage_coupler( int const End ) {
 
     auto &coupler{ Couplers[ End ] };
 
-    if( coupler.CouplerType == TCouplerType::Articulated ) { return; } // HACK: don't break articulated couplings no matter what
+    if( coupler.type() == TCouplerType::Articulated ) { return; } // HACK: don't break articulated couplings no matter what
 
     if( SetFlag( DamageFlag, dtrain_coupling ) )
         EventFlag = true;
@@ -1595,7 +1595,7 @@ void TMoverParameters::PowerCouplersCheck( double const Deltatime ) {
             // bez napiecia...
             if( couplervoltage != 0.0 ) {
                 // ...ale jest cos na sprzegach:
-                coupler.power_high.current = ( std::abs( Itot ) + TotalCurrent ) * coupler.power_high.voltage / couplervoltage; // obciążenie rozkladane stosownie do napiec
+                coupler.power_high.current = ( std::abs( Itot ) * IsVehicleEIMBrakingFactor() + TotalCurrent ) * coupler.power_high.voltage / couplervoltage; // obciążenie rozkladane stosownie do napiec
                 if( true == coupler.power_high.is_live ) {
                     coupler.power_high.current += connectedothercoupler.power_high.current;
                 }
@@ -4837,7 +4837,8 @@ double TMoverParameters::CouplerForce( int const End, double dt ) {
     // potentially generate sounds on clash or stretch
     if( ( newdistance < 0.0 )
      && ( coupler.Dist > newdistance )
-     && ( dV < -0.1 ) ) {
+     && ( dV < -0.1 )
+     && ( false == coupler.has_adapter() ) ) { // HACK: with adapter present we presume buffers won't clash
         // 090503: dzwieki pracy zderzakow
         SetFlag(
             coupler.sounds,
@@ -4866,7 +4867,7 @@ double TMoverParameters::CouplerForce( int const End, double dt ) {
     if( ( coupler.CouplingFlag != coupling::faux )
      || ( initialdistance < 0 ) ) {
 
-        coupler.Dist = clamp( newdistance, -coupler.DmaxB, coupler.DmaxC );
+        coupler.Dist = clamp( newdistance, ( coupler.has_adapter() ? 0 : -coupler.DmaxB ), coupler.DmaxC );
 
         double BetaAvg = 0;
         double Fmax = 0;
@@ -4923,16 +4924,19 @@ double TMoverParameters::CouplerForce( int const End, double dt ) {
                     - Fmax * dV * BetaAvg;
             }
             // liczenie sily ze sprezystosci zderzaka
-            if( -newdistance > ( coupler.DmaxB + othercoupler.DmaxB ) ) {
+            auto const collisiondistance { (
+                ( coupler.has_adapter() || othercoupler.has_adapter() ) ?
+                    std::min( coupler.DmaxB, othercoupler.DmaxB ) : // HACK: only take into account buffering ability of automatic coupler
+                    coupler.DmaxB + othercoupler.DmaxB
+                ) };
+            if( -newdistance > collisiondistance ) {
                 // zderzenie
                 coupler.CheckCollision = true;
-                if( ( coupler.CouplerType == TCouplerType::Automatic )
-                 && ( coupler.CouplerType == othercoupler.CouplerType )
+                if( ( coupler.type() == TCouplerType::Automatic )
+                 && ( coupler.type() == othercoupler.type() )
                  && ( coupler.CouplingFlag == coupling::faux ) ) {
                     // sprzeganie wagonow z samoczynnymi sprzegami
-                    // EN57
-                    // TBD, TODO: configurable flag for automatic coupling
-                    coupler.CouplingFlag = coupling::coupler /*| coupling::brakehose | coupling::mainhose | coupling::control*/;
+                    coupler.CouplingFlag = ( coupler.AutomaticCouplingFlag & othercoupler.AutomaticCouplingFlag );
                     SetFlag( coupler.sounds, sound::attachcoupler );
                 }
             }
@@ -5898,10 +5902,10 @@ double TMoverParameters::TractionForce( double dt ) {
                 else if ((std::abs(EngineVoltage) < EnginePowerSource.CollectorParameters.MaxV))
                     Vadd *= (1.0 - dt);
                 else
-                    Vadd = Max0R(
+                    Vadd = std::max(
                         Vadd * (1.0 - 0.2 * dt),
                         0.007 * (std::abs(EngineVoltage) - (EnginePowerSource.CollectorParameters.MaxV - 100)));
-                Itot = eimv[eimv_Ipoj] * (0.01 + Min0R(0.99, 0.99 - Vadd));
+                Itot = eimv[eimv_Ipoj] * (0.01 + std::min(0.99, 0.99 - Vadd));
 
                 EnginePower = abs(eimv[eimv_Ic] * eimv[eimv_U] * NPoweredAxles) / 1000;
                 // power inverters
@@ -9498,8 +9502,8 @@ void TMoverParameters::LoadFIZ_BuffCoupl( std::string const &line, int const Ind
     auto lookup = couplertypes.find( extract_value( "CType", line ) );
     coupler->CouplerType = (
         lookup != couplertypes.end() ?
-        lookup->second :
-        TCouplerType::NoCoupler );
+            lookup->second :
+            TCouplerType::NoCoupler );
 
     extract_value( coupler->SpringKC, "kC", line, "" );
     extract_value( coupler->DmaxC, "DmaxC", line, "" );
@@ -9508,6 +9512,7 @@ void TMoverParameters::LoadFIZ_BuffCoupl( std::string const &line, int const Ind
     extract_value( coupler->DmaxB, "DmaxB", line, "" );
     extract_value( coupler->FmaxB, "FmaxB", line, "" );
     extract_value( coupler->beta, "beta", line, "" );
+    extract_value( coupler->AutomaticCouplingFlag, "AutomaticFlag", line, "" );
     extract_value( coupler->AllowedFlag, "AllowedFlag", line, "" );
 
     if( coupler->AllowedFlag < 0 ) {
@@ -10255,6 +10260,8 @@ void TMoverParameters::LoadFIZ_Circuit( std::string const &Input ) {
 void TMoverParameters::LoadFIZ_AI( std::string const &Input ) {
 
     extract_value( AIHintPantstate, "Pantstate", Input, "" );
+    extract_value( AIHintLocalBrakeAccFactor, "LocalBrakeAccFactor", Input, "" );
+   
 }
 
 void TMoverParameters::LoadFIZ_RList( std::string const &Input ) {
@@ -10763,6 +10770,13 @@ bool TMoverParameters::CheckLocomotiveParameters(bool ReadyFlag, int Dir)
         LocalBrakePosA = 0.0;
         BrakeCtrlPos = static_cast<int>( Handle->GetPos( bh_NP ) );
         LimPipePress = LowPipePress;
+        if( ( LocalBrake == TLocalBrake::ManualBrake )
+         || ( MBrake == true ) ) {
+            IncManualBrakeLevel( ManualBrakePosNo );
+        }
+        if( SpringBrake.MaxBrakeForce > 0.0 ) {
+            SpringBrake.Activate = true;
+        }
     }
 
     ActFlowSpeed = 0.0;

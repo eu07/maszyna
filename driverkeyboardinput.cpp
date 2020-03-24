@@ -155,6 +155,8 @@ driverkeyboard_input::default_bindings() {
         { user_command::movedown, GLFW_KEY_PAGE_DOWN },
         { user_command::carcouplingincrease, GLFW_KEY_INSERT },
         { user_command::carcouplingdisconnect, GLFW_KEY_DELETE },
+        { user_command::carcoupleradapterattach, GLFW_KEY_INSERT | keymodifier::control },
+        { user_command::carcoupleradapterremove, GLFW_KEY_DELETE | keymodifier::control },
         { user_command::doortoggleleft, GLFW_KEY_COMMA },
         { user_command::doortoggleright, GLFW_KEY_PERIOD },
         { user_command::doorpermitleft, GLFW_KEY_COMMA | keymodifier::shift },

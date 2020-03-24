@@ -747,14 +747,16 @@ void TDynamicObject::ABuLittleUpdate(double ObjSqrDist)
             // ABu-240105: Dodatkowy warunek: if (...).Render, zeby rysowal tylko
             // jeden
             // z polaczonych sprzegow
-            if ((TestFlag(MoverParameters->Couplers[end::front].CouplingFlag, ctrain_coupler)) &&
+            if ((false == MoverParameters->Couplers[ end::front ].has_adapter()) &&
+                (TestFlag(MoverParameters->Couplers[end::front].CouplingFlag, ctrain_coupler)) &&
                 (MoverParameters->Couplers[end::front].Render))
             {
                 btCoupler1.Turn( true );
                 btnOn = true;
             }
             // else btCoupler1.TurnOff();
-            if ((TestFlag(MoverParameters->Couplers[end::rear].CouplingFlag, ctrain_coupler)) &&
+            if ((false == MoverParameters->Couplers[ end::rear ].has_adapter()) &&
+                (TestFlag(MoverParameters->Couplers[end::rear].CouplingFlag, ctrain_coupler)) &&
                 (MoverParameters->Couplers[end::rear].Render))
             {
                 btCoupler2.Turn( true );
@@ -902,6 +904,12 @@ void TDynamicObject::ABuLittleUpdate(double ObjSqrDist)
             // wezykow
             // uginanie zderzakow
             for (int i = 0; i < 2; ++i) {
+
+                if( MoverParameters->Couplers[ i ].has_adapter() ) {
+                    // HACK: if there's coupler adapter on this side, we presume there's additional distance put between vehicles
+                    // which prevents buffers from clashing against each other (or the other vehicle doesn't have buffers to begin with)
+                    continue;
+                }
 
                 auto const dist { clamp( MoverParameters->Couplers[ i ].Dist / 2.0, -MoverParameters->Couplers[ i ].DmaxB, 0.0 ) };
 
@@ -1537,6 +1545,64 @@ TDynamicObject::uncouple( int const Side ) {
     // jeżeli sprzęg niezablokowany, jest co odczepić i się da
     auto const couplingflag { Dettach( Side ) };
     return couplingflag;
+}
+
+bool
+TDynamicObject::attach_coupler_adapter( int const Side ) {
+
+    auto &coupler { MoverParameters->Couplers[ Side ] };
+    // sanity check(s)
+    if( coupler.type() == TCouplerType::Automatic ) { return false; }
+    auto const *neighbour { MoverParameters->Neighbours[ Side ].vehicle };
+    if( ( neighbour == nullptr )
+     || ( MoverParameters->Neighbours[ Side ].distance > 25.0 ) ) {
+        // can only acquire the adapter from a nearby enough vehicle
+        return false;
+    }
+    // TBD: empty struct instead of fallback defaults, to allow vehicles without adapter?
+    auto adapterdata {
+        coupleradapter_data {
+            { 0.085f, 0.95f },
+            "tabor/polsprzeg" } };
+    if( false == neighbour->m_coupleradapter.model.empty() ) {
+        // explicit coupler adapter definition overrides default parameters
+        adapterdata = neighbour->m_coupleradapter;
+    }
+    if( MoverParameters->Neighbours[ Side ].distance - adapterdata.position.x < 0.5 ) {
+        // arbitrary amount of free room required to install the adapter
+        // NOTE: this also covers cases with established physical connection
+        return false;
+    }
+
+    coupler.adapter_type = TCouplerType::Automatic;
+    coupler.adapter_length = adapterdata.position.x;
+    coupler.adapter_height = adapterdata.position.y;
+    // audio flag, visuals update
+    coupler.sounds |= sound::attachadapter;
+    m_coupleradapters[ Side ] = TModelsManager::GetModel( adapterdata.model );
+
+    return true;
+}
+
+bool
+TDynamicObject::remove_coupler_adapter( int const Side ) {
+
+    auto &coupler{ MoverParameters->Couplers[ Side ] };
+
+    if( coupler.adapter_type == TCouplerType::NoCoupler ) { return false; }
+    // TODO: sanity check(s)
+    if( coupler.Connected != nullptr ) {
+        // TBD: disallow instead adapter removal if it's coupled with another vehicle?
+        uncouple( Side );
+    }
+    coupler.adapter_type = TCouplerType::NoCoupler;
+    coupler.adapter_length = 0.0;
+    coupler.adapter_height = 0.0;
+    // audio flag, visuals update
+    coupler.sounds |= sound::removeadapter;
+    m_coupleradapters[ Side ] = nullptr;
+
+    return true;
 }
 
 TDynamicObject::TDynamicObject() {
@@ -3367,7 +3433,7 @@ bool TDynamicObject::Update(double dt, double dt1)
         double fCurrent = (
             ( MoverParameters->DynamicBrakeFlag && MoverParameters->ResistorsFlag ) ?
                 0 :
-                std::abs( MoverParameters->Itot ) )
+                std::abs( MoverParameters->Itot ) * MoverParameters->IsVehicleEIMBrakingFactor() )
             + MoverParameters->TotalCurrent; // prąd pobierany przez pojazd - bez sensu z tym (TotalCurrent)
         // TotalCurrent to bedzie prad nietrakcyjny (niezwiazany z napedem)
         // fCurrent+=fabs(MoverParameters->Voltage)*1e-6; //prąd płynący przez woltomierz, rozładowuje kondensator orgromowy 4µF
@@ -4394,6 +4460,12 @@ void TDynamicObject::RenderSounds() {
             m_couplersounds[ couplerindex ].dsbCouplerAttach.play();
             m_couplersounds[ couplerindex ].dsbCouplerDetach.play();
         }
+        if( true == TestFlag( coupler.sounds, sound::attachadapter ) ) {
+            m_couplersounds[ couplerindex ].dsbAdapterAttach.play();
+        }
+        if( true == TestFlag( coupler.sounds, sound::removeadapter ) ) {
+            m_couplersounds[ couplerindex ].dsbAdapterRemove.play();
+        }
 
         ++couplerindex;
         coupler.sounds = 0;
@@ -4564,6 +4636,17 @@ void TDynamicObject::LoadMMediaFile( std::string const &TypeName, std::string co
                     asModel = asBaseDir + asModel; // McZapkie-200702 - dynamics maja swoje modele w dynamic/basedir
                     Global.asCurrentTexturePath = asBaseDir; // biezaca sciezka do tekstur to dynamic/...
                     mdLowPolyInt = TModelsManager::GetModel(asModel, true);
+                }
+
+                else if(token == "coupleradapter:") {
+					// coupling adapter data
+					parser.getTokens( 3 );
+                    parser
+                        >> m_coupleradapter.model
+                        >> m_coupleradapter.position.x
+                        >> m_coupleradapter.position.y;
+                    replace_slashes( m_coupleradapter.model );
+                    erase_leading_slashes( m_coupleradapter.model );
                 }
 
                 else if(token == "attachments:") {
@@ -5784,6 +5867,24 @@ void TDynamicObject::LoadMMediaFile( std::string const &TypeName, std::string co
                         couplersounds.dsbBufferClamp_loud = bufferclash;
                     }
                 }
+                else if( token == "coupleradapterattach:" ) {
+                    // laczenie:
+                    sound_source adapterattach { sound_placement::external };
+                    adapterattach.deserialize( parser, sound_type::single );
+                    adapterattach.owner( this );
+                    for( auto &couplersounds : m_couplersounds ) {
+                        couplersounds.dsbAdapterAttach = adapterattach;
+                    }
+                }
+                else if( token == "coupleradapterremove:" ) {
+                    // rozlaczanie:
+                    sound_source adapterremove { sound_placement::external };
+                    adapterremove.deserialize( parser, sound_type::single );
+                    adapterremove.owner( this );
+                    for( auto &couplersounds : m_couplersounds ) {
+                        couplersounds.dsbAdapterRemove = adapterremove;
+                    }
+                }
                 else if( token == "startjolt:" ) {
                     // movement start jolt
                     m_startjolt.deserialize( parser, sound_type::single );
@@ -5972,6 +6073,8 @@ void TDynamicObject::LoadMMediaFile( std::string const &TypeName, std::string co
     m_couplersounds[ end::front ].dsbCouplerStretch_loud.offset( frontcoupleroffset );
     m_couplersounds[ end::front ].dsbBufferClamp.offset( frontcoupleroffset );
     m_couplersounds[ end::front ].dsbBufferClamp_loud.offset( frontcoupleroffset );
+    m_couplersounds[ end::front ].dsbAdapterAttach.offset( frontcoupleroffset );
+    m_couplersounds[ end::front ].dsbAdapterRemove.offset( frontcoupleroffset );
     auto const rearcoupleroffset { glm::vec3{ 0.f, 1.f, MoverParameters->Dim.L * -0.5f } };
     m_couplersounds[ end::rear ].dsbCouplerAttach.offset( rearcoupleroffset );
     m_couplersounds[ end::rear ].dsbCouplerDetach.offset( rearcoupleroffset );
@@ -5979,6 +6082,8 @@ void TDynamicObject::LoadMMediaFile( std::string const &TypeName, std::string co
     m_couplersounds[ end::rear ].dsbCouplerStretch_loud.offset( rearcoupleroffset );
     m_couplersounds[ end::rear ].dsbBufferClamp.offset( rearcoupleroffset );
     m_couplersounds[ end::rear ].dsbBufferClamp_loud.offset( rearcoupleroffset );
+    m_couplersounds[ end::rear ].dsbAdapterAttach.offset( rearcoupleroffset );
+    m_couplersounds[ end::rear ].dsbAdapterRemove.offset( rearcoupleroffset );
 }
 
 TModel3d *
@@ -6258,6 +6363,10 @@ TDynamicObject::update_neighbours() {
 //            neighbour.vehicle = coupler.Connected;
 //            neighbour.vehicle_end = coupler.ConnectedNr;
             neighbour.distance = TMoverParameters::CouplerDist( MoverParameters, coupler.Connected );
+            // take into account potential adapters attached to the couplers
+            auto const &othercoupler { neighbour.vehicle->MoverParameters->Couplers[ neighbour.vehicle_end ] };
+            neighbour.distance -= coupler.adapter_length;
+            neighbour.distance -= othercoupler.adapter_length;
         }
         else {
             // if there's no connected vehicle check for potential collision sources in the vicinity
@@ -6276,6 +6385,10 @@ TDynamicObject::update_neighbours() {
             if( neighbour.distance < ( neighbour.vehicle->MoverParameters->CategoryFlag == 2 ? 50 : 100 ) ) {
                 // at short distances (re)calculate range between couplers directly
                 neighbour.distance = TMoverParameters::CouplerDist( MoverParameters, neighbour.vehicle->MoverParameters );
+                // take into account potential adapters attached to the couplers
+                auto const &othercoupler { neighbour.vehicle->MoverParameters->Couplers[ neighbour.vehicle_end ] };
+                neighbour.distance -= coupler.adapter_length;
+                neighbour.distance -= othercoupler.adapter_length;
             }
         }
     }

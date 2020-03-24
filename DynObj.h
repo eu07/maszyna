@@ -311,6 +311,11 @@ private:
         float time { 0.f }; // time spent on the operation
     };
 
+    struct coupleradapter_data {
+        glm::vec2 position; // adapter placement; offset from vehicle end and height
+        std::string model; // 3d model of the adapter
+    };
+
     struct coupler_sounds {
         sound_source dsbCouplerAttach { sound_placement::external }; // moved from cab
         sound_source dsbCouplerDetach { sound_placement::external }; // moved from cab
@@ -318,6 +323,8 @@ private:
         sound_source dsbCouplerStretch_loud { sound_placement::external };
         sound_source dsbBufferClamp { sound_placement::external }; // moved from cab
         sound_source dsbBufferClamp_loud { sound_placement::external };
+        sound_source dsbAdapterAttach { sound_placement::external };
+        sound_source dsbAdapterRemove { sound_placement::external };
     };
 
     struct pantograph_sounds {
@@ -394,6 +401,7 @@ private:
 // members
     TButton btCoupler1; // sprzegi
     TButton btCoupler2;
+    std::array<TModel3d *, 2> m_coupleradapters = { nullptr, nullptr };
     TAirCoupler btCPneumatic1; // sprzegi powietrzne //yB - zmienione z Button na AirCoupler - krzyzyki
     TAirCoupler btCPneumatic2;
     TAirCoupler btCPneumatic1r; // ABu: to zeby nie bylo problemow przy laczeniu wagonow,
@@ -469,11 +477,13 @@ private:
     sound_source m_outernoise { sound_placement::external, EU07_SOUND_RUNNINGNOISECUTOFFRANGE };
 #endif
     sound_source m_wheelflat { sound_placement::external, EU07_SOUND_RUNNINGNOISECUTOFFRANGE };
-    sound_source rscurve { sound_placement::external, 2 * EU07_SOUND_RUNNINGNOISECUTOFFRANGE }; // youBy
+    sound_source rscurve { sound_placement::external, EU07_SOUND_RUNNINGNOISECUTOFFRANGE }; // youBy
     sound_source rsDerailment { sound_placement::external, 2 * EU07_SOUND_RUNNINGNOISECUTOFFRANGE }; // McZapkie-051202
 
     exchange_data m_exchange; // state of active load exchange procedure, if any
     exchange_sounds m_exchangesounds; // sounds associated with the load exchange
+
+    coupleradapter_data m_coupleradapter;
 
     bool renderme; // yB - czy renderowac
     float ModCamRot;
@@ -583,6 +593,8 @@ private:
     // pobranie współrzędnych tyłu
     inline Math3D::vector3 RearPosition() {
         return vCoulpler[iDirection]; };
+    inline Math3D::vector3 CouplerPosition( end const End ) const {
+        return vCoulpler[ End ]; }
     inline Math3D::vector3 AxlePositionGet() {
         return iAxleFirst ?
             Axle1.pPosition :
@@ -647,6 +659,8 @@ private:
 
     void couple( int const Side );
     int uncouple( int const Side );
+    bool attach_coupler_adapter( int const Side );
+    bool remove_coupler_adapter( int const Side );
     void RadioStop();
 	void Damage(char flag);
     void RaLightsSet(int head, int rear);
