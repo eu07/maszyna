@@ -845,6 +845,27 @@ bool opengl_renderer::Render_lowpoly( TDynamicObject *Dynamic, float const Squar
     return true;
 }
 
+bool opengl_renderer::Render_coupler_adapter( TDynamicObject *Dynamic, float const Squaredistance, int const End, bool const Alpha ) {
+
+    if( Dynamic->m_coupleradapters[ End ] == nullptr ) { return false; }
+
+    auto const position { Math3D::vector3 {
+        0.f,
+        Dynamic->MoverParameters->Couplers[ End ].adapter_height,
+        ( Dynamic->MoverParameters->Couplers[ End ].adapter_length + Dynamic->MoverParameters->Dim.L * 0.5 ) * ( End == end::front ? 1 : -1 ) } };
+
+    auto const angle{ glm::vec3{ 0, ( End == end::front ? 0 : 180 ), 0 } };
+
+    if( Alpha ) {
+        Render_Alpha( Dynamic->m_coupleradapters[ End ], Dynamic->Material(), Squaredistance, position, angle );
+    }
+    else {
+        Render( Dynamic->m_coupleradapters[ End ], Dynamic->Material(), Squaredistance, position, angle );
+    }
+
+    return true;
+}
+
 // creates dynamic environment cubemap
 bool
 opengl_renderer::Render_reflections() {
@@ -2318,6 +2339,9 @@ opengl_renderer::Render( TDynamicObject *Dynamic ) {
             for( auto *attachment : Dynamic->mdAttachments ) {
                 Render( attachment, Dynamic->Material(), squaredistance );
             }
+            // optional coupling adapters
+            Render_coupler_adapter( Dynamic, squaredistance, end::front );
+            Render_coupler_adapter( Dynamic, squaredistance, end::rear );
             // post-render cleanup
             m_renderspecular = false;
             if( Dynamic->fShade > 0.0f ) {
@@ -2342,6 +2366,9 @@ opengl_renderer::Render( TDynamicObject *Dynamic ) {
             for( auto *attachment : Dynamic->mdAttachments ) {
                 Render( attachment, Dynamic->Material(), squaredistance );
             }
+            // optional coupling adapters
+            Render_coupler_adapter( Dynamic, squaredistance, end::front );
+            Render_coupler_adapter( Dynamic, squaredistance, end::rear );
             if( Dynamic->mdLoad ) {
                 // renderowanie nieprzezroczystego ładunku
                 Render( Dynamic->mdLoad, Dynamic->Material(), squaredistance, { 0.f, Dynamic->LoadOffset, 0.f }, {} );
@@ -2524,10 +2551,6 @@ opengl_renderer::Render( TSubModel *Submodel ) {
      && ( TSubModel::fSquareDist >= Submodel->fSquareMinDist )
      && ( TSubModel::fSquareDist <  Submodel->fSquareMaxDist ) ) {
 
-        // debug data
-        ++m_renderpass.draw_stats.submodels;
-        ++m_renderpass.draw_stats.drawcalls;
-
         if( Submodel->iFlags & 0xC000 ) {
             ::glPushMatrix();
             if( Submodel->fMatrix )
@@ -2540,6 +2563,11 @@ opengl_renderer::Render( TSubModel *Submodel ) {
             // renderowanie obiektów OpenGL
             if( Submodel->iAlpha & Submodel->iFlags & 0x1F ) {
                 // rysuj gdy element nieprzezroczysty
+
+                // debug data
+                ++m_renderpass.draw_stats.submodels;
+                ++m_renderpass.draw_stats.drawcalls;
+
                 switch( m_renderpass.draw_mode ) {
                     case rendermode::color:
                     case rendermode::reflections: {
@@ -3491,6 +3519,9 @@ opengl_renderer::Render_Alpha( TDynamicObject *Dynamic ) {
     for( auto *attachment : Dynamic->mdAttachments ) {
         Render_Alpha( attachment, Dynamic->Material(), squaredistance );
     }
+    // optional coupling adapters
+    Render_coupler_adapter( Dynamic, squaredistance, end::front, true );
+    Render_coupler_adapter( Dynamic, squaredistance, end::rear, true );
     if( Dynamic->mdLoad ) {
         // renderowanie nieprzezroczystego ładunku
         Render_Alpha( Dynamic->mdLoad, Dynamic->Material(), squaredistance, { 0.f, Dynamic->LoadOffset, 0.f }, {} );
@@ -3569,10 +3600,6 @@ opengl_renderer::Render_Alpha( TSubModel *Submodel ) {
      && ( TSubModel::fSquareDist >= Submodel->fSquareMinDist )
      && ( TSubModel::fSquareDist <  Submodel->fSquareMaxDist ) ) {
 
-        // debug data
-        ++m_renderpass.draw_stats.submodels;
-        ++m_renderpass.draw_stats.drawcalls;
-
         if( Submodel->iFlags & 0xC000 ) {
             ::glPushMatrix();
             if( Submodel->fMatrix )
@@ -3585,6 +3612,11 @@ opengl_renderer::Render_Alpha( TSubModel *Submodel ) {
             // renderowanie obiektów OpenGL
             if( Submodel->iAlpha & Submodel->iFlags & 0x2F ) {
                 // rysuj gdy element przezroczysty
+
+                // debug data
+                ++m_renderpass.draw_stats.submodels;
+                ++m_renderpass.draw_stats.drawcalls;
+
                 switch( m_renderpass.draw_mode ) {
                     case rendermode::color: {
 

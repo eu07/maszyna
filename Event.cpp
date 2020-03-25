@@ -193,7 +193,7 @@ basic_event::event_conditions::deserialize( cParser &Input ) {
                 flags |= flags::text;
             }
             Input.getTokens();
-            if( Input.peek() != "*" ) //"*" - nie brac val1 pod uwage
+            if( Input.peek() != "*" ) //"*" - nie brac pod uwage
             { // two tokens, operator followed by comparison value
                 std::string operatorstring;
                 Input >> operatorstring;
@@ -203,13 +203,14 @@ basic_event::event_conditions::deserialize( cParser &Input ) {
                 flags |= flags::value1;
             }
             Input.getTokens();
+            if( Input.peek() != "*" ) //"*" - nie brac pod uwage
             { // two tokens, operator followed by comparison value
                 std::string operatorstring;
                 Input >> operatorstring;
                 memcompare_value2_operator = comparison_operator_from_string( operatorstring );
                 Input.getTokens();
                 Input >> memcompare_value2;
-                flags |= flags::value1;
+                flags |= flags::value2;
             }
         }
     }

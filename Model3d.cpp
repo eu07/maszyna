@@ -448,9 +448,13 @@ int TSubModel::Load( cParser &parser, TModel3d *Model, /*int Pos,*/ bool dynamic
         */
         {
             // if material has opacity set, replace submodel opacity with it
+            // NOTE: reverted to use base opacity, this allows to define opacity threshold in material
+            // without it causing the translucent models to become opaque
             auto const opacity { (
+/*
                 false == std::isnan( mat.opacity ) ?
                     mat.opacity :
+*/
                     Opacity ) };
             iFlags &= ~0x30;
             iFlags |= (

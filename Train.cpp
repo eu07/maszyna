@@ -360,6 +360,8 @@ TTrain::commandhandler_map const TTrain::m_commandhandlers = {
     { user_command::doormodetoggle, &TTrain::OnCommand_doormodetoggle },
     { user_command::carcouplingincrease, &TTrain::OnCommand_carcouplingincrease },
     { user_command::carcouplingdisconnect, &TTrain::OnCommand_carcouplingdisconnect },
+    { user_command::carcoupleradapterattach, &TTrain::OnCommand_carcoupleradapterattach },
+    { user_command::carcoupleradapterremove, &TTrain::OnCommand_carcoupleradapterremove },
     { user_command::departureannounce, &TTrain::OnCommand_departureannounce },
     { user_command::hornlowactivate, &TTrain::OnCommand_hornlowactivate },
     { user_command::hornhighactivate, &TTrain::OnCommand_hornhighactivate },
@@ -2430,22 +2432,20 @@ void TTrain::OnCommand_pantographcompressoractivate( TTrain *Train, command_data
         return;
     }
 
-    if( ( Train->mvControlled->PantPress > 4.8 )
-     || ( false == Train->mvControlled->Battery ) ) {
-        // needs live power source and low enough pressure to work
-        return;
-    }
-
     if( Command.action != GLFW_RELEASE ) {
         // press or hold to activate
-        Train->mvControlled->PantCompFlag = true;
-        // visual feedback:
+        if( ( Train->mvControlled->PantPress < 4.8 )
+         && ( true == Train->mvControlled->Battery ) ) {
+            // needs live power source and low enough pressure to work
+            Train->mvControlled->PantCompFlag = true;
+        }
+        // visual feedback
         Train->ggPantCompressorButton.UpdateValue( 1.0 );
     }
     else {
         // release to disable
         Train->mvControlled->PantCompFlag = false;
-        // visual feedback:
+        // visual feedback
         Train->ggPantCompressorButton.UpdateValue( 0.0 );
     }
 }
@@ -2480,6 +2480,8 @@ void TTrain::OnCommand_linebreakertoggle( TTrain *Train, command_data const &Com
                 OnCommand_linebreakerclose( Train, Command );
             }
         }
+        // HACK: ignition key ignores lack of submodel, so we can start vehicles without any modeled controls
+        Train->ggIgnitionKey.UpdateValue( 0.0 );
     }
 }
 
@@ -2543,6 +2545,8 @@ void TTrain::OnCommand_linebreakerclose( TTrain *Train, command_data const &Comm
         }
         else {
             // no switch capable of doing the job
+            // HACK: ignition key ignores lack of submodel, so we can start vehicles without any modeled controls
+            Train->ggIgnitionKey.UpdateValue( 1.0 );
             return;
         }
         // the actual closing of the line breaker is handled in the train update routine
@@ -4271,14 +4275,11 @@ void TTrain::OnCommand_interiorlightenable( TTrain *Train, command_data const &C
 
     if( Command.action == GLFW_PRESS ) {
         // only reacting to press, so the switch doesn't flip back and forth if key is held down
-        if( Train->ggCabLightButton.SubModel == nullptr ) {
+        if( false == Train->m_controlmapper.contains( "cablight_sw:" ) ) {
             // TODO: proper control deviced definition for the interiors, that doesn't hinge of presence of 3d submodels
             WriteLog( "Interior Light switch is missing, or wasn't defined" );
             return;
         }
-        // visual feedback
-        Train->ggCabLightButton.UpdateValue( 1.0, Train->dsbSwitch );
-        Train->btCabLight.Turn( true );
         // store lighting switch states
         if( false == Train->DynamicObject->JointCabs ) {
             // vehicles with separate cabs get separate lighting switch states
@@ -4297,14 +4298,11 @@ void TTrain::OnCommand_interiorlightdisable( TTrain *Train, command_data const &
 
     if( Command.action == GLFW_PRESS ) {
         // only reacting to press, so the switch doesn't flip back and forth if key is held down
-        if( Train->ggCabLightButton.SubModel == nullptr ) {
+        if( false == Train->m_controlmapper.contains( "cablight_sw:" ) ) {
             // TODO: proper control deviced definition for the interiors, that doesn't hinge of presence of 3d submodels
             WriteLog( "Interior Light switch is missing, or wasn't defined" );
             return;
         }
-        // visual feedback
-        Train->ggCabLightButton.UpdateValue( 0.0, Train->dsbSwitch );
-        Train->btCabLight.Turn( false );
         // store lighting switch states
         if( false == Train->DynamicObject->JointCabs ) {
             // vehicles with separate cabs get separate lighting switch states
@@ -5406,6 +5404,40 @@ void TTrain::OnCommand_carcouplingdisconnect( TTrain *Train, command_data const 
     }
 }
 
+void TTrain::OnCommand_carcoupleradapterattach( TTrain *Train, command_data const &Command ) {
+
+    if( ( true == FreeFlyModeFlag )
+     && ( Command.action == GLFW_PRESS ) ) {
+        // tryb freefly, press only
+        auto *vehicle { std::get<TDynamicObject *>( simulation::Region->find_vehicle( Command.location, 50, false, true ) ) };
+        if( vehicle == nullptr ) { return; }
+
+        auto const coupler = (
+            glm::length2( glm::vec3 { vehicle->CouplerPosition( end::front ) } - Command.location ) < glm::length2( glm::vec3 { vehicle->CouplerPosition( end::rear ) } - Command.location ) ?
+                end::front :
+                end::rear );
+
+        vehicle->attach_coupler_adapter( coupler );
+    }
+}
+
+void TTrain::OnCommand_carcoupleradapterremove( TTrain *Train, command_data const &Command ) {
+
+    if( ( true == FreeFlyModeFlag )
+     && ( Command.action == GLFW_PRESS ) ) {
+        // tryb freefly, press only
+        auto *vehicle { std::get<TDynamicObject *>( simulation::Region->find_vehicle( Command.location, 50, false, true ) ) };
+        if( vehicle == nullptr ) { return; }
+
+        auto const coupler = (
+            glm::length2( glm::vec3 { vehicle->CouplerPosition( end::front ) } - Command.location ) < glm::length2( glm::vec3 { vehicle->CouplerPosition( end::rear ) } - Command.location ) ?
+                end::front :
+                end::rear );
+
+        vehicle->remove_coupler_adapter( coupler );
+    }
+}
+
 void TTrain::OnCommand_departureannounce( TTrain *Train, command_data const &Command ) {
 
     if( Train->ggDepartureSignalButton.SubModel == nullptr ) {
@@ -5803,7 +5835,8 @@ bool TTrain::Update( double const Deltatime )
     }
 
     if( ( ( ggMainButton.SubModel != nullptr ) && ( ggMainButton.GetDesiredValue() > 0.95 ) )
-     || ( ( ggMainOnButton.SubModel != nullptr ) && ( ggMainOnButton.GetDesiredValue() > 0.95 ) ) ) {
+     || ( ( ggMainOnButton.SubModel != nullptr ) && ( ggMainOnButton.GetDesiredValue() > 0.95 )
+     || ( ggIgnitionKey.GetDesiredValue() > 0.95 ) ) ) { // HACK: fallback
         // keep track of period the line breaker button is held down, to determine when/if circuit closes
         if( ( mvControlled->MainsInitTimeCountdown <= 0.0 )
          && ( ( fHVoltage > 0.5 * mvControlled->EnginePowerSource.MaxVoltage )
@@ -6800,10 +6833,6 @@ bool TTrain::Update( double const Deltatime )
             }
             ggLocalBrake.Update();
         }
-        if (ggManualBrake.SubModel != nullptr) {
-            ggManualBrake.UpdateValue(double(mvOccupied->ManualBrakePos));
-            ggManualBrake.Update();
-        }
         ggAlarmChain.Update();
         ggBrakeProfileCtrl.Update();
         ggBrakeProfileG.Update();
@@ -6940,7 +6969,6 @@ bool TTrain::Update( double const Deltatime )
         ggInstrumentLightButton.Update();
         ggDashboardLightButton.Update();
         ggTimetableLightButton.Update();
-        ggCabLightButton.Update();
         ggCabLightDimButton.Update();
         ggCompartmentLightsButton.Update();
         ggCompartmentLightsOnButton.Update();
@@ -7617,6 +7645,8 @@ bool TTrain::InitializeCab(int NewCabNo, std::string const &asFileName)
         cabindex = 0;
         break;
     }
+    iCabn = cabindex;
+
     std::string cabstr("cab" + std::to_string(cabindex) + "definition:");
 
     cParser parser(asFileName, cParser::buffer_FILE);
@@ -8212,7 +8242,6 @@ void TTrain::clear_cab_controls()
     ggDirKey.Clear();
     ggBrakeCtrl.Clear();
     ggLocalBrake.Clear();
-    ggManualBrake.Clear();
     ggAlarmChain.Clear();
     ggBrakeProfileCtrl.Clear();
     ggBrakeProfileG.Clear();
@@ -8253,7 +8282,6 @@ void TTrain::clear_cab_controls()
     ggDashboardLightButton.Clear();
     ggTimetableLightButton.Clear();
     // hunter-091012
-    ggCabLightButton.Clear();
     ggCabLightDimButton.Clear();
     ggCompartmentLightsButton.Clear();
     ggCompartmentLightsOnButton.Clear();
@@ -8403,7 +8431,6 @@ void TTrain::clear_cab_controls()
     btLampkaRearRightLight.Clear();
     btLampkaRearLeftEndLight.Clear();
     btLampkaRearRightEndLight.Clear();
-    btCabLight.Clear(); // hunter-171012
     // others
     btLampkaMalfunction.Clear();
     btLampkaMalfunctionB.Clear();
@@ -8579,9 +8606,6 @@ void TTrain::set_cab_controls( int const Cab ) {
         ggDimHeadlightsButton.PutValue( 1.f );
     }
     // cab lights
-    if( true == Cabine[Cab].bLight ) {
-        ggCabLightButton.PutValue( 1.f );
-    }
     if( true == Cabine[Cab].bLightDim ) {
         ggCabLightDimButton.PutValue( 1.f );
     }
@@ -8833,7 +8857,6 @@ bool TTrain::initialize_button(cParser &Parser, std::string const &Label, int co
         { "i-rearrightend:",  btLampkaRearRightEndLight },
         { "i-dashboardlight:",  btDashboardLight },
         { "i-timetablelight:",  btTimetableLight },
-        { "i-cablight:", btCabLight },
         { "i-universal0:", btUniversals[ 0 ] },
         { "i-universal1:", btUniversals[ 1 ] },
         { "i-universal2:", btUniversals[ 2 ] },
@@ -8859,7 +8882,8 @@ bool TTrain::initialize_button(cParser &Parser, std::string const &Label, int co
         { "i-doorpermit_right:", &mvOccupied->Doors.instances[ ( cab_to_end() == end::front ? side::right : side::left ) ].open_permit },
         { "i-doorstep:", &mvOccupied->Doors.step_enabled },
         { "i-mainpipelock:", &mvOccupied->LockPipe },
-        { "i-battery:", &mvOccupied->Battery }
+        { "i-battery:", &mvOccupied->Battery },
+        { "i-cablight:", &Cabine[ iCabn ].bLight },
     };
     {
         auto lookup = autolights.find( Label );
@@ -8918,7 +8942,6 @@ bool TTrain::initialize_gauge(cParser &Parser, std::string const &Label, int con
         { "dirkey:" , ggDirKey },
         { "brakectrl:", ggBrakeCtrl },
         { "localbrake:", ggLocalBrake },
-        { "manualbrake:", ggManualBrake },
         { "alarmchain:", ggAlarmChain },
         { "brakeprofile_sw:", ggBrakeProfileCtrl },
         { "brakeprofileg_sw:", ggBrakeProfileG },
@@ -9015,7 +9038,6 @@ bool TTrain::initialize_gauge(cParser &Parser, std::string const &Label, int con
         { "instrumentlight_sw:", ggInstrumentLightButton },
         { "dashboardlight_sw:", ggDashboardLightButton },
         { "timetablelight_sw:", ggTimetableLightButton },
-        { "cablight_sw:", ggCabLightButton },
         { "cablightdim_sw:", ggCabLightDimButton },
         { "compartmentlights_sw:", ggCompartmentLightsButton },
         { "compartmentlightson_sw:", ggCompartmentLightsOnButton },
@@ -9084,6 +9106,7 @@ bool TTrain::initialize_gauge(cParser &Parser, std::string const &Label, int con
         { "pantfrontoff_sw:", &mvControlled->Pantographs[end::front].valve.is_disabled },
         { "pantrearoff_sw:", &mvControlled->Pantographs[end::rear].valve.is_disabled },
         { "radio_sw:", &mvOccupied->Radio },
+        { "cablight_sw:", &Cabine[ iCabn ].bLight },
     };
     {
         auto lookup = autoboolgauges.find( Label );
@@ -9091,6 +9114,20 @@ bool TTrain::initialize_gauge(cParser &Parser, std::string const &Label, int con
             auto &gauge = Cabine[ Cabindex ].Gauge( -1 ); // pierwsza wolna lampka
             gauge.Load( Parser, DynamicObject );
             gauge.AssignBool( lookup->second );
+            m_controlmapper.insert( gauge, lookup->first );
+            return true;
+        }
+    }
+    // TODO: move viable dedicated gauges to the automatic array
+    std::unordered_map<std::string, int *> const autointgauges = {
+        { "manualbrake:", &mvOccupied->ManualBrakePos },
+    };
+    {
+        auto lookup = autointgauges.find( Label );
+        if( lookup != autointgauges.end() ) {
+            auto &gauge = Cabine[ Cabindex ].Gauge( -1 ); // pierwsza wolna lampka
+            gauge.Load( Parser, DynamicObject );
+            gauge.AssignInt( lookup->second );
             m_controlmapper.insert( gauge, lookup->first );
             return true;
         }

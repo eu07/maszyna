@@ -146,6 +146,8 @@ enum class user_command {
 
     carcouplingincrease,
     carcouplingdisconnect,
+    carcoupleradapterattach,
+    carcoupleradapterremove,
     doortoggleleft,
     doortoggleright,
     doorpermitleft,

@@ -797,18 +797,23 @@ debug_panel::update_section_vehicle( std::vector<text_line> &Output ) {
 std::string
 debug_panel::update_vehicle_coupler( int const Side ) {
     // NOTE: mover and vehicle are guaranteed to be valid by the caller
+    auto const &mover { *( m_input.mover ) };
+
     std::string couplerstatus { locale::strings[ locale::string::debug_vehicle_none ] };
+    std::string const adapterstatus { ( mover.Couplers[ Side ].adapter_type == TCouplerType::NoCoupler ? "" : "[A]" ) };
 
     auto const *connected { m_input.vehicle->MoverParameters->Neighbours[ Side ].vehicle };
 
-    if( connected == nullptr ) { return couplerstatus; }
-
-    auto const &mover { *( m_input.mover ) };
+    if( connected == nullptr ) {
+        
+        return couplerstatus + " " + adapterstatus;
+    }
 
     std::snprintf(
         m_buffer.data(), m_buffer.size(),
-        "%s [%d] (%.1f m)",
+        "%s %s[%d] (%.1f m)",
         connected->name().c_str(),
+        adapterstatus.c_str(),
         mover.Couplers[ Side ].CouplingFlag,
         mover.Neighbours[ Side ].distance );
 

@@ -240,7 +240,9 @@ enum sound {
     attachmainhose = 1 << 10,
     attachcontrol = 1 << 11,
     attachgangway = 1 << 12,
-    attachheating = 1 << 13
+    attachheating = 1 << 13,
+    attachadapter = 1 << 14,
+    removeadapter = 1 << 15,
 };
 
 //szczególne typy pojazdów (inna obsługa) dla zmiennej TrainType
@@ -673,7 +675,8 @@ struct TCoupling {
     double FmaxC = 1000.0;
     double beta = 0.0;
     TCouplerType CouplerType = TCouplerType::NoCoupler;     /*typ sprzegu*/
-	int AllowedFlag = 3; //Ra: maska dostępnych
+    int AutomaticCouplingFlag = coupling::coupler;
+    int AllowedFlag = coupling::coupler | coupling::brakehose; //Ra: maska dostępnych
     /*zmienne*/
 	int CouplingFlag = 0; /*0 - wirtualnie, 1 - sprzegi, 2 - pneumatycznie, 4 - sterowanie, 8 - kabel mocy*/
 	class TMoverParameters *Connected = nullptr; /*co jest podlaczone*/
@@ -682,12 +685,26 @@ struct TCoupling {
 	double Dist = 0.0;                  /*strzalka ugiecia zderzaków*/
 	bool CheckCollision = false;     /*czy sprawdzac sile czy pedy*/
     float stretch_duration { 0.f }; // seconds, elapsed time with excessive force applied to the coupler
+    // optional adapter piece
+    double adapter_length { 0.0 }; // meters, value added on the given end to standard vehicle (half)length
+    double adapter_height { 0.0 }; // meters, distance from rail level
+    TCouplerType adapter_type = TCouplerType::NoCoupler; // CouplerType override if other than NoCoupler
 
     power_coupling power_high;
 //    power_coupling power_low; // TODO: implement this
 
     int sounds { 0 }; // sounds emitted by the coupling devices
     bool Render = false;             /*ABu: czy rysowac jak zaczepiony sprzeg*/
+
+    inline bool
+        has_adapter() const {
+            return ( adapter_type != TCouplerType::NoCoupler ); }
+    inline TCouplerType const
+        type() const {
+            return (
+                adapter_type == TCouplerType::NoCoupler ?
+                    CouplerType :
+                    adapter_type ); }
 };
 
 struct neighbour_data {
@@ -1543,6 +1560,7 @@ public:
 	int iLights[2]; // bity zapalonych świateł tutaj, żeby dało się liczyć pobór prądu
 
     int AIHintPantstate{ 0 }; // suggested pantograph setup
+    double AIHintLocalBrakeAccFactor{ 1.05 }; // suggested acceleration weight for local brake operation
 
 public:
 	TMoverParameters(double VelInitial, std::string TypeNameInit, std::string NameInit, int Cab);
@@ -1557,6 +1575,8 @@ public:
 	bool DirectionForward();
     bool DirectionBackward( void );/*! kierunek ruchu*/
     bool EIMDirectionChangeAllow( void ) const;
+    inline double IsVehicleEIMBrakingFactor() {
+        return eimv[ eimv_Ipoj ] < 0 ? -1.0 : 1.0; }
 	void BrakeLevelSet(double b);
 	bool BrakeLevelAdd(double b);
 	bool IncBrakeLevel(); // wersja na użytek AI
