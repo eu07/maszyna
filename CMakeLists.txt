@@ -234,8 +234,10 @@ if (WIN32)
 	set(LUAJIT_LIBRARIES ${LUAJIT_LIBRARIES} "${DEPS_DIR}/luajit/lib/${ARCH}/lua51.lib")
 	set(PYTHON_LIBRARY ${PYTHON_LIBRARY} "${DEPS_DIR}/python/lib/${ARCH}/python27.lib")
 	set(libserialport_LIBRARY ${LIBSERIALPORT_LIBRARY} "${DEPS_DIR}/libserialport/lib/${ARCH}/libserialport-0.lib")
+	set(cppzmq_LIBRARY ${cppzmq_LIBRARY} "${DEPS_DIR}/cppzmq/lib/${ARCH}/libzmq.lib")
 endif()
 
+set(cppzmq_INCLUDE_DIR ${cppzmq_INCLUDE_DIR} "${DEPS_DIR}/cppzmq/include")
 set(GLM_INCLUDE_DIR ${GLM_INCLUDE_DIR} "${DEPS_DIR}/glm/")
 
 if (${CMAKE_CXX_COMPILER_ID} STREQUAL MSVC)
@@ -312,7 +314,9 @@ if (WIN32)
 endif()
 
 if (WITH_ZMQ)
-    target_link_libraries(${PROJECT_NAME} zmq)
+	find_package(cppzmq REQUIRED)
+	include_directories(${cppzmq_INCLUDE_DIR})
+	target_link_libraries(${PROJECT_NAME} ${cppzmq_LIBRARY})
 endif()
 
 #target_compile_options(${PROJECT_NAME} PRIVATE -flto)
