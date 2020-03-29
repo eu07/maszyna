@@ -137,10 +137,10 @@ void scenery_scanner::parse_trainset(cParser &parser)
 				break;
 			}
 			if (!found && skinfile != "none")
-				ErrorLog("skin not found: " + skinfile + ", vehicle type: " + vehicle_path.string(), logtype::file);
+				ErrorLog("skin not found: " + skinfile + ", vehicle type: " + vehicle_path.string() + ", file: " + parser.Name(), logtype::file);
 		}
 		else {
-			ErrorLog("vehicle type not found: " + vehicle_path.string(), logtype::file);
+			ErrorLog("vehicle type not found: " + vehicle_path.string() + ", file: " + parser.Name(), logtype::file);
 		}
 
 		parser.getTokens();
