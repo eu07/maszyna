@@ -20,6 +20,9 @@ http://mozilla.org/MPL/2.0/.
 #ifdef WITH_UART
 #include "uart.h"
 #endif
+#ifdef WITH_ZMQ
+#include "zmq_input.h"
+#endif
 
 class driver_mode : public application_mode {
 
@@ -81,6 +84,9 @@ private:
 #endif
 #ifdef WITH_UART
         std::unique_ptr<uart_input> uart;
+#endif
+#ifdef WITH_ZMQ
+        std::unique_ptr<zmq_input> zmq;
 #endif
         std::unique_ptr<motiontelemetry> telemetry;
 

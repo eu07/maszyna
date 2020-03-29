@@ -38,6 +38,7 @@ endif()
 
 option(USE_IMGUI_GL3 "Use OpenGL3+ imgui implementation" ON)
 option(WITH_UART "Compile with libserialport" ON)
+option(WITH_ZMQ "Compile with cppzmq" ON)
 option(USE_VSDEV_CAMERA "Use VS_Dev camera preview implementation" OFF)
 
 set(SOURCES
@@ -189,6 +190,11 @@ if (WITH_UART)
 	set(SOURCES ${SOURCES} "uart.cpp")
 endif()
 
+if (WITH_ZMQ)
+	add_definitions(-DWITH_ZMQ)
+	set(SOURCES ${SOURCES} "zmq_input.cpp")
+endif()
+
 if (USE_VSDEV_CAMERA)
 	add_definitions(-DUSE_VSDEV_CAMERA)
 	set(SOURCES ${SOURCES} "extras/VS_Dev.cpp" "widgets/cameraview_vsdev.cpp")
@@ -303,6 +309,10 @@ target_link_libraries(${PROJECT_NAME} ASIO::ASIO)
 
 if (WIN32)
 	target_link_libraries(${PROJECT_NAME} ws2_32)
+endif()
+
+if (WITH_ZMQ)
+    target_link_libraries(${PROJECT_NAME} zmq)
 endif()
 
 #target_compile_options(${PROJECT_NAME} PRIVATE -flto)

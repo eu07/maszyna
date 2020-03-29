@@ -712,6 +712,12 @@ global_settings::ConfigParse(cParser &Parser) {
             Parser >> uart_conf.debug;
         }
 #endif
+#ifdef WITH_ZMQ
+        else if( token == "zmq.address" ) {
+            Parser.getTokens( 1 );
+            Parser >> zmq_address;
+        }
+#endif
 #ifdef USE_EXTCAM_CAMERA
 		else if( token == "extcam.cmd" ) {
 			Parser.getTokens( 1 );

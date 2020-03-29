@@ -51,6 +51,11 @@ driver_mode::drivermode_input::poll() {
         uart->poll();
     }
 #endif
+#ifdef WITH_ZMQ
+    if( zmq != nullptr ) {
+        zmq->poll();
+    }
+#endif
 /*
     // TBD, TODO: wrap current command in object, include other input sources?
     input::command = (
@@ -74,6 +79,11 @@ driver_mode::drivermode_input::init() {
     if( true == Global.uart_conf.enable ) {
         uart = std::make_unique<uart_input>();
         uart->init();
+    }
+#endif
+#ifdef WITH_ZMQ
+    if (!Global.zmq_address.empty()) {
+        zmq = std::make_unique<zmq_input>();
     }
 #endif
     if (Global.motiontelemetry_conf.enable)

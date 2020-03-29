@@ -20,6 +20,9 @@ http://mozilla.org/MPL/2.0/.
 #ifdef WITH_UART
 #include "uart.h"
 #endif
+#ifdef WITH_ZMQ
+#include "zmq_input.h"
+#endif
 
 struct global_settings {
 // members
@@ -176,6 +179,9 @@ struct global_settings {
     int iPoKeysPWM[ 7 ] = { 0, 1, 2, 3, 4, 5, 6 }; // numery wejść dla PWM
 #ifdef WITH_UART
     uart_input::conf_t uart_conf;
+#endif
+#ifdef WITH_ZMQ
+    std::string zmq_address;
 #endif
     // multiplayer
     int iMultiplayer{ 0 }; // blokada działania niektórych eventów na rzecz kominikacji
