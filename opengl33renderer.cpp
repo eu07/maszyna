@@ -1636,6 +1636,11 @@ bool opengl33_renderer::Render(world_environment *Environment)
 			moonv = 1.0f - 0.667f;
 			moonu = 0.333f;
 		}
+		else if (moonphase == 50) //9th slot used for easter egg
+		{
+			moonv = 1.0f - 0.667f;
+			moonu = 0.66f;
+		}
 		else
 		{
 			moonv = 1.0f - 0.0f;
