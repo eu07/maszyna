@@ -325,6 +325,7 @@ class TTrain {
     static void OnCommand_motoroverloadrelaythresholdsetlow( TTrain *Train, command_data const &Command );
     static void OnCommand_motoroverloadrelaythresholdsethigh( TTrain *Train, command_data const &Command );
     static void OnCommand_motoroverloadrelayreset( TTrain *Train, command_data const &Command );
+    static void OnCommand_universalrelayreset( TTrain *Train, command_data const &Command );
     static void OnCommand_heatingtoggle( TTrain *Train, command_data const &Command );
     static void OnCommand_heatingenable( TTrain *Train, command_data const &Command );
     static void OnCommand_heatingdisable( TTrain *Train, command_data const &Command );
@@ -474,7 +475,6 @@ public: // reszta może by?publiczna
     TGauge ggMainButton; // EZT
     TGauge ggSecurityResetButton;
     TGauge ggReleaserButton;
-	TGauge ggSpringBrakeToggleButton;
 	TGauge ggSpringBrakeOnButton;
 	TGauge ggSpringBrakeOffButton;
 	TGauge ggUniveralBrakeButton1;
@@ -536,6 +536,7 @@ public: // reszta może by?publiczna
 	std::array<TGauge, 10> ggSpeedCtrlButtons; // NOTE: temporary arrangement until we have dynamically built control table
 
    std::array<TGauge, 10> ggUniversals; // NOTE: temporary arrangement until we have dynamically built control table
+   std::array<TGauge, 3> ggRelayResetButtons; // NOTE: temporary arrangement until we have dynamically built control table
 
     TGauge ggInstrumentLightButton;
     TGauge ggDashboardLightButton;

@@ -299,6 +299,9 @@ TTrain::commandhandler_map const TTrain::m_commandhandlers = {
     { user_command::motoroverloadrelaythresholdsetlow, &TTrain::OnCommand_motoroverloadrelaythresholdsetlow },
     { user_command::motoroverloadrelaythresholdsethigh, &TTrain::OnCommand_motoroverloadrelaythresholdsethigh },
     { user_command::motoroverloadrelayreset, &TTrain::OnCommand_motoroverloadrelayreset },
+    { user_command::universalrelayreset1, &TTrain::OnCommand_universalrelayreset },
+    { user_command::universalrelayreset2, &TTrain::OnCommand_universalrelayreset },
+    { user_command::universalrelayreset3, &TTrain::OnCommand_universalrelayreset },
     { user_command::heatingtoggle, &TTrain::OnCommand_heatingtoggle },
     { user_command::heatingenable, &TTrain::OnCommand_heatingenable },
     { user_command::heatingdisable, &TTrain::OnCommand_heatingdisable },
@@ -3115,11 +3118,7 @@ void TTrain::OnCommand_converteroverloadrelayreset( TTrain *Train, command_data 
         // visual feedback
         Train->ggConverterFuseButton.UpdateValue( 1.0, Train->dsbSwitch );
 
-        if( ( Train->mvControlled->Mains == false )
-         && ( Train->ggConverterButton.GetValue() < 0.05 )
-         && ( Train->mvControlled->TrainType != dt_EZT ) ) {
-            Train->mvControlled->ConvOvldFlag = false;
-        }
+        Train->mvControlled->RelayReset( relay_t::primaryconverteroverload );
     }
     else if( Command.action == GLFW_RELEASE ) {
         // visual feedback
@@ -3623,6 +3622,23 @@ void TTrain::OnCommand_motoroverloadrelayreset( TTrain *Train, command_data cons
     else if( Command.action == GLFW_RELEASE ) {
         // visual feedback
         Train->ggFuseButton.UpdateValue( 0.0, Train->dsbSwitch );
+    }
+}
+
+void TTrain::OnCommand_universalrelayreset( TTrain *Train, command_data const &Command ) {
+
+    auto const itemindex = static_cast<int>( Command.command ) - static_cast<int>( user_command::universalrelayreset1 );
+    auto &item = Train->ggRelayResetButtons[ itemindex ];
+
+    // NOTE: relay reset switches are impulse-only
+    if( Command.action == GLFW_PRESS ) {
+        Train->mvOccupied->UniversalResetButton( itemindex );
+        // visual feedback
+        item.UpdateValue( 1.0 );
+    }
+    else if( Command.action == GLFW_RELEASE ) {
+        // visual feedback
+        item.UpdateValue( 0.0 );
     }
 }
 
@@ -4681,7 +4697,6 @@ void TTrain::OnCommand_springbrakeenable(TTrain *Train, command_data const &Comm
 		Train->mvOccupied->SpringBrakeActivate(true);
 		// visual feedback
 		Train->ggSpringBrakeOnButton.UpdateValue(1.0, Train->dsbSwitch);
-		Train->ggSpringBrakeToggleButton.UpdateValue(1.0, Train->dsbSwitch);
 		Train->ggSpringBrakeOffButton.UpdateValue(0.0, Train->dsbSwitch);
 	}
 	else if (Command.action == GLFW_RELEASE) {
@@ -4697,7 +4712,6 @@ void TTrain::OnCommand_springbrakedisable(TTrain *Train, command_data const &Com
 		Train->mvOccupied->SpringBrakeActivate(false);
 		// visual feedback
 		Train->ggSpringBrakeOffButton.UpdateValue(1.0, Train->dsbSwitch);
-		Train->ggSpringBrakeToggleButton.UpdateValue(0.0, Train->dsbSwitch);
 		Train->ggSpringBrakeOnButton.UpdateValue(0.0, Train->dsbSwitch);
 	}
 	else if (Command.action == GLFW_RELEASE) {
@@ -5838,7 +5852,7 @@ bool TTrain::Update( double const Deltatime )
      || ( ( ggMainOnButton.SubModel != nullptr ) && ( ggMainOnButton.GetDesiredValue() > 0.95 )
      || ( ggIgnitionKey.GetDesiredValue() > 0.95 ) ) ) { // HACK: fallback
         // keep track of period the line breaker button is held down, to determine when/if circuit closes
-        if( ( mvControlled->MainsInitTimeCountdown <= 0.0 )
+        if( ( mvControlled->MainSwitchCheck() )
          && ( ( fHVoltage > 0.5 * mvControlled->EnginePowerSource.MaxVoltage )
            || ( ( mvControlled->EngineType != TEngineType::ElectricSeriesMotor )
              && ( mvControlled->EngineType != TEngineType::ElectricInductionMotor )
@@ -6424,9 +6438,14 @@ bool TTrain::Update( double const Deltatime )
              || ( mvControlled->MainCtrlActualPos == 0 ) ); // do EU04
 
             btLampkaStyczn.Turn(
-                ( ( mvOccupied->StLinFlag ) /* || ( mvOccupied->BrakePress > 2.0 ) || ( mvOccupied->PipePress < 3.6 ) */ ) ?
+                ( ( mvControlled->StLinFlag ) /* || ( mvControlled->BrakePress > 2.0 ) || ( mvControlled->PipePress < 3.6 ) */ ) ?
                     false :
-                    ( mvOccupied->BrakePress < 1.0 ) ); // mozna prowadzic rozruch
+                    ( mvControlled->BrakePress < 1.0 ) ); // mozna prowadzic rozruch
+
+            btLampkaPrzekRozn.Turn(
+                ( ( mvControlled->GroundRelay ) || ( mvControlled->BrakePress > 2.0 ) || ( mvControlled->PipePress < 3.6 ) ) ?
+                    false :
+                    ( mvControlled->BrakePress < 1.0 ) ); // relay is off and needs a reset
 
             if( ( ( mvControlled->CabOccupied ==  1 ) && ( TestFlag( mvControlled->Couplers[ end::rear  ].CouplingFlag, coupling::control ) ) )
              || ( ( mvControlled->CabOccupied == -1 ) && ( TestFlag( mvControlled->Couplers[ end::front ].CouplingFlag, coupling::control ) ) ) ) {
@@ -6889,7 +6908,6 @@ bool TTrain::Update( double const Deltatime )
         ggMainButton.Update();
         ggSecurityResetButton.Update();
         ggReleaserButton.Update();
-		ggSpringBrakeToggleButton.Update();
 		ggSpringBrakeOnButton.Update();
 		ggSpringBrakeOffButton.Update();
 		ggUniveralBrakeButton1.Update();
@@ -6961,9 +6979,11 @@ bool TTrain::Update( double const Deltatime )
 		for (auto &speedctrlbutton : ggSpeedCtrlButtons) {
 			speedctrlbutton.Update( lowvoltagepower );
 		}
-
         for( auto &universal : ggUniversals ) {
             universal.Update();
+        }
+        for( auto &relayresetbutton : ggRelayResetButtons ) {
+            relayresetbutton.Update();
         }
         // hunter-091012
         ggInstrumentLightButton.Update();
@@ -8252,7 +8272,6 @@ void TTrain::clear_cab_controls()
     ggMainOnButton.Clear();
     ggSecurityResetButton.Clear();
     ggReleaserButton.Clear();
-	ggSpringBrakeToggleButton.Clear();
 	ggSpringBrakeOnButton.Clear();
 	ggSpringBrakeOffButton.Clear();
 	ggUniveralBrakeButton1.Clear();
@@ -8277,6 +8296,9 @@ void TTrain::clear_cab_controls()
 	}
     for( auto &universal : ggUniversals ) {
         universal.Clear();
+    }
+    for( auto &relayresetbutton : ggRelayResetButtons ) {
+        relayresetbutton.Clear();
     }
     ggInstrumentLightButton.Clear();
     ggDashboardLightButton.Clear();
@@ -8952,7 +8974,6 @@ bool TTrain::initialize_gauge(cParser &Parser, std::string const &Label, int con
         { "main_on_bt:", ggMainOnButton },
         { "security_reset_bt:", ggSecurityResetButton },
         { "releaser_bt:", ggReleaserButton },
-		{ "springbraketoggle_bt:", ggSpringBrakeToggleButton },
 		{ "springbrakeon_bt:", ggSpringBrakeOnButton },
 		{ "springbrakeoff_bt:", ggSpringBrakeOffButton },
 		{ "universalbrake1_bt:", ggUniveralBrakeButton1 },
@@ -9046,6 +9067,9 @@ bool TTrain::initialize_gauge(cParser &Parser, std::string const &Label, int con
         { "batteryon_sw:", ggBatteryOnButton },
         { "batteryoff_sw:", ggBatteryOffButton },
         { "distancecounter_sw:", ggDistanceCounterButton },
+        { "relayreset1_bt:", ggRelayResetButtons[ 0 ] },
+        { "relayreset2_bt:", ggRelayResetButtons[ 1 ] },
+        { "relayreset3_bt:", ggRelayResetButtons[ 2 ] },
         { "universal0:", ggUniversals[ 0 ] },
         { "universal1:", ggUniversals[ 1 ] },
         { "universal2:", ggUniversals[ 2 ] },
@@ -9107,6 +9131,7 @@ bool TTrain::initialize_gauge(cParser &Parser, std::string const &Label, int con
         { "pantrearoff_sw:", &mvControlled->Pantographs[end::rear].valve.is_disabled },
         { "radio_sw:", &mvOccupied->Radio },
         { "cablight_sw:", &Cabine[ iCabn ].bLight },
+        { "springbraketoggle_bt:", &mvOccupied->SpringBrake.Activate },
     };
     {
         auto lookup = autoboolgauges.find( Label );

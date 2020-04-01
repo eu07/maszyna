@@ -1794,14 +1794,25 @@ TDynamicObject::Init(std::string Name, // nazwa pojazdu, np. "EU07-424"
                 static_cast<int>( std::floor(MoverParameters->Handle->GetPos(bh_NP)) );
         else
             MoverParameters->BrakeCtrlPos = static_cast<int>( std::floor(MoverParameters->Handle->GetPos(bh_RP)) );
+
+        // engage independent brake if applicable, if the vehicle is to be on standby
+        // NOTE: with more than one driver in the consist this is likely to go awery, since all but one will be sent to sleep
+        // TBD, TODO: have the virtual helper release independent brakes during consist check?
+        if( DriverType != "" ) {
+            if( MoverParameters->LocalBrake != TLocalBrake::ManualBrake ) {
+                if( fVel < 1.0 ) {
+                    MoverParameters->IncLocalBrakeLevel( LocalBrakePosNo );
+                }
+            }
+        }
     }
     else
         MoverParameters->BrakeCtrlPos =
             static_cast<int>( std::floor(MoverParameters->Handle->GetPos(bh_NP)) );
 
-    MoverParameters->BrakeLevelSet(
-        MoverParameters->BrakeCtrlPos); // poprawienie hamulca po ewentualnym
-    // przestawieniu przez Pascal
+    // poprawienie hamulca po ewentualnym przestawieniu przez Pascal
+    // TODO: check if needed, we're not in Pascal anymore, Toto
+    MoverParameters->BrakeLevelSet(MoverParameters->BrakeCtrlPos);
 
     // dodatkowe parametry yB
     MoreParams += "."; // wykonuje o jedną iterację za mało, więc trzeba mu dodać
@@ -3763,7 +3774,7 @@ bool TDynamicObject::Update(double dt, double dt1)
     // compartment lights
     // if the vehicle has a controller, we base the light state on state of the controller otherwise we check the vehicle itself
     if( ( ctOwner != nullptr ? ctOwner->Controlling()->Battery != SectionLightsActive :
-          Mechanik != nullptr ? Mechanik->primary() == false : // don't touch lights in a stand-alone manned vehicle
+          Mechanik != nullptr ? false : // don't touch lights in a stand-alone manned vehicle
           MoverParameters->CompartmentLights.is_active == true ) ) { // without controller switch the lights off
         toggle_lights();
     }

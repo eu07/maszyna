@@ -245,6 +245,18 @@ enum sound {
     removeadapter = 1 << 15,
 };
 
+// customizable reset button
+enum relay_t {
+    maincircuitground = 1 << 0,
+    auxiliarycircuitground = 1 << 1,
+    tractionnmotoroverload = 1 << 2,
+    primaryconverteroverload = 1 << 3,
+    secondaryconverteroverload = 1 << 4,
+    ventillatoroverload = 1 << 5,
+    heatingoverload = 1 << 6,
+    electrodynamicbrakesoverload = 1 << 7,
+};
+
 //szczególne typy pojazdów (inna obsługa) dla zmiennej TrainType
 //zamienione na flagi bitowe, aby szybko wybierać grupę (np. EZT+SZT)
 // TODO: convert to enums, they're used as specific checks anyway
@@ -1042,6 +1054,7 @@ public:
 	TBrakePressure BrakePressureActual; //wartości ważone dla aktualnej pozycji kranu
 	int ASBType = 0;            /*0: brak hamulca przeciwposlizgowego, 1: reczny, 2: automat*/
 	int UniversalBrakeButtonFlag[3] = { 0, 0, 0 }; /* mozliwe działania przycisków hamulcowych */
+    int UniversalResetButtonFlag[3] = { 0, 0, 0 }; // customizable reset buttons assignments
 	int TurboTest = 0;
 	double MaxBrakeForce = 0.0;      /*maksymalna sila nacisku hamulca*/
 	double MaxBrakePress[5]; //pomocniczy, proz, sred, lad, pp
@@ -1453,6 +1466,7 @@ public:
 	bool AutoRelayFlag = false;  /*mozna zmieniac jesli AutoRelayType=2*/
 	bool FuseFlag = false;       /*!o bezpiecznik nadmiarowy*/
 	bool ConvOvldFlag = false;              /*!  nadmiarowy przetwornicy i ogrzewania*/
+    bool GroundRelay { true }; // switches off to protect against damage from earths
 	bool StLinFlag = false;       /*!o styczniki liniowe*/
     bool StLinSwitchOff{ false }; // state of the button forcing motor connectors open
 	bool ResistorsFlag = false;  /*!o jazda rezystorowa*/
@@ -1560,6 +1574,7 @@ public:
 	int iLights[2]; // bity zapalonych świateł tutaj, żeby dało się liczyć pobór prądu
 
     int AIHintPantstate{ 0 }; // suggested pantograph setup
+    bool AIHintPantUpIfIdle{ true }; // whether raise both pantographs if idling for a while
     double AIHintLocalBrakeAccFactor{ 1.05 }; // suggested acceleration weight for local brake operation
 
 public:
@@ -1706,11 +1721,13 @@ public:
     bool CompartmentLightsSwitchOff( bool State, range_t const Notify = range_t::consist ); // compartment lights state toggle
     bool MainSwitch( bool const State, range_t const Notify = range_t::consist );/*! wylacznik glowny*/
     void MainSwitch_( bool const State );
+    bool MainSwitchCheck() const; // checks conditions for closing the line breaker
     bool ConverterSwitch( bool State, range_t const Notify = range_t::consist );/*! wl/wyl przetwornicy*/
     bool CompressorSwitch( bool State, range_t const Notify = range_t::consist );/*! wl/wyl sprezarki*/
     bool ChangeCompressorPreset( int const Change, range_t const Notify = range_t::consist );
 
 									  /*-funkcje typowe dla lokomotywy elektrycznej*/
+    void LowVoltagePowerCheck( double const Deltatime );
     void MainsCheck( double const Deltatime );
     void PowerCouplersCheck( double const Deltatime );
     void ConverterCheck( double const Timestep ); // przetwornica
@@ -1722,9 +1739,11 @@ public:
     void MotorBlowersCheck( double const Timestep );
     void PantographsCheck( double const Timestep );
     void LightsCheck( double const Timestep );
-    bool FuseOn(void); //bezpiecznik nadamiary
+    bool FuseOn( range_t const Notify = range_t::consist ); //bezpiecznik nadamiary
 	bool FuseFlagCheck(void) const; // sprawdzanie flagi nadmiarowego
 	void FuseOff(void); // wylaczenie nadmiarowego
+    bool UniversalResetButton( int const Button, range_t const Notify = range_t::consist );
+    bool RelayReset( int const Relays ); // resets specified relays
     double ShowCurrent( int AmpN ) const; //pokazuje bezwgl. wartosc pradu na wybranym amperomierzu
 	double ShowCurrentP(int AmpN) const;  //pokazuje bezwgl. wartosc pradu w wybranym pojezdzie                                                             //Q 20160722
 

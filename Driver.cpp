@@ -638,6 +638,8 @@ void TController::TableTraceRoute(double fDistance, TDynamicObject *pVehicle)
                 if (pTrack->eType == tt_Cross) {
                     // na skrzyżowaniach trzeba wybrać segment, po którym pojedzie pojazd
                     // dopiero tutaj jest ustalany kierunek segmentu na skrzyżowaniu
+/*
+                    // NOTE: manual selection disabled due to multiplayer
                     int routewanted;
                     if( false == AIControllFlag ) {
                         routewanted = (
@@ -648,7 +650,8 @@ void TController::TableTraceRoute(double fDistance, TDynamicObject *pVehicle)
                     else {
                         routewanted = 1 + std::floor( Random( static_cast<double>( pTrack->RouteCount() ) - 0.001 ) );
                     }
-
+*/
+                    auto const routewanted { 1 + std::floor( Random( static_cast<double>( pTrack->RouteCount() ) - 0.001 ) ) };
                     sSpeedTable[iLast].iFlags |=
                         ( ( pTrack->CrossSegment(
                                 (fLastDir < 0 ?
@@ -1829,17 +1832,20 @@ void TController::Activation()
         TDynamicObject *old = pVehicle, *d = pVehicle; // w tym siedzi AI
         TController *drugi; // jakby były dwa, to zamienić miejscami, a nie robić wycieku pamięci poprzez nadpisanie
         auto const localbrakelevel { mvOccupied->LocalBrakePosA };
+        // switch off tempomat
+        SpeedCntrl( 0.0 );
+        mvControlling->DecScndCtrl( 2 );
+        // reset controls
         ZeroSpeed();
         ZeroDirection();
-		mvOccupied->SpringBrakeActivate(true);
+		mvOccupied->SpringBrakeActivate( true );
         if (TestFlag(d->MoverParameters->Couplers[iDirectionOrder < 0 ? end::rear : end::front].CouplingFlag, ctrain_controll)) {
-            mvControlling->MainSwitch( false); // dezaktywacja czuwaka, jeśli przejście do innego członu
+            mvControlling->MainSwitch( false ); // dezaktywacja czuwaka, jeśli przejście do innego członu
             mvOccupied->DecLocalBrakeLevel(LocalBrakePosNo); // zwolnienie hamulca w opuszczanym pojeździe
             //   mvOccupied->BrakeLevelSet((mvOccupied->BrakeHandle==FVel6)?4:-2); //odcięcie na
             //   zaworze maszynisty, FVel6 po drugiej stronie nie luzuje
-            mvOccupied->BrakeLevelSet(
-                mvOccupied->Handle->GetPos(bh_NP)); // odcięcie na zaworze maszynisty
-			BrakeLevelSet(gbh_NP); //ustawienie zmiennej GBH
+            mvOccupied->BrakeLevelSet( mvOccupied->Handle->GetPos(bh_NP) ); // odcięcie na zaworze maszynisty
+			BrakeLevelSet( gbh_NP ); //ustawienie zmiennej GBH
         }
         mvOccupied->CabOccupied = mvOccupied->CabActive; // użytkownik moze zmienić CabOccupied wychodząc
         mvOccupied->CabDeactivisation(); // tak jest w Train.cpp
@@ -2623,6 +2629,10 @@ bool TController::PrepareEngine()
             }
             else if (false == IsLineBreakerClosed) {
                 ZeroSpeed();
+                if( mvOccupied->DirActive == 0 ) {
+                    OrderDirectionChange( iDirection, mvOccupied );
+                }
+                mvControlling->FuseOn(); // consist-wide ground relay reset
                 if( mvOccupied->TrainType == dt_SN61 ) {
                     // specjalnie dla SN61 żeby nie zgasł
                     while( ( mvControlling->RList[ mvControlling->MainCtrlPos ].Mn == 0 )
@@ -2636,7 +2646,6 @@ bool TController::PrepareEngine()
                 }
             }
             else { 
-                OK = ( OrderDirectionChange( iDirection, mvOccupied ) == -1 );
                 mvControlling->ConverterSwitch( true );
                 // w EN57 sprężarka w ra jest zasilana z silnikowego
                 mvControlling->CompressorSwitch( true );
@@ -2658,6 +2667,7 @@ bool TController::PrepareEngine()
                 if( lookup != brakepositions.end() ) {
                     BrakeLevelSet( lookup->second ); // GBH
                 }
+                OK = ( VelforDriver == -1 );
             }
         }
         else
@@ -2717,14 +2727,14 @@ bool TController::ReleaseEngine() {
         mvOccupied->BrakeReleaser( 0 );
         if( std::abs( fAccGravity ) < 0.01 ) {
             // release train brake if on flats...
-            // TODO: check if we shouldn't leave it engaged instead
-            while( true == mvOccupied->DecBrakeLevel() ) {
-                // tu moze zmieniać na -2, ale to bez znaczenia
-                ;
-            }
-            // ...and engage independent brake
-            while( true == mvOccupied->IncLocalBrakeLevel( 1 ) ) {
-                ;
+            if( mvOccupied->LocalBrake != TLocalBrake::ManualBrake ) {
+                // ...as long as it's a vehicle with independent brake, anyway
+                // TODO: check if we shouldn't leave it engaged instead
+                while( true == DecBrake() ) {
+                    ;
+                }
+                // ...and engage independent brake
+                mvOccupied->IncLocalBrakeLevel( LocalBrakePosNo );
             }
         }
         else {
@@ -4854,7 +4864,8 @@ TController::UpdateSituation(double dt) {
                 }
             }
             else {
-                if( ( IdleTime > 45.0 )
+                if( ( mvOccupied->AIHintPantUpIfIdle )
+                 && ( IdleTime > 45.0 )
                     // NOTE: abs(stoptime) covers either at least 15 sec remaining for a scheduled stop, or 15+ secs spent at a basic stop
                  && ( std::abs( fStopTime ) > 15.0 ) ) {
                     // spending a longer at a stop, raise also front pantograph
@@ -6160,12 +6171,11 @@ TController::UpdateSituation(double dt) {
                 if ((mvControlling->EngineType == TEngineType::ElectricSeriesMotor) ||
                     (mvControlling->TrainType & dt_EZT) ||
                     (mvControlling->EngineType == TEngineType::DieselElectric))
-                    if (mvControlling->FuseFlag || Need_TryAgain)
+                    if (mvControlling->FuseFlag || Need_TryAgain || (false == mvControlling->GroundRelay))
                     {
                         Need_TryAgain = false; // true, jeśli druga pozycja w elektryku nie załapała
                         mvControlling->DecScndCtrl(2); // nastawnik bocznikowania na 0
                         mvControlling->DecMainCtrl(2); // nastawnik jazdy na 0
-                        mvControlling->MainSwitch(true); // Ra: dodałem, bo EN57 stawały po wywaleniu
                         if (mvControlling->FuseOn()) {
                             ++iDriverFailCount;
                             if (iDriverFailCount > maxdriverfails)
@@ -6173,6 +6183,7 @@ TController::UpdateSituation(double dt) {
                             if (iDriverFailCount > maxdriverfails * 2)
                                 SetDriverPsyche();
                         }
+                        mvControlling->MainSwitch(true); // Ra: dodałem, bo EN57 stawały po wywaleniu
                     }
                 // NOTE: as a stop-gap measure the routine is limited to trains only while car calculations seem off
                 if( mvControlling->CategoryFlag == 1 ) {
@@ -6464,13 +6475,18 @@ TController::UpdateSituation(double dt) {
                 if( ( mvOccupied->Vel < 0.01 )
                  && ( ( VelDesired == 0.0 )
                    || ( AccDesired == 0.0 ) ) ) {
-                    if( mvOccupied->BrakeCtrlPos == mvOccupied->Handle->GetPos( bh_RP ) ) {
-                        // dodatkowy na pozycję 1
-                        mvOccupied->IncLocalBrakeLevel( 1 );
-                    }
-                    else {
-                        mvOccupied->BrakeLevelSet( mvOccupied->Handle->GetPos( bh_RP ) ); //GBH
-						BrakeLevelSet(gbh_RP);
+                    if( mvOccupied->LocalBrake != TLocalBrake::ManualBrake ) {
+                        // do it only if the vehicle actually has the independent brake
+                        if( mvOccupied->BrakeCtrlPos == mvOccupied->Handle->GetPos( bh_RP ) ) {
+                            if( mvOccupied->LocalBrakePosA == 0.0 ) {
+                                // dodatkowy na pozycję 1
+                                mvOccupied->IncLocalBrakeLevel( LocalBrakePosNo );
+                            }
+                        }
+                        else {
+                            mvOccupied->BrakeLevelSet( mvOccupied->Handle->GetPos( bh_RP ) ); //GBH
+                            BrakeLevelSet( gbh_RP );
+                        }
                     }
                 }
             }

@@ -1414,6 +1414,8 @@ void TMoverParameters::compute_movement_( double const Deltatime ) {
     // TODO: gather and move current calculations to dedicated method
     TotalCurrent = 0;
 
+    // low voltage power sources
+    LowVoltagePowerCheck( Deltatime );
     // power sources
     PantographsCheck( Deltatime );
     // main circuit
@@ -1494,6 +1496,21 @@ void TMoverParameters::MainsCheck( double const Deltatime ) {
     else {
         // no power supply
         MainsInitTimeCountdown = MainsInitTime;
+    }
+}
+
+void TMoverParameters::LowVoltagePowerCheck( double const Deltatime ) {
+
+    auto const lowvoltagepower { Battery | ConverterFlag };
+
+    switch( EngineType ) {
+        case TEngineType::ElectricSeriesMotor: {
+            GroundRelay &= lowvoltagepower;
+            break;
+        }
+        default: {
+            break;
+        }
     }
 }
 
@@ -3272,15 +3289,7 @@ void TMoverParameters::MainSwitch_( bool const State ) {
     bool const initialstate { Mains || dizel_startup };
 
     if( ( false == State )
-     || ( ( ( ScndCtrlPos == 0 ) || ( EngineType == TEngineType::ElectricInductionMotor ) )
-       && ( ( ConvOvldFlag == false ) || ( TrainType == dt_EZT ) )
-       && ( MainsInitTimeCountdown <= 0.0 )
-       && ( true == NoVoltRelay )
-       && ( true == OvervoltageRelay )
-       && ( LastSwitchingTime > CtrlDelay )
-       && ( HasCamshaft ? IsMainCtrlActualNoPowerPos() : ( LineBreakerClosesAtNoPowerPosOnly ? IsMainCtrlNoPowerPos() : true ) )
-       && ( false == TestFlag( DamageFlag, dtrain_out ) )
-       && ( false == TestFlag( EngDmgFlag, 1 ) ) ) ) {
+     || ( true == MainSwitchCheck() ) ) {
 
         if( true == State ) {
             // switch on
@@ -3310,6 +3319,21 @@ void TMoverParameters::MainSwitch_( bool const State ) {
             LastSwitchingTime = 0;
         }
     }
+}
+
+bool TMoverParameters::MainSwitchCheck() const {
+
+    return (
+          ( ( ScndCtrlPos == 0 ) || ( EngineType == TEngineType::ElectricInductionMotor ) )
+       && ( MainsInitTimeCountdown <= 0.0 )
+       && ( ( ConvOvldFlag == false ) || ( TrainType == dt_EZT ) )
+       && ( true == GroundRelay )
+       && ( true == NoVoltRelay )
+       && ( true == OvervoltageRelay )
+       && ( LastSwitchingTime > CtrlDelay )
+       && ( HasCamshaft ? IsMainCtrlActualNoPowerPos() : ( LineBreakerClosesAtNoPowerPosOnly ? IsMainCtrlNoPowerPos() : true ) )
+       && ( false == TestFlag( DamageFlag, dtrain_out ) )
+       && ( false == TestFlag( EngDmgFlag, 1 ) ) );
 }
 
 // *************************************************************************************************
@@ -6021,21 +6045,21 @@ bool TMoverParameters::FuseFlagCheck(void) const
 // Q: 20160713
 // Załączenie bezpiecznika nadmiarowego
 // *************************************************************************************************
-bool TMoverParameters::FuseOn(void)
+bool TMoverParameters::FuseOn( range_t const Notify )
 {
-    bool FO = false;
-    if ((IsMainCtrlNoPowerPos()) && (ScndCtrlPos == 0) && (TrainType != dt_ET40) &&
-        ((Mains) || (TrainType != dt_EZT)) && (!TestFlag(EngDmgFlag, 1)))
-    { // w ET40 jest blokada nastawnika, ale czy działa dobrze?
-        SendCtrlToNext("FuseSwitch", 1, CabActive);
-        if (((EngineType == TEngineType::ElectricSeriesMotor) || ((EngineType == TEngineType::DieselElectric))) && FuseFlag)
-        {
-            FuseFlag = false; // wlaczenie ponowne obwodu
-            FO = true;
-            SetFlag(SoundFlag, sound::relay | sound::loud);
-        }
+    bool const result { RelayReset( relay_t::maincircuitground | relay_t::tractionnmotoroverload ) };
+
+    if( Notify != range_t::local ) {
+        SendCtrlToNext(
+            "FuseSwitch",
+            1,
+            CabActive,
+            ( Notify == range_t::unit ?
+                coupling::control | coupling::permanent :
+                coupling::control ) );
     }
-    return FO;
+
+    return result;
 }
 
 // *************************************************************************************************
@@ -6050,6 +6074,81 @@ void TMoverParameters::FuseOff(void)
         EventFlag = true;
         SetFlag(SoundFlag, sound::relay | sound::loud);
     }
+}
+
+// resets relays assigned to specified customizable reset button
+bool TMoverParameters::UniversalResetButton( int const Button, range_t const Notify ) {
+
+    auto const lowvoltagepower { Battery || ConverterFlag };
+    if( false == lowvoltagepower ) { return false; }
+
+    auto const relays { UniversalResetButtonFlag[ Button ] };
+    if( relays == 0 ) { return false; }
+
+    auto const result { RelayReset( relays ) };
+
+    if( Notify != range_t::local ) {
+        SendCtrlToNext(
+            "RelayReset",
+            relays,
+            CabActive,
+            ( Notify == range_t::unit ?
+                coupling::control | coupling::permanent :
+                coupling::control ) );
+    }
+
+    return result;
+}
+
+// resets state of specified relays
+bool TMoverParameters::RelayReset( int const Relays ) {
+
+    auto const lowvoltagepower { Battery || ConverterFlag };
+    bool reset { false };
+
+    if( TestFlag( Relays, relay_t::maincircuitground ) ) {
+        if( ( ( EngineType == TEngineType::ElectricSeriesMotor ) || ( EngineType == TEngineType::DieselElectric ) )
+         && ( IsMainCtrlNoPowerPos() )
+         && ( ScndCtrlPos == 0 )
+         && ( DirActive != 0 )
+         && ( !TestFlag( EngDmgFlag, 1 ) ) ) {
+            // NOTE: true means the relay is operational
+            reset |= ( !GroundRelay && lowvoltagepower );
+            GroundRelay |= lowvoltagepower;
+        }
+    }
+
+    if( TestFlag( Relays, relay_t::tractionnmotoroverload ) ) {
+        if( ( ( EngineType == TEngineType::ElectricSeriesMotor ) || ( EngineType == TEngineType::DieselElectric ) )
+         && ( IsMainCtrlNoPowerPos() )
+         && ( ScndCtrlPos == 0 )
+         && ( DirActive != 0 )
+         && ( !TestFlag( EngDmgFlag, 1 ) ) ) {
+            // NOTE: false means the relay is operational
+            // TODO: cleanup, flip the FuseFlag code to match other relays
+            // TODO: check whether the power is required, TBD, TODO: make it configurable?
+            reset |= ( FuseFlag && lowvoltagepower );
+            FuseFlag &= !lowvoltagepower;
+        }
+    }
+
+    if( TestFlag( Relays, relay_t::primaryconverteroverload ) ) {
+        if( ( false == Mains )
+         && ( false == ConverterAllow )
+         && ( TrainType != dt_EZT ) ) { // for EMUs the relay is reset automatically when converter switches off
+            // NOTE: false means the relay is operational
+            // TODO: cleanup, flip the FuseFlag code to match other relays
+            // TODO: check whether the power is required, TBD, TODO: make it configurable?
+            reset |= ( ConvOvldFlag && lowvoltagepower );
+            ConvOvldFlag &= !lowvoltagepower;
+        }
+    }
+
+    if( reset ) {
+        SetFlag( SoundFlag, sound::relay | sound::loud );
+    }
+
+    return reset;
 }
 
 // *************************************************************************************************
@@ -9854,7 +9953,7 @@ void TMoverParameters::LoadFIZ_Cntrl( std::string const &line ) {
         CompartmentLights.start_type =
             lookup != starts.end() ?
                 lookup->second :
-                start_t::automatic;
+                start_t::automatic; // legacy behaviour
     }
 
 }
@@ -10217,6 +10316,10 @@ void TMoverParameters::LoadFIZ_Switches( std::string const &Input ) {
     PantSwitchType = ToLower( PantSwitchType );
     ConvSwitchType = ToLower( ConvSwitchType );
     StLinSwitchType = ToLower( StLinSwitchType );
+    // universal reset buttons assignments
+    extract_value( UniversalResetButtonFlag[ 0 ], "RelayResetButton1", Input, "" );
+    extract_value( UniversalResetButtonFlag[ 1 ], "RelayResetButton2", Input, "" );
+    extract_value( UniversalResetButtonFlag[ 2 ], "RelayResetButton3", Input, "" );
 }
 
 void TMoverParameters::LoadFIZ_MotorParamTable( std::string const &Input ) {
@@ -10260,6 +10363,7 @@ void TMoverParameters::LoadFIZ_Circuit( std::string const &Input ) {
 void TMoverParameters::LoadFIZ_AI( std::string const &Input ) {
 
     extract_value( AIHintPantstate, "Pantstate", Input, "" );
+    extract_value( AIHintPantUpIfIdle, "IdlePantUp", Input, "" );
     extract_value( AIHintLocalBrakeAccFactor, "LocalBrakeAccFactor", Input, "" );
    
 }
@@ -10751,6 +10855,8 @@ bool TMoverParameters::CheckLocomotiveParameters(bool ReadyFlag, int Dir)
         DirActive = 0; // Dir; //nastawnik kierunkowy - musi być ustawiane osobno!
         DirAbsolute = DirActive * CabActive; // kierunek jazdy względem sprzęgów
         LimPipePress = CntrlPipePress;
+
+        Battery = true;
     }
     else { // zahamowany}
         WriteLog( "Braked" );
@@ -11208,14 +11314,7 @@ bool TMoverParameters::RunCommand( std::string Command, double CValue1, double C
 	}
 	else if (Command == "FuseSwitch")
 	{
-		if (((EngineType == TEngineType::ElectricSeriesMotor) || (EngineType == TEngineType::DieselElectric)) && FuseFlag &&
-			(CValue1 == 1) && (MainCtrlActualPos == 0) && (ScndCtrlActualPos == 0) && Mains)
-			/*      if (EngineType=ElectricSeriesMotor) and (CValue1=1) and
-			(MainCtrlActualPos=0) and (ScndCtrlActualPos=0) and Mains then*/
-			FuseFlag = false; /*wlaczenie ponowne obwodu*/
-							  // if ((EngineType=ElectricSeriesMotor)or(EngineType=DieselElectric)) and not FuseFlag and
-							  // (CValue1=0) and Mains then
-							  //   FuseFlag:=true;
+        FuseOn( range_t::local );
         OK = SendCtrlToNext( Command, CValue1, CValue2, Couplertype );
 	}
 	else if (Command == "ConverterSwitch") /*NBMX*/

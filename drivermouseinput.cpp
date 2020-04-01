@@ -645,6 +645,15 @@ drivermouse_input::default_bindings() {
         { "converterfuse_bt:", {
             user_command::converteroverloadrelayreset,
             user_command::none } },
+        { "relayreset1_bt:", {
+            user_command::universalrelayreset1,
+            user_command::none } },
+        { "relayreset2_bt:", {
+            user_command::universalrelayreset2,
+            user_command::none } },
+        { "relayreset3_bt:", {
+            user_command::universalrelayreset3,
+            user_command::none } },
         { "stlinoff_bt:", {
             user_command::motorconnectorsopen,
             user_command::none } },
