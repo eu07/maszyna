@@ -1614,6 +1614,7 @@ opengl_renderer::Render( world_environment *Environment ) {
         else if( moonphase < 20.30228f ) { moonv = 1.0f - 0.333f; moonu = 0.667f; }
         else if( moonphase < 23.99361f ) { moonv = 1.0f - 0.667f; moonu = 0.0f; }
         else if( moonphase < 27.68493f ) { moonv = 1.0f - 0.667f; moonu = 0.333f; }
+        else if( moonphase == 50 )       { moonv = 1.0f - 0.667f; moonu = 0.66f; } //9th slot used for easter egg
         else                             { moonv = 1.0f - 0.0f;   moonu = 0.0f; }
 
         ::glBegin( GL_TRIANGLE_STRIP );
