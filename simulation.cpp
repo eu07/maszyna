@@ -26,6 +26,7 @@ http://mozilla.org/MPL/2.0/.
 #include "scene.h"
 #include "Train.h"
 #include "application.h"
+#include "Logs.h"
 
 namespace simulation {
 
@@ -267,6 +268,10 @@ void state_manager::process_commands() {
 			else {
 				delete train;
 				train = nullptr;
+                if( targetvehicle->name() == Global.local_start_vehicle ) {
+                    ErrorLog( "Failed to initialize player train, \"" + Global.local_start_vehicle + "\"" );
+                    Global.local_start_vehicle = "ghostview";
+                }
 			}
 
         }

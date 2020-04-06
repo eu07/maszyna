@@ -446,8 +446,8 @@ private:
 // consist
 // methods
 public:
+    bool CheckVehicles( TOrders user = Wait_for_orders );
 private:
-    bool CheckVehicles(TOrders user = Wait_for_orders);
     bool PrepareEngine();
     bool ReleaseEngine();
     void Doors(bool const Open, int const Side = 0);

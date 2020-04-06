@@ -284,6 +284,7 @@ static int const eimc_f_Uzh = 8;
 static int const eimc_f_DU = 9;
 static int const eimc_f_I0 = 10;
 static int const eimc_f_cfu = 11;
+static int const eimc_f_cfuH = 12;
 static int const eimc_p_F0 = 13;
 static int const eimc_p_a1 = 14;
 static int const eimc_p_Pmax = 15;
@@ -1304,6 +1305,7 @@ public:
     std::array<neighbour_data, 2> Neighbours; // potential collision sources
 	bool EventFlag = false;                 /*!o true jesli cos nietypowego sie wydarzy*/
 	int SoundFlag = 0;                    /*!o patrz stale sound_ */
+    int AIFlag{ 0 }; // HACK: events of interest for consist owner
 	double DistCounter = 0.0;                  /*! licznik kilometrow */
 	double V = 0.0;    //predkosc w [m/s] względem sprzęgów (dodania gdy jedzie w stronę 0)
 	double Vel = 0.0;  //moduł prędkości w [km/h], używany przez AI

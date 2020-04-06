@@ -1923,7 +1923,7 @@ void TMoverParameters::PantographsCheck( double const Timestep ) {
 
 void TMoverParameters::LightsCheck( double const Timestep ) {
 
-    auto const lowvoltagepower { (
+    auto const converterpower { (
         ( ConverterFlag )
      || ( ( ( Couplers[ end::front ].CouplingFlag & coupling::permanent ) != 0 ) && ( Couplers[ end::front ].Connected->ConverterFlag ) )
      || ( ( ( Couplers[ end::rear  ].CouplingFlag & coupling::permanent ) != 0 ) && ( Couplers[ end::rear  ].Connected->ConverterFlag ) ) ) };
@@ -1932,7 +1932,7 @@ void TMoverParameters::LightsCheck( double const Timestep ) {
 
     light.is_active = (
         // TODO: bind properly power source when ld is in place
-        ( Battery || lowvoltagepower ) // power source
+        ( Battery || converterpower ) // power source
      && ( false == light.is_disabled )
      && ( ( true == light.is_active )
        || ( light.start_type == start_t::manual ?
@@ -1944,7 +1944,7 @@ void TMoverParameters::LightsCheck( double const Timestep ) {
             1.0f :
             0.0f )
         // TODO: bind properly power source when ld is in place
-        * ( lowvoltagepower ? 1.0f :
+        * ( converterpower ? 1.0f :
             Battery ? 0.5f :
             0.0f )
         * light.dimming;
@@ -4602,15 +4602,14 @@ void TMoverParameters::ComputeTotalForce(double dt) {
     Fb = BrakeForce(RunningTrack);
     // poslizg
     auto Fwheels { FTrain - Fb * Sign( V ) };
-    if( ( Vel > 0.001 ) // crude trap, to prevent braked stationary vehicles from passing fb > mass * adhesive test
+    if( ( Vel > 0.1 ) // crude trap, to prevent braked stationary vehicles from passing fb > mass * adhesive test
      && ( std::abs(Fwheels) > TotalMassxg * Adhesive( RunningTrack.friction ) ) ) {
         SlippingWheels = true;
     }
 	double temp_nrot = nrot;
 	if (true == SlippingWheels) {
 
-		temp_nrot = ComputeRotatingWheel(Fwheels - Sign(nrot * M_PI * WheelDiameter - V) *
-			Adhesive(RunningTrack.friction) * TotalMassxg, dt, nrot);
+		temp_nrot = ComputeRotatingWheel(Fwheels - Sign(nrot * M_PI * WheelDiameter - V) * Adhesive(RunningTrack.friction) * TotalMassxg, dt, nrot);
 		if (Sign(nrot * M_PI * WheelDiameter - V)*Sign(temp_nrot * M_PI * WheelDiameter - V) < 0)
 		{
 			SlippingWheels = false;
@@ -4960,8 +4959,13 @@ double TMoverParameters::CouplerForce( int const End, double dt ) {
                  && ( coupler.type() == othercoupler.type() )
                  && ( coupler.CouplingFlag == coupling::faux ) ) {
                     // sprzeganie wagonow z samoczynnymi sprzegami
+                    if( Attach( End, otherend, othervehicle, ( coupler.AutomaticCouplingFlag & othercoupler.AutomaticCouplingFlag ) ) ) {
+                        SetFlag( AIFlag, sound::attachcoupler );
+                    }
+/*
                     coupler.CouplingFlag = ( coupler.AutomaticCouplingFlag & othercoupler.AutomaticCouplingFlag );
                     SetFlag( coupler.sounds, sound::attachcoupler );
+*/
                 }
             }
         }
@@ -5201,11 +5205,11 @@ double TMoverParameters::TractionForce( double dt ) {
         case TEngineType::DieselElectric: {
             // TODO: move this to the auto relay check when the electric engine code paths are unified
             StLinFlag &= MotorConnectorsCheck();
+            StLinFlag &= ( MainCtrlActualPos > 0 );
             StLinFlag |= (
-                ( MainCtrlActualPos == 0 )
-             && ( TrainType != dt_EZT ?
-                    MainCtrlPowerPos() == 1 :
-                    MainCtrlPowerPos() > 0 ) );
+                ( Mains )
+             && ( MainCtrlActualPos == 0 )
+             && ( MainCtrlPowerPos() > 0 ) );
 
             break;
         }
@@ -5847,8 +5851,10 @@ double TMoverParameters::TractionForce( double dt ) {
                 else
                     tmp = eimc[eimc_f_Uzmax];
 
+				auto f_cfu { DynamicBrakeFlag ? eimc[eimc_f_cfuH] : eimc[eimc_f_cfu] };
+
                 eimv[eimv_Uzsmax] = Min0R(EngineVoltage - eimc[eimc_f_DU], tmp);
-                eimv[eimv_fkr] = eimv[eimv_Uzsmax] / eimc[eimc_f_cfu];
+                eimv[eimv_fkr] = eimv[eimv_Uzsmax] / f_cfu;
                 if( (eimv_pr < 0 ) ) {
                     eimv[ eimv_Pmax ] = eimc[ eimc_p_Ph ];
                 }
@@ -5866,7 +5872,7 @@ double TMoverParameters::TractionForce( double dt ) {
                             eimv[ eimv_fkr ] / std::max(
                                 abs( enrot ) * eimc[ eimc_s_p ] + eimc[ eimc_s_dfmax ] * eimv[ eimv_ks ],
                                 eimc[ eimc_s_dfmax ] ) )
-                        * eimc[ eimc_f_cfu ]
+                        * f_cfu
                         / eimc[ eimc_s_cfu ] )
                     * ( eimc[ eimc_s_dfmax ] * eimc[ eimc_s_dfic ] * eimc[ eimc_s_cim ] )
                     * Transmision.Ratio * NPoweredAxles * 2.0 / WheelDiameter;
@@ -5908,7 +5914,7 @@ double TMoverParameters::TractionForce( double dt ) {
                 //         eimv[eimv_U]:=Max0R(eimv[eimv_Uzsmax],Min0R(eimc[eimc_f_cfu]*eimv[eimv_fp],eimv[eimv_Uzsmax]));
                 //         eimv[eimv_pole]:=eimv[eimv_U]/(eimv[eimv_fp]*eimc[eimc_s_cfu]);
                 if ((abs(eimv[eimv_fp]) <= eimv[eimv_fkr]))
-                    eimv[eimv_pole] = eimc[eimc_f_cfu] / eimc[eimc_s_cfu];
+                    eimv[eimv_pole] = f_cfu / eimc[eimc_s_cfu];
                 else
                     eimv[eimv_pole] = eimv[eimv_Uzsmax] / eimc[eimc_s_cfu] / abs(eimv[eimv_fp]);
                 eimv[eimv_U] = eimv[eimv_pole] * eimv[eimv_fp] * eimc[eimc_s_cfu];
@@ -10248,6 +10254,7 @@ void TMoverParameters::LoadFIZ_Engine( std::string const &Input ) {
             extract_value( eimc[ eimc_f_DU ], "DU", Input, "" );
             extract_value( eimc[ eimc_f_I0 ], "I0", Input, "" );
             extract_value( eimc[ eimc_f_cfu ], "fcfu", Input, "" );
+			extract_value( eimc[ eimc_f_cfuH ], "fcfuH", Input, to_string(eimc[eimc_f_cfu]));
             extract_value( eimc[ eimc_p_F0 ], "F0", Input, "" );
             extract_value( eimc[ eimc_p_a1 ], "a1", Input, "" );
             extract_value( eimc[ eimc_p_Pmax ], "Pmax", Input, "" );

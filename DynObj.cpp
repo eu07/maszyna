@@ -664,7 +664,12 @@ TDynamicObject::toggle_lights() {
 
     if( true == SectionLightsActive ) {
         // switch all lights off...
-        MoverParameters->BatterySwitch( false );
+        for( auto &section : Sections ) {
+            auto const sectionname { section.compartment->pName };
+            if( sectionname.rfind( "cab", 0 ) != 0 ) {
+                section.light_level = 0.0;
+            }
+        }
         SectionLightsActive = false;
     }
     else {
@@ -684,7 +689,6 @@ TDynamicObject::toggle_lights() {
                 section.light_level = ( Random() < 0.75 ? 0.75f : 0.15f );
             }
         }
-        MoverParameters->BatterySwitch( true );
         SectionLightsActive = true;
     }
 }
@@ -2848,14 +2852,19 @@ bool TDynamicObject::Update(double dt, double dt1)
     // couplers
     if( ( MoverParameters->Couplers[ 0 ].CouplingFlag != coupling::faux )
      && ( MoverParameters->Couplers[ 1 ].CouplingFlag != coupling::faux ) ) {
-
         MoverParameters->InsideConsist = true;
     }
     else {
-
         MoverParameters->InsideConsist = false;
     }
-    // 
+    // HACK: we're using sound event to detect whether vehicle was connected to another
+    if( TestFlag( MoverParameters->AIFlag, sound::attachcoupler ) ) {
+        auto *driver{ ctOwner ? ctOwner : Mechanik };
+        if( driver != nullptr ) {
+            driver->CheckVehicles( Connect );
+        }
+        SetFlag( MoverParameters->AIFlag, -sound::attachcoupler );
+    }
 
     // napiecie sieci trakcyjnej
     // Ra 15-01: przeliczenie poboru prądu powinno być robione wcześniej, żeby na
@@ -3448,11 +3457,35 @@ bool TDynamicObject::Update(double dt, double dt1)
             + MoverParameters->TotalCurrent; // prąd pobierany przez pojazd - bez sensu z tym (TotalCurrent)
         // TotalCurrent to bedzie prad nietrakcyjny (niezwiazany z napedem)
         // fCurrent+=fabs(MoverParameters->Voltage)*1e-6; //prąd płynący przez woltomierz, rozładowuje kondensator orgromowy 4µF
+/*
         double fPantCurrent = fCurrent; // normalnie cały prąd przez jeden pantograf
-        if (iAnimType[ANIM_PANTS] > 1) // a jeśli są dwa pantografy //Ra 1014-11: proteza, trzeba zrobić sensowniej
-            if (pants[0].fParamPants->hvPowerWire &&
-                pants[1].fParamPants->hvPowerWire) // i oba podłączone do drutów
+        if (iAnimType[ANIM_PANTS] > 1) { // a jeśli są dwa pantografy //Ra 1014-11: proteza, trzeba zrobić sensowniej
+            if (pants[0].fParamPants->hvPowerWire && pants[1].fParamPants->hvPowerWire) { // i oba podłączone do drutów
                 fPantCurrent = fCurrent * 0.5; // to dzielimy prąd równo na oba (trochę bez sensu, ale lepiej tak niż podwoić prąd)
+            }
+        }
+*/
+        // test whether more than one pantograph touches the wire
+        // NOTE: we're duplicating lot of code from below
+        // TODO: clean this up
+        auto activepantographs { 0 };
+        for( int idx = 0; idx < iAnimType[ ANIM_PANTS ]; ++idx ) {
+            auto const *pantograph { pants[ idx ].fParamPants };
+            if( Global.bLiveTraction == false ) {
+                if( pantograph->PantWys >= 1.2 ) {
+                    ++activepantographs;
+                }
+            }
+            else {
+                if( ( pantograph->hvPowerWire != nullptr )
+                 && ( true == MoverParameters->Pantographs[ end::front ].is_active )
+                 && ( pantograph->PantTraction - pantograph->PantWys < 0.01 ) ) { // tolerancja niedolegania
+                    ++activepantographs;
+                }
+            }
+        }
+        auto const fPantCurrent { fCurrent / std::max( 1, activepantographs ) };
+
         for (int i = 0; i < iAnimType[ANIM_PANTS]; ++i)
         { // pętla po wszystkich pantografach
             p = pants[i].fParamPants;
@@ -3773,9 +3806,9 @@ bool TDynamicObject::Update(double dt, double dt1)
 
     // compartment lights
     // if the vehicle has a controller, we base the light state on state of the controller otherwise we check the vehicle itself
-    if( ( ctOwner != nullptr ? ctOwner->Controlling()->Battery != SectionLightsActive :
-          Mechanik != nullptr ? false : // don't touch lights in a stand-alone manned vehicle
-          MoverParameters->CompartmentLights.is_active == true ) ) { // without controller switch the lights off
+    if( ( ctOwner  != nullptr ? SectionLightsActive != MoverParameters->CompartmentLights.is_active :
+          Mechanik != nullptr ? SectionLightsActive != MoverParameters->CompartmentLights.is_active :
+          SectionLightsActive ) ) { // without controller switch the lights off
         toggle_lights();
     }
 
