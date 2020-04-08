@@ -3950,6 +3950,7 @@ void TController::Doors( bool const Open, int const Side ) {
          && ( false == doors_open() ) ) {
             // the doors are already closed and we don't have to revoke control permit, we can skip all hard work
             iDrivigFlags &= ~moveDoorOpened;
+            return;
         }
 
         if( AIControllFlag ) {
@@ -4089,6 +4090,19 @@ bool TController::PutCommand( std::string NewCommand, double NewValue1, double N
             else
             { // inicjacja pierwszego przystanku i pobranie jego nazwy
                 // HACK: clear the potentially set door state flag to ensure door get opened if applicable
+                if( true == AIControllFlag ) {
+                    // simplified door closing procedure, to sync actual door state with the door state flag
+                    // NOTE: this may result in visually ugly quick switch between closing and opening the doors, but eh
+                    if( ( pVehicle->MoverParameters->Doors.close_control == control_t::driver )
+                     || ( pVehicle->MoverParameters->Doors.close_control == control_t::mixed ) ) {
+                        pVehicle->MoverParameters->OperateDoors( side::right, false );
+                        pVehicle->MoverParameters->OperateDoors( side::left, false );
+                    }
+                    if( pVehicle->MoverParameters->Doors.permit_needed ) {
+                        pVehicle->MoverParameters->PermitDoors( side::right, false );
+                        pVehicle->MoverParameters->PermitDoors( side::left, false );
+                    }
+                }
                 iDrivigFlags &= ~( moveDoorOpened );
 
                 TrainParams.UpdateMTable( simulation::Time, TrainParams.NextStationName );

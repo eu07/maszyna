@@ -1469,6 +1469,7 @@ public:
 	bool FuseFlag = false;       /*!o bezpiecznik nadmiarowy*/
 	bool ConvOvldFlag = false;              /*!  nadmiarowy przetwornicy i ogrzewania*/
     bool GroundRelay { true }; // switches off to protect against damage from earths
+    start_t GroundRelayStart { start_t::manual }; // relay activation method
 	bool StLinFlag = false;       /*!o styczniki liniowe*/
     bool StLinSwitchOff{ false }; // state of the button forcing motor connectors open
 	bool ResistorsFlag = false;  /*!o jazda rezystorowa*/
@@ -1569,7 +1570,7 @@ public:
 	double FrictConst2d= 0.0;
 	double TotalMassxg = 0.0; /*TotalMass*g*/
 
-	double fBrakeCtrlPos = -2.0; // płynna nastawa hamulca zespolonego
+    double fBrakeCtrlPos = -2.0; // płynna nastawa hamulca zespolonego
 	bool bPantKurek3 = true; // kurek trójdrogowy (pantografu): true=połączenie z ZG, false=połączenie z małą sprężarką // domyślnie zbiornik pantografu połączony jest ze zbiornikiem głównym
     bool PantAutoValve { false }; // type of installed pantograph compressor valve
 	int iProblem = 0; // flagi problemów z taborem, aby AI nie musiało porównywać; 0=może jechać

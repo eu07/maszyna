@@ -691,7 +691,7 @@ void TMoverParameters::UpdatePantVolume(double dt) {
      && ( ( PantographCompressorStart == start_t::automatic )
        || ( PantographCompressorStart == start_t::manualwithautofallback ) ) );
 
-    auto const lowvoltagepower { Battery | ConverterFlag };
+    auto const lowvoltagepower { Battery || ConverterFlag };
     PantCompFlag &= lowvoltagepower;
 
     if (EnginePowerSource.SourceType == TPowerSource::CurrentCollector) // tylko jeśli pantografujący
@@ -1501,11 +1501,16 @@ void TMoverParameters::MainsCheck( double const Deltatime ) {
 
 void TMoverParameters::LowVoltagePowerCheck( double const Deltatime ) {
 
-    auto const lowvoltagepower { Battery | ConverterFlag };
+    auto const lowvoltagepower { Battery || ConverterFlag };
 
     switch( EngineType ) {
         case TEngineType::ElectricSeriesMotor: {
             GroundRelay &= lowvoltagepower;
+            if( GroundRelayStart != start_t::manual ) {
+                // NOTE: we're ignoring intricaties of battery and converter types as they're unlikely to be used
+                // TODO: generic check method which takes these into account
+                GroundRelay |= lowvoltagepower;
+            }
             break;
         }
         default: {
@@ -5204,12 +5209,12 @@ double TMoverParameters::TractionForce( double dt ) {
 
         case TEngineType::DieselElectric: {
             // TODO: move this to the auto relay check when the electric engine code paths are unified
-            StLinFlag &= MotorConnectorsCheck();
-            StLinFlag &= ( MainCtrlActualPos > 0 );
             StLinFlag |= (
                 ( Mains )
-             && ( MainCtrlActualPos == 0 )
-             && ( MainCtrlPowerPos() > 0 ) );
+             && ( false == StLinFlag )
+             && ( MainCtrlPowerPos() == 1 ) );
+            StLinFlag &= MotorConnectorsCheck();
+            StLinFlag &= ( MainCtrlPowerPos() > 0 );
 
             break;
         }
@@ -5372,8 +5377,7 @@ double TMoverParameters::TractionForce( double dt ) {
                 tempUmax = DElist[MainCtrlPosNo].Umax * std::min(eimic_positive, rpmratio);
                 tempPmax = DElist[MainCtrlPosNo].GenPower * std::min(eimic_positive, rpmratio);
                 tmp = tempPmax;
-                // NOTE: Mains in this context is working diesel engine
-                if ((true == Mains) && (MainCtrlPowerPos() > 0))
+                if (true == StLinFlag)
                 {
 
                     if (tmpV < (Vhyp * tempPmax / DElist[MainCtrlPosNo].GenPower))
@@ -5399,7 +5403,7 @@ double TMoverParameters::TractionForce( double dt ) {
             }
             else
             if( true == ShuntMode ) {
-                if( ( true == Mains ) && ( MainCtrlPowerPos() > 0 ) ) {
+                if( true == StLinFlag ) {
                     EngineVoltage = ( SST[ MainCtrlPos ].Umax * AnPos ) + ( SST[ MainCtrlPos ].Umin * ( 1.0 - AnPos ) );
                     // NOTE: very crude way to approximate power generated at current rpm instead of instant top output
                     // NOTE, TODO: doesn't take into account potentially increased revolutions if heating is on, fix it
@@ -5433,7 +5437,7 @@ double TMoverParameters::TractionForce( double dt ) {
                 PosRatio = currentgenpower / DElist[MainCtrlPosNo].GenPower;
                 // stosunek mocy teraz do mocy max
                 // NOTE: Mains in this context is working diesel engine
-                if( ( true == Mains ) && ( MainCtrlPowerPos() > 0 ) ) {
+                if( true == StLinFlag ) {
 
                     if( tmpV < ( Vhyp * power / DElist[ MainCtrlPosNo ].GenPower ) ) {
                         // czy na czesci prostej, czy na hiperboli
@@ -5536,9 +5540,9 @@ double TMoverParameters::TractionForce( double dt ) {
                 EngineVoltage = 0;
 
             // przekazniki bocznikowania, kazdy inny dla kazdej pozycji
-            if ((IsMainCtrlNoPowerPos()) || (ShuntMode) || (false==Mains))
+            if( ( false == StLinFlag ) || ( ShuntMode ) ) {
                 ScndCtrlPos = 0;
-
+            }
             else {
                 if( AutoRelayFlag ) {
 
@@ -6114,6 +6118,7 @@ bool TMoverParameters::RelayReset( int const Relays ) {
 
     if( TestFlag( Relays, relay_t::maincircuitground ) ) {
         if( ( ( EngineType == TEngineType::ElectricSeriesMotor ) || ( EngineType == TEngineType::DieselElectric ) )
+         && ( ( GroundRelayStart == start_t::manual ) || ( GroundRelayStart == start_t::manualwithautofallback ) )
          && ( IsMainCtrlNoPowerPos() )
          && ( ScndCtrlPos == 0 )
          && ( DirActive != 0 )
@@ -8053,9 +8058,8 @@ TMoverParameters::update_doors( double const Deltatime ) {
         // revoke permit if...
         door.open_permit =
             ( true == door.open_permit ) // ...we already have one...
-         && ( ( false == Doors.permit_presets.empty() ) // ...there's no permit preset switch...
-           || ( ( false == Doors.is_locked ) // ...and the door lock is engaged...
-             && ( false == door.remote_close ) ) );// ...or about to be closed
+         && ( false == Doors.is_locked ) // ...and the door lock is engaged...
+         && ( false == door.remote_close );// ...or about to be closed
 
         door.is_open =
             ( door.position >= Doors.range )
@@ -9961,7 +9965,16 @@ void TMoverParameters::LoadFIZ_Cntrl( std::string const &line ) {
                 lookup->second :
                 start_t::automatic; // legacy behaviour
     }
-
+    // ground relay
+    {
+        auto lookup = starts.find( extract_value( "GroundRelayStart", line ) );
+        GroundRelayStart = (
+            lookup != starts.end() ?
+                lookup->second :
+                ( TrainType == dt_EZT ?
+                    start_t::automatic :
+                    start_t::manual ) );
+    }
 }
 
 void TMoverParameters::LoadFIZ_Blending(std::string const &line) {

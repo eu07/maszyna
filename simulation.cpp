@@ -219,6 +219,9 @@ void state_manager::process_commands() {
 
 		if (commanddata.command == user_command::entervehicle) {
 			// przesiadka do innego pojazdu
+            if( commanddata.payload == "ghostview" ) {
+                continue;
+            }
             // NOTE: because malformed scenario can have vehicle name duplicates we first try to locate vehicle in world, with name search as fallback
             TDynamicObject *targetvehicle = std::get<TDynamicObject *>( simulation::Region->find_vehicle( commanddata.location, 50, false, false ) );
             if( ( targetvehicle == nullptr ) || ( targetvehicle->name() != commanddata.payload ) ) {
