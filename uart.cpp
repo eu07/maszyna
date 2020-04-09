@@ -12,11 +12,31 @@ uart_input::uart_input()
 {
     conf = Global.uart_conf;
 
-    if (sp_get_port_by_name(conf.port.c_str(), &port) != SP_OK)
-        throw std::runtime_error("uart: cannot find specified port");
+    if (!setup_port())
+      throw std::runtime_error("uart: cannot open port");
 
-    if (sp_open(port, (sp_mode)(SP_MODE_READ | SP_MODE_WRITE)) != SP_OK)
-        throw std::runtime_error("uart: cannot open port");
+    old_packet.fill(0);
+    last_update = std::chrono::high_resolution_clock::now();
+}
+
+bool uart_input::setup_port()
+{
+    if (port) {
+      sp_close(port);
+      sp_free_port(port);
+      port = nullptr;
+    }
+
+    if (sp_get_port_by_name(conf.port.c_str(), &port) != SP_OK) {
+        ErrorLog("uart: cannot find specified port");
+        return false;
+    }
+
+    if (sp_open(port, (sp_mode)(SP_MODE_READ | SP_MODE_WRITE)) != SP_OK) {
+        ErrorLog("uart: cannot open port");
+        port = nullptr;
+        return false;
+    }
 
 	sp_port_config *config;
 
@@ -26,21 +46,33 @@ uart_input::uart_input()
 		sp_set_config_bits(config, 8) != SP_OK ||
 		sp_set_config_stopbits(config, 1) != SP_OK ||
 		sp_set_config_parity(config, SP_PARITY_NONE) != SP_OK ||
-		sp_set_config(port, config) != SP_OK)
-        throw std::runtime_error("uart: cannot set config");
+		sp_set_config(port, config) != SP_OK) {
+        ErrorLog("uart: cannot set config");
+        port = nullptr;
+        return false;
+    }
 
 	sp_free_config(config);
 
-    if (sp_flush(port, SP_BUF_BOTH) != SP_OK)
-        throw std::runtime_error("uart: cannot flush");
-
-    old_packet.fill(0);
-    last_update = std::chrono::high_resolution_clock::now();
+    if (sp_flush(port, SP_BUF_BOTH) != SP_OK) {
+        ErrorLog("uart: cannot flush");
+        port = nullptr;
+        return false;
+    }
+    
+    return true;
 }
 
 uart_input::~uart_input()
 {
-	std::array<std::uint8_t, 48> buffer = { 0 };
+  if (!port)
+    return;
+
+	std::array<std::uint8_t, 52> buffer = { 0 };
+	buffer[0] = 0xEF;
+	buffer[1] = 0xEF;
+	buffer[2] = 0xEF;
+	buffer[3] = 0xEF;
 	sp_blocking_write(port, (void*)buffer.data(), buffer.size(), 0);
 	sp_drain(port);
 
@@ -131,18 +163,77 @@ void uart_input::poll()
         return;
     last_update = now;
 
+    if (!port) {
+      setup_port();
+      return;
+    }
+
     auto const *t =simulation::Train;
 	if (!t)
 		return;
 
     sp_return ret;
-
-    if ((ret = sp_input_waiting(port)) >= 16)
+	
+    if ((ret = sp_input_waiting(port)) >= 20)
     {
-        std::array<uint8_t, 16> buffer; // TBD, TODO: replace with vector of configurable size?
-        ret = sp_blocking_read(port, (void*)buffer.data(), buffer.size(), 0);
-		if (ret < 0)
-            throw std::runtime_error("uart: failed to read from port");
+        std::array<uint8_t, 20> tmp_buffer; // TBD, TODO: replace with vector of configurable size?
+        ret = sp_blocking_read(port, (void*)tmp_buffer.data(), tmp_buffer.size(), 0);
+		
+        if (ret < 0) {
+          setup_port();
+          return;
+        }
+		
+		bool sync;
+		if (tmp_buffer[0] != 0xEF || tmp_buffer[1] != 0xEF || tmp_buffer[2] != 0xEF || tmp_buffer[3] != 0xEF) {
+			if (conf.debug)
+				WriteLog("uart: bad sync");
+			sync = false;
+		}
+		else {
+			if (conf.debug)
+				WriteLog("uart: sync ok");
+			sync = true;
+		}
+		
+		if (!sync) {
+			int sync_cnt = 0;
+			int sync_fail = 0;
+			char sc = 0;
+			while ((ret = sp_blocking_read(port, &sc, 1, 10)) >= 0) {
+				if (conf.debug)
+					WriteLog("uart: read byte: " + std::to_string((int)sc));
+				if (sc == 0xEF)
+					sync_cnt++;
+				else {
+					sync_cnt = 0;
+					sync_fail++;
+				}
+				if (sync_cnt == 4) {
+					if (conf.debug)
+						WriteLog("uart: synced, skipping one packet..");
+					ret = sp_blocking_read(port, (void*)tmp_buffer.data(), 16, 500);
+					  if (ret < 0) {
+              setup_port();
+              return;
+          }
+					data_pending = false;
+					break;
+				}
+				if (sync_fail >= 60) {
+					if (conf.debug)
+						WriteLog("uart: tired of trying");
+					break;
+				}
+			}
+			if (ret < 0) {
+        setup_port();
+      }
+			return;
+		}
+		
+		std::array<uint8_t, 16> buffer;
+		memmove(&buffer[0], &tmp_buffer[4], 16);
 
 		if (conf.debug)
 		{
@@ -230,6 +321,11 @@ void uart_input::poll()
         old_packet = buffer;
     }
 
+  if (ret < 0) {
+    setup_port();
+    return;
+  }
+
 	if (!data_pending && sp_output_waiting(port) == 0)
 	{
 	    // TODO: ugly! move it into structure like input_bits
@@ -251,8 +347,10 @@ void uart_input::poll()
             m_trainstatecab = trainstate.cab - 1;
         }
 
-	    std::array<uint8_t, 48> buffer {
-			//byte 0-1
+	    std::array<uint8_t, 52> buffer {
+			//preamble
+			0xEF, 0xEF, 0xEF, 0xEF,
+			//byte 0-1 (counting without preamble)
 			SPLIT_INT16(tacho),
             //byte 2
 			(uint8_t)(
@@ -323,8 +421,10 @@ void uart_input::poll()
 		}
 
 	    ret = sp_blocking_write(port, (void*)buffer.data(), buffer.size(), 0);
-	    if (ret != buffer.size())
-			throw std::runtime_error("uart: failed to write to port");
+			if (ret < 0) {
+        setup_port();
+        return;
+      }
 
 		data_pending = true;
 	}
