@@ -3079,9 +3079,10 @@ bool TDynamicObject::Update(double dt, double dt1)
 				MEDLogTime = 0;
 			}
             auto FzadED { 0.0 };
-            if( ( MoverParameters->EpFuse && (MoverParameters->BrakeHandle != TBrakeHandle::MHZ_EN57))
-             || ( ( MoverParameters->BrakeHandle == TBrakeHandle::MHZ_EN57 )
-               && ( MoverParameters->BrakeOpModeFlag & bom_MED ) ) ) {
+            if( ( LBR > MoverParameters->MED_MinBrakeReqED )
+             && ( MoverParameters->BrakeHandle == TBrakeHandle::MHZ_EN57 ?
+                    ( ( MoverParameters->BrakeOpModeFlag & bom_MED ) != 0 ) :
+                    MoverParameters->EpFuse ) ) {
                 FzadED = std::min( Fzad, FmaxED );
             }
 			if (MoverParameters->EIMCtrlType == 2 && MoverParameters->MainCtrlPos < 2 && MoverParameters->eimic > -0.999)

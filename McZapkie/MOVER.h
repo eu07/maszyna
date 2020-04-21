@@ -339,8 +339,6 @@ enum TCompressorList // lista parametrów w programatorze sprężarek
 	cl_MaxFactor = 3 // mnożnik progu wyłącznika ciśnieniowego
 };
 
-/*ogolne*/
-/*lokacja*/
 struct TLocation
 {
 	double X;
@@ -1255,6 +1253,7 @@ public:
 	bool MED_EPVC = 0; // czy korekcja sily hamowania EP, gdy nie ma dostepnego ED
 	double MED_EPVC_Time = 7; // czas korekcji sily hamowania EP, gdy nie ma dostepnego ED
 	bool MED_Ncor = 0; // czy korekcja sily hamowania z uwzglednieniem nacisku
+    double MED_MinBrakeReqED = 0;
 
     int DCEMUED_CC { 0 }; //na którym sprzęgu sprawdzać działanie ED
     double DCEMUED_EP_max_Vel{ 0.0 }; //maksymalna prędkość, przy której działa EP przy włączonym ED w jednostce (dla tocznych)
@@ -1425,7 +1424,8 @@ public:
     double MainsInitTime{ 0.0 }; // config, initialization time (in seconds) of the main circuit after it receives power, before it can be closed
     double MainsInitTimeCountdown{ 0.0 }; // current state of main circuit initialization, remaining time (in seconds) until it's ready
     bool LineBreakerClosesAtNoPowerPosOnly{ false };
-    bool HasPressureSwitch{ true };
+    bool ControlPressureSwitch{ false }; // activates if the main pipe and/or brake cylinder pressure aren't within operational levels
+    bool HasControlPressureSwitch{ true };
 	int MainCtrlPos = 0; /*polozenie glownego nastawnika*/
 	int ScndCtrlPos = 0; /*polozenie dodatkowego nastawnika*/
 	int LightsPos = 0; /*polozenie przelacznika wielopozycyjnego swiatel*/

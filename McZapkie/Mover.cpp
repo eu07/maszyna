@@ -3641,7 +3641,15 @@ bool TMoverParameters::AntiSlippingBrake(void)
 bool TMoverParameters::BrakeReleaser(int state)
 {
     bool OK = true; //false tylko jeśli nie uda się wysłać, GF 20161124
-    Hamulec->Releaser(state);
+    if( state != 0 ) {
+        // additional limitations imposed by pressure switch
+        if( ( false == ControlPressureSwitch ) || ( true == IsMainCtrlNoPowerPos() ) ) {
+            Hamulec->Releaser( state );
+        }
+    }
+    else {
+        Hamulec->Releaser( state );
+    }
     if (CabActive != 0) // rekurencyjne wysłanie do następnego
         OK = SendCtrlToNext("BrakeReleaser", state, CabActive);
     return OK;
@@ -3671,9 +3679,7 @@ bool TMoverParameters::UniversalBrakeButton(int button, int state)
 	if ( TestFlag ( UniversalBrakeButtonFlag[0] & UniversalBrakeButtonFlag[1] & UniversalBrakeButtonFlag[2],
 				  TUniversalBrake::ub_Release ) )
 	{
-		Hamulec->Releaser( int ( TestFlag ( flag, TUniversalBrake::ub_Release ) ));
-		if (CabActive != 0) // rekurencyjne wysłanie do następnego
-			OK = SendCtrlToNext("BrakeReleaser", state, CabActive);
+        BrakeReleaser( TestFlag( flag, TUniversalBrake::ub_Release ) ? 1 : 0 );
 	}
 	return OK;
 }
@@ -5003,7 +5009,7 @@ double TMoverParameters::TractionForce( double dt ) {
 				if (EIMCtrlType > 0) //sterowanie cyfrowe
                     tmp = (DElist[0].RPM + ((DElist[MainCtrlPosNo].RPM - DElist[0].RPM) * std::max(0.0,eimic_real))) / 60.0;
 				else
-					tmp = DElist[ MainCtrlPos ].RPM / 60.0;
+					tmp = DElist[ ( ControlPressureSwitch ? MainCtrlNoPowerPos() : MainCtrlPos ) ].RPM / 60.0;
 
                 if( ( true == HeatingAllow )
                  && ( HeatingPower > 0 )
@@ -6629,13 +6635,12 @@ bool TMoverParameters::AutoRelayCheck(void)
 bool TMoverParameters::MotorConnectorsCheck() {
 
     // hunter-111211: wylacznik cisnieniowy
-    auto const pressureswitch {
-        ( TrainType != dt_EZT )
-     && ( HasPressureSwitch )
+    ControlPressureSwitch = (
+        ( HasControlPressureSwitch )
      && ( ( BrakePress > 2.0 )
-       || ( PipePress < 3.6 ) ) };
+       || ( PipePress < 3.6 ) ) );
 
-    if( pressureswitch ) { return false; }
+    if( true == ControlPressureSwitch ) { return false; }
 
     auto const connectorsoff {
         ( false == Mains )
@@ -9985,7 +9990,7 @@ void TMoverParameters::LoadFIZ_Blending(std::string const &line) {
 	extract_value(MED_amax, "MED_amax", line, "9.81");
 	extract_value(MED_EPVC, "MED_EPVC", line, "");
 	extract_value(MED_Ncor, "MED_Ncor", line, "");
-
+	extract_value(MED_MinBrakeReqED, "MED_MinBrakeReqED", line, "");
 }
 
 void TMoverParameters::LoadFIZ_DCEMUED(std::string const &line) {
@@ -10324,7 +10329,7 @@ void TMoverParameters::LoadFIZ_Engine( std::string const &Input ) {
     extract_value( MotorBlowers[ end::front ].speed, "MotorBlowersSpeed", Input, "" );
     MotorBlowers[ end::rear ] = MotorBlowers[ end::front ];
     // pressure switch
-    extract_value( HasPressureSwitch, "PressureSwitch", Input, "" );
+    extract_value( HasControlPressureSwitch, "PressureSwitch", Input, ( TrainType != dt_EZT ? "yes" : "no" ) );
 }
 
 void TMoverParameters::LoadFIZ_Switches( std::string const &Input ) {

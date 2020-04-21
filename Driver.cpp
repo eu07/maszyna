@@ -3092,6 +3092,16 @@ bool TController::DecBrake()
     return OK;
 };
 
+bool TController::ZeroLocalBrake() {
+
+    if( mvOccupied->UniCtrlIntegratedLocalBrakeCtrl ) {
+        return DecBrakeEIM();
+    }
+    else {
+        return mvOccupied->DecLocalBrakeLevel( 2 );
+    }
+}
+
 bool TController::DecBrakeEIM()
 { // zmniejszenie siły hamowania
 	bool OK = false;
@@ -3170,9 +3180,10 @@ bool TController::IncSpeed()
             if (iOverheadZero) // jazda bezprądowa z poziomu toru ustawia bity
                 return false; // to nici z ruszania
         }
-        if (!mvControlling->FuseFlag) //&&mvControlling->StLinFlag) //yBARC
-            if ((mvControlling->IsMainCtrlNoPowerPos()) ||
-                (mvControlling->StLinFlag)) // youBy polecił dodać 2012-09-08 v367
+        if ((!mvControlling->FuseFlag)
+          &&(!mvControlling->ControlPressureSwitch)) {
+            if ((mvControlling->IsMainCtrlNoPowerPos())
+             || (mvControlling->StLinFlag)) { // youBy polecił dodać 2012-09-08 v367
                 // na pozycji 0 przejdzie, a na pozostałych będzie czekać, aż się załączą liniowe (zgaśnie DelayCtrlFlag)
 				if (Ready || (iDrivigFlags & movePress)) {
                     // use series mode:
@@ -3193,8 +3204,8 @@ bool TController::IncSpeed()
                         ( mvControlling->Imax > mvControlling->ImaxLo )
                      || ( fVoltage < useseriesmodevoltage )
                      || ( ( true == sufficienttractionforce )
-                       && ( true == sufficientacceleration ) 
-                       && ( mvOccupied->Vel <= ( IsCargoTrain ? 35 : 25 ) + ( seriesmodefieldshunting ? 5 : 0 ) - ( ( fAccGravity < -0.025 ) ? 10 : 0 ) ) ) );
+                     && ( true == sufficientacceleration ) 
+                     && ( mvOccupied->Vel <= ( IsCargoTrain ? 35 : 25 ) + ( seriesmodefieldshunting ? 5 : 0 ) - ( ( fAccGravity < -0.025 ) ? 10 : 0 ) ) ) );
                     // when not in series mode use the first available parallel mode configuration until 50/60 km/h for passenger/cargo train
                     // (if there's only one parallel mode configuration it'll be used regardless of current speed)
                     auto const usefieldshunting = (
@@ -3267,10 +3278,11 @@ bool TController::IncSpeed()
                         OK = false;
                     }
 				}
+            }
+        }
         mvControlling->AutoRelayCheck(); // sprawdzenie logiki sterowania
         break;
     case TEngineType::Dumb:
-    case TEngineType::DieselElectric:
         if (!mvControlling->FuseFlag)
             if (Ready || (iDrivigFlags & movePress)) //{(BrakePress<=0.01*MaxBrakePress)}
             {
@@ -3280,6 +3292,23 @@ bool TController::IncSpeed()
                 if (!OK)
                     OK = mvControlling->IncScndCtrl(1);
             }
+        break;
+    case TEngineType::DieselElectric:
+        if ((!mvControlling->FuseFlag)
+          &&(!mvControlling->ControlPressureSwitch)) {
+            if ((mvControlling->IsMainCtrlNoPowerPos()) ||
+                (mvControlling->StLinFlag)) { // youBy polecił dodać 2012-09-08 v367
+                // na pozycji 0 przejdzie, a na pozostałych będzie czekać, aż się załączą liniowe (zgaśnie DelayCtrlFlag)
+                if (Ready || (iDrivigFlags & movePress)) //{(BrakePress<=0.01*MaxBrakePress)}
+                {
+                    OK = IncSpeedEIM();
+                    if( !OK )
+                        OK = mvControlling->IncMainCtrl(1);
+                    if (!OK)
+                        OK = mvControlling->IncScndCtrl(1);
+                }
+            }
+        }
         break;
     case TEngineType::ElectricInductionMotor:
         if (!mvControlling->FuseFlag)
@@ -3619,7 +3648,14 @@ void TController::SpeedSet()
             }
         break;
     case TEngineType::Dumb:
+        break;
     case TEngineType::DieselElectric:
+        if( ( false == mvControlling->StLinFlag )
+         && ( mvControlling->MainCtrlPowerPos() > 1 ) ) {
+            // styczniki liniowe rozłączone    yBARC
+            ZeroSpeed();
+        }
+        break;
     case TEngineType::ElectricInductionMotor:
         break;
     case TEngineType::DieselEngine:
@@ -3726,6 +3762,7 @@ void TController::SetTimeControllers()
 	//2. Check the type of Secondary Brake Handle
 
 	//3. Check the type od EIMCtrlType
+/*
 	if (mvOccupied->EIMCtrlType > 0)
 	{
 		if (mvOccupied->EIMCtrlType == 1) //traxx
@@ -3737,6 +3774,12 @@ void TController::SetTimeControllers()
 			if (mvOccupied->LocalBrakePosA > 0.95) mvOccupied->MainCtrlPos = 1;
 		}
 	}
+*/
+    if( ( mvOccupied->UniCtrlIntegratedLocalBrakeCtrl )
+     && ( mvOccupied->LocalBrakePosA > 0.95 ) ) {
+        while( IncBrakeEIM() ) { ; }
+    }
+
 	//4. Check Speed Control System
 	if (mvOccupied->EngineType == TEngineType::ElectricInductionMotor && mvOccupied->ScndCtrlPosNo > 1 && mvOccupied->SpeedCtrlTypeTime)
 	{
@@ -5492,9 +5535,7 @@ TController::UpdateSituation(double dt) {
                         if( iVehicleCount >= 0 ) {
                             // zmieni się po odczepieniu
                             WriteLog( mvOccupied->Name + " dociskanie..." );
-                            while( mvOccupied->DecLocalBrakeLevel( 1 ) ) { // dociśnij sklad
-                                ;
-                            }
+                            ZeroLocalBrake();
                             IncSpeed();
                         }
                         WriteLog(mvOccupied->Name + " odczepianie w kierunku " + std::to_string(mvOccupied->DirAbsolute));
@@ -6233,6 +6274,15 @@ TController::UpdateSituation(double dt) {
                         if( ( AccDesired > -0.03 )
                          && ( false == mvOccupied->Hamulec->Releaser() ) ) {
                             if( mvOccupied->PipePress < 3.0 ) {
+                                ZeroSpeed(); // some vehicles may require master controller  in neutral position
+                                // some vehicles require brake handle to be moved to specific position
+                                if( mvOccupied->HandleUnlock != -3 ) {
+                                    while( ( BrakeCtrlPosition >= mvOccupied->HandleUnlock )
+                                        && ( BrakeLevelAdd( -1 ) ) ) {
+                                        // all work is done in the header
+                                        ;
+                                    }
+                                }
                                 mvOccupied->BrakeReleaser( 1 );
                             }
                             if( ( mvOccupied->BrakePress > 0.4 )
@@ -6492,7 +6542,7 @@ TController::UpdateSituation(double dt) {
                     if( mvOccupied->LocalBrake != TLocalBrake::ManualBrake ) {
                         // do it only if the vehicle actually has the independent brake
                         if( mvOccupied->BrakeCtrlPos == mvOccupied->Handle->GetPos( bh_RP ) ) {
-                            if( mvOccupied->LocalBrakePosA == 0.0 ) {
+                            if( mvOccupied->LocalBrakePosA < 1.0 ) {
                                 // dodatkowy na pozycję 1
                                 mvOccupied->IncLocalBrakeLevel( LocalBrakePosNo );
                             }

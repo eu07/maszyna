@@ -227,6 +227,7 @@ private:
     void SetDriverPsyche();
     bool IncBrake();
     bool DecBrake();
+    bool ZeroLocalBrake();
     bool IncSpeed();
     bool DecSpeed(bool force = false);
     void ZeroSpeed( bool const Enforce = false );

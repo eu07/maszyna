@@ -84,6 +84,7 @@ class TTrain {
         std::uint8_t radio_stop;
         std::uint8_t motor_resistors;
         std::uint8_t line_breaker;
+        std::uint8_t ground_relay;
         std::uint8_t motor_overload;
         std::uint8_t motor_connectors;
         std::uint8_t wheelslip;

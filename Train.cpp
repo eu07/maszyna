@@ -685,6 +685,7 @@ TTrain::get_state() const {
         btLampkaRadioStop.GetValue(),
         btLampkaOpory.GetValue(),
         btLampkaWylSzybki.GetValue(),
+        btLampkaPrzekRozn.GetValue(),
         btLampkaNadmSil.GetValue(),
         btLampkaStyczn.GetValue(),
         btLampkaPoslizg.GetValue(),
@@ -2402,10 +2403,13 @@ void TTrain::change_pantograph_selection( int const Change ) {
 
 void TTrain::OnCommand_pantographcompressorvalvetoggle( TTrain *Train, command_data const &Command ) {
 
-    if( ( Train->ggPantCompressorValve.SubModel == nullptr )
-     && ( Train->mvControlled->TrainType == dt_EZT ?
-            ( Train->mvControlled != Train->mvOccupied ) :
-            ( Train->iCabn != 0 ) ) ) {
+    auto const valveispresent {
+        ( Train->ggPantCompressorValve.SubModel != nullptr )
+     || ( ( Train->iCabn == 0 )
+       && ( Train->mvControlled == Train->mvOccupied ) ) };
+
+    if( false == valveispresent )
+    {
         // tylko w maszynowym, unless actual device is present
         return;
     }
@@ -6424,12 +6428,12 @@ bool TTrain::Update( double const Deltatime )
          || ( mvControlled->MainCtrlActualPos == 0 ) ); // do EU04
 
         btLampkaStyczn.Turn(
-            ( ( mvControlled->StLinFlag ) || ( mvControlled->BrakePress > 2.0 ) || ( mvControlled->PipePress < 3.6 ) ) ?
+            ( ( mvControlled->StLinFlag ) || ( mvControlled->ControlPressureSwitch ) ) ?
                 false :
                 ( mvControlled->BrakePress < 1.0 ) ); // mozna prowadzic rozruch
 
         btLampkaPrzekRozn.Turn(
-            ( ( mvControlled->GroundRelay ) || ( mvControlled->BrakePress > 2.0 ) || ( mvControlled->PipePress < 3.6 ) ) ?
+            ( ( mvControlled->GroundRelay ) || ( mvControlled->ControlPressureSwitch ) ) ?
                 false :
                 ( mvControlled->BrakePress < 1.0 ) ); // relay is off and needs a reset
 
@@ -6656,8 +6660,7 @@ bool TTrain::Update( double const Deltatime )
                  || ( mover->MainCtrlActualPos == 0 ) ); // do EU04
 
                 if( ( mover->StLinFlag )
-                 || ( mover->BrakePress > 2.0 )
-                 || ( mover->PipePress < 3.6 ) ) {
+                 || ( mover->ControlPressureSwitch ) ) {
                     btLampkaStycznB.Turn( false );
                 }
                 else if( mover->BrakePress < 1.0 ) {

@@ -370,6 +370,7 @@ void uart_input::poll()
 			(uint8_t)(
                 trainstate.motor_connectors << 0
               | trainstate.converter_overload << 2
+              | trainstate.ground_relay << 3
               | trainstate.motor_overload << 4
               | trainstate.line_breaker << 5
               | trainstate.compressor_overload << 6),
