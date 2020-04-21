@@ -4034,17 +4034,19 @@ void opengl33_renderer::Update(double const Deltatime)
         }
     }
 
-    // update resources if there was environmental change
-    simulation_state simulationstate {
-        Global.Weather,
-        Global.Season
-    };
-    std::swap( m_simulationstate, simulationstate );
-    if( ( m_simulationstate.season != simulationstate.season ) && ( false == simulationstate.season.empty() ) ) {
-        m_materials.on_season_change();
-    }
-    if( ( m_simulationstate.weather != simulationstate.weather ) && ( false == simulationstate.weather.empty() ) ) {
-        m_materials.on_weather_change();
+    if( Global.UpdateMaterials ) {
+        // update resources if there was environmental change
+        simulation_state simulationstate {
+            Global.Weather,
+            Global.Season
+        };
+        std::swap( m_simulationstate, simulationstate );
+        if( ( m_simulationstate.season != simulationstate.season ) && ( false == simulationstate.season.empty() ) ) {
+            m_materials.on_season_change();
+        }
+        if( ( m_simulationstate.weather != simulationstate.weather ) && ( false == simulationstate.weather.empty() ) ) {
+            m_materials.on_weather_change();
+        }
     }
 
 	if ((true == Global.ResourceSweep) && (true == simulation::is_ready))

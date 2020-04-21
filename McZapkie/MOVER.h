@@ -345,7 +345,7 @@ struct TLocation
 	double Y;
 	double Z;
 };
-/*rotacja*/
+
 struct TRotation
 {
 	double Rx;
@@ -1594,7 +1594,10 @@ public:
     bool DirectionBackward( void );/*! kierunek ruchu*/
     bool EIMDirectionChangeAllow( void ) const;
     inline double IsVehicleEIMBrakingFactor() {
-        return eimv[ eimv_Ipoj ] < 0 ? -1.0 : 1.0; }
+        return (
+            ( DynamicBrakeFlag && ResistorsFlag ) ? 0.0 :
+            eimv[ eimv_Ipoj ] < 0 ? -1.0 :
+            1.0 ); }
 	void BrakeLevelSet(double b);
 	bool BrakeLevelAdd(double b);
 	bool IncBrakeLevel(); // wersja na użytek AI

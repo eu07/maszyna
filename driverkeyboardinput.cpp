@@ -177,6 +177,8 @@ driverkeyboard_input::default_bindings() {
         { user_command::departureannounce, GLFW_KEY_SLASH },
         { user_command::doorlocktoggle, GLFW_KEY_S | keymodifier::control },
         { user_command::pantographcompressorvalvetoggle, GLFW_KEY_V | keymodifier::control },
+        // pantographcompressorvalveenable,
+        // pantographcompressorvalvedisable,
         { user_command::pantographcompressoractivate, GLFW_KEY_V | keymodifier::shift },
         { user_command::pantographtogglefront, GLFW_KEY_P },
         { user_command::pantographtogglerear, GLFW_KEY_O },

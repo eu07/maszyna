@@ -2961,6 +2961,16 @@ bool TController::IncBrake()
 					OK = IncBrakeEIM();
 				}
             }
+            else if( mvOccupied->Handle->TimeEP == false ) {
+                auto const initialbrakeposition { mvOccupied->fBrakeCtrlPos };
+                auto const AccMax { std::min( fBrake_a0[ 0 ] + 12 * fBrake_a1[ 0 ], mvOccupied->MED_amax ) };
+                mvOccupied->BrakeLevelSet(
+                    interpolate(
+                        mvOccupied->Handle->GetPos( bh_EPR ),
+                        mvOccupied->Handle->GetPos( bh_EPB ),
+                        clamp( -AccDesired / AccMax * mvOccupied->AIHintLocalBrakeAccFactor, 0.0, 1.0 ) ) );
+                OK = ( mvOccupied->fBrakeCtrlPos != initialbrakeposition );
+            }
             else if( mvOccupied->fBrakeCtrlPos != mvOccupied->Handle->GetPos( bh_EPB ) ) {
                 mvOccupied->BrakeLevelSet( mvOccupied->Handle->GetPos( bh_EPB ) );
                 if( mvOccupied->Handle->GetPos( bh_EPR ) - mvOccupied->Handle->GetPos( bh_EPN ) < 0.1 )
@@ -3076,6 +3086,16 @@ bool TController::DecBrake()
 				OK = DecBrakeEIM();
 			}
 		}
+        else if( mvOccupied->Handle->TimeEP == false ) {
+            auto const initialbrakeposition { mvOccupied->fBrakeCtrlPos };
+            auto const AccMax { std::min(fBrake_a0[ 0 ] + 12 * fBrake_a1[ 0 ], mvOccupied->MED_amax) };
+            mvOccupied->BrakeLevelSet(
+                interpolate(
+                    mvOccupied->Handle->GetPos( bh_EPR ),
+                    mvOccupied->Handle->GetPos( bh_EPB ),
+                    clamp( -AccDesired / AccMax * mvOccupied->AIHintLocalBrakeAccFactor, 0.0, 1.0 ) ) );
+            OK = ( mvOccupied->fBrakeCtrlPos != initialbrakeposition );
+        }
         else if (mvOccupied->fBrakeCtrlPos != mvOccupied->Handle->GetPos(bh_EPR))
         {
             mvOccupied->BrakeLevelSet(mvOccupied->Handle->GetPos(bh_EPR));
@@ -3462,7 +3482,7 @@ bool TController::IncSpeedEIM() {
     bool OK = false; // domyślnie false, aby wyszło z pętli while
     switch( mvControlling->EIMCtrlType ) {
         case 0:
-            OK = mvControlling->IncMainCtrl( std::max( 1, mvOccupied->MainCtrlPosNo / 10 ) );
+            OK = mvControlling->IncMainCtrl( 1 );
             break;
         case 1:
             OK = mvControlling->MainCtrlPos < 6;

@@ -177,6 +177,8 @@ commanddescription_sequence Commands_descriptions = {
     { "departureannounce", command_target::vehicle },
     { "doorlocktoggle", command_target::vehicle },
     { "pantographcompressorvalvetoggle", command_target::vehicle },
+    { "pantographcompressorvalveenable", command_target::vehicle },
+    { "pantographcompressorvalvedisable", command_target::vehicle },
     { "pantographcompressoractivate", command_target::vehicle },
     { "pantographtogglefront", command_target::vehicle },
     { "pantographtogglerear", command_target::vehicle },

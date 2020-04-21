@@ -1442,7 +1442,7 @@ TDynamicObject::couple( int const Side ) {
     auto const &coupler { MoverParameters->Couplers[ Side ] };
     auto *othervehicle { neighbour.vehicle };
     auto *othervehicleparams{ othervehicle->MoverParameters };
-    auto const &othercoupler { othervehicleparams->Couplers[ Side ] };
+    auto const &othercoupler { othervehicleparams->Couplers[ neighbour.vehicle_end ] };
 
     if( coupler.CouplingFlag == coupling::faux ) {
         // najpierw hak

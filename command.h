@@ -168,6 +168,8 @@ enum class user_command {
     departureannounce,
     doorlocktoggle,
     pantographcompressorvalvetoggle,
+    pantographcompressorvalveenable,
+    pantographcompressorvalvedisable,
     pantographcompressoractivate,
     pantographtogglefront,
     pantographtogglerear,

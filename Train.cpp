@@ -239,6 +239,8 @@ TTrain::commandhandler_map const TTrain::m_commandhandlers = {
     { user_command::batteryenable, &TTrain::OnCommand_batteryenable },
     { user_command::batterydisable, &TTrain::OnCommand_batterydisable },
     { user_command::pantographcompressorvalvetoggle, &TTrain::OnCommand_pantographcompressorvalvetoggle },
+    { user_command::pantographcompressorvalveenable, &TTrain::OnCommand_pantographcompressorvalveenable },
+    { user_command::pantographcompressorvalvedisable, &TTrain::OnCommand_pantographcompressorvalvedisable },
     { user_command::pantographcompressoractivate, &TTrain::OnCommand_pantographcompressoractivate },
     { user_command::pantographtogglefront, &TTrain::OnCommand_pantographtogglefront },
     { user_command::pantographtogglerear, &TTrain::OnCommand_pantographtogglerear },
@@ -496,13 +498,20 @@ bool TTrain::Init(TDynamicObject *NewDynamicObject, bool e3d)
 
     {
         Global.CurrentMaxTextureSize = Global.iMaxCabTextureSize;
-        auto const result{ LoadMMediaFile( DynamicObject->asBaseDir + DynamicObject->MoverParameters->TypeName + ".mmd" ) };
+        auto const filename{ DynamicObject->asBaseDir + DynamicObject->MoverParameters->TypeName + ".mmd" };
+        auto const result { LoadMMediaFile( filename ) };
         Global.CurrentMaxTextureSize = Global.iMaxTextureSize;
 /*
         if( false == result ) {
             return false;
         }
 */
+        InitializeCab( mvOccupied->CabOccupied, filename );
+
+        if( DynamicObject->Controller == Humandriver ) {
+            // McZapkie-030303: mozliwosc wyswietlania kabiny, w przyszlosci dac opcje w mmd
+            DynamicObject->bDisplayCab = true;
+        }
     }
 
     // Ra: taka proteza - przesłanie kierunku do członów connected
@@ -547,6 +556,24 @@ dictionary_source *TTrain::GetTrainState() {
     dict->insert( "lights_front", mvOccupied->iLights[ end::front ] );
     dict->insert( "lights_rear", mvOccupied->iLights[ end::rear ] );
     dict->insert( "lights_compartments", mvOccupied->CompartmentLights.is_active || mvOccupied->CompartmentLights.is_disabled );
+    if( Dynamic()->Mechanik ) {
+        auto const *controller { Dynamic()->Mechanik };
+        auto const cabmodifier { cab_to_end() == end::front ? 1 : -1 };
+        auto const traindirection { controller->Direction() * cabmodifier };
+        auto const *frontvehicle { controller->Vehicle( traindirection >= 0 ? end::front : end::rear ) };
+        auto const *rearvehicle { controller->Vehicle( traindirection >= 0 ? end::rear : end::front ) };
+        auto const frontvehicledirection { ( frontvehicle->DirectionGet() == controller->Vehicle()->DirectionGet() ? 1 : -1 ) };
+        auto const rearvehicledirection { ( rearvehicle->DirectionGet() == controller->Vehicle()->DirectionGet() ? 1 : -1 ) };
+        auto const fronttrainlights { frontvehicle->MoverParameters->iLights[ frontvehicledirection * cabmodifier >= 0 ? end::front : end::rear ] };
+        auto const reartrainlights{ rearvehicle->MoverParameters->iLights[ rearvehicledirection * cabmodifier >= 0 ? end::rear : end::front ] };
+        dict->insert( "lights_train_front", fronttrainlights );
+        dict->insert( "lights_train_rear", reartrainlights );
+    }
+    else {
+        // fallback, in the unlikely case we lose the controller
+        dict->insert( "lights_train_front", mvOccupied->iLights[ end::front ] );
+        dict->insert( "lights_train_rear", mvOccupied->iLights[ end::rear ] );
+    }
     // reverser
     dict->insert( "direction", mvOccupied->DirActive );
     // throttle
@@ -2112,7 +2139,7 @@ void TTrain::OnCommand_pantographtogglefront( TTrain *Train, command_data const 
         auto const &pantograph { Train->mvControlled->Pantographs[ end::front ] };
         auto const state {
             pantograph.valve.is_enabled
-          | pantograph.is_active }; // fallback for impulse switches
+         || pantograph.is_active }; // fallback for impulse switches
         if( state ) {
             OnCommand_pantographlowerfront( Train, Command );
         }
@@ -2138,7 +2165,7 @@ void TTrain::OnCommand_pantographtogglerear( TTrain *Train, command_data const &
         auto const &pantograph { Train->mvControlled->Pantographs[ end::rear ] };
         auto const state {
             pantograph.valve.is_enabled
-          | pantograph.is_active }; // fallback for impulse switches
+         || pantograph.is_active }; // fallback for impulse switches
         if( state ) {
             OnCommand_pantographlowerrear( Train, Command );
         }
@@ -2403,31 +2430,58 @@ void TTrain::change_pantograph_selection( int const Change ) {
 
 void TTrain::OnCommand_pantographcompressorvalvetoggle( TTrain *Train, command_data const &Command ) {
 
+    if( Command.action == GLFW_PRESS ) {
+        // only react to press
+        if( Train->mvControlled->bPantKurek3 == false ) {
+            // connect pantographs with primary tank
+            OnCommand_pantographcompressorvalveenable( Train, Command );
+        }
+        else {
+            // connect pantograps with pantograph compressor
+            OnCommand_pantographcompressorvalvedisable( Train, Command );
+        }
+    }
+}
+
+void TTrain::OnCommand_pantographcompressorvalveenable( TTrain *Train, command_data const &Command ) {
+
     auto const valveispresent {
         ( Train->ggPantCompressorValve.SubModel != nullptr )
      || ( ( Train->iCabn == 0 )
        && ( Train->mvControlled == Train->mvOccupied ) ) };
 
-    if( false == valveispresent )
-    {
+    if( false == valveispresent ) {
         // tylko w maszynowym, unless actual device is present
         return;
     }
 
     if( Command.action == GLFW_PRESS ) {
         // only react to press
-        if( Train->mvControlled->bPantKurek3 == false ) {
-            // connect pantographs with primary tank
-            Train->mvControlled->bPantKurek3 = true;
-            // visual feedback:
-            Train->ggPantCompressorValve.UpdateValue( 0.0 );
-        }
-        else {
-            // connect pantograps with pantograph compressor
-            Train->mvControlled->bPantKurek3 = false;
-            // visual feedback:
-            Train->ggPantCompressorValve.UpdateValue( 1.0 );
-        }
+        // connect pantographs with primary tank
+        Train->mvControlled->bPantKurek3 = true;
+        // visual feedback:
+        Train->ggPantCompressorValve.UpdateValue( 0.0 );
+    }
+}
+
+void TTrain::OnCommand_pantographcompressorvalvedisable( TTrain *Train, command_data const &Command ) {
+
+    auto const valveispresent {
+        ( Train->ggPantCompressorValve.SubModel != nullptr )
+     || ( ( Train->iCabn == 0 )
+       && ( Train->mvControlled == Train->mvOccupied ) ) };
+
+    if( false == valveispresent ) {
+        // tylko w maszynowym, unless actual device is present
+        return;
+    }
+
+    if( Command.action == GLFW_PRESS ) {
+        // only react to press
+        // connect pantograps with pantograph compressor
+        Train->mvControlled->bPantKurek3 = false;
+        // visual feedback:
+        Train->ggPantCompressorValve.UpdateValue( 1.0 );
     }
 }
 
@@ -7594,25 +7648,13 @@ bool TTrain::LoadMMediaFile(std::string const &asFileName)
 
         } while (token != "");
     }
+/*
     else
     {
         return false;
     } // nie znalazl sekcji internal
-
-    if (!InitializeCab(mvOccupied->CabOccupied, asFileName))
-    {
-        // zle zainicjowana kabina
-        return false;
-    }
-    else
-    {
-        if (DynamicObject->Controller == Humandriver)
-        {
-            // McZapkie-030303: mozliwosc wyswietlania kabiny, w przyszlosci dac opcje w mmd
-            DynamicObject->bDisplayCab = true;
-        }
-        return true;
-    }
+*/
+    return true;
 }
 
 bool TTrain::InitializeCab(int NewCabNo, std::string const &asFileName)

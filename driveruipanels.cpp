@@ -625,6 +625,7 @@ debug_panel::render_section_scenario() {
                 GLFW_PRESS, 0 );
         }
     }
+    ImGui::Checkbox( "Update Item Materials", &Global.UpdateMaterials );
 
     return true;
 }

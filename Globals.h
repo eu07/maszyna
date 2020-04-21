@@ -57,6 +57,7 @@ struct global_settings {
     std::string asCurrentDynamicPath;
     int CurrentMaxTextureSize{ 4096 };
     bool GfxFramebufferSRGB { true };
+    bool UpdateMaterials { true };
     // settings
     // filesystem
     bool bLoadTraction{ true };

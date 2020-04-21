@@ -262,6 +262,8 @@ class TTrain {
     static void OnCommand_batteryenable( TTrain *Train, command_data const &Command );
     static void OnCommand_batterydisable( TTrain *Train, command_data const &Command );
     static void OnCommand_pantographcompressorvalvetoggle( TTrain *Train, command_data const &Command );
+    static void OnCommand_pantographcompressorvalveenable( TTrain *Train, command_data const &Command );
+    static void OnCommand_pantographcompressorvalvedisable( TTrain *Train, command_data const &Command );
     static void OnCommand_pantographcompressoractivate( TTrain *Train, command_data const &Command );
     static void OnCommand_pantographtogglefront( TTrain *Train, command_data const &Command );
     static void OnCommand_pantographtogglerear( TTrain *Train, command_data const &Command );

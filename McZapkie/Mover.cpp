@@ -4240,8 +4240,12 @@ void TMoverParameters::UpdatePipePressure(double dt)
             temp = Handle->GetCP();
         else
             temp = 0.0;
-		if (temp < 0.001)
-			DynamicBrakeEMUStatus = true;
+
+        DynamicBrakeEMUStatus = (
+            temp > 0.001 ?
+                ConverterFlag :
+                true );
+
 		double temp1 = temp;
 		if ((DCEMUED_EP_max_Vel > 0.001) && (Vel > DCEMUED_EP_max_Vel) && (DynamicBrakeEMUStatus))
 			temp1 = 0;
@@ -8063,8 +8067,9 @@ TMoverParameters::update_doors( double const Deltatime ) {
         // revoke permit if...
         door.open_permit =
             ( true == door.open_permit ) // ...we already have one...
-         && ( false == Doors.is_locked ) // ...and the door lock is engaged...
-         && ( false == door.remote_close );// ...or about to be closed
+         && ( ( false == Doors.permit_presets.empty() ) // ...there's no preset switch controlling permit state...
+           || ( ( false == Doors.is_locked ) // ...and the door lock is engaged...
+             && ( false == door.remote_close ) ) );// ...or the door is about to be closed
 
         door.is_open =
             ( door.position >= Doors.range )
