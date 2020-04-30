@@ -772,7 +772,7 @@ TDynamicObject::find_vehicle( coupling const Coupling, Predicate_ const Predicat
             return vehicle; } }
     // if we didn't yet find a suitable vehicle try in the other direction
     vehicle = this;
-    while( ( vehicle = vehicle->NextC( Coupling ) ) != nullptr ) {
+    while( ( vehicle = vehicle->PrevC( Coupling ) ) != nullptr ) {
         if( Predicate( vehicle ) ) {
             return vehicle; } }
     // if we still don't have a match give up
