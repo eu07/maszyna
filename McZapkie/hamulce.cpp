@@ -970,6 +970,11 @@ void TEStEP1::EPCalc(double dt)
 	LBP = LBP - dv;
 }
 
+void TEStEP1::SetEPS( double const nEPS )
+{
+    EPS = nEPS;
+}
+
 //---EST3--
 
 double TESt3::GetPF( double const PP, double const dt, double const Vel )

@@ -676,22 +676,29 @@ debug_panel::update_section_vehicle( std::vector<text_line> &Output ) {
         ( mover.FuseFlag ? '!' : '.' ),
         ( false == mover.ConverterAllowLocal ? '-' : ( mover.ConverterAllow ? ( mover.ConverterFlag ? 'X' : 'x' ) : '.' ) ),
         ( mover.ConvOvldFlag ? '!' : '.' ),
-        ( mover.CompressorFlag ? 'C' : ( false == mover.CompressorAllowLocal ? '-' : ( ( mover.CompressorAllow || mover.CompressorStart == start_t::automatic ) ? 'c' : '.' ) ) ),
+        ( mover.CompressorFlag ? 'C' : ( false == mover.CompressorAllowLocal ? '-' : ( ( mover.CompressorAllow || ( mover.CompressorStart == start_t::automatic && mover.CompressorSpeed > 0.0 ) ) ? 'c' : '.' ) ) ),
         ( mover.CompressorGovernorLock ? '!' : '.' ),
         ( mover.StLinSwitchOff ? '-' : ( mover.ControlPressureSwitch ? '!' : ( mover.StLinFlag ? '+' : '.' ) ) ),
         ( mover.Heating ? 'H' : ( mover.HeatingAllow ? 'h' : '.' ) ),
         std::string( isplayervehicle ? locale::strings[ locale::string::debug_vehicle_radio ] + ( mover.Radio ? std::to_string( m_input.train->RadioChannel() ) : "-" ) : "" ).c_str(),
         std::string( isdieselenginepowered ? locale::strings[ locale::string::debug_vehicle_oilpressure ] + to_string( mover.OilPump.pressure, 2 )  : "" ).c_str(),
         // power transfers
+        // 3000v
         mover.Couplers[ end::front ].power_high.voltage,
         mover.Couplers[ end::front ].power_high.current,
         std::string( mover.Couplers[ end::front ].power_high.is_local ? ":" : ":=" ).c_str(),
-        std::string( vehicle.DirectionGet() ? "<<" : ">>" ).c_str(),
         mover.EngineVoltage,
-        std::string( vehicle.DirectionGet() ? "<<" : ">>" ).c_str(),
         std::string( mover.Couplers[ end::rear ].power_high.is_local ? ":" : "=:" ).c_str(),
         mover.Couplers[ end::rear ].power_high.voltage,
-        mover.Couplers[ end::rear ].power_high.current );
+        mover.Couplers[ end::rear ].power_high.current,
+        // 110v
+        mover.Couplers[ end::front ].power_110v.voltage,
+        mover.Couplers[ end::front ].power_110v.current,
+        std::string( mover.Couplers[ end::front ].power_110v.is_local ? ":" : ":=" ).c_str(),
+        mover.PowerCircuits[ 1 ].first,
+        std::string( mover.Couplers[ end::rear ].power_110v.is_local ? ":" : "=:" ).c_str(),
+        mover.Couplers[ end::rear ].power_110v.voltage,
+        mover.Couplers[ end::rear ].power_110v.current );
 
     Output.emplace_back( m_buffer.data(), Global.UITextColor );
 

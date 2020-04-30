@@ -160,7 +160,10 @@ enum coupling {
     mainhose = 0x20,
     heating = 0x40,
     permanent = 0x80,
-    uic = 0x100
+    power24v = 0x100,
+    power110v = 0x200,
+    power3x400v = 0x400,
+//    uic = 0x1000,
 };
 // possible effect ranges for control commands; exclusive
 enum class range_t {
@@ -180,11 +183,13 @@ enum class operation_t {
 };
 // start method for devices; exclusive
 enum class start_t {
+    disabled,
     manual,
     automatic,
     manualwithautofallback,
     converter,
-    battery
+    battery,
+    direction
 };
 // recognized vehicle light locations and types; can be combined
 enum light {
@@ -333,10 +338,10 @@ enum TProblem // lista problemów taboru, które uniemożliwiają jazdę
 
 enum TCompressorList // lista parametrów w programatorze sprężarek
 { // pozycje kolejne
-	cl_Allow = 0, // zezwolenie na pracę sprężarek
-	cl_SpeedFactor = 1, // mnożnik wydajności
-	cl_MinFactor = 2, // mnożnik progu załącznika ciśnieniowego
-	cl_MaxFactor = 3 // mnożnik progu wyłącznika ciśnieniowego
+    cl_Allow = 0, // zezwolenie na pracę sprężarek
+    cl_SpeedFactor = 1, // mnożnik wydajności
+    cl_MinFactor = 2, // mnożnik progu załącznika ciśnieniowego
+    cl_MaxFactor = 3 // mnożnik progu wyłącznika ciśnieniowego
 };
 
 struct TLocation
@@ -352,7 +357,7 @@ struct TRotation
 	double Ry;
 	double Rz;
 };
-/*wymiary*/
+
 struct TDimension
 {
 	double W = 0.0;
@@ -653,6 +658,7 @@ struct TSecuritySystem
 	int VelocityAllowed;
 	int NextVelocityAllowed; /*predkosc pokazywana przez sygnalizacje kabinowa*/
 	bool RadioStop; // czy jest RadioStop
+    bool PoweredUp { false }; // helper, for detection of power state change
 
     inline bool is_beeping() const {
         return TestFlag( Status, s_SHPalarm );
@@ -687,8 +693,10 @@ struct TCoupling {
     double beta = 0.0;
     TCouplerType CouplerType = TCouplerType::NoCoupler;     /*typ sprzegu*/
     int AutomaticCouplingFlag = coupling::coupler;
-    int AllowedFlag = coupling::coupler | coupling::brakehose; //Ra: maska dostępnych
+    int AllowedFlag = ( coupling::coupler | coupling::brakehose ); //Ra: maska dostępnych
+    int PowerFlag = ( coupling::power110v | coupling::power24v );
     /*zmienne*/
+    bool AutomaticCouplingAllowed { true }; // whether automatic coupling can be currently performed
 	int CouplingFlag = 0; /*0 - wirtualnie, 1 - sprzegi, 2 - pneumatycznie, 4 - sterowanie, 8 - kabel mocy*/
 	class TMoverParameters *Connected = nullptr; /*co jest podlaczone*/
     int ConnectedNr = 0;           //Ra: od której strony podłączony do (Connected): 0=przód, 1=tył
@@ -702,7 +710,8 @@ struct TCoupling {
     TCouplerType adapter_type = TCouplerType::NoCoupler; // CouplerType override if other than NoCoupler
 
     power_coupling power_high;
-//    power_coupling power_low; // TODO: implement this
+    power_coupling power_110v;
+    power_coupling power_24v;
 
     int sounds { 0 }; // sounds emitted by the coupling devices
     bool Render = false;             /*ABu: czy rysowac jak zaczepiony sprzeg*/
@@ -884,6 +893,7 @@ private:
         bool auto_include_remote { false }; // automatic door closure applies also to remote control
         bool permit_needed { false };
         std::vector<int> permit_presets; // permit presets selectable with preset switch
+        float voltage { 0.f }; // power type required for door movement
         // ld inputs
         bool lock_enabled { true };
         bool step_enabled { true };
@@ -1013,6 +1023,7 @@ public:
     double LightPower = 0.0; /*moc pobierana na ogrzewanie/oswietlenie*/
 	double BatteryVoltage = 0.0;        /*Winger - baterie w elektrykach*/
 	bool Battery = false; /*Czy sa zalavzone baterie*/
+    start_t BatteryStart = start_t::manual;
 	bool EpFuse = true; /*Czy sa zalavzone baterie*/
 	bool Signalling = false;         /*Czy jest zalaczona sygnalizacja hamowania ostatniego wagonu*/
 	bool Radio = true;         /*Czy jest zalaczony radiotelefon*/
@@ -1302,7 +1313,9 @@ public:
 	std::string Name;                       /*nazwa wlasna*/
 	TCoupling Couplers[2];  //urzadzenia zderzno-sprzegowe, polaczenia miedzy wagonami
     std::array<neighbour_data, 2> Neighbours; // potential collision sources
-	bool EventFlag = false;                 /*!o true jesli cos nietypowego sie wydarzy*/
+    bool Power110vIsAvailable = false; // cached availability of 110v power
+    bool Power24vIsAvailable = false; // cached availability of 110v power
+    bool EventFlag = false;                 /*!o true jesli cos nietypowego sie wydarzy*/
 	int SoundFlag = 0;                    /*!o patrz stale sound_ */
     int AIFlag{ 0 }; // HACK: events of interest for consist owner
 	double DistCounter = 0.0;                  /*! licznik kilometrow */
@@ -1365,6 +1378,8 @@ public:
 	bool ConverterAllow = false;             /*zezwolenie na prace przetwornicy NBMX*/
     bool ConverterAllowLocal{ true }; // local device state override (most units don't have this fitted so it's set to true not to intefere)
     bool ConverterFlag = false;              /*!  czy wlaczona przetwornica NBMX*/
+    start_t ConverterOverloadRelayStart { start_t::manual }; // whether overload relay reset responds to dedicated button
+    bool ConverterOverloadRelayOffWhenMainIsOff { false };
     fuel_pump FuelPump;
     oil_pump OilPump;
     water_pump WaterPump;
@@ -1482,6 +1497,7 @@ public:
     bool NoVoltRelay{ true }; // switches off if the power level drops below threshold
     bool OvervoltageRelay{ true }; // switches off if the power level goes above threshold
     bool s_CAtestebrake = false; //hunter-091012: zmienna dla testu ca
+    std::array<std::pair<double, double>, 4> PowerCircuits; //24v, 110v, 3x400v and 3000v power circuits, voltage from local sources and current draw pairs
 
     /*-zmienne dla lokomotywy spalinowej z przekladnia mechaniczna*/
 	double dizel_fill = 0.0; /*napelnienie*/
@@ -1612,7 +1628,7 @@ public:
 
 	// Q *******************************************************************************************
 	double GetTrainsetVoltage( int const Coupling = ( coupling::heating | coupling::highvoltage ) ) const;
-    double GetAnyTrainsetVoltage() const;
+    double GetTrainsetHighVoltage() const;
 	bool switch_physics(bool const State);
 	double LocalBrakeRatio(void);
 	double ManualBrakeRatio(void);
@@ -1657,7 +1673,7 @@ public:
 	bool SecuritySystemReset(void);
 	void SecuritySystemCheck(double dt);
 
-	bool BatterySwitch(bool State);
+	bool BatterySwitch( bool State, range_t const Notify = range_t::consist );
 	bool EpFuseSwitch(bool State);
 	bool SpringBrakeActivate(bool State);
 	bool SpringBrakeShutOff(bool State);
@@ -1735,7 +1751,7 @@ public:
 									  /*-funkcje typowe dla lokomotywy elektrycznej*/
     void LowVoltagePowerCheck( double const Deltatime );
     void MainsCheck( double const Deltatime );
-    void PowerCouplersCheck( double const Deltatime );
+    void PowerCouplersCheck( double const Deltatime, coupling const Coupling );
     void ConverterCheck( double const Timestep ); // przetwornica
     void HeatingCheck( double const Timestep );
     void WaterPumpCheck( double const Timestep );
@@ -1749,7 +1765,7 @@ public:
 	bool FuseFlagCheck(void) const; // sprawdzanie flagi nadmiarowego
 	void FuseOff(void); // wylaczenie nadmiarowego
     bool UniversalResetButton( int const Button, range_t const Notify = range_t::consist );
-    bool RelayReset( int const Relays ); // resets specified relays
+    bool RelayReset( int const Relays, range_t const Notify = range_t::consist ); // resets specified relays
     double ShowCurrent( int AmpN ) const; //pokazuje bezwgl. wartosc pradu na wybranym amperomierzu
 	double ShowCurrentP(int AmpN) const;  //pokazuje bezwgl. wartosc pradu w wybranym pojezdzie                                                             //Q 20160722
 

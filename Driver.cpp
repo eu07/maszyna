@@ -2562,31 +2562,32 @@ bool TController::PrepareEngine()
                 mvControlling->FuelPumpSwitch( true );
             }
         }
-        if (mvControlling->EnginePowerSource.SourceType == TPowerSource::CurrentCollector)
-        { // jeśli silnikowy jest pantografującym
-            if (mvControlling->PantPress < 4.2) {
+        if( ( mvPantographUnit->EnginePowerSource.SourceType == TPowerSource::CurrentCollector )
+          &&( mvPantographUnit->EnginePowerSource.CollectorParameters.CollectorsNo > 0 ) ) {
+            // if our pantograph unit isn't a pantograph-devoid fallback
+            if (mvPantographUnit->PantPress < 4.2) {
                 // załączenie małej sprężarki
-                if( false == mvControlling->PantAutoValve ) {
+                if( false == mvPantographUnit->PantAutoValve ) {
                     // odłączenie zbiornika głównego, bo z nim nie da rady napompować
-                    mvControlling->bPantKurek3 = false;
+                    mvPantographUnit->bPantKurek3 = false;
                 }
-                mvControlling->PantCompFlag = true; // załączenie sprężarki pantografów
+                mvPantographUnit->PantCompFlag = true; // załączenie sprężarki pantografów
             }
             else {
                 // jeżeli jest wystarczające ciśnienie w pantografach
-                if ((!mvControlling->bPantKurek3)
-                 || (mvControlling->PantPress <= mvControlling->ScndPipePress)) // kurek przełączony albo główna już pompuje
-                    mvControlling->PantCompFlag = false; // sprężarkę pantografów można już wyłączyć
+                if ((!mvPantographUnit->bPantKurek3)
+                 || (mvPantographUnit->PantPress <= mvPantographUnit->ScndPipePress)) // kurek przełączony albo główna już pompuje
+                    mvPantographUnit->PantCompFlag = false; // sprężarkę pantografów można już wyłączyć
             }
             if( ( fOverhead2 == -1.0 ) && ( iOverheadDown == 0 ) ) {
-                mvControlling->OperatePantographsValve( operation_t::enable );
-                mvControlling->OperatePantographValve( end::front, operation_t::enable );
-                mvControlling->OperatePantographValve( end::rear, operation_t::enable );
+                mvOccupied->OperatePantographsValve( operation_t::enable );
+                mvOccupied->OperatePantographValve( end::front, operation_t::enable );
+                mvOccupied->OperatePantographValve( end::rear, operation_t::enable );
             }
         }
     }
 
-    if ((mvControlling->PantographVoltage != 0.0) || voltfront || voltrear)
+    if ((mvPantographUnit->PantographVoltage != 0.0) || voltfront || voltrear)
     { // najpierw ustalamy kierunek, jeśli nie został ustalony
         if( !iDirection ) {
             // jeśli nie ma ustalonego kierunku
@@ -2594,7 +2595,7 @@ bool TController::PrepareEngine()
                 iDirection = mvOccupied->CabActive; // wg wybranej kabiny
                 if( !iDirection ) {
                     // jeśli nie ma ustalonego kierunku
-                    if( ( mvControlling->PantographVoltage != 0.0 ) || voltfront || voltrear ) {
+                    if( ( mvPantographUnit->PantographVoltage != 0.0 ) || voltfront || voltrear ) {
                         if( mvOccupied->Couplers[ end::rear ].Connected == nullptr ) {
                             // jeśli z tyłu nie ma nic
                             iDirection = -1; // jazda w kierunku sprzęgu 1
@@ -2622,12 +2623,12 @@ bool TController::PrepareEngine()
         }
         if (AIControllFlag) // jeśli prowadzi komputer
         { // część wykonawcza dla sterowania przez komputer
-            if (mvControlling->ConvOvldFlag)
-            { // wywalił bezpiecznik nadmiarowy przetwornicy
-                ZeroSpeed();
-                mvControlling->ConvOvldFlag = false; // reset nadmiarowego
+            if( IsAnyConverterOverloadRelayOpen ) {
+                // wywalił bezpiecznik nadmiarowy przetwornicy
+                mvOccupied->ConverterSwitch( false );
+                mvOccupied->RelayReset( relay_t::primaryconverteroverload ); // reset nadmiarowego
             }
-            else if (false == IsLineBreakerClosed) {
+            if (IsAnyLineBreakerOpen) {
                 ZeroSpeed();
                 if( mvOccupied->DirActive == 0 ) {
                     OrderDirectionChange( iDirection, mvOccupied );
@@ -2641,19 +2642,21 @@ bool TController::PrepareEngine()
                     }
                 }
                 if( ( mvControlling->EnginePowerSource.SourceType != TPowerSource::CurrentCollector )
-                 || ( std::max( mvControlling->GetAnyTrainsetVoltage(), mvControlling->PantographVoltage ) > mvControlling->EnginePowerSource.CollectorParameters.MinV ) ) {
-                    mvControlling->MainSwitch( true );
+                 || ( std::max( mvControlling->GetTrainsetHighVoltage(), mvControlling->PantographVoltage ) > mvControlling->EnginePowerSource.CollectorParameters.MinV ) ) {
+                    mvOccupied->MainSwitch( true );
                 }
             }
-            else { 
-                mvControlling->ConverterSwitch( true );
-                // w EN57 sprężarka w ra jest zasilana z silnikowego
-                mvControlling->CompressorSwitch( true );
-                // enable motor blowers
-                mvControlling->MotorBlowersSwitchOff( false, end::front );
-                mvControlling->MotorBlowersSwitch( true, end::front );
-                mvControlling->MotorBlowersSwitchOff( false, end::rear );
-                mvControlling->MotorBlowersSwitch( true, end::rear );
+            else {
+                if( false == IsAnyConverterOverloadRelayOpen ) {
+                    mvOccupied->ConverterSwitch( true );
+                    // w EN57 sprężarka w ra jest zasilana z silnikowego
+                    mvOccupied->CompressorSwitch( true );
+                    // enable motor blowers
+                    mvOccupied->MotorBlowersSwitchOff( false, end::front );
+                    mvOccupied->MotorBlowersSwitch( true, end::front );
+                    mvOccupied->MotorBlowersSwitchOff( false, end::rear );
+                    mvOccupied->MotorBlowersSwitch( true, end::rear );
+                }
                 // enable train brake if it's off
                 if( mvOccupied->fBrakeCtrlPos == mvOccupied->Handle->GetPos( bh_NP ) ) {
                     mvOccupied->BrakeLevelSet( mvOccupied->Handle->GetPos( bh_RP ) );
@@ -2667,7 +2670,8 @@ bool TController::PrepareEngine()
                 if( lookup != brakepositions.end() ) {
                     BrakeLevelSet( lookup->second ); // GBH
                 }
-                OK = ( VelforDriver == -1 );
+                OK = ( false == IsAnyConverterOverloadRelayOpen )
+                  && ( VelforDriver == -1 );
             }
         }
         else
@@ -2755,13 +2759,12 @@ bool TController::ReleaseEngine() {
             // heating
             mvControlling->HeatingAllow = false;
             // devices
-            mvControlling->ConverterSwitch( false );
+            mvOccupied->ConverterSwitch( false );
             // line breaker/engine
-            OK = mvControlling->MainSwitch( false );
-            if( mvControlling->EnginePowerSource.SourceType == TPowerSource::CurrentCollector ) {
-                mvControlling->OperatePantographValve( end::front, operation_t::disable );
-                mvControlling->OperatePantographValve( end::rear, operation_t::disable );
-            }
+            OK = mvOccupied->MainSwitch( false );
+
+            mvOccupied->OperatePantographValve( end::front, operation_t::disable );
+            mvOccupied->OperatePantographValve( end::rear, operation_t::disable );
         }
         else {
             OK = true;
@@ -3200,7 +3203,7 @@ bool TController::IncSpeed()
             if (iOverheadZero) // jazda bezprądowa z poziomu toru ustawia bity
                 return false; // to nici z ruszania
         }
-        if ((!mvControlling->FuseFlag)
+        if ((!IsAnyMotorOverloadRelayOpen)
           &&(!mvControlling->ControlPressureSwitch)) {
             if ((mvControlling->IsMainCtrlNoPowerPos())
              || (mvControlling->StLinFlag)) { // youBy polecił dodać 2012-09-08 v367
@@ -3303,7 +3306,7 @@ bool TController::IncSpeed()
         mvControlling->AutoRelayCheck(); // sprawdzenie logiki sterowania
         break;
     case TEngineType::Dumb:
-        if (!mvControlling->FuseFlag)
+        if (!IsAnyMotorOverloadRelayOpen)
             if (Ready || (iDrivigFlags & movePress)) //{(BrakePress<=0.01*MaxBrakePress)}
             {
                 OK = IncSpeedEIM();
@@ -3314,7 +3317,7 @@ bool TController::IncSpeed()
             }
         break;
     case TEngineType::DieselElectric:
-        if ((!mvControlling->FuseFlag)
+        if ((!IsAnyMotorOverloadRelayOpen)
           &&(!mvControlling->ControlPressureSwitch)) {
             if ((mvControlling->IsMainCtrlNoPowerPos()) ||
                 (mvControlling->StLinFlag)) { // youBy polecił dodać 2012-09-08 v367
@@ -3331,7 +3334,7 @@ bool TController::IncSpeed()
         }
         break;
     case TEngineType::ElectricInductionMotor:
-        if (!mvControlling->FuseFlag)
+        if (!IsAnyMotorOverloadRelayOpen)
 			if (Ready || (iDrivigFlags & movePress) || (mvOccupied->ShuntMode)) //{(BrakePress<=0.01*MaxBrakePress)}
             {
                 OK = IncSpeedEIM();
@@ -3390,9 +3393,9 @@ bool TController::IncSpeed()
         }
         if( false == mvControlling->Mains ) {
 			SpeedCntrl(0.0);
-            mvControlling->MainSwitch( true );
-            mvControlling->ConverterSwitch( true );
-            mvControlling->CompressorSwitch( true );
+            mvOccupied->MainSwitch( true );
+            mvOccupied->ConverterSwitch( true );
+            mvOccupied->CompressorSwitch( true );
         }
 		break;
     }
@@ -4612,7 +4615,7 @@ TController::UpdateSituation(double dt) {
     if( ( OrderCurrentGet() == Wait_for_orders )
      && ( false == AIControllFlag )
      && ( false == iEngineActive )
-     && ( true == mvControlling->Battery ) ) {
+     && ( true == mvOccupied->Power24vIsAvailable ) ) {
         OrderNext( Prepare_engine );
     }
 
@@ -4686,10 +4689,6 @@ TController::UpdateSituation(double dt) {
             // ciężar razy składowa styczna grawitacji
             fAccGravity -= vehicle->TotalMassxg * dy * ( p->DirectionGet() == iDirection ? 1 : -1 );
         }
-        if( ( vehicle->Power > 0.01 ) // jeśli ma silnik
-         && ( vehicle->FuseFlag ) ) { // wywalony nadmiarowy
-            Need_TryAgain = true; // reset jak przy wywaleniu nadmiarowego
-        }
         // check door state
         auto const switchsides { p->DirectionGet() != iDirection };
         IsAnyDoorOpen[ side::right ] =
@@ -4707,21 +4706,31 @@ TController::UpdateSituation(double dt) {
     ConsistShade /= iVehicles;
 
     // test state of main switch in all powered vehicles under control
-    IsLineBreakerClosed = ( mvOccupied->Power > 0.01 ? mvOccupied->Mains : true );
+    IsAnyConverterOverloadRelayOpen = mvOccupied->ConvOvldFlag;
+    IsAnyMotorOverloadRelayOpen = mvOccupied->FuseFlag;
+    IsAnyGroundRelayOpen = !mvOccupied->GroundRelay;
+    IsAnyLineBreakerOpen = ( mvOccupied->Power > 0.01 ? !mvOccupied->Mains : false );
+    IsAnyCompressorEnabled = mvOccupied->CompressorAllow;
     p = pVehicle;
-    while( ( true == IsLineBreakerClosed )
-        && ( ( p = p->PrevC( coupling::control) ) != nullptr ) ) {
+    while( ( p = p->PrevC( coupling::control) ) != nullptr ) {
         auto const *vehicle { p->MoverParameters };
+        IsAnyConverterOverloadRelayOpen |= vehicle->ConvOvldFlag;
+        IsAnyMotorOverloadRelayOpen |= vehicle->FuseFlag;
+        IsAnyGroundRelayOpen |= !vehicle->GroundRelay;
+        IsAnyCompressorEnabled |= vehicle->CompressorAllow;
         if( vehicle->Power > 0.01 ) {
-            IsLineBreakerClosed = ( IsLineBreakerClosed && vehicle->Mains );
+            IsAnyLineBreakerOpen |= !vehicle->Mains;
         }
     }
     p = pVehicle;
-    while( ( true == IsLineBreakerClosed )
-        && ( ( p = p->NextC( coupling::control ) ) != nullptr ) ) {
+    while( ( p = p->NextC( coupling::control ) ) != nullptr ) {
         auto const *vehicle { p->MoverParameters };
+        IsAnyConverterOverloadRelayOpen |= vehicle->ConvOvldFlag;
+        IsAnyMotorOverloadRelayOpen |= vehicle->FuseFlag;
+        IsAnyGroundRelayOpen |= !vehicle->GroundRelay;
+        IsAnyCompressorEnabled |= vehicle->CompressorAllow;
         if( vehicle->Power > 0.01 ) {
-            IsLineBreakerClosed = ( IsLineBreakerClosed && vehicle->Mains );
+            IsAnyLineBreakerOpen |= !vehicle->Mains;
         }
     }
 
@@ -4795,7 +4804,7 @@ TController::UpdateSituation(double dt) {
             }
 
             // uśrednione napięcie sieci: przy spadku poniżej wartości minimalnej opóźnić rozruch o losowy czas
-            fVoltage = 0.5 * (fVoltage + std::max( mvControlling->GetAnyTrainsetVoltage(), mvControlling->PantographVoltage ) );
+            fVoltage = 0.5 * (fVoltage + std::max( mvControlling->GetTrainsetHighVoltage(), mvControlling->PantographVoltage ) );
             if( fVoltage < mvControlling->EnginePowerSource.CollectorParameters.MinV ) {
                 // gdy rozłączenie WS z powodu niskiego napięcia
                 if( fActionTime >= PrepareTime ) {
@@ -4840,11 +4849,11 @@ TController::UpdateSituation(double dt) {
 
                 if( ( fOverhead2 > 0.0 ) || iOverheadDown ) {
                     // jazda z opuszczonymi pantografami
-                    if( mvControlling->Pantographs[ end::front ].is_active ) {
-                        mvControlling->OperatePantographValve( end::front, operation_t::disable );
+                    if( mvPantographUnit->Pantographs[ end::front ].is_active ) {
+                        mvOccupied->OperatePantographValve( end::front, operation_t::disable );
                     }
-                    if( mvControlling->Pantographs[ end::rear ].is_active ) {
-                        mvControlling->OperatePantographValve( end::rear, operation_t::disable );
+                    if( mvPantographUnit->Pantographs[ end::rear ].is_active ) {
+                        mvOccupied->OperatePantographValve( end::rear, operation_t::disable );
                     }
                 }
                 else {
@@ -4854,37 +4863,37 @@ TController::UpdateSituation(double dt) {
                             // jazda na tylnym
                             if( ( iDirection >= 0 ) && ( useregularpantographlayout ) ) {
                                 // jak jedzie w kierunku sprzęgu 0
-                                if( ( mvControlling->PantRearVolt == 0.0 )
+                                if( ( mvPantographUnit->PantRearVolt == 0.0 )
                                     // filter out cases with single _other_ working pantograph so we don't try to raise something we can't
-                                    && ( ( mvControlling->PantographVoltage == 0.0 )
-                                      || ( mvControlling->EnginePowerSource.CollectorParameters.CollectorsNo > 1 ) ) ) {
-                                    mvControlling->OperatePantographValve( end::rear, operation_t::enable );
+                                    && ( ( mvPantographUnit->PantographVoltage == 0.0 )
+                                      || ( mvPantographUnit->EnginePowerSource.CollectorParameters.CollectorsNo > 1 ) ) ) {
+                                    mvOccupied->OperatePantographValve( end::rear, operation_t::enable );
                                 }
                             }
                             else {
                                 // jak jedzie w kierunku sprzęgu 0
-                                if( ( mvControlling->PantFrontVolt == 0.0 )
+                                if( ( mvPantographUnit->PantFrontVolt == 0.0 )
                                     // filter out cases with single _other_ working pantograph so we don't try to raise something we can't
-                                    && ( ( mvControlling->PantographVoltage == 0.0 )
-                                      || ( mvControlling->EnginePowerSource.CollectorParameters.CollectorsNo > 1 ) ) ) {
-                                    mvControlling->OperatePantographValve( end::front, operation_t::enable );
+                                    && ( ( mvPantographUnit->PantographVoltage == 0.0 )
+                                      || ( mvPantographUnit->EnginePowerSource.CollectorParameters.CollectorsNo > 1 ) ) ) {
+                                    mvOccupied->OperatePantographValve( end::front, operation_t::enable );
                                 }
                             }
 
                             if( mvOccupied->Vel > 5 ) {
                                 // opuszczenie przedniego po rozpędzeniu się o ile jest więcej niż jeden
-                                if( mvControlling->EnginePowerSource.CollectorParameters.CollectorsNo > 1 ) {
+                                if( mvPantographUnit->EnginePowerSource.CollectorParameters.CollectorsNo > 1 ) {
                                     if( ( iDirection >= 0 ) && ( useregularpantographlayout ) ) // jak jedzie w kierunku sprzęgu 0
                                     { // poczekać na podniesienie tylnego
-                                        if( ( mvControlling->PantFrontVolt != 0.0 )
-                                         && ( mvControlling->PantRearVolt != 0.0 ) ) { // czy jest napięcie zasilające na tylnym?
-                                            mvControlling->OperatePantographValve( end::front, operation_t::disable ); // opuszcza od sprzęgu 0
+                                        if( ( mvPantographUnit->PantFrontVolt != 0.0 )
+                                         && ( mvPantographUnit->PantRearVolt != 0.0 ) ) { // czy jest napięcie zasilające na tylnym?
+                                            mvOccupied->OperatePantographValve( end::front, operation_t::disable ); // opuszcza od sprzęgu 0
                                         }
                                     }
                                     else { // poczekać na podniesienie przedniego
-                                        if( ( mvControlling->PantRearVolt != 0.0 )
-                                         && ( mvControlling->PantFrontVolt != 0.0 ) ) { // czy jest napięcie zasilające na przednim?
-                                            mvControlling->OperatePantographValve( end::rear, operation_t::disable ); // opuszcza od sprzęgu 1
+                                        if( ( mvPantographUnit->PantRearVolt != 0.0 )
+                                         && ( mvPantographUnit->PantFrontVolt != 0.0 ) ) { // czy jest napięcie zasilające na przednim?
+                                            mvOccupied->OperatePantographValve( end::rear, operation_t::disable ); // opuszcza od sprzęgu 1
                                         }
                                     }
                                 }
@@ -4895,12 +4904,12 @@ TController::UpdateSituation(double dt) {
                             // use suggested pantograph setup
                             if( mvOccupied->Vel > 5 ) {
                                 auto const pantographsetup{ mvOccupied->AIHintPantstate };
-                                mvControlling->OperatePantographValve(
+                                mvOccupied->OperatePantographValve(
                                     end::front,
                                     ( pantographsetup & ( 1 << 0 ) ?
                                         operation_t::enable :
                                         operation_t::disable ) );
-                                mvControlling->OperatePantographValve(
+                                mvOccupied->OperatePantographValve(
                                     end::rear,
                                     ( pantographsetup & ( 1 << 1 ) ?
                                         operation_t::enable :
@@ -4946,16 +4955,16 @@ TController::UpdateSituation(double dt) {
                     // NOTE: abs(stoptime) covers either at least 15 sec remaining for a scheduled stop, or 15+ secs spent at a basic stop
                  && ( std::abs( fStopTime ) > 15.0 ) ) {
                     // spending a longer at a stop, raise also front pantograph
-                    if( mvControlling->EnginePowerSource.CollectorParameters.CollectorsNo > 1 ) {
+                    if( mvPantographUnit->EnginePowerSource.CollectorParameters.CollectorsNo > 1 ) {
                         if( ( iDirection >= 0 ) && ( useregularpantographlayout ) ) {
                             // jak jedzie w kierunku sprzęgu 0
-                            if( mvControlling->PantFrontVolt == 0.0 ) {
-                                mvControlling->OperatePantographValve( end::front, operation_t::enable );
+                            if( mvPantographUnit->PantFrontVolt == 0.0 ) {
+                                mvOccupied->OperatePantographValve( end::front, operation_t::enable );
                             }
                         }
                         else {
-                            if( mvControlling->PantRearVolt == 0.0 ) {
-                                mvControlling->OperatePantographValve( end::rear, operation_t::enable );
+                            if( mvPantographUnit->PantRearVolt == 0.0 ) {
+                                mvOccupied->OperatePantographValve( end::rear, operation_t::enable );
                             }
                         }
                     }
@@ -6237,29 +6246,31 @@ TController::UpdateSituation(double dt) {
                     return; // ...and don't touch any other controls
                 }
 
-                if( ( true == mvControlling->ConvOvldFlag ) // wywalił bezpiecznik nadmiarowy przetwornicy
-                 || ( false == IsLineBreakerClosed ) ) { // WS może wywalić z powodu błędu w drutach
+                if( ( IsAnyConverterOverloadRelayOpen ) // wywalił bezpiecznik nadmiarowy przetwornicy
+                 || ( IsAnyLineBreakerOpen ) ) { // WS może wywalić z powodu błędu w drutach
                     // próba ponownego załączenia
                     PrepareEngine();
                 }
                 // włączanie bezpiecznika
-                if ((mvControlling->EngineType == TEngineType::ElectricSeriesMotor) ||
-                    (mvControlling->TrainType & dt_EZT) ||
-                    (mvControlling->EngineType == TEngineType::DieselElectric))
-                    if (mvControlling->FuseFlag || Need_TryAgain || (false == mvControlling->GroundRelay))
-                    {
-                        Need_TryAgain = false; // true, jeśli druga pozycja w elektryku nie załapała
-                        mvControlling->DecScndCtrl(2); // nastawnik bocznikowania na 0
-                        mvControlling->DecMainCtrl(2); // nastawnik jazdy na 0
-                        if (mvControlling->FuseOn()) {
-                            ++iDriverFailCount;
-                            if (iDriverFailCount > maxdriverfails)
-                                Psyche = Easyman;
-                            if (iDriverFailCount > maxdriverfails * 2)
-                                SetDriverPsyche();
-                        }
-                        mvControlling->MainSwitch(true); // Ra: dodałem, bo EN57 stawały po wywaleniu
+                if( ( mvControlling->EngineType == TEngineType::ElectricSeriesMotor )
+                 || ( mvControlling->EngineType == TEngineType::DieselElectric )
+                 || ( mvControlling->TrainType == dt_EZT ) ) {
+                    if( Need_TryAgain ) {
+                        // true, jeśli druga pozycja w elektryku nie załapała
+                        ZeroSpeed();
+                        Need_TryAgain = false;
                     }
+                    if( IsAnyMotorOverloadRelayOpen || IsAnyGroundRelayOpen ) {
+                        ZeroSpeed();
+                        mvOccupied->FuseOn();
+                        mvControlling->MainSwitch( true ); // Ra: dodałem, bo EN57 stawały po wywaleniu
+                        ++iDriverFailCount;
+                        if( iDriverFailCount > maxdriverfails )
+                            Psyche = Easyman;
+                        if( iDriverFailCount > maxdriverfails * 2 )
+                            SetDriverPsyche();
+                    }
+                }
                 // NOTE: as a stop-gap measure the routine is limited to trains only while car calculations seem off
                 if( mvControlling->CategoryFlag == 1 ) {
                     if( vel < VelDesired ) {
@@ -6542,7 +6553,7 @@ TController::UpdateSituation(double dt) {
         else
         { // tutaj, gdy pojazd jest wyłączony
             if (!AIControllFlag) // jeśli sterowanie jest w gestii użytkownika
-                if (mvOccupied->Battery) // czy użytkownik załączył baterię?
+                if (mvOccupied->Power24vIsAvailable) // czy użytkownik załączył baterię?
                     if (mvOccupied->DirActive) // czy ustawił kierunek
                     { // jeśli tak, to uruchomienie skanowania
                         CheckVehicles(); // sprawdzić skład
@@ -7385,7 +7396,14 @@ void TController::ControllingSet()
     // dzięki temu będzie wirtualna kabina w silnikowym, działająca w rozrządczym
     // w plikach FIZ zostały zgubione ujemne maski sprzęgów, stąd problemy z EZT
     mvOccupied = pVehicle->MoverParameters; // domyślny skrót do obiektu parametrów
-    mvControlling = pVehicle->ControlledFind()->MoverParameters; // poszukiwanie członu sterowanego
+    mvControlling = pVehicle->FindPowered()->MoverParameters; // poszukiwanie członu sterowanego
+    {
+        auto *lookup { pVehicle->FindPantographCarrier() };
+        mvPantographUnit = (
+            lookup != nullptr ?
+                lookup->MoverParameters :
+                mvControlling );
+    }
 };
 
 std::string TController::TableText( std::size_t const Index ) const

@@ -418,6 +418,7 @@ class TEStEP1 : public TEStEP2 {
 
 public:
 	void EPCalc(double dt);
+    void SetEPS( double const nEPS ) override;  //stan hamulca EP
 
 	inline TEStEP1(double i_mbp, double i_bcr, double i_bcd, double i_brc, int i_bcn, int i_BD, int i_mat, int i_ba, int i_nbpa) :
 		TEStEP2(i_mbp, i_bcr, i_bcd, i_brc, i_bcn, i_BD, i_mat, i_ba, i_nbpa)

@@ -57,8 +57,8 @@ light_array::update() {
             light.direction.z = -light.direction.z;
         }
         // determine intensity of this light set
-        if( ( true == light.owner->MoverParameters->Battery )
-         || ( true == light.owner->MoverParameters->ConverterFlag ) ) {
+        if( ( true == light.owner->MoverParameters->Power24vIsAvailable )
+         || ( true == light.owner->MoverParameters->Power110vIsAvailable ) ) {
             // with power on, the intensity depends on the state of activated switches
             // first we cross-check the list of enabled lights with the lights installed in the vehicle...
             auto const lights { light.owner->iLights[ light.index ] & light.owner->LightList( static_cast<end>( light.index ) ) };

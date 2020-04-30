@@ -679,7 +679,11 @@ private:
     void update_neighbours();
     // locates potential collision source within specified range, scanning its route in specified direction
     auto find_vehicle( int const Direction, double const Range ) const -> std::tuple<TDynamicObject *, int, double, bool>;
-    TDynamicObject * ControlledFind();
+    // locates potential vehicle connected with specific coupling type and satisfying supplied predicate
+    template <typename Predicate_>
+    auto find_vehicle( coupling const Coupling, Predicate_ const Predicate ) -> TDynamicObject *;
+    TDynamicObject * FindPowered();
+    TDynamicObject * FindPantographCarrier();
     void ParamSet(int what, int into);
     // zapytanie do AI, po którym segmencie skrzyżowania jechać
     int RouteWish(TTrack *tr);
@@ -753,5 +757,26 @@ private:
     bool
         erase_disabled();
 };
+
+
+template <typename Predicate_>
+auto
+TDynamicObject::find_vehicle( coupling const Coupling, Predicate_ const Predicate ) -> TDynamicObject * {
+
+    if( Predicate( this ) ) {
+        return this; }
+    // try first to look towards the rear
+    auto *vehicle { this };
+    while( ( vehicle = vehicle->NextC( Coupling ) ) != nullptr ) {
+        if( Predicate( vehicle ) ) {
+            return vehicle; } }
+    // if we didn't yet find a suitable vehicle try in the other direction
+    vehicle = this;
+    while( ( vehicle = vehicle->NextC( Coupling ) ) != nullptr ) {
+        if( Predicate( vehicle ) ) {
+            return vehicle; } }
+    // if we still don't have a match give up
+    return nullptr;
+}
 
 //---------------------------------------------------------------------------

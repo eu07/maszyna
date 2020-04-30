@@ -432,6 +432,7 @@ class TTrain {
     TMoverParameters *mvOccupied { nullptr }; // człon, w którym sterujemy hamulcem
     TMoverParameters *mvSecond { nullptr }; // drugi człon (ET40, ET41, ET42, ukrotnienia)
     TMoverParameters *mvThird { nullptr }; // trzeci człon (SN61)
+    TMoverParameters *mvPantographUnit { nullptr }; // nearest pantograph equipped unit
     // helper variable, to prevent immediate switch between closing and opening line breaker circuit
     int m_linebreakerstate { 0 }; // 0: open, 1: closed, 2: freshly closed (and yes this is awful way to go about it)
     static const commandhandler_map m_commandhandlers;

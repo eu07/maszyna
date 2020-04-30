@@ -27,6 +27,12 @@ global_settings Global;
 void
 global_settings::LoadIniFile(std::string asFileName) {
 
+    // initialize season data in case the main config file doesn't
+    std::time_t timenow = std::time( 0 );
+    std::tm *localtime = std::localtime( &timenow );
+    fMoveLight = localtime->tm_yday + 1; // numer bieżącego dnia w roku
+    simulation::Environment.compute_season( fMoveLight );
+
     cParser parser(asFileName, cParser::buffer_FILE);
     ConfigParse(parser);
 };
@@ -944,26 +950,8 @@ global_settings::ConfigParse(cParser &Parser) {
 */
     if (iPause)
         iTextMode = GLFW_KEY_F1; // jak pauza, to pokazać zegar
-    /*  this won't execute anymore with the old parser removed
-            // TBD: remove, or launch depending on passed flag?
-        if (qp)
-    { // to poniżej wykonywane tylko raz, jedynie po wczytaniu eu07.ini*/
+
 #ifdef _WIN32
-		    Console::ModeSet(iFeedbackMode, iFeedbackPort); // tryb pracy konsoli sterowniczej
+    Console::ModeSet(iFeedbackMode, iFeedbackPort); // tryb pracy konsoli sterowniczej
 #endif
-            /*iFpsRadiusMax = 0.000025 * fFpsRadiusMax *
-                        fFpsRadiusMax; // maksymalny promień renderowania 3000.0 -> 225
-            if (iFpsRadiusMax > 400)
-                iFpsRadiusMax = 400;
-            if (fDistanceFactor > 1.0)
-            { // dla 1.0 specjalny tryb bez przeliczania
-                fDistanceFactor =
-                    iWindowHeight /
-                fDistanceFactor; // fDistanceFactor>1.0 dla rozdzielczości większych niż bazowa
-                fDistanceFactor *=
-                    (iMultisampling + 1.0) *
-                fDistanceFactor; // do kwadratu, bo większość odległości to ich kwadraty
-            }
-        }
-    */
 }

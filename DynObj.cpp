@@ -956,7 +956,7 @@ void TDynamicObject::ABuLittleUpdate(double ObjSqrDist)
             btnOn = true;
         }
         // else btCPass2.TurnOff();
-        if (MoverParameters->Battery || MoverParameters->ConverterFlag)
+        if (MoverParameters->Power24vIsAvailable || MoverParameters->Power110vIsAvailable)
         { // sygnaly konca pociagu
             if (btEndSignals1.Active())
             {
@@ -1056,7 +1056,7 @@ void TDynamicObject::ABuLittleUpdate(double ObjSqrDist)
 
     } // vehicle within 400m
 
-    if( MoverParameters->Battery || MoverParameters->ConverterFlag )
+    if( MoverParameters->Power24vIsAvailable || MoverParameters->Power110vIsAvailable )
     { // sygnały czoła pociagu //Ra: wyświetlamy bez
         // ograniczeń odległości, by były widoczne z
         // daleka
@@ -2782,8 +2782,10 @@ void TDynamicObject::update_destinations() {
 
     if( DestinationSign.sign == nullptr ) { return; }
 
+    auto const lowvoltagepower { ( MoverParameters->Power24vIsAvailable || MoverParameters->Power110vIsAvailable ) };
+
     DestinationSign.sign->fLight = (
-        ( ( DestinationSign.has_light ) && ( MoverParameters->Battery ) ) ?
+        ( ( DestinationSign.has_light ) && ( lowvoltagepower ) ) ?
              2.0 :
             -1.0 );
 
@@ -2793,7 +2795,7 @@ void TDynamicObject::update_destinations() {
     m_materialdata.replacable_skins[ 4 ] = (
         ( ( DestinationSign.destination != null_handle )
        && ( ( false == DestinationSign.has_light ) // physical destination signs remain up until manually changed
-         || ( ( true == MoverParameters->Battery ) // lcd signs are off without power
+         || ( ( lowvoltagepower ) // lcd signs are off without power
            && ( ctOwner != nullptr ) ) ) ) ? // lcd signs are off for carriages without engine, potentially left on a siding
             DestinationSign.destination :
             DestinationSign.destination_off );
@@ -2905,7 +2907,7 @@ bool TDynamicObject::Update(double dt, double dt1)
                          || MoverParameters->Pantographs[end::rear].is_active ) {
 
                             if( ( MoverParameters->Mains )
-                             && ( MoverParameters->GetAnyTrainsetVoltage() < 0.1f ) ) {
+                             && ( MoverParameters->GetTrainsetHighVoltage() < 0.1f ) ) {
                                    // Ra 15-01: logować tylko, jeśli WS załączony
                                    // yB 16-03: i nie jest to asynchron zasilany z daleka 
                                    // Ra 15-01: bezwzględne współrzędne pantografu nie są dostępne,
@@ -3275,8 +3277,7 @@ bool TDynamicObject::Update(double dt, double dt1)
 
     // fragment "z EXE Kursa"
     if( MoverParameters->Mains ) { // nie wchodzić w funkcję bez potrzeby
-        if( ( false == MoverParameters->Battery )
-         && ( false == MoverParameters->ConverterFlag ) // added alternative power source. TODO: more generic power check
+        if( ( false == ( MoverParameters->Power24vIsAvailable || MoverParameters->Power110vIsAvailable ) )
 /*
           // NOTE: disabled on account of multi-unit setups, where the unmanned unit wouldn't be affected
             && ( Controller == Humandriver )
@@ -3607,8 +3608,7 @@ bool TDynamicObject::Update(double dt, double dt1)
             else {
                 pantspeedfactor = 0.0;
             }
-            if( ( false == MoverParameters->Battery )
-             && ( false == MoverParameters->ConverterFlag ) ) {
+            if( false == ( MoverParameters->Power24vIsAvailable || MoverParameters->Power110vIsAvailable ) ) {
                 pantspeedfactor = 0.0;
             }
             pantspeedfactor = std::max( 0.0, pantspeedfactor );
@@ -3952,7 +3952,7 @@ void TDynamicObject::RenderSounds() {
     // NBMX dzwiek przetwornicy
     if( MoverParameters->ConverterFlag ) {
         if( MoverParameters->EngineType == TEngineType::ElectricSeriesMotor ) {
-            auto const voltage { std::max( MoverParameters->GetAnyTrainsetVoltage(), MoverParameters->PantographVoltage ) };
+            auto const voltage { std::max( MoverParameters->GetTrainsetHighVoltage(), MoverParameters->PantographVoltage ) };
             if( voltage > 0.0 ) {
                 // NOTE: we do sound modulation here to avoid sudden jump on voltage loss
                 frequency = ( voltage / ( MoverParameters->NominalVoltage * MoverParameters->RList[ MoverParameters->RlistSize ].Mn ) );
@@ -4171,9 +4171,11 @@ void TDynamicObject::RenderSounds() {
     }
     // NBMX sygnal odjazdu
     if( MoverParameters->Doors.has_warning ) {
+        auto const lowvoltagepower { MoverParameters->Power24vIsAvailable || MoverParameters->Power110vIsAvailable };
         for( auto &departuresignalsound : m_departuresignalsounds ) {
             // TBD, TODO: per-location door state triggers?
             if( ( MoverParameters->DepartureSignal )
+             && ( lowvoltagepower )
 /*
              || ( ( MoverParameters->DoorCloseCtrl = control::autonomous )
                && ( ( ( false == MoverParameters->DoorLeftOpened )  && ( dDoorMoveL > 0.0 ) )
@@ -6209,7 +6211,9 @@ void TDynamicObject::Damage(char flag)
 
 	if (flag & 4)  //blokada przetwornicy
 	{
-		MoverParameters->ConvOvldFlag = true;
+        if( MoverParameters->ConverterStart != start_t::disabled ) {
+            MoverParameters->ConvOvldFlag = true;
+        }
 	}
 	else
 	{
@@ -6522,7 +6526,7 @@ TDynamicObject::find_vehicle( int const Direction, double const Distance ) const
     return { foundobject, foundcoupler, distance, true };
 }
 
-TDynamicObject * TDynamicObject::ControlledFind()
+TDynamicObject * TDynamicObject::FindPowered()
 { // taka proteza:
     // chcę podłączyć kabinę EN57 bezpośrednio z silnikowym, aby nie robić tego przez ukrotnienie
     // drugi silnikowy i tak musi być ukrotniony, podobnie jak kolejna jednostka
@@ -6533,33 +6537,42 @@ TDynamicObject * TDynamicObject::ControlledFind()
     // problematyczna może być kwestia wybranej kabiny (w silnikowym...)
     // jeśli silnikowy będzie zapięty odwrotnie (tzn. -1), to i tak powinno jeździć dobrze
     // również hamowanie wykonuje się zaworem w członie, a nie w silnikowym...
-    if( MoverParameters->Power > 1.0 ) { return this; }
+    auto const coupling { (
+        ( MoverParameters->TrainType == dt_EZT ) || ( MoverParameters->TrainType == dt_DMU ) ) ?
+            coupling::permanent :
+            coupling::control };
 
-    auto const couplingtype { (
-        ( MoverParameters->TrainType == dt_EZT )
-     || ( MoverParameters->TrainType == dt_DMU ) ) ?
-        coupling::permanent :
-        coupling::control
-    };
-    // try first to look towards the rear
-    auto *d = this; // zaczynamy od aktualnego
+    auto *lookup {
+        find_vehicle(
+            coupling,
+            []( TDynamicObject * vehicle ) {
+                return ( vehicle->MoverParameters->Power > 1.0 ); } ) };
 
-    while( ( d = d->NextC( couplingtype ) ) != nullptr ) {
-        if( d->MoverParameters->Power > 1.0 ) {
-            return d;
+    return( lookup != nullptr ? lookup : this ); // always return valid vehicle for backward compatibility
+}
+
+TDynamicObject *
+TDynamicObject::FindPantographCarrier() {
+
+    // try first within a single unit, broaden to all vehicles under our control if first attempt fails
+    std::array<coupling, 2> const couplings = { coupling::permanent, coupling::control };
+
+    for( auto const coupling : couplings ) {
+        auto *result =
+            find_vehicle(
+                coupling,
+                []( TDynamicObject * vehicle ) {
+                    return (
+                        ( vehicle->MoverParameters->EnginePowerSource.SourceType == TPowerSource::CurrentCollector )
+                     && ( vehicle->MoverParameters->EnginePowerSource.CollectorParameters.CollectorsNo > 0 ) ); } );
+        if( result != nullptr ) {
+            return result;
         }
     }
-    // if we didn't yet find a suitable vehicle try in the other direction
-    d = this; // zaczynamy od aktualnego
+    // if we're still here, admit failure
+    return nullptr;
+}
 
-    while( ( d = d->PrevC( couplingtype ) ) != nullptr ) {
-        if( d->MoverParameters->Power > 1.0 ) {
-            return d;
-        }
-    }
-    // if we still don't have a match give up
-    return this;
-};
 //---------------------------------------------------------------------------
 
 void TDynamicObject::ParamSet(int what, int into)

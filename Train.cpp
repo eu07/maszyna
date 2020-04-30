@@ -545,14 +545,14 @@ dictionary_source *TTrain::GetTrainState() {
     dict->insert( "name", DynamicObject->asName );
     dict->insert( "cab", mvOccupied->CabOccupied );
     // basic systems state data
-    dict->insert( "battery", mvControlled->Battery );
+    dict->insert( "battery", mvOccupied->Power24vIsAvailable );
     dict->insert( "linebreaker", mvControlled->Mains );
     dict->insert( "main_init", ( mvControlled->MainsInitTimeCountdown < mvControlled->MainsInitTime ) && ( mvControlled->MainsInitTimeCountdown > 0.0 ) );
     dict->insert( "main_ready", ( false == mvControlled->Mains ) && ( fHVoltage > 0.0 ) && ( mvControlled->MainsInitTimeCountdown <= 0.0 ) );
-    dict->insert( "converter", mvControlled->ConverterFlag );
+    dict->insert( "converter", mvOccupied->Power110vIsAvailable );
     dict->insert( "converter_overload", mvControlled->ConvOvldFlag );
     dict->insert( "compress", mvControlled->CompressorFlag );
-    dict->insert( "pant_compressor", mvControlled->PantCompFlag );
+    dict->insert( "pant_compressor", mvPantographUnit->PantCompFlag );
     dict->insert( "lights_front", mvOccupied->iLights[ end::front ] );
     dict->insert( "lights_rear", mvOccupied->iLights[ end::rear ] );
     dict->insert( "lights_compartments", mvOccupied->CompartmentLights.is_active || mvOccupied->CompartmentLights.is_disabled );
@@ -606,7 +606,7 @@ dictionary_source *TTrain::GetTrainState() {
     dict->insert( "ca", TestFlag( mvOccupied->SecuritySystem.Status, s_aware ) );
     dict->insert( "shp", TestFlag( mvOccupied->SecuritySystem.Status, s_active ) );
     dict->insert( "distance_counter", m_distancecounter );
-    dict->insert( "pantpress", std::abs( mvControlled->PantPress ) );
+    dict->insert( "pantpress", std::abs( mvPantographUnit->PantPress ) );
     dict->insert( "universal3", InstrumentLightActive );
     dict->insert( "radio_channel", RadioChannel() );
 	dict->insert( "radio_volume", Global.RadioVolume );
@@ -617,7 +617,7 @@ dictionary_source *TTrain::GetTrainState() {
     dict->insert( "slipping_wheels", mvOccupied->SlippingWheels );
     dict->insert( "sanding", mvOccupied->SandDose );
     // electric current data
-    dict->insert( "traction_voltage", std::abs( mvControlled->PantographVoltage ) );
+    dict->insert( "traction_voltage", std::abs( mvPantographUnit->PantographVoltage ) );
     dict->insert( "voltage", std::abs( mvControlled->EngineVoltage ) );
     dict->insert( "im", std::abs(  mvControlled->Im ) );
     dict->insert( "fuse", mvControlled->FuseFlag );
@@ -745,7 +745,7 @@ bool TTrain::is_eztoer() const {
     return
         ( ( mvControlled->TrainType == dt_EZT )
        && ( mvOccupied->BrakeSubsystem == TBrakeSubSystem::ss_ESt )
-       && ( mvControlled->Battery == true )
+       && ( mvControlled->Power24vIsAvailable == true )
        && ( mvControlled->EpFuse == true )
        && ( mvControlled->DirActive != 0 ) ); // od yB
 }
@@ -2068,7 +2068,7 @@ void TTrain::OnCommand_batterytoggle( TTrain *Train, command_data const &Command
 
     if( Command.action != GLFW_REPEAT ) {
         // keep the switch from flipping back and forth if key is held down
-        if( false == Train->mvOccupied->Battery ) {
+        if( false == Train->mvOccupied->Power24vIsAvailable ) {
             // turn on
             OnCommand_batteryenable( Train, Command );
         }
@@ -2086,18 +2086,11 @@ void TTrain::OnCommand_batteryenable( TTrain *Train, command_data const &Command
         Train->ggBatteryButton.UpdateValue( 1.0f, Train->dsbSwitch );
         Train->ggBatteryOnButton.UpdateValue( 1.0f, Train->dsbSwitch );
 
-        if( true == Train->mvOccupied->Battery ) { return; } // already on
+        Train->mvOccupied->BatterySwitch( true );
 
-        if( Train->mvOccupied->BatterySwitch( true ) ) {
-            // side-effects
-            if( Train->mvOccupied->LightsPosNo > 0 ) {
-                Train->SetLights();
-            }
-            if( TestFlag( Train->mvOccupied->SecuritySystem.SystemType, 2 ) ) {
-                // Ra: znowu w kabinie jest coś, co być nie powinno!
-                SetFlag( Train->mvOccupied->SecuritySystem.Status, s_active );
-                SetFlag( Train->mvOccupied->SecuritySystem.Status, s_SHPalarm );
-            }
+        // side-effects
+        if( Train->mvOccupied->LightsPosNo > 0 ) {
+            Train->SetLights();
         }
     }
     else if( Command.action == GLFW_RELEASE ) {
@@ -2115,8 +2108,6 @@ void TTrain::OnCommand_batterydisable( TTrain *Train, command_data const &Comman
         // visual feedback
         Train->ggBatteryButton.UpdateValue( 0.0f, Train->dsbSwitch );
         Train->ggBatteryOffButton.UpdateValue( 1.0f, Train->dsbSwitch );
-
-        if( false == Train->mvOccupied->Battery ) { return; } // already off
 
         Train->mvOccupied->BatterySwitch( false );
     }
@@ -2136,7 +2127,7 @@ void TTrain::OnCommand_pantographtogglefront( TTrain *Train, command_data const 
 
     if( Command.action == GLFW_PRESS ) {
         // only reacting to press, so the switch doesn't flip back and forth if key is held down
-        auto const &pantograph { Train->mvControlled->Pantographs[ end::front ] };
+        auto const &pantograph { Train->mvPantographUnit->Pantographs[ end::front ] };
         auto const state {
             pantograph.valve.is_enabled
          || pantograph.is_active }; // fallback for impulse switches
@@ -2150,7 +2141,7 @@ void TTrain::OnCommand_pantographtogglefront( TTrain *Train, command_data const 
     else if( Command.action == GLFW_RELEASE ) {
         // impulse switches return automatically to neutral position
         if( Train->mvOccupied->PantSwitchType == "impulse" ) {
-            Train->mvControlled->OperatePantographValve( end::front, operation_t::none );
+            Train->mvOccupied->OperatePantographValve( end::front, operation_t::none );
         }
     }
 }
@@ -2162,7 +2153,7 @@ void TTrain::OnCommand_pantographtogglerear( TTrain *Train, command_data const &
 
     if( Command.action == GLFW_PRESS ) {
         // only reacting to press, so the switch doesn't flip back and forth if key is held down
-        auto const &pantograph { Train->mvControlled->Pantographs[ end::rear ] };
+        auto const &pantograph { Train->mvPantographUnit->Pantographs[ end::rear ] };
         auto const state {
             pantograph.valve.is_enabled
          || pantograph.is_active }; // fallback for impulse switches
@@ -2176,7 +2167,7 @@ void TTrain::OnCommand_pantographtogglerear( TTrain *Train, command_data const &
     else if( Command.action == GLFW_RELEASE ) {
         // impulse switches return automatically to neutral position
         if( Train->mvOccupied->PantSwitchType == "impulse" ) {
-            Train->mvControlled->OperatePantographValve( end::rear, operation_t::none );
+            Train->mvOccupied->OperatePantographValve( end::rear, operation_t::none );
         }
     }
 }
@@ -2191,7 +2182,7 @@ void TTrain::OnCommand_pantographraisefront( TTrain *Train, command_data const &
 
     if( Command.action == GLFW_PRESS ) {
         // only reacting to press, so the switch doesn't flip back and forth if key is held down
-        Train->mvControlled->OperatePantographValve( end::front,
+        Train->mvOccupied->OperatePantographValve( end::front,
             Train->mvOccupied->PantSwitchType == "impulse" ?
                 operation_t::enable_on :
                 operation_t::enable );
@@ -2212,7 +2203,7 @@ void TTrain::OnCommand_pantographraiserear( TTrain *Train, command_data const &C
 
     if( Command.action == GLFW_PRESS ) {
         // only reacting to press, so the switch doesn't flip back and forth if key is held down
-        Train->mvControlled->OperatePantographValve( end::rear,
+        Train->mvOccupied->OperatePantographValve( end::rear,
              Train->mvOccupied->PantSwitchType == "impulse" ?
                 operation_t::enable_on :
                 operation_t::enable );
@@ -2238,7 +2229,7 @@ void TTrain::OnCommand_pantographlowerfront( TTrain *Train, command_data const &
 
     if( Command.action == GLFW_PRESS ) {
         // only reacting to press, so the switch doesn't flip back and forth if key is held down
-        Train->mvControlled->OperatePantographValve( end::front,
+        Train->mvOccupied->OperatePantographValve( end::front,
             Train->mvOccupied->PantSwitchType == "impulse" ?
                 operation_t::disable_on :
                 operation_t::disable );
@@ -2263,7 +2254,7 @@ void TTrain::OnCommand_pantographlowerrear( TTrain *Train, command_data const &C
 
     if( Command.action == GLFW_PRESS ) {
         // only reacting to press, so the switch doesn't flip back and forth if key is held down
-        Train->mvControlled->OperatePantographValve( end::rear,
+        Train->mvOccupied->OperatePantographValve( end::rear,
             Train->mvOccupied->PantSwitchType == "impulse" ?
                 operation_t::disable_on :
                 operation_t::disable );
@@ -2289,9 +2280,9 @@ void TTrain::OnCommand_pantographlowerall( TTrain *Train, command_data const &Co
     if( Train->ggPantAllDownButton.type() == TGaugeType::toggle ) {
         // two-state switch, only cares about press events
         if( Command.action == GLFW_PRESS ) {
-            Train->mvControlled->DropAllPantographs( false == Train->mvControlled->PantAllDown );
+            Train->mvPantographUnit->DropAllPantographs( false == Train->mvPantographUnit->PantAllDown );
             // visual feedback
-            Train->ggPantAllDownButton.UpdateValue( ( Train->mvControlled->PantAllDown ? 1.0 : 0.0 ), Train->dsbSwitch );
+            Train->ggPantAllDownButton.UpdateValue( ( Train->mvPantographUnit->PantAllDown ? 1.0 : 0.0 ), Train->dsbSwitch );
         }
     }
     else {
@@ -2327,8 +2318,8 @@ void TTrain::OnCommand_pantographtoggleselected( TTrain *Train, command_data con
     if( Command.action == GLFW_PRESS ) {
         // only reacting to press, so the switch doesn't flip back and forth if key is held down
         auto const state {
-            Train->mvControlled->PantsValve.is_enabled
-          | Train->mvControlled->PantsValve.is_active }; // fallback for impulse switches
+            Train->mvPantographUnit->PantsValve.is_enabled
+          | Train->mvPantographUnit->PantsValve.is_active }; // fallback for impulse switches
         if( state ) {
             OnCommand_pantographlowerselected( Train, Command );
         }
@@ -2341,12 +2332,12 @@ void TTrain::OnCommand_pantographtoggleselected( TTrain *Train, command_data con
         if( Train->m_controlmapper.contains( "pantselectedoff_sw:" ) ) {
             // two buttons setup
             if( Train->ggPantSelectedButton.type() != TGaugeType::toggle ) {
-                Train->mvControlled->OperatePantographsValve( operation_t::enable_off );
+                Train->mvOccupied->OperatePantographsValve( operation_t::enable_off );
                 // visual feedback
                 Train->ggPantSelectedButton.UpdateValue( 0.0, Train->dsbSwitch );
             }
             if( Train->ggPantSelectedDownButton.type() != TGaugeType::toggle ) {
-                Train->mvControlled->OperatePantographsValve( operation_t::disable_off );
+                Train->mvOccupied->OperatePantographsValve( operation_t::disable_off );
                 // visual feedback
                 Train->ggPantSelectedDownButton.UpdateValue( 0.0, Train->dsbSwitch );
             }
@@ -2355,7 +2346,7 @@ void TTrain::OnCommand_pantographtoggleselected( TTrain *Train, command_data con
             if( Train->ggPantSelectedButton.type() != TGaugeType::toggle ) {
                 // special case, just one impulse switch controlling both states
                 // with neutral position mid-way
-                Train->mvControlled->OperatePantographsValve( operation_t::none );
+                Train->mvOccupied->OperatePantographsValve( operation_t::none );
                 // visual feedback
                 Train->ggPantSelectedButton.UpdateValue( 0.5, Train->dsbSwitch );
             }
@@ -2369,7 +2360,7 @@ void TTrain::OnCommand_pantographraiseselected( TTrain *Train, command_data cons
 
     if( Command.action == GLFW_PRESS ) {
         // raise selected
-        Train->mvControlled->OperatePantographsValve(
+        Train->mvOccupied->OperatePantographsValve(
             Train->ggPantSelectedButton.type() != TGaugeType::toggle ?
                 operation_t::enable_on :
                 operation_t::enable );
@@ -2388,7 +2379,7 @@ void TTrain::OnCommand_pantographlowerselected( TTrain *Train, command_data cons
 
     if( Command.action == GLFW_PRESS ) {
         // lower selected
-        Train->mvControlled->OperatePantographsValve(
+        Train->mvOccupied->OperatePantographsValve(
             Train->ggPantSelectedDownButton.type() != TGaugeType::toggle ?
                 operation_t::disable_on :
                 operation_t::disable );
@@ -2424,8 +2415,8 @@ void TTrain::change_pantograph_selection( int const Change ) {
     auto const frontstate{ ( m_pantselection == 2 ) || ( m_pantselection == ( swapends ? 1 : 3 ) ) };
     auto const rearstate{ ( m_pantselection == 2 ) || ( m_pantselection == ( swapends ? 3 : 1 ) ) };
     // potentially adjust pantograph valves
-    mvControlled->OperatePantographValve( end::front, ( frontstate ? operation_t::enable : operation_t::disable ) );
-    mvControlled->OperatePantographValve( end::rear, ( rearstate ? operation_t::enable : operation_t::disable ) );
+    mvOccupied->OperatePantographValve( end::front, ( frontstate ? operation_t::enable : operation_t::disable ) );
+    mvOccupied->OperatePantographValve( end::rear, ( rearstate ? operation_t::enable : operation_t::disable ) );
 }
 
 void TTrain::OnCommand_pantographcompressorvalvetoggle( TTrain *Train, command_data const &Command ) {
@@ -2489,7 +2480,7 @@ void TTrain::OnCommand_pantographcompressoractivate( TTrain *Train, command_data
 
     if( ( Train->ggPantCompressorValve.SubModel == nullptr )
      && ( Train->mvControlled->TrainType == dt_EZT ?
-            ( Train->mvControlled != Train->mvOccupied ) :
+            ( Train->mvOccupied == Train->mvPantographUnit ) :
             ( Train->iCabn != 0 ) ) ) {
         // tylko w maszynowym
         return;
@@ -2497,17 +2488,17 @@ void TTrain::OnCommand_pantographcompressoractivate( TTrain *Train, command_data
 
     if( Command.action != GLFW_RELEASE ) {
         // press or hold to activate
-        if( ( Train->mvControlled->PantPress < 4.8 )
-         && ( true == Train->mvControlled->Battery ) ) {
+        if( ( Train->mvPantographUnit->PantPress < 4.8 )
+         && ( true == Train->mvPantographUnit->Power24vIsAvailable ) ) {
             // needs live power source and low enough pressure to work
-            Train->mvControlled->PantCompFlag = true;
+            Train->mvPantographUnit->PantCompFlag = true;
         }
         // visual feedback
         Train->ggPantCompressorButton.UpdateValue( 1.0 );
     }
     else {
         // release to disable
-        Train->mvControlled->PantCompFlag = false;
+        Train->mvPantographUnit->PantCompFlag = false;
         // visual feedback
         Train->ggPantCompressorButton.UpdateValue( 0.0 );
     }
@@ -3021,7 +3012,7 @@ void TTrain::OnCommand_convertertoggle( TTrain *Train, command_data const &Comma
 
     if( Command.action == GLFW_PRESS ) {
         // only reacting to press, so the switch doesn't flip back and forth if key is held down
-        if( ( false == Train->mvControlled->ConverterAllow )
+        if( ( false == Train->mvOccupied->Power110vIsAvailable )
          && ( Train->ggConverterButton.GetValue() < 0.5 ) ) {
             // turn on
             OnCommand_converterenable( Train, Command );
@@ -3043,30 +3034,16 @@ void TTrain::OnCommand_convertertoggle( TTrain *Train, command_data const &Comma
 
 void TTrain::OnCommand_converterenable( TTrain *Train, command_data const &Command ) {
 
-    if( Train->mvControlled->ConverterStart == start_t::automatic ) {
-        // let the automatic thing do its automatic thing...
-        return;
-    }
-
     if( Command.action == GLFW_PRESS ) {
         // visual feedback
         Train->ggConverterButton.UpdateValue( 1.0, Train->dsbSwitch );
-
-        if( true == Train->mvControlled->ConverterAllow ) { return; } // already enabled
 
         // impulse type switch has no effect if there's no power
         // NOTE: this is most likely setup wrong, but the whole thing is smoke and mirrors anyway
         if( ( Train->mvOccupied->ConvSwitchType != "impulse" )
          || ( Train->mvControlled->Mains ) ) {
-               // won't start if the line breaker button is still held
-            if( true == Train->mvControlled->ConverterSwitch( true ) ) {
-                // side effects
-                // control the compressor, if it's paired with the converter
-                if( Train->mvControlled->CompressorPower == 2 ) {
-                    // hunter-091012: tak jest poprawnie
-                    Train->mvControlled->CompressorSwitch( true );
-                }
-            }
+            // won't start if the line breaker button is still held
+            Train->mvOccupied->ConverterSwitch( true );
         }
     }
     else if( Command.action == GLFW_RELEASE ) {
@@ -3077,11 +3054,6 @@ void TTrain::OnCommand_converterenable( TTrain *Train, command_data const &Comma
 
 void TTrain::OnCommand_converterdisable( TTrain *Train, command_data const &Command ) {
 
-    if( Train->mvControlled->ConverterStart == start_t::automatic ) {
-        // let the automatic thing do its automatic thing...
-        return;
-    }
-
     if( Command.action == GLFW_PRESS ) {
         // visual feedback
         Train->ggConverterButton.UpdateValue( 0.0, Train->dsbSwitch );
@@ -3089,20 +3061,7 @@ void TTrain::OnCommand_converterdisable( TTrain *Train, command_data const &Comm
             Train->ggConverterOffButton.UpdateValue( 1.0, Train->dsbSwitch );
         }
 
-        if( false == Train->mvControlled->ConverterAllow ) { return; } // already disabled
-
-        if( true == Train->mvControlled->ConverterSwitch( false ) ) {
-            // side effects
-            // control the compressor, if it's paired with the converter
-            if( Train->mvControlled->CompressorPower == 2 ) {
-                // hunter-091012: tak jest poprawnie
-                Train->mvControlled->CompressorSwitch( false );
-            }
-            if( ( Train->mvControlled->TrainType == dt_EZT )
-             && ( false == TestFlag( Train->mvControlled->EngDmgFlag, 4 ) ) ) {
-                Train->mvControlled->ConvOvldFlag = false;
-            }
-        }
+        Train->mvOccupied->ConverterSwitch( false );
     }
     else if( Command.action == GLFW_RELEASE ) {
         // potentially reset impulse switch position, using shared code branch
@@ -3190,7 +3149,12 @@ void TTrain::OnCommand_compressortoggle( TTrain *Train, command_data const &Comm
 
     if( Command.action == GLFW_PRESS ) {
         // only reacting to press, so the switch doesn't flip back and forth if key is held down
-        if( false == Train->mvControlled->CompressorAllow ) {
+        auto const compressorisenabled { (
+            Train->Dynamic()->Mechanik ?
+                Train->Dynamic()->Mechanik->IsAnyCompressorEnabled :
+                Train->mvOccupied->CompressorAllow ) };
+
+        if( false == compressorisenabled ) {
             // turn on
             OnCommand_compressorenable( Train, Command );
         }
@@ -3214,22 +3178,16 @@ void TTrain::OnCommand_compressortoggle( TTrain *Train, command_data const &Comm
 
 void TTrain::OnCommand_compressorenable( TTrain *Train, command_data const &Command ) {
 
-    if( Train->mvControlled->CompressorPower >= 2 ) {
-        return;
-    }
-
     if( Command.action == GLFW_PRESS ) {
         // visual feedback
         Train->ggCompressorButton.UpdateValue( 1.0, Train->dsbSwitch );
-
-        if( true == Train->mvControlled->CompressorAllow ) { return; } // already enabled
 
         // impulse type switch has no effect if there's no power
         // NOTE: this is most likely setup wrong, but the whole thing is smoke and mirrors anyway
 //        if( ( Train->mvOccupied->CompSwitchType != "impulse" )
 //         || ( Train->mvControlled->Mains ) ) {
 
-            Train->mvControlled->CompressorSwitch( true );
+            Train->mvOccupied->CompressorSwitch( true );
 //        }
     }
     else if( Command.action == GLFW_RELEASE ) {
@@ -3251,9 +3209,7 @@ void TTrain::OnCommand_compressordisable( TTrain *Train, command_data const &Com
             Train->ggCompressorOffButton.UpdateValue( 1.0, Train->dsbSwitch );
         }
 */
-        if( false == Train->mvControlled->CompressorAllow ) { return; } // already disabled
-
-        Train->mvControlled->CompressorSwitch( false );
+        Train->mvOccupied->CompressorSwitch( false );
     }
     else if( Command.action == GLFW_RELEASE ) {
         // potentially reset impulse switch position, using shared code branch
@@ -5695,7 +5651,7 @@ void TTrain::OnCommand_radiostopsend( TTrain *Train, command_data const &Command
 
     if( Command.action == GLFW_PRESS ) {
         if( ( true == Train->mvOccupied->Radio )
-         && ( Train->mvControlled->Battery || Train->mvControlled->ConverterFlag ) ) {
+         && ( Train->mvOccupied->Power24vIsAvailable || Train->mvOccupied->Power110vIsAvailable ) ) {
             simulation::Region->RadioStop( Train->Dynamic()->GetPosition() );
         }
         // visual feedback
@@ -5712,7 +5668,7 @@ void TTrain::OnCommand_radiostoptest( TTrain *Train, command_data const &Command
     if( Command.action == GLFW_PRESS ) {
         if( ( Train->RadioChannel() == 10 )
          && ( true == Train->mvOccupied->Radio )
-         && ( Train->mvControlled->Battery || Train->mvControlled->ConverterFlag ) ) {
+         && ( Train->mvOccupied->Power24vIsAvailable || Train->mvOccupied->Power110vIsAvailable ) ) {
             Train->Dynamic()->RadioStop();
         }
         // visual feedback
@@ -5729,7 +5685,7 @@ void TTrain::OnCommand_radiocall3send( TTrain *Train, command_data const &Comman
     if( Command.action == GLFW_PRESS ) {
         if( ( Train->RadioChannel() != 10 )
          && ( true == Train->mvOccupied->Radio )
-         && ( Train->mvControlled->Battery || Train->mvControlled->ConverterFlag ) ) {
+         && ( Train->mvOccupied->Power24vIsAvailable || Train->mvOccupied->Power110vIsAvailable) ) {
             simulation::Events.queue_receivers( radio_message::call3, Train->Dynamic()->GetPosition() );
         }
         // visual feedback
@@ -5912,13 +5868,7 @@ bool TTrain::Update( double const Deltatime )
      || ( ( ggMainOnButton.SubModel != nullptr ) && ( ggMainOnButton.GetDesiredValue() > 0.95 )
      || ( ggIgnitionKey.GetDesiredValue() > 0.95 ) ) ) { // HACK: fallback
         // keep track of period the line breaker button is held down, to determine when/if circuit closes
-        if( ( mvControlled->MainSwitchCheck() )
-         && ( ( fHVoltage > 0.5 * mvControlled->EnginePowerSource.MaxVoltage )
-           || ( ( mvControlled->EngineType != TEngineType::ElectricSeriesMotor )
-             && ( mvControlled->EngineType != TEngineType::ElectricInductionMotor )
-             && ( true == mvControlled->Battery ) ) ) ) {
-            // prevent the switch from working if there's no power
-            // TODO: consider whether it makes sense for diesel engines and such
+        if( mvControlled->MainSwitchCheck() ) {
             fMainRelayTimer += Deltatime;
         }
     }
@@ -6034,7 +5984,7 @@ bool TTrain::Update( double const Deltatime )
      && ( mvControlled->EngineType != TEngineType::ElectricInductionMotor ) ) { // Ra 2014-09: czy taki rozdzia? ma sens?
         fHVoltage = std::max(
             mvControlled->PantographVoltage,
-            mvControlled->GetAnyTrainsetVoltage() ); // Winger czy to nie jest zle?
+            mvControlled->GetTrainsetHighVoltage() ); // Winger czy to nie jest zle?
     }
     // *mvControlled->Mains);
     else {
@@ -6253,7 +6203,7 @@ bool TTrain::Update( double const Deltatime )
     else
         fConverterTimer = 0;
     //------------------
-    auto const lowvoltagepower { mvControlled->Battery || mvControlled->ConverterFlag };
+    auto const lowvoltagepower { mvOccupied->Power24vIsAvailable || mvOccupied->Power110vIsAvailable };
 
     // youBy - prad w drugim czlonie: galaz lub calosc
     {
@@ -6356,11 +6306,11 @@ bool TTrain::Update( double const Deltatime )
         // TODO: implement object-based circuits and power systems model so we can have this working more properly
         ggLVoltage.UpdateValue(
             std::max(
-                ( mvControlled->ConverterFlag ?
-                    mvControlled->NominalBatteryVoltage :
+                ( mvOccupied->Power110vIsAvailable ?
+                    mvOccupied->NominalBatteryVoltage :
                     0.0 ),
-                ( mvControlled->Battery ?
-                    mvControlled->BatteryVoltage :
+                ( mvOccupied->Power24vIsAvailable ?
+                    mvOccupied->BatteryVoltage :
                     0.0 ) ) );
         ggLVoltage.Update();
     }
@@ -6468,9 +6418,9 @@ bool TTrain::Update( double const Deltatime )
                 false :
                 true ) );
 
-        btLampkaPrzetw.Turn( mvControlled->ConverterFlag );
-        btLampkaPrzetwOff.Turn( false == mvControlled->ConverterFlag );
-        btLampkaNadmPrzetw.Turn( mvControlled->ConvOvldFlag );
+        btLampkaPrzetw.Turn( mvOccupied->Power110vIsAvailable );
+        btLampkaPrzetwOff.Turn( false == mvOccupied->Power110vIsAvailable );
+        btLampkaNadmPrzetw.Turn( Dynamic()->Mechanik ? Dynamic()->Mechanik->IsAnyConverterOverloadRelayOpen : mvControlled->ConvOvldFlag );
 
         btLampkaOpory.Turn(
             mvControlled->StLinFlag ?
@@ -6721,7 +6671,15 @@ bool TTrain::Update( double const Deltatime )
                     btLampkaStycznB.Turn( true ); // mozna prowadzic rozruch
                 }
                 // hunter-271211: sygnalizacja poslizgu w pierwszym pojezdzie, gdy wystapi w drugim
-                btLampkaPoslizg.Turn( mover->SlippingWheels );
+                if( mover->SlippingWheels ) {
+                    // Ra 2014-12: lokomotywy 181/182 dostają SlippingWheels po zahamowaniu powyżej 2.85 bara i buczały
+                    auto const veldiff { ( DynamicObject->GetVelocity() - fTachoVelocity ) / mvControlled->Vmax };
+                    if( veldiff < -0.01 ) {
+                        // 1% Vmax rezerwy, żeby 181/182 nie buczały po zahamowaniu, ale to proteza
+                        auto const lightstate { std::abs( mover->Im ) > 10.0 };
+                        btLampkaPoslizg.Turn( btLampkaPoslizg.GetValue() || lightstate );
+                    }
+                }
 
                 btLampkaSprezarkaB.Turn( mover->CompressorFlag ); // mutopsitka dziala
                 btLampkaSprezarkaBOff.Turn( false == mover->CompressorFlag );
@@ -6931,11 +6889,11 @@ bool TTrain::Update( double const Deltatime )
 
     // lights
     auto const lightpower { (
-        InstrumentLightType == 0 ? mvControlled->Battery || mvControlled->ConverterFlag :
+        InstrumentLightType == 0 ? mvOccupied->Power24vIsAvailable || mvOccupied->Power110vIsAvailable :
         InstrumentLightType == 1 ? mvControlled->Mains :
-        InstrumentLightType == 2 ? mvControlled->ConverterFlag :
-        InstrumentLightType == 3 ? mvControlled->Battery || mvControlled->ConverterFlag :
-        InstrumentLightType == 4 ? mvControlled->Battery || mvControlled->ConverterFlag :
+        InstrumentLightType == 2 ? mvOccupied->Power110vIsAvailable :
+        InstrumentLightType == 3 ? mvOccupied->Power24vIsAvailable || mvOccupied->Power110vIsAvailable :
+        InstrumentLightType == 4 ? mvOccupied->Power24vIsAvailable || mvOccupied->Power110vIsAvailable :
         false ) };
     InstrumentLightActive = (
         InstrumentLightType == 3 ? true : // TODO: link the light state with the state of the master key
@@ -7058,10 +7016,6 @@ bool TTrain::Update( double const Deltatime )
     // calculate current level of interior illumination
     {
         // TODO: organize it along with rest of train update in a more sensible arrangement
-        auto const converteractive{ (
-            ( mvOccupied->ConverterFlag )
-         || ( ( ( mvOccupied->Couplers[ end::front ].CouplingFlag & coupling::permanent ) != 0 ) && mvOccupied->Couplers[ end::front ].Connected->ConverterFlag )
-         || ( ( ( mvOccupied->Couplers[ end::rear ].CouplingFlag & coupling::permanent )  != 0 ) && mvOccupied->Couplers[ end::rear ].Connected->ConverterFlag ) ) };
         // Ra: uzeleżnic od napięcia w obwodzie sterowania
         // hunter-091012: uzaleznienie jasnosci od przetwornicy
         int cabidx { 0 };
@@ -7071,7 +7025,7 @@ bool TTrain::Update( double const Deltatime )
                 ( ( cab.bLight == false ) ? 0.f :
                   ( cab.bLightDim == true ) ? 0.4f :
                   1.f )
-                * ( converteractive ? 1.f : 0.5f );
+                * ( mvOccupied->Power110vIsAvailable ? 1.f : 0.5f );
 
             if( cab.LightLevel != cablightlevel ) {
                 cab.LightLevel = cablightlevel;
@@ -7300,37 +7254,6 @@ TTrain::update_sounds( double const Deltatime ) {
         rsHuntingNoise.stop( true == FreeFlyModeFlag );
     }
 
-    // McZapkie-141102: SHP i czuwak, TODO: sygnalizacja kabinowa
-    if (mvOccupied->SecuritySystem.Status != s_off ) {
-        // hunter-091012: rozdzielenie alarmow
-        if( TestFlag( mvOccupied->SecuritySystem.Status, s_CAalarm )
-         || TestFlag( mvOccupied->SecuritySystem.Status, s_SHPalarm ) ) {
-
-            if( false == dsbBuzzer.is_playing() ) {
-                dsbBuzzer
-                    .pitch( dsbBuzzer.m_frequencyoffset + dsbBuzzer.m_frequencyfactor )
-                    .gain( dsbBuzzer.m_amplitudeoffset + dsbBuzzer.m_amplitudefactor )
-                    .play( sound_flags::looping );
-                Console::BitsSet( 1 << 14 ); // ustawienie bitu 16 na PoKeys
-            }
-        }
-        else {
-            if( true == dsbBuzzer.is_playing() ) {
-                dsbBuzzer.stop();
-                Console::BitsClear( 1 << 14 ); // ustawienie bitu 16 na PoKeys
-            }
-        }
-    }
-    else {
-        // wylaczone
-        if( true == dsbBuzzer.is_playing() ) {
-            dsbBuzzer.stop();
-            Console::BitsClear( 1 << 14 ); // ustawienie bitu 16 na PoKeys
-        }
-    }
-
-    update_sounds_radio();
-
     if( fTachoCount >= 3.f ) {
         auto const frequency { (
             true == dsbHasler.is_combined() ?
@@ -7346,7 +7269,28 @@ TTrain::update_sounds( double const Deltatime ) {
     }
 
     // power-reliant sounds
-    if( mvControlled->Battery || mvControlled->ConverterFlag ) {
+    if( mvOccupied->Power24vIsAvailable || mvOccupied->Power110vIsAvailable ) {
+        // McZapkie-141102: SHP i czuwak, TODO: sygnalizacja kabinowa
+        if( mvOccupied->SecuritySystem.Status != s_off ) {
+            // hunter-091012: rozdzielenie alarmow
+            if( TestFlag( mvOccupied->SecuritySystem.Status, s_CAalarm )
+             || TestFlag( mvOccupied->SecuritySystem.Status, s_SHPalarm ) ) {
+
+                if( false == dsbBuzzer.is_playing() ) {
+                    dsbBuzzer
+                        .pitch( dsbBuzzer.m_frequencyoffset + dsbBuzzer.m_frequencyfactor )
+                        .gain( dsbBuzzer.m_amplitudeoffset + dsbBuzzer.m_amplitudefactor )
+                        .play( sound_flags::looping );
+                    Console::BitsSet( 1 << 14 ); // ustawienie bitu 16 na PoKeys
+                }
+            }
+            else {
+                if( true == dsbBuzzer.is_playing() ) {
+                    dsbBuzzer.stop();
+                    Console::BitsClear( 1 << 14 ); // ustawienie bitu 16 na PoKeys
+                }
+            }
+        }
         // distance meter alert
         auto const *owner { (
             DynamicObject->ctOwner != nullptr ?
@@ -7364,8 +7308,14 @@ TTrain::update_sounds( double const Deltatime ) {
     }
     else {
         // stop power-reliant sounds if power is cut
+        if( true == dsbBuzzer.is_playing() ) {
+            dsbBuzzer.stop();
+            Console::BitsClear( 1 << 14 ); // ustawienie bitu 16 na PoKeys
+        }
         m_distancecounterclear.stop();
     }
+
+    update_sounds_radio();
 }
 
 void TTrain::update_sounds_runningnoise( sound_source &Sound ) {
@@ -7434,7 +7384,7 @@ void TTrain::update_sounds_radio() {
             std::end( m_radiomessages ) );
     }
     // adjust audibility of remaining messages based on current radio conditions
-    auto const radioenabled { ( true == mvOccupied->Radio ) && ( mvControlled->Battery || mvControlled->ConverterFlag ) };
+    auto const radioenabled { ( true == mvOccupied->Radio ) && ( mvOccupied->Power24vIsAvailable || mvOccupied->Power110vIsAvailable ) };
     for( auto &message : m_radiomessages ) {
         auto const volume {
             ( true == radioenabled )
@@ -7455,7 +7405,7 @@ void TTrain::update_sounds_radio() {
 
 void TTrain::add_distance( double const Distance ) {
 
-    auto const meterenabled { ( true == ( m_distancecounter >= 0 ) ) && ( mvControlled->Battery || mvControlled->ConverterFlag ) };
+    auto const meterenabled { ( m_distancecounter >= 0 ) && ( mvOccupied->Power24vIsAvailable || mvOccupied->Power110vIsAvailable) };
 
     if( true == meterenabled ) { m_distancecounter += Distance * Occupied()->CabOccupied; }
     else                       { m_distancecounter  = -1.f; }
@@ -7467,7 +7417,7 @@ bool TTrain::CabChange(int iDirection)
      || ( true == DynamicObject->Mechanik->AIControllFlag ) ) {
         // jeśli prowadzi AI albo jest w innym członie
         // jak AI prowadzi, to nie można mu mieszać
-        if (abs(DynamicObject->MoverParameters->CabOccupied + iDirection) > 1)
+        if (std::abs(DynamicObject->MoverParameters->CabOccupied + iDirection) > 1)
             return false; // ewentualna zmiana pojazdu
         DynamicObject->MoverParameters->CabOccupied =
             DynamicObject->MoverParameters->CabOccupied + iDirection;
@@ -8056,7 +8006,7 @@ void TTrain::DynamicSet(TDynamicObject *d)
 
     if( DynamicObject == nullptr ) { return; }
 
-    mvControlled = DynamicObject->ControlledFind()->MoverParameters;
+    mvControlled = DynamicObject->FindPowered()->MoverParameters;
     mvSecond = NULL; // gdyby się nic nie znalazło
     if (mvOccupied->Power > 1.0) // dwuczłonowe lub ukrotnienia, żeby nie szukać każdorazowo
         if (mvOccupied->Couplers[1].Connected ?
@@ -8077,6 +8027,15 @@ void TTrain::DynamicSet(TDynamicObject *d)
                 mvSecond =
                     (TMoverParameters *)mvOccupied->Couplers[0].Connected; // wskaźnik na drugiego
         }
+    // cache nearest unit equipped with pantographs
+    {
+        auto *lookup { DynamicObject->FindPantographCarrier() };
+        // HACK: set pointer to existing vehicle to avoid error checking all over the place
+        mvPantographUnit = (
+            lookup != nullptr ?
+                lookup->MoverParameters :
+                mvControlled );
+    }
 };
 
 void
@@ -8216,7 +8175,7 @@ TTrain::radio_message( sound_source *Message, int const Channel ) {
         std::make_shared<sound_source>( m_radiosound ) );
     // assign sound to the template and play it
     auto &message = *( m_radiomessages.back().second.get() );
-    auto const radioenabled { ( true == mvOccupied->Radio ) && ( mvControlled->Battery || mvControlled->ConverterFlag ) };
+    auto const radioenabled { ( true == mvOccupied->Radio ) && ( mvOccupied->Power24vIsAvailable || mvOccupied->Power110vIsAvailable ) };
     auto const volume {
         ( true == radioenabled )
      && ( Channel == RadioChannel() ) ?
@@ -8569,7 +8528,7 @@ void TTrain::set_cab_controls( int const Cab ) {
     }
     if( ggPantSelectedButton.type() == TGaugeType::toggle ) {
         ggPantSelectedButton.PutValue(
-            ( mvControlled->PantsValve.is_enabled ?
+            ( mvPantographUnit->PantsValve.is_enabled ?
                 1.f :
                 0.f ) );
     }
@@ -8581,7 +8540,7 @@ void TTrain::set_cab_controls( int const Cab ) {
     }
     if( ggPantSelectedDownButton.type() == TGaugeType::toggle ) {
         ggPantSelectedDownButton.PutValue(
-            ( mvControlled->PantsValve.is_disabled ?
+            ( mvPantographUnit->PantsValve.is_disabled ?
                 1.f :
                 0.f ) );
     }
@@ -8591,7 +8550,7 @@ void TTrain::set_cab_controls( int const Cab ) {
             0.f : // default setting is pantographs connected with primary tank
             1.f );
     ggPantCompressorButton.PutValue(
-        mvControlled->PantCompFlag ?
+        mvPantographUnit->PantCompFlag ?
             1.f :
             0.f );
     // converter
@@ -8934,7 +8893,7 @@ bool TTrain::initialize_button(cParser &Parser, std::string const &Label, int co
         { "i-doorpermit_right:", &mvOccupied->Doors.instances[ ( cab_to_end() == end::front ? side::right : side::left ) ].open_permit },
         { "i-doorstep:", &mvOccupied->Doors.step_enabled },
         { "i-mainpipelock:", &mvOccupied->LockPipe },
-        { "i-battery:", &mvOccupied->Battery },
+        { "i-battery:", &mvOccupied->Power24vIsAvailable },
         { "i-cablight:", &Cabine[ iCabn ].bLight },
     };
     {
@@ -9155,10 +9114,10 @@ bool TTrain::initialize_gauge(cParser &Parser, std::string const &Label, int con
         { "doormode_sw:", &mvOccupied->Doors.remote_only },
         { "doorstep_sw:", &mvOccupied->Doors.step_enabled },
         { "coolingfans_sw:", &mvControlled->RVentForceOn },
-        { "pantfront_sw:", &mvControlled->Pantographs[end::front].valve.is_enabled },
-        { "pantrear_sw:", &mvControlled->Pantographs[end::rear].valve.is_enabled },
-        { "pantfrontoff_sw:", &mvControlled->Pantographs[end::front].valve.is_disabled },
-        { "pantrearoff_sw:", &mvControlled->Pantographs[end::rear].valve.is_disabled },
+        { "pantfront_sw:", &mvPantographUnit->Pantographs[end::front].valve.is_enabled },
+        { "pantrear_sw:", &mvPantographUnit->Pantographs[end::rear].valve.is_enabled },
+        { "pantfrontoff_sw:", &mvPantographUnit->Pantographs[end::front].valve.is_disabled },
+        { "pantrearoff_sw:", &mvPantographUnit->Pantographs[end::rear].valve.is_disabled },
         { "radio_sw:", &mvOccupied->Radio },
         { "cablight_sw:", &Cabine[ iCabn ].bLight },
         { "springbraketoggle_bt:", &mvOccupied->SpringBrake.Activate },
@@ -9307,7 +9266,7 @@ bool TTrain::initialize_gauge(cParser &Parser, std::string const &Label, int con
         // manometr zbiornika kontrolnego/rorzďż˝du
         auto &gauge = Cabine[Cabindex].Gauge(-1); // pierwsza wolna gałka
         gauge.Load(Parser, DynamicObject, 0.1);
-        gauge.AssignDouble(&mvControlled->PantPress);
+        gauge.AssignDouble(&mvPantographUnit->PantPress);
     }
 	else if (Label == "springbrakepress:")
 	{
@@ -9351,7 +9310,7 @@ bool TTrain::initialize_gauge(cParser &Parser, std::string const &Label, int con
         // pantograph tank pressure
         auto &gauge = Cabine[ Cabindex ].Gauge( -1 ); // pierwsza wolna gałka
         gauge.Load( Parser, DynamicObject, 0.1 );
-        gauge.AssignDouble( &mvOccupied->PantPress );
+        gauge.AssignDouble( &mvPantographUnit->PantPress );
     }
     // yB - dla drugiej sekcji
     else if (Label == "hvbcurrent1:")

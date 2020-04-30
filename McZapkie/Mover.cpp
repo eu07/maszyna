@@ -22,7 +22,7 @@ http://mozilla.org/MPL/2.0/.
 // Jeśli jakieś zmienne nie są używane w mover.pas, też można je przenosić.
 // Przeniesienie wszystkiego na raz zrobiło by zbyt wielki chaos do ogarnięcia.
 
-const double dEpsilon = 0.025; // 1cm (zależy od typu sprzęgu...)
+const double dEpsilon = 0.01; // 1cm (zależy od typu sprzęgu...)
 const double CouplerTune = 0.1; // skalowanie tlumiennosci
 
 int ConversionError = 0;
@@ -128,11 +128,11 @@ double TMoverParameters::Current(double n, double U)
             DynamicBrakeFlag = false;
         else if ((BrakePress > 0.25) && (Hamulec->GetEDBCP() > 0.25))
             DynamicBrakeFlag = true;
-        DynamicBrakeFlag = (DynamicBrakeFlag && ConverterFlag);
+        DynamicBrakeFlag = (DynamicBrakeFlag && Power110vIsAvailable);
     }
 	if ((DynamicBrakeType == dbrake_automatic) && (TrainType == dt_EZT))
 	{
-		DynamicBrakeFlag = (ConverterFlag && (TUHEX_Active || (Vadd>TUHEX_MinIw)) && DynamicBrakeEMUStatus);
+		DynamicBrakeFlag = (Power110vIsAvailable && (TUHEX_Active || (Vadd>TUHEX_MinIw)) && DynamicBrakeEMUStatus);
 	}
 
     // wylacznik cisnieniowy yBARC - to jest chyba niepotrzebne tutaj   Q: no to usuwam...
@@ -173,7 +173,7 @@ double TMoverParameters::Current(double n, double U)
     }
 
     if (DynamicBrakeFlag && (!FuseFlag) && (DynamicBrakeType == dbrake_automatic) &&
-        ConverterFlag && Mains) // hamowanie EP09   //TUHEX
+        Power110vIsAvailable && Mains) // hamowanie EP09   //TUHEX
     {
 		// TODO: zrobic bardziej uniwersalne nie tylko dla EP09
         MotorCurrent =
@@ -538,7 +538,7 @@ bool TMoverParameters::DirectionForward()
         ++DirActive;
         DirAbsolute = DirActive * CabActive;
         if (DirAbsolute)
-            if (Battery) // jeśli bateria jest już załączona
+            if (Power24vIsAvailable) // jeśli bateria jest już załączona
                 BatterySwitch(true); // to w ten oto durny sposób aktywuje się CA/SHP
         SendCtrlToNext("Direction", DirActive, CabActive);
         return true;
@@ -691,10 +691,11 @@ void TMoverParameters::UpdatePantVolume(double dt) {
      && ( ( PantographCompressorStart == start_t::automatic )
        || ( PantographCompressorStart == start_t::manualwithautofallback ) ) );
 
-    auto const lowvoltagepower { Battery || ConverterFlag };
+    auto const lowvoltagepower { Power24vIsAvailable || Power110vIsAvailable };
     PantCompFlag &= lowvoltagepower;
 
-    if (EnginePowerSource.SourceType == TPowerSource::CurrentCollector) // tylko jeśli pantografujący
+    if( ( EnginePowerSource.SourceType == TPowerSource::CurrentCollector ) // tylko jeśli pantografujący
+     && ( EnginePowerSource.CollectorParameters.CollectorsNo > 0 ) )
     {
         // Ra 2014-07: zasadniczo, to istnieje zbiornik rozrządu i zbiornik pantografów - na razie mamy razem
         // Ra 2014-07: kurek trójdrogowy łączy spr.pom. z pantografami i wyłącznikiem ciśnieniowym WS
@@ -731,7 +732,7 @@ void TMoverParameters::UpdatePantVolume(double dt) {
                 // opuszczenie pantografów przy niskim ciśnieniu
                 if( TrainType != dt_EZT ) {
                     // pressure switch safety measure -- open the line breaker, unless there's alternate source of traction voltage
-                    if( GetAnyTrainsetVoltage() < EnginePowerSource.CollectorParameters.MinV ) {
+                    if( GetTrainsetHighVoltage() < EnginePowerSource.CollectorParameters.MinV ) {
                         // TODO: check whether line breaker should be open EMU-wide
                         MainSwitch( false, ( TrainType == dt_EZT ? range_t::unit : range_t::local ) );
                     }
@@ -751,8 +752,8 @@ void TMoverParameters::UpdatePantVolume(double dt) {
             if( PantPress >= 4.6 ) {
                 // NOTE: we require active low power source to prime the pressure switch
                 // this is a work-around for potential isssues caused by the switch activating on otherwise idle vehicles, but should check whether it's accurate
-                if( ( true == Battery )
-                 || ( true == ConverterFlag ) ) {
+                if( ( true == Power24vIsAvailable )
+                 || ( true == Power110vIsAvailable ) ) {
                     // prime the pressure switch
                     PantPressSwitchActive = true;
                     // turn off the subsystems lock
@@ -788,10 +789,8 @@ void TMoverParameters::UpdateBatteryVoltage(double dt)
         // HACK: allow to draw power also from adjacent converter, applicable for EMUs
         // TODO: expand power cables system to include low voltage power transfers
         // HACK: emulate low voltage generator powered directly by the diesel engine
-        auto const converteractive{ (
-            ( ConverterFlag )
-         || ( ( ( Couplers[ end::front ].CouplingFlag & coupling::permanent ) != 0 ) && Couplers[ end::front ].Connected->ConverterFlag )
-         || ( ( ( Couplers[ end::rear ].CouplingFlag & coupling::permanent )  != 0 ) && Couplers[ end::rear ].Connected->ConverterFlag ) )
+        auto const converteractive{
+            ( Power110vIsAvailable )
          || ( ( EngineType == TEngineType::DieselElectric ) && ( true == Mains ) )
          || ( ( EngineType == TEngineType::DieselEngine )   && ( true == Mains ) ) };
 
@@ -809,8 +808,7 @@ void TMoverParameters::UpdateBatteryVoltage(double dt)
                 sn3 = (dt * 0.05);
             else
                 sn3 = 0;
-            if (iLights[0] & 63) // 64=blachy, nie ciągną prądu //rozpisać na poszczególne
-                // żarówki...
+            if (iLights[0] & 63) // 64=blachy, nie ciągną prądu //rozpisać na poszczególne żarówki...
                 sn4 = dt * 0.003;
             else
                 sn4 = 0;
@@ -1431,7 +1429,7 @@ void TMoverParameters::compute_movement_( double const Deltatime ) {
         Compressor = 0;
         CompressorFlag = false;
     };
-    if( CompressorSpeed > 0.0 ) {
+    if( VeselVolume > 0.0 ) {
         // sprężarka musi mieć jakąś niezerową wydajność żeby rozważać jej załączenie i pracę
         CompressorCheck( Deltatime );
     }
@@ -1460,12 +1458,15 @@ void TMoverParameters::compute_movement_( double const Deltatime ) {
     // automatic doors
     update_doors( Deltatime );
 
-    PowerCouplersCheck( Deltatime );
+    PowerCouplersCheck( Deltatime, coupling::highvoltage );
+    PowerCouplersCheck( Deltatime, coupling::power110v );
+    PowerCouplersCheck( Deltatime, coupling::power24v );
+
+    Power24vIsAvailable =  ( ( PowerCircuits[ 0 ].first > 0 ) || ( GetTrainsetVoltage( coupling::power24v  ) > 0 ) );
+    Power110vIsAvailable = ( ( PowerCircuits[ 1 ].first > 0 ) || ( GetTrainsetVoltage( coupling::power110v ) > 0 ) );
 }
 
 void TMoverParameters::MainsCheck( double const Deltatime ) {
-
-    // TODO: move other main circuit checks here
 
     if( MainsInitTime == 0.0 ) { return; }
 
@@ -1485,7 +1486,7 @@ void TMoverParameters::MainsCheck( double const Deltatime ) {
     }
     auto const maincircuitpowersupply {
         ( std::abs( localvoltage ) > 0.1 )
-     || ( GetAnyTrainsetVoltage() > 0.1 ) };
+     || ( GetTrainsetHighVoltage() > 0.1 ) };
 
     if( true == maincircuitpowersupply ) {
         // all is well
@@ -1501,7 +1502,7 @@ void TMoverParameters::MainsCheck( double const Deltatime ) {
 
 void TMoverParameters::LowVoltagePowerCheck( double const Deltatime ) {
 
-    auto const lowvoltagepower { Battery || ConverterFlag };
+    auto const lowvoltagepower { Power24vIsAvailable || Power110vIsAvailable };
 
     switch( EngineType ) {
         case TEngineType::ElectricSeriesMotor: {
@@ -1519,42 +1520,73 @@ void TMoverParameters::LowVoltagePowerCheck( double const Deltatime ) {
     }
 }
 
-void TMoverParameters::PowerCouplersCheck( double const Deltatime ) {
-    // TODO: add support for other power sources
+void TMoverParameters::PowerCouplersCheck( double const Deltatime, coupling const Coupling ) {
+
     auto localvoltage { 0.0 };
-    // heating power sources
-    if( Heating ) {
-        switch( HeatingPowerSource.SourceType ) {
-            case TPowerSource::Generator: {
-                localvoltage = HeatingPowerSource.EngineGenerator.voltage - TotalCurrent * 0.02;
-                break;
+
+    // local power sources
+    // TODO: make local voltage calculations a separate method, store results in PowerCircuit fields
+    switch( Coupling ) {
+
+        case coupling::highvoltage: {
+            // heating power sources
+            if( Heating ) {
+                switch( HeatingPowerSource.SourceType ) {
+                    case TPowerSource::Generator: {
+                        localvoltage = HeatingPowerSource.EngineGenerator.voltage - TotalCurrent * 0.02;
+                        break;
+                    }
+                    case TPowerSource::CurrentCollector: {
+                        localvoltage = PantographVoltage;
+                        break;
+                    }
+                    case TPowerSource::Main: {
+                        // HACK: main circuit can be fed through couplers, so we explicitly check pantograph supply here
+                        localvoltage = (
+                            true == Mains ?
+                                PantographVoltage :
+                                0.0 );
+                        break;
+                    }
+                    default: {
+                        break;
+                    }
+                }
             }
-            case TPowerSource::CurrentCollector: {
-                localvoltage = PantographVoltage;
-                break;
+            // high voltage power sources
+            switch( EnginePowerSource.SourceType ) {
+                case TPowerSource::CurrentCollector: {
+                    localvoltage =
+                        std::max(
+                            localvoltage,
+                            PantographVoltage );
+                    break;
+                }
+                default: {
+                    break;
+                }
             }
-            case TPowerSource::Main: {
-                // HACK: main circuit can be fed through couplers, so we explicitly check pantograph supply here
-                localvoltage = (
-                    true == Mains ?
-                        PantographVoltage :
-                        0.0 );
-                break;
-            }
-            default: {
-                break;
-            }
-        }
-    }
-    // high voltage power sources
-    switch( EnginePowerSource.SourceType ) {
-        case TPowerSource::CurrentCollector: {
-            localvoltage =
-                std::max(
-                    localvoltage,
-                    PantographVoltage );
             break;
         }
+
+        case coupling::power110v: {
+            if( ConverterFlag ) {
+                localvoltage = NominalBatteryVoltage;
+            }
+            // TBD, TODO: reduce by current draw?
+            PowerCircuits[ 1 ].first = localvoltage;
+            break;
+        }
+
+        case coupling::power24v: {
+            if( Battery ) {
+                localvoltage = BatteryVoltage;
+            }
+            // TBD, TODO: reduce by current draw?
+            PowerCircuits[ 0 ].first = localvoltage;
+            break;
+        }
+
         default: {
             break;
         }
@@ -1562,73 +1594,153 @@ void TMoverParameters::PowerCouplersCheck( double const Deltatime ) {
 
     auto const abslocalvoltage { std::abs( localvoltage ) };
     auto const localpowersource { ( abslocalvoltage > 1.0 ) };
-/*
-    auto const localpowersource { ( std::abs( PantFrontVolt ) + std::abs( PantRearVolt ) > 1.0 ) };
-    auto hvc = std::max( PantFrontVolt, PantRearVolt );
-*/
+
     // przekazywanie napiec
     for( auto side = 0; side < 2; ++side ) {
       
         auto &coupler { Couplers[ side ] };
         // NOTE: in the loop we actually update the state of the coupler on the opposite end of the vehicle
         auto &oppositecoupler { Couplers[ ( side == end::front ? end::rear : end::front ) ] };
-        auto const oppositehighvoltagecoupling { ( oppositecoupler.CouplingFlag & coupling::highvoltage ) != 0 };
-        auto const oppositeheatingcoupling { ( oppositecoupler.CouplingFlag & coupling::heating ) != 0 };
+
+        bool oppositecouplingispresent;
+        bool localpowerexportisenabled;
+
+        switch( Coupling ) {
+
+            case coupling::highvoltage: {
+                auto const oppositehighvoltagecoupling{ ( oppositecoupler.CouplingFlag & coupling::highvoltage ) != 0 };
+                auto const oppositeheatingcoupling{ ( oppositecoupler.CouplingFlag & coupling::heating ) != 0 };
+
+                oppositecouplingispresent = ( oppositehighvoltagecoupling || oppositeheatingcoupling );
+                localpowerexportisenabled = ( oppositehighvoltagecoupling || ( oppositeheatingcoupling && localpowersource && Heating ) );
+                break;
+            }
+
+            case coupling::power110v: {
+                oppositecouplingispresent = ( ( oppositecoupler.CouplingFlag & coupling::permanent ) != 0 ) && ( ( oppositecoupler.PowerFlag & coupling::power110v ) != 0 );
+                localpowerexportisenabled = ( oppositecouplingispresent );
+                break;
+            }
+
+            case coupling::power24v: {
+                oppositecouplingispresent = ( ( oppositecoupler.CouplingFlag & coupling::permanent ) != 0 ) && ( ( oppositecoupler.PowerFlag & coupling::power24v ) != 0 );
+                localpowerexportisenabled = ( oppositecouplingispresent );
+                break;
+            }
+
+            default: {
+                break;
+            }
+        }
+
+        auto const *coupling = (
+            Coupling == coupling::highvoltage ? &coupler.power_high :
+            Coupling == coupling::power110v ? &coupler.power_110v :
+            Coupling == coupling::power24v ? &coupler.power_24v :
+            nullptr );
+        auto *oppositecoupling = (
+            Coupling == coupling::highvoltage ? &oppositecoupler.power_high :
+            Coupling == coupling::power110v ? &oppositecoupler.power_110v :
+            Coupling == coupling::power24v ? &oppositecoupler.power_24v :
+            nullptr );
         
         // start with base voltage
-        oppositecoupler.power_high.voltage = abslocalvoltage;
-        oppositecoupler.power_high.is_live = false;
-        oppositecoupler.power_high.is_local = localpowersource; // indicate power source
+        oppositecoupling->voltage = abslocalvoltage;
+        oppositecoupling->is_live = false;
+        oppositecoupling->is_local = localpowersource; // indicate power source
         // draw from external source
         if( coupler.Connected != nullptr ) {
             auto const &connectedcoupler { coupler.Connected->Couplers[ coupler.ConnectedNr ] };
+            auto const *connectedcoupling = (
+                Coupling == coupling::highvoltage ? &connectedcoupler.power_high :
+                Coupling == coupling::power110v ? &connectedcoupler.power_110v :
+                Coupling == coupling::power24v ? &connectedcoupler.power_24v :
+                nullptr );
             auto const connectedvoltage { (
-                connectedcoupler.power_high.is_live ?
-                    connectedcoupler.power_high.voltage :
+                connectedcoupling->is_live ?
+                    connectedcoupling->voltage :
                     0.0 ) };
-            oppositecoupler.power_high.voltage = std::max(
-                oppositecoupler.power_high.voltage,
-                connectedvoltage - coupler.power_high.current * 0.02 );
-            oppositecoupler.power_high.is_live =
+            oppositecoupling->voltage = std::max(
+                oppositecoupling->voltage,
+                connectedvoltage - coupling->current * 0.02 );
+            oppositecoupling->is_live =
                 ( connectedvoltage > 0.1 )
-             && ( oppositehighvoltagecoupling || oppositeheatingcoupling );
+             && ( oppositecouplingispresent );
         }
         // draw from local source
         if( localpowersource ) {
-            oppositecoupler.power_high.voltage = std::max(
-                oppositecoupler.power_high.voltage,
-                abslocalvoltage - coupler.power_high.current * 0.02 );
-            oppositecoupler.power_high.is_live |=
+            oppositecoupling->voltage = std::max(
+                oppositecoupling->voltage,
+                abslocalvoltage - coupling->current * 0.02 );
+            oppositecoupling->is_live |=
                 ( abslocalvoltage > 0.1 )
-            &&  ( oppositehighvoltagecoupling || ( oppositeheatingcoupling && localpowersource && Heating ) );
+             && ( localpowerexportisenabled );
         }
     }
 
     // przekazywanie pradow
-    auto couplervoltage { Couplers[ end::front ].power_high.voltage + Couplers[ end::rear ].power_high.voltage };
+    auto couplervoltage { 0 };
+    switch( Coupling ) {
+        case coupling::highvoltage: {
+            couplervoltage = Couplers[ end::front ].power_high.voltage + Couplers[ end::rear ].power_high.voltage;
+            break;
+        }
+        case coupling::power110v: {
+            couplervoltage = Couplers[ end::front ].power_110v.voltage + Couplers[ end::rear ].power_110v.voltage;
+            break;
+        }
+        case coupling::power24v: {
+            couplervoltage = Couplers[ end::front ].power_24v.voltage + Couplers[ end::rear ].power_24v.voltage;
+            break;
+        }
+        default: {
+            break;
+        }
+    }
+
+    auto *totalcurrent = (
+        Coupling == coupling::highvoltage ? &TotalCurrent :
+        Coupling == coupling::power110v ? &PowerCircuits[ 1 ].second :
+        Coupling == coupling::power24v ? &PowerCircuits[ 0 ].second :
+        nullptr );
 
     for( auto side = 0; side < 2; ++side ) {
 
         auto &coupler { Couplers[ side ] };
         auto const &connectedothercoupler { coupler.Connected->Couplers[ ( coupler.ConnectedNr == end::front ? end::rear : end::front ) ] };
 
-        coupler.power_high.current = 0.0;
+        auto *coupling = (
+            Coupling == coupling::highvoltage ? &coupler.power_high :
+            Coupling == coupling::power110v ? &coupler.power_110v :
+            Coupling == coupling::power24v ? &coupler.power_24v :
+            nullptr );
+        auto const *connectedothercoupling = (
+            Coupling == coupling::highvoltage ? &connectedothercoupler.power_high :
+            Coupling == coupling::power110v ? &connectedothercoupler.power_110v :
+            Coupling == coupling::power24v ? &connectedothercoupler.power_24v :
+            nullptr );
+        auto const extracurrent = (
+            Coupling == coupling::highvoltage ? std::abs( Itot ) * IsVehicleEIMBrakingFactor() :
+            0.0 );
+
+        coupling->current = 0.0;
         if( false == localpowersource ) {
             // bez napiecia...
             if( couplervoltage != 0.0 ) {
                 // ...ale jest cos na sprzegach:
-                coupler.power_high.current = ( std::abs( Itot ) * IsVehicleEIMBrakingFactor() + TotalCurrent ) * coupler.power_high.voltage / couplervoltage; // obciążenie rozkladane stosownie do napiec
-                if( true == coupler.power_high.is_live ) {
-                    coupler.power_high.current += connectedothercoupler.power_high.current;
+                coupling->current = ( *totalcurrent + extracurrent ) * coupling->voltage / couplervoltage; // obciążenie rozkladane stosownie do napiec
+                if( true == coupling->is_live ) {
+                    coupling->current += connectedothercoupling->current;
                 }
             }
         }
         else {
-            if( true == coupler.power_high.is_live ) {
-                TotalCurrent += connectedothercoupler.power_high.current;
+            if( true == coupling->is_live ) {
+                *totalcurrent += connectedothercoupling->current;
             }
         }
     }
+
 }
 
 double TMoverParameters::ShowEngineRotation(int VehN)
@@ -1659,15 +1771,35 @@ double TMoverParameters::ShowEngineRotation(int VehN)
 // sprawdzanie przetwornicy
 void TMoverParameters::ConverterCheck( double const Timestep ) {
     // TODO: move other converter checks here, to have it all in one place for potential device object
-    if( ConverterStart == start_t::automatic ) {
-        ConverterAllow = Mains;
+    if( ( ConverterStart != start_t::disabled )
+     && ( ConverterOverloadRelayOffWhenMainIsOff ) ) {
+        ConvOvldFlag |= ( !Mains && Power24vIsAvailable );
+    }
+
+    switch( ConverterStart ) {
+        case start_t::disabled: {
+            ConverterAllow = false;
+            // NOTE: if there's no converter in vehicle we can end the check here
+            return;
+        }
+        case start_t::automatic: {
+            ConverterAllow = Mains;
+            break;
+        }
+        case start_t::direction: {
+            ConverterAllow = ( DirActive != 0 );
+        }
+        default: {
+            break;
+        }
     }
 
     if( ( ConverterAllow )
      && ( ConverterAllowLocal )
+     && ( false == ConvOvldFlag )
      && ( false == PantPressLockActive )
         // HACK: allow carriages to operate converter without (missing) fuse prerequisite
-     && ( ( Power > 1.0 ?  Mains : GetAnyTrainsetVoltage() > 0.0 ) ) ) {
+     && ( ( Power > 1.0 ?  Mains : GetTrainsetHighVoltage() > 0.0 ) ) ) {
         // delay timer can be optionally configured, and is set anew whenever converter goes off
         if( ConverterStartDelayTimer <= 0.0 ) {
             ConverterFlag = true;
@@ -1679,6 +1811,13 @@ void TMoverParameters::ConverterCheck( double const Timestep ) {
     else {
         ConverterFlag = false;
         ConverterStartDelayTimer = static_cast<double>( ConverterStartDelay );
+    }
+
+    if( ( ConverterOverloadRelayStart == start_t::converter )
+     && ( false == ( ConverterAllow && ConverterAllowLocal ) )
+     && ( false == TestFlag( EngDmgFlag, 4 ) ) ) {
+        // reset converter overload relay if the converter was switched off, unless it's damaged
+        ConvOvldFlag = false;
     }
 };
 
@@ -1738,12 +1877,12 @@ void TMoverParameters::HeatingCheck( double const Timestep ) {
         case TPowerSource::PowerCable: {
             if( HeatingPowerSource.PowerType == TPowerType::ElectricPower ) {
                 // TBD, TODO: limit input voltage to heating coupling type?
-                voltage = GetAnyTrainsetVoltage();
+                voltage = GetTrainsetHighVoltage();
             }
             break;
         }
         case TPowerSource::Main: {
-            voltage = ( true == Mains ? std::max( GetAnyTrainsetVoltage(), PantographVoltage ) : 0.0 );
+            voltage = ( true == Mains ? std::max( GetTrainsetHighVoltage(), PantographVoltage ) : 0.0 );
             break;
         }
         default: {
@@ -1762,7 +1901,7 @@ void TMoverParameters::HeatingCheck( double const Timestep ) {
 void TMoverParameters::WaterPumpCheck( double const Timestep ) {
     // NOTE: breaker override with start type is sm42 specific hack, replace with ability to define the presence of the breaker
     WaterPump.is_active = (
-        ( true == Battery )
+        ( true == ( Power24vIsAvailable || Power110vIsAvailable ) )
      && ( true == WaterPump.breaker )
      && ( false == WaterPump.is_disabled )
      && ( ( true == WaterPump.is_active )
@@ -1774,7 +1913,7 @@ void TMoverParameters::WaterHeaterCheck( double const Timestep ) {
 
     WaterHeater.is_active = (
         ( false == WaterHeater.is_damaged )
-     && ( true == Battery )
+     && ( true == ( Power24vIsAvailable || Power110vIsAvailable ) )
      && ( true == WaterHeater.is_enabled )
      && ( true == WaterHeater.breaker )
      && ( ( WaterHeater.is_active ) || ( WaterHeater.config.temp_min < 0 ) || ( dizel_heat.temperatura1 < WaterHeater.config.temp_min ) ) );
@@ -1794,7 +1933,7 @@ void TMoverParameters::WaterHeaterCheck( double const Timestep ) {
 void TMoverParameters::FuelPumpCheck( double const Timestep ) {
 
     FuelPump.is_active = (
-        ( true == Battery )
+        ( true == ( Power24vIsAvailable || Power110vIsAvailable ) )
      && ( false == FuelPump.is_disabled )
      && ( ( FuelPump.is_active )
        || ( FuelPump.start_type == start_t::manual ? ( FuelPump.is_enabled ) :
@@ -1807,7 +1946,7 @@ void TMoverParameters::FuelPumpCheck( double const Timestep ) {
 void TMoverParameters::OilPumpCheck( double const Timestep ) {
 
     OilPump.is_active = (
-        ( true == Battery )
+        ( true == ( Power24vIsAvailable || Power110vIsAvailable ) )
      && ( false == Mains )
      && ( false == OilPump.is_disabled )
      && ( ( OilPump.is_active )
@@ -1852,8 +1991,8 @@ void TMoverParameters::MotorBlowersCheck( double const Timestep ) {
 
         blower.is_active = (
             // TODO: bind properly power source when ld is in place
-            ( blower.start_type == start_t::battery ? Battery :
-              blower.start_type == start_t::converter ? ConverterFlag :
+            ( blower.start_type == start_t::battery ? Power24vIsAvailable :
+              blower.start_type == start_t::converter ? Power110vIsAvailable :
               Mains ) // power source
             // breaker condition disabled until it's implemented in the class data
 //         && ( true == blower.breaker )
@@ -1889,7 +2028,7 @@ void TMoverParameters::PantographsCheck( double const Timestep ) {
 
     {
         auto &valve { PantsValve };
-        auto const lowvoltagepower{ valve.solenoid ? ( Battery || ConverterFlag ) : true };
+        auto const lowvoltagepower{ valve.solenoid ? ( Power24vIsAvailable || Power110vIsAvailable ) : true };
         auto const autostart{ valve.start_type == start_t::automatic || valve.start_type == start_t::manualwithautofallback };
         auto const manualcontrol{ valve.start_type == start_t::manual || valve.start_type == start_t::manualwithautofallback };
 
@@ -1905,7 +2044,7 @@ void TMoverParameters::PantographsCheck( double const Timestep ) {
     for( auto &pantograph : Pantographs ) {
 
         auto &valve { pantograph.valve };
-        auto const lowvoltagepower { valve.solenoid ? ( Battery || ConverterFlag ) : true };
+        auto const lowvoltagepower { valve.solenoid ? ( Power24vIsAvailable || Power110vIsAvailable ) : true };
         auto const autostart { valve.start_type == start_t::automatic || valve.start_type == start_t::manualwithautofallback };
         auto const manualcontrol { valve.start_type == start_t::manual || valve.start_type == start_t::manualwithautofallback };
 
@@ -1928,16 +2067,11 @@ void TMoverParameters::PantographsCheck( double const Timestep ) {
 
 void TMoverParameters::LightsCheck( double const Timestep ) {
 
-    auto const converterpower { (
-        ( ConverterFlag )
-     || ( ( ( Couplers[ end::front ].CouplingFlag & coupling::permanent ) != 0 ) && ( Couplers[ end::front ].Connected->ConverterFlag ) )
-     || ( ( ( Couplers[ end::rear  ].CouplingFlag & coupling::permanent ) != 0 ) && ( Couplers[ end::rear  ].Connected->ConverterFlag ) ) ) };
-
     auto &light { CompartmentLights };
 
     light.is_active = (
         // TODO: bind properly power source when ld is in place
-        ( Battery || converterpower ) // power source
+        ( Power24vIsAvailable || Power110vIsAvailable ) // power source
      && ( false == light.is_disabled )
      && ( ( true == light.is_active )
        || ( light.start_type == start_t::manual ?
@@ -1949,8 +2083,8 @@ void TMoverParameters::LightsCheck( double const Timestep ) {
             1.0f :
             0.0f )
         // TODO: bind properly power source when ld is in place
-        * ( converterpower ? 1.0f :
-            Battery ? 0.5f :
+        * ( Power110vIsAvailable ? 1.0f :
+            Power24vIsAvailable ? 0.5f :
             0.0f )
         * light.dimming;
 }
@@ -2686,9 +2820,19 @@ void TMoverParameters::SecuritySystemCheck(double dt)
 	if ((!Radio))
 		RadiostopSwitch(false);
 
+    if( ( TestFlag( SecuritySystem.SystemType, 2 )
+     && ( SecuritySystem.Status == s_waiting )
+     && ( false == SecuritySystem.PoweredUp )
+     && ( Power24vIsAvailable ) ) ) {
+        // Ra: znowu w kabinie jest coś, co być nie powinno!
+        SetFlag( SecuritySystem.Status, s_active );
+        SetFlag( SecuritySystem.Status, s_SHPalarm );
+    }
+    SecuritySystem.PoweredUp = Power24vIsAvailable;
+
     if ((SecuritySystem.SystemType > 0)
      && (SecuritySystem.Status != s_off)
-     && (Battery)) // Ra: EZT ma teraz czuwak w rozrządczym
+     && (SecuritySystem.PoweredUp)) // Ra: EZT ma teraz czuwak w rozrządczym
     {
         // CA
         if( ( false == ShuntMode ) // TBD, TODO: check if alerter inactivity in shunt mode is general rule or vehicle specific, may need a config flag
@@ -2754,7 +2898,7 @@ void TMoverParameters::SecuritySystemCheck(double dt)
         //        (s_CAtestebrake=true) then
         //         EmergencyBrakeFlag:=true;  //YB-HN
     }
-    else if (!Battery)
+    else if (!Power24vIsAvailable)
     { // wyłączenie baterii deaktywuje sprzęt
 		RadiostopSwitch(false);
         // SecuritySystem.Status = 0; //deaktywacja czuwaka
@@ -2765,26 +2909,31 @@ void TMoverParameters::SecuritySystemCheck(double dt)
 // Q: 20160710
 // włączenie / wyłączenie baterii
 // *************************************************************************************************
-bool TMoverParameters::BatterySwitch(bool State)
+bool TMoverParameters::BatterySwitch( bool State, range_t const Notify )
 {
-    bool BS = false;
+    auto const initialstate { Battery };
+
     // Ra: ukrotnienie załączania baterii jest jakąś fikcją...
-    if (Battery != State)
-    {
+    if( BatteryStart == start_t::manual ) {
         Battery = State;
     }
-    if (Battery == true)
-        SendCtrlToNext("BatterySwitch", 1, CabActive);
-    else
-        SendCtrlToNext("BatterySwitch", 0, CabActive);
-    BS = true;
-
+/*
     if ((Battery) && (CabOccupied != 0))
         SecuritySystem.Status |= s_waiting; // aktywacja czuwaka
     else
         SecuritySystem.Status = 0; // wyłączenie czuwaka
+*/
+    if( Notify != range_t::local ) {
+        SendCtrlToNext(
+            "BatterySwitch",
+            ( State ? 1 : 0 ),
+            CabActive,
+            ( Notify == range_t::unit ?
+                coupling::control | coupling::permanent :
+                coupling::control ) );
+    }
 
-    return BS;
+    return ( Battery != initialstate );
 }
 
 // *************************************************************************************************
@@ -2810,7 +2959,7 @@ bool TMoverParameters::EpFuseSwitch(bool State)
 // *************************************************************************************************
 bool TMoverParameters::SpringBrakeActivate(bool State)
 {
-	if (Battery)
+	if ( Power24vIsAvailable || Power110vIsAvailable )
 	{
 		SendCtrlToNext("SpringBrakeActivate", int(State), CabActive, SpringBrake.MultiTractionCoupler);
 
@@ -2874,11 +3023,6 @@ bool TMoverParameters::DirectionBackward(void)
             --CabActive;
         //    else
         --DirActive;
-        DirAbsolute = DirActive * CabActive;
-        // TODO: move shp activation to shp check
-        if (DirAbsolute != 0)
-            if (Battery) // jeśli bateria jest już załączona
-                BatterySwitch(true); // to w ten oto durny sposób aktywuje się CA/SHP
         SendCtrlToNext("Direction", DirActive, CabActive);
         return true;
     }
@@ -3304,6 +3448,7 @@ void TMoverParameters::MainSwitch_( bool const State ) {
                 dizel_startup = true;
             }
             else {
+                // additional check, as vehicles without pantographs won't fail relay checks earlier
                 Mains = true;
             }
         }
@@ -3314,12 +3459,6 @@ void TMoverParameters::MainSwitch_( bool const State ) {
             FuelPump.is_active &= FuelPump.is_enabled;
         }
 
-        if( ( TrainType == dt_EZT )
-         && ( false == State ) ) {
-
-            ConvOvldFlag = true;
-        }
-
         if( Mains != initialstate ) {
             LastSwitchingTime = 0;
         }
@@ -3328,10 +3467,32 @@ void TMoverParameters::MainSwitch_( bool const State ) {
 
 bool TMoverParameters::MainSwitchCheck() const {
 
+    // prevent the switch from working if there's no power
+    // TODO: consider whether it makes sense for diesel engines and such
+    bool powerisavailable { true };
+
+    switch( EngineType ) {
+        case TEngineType::DieselElectric:
+        case TEngineType::DieselEngine:
+        case TEngineType::Dumb: {
+            powerisavailable = Power24vIsAvailable;
+            break;
+        }
+        case TEngineType::ElectricSeriesMotor:
+        case TEngineType::ElectricInductionMotor: {
+            powerisavailable == ( std::max( GetTrainsetHighVoltage(), PantographVoltage ) > 0.5 * EnginePowerSource.MaxVoltage );
+            break;
+        }
+        default: {
+            break;
+        }
+    }
+
     return (
-          ( ( ScndCtrlPos == 0 ) || ( EngineType == TEngineType::ElectricInductionMotor ) )
+          ( powerisavailable )
+       && ( ( ScndCtrlPos == 0 ) || ( EngineType == TEngineType::ElectricInductionMotor ) )
        && ( MainsInitTimeCountdown <= 0.0 )
-       && ( ( ConvOvldFlag == false ) || ( TrainType == dt_EZT ) )
+       && ( ( ConvOvldFlag == false ) || ( ConverterOverloadRelayOffWhenMainIsOff ) )
        && ( true == GroundRelay )
        && ( true == NoVoltRelay )
        && ( true == OvervoltageRelay )
@@ -3349,7 +3510,9 @@ bool TMoverParameters::ConverterSwitch( bool State, range_t const Notify ) {
 
     auto const initialstate { ConverterAllow };
 
-    ConverterAllow = State;
+    if( ConverterStart == start_t::manual ) {
+        ConverterAllow = State;
+    }
 
     if( Notify != range_t::local ) {
         SendCtrlToNext(
@@ -3377,7 +3540,10 @@ bool TMoverParameters::CompressorSwitch( bool State, range_t const Notify ) {
 
     auto const initialstate { CompressorAllow };
 
-    CompressorAllow = State;
+    if( ( VeselVolume > 0.0 )
+     && ( CompressorSpeed > 0.0 ) ) {
+        CompressorAllow = State;
+    }
 
     if( Notify != range_t::local ) {
         SendCtrlToNext(
@@ -3664,7 +3830,7 @@ bool TMoverParameters::UniversalBrakeButton(int button, int state)
 	bool OK = true; //false tylko jeśli nie uda się wysłać, GF 20161124
 	UniversalBrakeButtonActive[button] = state > 0;
 	int flag = 0;
-	if (Battery) {
+	if (Power24vIsAvailable || Power110vIsAvailable) {
 		for (int i = 0; i < 3; i++) {
 			flag = flag | (UniversalBrakeButtonActive[i] ? UniversalBrakeButtonFlag[i] : 0);
 		}
@@ -3861,7 +4027,10 @@ void TMoverParameters::UpdateBrakePressure(double dt)
 // *************************************************************************************************
 void TMoverParameters::CompressorCheck(double dt) {
 
-    if( VeselVolume == 0.0 ) { return; }
+    if( CompressorSpeed == 0.0 ) {
+        CompressorAllow = false;
+        return;
+    }
 
 	//EmergencyValve
 	EmergencyValveOpen = (Compressor > (EmergencyValveOpen ? EmergencyValveOff : EmergencyValveOn));
@@ -3899,19 +4068,15 @@ void TMoverParameters::CompressorCheck(double dt) {
         }
     }
 
-    auto *compressorowner { (
-        CompressorPower == 4 ? Couplers[ end::front ].Connected :
-        CompressorPower == 5 ? Couplers[ end::rear ].Connected :
-        this ) };
     auto const compressorpower { (
         CompressorPower == 0 ? Mains :
         CompressorPower == 3 ? Mains :
-        ( compressorowner != nullptr ) && ( compressorowner->ConverterFlag ) ) };
+        Power110vIsAvailable ) };
     // TBD: split CompressorAllow into separate enable/disable flags, inherit compressor from basic_device
     auto const compressorenable {
         ( CompressorAllowLocal )
      && ( ( CompressorStart == start_t::automatic )
-       || ( ( compressorowner != nullptr ) && ( compressorowner->CompressorAllow ) ) ) };
+       || ( CompressorAllow ) ) };
     auto const compressordisable { false == compressorenable };
 
     auto const pressureistoolow { Compressor < MinCompressorF };
@@ -3997,9 +4162,12 @@ void TMoverParameters::CompressorCheck(double dt) {
             break;
         }
         default: {
+            // TODO: drain power from 110v circuit
+/*
             if( compressorowner != nullptr ) {
                 compressorowner->TotalCurrent += 0.0015 * compressorowner->PantographVoltage;
             }
+*/
             break;
         }
     }
@@ -4098,7 +4266,7 @@ void TMoverParameters::UpdatePipePressure(double dt)
     EmergencyValveFlow = 0.0;
 
     auto const securitysystempresent { SecuritySystem.RadioStop || ( SecuritySystem.SystemType > 0 ) };
-    auto const lowvoltagepower { Battery || ConverterFlag };
+    auto const lowvoltagepower { Power24vIsAvailable || Power110vIsAvailable };
 
     if( ( true == RadioStopFlag )
      || ( true == AlarmChainFlag )
@@ -4233,7 +4401,7 @@ void TMoverParameters::UpdatePipePressure(double dt)
 
     if (((BrakeHandle == TBrakeHandle::FVel6)||(BrakeHandle == TBrakeHandle::FVE408)) && (CabOccupied != 0))
     {
-        if ((Battery)
+        if ((Power24vIsAvailable)
          && (DirActive != 0)
          && (EpFuse)) // tu powinien byc jeszcze bezpiecznik EP i baterie -
             // temp = (Handle as TFVel6).GetCP
@@ -4243,7 +4411,7 @@ void TMoverParameters::UpdatePipePressure(double dt)
 
         DynamicBrakeEMUStatus = (
             temp > 0.001 ?
-                ConverterFlag :
+                Power110vIsAvailable :
                 true );
 
 		double temp1 = temp;
@@ -4590,7 +4758,7 @@ void TMoverParameters::ComputeTotalForce(double dt) {
         EngineVoltage = (
             Mains ?
                 std::max(
-                    GetAnyTrainsetVoltage(),
+                    GetTrainsetHighVoltage(),
                     PantographVoltage ) :
                 0.00 );
         if( CabActive == 0 ) {
@@ -4604,7 +4772,7 @@ void TMoverParameters::ComputeTotalForce(double dt) {
         EngineVoltage = (
             Power > 1.0 ?
                 std::max(
-                    GetAnyTrainsetVoltage(),
+                    GetTrainsetHighVoltage(),
                     PantographVoltage ) :
                 0.0 );
     }
@@ -4902,6 +5070,12 @@ double TMoverParameters::CouplerForce( int const End, double dt ) {
 
     double CF { 0.0 };
 
+    if( ( coupler.CouplingFlag == coupling::faux )
+     && ( initialdistance > 0.05 ) ) { // arbitrary distance
+        // potentially reset auto coupling lock
+        coupler.AutomaticCouplingAllowed = true;
+    }
+
     if( ( coupler.CouplingFlag != coupling::faux )
      || ( initialdistance < 0 ) ) {
 
@@ -4970,12 +5144,17 @@ double TMoverParameters::CouplerForce( int const End, double dt ) {
             if( -newdistance > collisiondistance ) {
                 // zderzenie
                 coupler.CheckCollision = true;
+            }
+            if( -newdistance >= std::min( collisiondistance, dEpsilon ) ) {
                 if( ( coupler.type() == TCouplerType::Automatic )
                  && ( coupler.type() == othercoupler.type() )
-                 && ( coupler.CouplingFlag == coupling::faux ) ) {
+                 && ( coupler.CouplingFlag == coupling::faux )
+                 && ( coupler.AutomaticCouplingAllowed && othercoupler.AutomaticCouplingAllowed ) ) {
                     // sprzeganie wagonow z samoczynnymi sprzegami
                     if( Attach( End, otherend, othervehicle, ( coupler.AutomaticCouplingFlag & othercoupler.AutomaticCouplingFlag ) ) ) {
                         SetFlag( AIFlag, sound::attachcoupler );
+                        coupler.AutomaticCouplingAllowed = false;
+                        othercoupler.AutomaticCouplingAllowed = false;
                     }
 /*
                     coupler.CouplingFlag = ( coupler.AutomaticCouplingFlag & othercoupler.AutomaticCouplingFlag );
@@ -5190,7 +5369,7 @@ double TMoverParameters::TractionForce( double dt ) {
 
         case TEngineType::ElectricSeriesMotor: {
             // update the state of voltage relays
-            auto const voltage { std::max( GetAnyTrainsetVoltage(), PantographVoltage ) };
+            auto const voltage { std::max( GetTrainsetHighVoltage(), PantographVoltage ) };
             NoVoltRelay =
                 ( EnginePowerSource.SourceType != TPowerSource::CurrentCollector )
              || ( voltage >= EnginePowerSource.CollectorParameters.MinV );
@@ -5209,8 +5388,8 @@ double TMoverParameters::TractionForce( double dt ) {
             // TODO: check if we can use instead the code for electricseriesmotor
             if( ( Mains ) ) {
                 // nie wchodzić w funkcję bez potrzeby
-                if( ( std::max( GetAnyTrainsetVoltage(), PantographVoltage ) < EnginePowerSource.CollectorParameters.MinV )
-                 || ( std::max( GetAnyTrainsetVoltage(), PantographVoltage ) > EnginePowerSource.CollectorParameters.MaxV + 200 ) ) {
+                if( ( std::max( GetTrainsetHighVoltage(), PantographVoltage ) < EnginePowerSource.CollectorParameters.MinV )
+                 || ( std::max( GetTrainsetHighVoltage(), PantographVoltage ) > EnginePowerSource.CollectorParameters.MaxV + 200 ) ) {
                     MainSwitch( false, ( TrainType == dt_EZT ? range_t::unit : range_t::local ) ); // TODO: check whether we need to send this EMU-wide
                 }
             }
@@ -6067,17 +6246,7 @@ bool TMoverParameters::FuseFlagCheck(void) const
 // *************************************************************************************************
 bool TMoverParameters::FuseOn( range_t const Notify )
 {
-    bool const result { RelayReset( relay_t::maincircuitground | relay_t::tractionnmotoroverload ) };
-
-    if( Notify != range_t::local ) {
-        SendCtrlToNext(
-            "FuseSwitch",
-            1,
-            CabActive,
-            ( Notify == range_t::unit ?
-                coupling::control | coupling::permanent :
-                coupling::control ) );
-    }
+    auto const result { RelayReset( ( relay_t::maincircuitground | relay_t::tractionnmotoroverload ), Notify ) };
 
     return result;
 }
@@ -6099,31 +6268,21 @@ void TMoverParameters::FuseOff(void)
 // resets relays assigned to specified customizable reset button
 bool TMoverParameters::UniversalResetButton( int const Button, range_t const Notify ) {
 
-    auto const lowvoltagepower { Battery || ConverterFlag };
+    auto const lowvoltagepower { Power24vIsAvailable || Power110vIsAvailable };
     if( false == lowvoltagepower ) { return false; }
 
     auto const relays { UniversalResetButtonFlag[ Button ] };
     if( relays == 0 ) { return false; }
 
-    auto const result { RelayReset( relays ) };
-
-    if( Notify != range_t::local ) {
-        SendCtrlToNext(
-            "RelayReset",
-            relays,
-            CabActive,
-            ( Notify == range_t::unit ?
-                coupling::control | coupling::permanent :
-                coupling::control ) );
-    }
+    auto const result { RelayReset( relays, Notify ) };
 
     return result;
 }
 
 // resets state of specified relays
-bool TMoverParameters::RelayReset( int const Relays ) {
+bool TMoverParameters::RelayReset( int const Relays, range_t const Notify ) {
 
-    auto const lowvoltagepower { Battery || ConverterFlag };
+    auto const lowvoltagepower { Power24vIsAvailable || Power110vIsAvailable };
     bool reset { false };
 
     if( TestFlag( Relays, relay_t::maincircuitground ) ) {
@@ -6154,9 +6313,9 @@ bool TMoverParameters::RelayReset( int const Relays ) {
     }
 
     if( TestFlag( Relays, relay_t::primaryconverteroverload ) ) {
-        if( ( false == Mains )
-         && ( false == ConverterAllow )
-         && ( TrainType != dt_EZT ) ) { // for EMUs the relay is reset automatically when converter switches off
+        if( ( ConverterOverloadRelayStart == start_t::manual )
+//         && ( false == Mains )
+         && ( false == ConverterAllow ) ) {
             // NOTE: false means the relay is operational
             // TODO: cleanup, flip the FuseFlag code to match other relays
             // TODO: check whether the power is required, TBD, TODO: make it configurable?
@@ -6167,6 +6326,16 @@ bool TMoverParameters::RelayReset( int const Relays ) {
 
     if( reset ) {
         SetFlag( SoundFlag, sound::relay | sound::loud );
+    }
+
+    if( Notify != range_t::local ) {
+        SendCtrlToNext(
+            "RelayReset",
+            Relays,
+            CabActive,
+            ( Notify == range_t::unit ?
+                coupling::control | coupling::permanent :
+                coupling::control ) );
     }
 
     return reset;
@@ -6657,18 +6826,22 @@ bool TMoverParameters::MotorConnectorsCheck() {
 
 bool TMoverParameters::OperatePantographsValve( operation_t const State, range_t const Notify ) {
 
-    auto const lowvoltagepower { PantsValve.solenoid ? ( Battery || ConverterFlag ) : true };
+    if( ( EnginePowerSource.SourceType == TPowerSource::CurrentCollector )
+     && ( EnginePowerSource.CollectorParameters.CollectorsNo > 0 ) ) {
 
-    auto &valve { PantsValve };
+        auto const lowvoltagepower { PantsValve.solenoid ? ( Power24vIsAvailable || Power110vIsAvailable ) : true };
 
-    switch( State ) {
-        case operation_t::none: { valve.is_enabled = false; valve.is_disabled = false; break; }
-        case operation_t::enable: { valve.is_enabled = true; valve.is_disabled = false; break; }
-        case operation_t::disable: { valve.is_enabled = false; valve.is_disabled = true; break; }
-        case operation_t::enable_on: { valve.is_enabled = true; break; }
-        case operation_t::enable_off: { valve.is_enabled = false; break; }
-        case operation_t::disable_on: { valve.is_disabled = true; break; }
-        case operation_t::disable_off: { valve.is_disabled = false; break; }
+        auto &valve { PantsValve };
+
+        switch( State ) {
+            case operation_t::none: { valve.is_enabled = false; valve.is_disabled = false; break; }
+            case operation_t::enable: { valve.is_enabled = true; valve.is_disabled = false; break; }
+            case operation_t::disable: { valve.is_enabled = false; valve.is_disabled = true; break; }
+            case operation_t::enable_on: { valve.is_enabled = true; break; }
+            case operation_t::enable_off: { valve.is_enabled = false; break; }
+            case operation_t::disable_on: { valve.is_disabled = true; break; }
+            case operation_t::disable_off: { valve.is_disabled = false; break; }
+        }
     }
 
     if( Notify != range_t::local ) {
@@ -6686,16 +6859,20 @@ bool TMoverParameters::OperatePantographsValve( operation_t const State, range_t
 
 bool TMoverParameters::OperatePantographValve( end const End, operation_t const State, range_t const Notify ) {
 
-    auto &valve { Pantographs[ End ].valve };
+    if( ( EnginePowerSource.SourceType == TPowerSource::CurrentCollector )
+     && ( EnginePowerSource.CollectorParameters.CollectorsNo > 0 ) ) {
 
-    switch( State ) {
-        case operation_t::none: { valve.is_enabled = false; valve.is_disabled = false; break; }
-        case operation_t::enable: { valve.is_enabled = true; valve.is_disabled = false; break; }
-        case operation_t::disable: { valve.is_enabled = false; valve.is_disabled = true; break; }
-        case operation_t::enable_on: { valve.is_enabled = true; break; }
-        case operation_t::enable_off: { valve.is_enabled = false; break; }
-        case operation_t::disable_on: { valve.is_disabled = true; break; }
-        case operation_t::disable_off: { valve.is_disabled = false; break; }
+        auto &valve { Pantographs[ End ].valve };
+
+        switch( State ) {
+            case operation_t::none: { valve.is_enabled = false; valve.is_disabled = false; break; }
+            case operation_t::enable: { valve.is_enabled = true; valve.is_disabled = false; break; }
+            case operation_t::disable: { valve.is_enabled = false; valve.is_disabled = true; break; }
+            case operation_t::enable_on: { valve.is_enabled = true; break; }
+            case operation_t::enable_off: { valve.is_enabled = false; break; }
+            case operation_t::disable_on: { valve.is_disabled = true; break; }
+            case operation_t::disable_off: { valve.is_disabled = false; break; }
+        }
     }
 
     if( Notify != range_t::local ) {
@@ -7947,27 +8124,20 @@ bool TMoverParameters::OperateDoors( side const Door, bool const State, range_t 
 */
     bool result { false };
 
-    if( Battery == true ) {
-
-        if( Notify != range_t::local ) {
+    if( Notify == range_t::local ) {
+        door.local_open = State;
+        door.local_close = ( false == State );
+        result = true;
+    }
+    else {
+        // remote door operation signals require power to propagate
+        if( ( Power24vIsAvailable || Power110vIsAvailable ) ) {
             door.remote_open = State;
             door.remote_close = ( false == State );
+            result = true;
         }
-        else {
-            door.local_open = State;
-            door.local_close = ( false == State );
-        }
-
-        result = true;
-/*
-        // activate or disable the door timer depending on whether door were open or closed
-        // NOTE: this is a local-only operation but shouldn't be an issue as automatic door are operated locally anyway
-        door.auto_timer = (
-            ( ( State == true ) && ( Notify == range_t::local ) ) ?
-                Doors.auto_duration :
-                -1.0 );
-*/
     }
+
     if( Notify != range_t::local ) {
 
         SendCtrlToNext(
@@ -8100,16 +8270,23 @@ TMoverParameters::update_doors( double const Deltatime ) {
             ( door.remote_close && remoteclosecontrol )
          || ( door.local_close && localclosecontrol )
          || ( autocloserequest && door.is_open ) };
+
+        auto const ispowered { (
+            Doors.voltage == 0 ? true :
+            Doors.voltage == 24 ? Power24vIsAvailable :
+            Doors.voltage == 110 ? Power110vIsAvailable :
+            false ) };
+
         door.is_opening =
             ( false == door.is_open )
-         && ( true == Battery )
+         && ( true == ispowered )
          && ( false == closerequest )
          && ( ( true == door.is_opening )
            || ( ( true == openrequest )
              && ( false == Doors.is_locked ) ) );
         door.is_closing =
             ( false == door.is_closed )
-         && ( true == Battery )
+         && ( true == ispowered )
          && ( false == openrequest )
          && ( door.is_closing || closerequest );
         door.step_unfolding = (
@@ -8309,6 +8486,47 @@ std::string TMoverParameters::EngineDescription(int what) const
 // *************************************************************************************************
 double TMoverParameters::GetTrainsetVoltage( int const Coupling ) const
 {//ABu: funkcja zwracajaca napiecie dla calego skladu, przydatna dla EZT
+    // TBD, TODO: roll into a loop, call once per vehicle update, return cached results?
+    auto frontvoltage { 0.0 };
+    if( Couplers[ end::front ].Connected != nullptr ) {
+        auto const frontcouplingflag {
+            Couplers[ end::front ].CouplingFlag
+          | ( ( Couplers[ end::front ].CouplingFlag & coupling::permanent ) != 0 ?
+              Couplers[ end::front ].PowerFlag :
+              0 ) };
+        if( ( frontcouplingflag & Coupling ) != 0 ) {
+            auto *connectedpowercoupling = (
+                ( Coupling & ( coupling::highvoltage | coupling::heating ) ) != 0 ? &Couplers[ end::front ].Connected->Couplers[ Couplers[ end::front ].ConnectedNr ].power_high :
+                ( Coupling & coupling::power110v ) != 0 ? &Couplers[ end::front ].Connected->Couplers[ Couplers[ end::front ].ConnectedNr ].power_110v :
+                ( Coupling & coupling::power24v ) != 0 ? &Couplers[ end::front ].Connected->Couplers[ Couplers[ end::front ].ConnectedNr ].power_24v :
+                nullptr );
+            if( ( connectedpowercoupling != nullptr )
+             && ( connectedpowercoupling->is_live ) ) {
+                frontvoltage = connectedpowercoupling->voltage;
+            }
+        }
+    }
+    auto rearvoltage{ 0.0 };
+    if( Couplers[ end::rear ].Connected != nullptr ) {
+        auto const rearcouplingflag {
+            Couplers[ end::rear ].CouplingFlag
+          | ( ( Couplers[ end::rear ].CouplingFlag & coupling::permanent ) != 0 ?
+              Couplers[ end::rear ].PowerFlag :
+              0 ) };
+        if( ( rearcouplingflag & Coupling ) != 0 ) {
+            auto *connectedpowercoupling = (
+                ( Coupling & ( coupling::highvoltage | coupling::heating ) ) != 0 ? &Couplers[ end::rear ].Connected->Couplers[ Couplers[ end::rear ].ConnectedNr ].power_high :
+                ( Coupling & coupling::power110v ) != 0 ? &Couplers[ end::rear ].Connected->Couplers[ Couplers[ end::rear ].ConnectedNr ].power_110v :
+                ( Coupling & coupling::power24v ) != 0 ? &Couplers[ end::rear ].Connected->Couplers[ Couplers[ end::rear ].ConnectedNr ].power_24v :
+                nullptr );
+            if( ( connectedpowercoupling != nullptr )
+             && ( connectedpowercoupling->is_live ) ) {
+                rearvoltage = connectedpowercoupling->voltage;
+            }
+        }
+    }
+    return std::max( frontvoltage, rearvoltage );
+/*
     return std::max(
         ( ( ( Couplers[end::front].Connected )
          && ( Couplers[ end::front ].Connected->Couplers[ Couplers[ end::front ].ConnectedNr ].power_high.is_live )
@@ -8320,9 +8538,10 @@ double TMoverParameters::GetTrainsetVoltage( int const Coupling ) const
          && ( ( Couplers[ end::rear ].CouplingFlag & Coupling ) != 0 ) ) ?
             Couplers[ end::rear ].Connected->Couplers[ Couplers[ end::rear ].ConnectedNr ].power_high.voltage :
             0.0 ) );
+*/
 }
 
-double TMoverParameters::GetAnyTrainsetVoltage() const {
+double TMoverParameters::GetTrainsetHighVoltage() const {
 
     return std::max(
             GetTrainsetVoltage( coupling::highvoltage ),
@@ -9596,6 +9815,15 @@ void TMoverParameters::LoadFIZ_Doors( std::string const &line ) {
     extract_value( Doors.has_autowarning, "DoorClosureWarningAuto", line, "" );
     extract_value( Doors.has_lock, "DoorBlocked", line, "" );
 
+    {
+        auto const remotedoorcontrol {
+            ( Doors.open_control == control_t::driver )
+         || ( Doors.open_control == control_t::conductor )
+         || ( Doors.open_control == control_t::mixed ) };
+
+        extract_value( Doors.voltage, "DoorVoltage", line, ( remotedoorcontrol ? "24" : "0" ) );
+    }
+
     extract_value( Doors.step_rate, "PlatformSpeed", line, "" );
     extract_value( Doors.step_range, "PlatformMaxShift", line, "" );
 
@@ -9633,11 +9861,10 @@ void TMoverParameters::LoadFIZ_BuffCoupl( std::string const &line, int const Ind
     extract_value( coupler->beta, "beta", line, "" );
     extract_value( coupler->AutomaticCouplingFlag, "AutomaticFlag", line, "" );
     extract_value( coupler->AllowedFlag, "AllowedFlag", line, "" );
-
     if( coupler->AllowedFlag < 0 ) {
-
-        coupler->AllowedFlag = ( ( -coupler->AllowedFlag ) | ctrain_depot );
+        coupler->AllowedFlag = ( ( -coupler->AllowedFlag ) | coupling::permanent );
     }
+    extract_value( coupler->PowerFlag, "PowerFlag", line, "" );
 
     if( ( coupler->CouplerType != TCouplerType::NoCoupler )
      && ( coupler->CouplerType != TCouplerType::Bare )
@@ -9866,14 +10093,27 @@ void TMoverParameters::LoadFIZ_Cntrl( std::string const &line ) {
 
     extract_value( StopBrakeDecc, "SBD", line, "" );
 
+    std::map<std::string, start_t> starts {
+        { "Disabled", start_t::disabled },
+        { "Manual", start_t::manual },
+        { "Automatic", start_t::automatic },
+        { "Mixed", start_t::manualwithautofallback },
+        { "Battery", start_t::battery },
+        { "Converter", start_t::converter },
+        { "Direction", start_t::direction } };
+
     // main circuit
     extract_value( MainsInitTime, "MainInitTime", line, "" );
+    // battery
+    {
+        auto lookup = starts.find( extract_value( "BatteryStart", line ) );
+        BatteryStart =
+            lookup != starts.end() ?
+            lookup->second :
+            start_t::manual;
+    }
     // converter
     {
-        std::map<std::string, start_t> starts {
-            { "Manual", start_t::manual },
-            { "Automatic", start_t::automatic }
-        };
         auto lookup = starts.find( extract_value( "ConverterStart", line ) );
         ConverterStart =
             lookup != starts.end() ?
@@ -9881,14 +10121,7 @@ void TMoverParameters::LoadFIZ_Cntrl( std::string const &line ) {
                 start_t::manual;
     }
     extract_value( ConverterStartDelay, "ConverterStartDelay", line, "" );
-
-    // devices
-    std::map<std::string, start_t> starts {
-        { "Manual", start_t::manual },
-        { "Automatic", start_t::automatic },
-        { "Mixed", start_t::manualwithautofallback },
-        { "Battery", start_t::battery },
-        { "Converter", start_t::converter } };
+    extract_value( ConverterOverloadRelayOffWhenMainIsOff, "ConverterOverloadWhenMainIsOff", line, ( TrainType == dt_EZT ? "yes" : "no" ) );
     // compressor
     {
         auto lookup = starts.find( extract_value( "CompressorStart", line ) );
@@ -9983,6 +10216,16 @@ void TMoverParameters::LoadFIZ_Cntrl( std::string const &line ) {
                 lookup->second :
                 ( TrainType == dt_EZT ?
                     start_t::automatic :
+                    start_t::manual ) );
+    }
+    // converter overload relay
+    {
+        auto lookup = starts.find( extract_value( "ConverterOverloadRelayStart", line ) );
+        ConverterOverloadRelayStart = (
+            lookup != starts.end() ?
+                lookup->second :
+                ( TrainType == dt_EZT ?
+                    start_t::converter : // relay activates when converter is switched off
                     start_t::manual ) );
     }
 }
@@ -10642,6 +10885,10 @@ bool TMoverParameters::CheckLocomotiveParameters(bool ReadyFlag, int Dir)
 
 	AutoRelayFlag = (AutoRelayType == 1);
 
+    if( NominalBatteryVoltage == 0.0 ) {
+        BatteryStart = start_t::disabled;
+    }
+
 	Sand = SandCapacity;
 
     // NOTE: for diesel-powered vehicles we automatically convert legacy "main" power source to more accurate "engine"
@@ -10744,8 +10991,10 @@ bool TMoverParameters::CheckLocomotiveParameters(bool ReadyFlag, int Dir)
 		{
 			WriteLog("XBT EP1");
 			Hamulec = std::make_shared<TEStEP1>(MaxBrakePress[3], BrakeCylRadius, BrakeCylDist, BrakeVVolume, BrakeCylNo, BrakeDelays, BrakeMethod, NAxles, NBpA);
-			Hamulec->SetLP(Mass, MBPM, MaxBrakePress[1]);
-			break;
+			Hamulec->SetLP( Mass, MBPM, MaxBrakePress[1] );
+            Hamulec->SetRM( RapidMult );
+            Hamulec->SetRV( RapidVel );
+            break;
 		}
         case TBrakeValve::CV1:
         {
@@ -10886,7 +11135,7 @@ bool TMoverParameters::CheckLocomotiveParameters(bool ReadyFlag, int Dir)
         DirAbsolute = DirActive * CabActive; // kierunek jazdy względem sprzęgów
         LimPipePress = CntrlPipePress;
 
-        Battery = true;
+        Battery = ( BatteryStart != start_t::disabled );
     }
     else { // zahamowany}
         WriteLog( "Braked" );
@@ -11342,32 +11591,23 @@ bool TMoverParameters::RunCommand( std::string Command, double CValue1, double C
 			AutoRelayFlag = false;
         OK = SendCtrlToNext( Command, CValue1, CValue2, Couplertype );
 	}
-	else if (Command == "FuseSwitch")
+	else if (Command == "RelayReset")
 	{
-        FuseOn( range_t::local );
+        RelayReset( CValue1, range_t::local );
         OK = SendCtrlToNext( Command, CValue1, CValue2, Couplertype );
 	}
 	else if (Command == "ConverterSwitch") /*NBMX*/
 	{
-		if ((CValue1 == 1))
-			ConverterAllow = true;
-		else if ((CValue1 == 0))
-			ConverterAllow = false;
+        if( ConverterStart == start_t::manual ) {
+            ConverterAllow = ( CValue1 > 0.0 );
+        }
         OK = SendCtrlToNext( Command, CValue1, CValue2, Couplertype );
 	}
 	else if (Command == "BatterySwitch") /*NBMX*/
     {
-        if ((CValue1 == 1))
-            Battery = true;
-        else if ((CValue1 == 0))
-            Battery = false;
-        /*
-        // TBD: makes no sense to activate alerters in entire consist
-        if ((Battery) && (CabOccupied != 0) )
-            SecuritySystem.Status = SecuritySystem.Status | s_waiting; // aktywacja czuwaka
-        else
-            SecuritySystem.Status = 0; // wyłączenie czuwaka
-        */
+        if( BatteryStart == start_t::manual ) {
+            Battery = ( CValue1 > 0.0 );
+        }
         OK = SendCtrlToNext( Command, CValue1, CValue2, Couplertype );
     }
     //   else if command='EpFuseSwitch' then         {NBMX}
@@ -11378,9 +11618,7 @@ bool TMoverParameters::RunCommand( std::string Command, double CValue1, double C
         //   end
     else if (Command == "CompressorSwitch") /*NBMX*/
 	{
-        if( CompressorStart == start_t::manual ) {
-            CompressorAllow = ( CValue1 == 1 );
-        }
+        CompressorSwitch( ( CValue1 == 1 ), range_t::local );
         OK = SendCtrlToNext( Command, CValue1, CValue2, Couplertype );
 	}
     else if( Command == "CompressorPreset" ) {
@@ -11407,7 +11645,7 @@ bool TMoverParameters::RunCommand( std::string Command, double CValue1, double C
          || ( Doors.open_control == control_t::driver ) 
          || ( Doors.open_control == control_t::mixed ) ) {
             // ignore remote command if the door is only operated locally
-            if( true == Battery ) {
+            if( Power24vIsAvailable || Power110vIsAvailable ) {
 
                 auto const left{ CValue2 > 0 ? 1 : 2 };
                 auto const right { 3 - left };
@@ -11430,7 +11668,7 @@ bool TMoverParameters::RunCommand( std::string Command, double CValue1, double C
          || ( Doors.close_control == control_t::driver ) 
          || ( Doors.close_control == control_t::mixed ) ) {
             // ignore remote command if the door is only operated locally
-            if( true == Battery ) {
+            if( Power24vIsAvailable || Power110vIsAvailable ) {
 
                 auto const left{ CValue2 > 0 ? 1 : 2 };
                 auto const right { 3 - left };
@@ -11541,7 +11779,7 @@ bool TMoverParameters::RunCommand( std::string Command, double CValue1, double C
 	}
 	else if (Command == "CabSignal") /*SHP,Indusi*/
 	{ // Ra: to powinno działać tylko w członie obsadzonym
-		if (/*(TrainType=dt_EZT)or*/ (CabOccupied != 0) && (Battery) &&
+		if (/*(TrainType=dt_EZT)or*/ (CabOccupied != 0) && (Power24vIsAvailable) &&
 			TestFlag(SecuritySystem.SystemType,
 				2)) // jeśli kabina jest obsadzona (silnikowy w EZT?)
 					/*?*/ /* WITH  SecuritySystem */
@@ -11607,7 +11845,7 @@ bool TMoverParameters::RunCommand( std::string Command, double CValue1, double C
 	}
 	else if (Command == "SpringBrakeActivate")
 	{
-		if (Battery)
+		if (Power24vIsAvailable || Power110vIsAvailable)
 		{
 			SpringBrake.Activate = CValue1 > 0;
 			OK = SendCtrlToNext(Command, CValue1, CValue2, Couplertype);
