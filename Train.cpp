@@ -498,15 +498,12 @@ bool TTrain::Init(TDynamicObject *NewDynamicObject, bool e3d)
 
     {
         Global.CurrentMaxTextureSize = Global.iMaxCabTextureSize;
+
         auto const filename{ DynamicObject->asBaseDir + DynamicObject->MoverParameters->TypeName + ".mmd" };
-        auto const result { LoadMMediaFile( filename ) };
-        Global.CurrentMaxTextureSize = Global.iMaxTextureSize;
-/*
-        if( false == result ) {
-            return false;
-        }
-*/
+        LoadMMediaFile( filename );
         InitializeCab( mvOccupied->CabOccupied, filename );
+
+        Global.CurrentMaxTextureSize = Global.iMaxTextureSize;
 
         if( DynamicObject->Controller == Humandriver ) {
             // McZapkie-030303: mozliwosc wyswietlania kabiny, w przyszlosci dac opcje w mmd
@@ -3012,8 +3009,15 @@ void TTrain::OnCommand_convertertoggle( TTrain *Train, command_data const &Comma
 
     if( Command.action == GLFW_PRESS ) {
         // only reacting to press, so the switch doesn't flip back and forth if key is held down
-        if( ( false == Train->mvOccupied->Power110vIsAvailable )
-         && ( Train->ggConverterButton.GetValue() < 0.5 ) ) {
+        auto const overloadrelayisopen { (
+            Train->Dynamic()->Mechanik != nullptr ?
+                Train->Dynamic()->Mechanik->IsAnyConverterOverloadRelayOpen :
+                Train->mvOccupied->ConvOvldFlag ) };
+
+        if( Train->mvOccupied->ConvSwitchType != "impulse" ?
+                Train->ggConverterButton.GetValue() < 0.5 :
+                ( ( false == Train->mvOccupied->Power110vIsAvailable )
+               && ( false == overloadrelayisopen ) ) ) {
             // turn on
             OnCommand_converterenable( Train, Command );
         }

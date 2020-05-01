@@ -537,9 +537,6 @@ bool TMoverParameters::DirectionForward()
     {
         ++DirActive;
         DirAbsolute = DirActive * CabActive;
-        if (DirAbsolute)
-            if (Power24vIsAvailable) // jeśli bateria jest już załączona
-                BatterySwitch(true); // to w ten oto durny sposób aktywuje się CA/SHP
         SendCtrlToNext("Direction", DirActive, CabActive);
         return true;
     }
@@ -3023,6 +3020,7 @@ bool TMoverParameters::DirectionBackward(void)
             --CabActive;
         //    else
         --DirActive;
+        DirAbsolute = DirActive * CabActive;
         SendCtrlToNext("Direction", DirActive, CabActive);
         return true;
     }
