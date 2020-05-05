@@ -9049,7 +9049,7 @@ bool TMoverParameters::LoadFIZ(std::string chkpath)
     startWWLIST = false;
     startLIGHTSLIST = false;
 	startCOMPRESSORLIST = false;
-    std::string file = chkpath + TypeName + ".fiz";
+    std::string file = TypeName + ".fiz";
 
     WriteLog("LOAD FIZ FROM " + file);
 /*
@@ -9060,7 +9060,7 @@ bool TMoverParameters::LoadFIZ(std::string chkpath)
 		return false;
 	}
 */
-    cParser fizparser( file, cParser::buffer_FILE );
+    cParser fizparser( file, cParser::buffer_FILE, chkpath );
     if( false == fizparser.ok() ) {
         WriteLog( "E8 - FIZ FILE NOT EXIST." );
         return false;

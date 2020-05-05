@@ -499,9 +499,11 @@ bool TTrain::Init(TDynamicObject *NewDynamicObject, bool e3d)
     {
         Global.CurrentMaxTextureSize = Global.iMaxCabTextureSize;
 
-        auto const filename{ DynamicObject->asBaseDir + DynamicObject->MoverParameters->TypeName + ".mmd" };
+        auto const filename { mvOccupied->TypeName + ".mmd" };
         LoadMMediaFile( filename );
-        InitializeCab( mvOccupied->CabOccupied, filename );
+        InitializeCab(
+            mvOccupied->CabOccupied,
+            filename );
 
         Global.CurrentMaxTextureSize = Global.iMaxTextureSize;
 
@@ -5836,18 +5838,18 @@ void TTrain::UpdateCab() {
      && ( DynamicObject->Mechanik->AIControllFlag ) ) { 
         
         if( iCabn != ( // numer kabiny (-1: kabina B)
-                DynamicObject->MoverParameters->CabOccupied == -1 ?
+                mvOccupied->CabOccupied == -1 ?
                     2 :
-                    DynamicObject->MoverParameters->CabOccupied ) ) {
+                    mvOccupied->CabOccupied ) ) {
 
             InitializeCab(
-                DynamicObject->MoverParameters->CabOccupied,
-                DynamicObject->asBaseDir + DynamicObject->MoverParameters->TypeName + ".mmd" );
+                mvOccupied->CabOccupied,
+                mvOccupied->TypeName + ".mmd" );
         }
     }
-    iCabn = ( DynamicObject->MoverParameters->CabOccupied == -1 ?
+    iCabn = ( mvOccupied->CabOccupied == -1 ?
         2 :
-        DynamicObject->MoverParameters->CabOccupied );
+        mvOccupied->CabOccupied );
 }
 
 bool TTrain::Update( double const Deltatime )
@@ -7421,26 +7423,23 @@ bool TTrain::CabChange(int iDirection)
      || ( true == DynamicObject->Mechanik->AIControllFlag ) ) {
         // jeśli prowadzi AI albo jest w innym członie
         // jak AI prowadzi, to nie można mu mieszać
-        if (std::abs(DynamicObject->MoverParameters->CabOccupied + iDirection) > 1)
+        if (std::abs(mvOccupied->CabOccupied + iDirection) > 1)
             return false; // ewentualna zmiana pojazdu
-        DynamicObject->MoverParameters->CabOccupied =
-            DynamicObject->MoverParameters->CabOccupied + iDirection;
+        mvOccupied->CabOccupied += iDirection;
     }
     else
     { // jeśli pojazd prowadzony ręcznie albo wcale (wagon)
-        DynamicObject->MoverParameters->CabDeactivisation();
-        if( DynamicObject->MoverParameters->ChangeCab( iDirection ) ) {
-            if( InitializeCab(
-                DynamicObject->MoverParameters->CabOccupied,
-                DynamicObject->asBaseDir + DynamicObject->MoverParameters->TypeName + ".mmd" ) ) {
+        mvOccupied->CabDeactivisation();
+        if( mvOccupied->ChangeCab( iDirection ) ) {
+            if( InitializeCab( mvOccupied->CabOccupied, mvOccupied->TypeName + ".mmd" ) ) {
                 // zmiana kabiny w ramach tego samego pojazdu
-                DynamicObject->MoverParameters->CabActivisation(); // załączenie rozrządu (wirtualne kabiny)
+                mvOccupied->CabActivisation(); // załączenie rozrządu (wirtualne kabiny)
                 DynamicObject->Mechanik->DirectionChange();
                 return true; // udało się zmienić kabinę
             }
         }
         // aktywizacja poprzedniej, bo jeszcze nie wiadomo, czy jakiś pojazd jest
-        DynamicObject->MoverParameters->CabActivisation();
+        mvOccupied->CabActivisation();
     }
     return false; // ewentualna zmiana pojazdu
 }
@@ -7449,7 +7448,7 @@ bool TTrain::CabChange(int iDirection)
 // wczytywanie pliku z danymi multimedialnymi (dzwieki, kontrolki, kabiny)
 bool TTrain::LoadMMediaFile(std::string const &asFileName)
 {
-    cParser parser(asFileName, cParser::buffer_FILE);
+    cParser parser( asFileName, cParser::buffer_FILE, DynamicObject->asBaseDir );
     // NOTE: yaml-style comments are disabled until conflict in use of # is resolved
     // parser.addCommentStyle( "#", "\n" );
 
@@ -7653,7 +7652,7 @@ bool TTrain::InitializeCab(int NewCabNo, std::string const &asFileName)
 
     std::string cabstr("cab" + std::to_string(cabindex) + "definition:");
 
-    cParser parser(asFileName, cParser::buffer_FILE);
+    cParser parser( asFileName, cParser::buffer_FILE, DynamicObject->asBaseDir );
     // NOTE: yaml-style comments are disabled until conflict in use of # is resolved
     // parser.addCommentStyle( "#", "\n" );
     std::string token;
@@ -7891,7 +7890,11 @@ bool TTrain::InitializeCab(int NewCabNo, std::string const &asFileName)
 */
             }
             // btLampkaUnknown.Init("unknown",mdKabina,false);
-        } while (token != "");
+        } while ( ( token != "" )
+// TODO: enable full per-cab deserialization when/if .mmd files get proper per-cab switch configuration
+//               && ( token != "cab1definition:" )
+//               && ( token != "cab2definition:" )
+               && ( token != "cab0definition:" ) );
     }
     else
     {
@@ -8129,7 +8132,7 @@ TTrain::MoveToVehicle(TDynamicObject *target) {
 
 		InitializeCab(
 		    Occupied()->CabActive,
-		    Dynamic()->asBaseDir + Occupied()->TypeName + ".mmd" );
+		    Occupied()->TypeName + ".mmd" );
 
 		Dynamic()->ABuSetModelShake( {} ); // zerowanie przesunięcia przed powrotem?
 
