@@ -4618,9 +4618,6 @@ void TDynamicObject::LoadMMediaFile( std::string const &TypeName, std::string co
             mdModel = TModelsManager::GetModel(asModel, true);
             if (ReplacableSkin != "none") {
                 m_materialdata.assign( ReplacableSkin );
-                // potentially set blank destination texture
-                DestinationSign.destination_off = DestinationFind( "nowhere" );
-//                DestinationSet( {}, {} );
             }
             Global.asCurrentTexturePath = szTexturePath; // z powrotem defaultowa sciezka do tekstur
             do {
@@ -6001,6 +5998,10 @@ void TDynamicObject::LoadMMediaFile( std::string const &TypeName, std::string co
                         DestinationSign.script = asBaseDir + DestinationSign.script;
                     }
                 }
+                else if( token == "destinationsignbackground:" ) {
+                    parser.getTokens();
+                    parser >> DestinationSign.background;
+                }
 
             } while( token != "" );
 
@@ -6011,6 +6012,11 @@ void TDynamicObject::LoadMMediaFile( std::string const &TypeName, std::string co
     if( !iAnimations ) {
         // if the animations weren't defined the model is likely to be non-functional. warrants a warning.
         ErrorLog( "Animations tag is missing from the .mmd file \"" + asFileName + "\"" );
+    }
+
+    if( ReplacableSkin != "none" ) {
+        // potentially set blank destination texture
+        DestinationSign.destination_off = DestinationFind( ( DestinationSign.background.empty() ? "nowhere" : DestinationSign.background ) );
     }
 
     // assign default samples to sound emitters which weren't included in the config file
@@ -6257,6 +6263,37 @@ void TDynamicObject::Damage(char flag)
 	}
 
 	MoverParameters->EngDmgFlag = flag;
+};
+
+void TDynamicObject::SetLights() {
+
+    TDynamicObject *p = GetFirstDynamic(MoverParameters->CabOccupied < 0 ? 1 : 0, 4);
+    bool kier = (DirectionGet() * MoverParameters->CabOccupied > 0);
+    int xs = (kier ? 0 : 1);
+    if (kier ? p->NextC(1) : p->PrevC(1)) // jesli jest nastepny, to tylko przod
+    {
+        p->RaLightsSet(MoverParameters->Lights[xs][MoverParameters->LightsPos - 1] * (1 - xs),
+                       MoverParameters->Lights[1 - xs][MoverParameters->LightsPos - 1] * xs);
+        p = (kier ? p->NextC(4) : p->PrevC(4));
+        while (p)
+        {
+            if (kier ? p->NextC(1) : p->PrevC(1))
+            {
+                p->RaLightsSet(0, 0);
+            }
+            else
+            {
+                p->RaLightsSet(MoverParameters->Lights[xs][MoverParameters->LightsPos - 1] * xs,
+                               MoverParameters->Lights[1 - xs][MoverParameters->LightsPos - 1] * (1 - xs));
+            }
+            p = (kier ? p->NextC(4) : p->PrevC(4));
+        }
+    }
+    else // calosc
+    {
+        p->RaLightsSet(MoverParameters->Lights[xs][MoverParameters->LightsPos - 1],
+                       MoverParameters->Lights[1 - xs][MoverParameters->LightsPos - 1]);
+    }
 };
 
 void TDynamicObject::RaLightsSet(int head, int rear)

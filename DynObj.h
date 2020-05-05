@@ -214,6 +214,7 @@ public:
         bool has_light { false }; // the submodel was originally configured with self-illumination attribute
         material_handle destination { null_handle }; // most recently assigned non-blank destination texture
         material_handle destination_off { null_handle }; // blank destination sign
+        std::string background; // potential default background texture override
         std::string script; // potential python script used to generate texture data
         int update_rate { 0 }; // -1: per stop, 0: none, >0: fps // TBD, TODO: implement?
         std::string instancing; // potential method to generate more than one texture per timetable
@@ -663,6 +664,7 @@ private:
     bool remove_coupler_adapter( int const Side );
     void RadioStop();
 	void Damage(char flag);
+    void SetLights();
     void RaLightsSet(int head, int rear);
     int LightList( end const Side ) const { return iInventory[ Side ]; }
     void set_cab_lights( int const Cab, float const Level );

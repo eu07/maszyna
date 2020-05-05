@@ -1676,11 +1676,13 @@ TController::TController(bool AI, TDynamicObject *NewControll, bool InitPsyche, 
             mvOccupied->TrainType == dt_EZT ? -0.55 :
             mvOccupied->TrainType == dt_DMU ? -0.45 :
             -0.2 );
+/*
         // HACK: emu with induction motors need to start their braking a bit sooner than the ones with series motors
         if( ( mvOccupied->TrainType == dt_EZT )
          && ( mvControlling->EngineType == TEngineType::ElectricInductionMotor ) ) {
             fAccThreshold += 0.10;
         }
+*/
     }
     // TrainParams=NewTrainParams;
     // if (TrainParams)
@@ -2242,6 +2244,11 @@ bool TController::CheckVehicles(TOrders user)
                 mvOccupied->CompartmentLightsSwitchOff( mvOccupied->CompartmentLights.is_disabled );
                 mvOccupied->CompartmentLightsSwitch( mvOccupied->CompartmentLights.is_enabled );
             }
+        }
+
+        // HACK: ensure vehicle lights are active from the beginning, if it had pre-activated battery
+        if( mvOccupied->LightsPosNo > 0 ) {
+            pVehicle->SetLights();
         }
 
         if (AIControllFlag)

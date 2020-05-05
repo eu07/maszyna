@@ -2087,7 +2087,7 @@ void TTrain::OnCommand_batteryenable( TTrain *Train, command_data const &Command
 
         // side-effects
         if( Train->mvOccupied->LightsPosNo > 0 ) {
-            Train->SetLights();
+            Train->Dynamic()->SetLights();
         }
     }
     else if( Command.action == GLFW_RELEASE ) {
@@ -3682,7 +3682,7 @@ void TTrain::OnCommand_lightspresetactivatenext( TTrain *Train, command_data con
                 Train->mvOccupied->LightsPos + 1 :
                 1 ); // wrap mode
 
-        Train->SetLights();
+        Train->Dynamic()->SetLights();
         // visual feedback
         if( Train->ggLightsButton.SubModel != nullptr ) {
             // HACK: skip submodel animation when restarting cycle, since it plays in the 'wrong' direction
@@ -3716,7 +3716,7 @@ void TTrain::OnCommand_lightspresetactivateprevious( TTrain *Train, command_data
                 Train->mvOccupied->LightsPos - 1 :
                 Train->mvOccupied->LightsPosNo ); // wrap mode
 
-        Train->SetLights();
+        Train->Dynamic()->SetLights();
         // visual feedback
         if( Train->ggLightsButton.SubModel != nullptr ) {
             // HACK: skip submodel animation when restarting cycle, since it plays in the 'wrong' direction
@@ -8190,37 +8190,6 @@ TTrain::radio_message( sound_source *Message, int const Channel ) {
         .gain( volume )
         .play();
 }
-
-void TTrain::SetLights()
-{
-    TDynamicObject *p = DynamicObject->GetFirstDynamic(mvOccupied->CabOccupied < 0 ? 1 : 0, 4);
-    bool kier = (DynamicObject->DirectionGet() * mvOccupied->CabOccupied > 0);
-    int xs = (kier ? 0 : 1);
-    if (kier ? p->NextC(1) : p->PrevC(1)) // jesli jest nastepny, to tylko przod
-    {
-        p->RaLightsSet(mvOccupied->Lights[xs][mvOccupied->LightsPos - 1] * (1 - xs),
-                       mvOccupied->Lights[1 - xs][mvOccupied->LightsPos - 1] * xs);
-        p = (kier ? p->NextC(4) : p->PrevC(4));
-        while (p)
-        {
-            if (kier ? p->NextC(1) : p->PrevC(1))
-            {
-                p->RaLightsSet(0, 0);
-            }
-            else
-            {
-                p->RaLightsSet(mvOccupied->Lights[xs][mvOccupied->LightsPos - 1] * xs,
-                               mvOccupied->Lights[1 - xs][mvOccupied->LightsPos - 1] * (1 - xs));
-            }
-            p = (kier ? p->NextC(4) : p->PrevC(4));
-        }
-    }
-    else // calosc
-    {
-        p->RaLightsSet(mvOccupied->Lights[xs][mvOccupied->LightsPos - 1],
-                       mvOccupied->Lights[1 - xs][mvOccupied->LightsPos - 1]);
-    }
-};
 
 // clears state of all cabin controls
 void TTrain::clear_cab_controls()

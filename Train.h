@@ -137,7 +137,6 @@ class TTrain {
     void UpdateCab();
     bool Update( double const Deltatime );
     void add_distance( double const Distance );
-    void SetLights();
     // McZapkie-310302: ladowanie parametrow z pliku
     bool LoadMMediaFile(std::string const &asFileName);
     dictionary_source *GetTrainState();

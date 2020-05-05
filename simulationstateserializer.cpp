@@ -47,7 +47,8 @@ state_serializer::deserialize_begin( std::string const &Scenariofile ) {
     // TODO: check first for presence of serialized binary files
     // if this fails, fall back on the legacy text format
 	state->scratchpad.name = Scenariofile;
-    if( Scenariofile != "$.scn" ) {
+    if( ( true == Global.file_binary_terrain )
+     && ( Scenariofile != "$.scn" ) ) {
         // compilation to binary file isn't supported for rainsted-created overrides
         // NOTE: we postpone actual loading of the scene until we process time, season and weather data
 		state->scratchpad.binary.terrain = Region->is_scene( Scenariofile ) ;
@@ -128,7 +129,8 @@ state_serializer::deserialize_continue(std::shared_ptr<deserializer_state> state
 	scene::Groups.update_map();
 	Region->create_map_geometry();
 */
-	if( ( false == state->scratchpad.binary.terrain )
+	if( ( true == Global.file_binary_terrain )
+     && ( false == state->scratchpad.binary.terrain )
 	 && ( state->scenariofile != "$.scn" ) ) {
 		// if we didn't find usable binary version of the scenario files, create them now for future use
 		// as long as the scenario file wasn't rainsted-created base file override
