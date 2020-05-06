@@ -1128,6 +1128,7 @@ public:
 	bool MBrake = false;     /*Czy jest hamulec reczny*/
 	double StopBrakeDecc = 0.0;
 	TSecuritySystem SecuritySystem;
+    int EmergencyBrakeWarningSignal{ 0 }; // combined with basic WarningSignal when manual emergency brake is active
 	TUniversalCtrlTable UniCtrlList;     /*lista pozycji uniwersalnego nastawnika*/
 	int UniCtrlListSize = 0;	/*wielkosc listy pozycji uniwersalnego nastawnika*/
 	bool UniCtrlIntegratedBrakePNCtrl = false; /*zintegrowany nastawnik JH obsluguje hamulec PN*/

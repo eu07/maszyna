@@ -5744,14 +5744,14 @@ void TTrain::OnCommand_cabchangeforward( TTrain *Train, command_data const &Comm
                 movedirection > 0 ?
                     end::front :
                     end::rear ) };
-            if( TestFlag( Train->DynamicObject->MoverParameters->Couplers[ exitdirection ].CouplingFlag, coupling::gangway ) ) {
+            if( TestFlag( Train->mvOccupied->Couplers[ exitdirection ].CouplingFlag, coupling::gangway ) ) {
                 // przejscie do nastepnego pojazdu
                 auto *targetvehicle = (
                     exitdirection == end::front ?
                         Train->DynamicObject->PrevConnected() :
                         Train->DynamicObject->NextConnected() );
                 targetvehicle->MoverParameters->CabOccupied = (
-                    Train->DynamicObject->MoverParameters->Neighbours[ exitdirection ].vehicle_end ?
+                    Train->mvOccupied->Neighbours[ exitdirection ].vehicle_end ?
                         -1 :
                          1 );
                 Train->MoveToVehicle( targetvehicle );
@@ -5778,14 +5778,14 @@ void TTrain::OnCommand_cabchangebackward( TTrain *Train, command_data const &Com
                 movedirection > 0 ?
                     end::front :
                     end::rear ) };
-            if( TestFlag( Train->DynamicObject->MoverParameters->Couplers[ exitdirection ].CouplingFlag, coupling::gangway ) ) {
+            if( TestFlag( Train->mvOccupied->Couplers[ exitdirection ].CouplingFlag, coupling::gangway ) ) {
                 // przejscie do nastepnego pojazdu
                 auto *targetvehicle = (
                     exitdirection == end::front ?
                         Train->DynamicObject->PrevConnected() :
                         Train->DynamicObject->NextConnected() );
                 targetvehicle->MoverParameters->CabOccupied = (
-                    Train->DynamicObject->MoverParameters->Neighbours[ exitdirection ].vehicle_end ?
+                    Train->mvOccupied->Neighbours[ exitdirection ].vehicle_end ?
                         -1 :
                          1 );
                 Train->MoveToVehicle( targetvehicle );
@@ -7016,8 +7016,8 @@ bool TTrain::Update( double const Deltatime )
     ggMotorBlowersAllOffButton.Update();
 
     // wyprowadzenie sygnałów dla haslera na PoKeys (zaznaczanie na taśmie)
-    btHaslerBrakes.Turn(DynamicObject->MoverParameters->BrakePress > 0.4); // ciśnienie w cylindrach
-    btHaslerCurrent.Turn(DynamicObject->MoverParameters->Im != 0.0); // prąd na silnikach
+    btHaslerBrakes.Turn(mvOccupied->BrakePress > 0.4); // ciśnienie w cylindrach
+    btHaslerCurrent.Turn(mvOccupied->Im != 0.0); // prąd na silnikach
 
     // calculate current level of interior illumination
     {

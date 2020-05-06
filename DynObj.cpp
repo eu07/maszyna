@@ -4259,23 +4259,32 @@ void TDynamicObject::RenderSounds() {
     }
 
     // horns
-    if( TestFlag( MoverParameters->WarningSignal, 1 ) ) {
-        sHorn1.play( sound_flags::exclusive | sound_flags::looping );
-    }
-    else {
-        sHorn1.stop();
-    }
-    if( TestFlag( MoverParameters->WarningSignal, 2 ) ) {
-        sHorn2.play( sound_flags::exclusive | sound_flags::looping );
-    }
-    else {
-        sHorn2.stop();
-    }
-    if( TestFlag( MoverParameters->WarningSignal, 4 ) ) {
-        sHorn3.play( sound_flags::exclusive | sound_flags::looping );
-    }
-    else {
-        sHorn3.stop();
+    {
+        // for moving vehicle combine regular horn activation flag with emergency brake horn activation flag, if the brake is active
+        auto const warningsignal { (
+            ( MoverParameters->Vel > 0.5 ) && ( MoverParameters->AlarmChainFlag ) ?
+                MoverParameters->EmergencyBrakeWarningSignal :
+                0 )
+            | ( MoverParameters->WarningSignal ) };
+
+        if( TestFlag( warningsignal, 1 ) ) {
+            sHorn1.play( sound_flags::exclusive | sound_flags::looping );
+        }
+        else {
+            sHorn1.stop();
+        }
+        if( TestFlag( warningsignal, 2 ) ) {
+            sHorn2.play( sound_flags::exclusive | sound_flags::looping );
+        }
+        else {
+            sHorn2.stop();
+        }
+        if( TestFlag( warningsignal, 4 ) ) {
+            sHorn3.play( sound_flags::exclusive | sound_flags::looping );
+        }
+        else {
+            sHorn3.stop();
+        }
     }
     // szum w czasie jazdy
     if( ( GetVelocity() > 0.5 )

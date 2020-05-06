@@ -10301,6 +10301,8 @@ void TMoverParameters::LoadFIZ_Security( std::string const &line ) {
     extract_value( SecuritySystem.SoundSignalDelay, "SoundSignalDelay", line, "" );
     extract_value( SecuritySystem.EmergencyBrakeDelay, "EmergencyBrakeDelay", line, "" );
     extract_value( SecuritySystem.RadioStop, "RadioStop", line, "" );
+    
+    extract_value( EmergencyBrakeWarningSignal, "EmergencyBrakeWarningSignal", line, "" );
 }
 
 void TMoverParameters::LoadFIZ_Clima( std::string const &line ) {
