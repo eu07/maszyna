@@ -689,7 +689,7 @@ state_serializer::deserialize_endtrainset( cParser &Input, scene::scratch_data &
         }
         if( vehicleindex > 0 ) {
             // from second vehicle on couple it with the previous one
-            Scratchpad.trainset.vehicles[ vehicleindex - 1 ]->AttachPrev(
+            Scratchpad.trainset.vehicles[ vehicleindex - 1 ]->AttachNext(
                 vehicle,
                 Scratchpad.trainset.couplings[ vehicleindex - 1 ] );
         }

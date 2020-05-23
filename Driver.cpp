@@ -153,6 +153,8 @@ const double EasyReactionTime = 0.5; //[s] przebłyski świadomości dla zwykłe
 const double HardReactionTime = 0.2;
 const double EasyAcceleration = 0.85; //[m/ss]
 const double HardAcceleration = 9.81;
+const double CargoTrainAcceleration = 0.25;
+const double HeavyCargoTrainAcceleration = 0.10;
 const double PrepareTime = 2.0; //[s] przebłyski świadomości przy odpalaniu
 bool WriteLogFlag = false;
 double const deltalog = 0.05; // przyrost czasu
@@ -1822,7 +1824,7 @@ void TController::OrdersClear()
     for (int b = 0; b < maxorders; b++)
         OrderList[b] = Wait_for_orders;
 #if LOGORDERS
-    WriteLog("--> OrdersClear");
+    OrdersDump("OrdersClear", false);
 #endif
 };
 
@@ -2052,7 +2054,7 @@ void TController::AutoRewident()
 	    }
 
         IsCargoTrain = ( mvOccupied->CategoryFlag == 1 ) && ( ( mvOccupied->BrakeDelayFlag & bdelay_G ) != 0 );
-        IsHeavyCargoTrain = ( true == IsCargoTrain ) && ( fBrake_a0[ 1 ] > 0.4 );
+        IsHeavyCargoTrain = ( true == IsCargoTrain ) && ( fBrake_a0[ 1 ] > 0.4 ) && ( iVehicles - ControlledEnginesCount > 0 ) && ( fMass / iVehicles > 50000 );
 
         BrakingInitialLevel = (
             IsHeavyCargoTrain ? 1.25 :
@@ -3176,6 +3178,10 @@ bool TController::IncSpeed()
         // gdy jest nakaz poczekać z jazdą, to nie ruszać
         return false;
     }
+    if( IsAnyCouplerStretched ) {
+        // train is already stretched past its limits, don't pull even harder
+        return false;
+    }
     bool OK = true;
     if( ( iDrivigFlags & moveDoorOpened )
      && ( VelDesired > 0.0 ) ) { // to prevent door shuffle on stop
@@ -3221,8 +3227,8 @@ bool TController::IncSpeed()
                     // if the power station is heavily burdened,
                     // if it generates enough traction force
                     // to build up speed to 30/40 km/h for passenger/cargo train (10 km/h less if going uphill)
-                    auto const sufficienttractionforce { std::abs( mvControlling->Ft ) > ( IsHeavyCargoTrain ? 125 : 100 ) * 1000.0 };
-                    auto const sufficientacceleration { AbsAccS_pub >= ( IsHeavyCargoTrain ? 0.02 : 0.04 ) };
+                    auto const sufficienttractionforce { std::abs( mvControlling->Ft ) > ( IsHeavyCargoTrain ? 75 : 50 ) * 1000.0 };
+                    auto const sufficientacceleration { AbsAccS_pub >= ( IsHeavyCargoTrain ? 0.03 : IsCargoTrain ? 0.06 : 0.09 ) };
                     auto const seriesmodefieldshunting { ( mvControlling->ScndCtrlPos > 0 ) && ( mvControlling->RList[ mvControlling->MainCtrlPos ].Bn == 1 ) };
                     auto const parallelmodefieldshunting { ( mvControlling->ScndCtrlPos > 0 ) && ( mvControlling->RList[ mvControlling->MainCtrlPos ].Bn > 1 ) };
                     auto const useseriesmodevoltage {
@@ -3233,9 +3239,9 @@ bool TController::IncSpeed()
                     auto const useseriesmode = (
                         ( mvControlling->Imax > mvControlling->ImaxLo )
                      || ( fVoltage < useseriesmodevoltage )
-                     || ( ( true == sufficienttractionforce )
-                     && ( true == sufficientacceleration ) 
-                     && ( mvOccupied->Vel <= ( IsCargoTrain ? 35 : 25 ) + ( seriesmodefieldshunting ? 5 : 0 ) - ( ( fAccGravity < -0.025 ) ? 10 : 0 ) ) ) );
+                     || ( ( true == sufficientacceleration )
+                       && ( true == sufficienttractionforce )
+                       && ( mvOccupied->Vel <= ( IsCargoTrain ? 40 : 30 ) + ( seriesmodefieldshunting ? 5 : 0 ) - ( ( fAccGravity < -0.025 ) ? 10 : 0 ) ) ) );
                     // when not in series mode use the first available parallel mode configuration until 50/60 km/h for passenger/cargo train
                     // (if there's only one parallel mode configuration it'll be used regardless of current speed)
                     auto const usefieldshunting = (
@@ -3243,9 +3249,9 @@ bool TController::IncSpeed()
                      && ( mvControlling->RList[ mvControlling->MainCtrlPos ].R < 0.01 )
                      && ( useseriesmode ?
                             mvControlling->RList[ mvControlling->MainCtrlPos ].Bn == 1 :
-                            ( ( true == sufficienttractionforce )
-                           && ( true == sufficientacceleration )
-                           && ( mvOccupied->Vel <= ( IsCargoTrain ? 55 : 45 ) + ( parallelmodefieldshunting ? 5 : 0 ) ) ?
+                            ( ( true == sufficientacceleration )
+                           && ( true == sufficienttractionforce )
+                           && ( mvOccupied->Vel <= ( IsCargoTrain ? 60 : 50 ) + ( parallelmodefieldshunting ? 5 : 0 ) ) ?
                                 mvControlling->RList[ mvControlling->MainCtrlPos ].Bn > 1 :
                                 mvControlling->MainCtrlPos == mvControlling->MainCtrlPosNo ) ) );
 
@@ -3282,7 +3288,7 @@ bool TController::IncSpeed()
                                     mvControlling->RList[ std::min( mvControlling->MainCtrlPos + 1, mvControlling->MainCtrlPosNo ) ].Bn == 1 ? 
                                         mvControlling->EnginePowerSource.CollectorParameters.MinV :
                                         useseriesmodevoltage )
-                                > ( IsHeavyCargoTrain ? 80.0 : 60.0 ) * ControlledEnginesCount };
+                                > ( IsHeavyCargoTrain ? 100.0 : 75.0 ) * ControlledEnginesCount };
 
                             OK = (
                                 ( sufficientpowermargin && ( false == mvControlling->DelayCtrlFlag ) ) ?
@@ -3425,20 +3431,20 @@ bool TController::DecSpeed(bool force)
         iDrivigFlags &= ~moveIncSpeed; // usunięcie flagi jazdy
         if (force) // przy aktywacji kabiny jest potrzeba natychmiastowego wyzerowania
             if (mvControlling->MainCtrlPosNo > 0) // McZapkie-041003: wagon sterowniczy, np. EZT
-                mvControlling->DecMainCtrl((mvControlling->MainCtrlPowerPos() > 1 ? 2 : 1));
+                mvControlling->DecMainCtrl( std::min( mvControlling->MainCtrlPowerPos(), 2 ) );
         mvControlling->AutoRelayCheck(); // sprawdzenie logiki sterowania
         return false;
     case TEngineType::ElectricSeriesMotor:
         OK = mvControlling->DecScndCtrl(2); // najpierw bocznik na zero
         if (!OK)
-            OK = mvControlling->DecMainCtrl((mvControlling->MainCtrlPowerPos() > 1 ? 2 : 1));
+            OK = mvControlling->DecMainCtrl( std::min( mvControlling->MainCtrlPowerPos(), 2 ) );
         mvControlling->AutoRelayCheck(); // sprawdzenie logiki sterowania
         break;
     case TEngineType::Dumb:
     case TEngineType::DieselElectric:
         OK = mvControlling->DecScndCtrl(2);
         if (!OK)
-            OK = mvControlling->DecMainCtrl(2 + (mvControlling->MainCtrlPowerPos() / 2));
+            OK = mvControlling->DecMainCtrl( std::min( mvControlling->MainCtrlPowerPos(), ( 2 + (mvControlling->MainCtrlPowerPos() / 2) ) ) );
         break;
 	case TEngineType::ElectricInductionMotor:
 		OK = DecSpeedEIM();
@@ -3515,13 +3521,13 @@ bool TController::IncSpeedEIM() {
     return OK;
 }
 
-bool TController::DecSpeedEIM()
+bool TController::DecSpeedEIM( int const Amount )
 { // zmniejszenie prędkości (ale nie hamowanie)
 	bool OK = false; // domyślnie false, aby wyszło z pętli while
 	switch (mvControlling->EIMCtrlType)
 	{
 	case 0:
-		OK = mvControlling->DecMainCtrl(1);
+		OK = mvControlling->DecMainCtrl( Amount );
 		break;
 	case 1:
 		OK = mvControlling->MainCtrlPos > 4;
@@ -3909,6 +3915,38 @@ void TController::SetTimeControllers()
 			}
 		}
 	}
+    // 5.5 universal control for diesel electric vehicles
+	if ((mvControlling->EngineType == TEngineType::DieselElectric) && (mvControlling->EIMCtrlType == 3))
+	{
+        // NOTE: partial implementation for speedinc/dec
+        // TBD, TODO: implement fully?
+        if( ( AccDesired >= 0.0 )
+         && ( mvControlling->StLinFlag ) ) {
+
+            auto const PosInc { mvControlling->MainCtrlPosNo };
+            auto PosKeep { 0 };
+            auto PosDec{ 0 };
+            for( int i = PosInc; i >= 0; --i ) {
+                if( mvControlling->UniCtrlList[ i ].SetCtrlVal <= 0 ) {
+                    if( mvControlling->UniCtrlList[ i ].SpeedDown == 0.0 ) {
+                        PosKeep = i;
+                    }
+                    if( mvControlling->UniCtrlList[ i ].SpeedDown > 0.01 ) {
+                        PosDec = i;
+                        break;
+                    }
+                }
+            }
+
+            auto const DesiredPos { (
+                AccDesired > AbsAccS_pub + 0.05 ? PosInc :
+                AccDesired < AbsAccS_pub - 0.05 ? PosDec :
+                PosKeep ) };
+
+            while( ( mvControlling->MainCtrlPos > DesiredPos ) && mvControlling->DecMainCtrl( 1 ) ) { ; }
+            while( ( mvControlling->MainCtrlPos < DesiredPos ) && mvControlling->IncMainCtrl( 1 ) ) { ; }
+        }
+    }
 	//6. UniversalBrakeButtons
 	//6.1. Checking flags for Over pressure
 	if (std::abs(BrakeCtrlPosition - gbh_FS)<0.5) {
@@ -4493,8 +4531,7 @@ bool TController::PutCommand( std::string NewCommand, double NewValue1, double N
                 OrderPos = 1;
             }
 #if LOGORDERS
-            WriteLog("--> Jump_to_order");
-            OrdersDump();
+            OrdersDump("Jump_to_order");
 #endif
         }
         return true;
@@ -4658,6 +4695,7 @@ TController::UpdateSituation(double dt) {
     fAccGravity = 0.0; // przyspieszenie wynikające z pochylenia
     double dy; // składowa styczna grawitacji, w przedziale <0,1>
     double AbsAccS = 0;
+    IsAnyCouplerStretched = false;
     IsAnyDoorOpen[ side::right ] = IsAnyDoorOpen[ side::left ] = false;
     ConsistShade = 0.0;
     TDynamicObject *p = pVehicles[0]; // pojazd na czole składu
@@ -4696,6 +4734,11 @@ TController::UpdateSituation(double dt) {
             // ciężar razy składowa styczna grawitacji
             fAccGravity -= vehicle->TotalMassxg * dy * ( p->DirectionGet() == iDirection ? 1 : -1 );
         }
+        // check coupler state
+        IsAnyCouplerStretched =
+            IsAnyCouplerStretched
+            || ( vehicle->Couplers[ end::front ].stretch_duration > 0.0 )
+            || ( vehicle->Couplers[ end::rear ].stretch_duration > 0.0 );
         // check door state
         auto const switchsides { p->DirectionGet() != iDirection };
         IsAnyDoorOpen[ side::right ] =
@@ -5385,8 +5428,7 @@ TController::UpdateSituation(double dt) {
         else
             ++OrderPos;
 #if LOGORDERS
-        WriteLog("--> Jump_to_first_order");
-        OrdersDump();
+        OrdersDump("Jump_to_first_order");
 #endif
         break;
     case Wait_for_orders: // jeśli czeka, też ma skanować, żeby odpalić się od semafora
@@ -6174,6 +6216,14 @@ TController::UpdateSituation(double dt) {
 */
                     }
                 }
+                // HACK: limit acceleration for cargo trains, to reduce probability of breaking couplers on sudden jolts
+                // TBD: expand this behaviour to all trains with car(s) exceeding certain weight?
+                if( IsCargoTrain ) {
+                    AccDesired = std::min( AccDesired, CargoTrainAcceleration );
+                }
+                if( IsHeavyCargoTrain ) {
+                    AccDesired = std::min( AccDesired, HeavyCargoTrainAcceleration );
+                }
             }
             else {
                 // for cars the older version works better
@@ -6283,7 +6333,7 @@ TController::UpdateSituation(double dt) {
                     if( vel < VelDesired ) {
                         // don't adjust acceleration when going above current goal speed
                         if( -AccDesired * BrakeAccFactor() < (
-                            ( ( fReady > ( ( mvOccupied->Vel > 5.0 ) ? 0.5 : 0.4 ) )
+                            ( ( fReady > ( IsHeavyCargoTrain ? 0.4 : ( mvOccupied->Vel > 5.0 ) ? 0.45 : 0.4 ) )
                            || ( VelNext > vel - 40.0 ) ) ?
                                 fBrake_a0[ 0 ] * 0.8 :
                                 -fAccThreshold )
@@ -6386,6 +6436,7 @@ TController::UpdateSituation(double dt) {
                             ", VelSignal=" + AnsiString(VelSignal) + ", VelNext=" +
                             AnsiString(VelNext));
 #endif
+/*
                 if( ( vel < 10.0 )
                  && ( AccDesired > 0.1 ) ) {
                     // Ra 2F1H: jeśli prędkość jest mała, a można przyspieszać,
@@ -6393,6 +6444,7 @@ TController::UpdateSituation(double dt) {
                     // przy małych prędkościach może być trudno utrzymać
                     AccDesired = std::max( 0.9, AccDesired );
                 }
+*/
                 // małe przyspieszenie
                 // Ra 2F1I: wyłączyć kiedyś to uśrednianie i przeanalizować skanowanie, czemu migocze
                 if (AccDesired > -0.05) // hamowania lepeiej nie uśredniać
@@ -6454,10 +6506,11 @@ TController::UpdateSituation(double dt) {
                     else if( ( vel > VelDesired + SpeedCtrlMargin)
                           || ( fAccGravity < -0.01 ?
                                     AccDesired < 0.0 :
-                                    (AbsAccS > AccDesired && AccDesired < 0.75) ) ) {
-                        // jak za bardzo przyspiesza albo prędkość przekroczona
-						// dodany wyjatek na "pelna w przod"
-                        DecSpeed(); // pojedyncze cofnięcie pozycji, bo na zero to przesada
+                                    (AbsAccS > AccDesired + 0.05) )
+                          || ( IsAnyCouplerStretched ) ) {
+                            // jak za bardzo przyspiesza albo prędkość przekroczona
+						    // dodany wyjatek na "pelna w przod"
+                            DecSpeed();
                     }
                 }
                 if( mvOccupied->TrainType == dt_EZT ) {
@@ -6669,8 +6722,7 @@ void TController::JumpToNextOrder()
     }
     OrderCheck();
 #if LOGORDERS
-    WriteLog("--> JumpToNextOrder");
-    OrdersDump(); // normalnie nie ma po co tego wypisywać
+    OrdersDump("JumpToNextOrder"); // normalnie nie ma po co tego wypisywać
 #endif
 };
 
@@ -6681,8 +6733,7 @@ void TController::JumpToFirstOrder()
         OrderTop = 1;
     OrderCheck();
 #if LOGORDERS
-    WriteLog("--> JumpToFirstOrder");
-    OrdersDump(); // normalnie nie ma po co tego wypisywać
+    OrdersDump("JumpToFirstOrder"); // normalnie nie ma po co tego wypisywać
 #endif
 };
 
@@ -6733,8 +6784,7 @@ void TController::OrderNext(TOrders NewOrder)
     }
     OrderList[OrderTop++] = NewOrder; // dodanie rozkazu jako następnego
 #if LOGORDERS
-    WriteLog("--> OrderNext");
-    OrdersDump(); // normalnie nie ma po co tego wypisywać
+    OrdersDump( "OrderNext" ); // normalnie nie ma po co tego wypisywać
 #endif
 }
 
@@ -6749,17 +6799,17 @@ void TController::OrderPush(TOrders NewOrder)
     if (OrderTop >= maxorders)
         ErrorLog("Commands overflow: The program will now crash");
 #if LOGORDERS
-    WriteLog("--> OrderPush: [" + Order2Str( NewOrder ) + "]");
-    OrdersDump(); // normalnie nie ma po co tego wypisywać
+    OrdersDump( "OrderPush: [" + Order2Str( NewOrder ) + "]" ); // normalnie nie ma po co tego wypisywać
 #endif
 }
 
-void TController::OrdersDump()
+void TController::OrdersDump( std::string const Neworder, bool const Verbose )
 { // wypisanie kolejnych rozkazów do logu
-    WriteLog("Orders for " + pVehicle->asName + ":");
+    WriteLog( "New order for [" + pVehicle->asName + "]: " + Neworder );
+    if( false == Verbose ) { return; }
     for (int b = 0; b < maxorders; ++b)
     {
-        WriteLog((std::to_string(b) + ": " + Order2Str(OrderList[b]) + (OrderPos == b ? " <-" : "")));
+        WriteLog( ( OrderPos == b ? ">" : " " ) + (std::to_string(b) + ": " + Order2Str(OrderList[b])));
         if (b) // z wyjątkiem pierwszej pozycji
             if (OrderList[b] == Wait_for_orders) // jeśli końcowa komenda
                 break; // dalej nie trzeba
@@ -6848,10 +6898,8 @@ void TController::OrdersInit(double fVel)
             SetVelocity(0, 0, stopSleep); // prędkość w przedziale (0;1) oznacza, że ma stać
     }
 #if LOGORDERS
-    WriteLog("--> OrdersInit");
+    OrdersDump( "OrdersInit", DebugModeFlag ); // wypisanie kontrolne tabelki rozkazów
 #endif
-    if (DebugModeFlag) // normalnie nie ma po co tego wypisywać
-        OrdersDump(); // wypisanie kontrolne tabelki rozkazów
     // McZapkie! - zeby w ogole AI ruszyl to musi wykonac powyzsze rozkazy
     // Ale mozna by je zapodac ze scenerii
 };

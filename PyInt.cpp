@@ -199,7 +199,7 @@ auto python_taskqueue::init() -> bool {
     // release the lock, save the state for future use
     m_mainthread = PyEval_SaveThread();
 
-    WriteLog( "Python Interpreter setup complete" );
+    WriteLog( "Python Interpreter: setup complete" );
 
     // init workers
     for( auto &worker : m_workers ) {

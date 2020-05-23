@@ -121,12 +121,12 @@ static int const dtrain_axle = 64;
 static int const dtrain_out = 128;         /*wykolejenie*/
 
 										   /*wagi prawdopodobienstwa dla funkcji FuzzyLogic*/
-#define p_elengproblem  (1.000000E-02)
-#define p_elengdamage  (1.000000E-01)
-#define p_coupldmg  (2.000000E-02)
-#define p_derail  (1.000000E-03)
-#define p_accn  (1.000000E-01)
-#define p_slippdmg  (1.000000E-03)
+#define p_elengproblem  (1e-02)
+#define p_elengdamage  (1e-01)
+#define p_coupldmg  (2e-03)
+#define p_derail  (1e-03)
+#define p_accn  (1e-01)
+#define p_slippdmg  (1e-03)
 
 										   /*typ sprzegu*/
 static int const ctrain_virtual = 0;        //gdy pojazdy na tym samym torze się widzą wzajemnie
@@ -759,6 +759,8 @@ struct speed_control {
 	double FactorIpos = 0.0;
 	double FactorIneg = 0.0;
 	double BrakeInterventionVel = 30.0;
+    double PowerUpSpeed = 1000;
+    double PowerDownSpeed = 1000;
 };
 
 class TMoverParameters
@@ -1127,6 +1129,7 @@ public:
     int ScndInMain{ 0 };     /*zaleznosc bocznika od nastawnika*/
 	bool MBrake = false;     /*Czy jest hamulec reczny*/
 	double StopBrakeDecc = 0.0;
+    bool ReleaseParkingBySpringBrake { false };
 	TSecuritySystem SecuritySystem;
     int EmergencyBrakeWarningSignal{ 0 }; // combined with basic WarningSignal when manual emergency brake is active
 	TUniversalCtrlTable UniCtrlList;     /*lista pozycji uniwersalnego nastawnika*/
@@ -1602,7 +1605,7 @@ public:
 	// obsługa sprzęgów
     static double CouplerDist( TMoverParameters const *Left, TMoverParameters const *Right );
     static double Distance(const TLocation &Loc1, const TLocation &Loc2, const TDimension &Dim1, const TDimension &Dim2);
-	bool Attach(int ConnectNo, int ConnectToNr, TMoverParameters *ConnectTo, int CouplingType, bool Forced = false, bool Audible = true);
+	bool Attach(int ConnectNo, int ConnectToNr, TMoverParameters *ConnectTo, int CouplingType, bool Enforce = false, bool Audible = true);
 	int DettachStatus(int ConnectNo);
 	bool Dettach(int ConnectNo);
     void damage_coupler( int const End );
@@ -1645,8 +1648,8 @@ public:
     bool RunCommand( std::string Command, double CValue1, double CValue2, int const Couplertype = ctrain_controll );
     bool RunInternalCommand();
 	void PutCommand(std::string NewCommand, double NewValue1, double NewValue2, const TLocation &NewLocation);
-	bool CabActivisation( bool const Force = false );
-	bool CabDeactivisation( bool const Force = false );
+	bool CabActivisation( bool const Enforce = false );
+	bool CabDeactivisation( bool const Enforce = false );
 
 	/*! funkcje zwiekszajace/zmniejszajace nastawniki*/
 	/*! glowny nastawnik:*/

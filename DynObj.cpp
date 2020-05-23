@@ -1552,7 +1552,7 @@ TDynamicObject::uncouple( int const Side ) {
 }
 
 bool
-TDynamicObject::attach_coupler_adapter( int const Side ) {
+TDynamicObject::attach_coupler_adapter( int const Side, bool const Enforce ) {
 
     auto &coupler { MoverParameters->Couplers[ Side ] };
     // sanity check(s)
@@ -1572,7 +1572,8 @@ TDynamicObject::attach_coupler_adapter( int const Side ) {
         // explicit coupler adapter definition overrides default parameters
         adapterdata = neighbour->m_coupleradapter;
     }
-    if( MoverParameters->Neighbours[ Side ].distance - adapterdata.position.x < 0.5 ) {
+    if( ( MoverParameters->Neighbours[ Side ].distance - adapterdata.position.x < 0.5 )
+     && ( false == Enforce ) ) {
         // arbitrary amount of free room required to install the adapter
         // NOTE: this also covers cases with established physical connection
         return false;
@@ -2483,11 +2484,49 @@ void TDynamicObject::Move(double fDistance)
     }
 };
 
-void TDynamicObject::AttachPrev(TDynamicObject *Object, int iType)
+void TDynamicObject::AttachNext(TDynamicObject *Object, int iType)
 { // Ra: doczepia Object na końcu składu (nazwa funkcji może być myląca)
     // Ra: używane tylko przy wczytywaniu scenerii
-    MoverParameters->Attach( iDirection, Object->iDirection ^ 1, Object->MoverParameters, iType, true, false );
+    auto const vehicleend { iDirection };
+    auto const othervehicleend { Object->iDirection ^ 1 };
+
+    MoverParameters->Attach( vehicleend, othervehicleend, Object->MoverParameters, iType, true, false );
     // update neighbour data for both affected vehicles
+    update_neighbours();
+    Object->update_neighbours();
+
+    // potentially attach automatic coupler adapter to allow the connection
+    // HACK: we're doing it after establishin actual connection, as the method needs valid neighbour data
+    auto &coupler { MoverParameters->Couplers[ vehicleend ] };
+    auto &othercoupler { Object->MoverParameters->Couplers[ ( othervehicleend != 2 ? othervehicleend : coupler.ConnectedNr ) ] };
+
+    if( coupler.type() != othercoupler.type() ) {
+        if( othercoupler.type() == TCouplerType::Automatic ) {
+            // try to attach adapter to the vehicle
+            attach_coupler_adapter(
+                vehicleend,
+                true );
+        }
+        else if( coupler.type() == TCouplerType::Automatic ) {
+            // try to attach adapter to the other vehicle
+            Object->attach_coupler_adapter(
+                ( othervehicleend != 2 ? othervehicleend : coupler.ConnectedNr ),
+                true );
+        }
+        // update distance to neighbours on account of potentially attached adapter
+        update_neighbours();
+        Object->update_neighbours();
+    }
+    // potentially adjust vehicle position to avoid collision at the simulation start
+    if( MoverParameters->Neighbours[ vehicleend ].distance > -0.001 ) { return; }
+
+    Object->Move( MoverParameters->Neighbours[ vehicleend ].distance * Object->DirectionGet() );
+    // HACK: manually update vehicle position as it's used by neighbour distance update we do next
+    Object->MoverParameters->Loc = {
+        -Object->vPosition.x,
+         Object->vPosition.z,
+         Object->vPosition.y };
+    // update neighbour distance data after moving our vehicle
     update_neighbours();
     Object->update_neighbours();
 }
@@ -3063,7 +3102,8 @@ bool TDynamicObject::Update(double dt, double dt1)
             if (((MoverParameters->ShuntMode) && (Frj < 0.0015 * masa)) ||
                 (MoverParameters->V * MoverParameters->DirAbsolute < -0.2))
             {
-                Fzad = std::max(MoverParameters->StopBrakeDecc * masa, Fzad);
+                auto const sbd { ( ( MoverParameters->SpringBrake.IsActive && MoverParameters->ReleaseParkingBySpringBrake ) ? 0.0 : MoverParameters->StopBrakeDecc ) };
+                Fzad = std::max( Fzad, sbd * masa );
             }
 			if ((Fzad > 1) && (!MEDLogFile.is_open()) && (MoverParameters->Vel > 1))
 			{

@@ -564,7 +564,7 @@ private:
     int init_sections( TModel3d const *Model, std::string const &Nameprefix, bool const Overrideselfillum );
     bool init_destination( TModel3d *Model );
     void create_controller( std::string const Type, bool const Trainset );
-    void AttachPrev(TDynamicObject *Object, int iType = 1);
+    void AttachNext(TDynamicObject *Object, int iType = 1);
     bool UpdateForce(double dt);
     // initiates load change by specified amounts, with a platform on specified side
     void LoadExchange( int const Disembark, int const Embark, int const Platform );
@@ -660,7 +660,7 @@ private:
 
     void couple( int const Side );
     int uncouple( int const Side );
-    bool attach_coupler_adapter( int const Side );
+    bool attach_coupler_adapter( int const Side, bool const Enforce = false );
     bool remove_coupler_adapter( int const Side );
     void RadioStop();
 	void Damage(char flag);

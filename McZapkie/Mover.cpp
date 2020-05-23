@@ -16,6 +16,7 @@ http://mozilla.org/MPL/2.0/.
 #include "Globals.h"
 #include "Logs.h"
 #include "parser.h"
+#include "simulation.h"
 //---------------------------------------------------------------------------
 
 // Ra: tu należy przenosić funcje z mover.pas, które nie są z niego wywoływane.
@@ -426,7 +427,7 @@ double TMoverParameters::CouplerDist(TMoverParameters const *Left, TMoverParamet
             Left->Dim, Right->Dim); // odległość pomiędzy sprzęgami (kula!)
 };
 
-bool TMoverParameters::Attach(int ConnectNo, int ConnectToNr, TMoverParameters *ConnectTo, int CouplingType, bool Forced, bool Audible)
+bool TMoverParameters::Attach(int ConnectNo, int ConnectToNr, TMoverParameters *ConnectTo, int CouplingType, bool Enforce, bool Audible)
 { //łączenie do swojego sprzęgu (ConnectNo) pojazdu (ConnectTo) stroną (ConnectToNr)
     // Ra: zwykle wykonywane dwukrotnie, dla każdego pojazdu oddzielnie
     // Ra: trzeba by odróżnić wymóg dociśnięcia od uszkodzenia sprzęgu przy podczepianiu AI do składu
@@ -441,7 +442,7 @@ bool TMoverParameters::Attach(int ConnectNo, int ConnectToNr, TMoverParameters *
     auto const distance { CouplerDist( this, ConnectTo ) - ( coupler.adapter_length + othercoupler.adapter_length ) };
 
     auto const couplercheck {
-        ( Forced )
+        ( Enforce )
      || ( ( distance <= dEpsilon )
        && ( coupler.type() != TCouplerType::NoCoupler )
        && ( coupler.type() == othercoupler.type() ) ) };
@@ -1044,31 +1045,34 @@ void TMoverParameters::CollisionDetect(int const End, double const dt)
         }
     }
 
-    if( ( coupler.Dist < 0 )
+    if( ( -coupler.Dist >= coupler.DmaxB )
      && ( FuzzyLogic( std::abs( CCF ), 5.0 * ( coupler.FmaxC + 1.0 ), p_coupldmg ) ) ) {
         // small chance to smash the coupler if it's hit with excessive force
         damage_coupler( End );
     }
 
-    auto const safevelocitylimit { 15.0 };
-    auto const velocitydifference {
-        glm::length(
-            glm::angleAxis( Rot.Rz, glm::dvec3{ 0, 1, 0 } ) * V
-          - glm::angleAxis( othervehicle->Rot.Rz, glm::dvec3{ 0, 1, 0 } ) * othervehicle->V )
-        * 3.6 }; // m/s -> km/h
+    if( ( coupler.CouplingFlag == coupling::faux 
+     || ( true == TestFlag( othervehicle->DamageFlag, dtrain_out ) ) ) ) { // HACK: limit excessive speed derailment checks to vehicles which aren't part of the same consist
+        auto const safevelocitylimit { 15.0 };
+        auto const velocitydifference {
+            glm::length(
+                glm::angleAxis( Rot.Rz, glm::dvec3{ 0, 1, 0 } ) * V
+              - glm::angleAxis( othervehicle->Rot.Rz, glm::dvec3{ 0, 1, 0 } ) * othervehicle->V )
+            * 3.6 }; // m/s -> km/h
 
-    if( velocitydifference > safevelocitylimit ) {
-        // HACK: crude estimation for potential derail, will take place with velocity difference > 15 km/h adjusted for vehicle mass ratio
-        if( ( false == TestFlag( DamageFlag, dtrain_out ) )
-         || ( false == TestFlag( othervehicle->DamageFlag, dtrain_out ) ) ) {
-            WriteLog( "Bad driving: " + Name + " and " + othervehicle->Name + " collided with velocity " + to_string( velocitydifference, 0 ) + " km/h" );
-        }
+        if( velocitydifference > safevelocitylimit ) {
+            // HACK: crude estimation for potential derail, will take place with velocity difference > 15 km/h adjusted for vehicle mass ratio
+            if( ( false == TestFlag( DamageFlag, dtrain_out ) )
+             || ( false == TestFlag( othervehicle->DamageFlag, dtrain_out ) ) ) {
+                WriteLog( "Bad driving: " + Name + " and " + othervehicle->Name + " collided with velocity " + to_string( velocitydifference, 0 ) + " km/h" );
+            }
 
-        if( velocitydifference > safevelocitylimit * ( TotalMass / othervehicle->TotalMass ) ) {
-            derail( 5 );
-        }
-        if( velocitydifference > safevelocitylimit * ( othervehicle->TotalMass / TotalMass ) ) {
-            othervehicle->derail( 5 );
+            if( velocitydifference > safevelocitylimit * ( TotalMass / othervehicle->TotalMass ) ) {
+                derail( 5 );
+            }
+            if( velocitydifference > safevelocitylimit * ( othervehicle->TotalMass / TotalMass ) ) {
+                othervehicle->derail( 5 );
+            }
         }
     }
   
@@ -2291,6 +2295,9 @@ bool TMoverParameters::DecMainCtrl(int CtrlSpeed)
 		// nie ma sterowania
         OK = false;
     }
+    else if( CtrlSpeed == 0 ) {
+        return false;
+    }
     else
     {
         // TBD, TODO: replace with mainctrlpowerpos() check?
@@ -2324,7 +2331,7 @@ bool TMoverParameters::DecMainCtrl(int CtrlSpeed)
 							}
                         }
                         else if (CtrlSpeed > 1)
-                            OK = (DecMainCtrl(1) && DecMainCtrl(2)); // CtrlSpeed-1);
+                            OK = (DecMainCtrl(1) && DecMainCtrl(CtrlSpeed - 1)); // CtrlSpeed-1);
                         break;
                     }
 
@@ -2569,11 +2576,11 @@ bool TMoverParameters::DecScndCtrl(int CtrlSpeed)
 // Q: 20160710
 // załączenie rozrządu
 // *************************************************************************************************
-bool TMoverParameters::CabActivisation( bool const Force )
+bool TMoverParameters::CabActivisation( bool const Enforce )
 {
     bool OK = false;
 
-    OK = Force || (CabActive == 0); // numer kabiny, z której jest sterowanie
+    OK = Enforce || (CabActive == 0); // numer kabiny, z której jest sterowanie
     if (OK)
     {
         CabActive = CabOccupied; // sterowanie jest z kabiny z obsadą
@@ -2588,11 +2595,11 @@ bool TMoverParameters::CabActivisation( bool const Force )
 // Q: 20160710
 // wyłączenie rozrządu
 // *************************************************************************************************
-bool TMoverParameters::CabDeactivisation( bool const Force )
+bool TMoverParameters::CabDeactivisation( bool const Enforce )
 {
     bool OK = false;
 
-    OK = Force || (CabActive == CabOccupied); // o ile obsada jest w kabinie ze sterowaniem
+    OK = Enforce || (CabActive == CabOccupied); // o ile obsada jest w kabinie ze sterowaniem
     if (OK)
     {
         CabActive = 0;
@@ -7065,6 +7072,7 @@ void TMoverParameters::CheckSpeedCtrl(double dt)
 		}
 		if ((EIMCtrlType >= 3)&&(UniCtrlList[MainCtrlPos].SpeedUp <= 0)) {
 			accfactor = 0.0;
+            eimicSpeedCtrl = 0;
 		}
 	}
 	if (SpeedCtrlUnit.IsActive) {//speed control
@@ -7079,7 +7087,7 @@ void TMoverParameters::CheckSpeedCtrl(double dt)
 				bool retarder_not_work = (EngineType != TEngineType::DieselEngine) || (Vel < SpeedCtrlUnit.BrakeInterventionVel);
 				if (eSCP < -1.0)
 				{
-					SpeedCtrlUnit.BrakeInterventionBraking = (eSCP < -1.1) && retarder_not_work;
+                    SpeedCtrlUnit.BrakeInterventionBraking = (eSCP < -1.1) && retarder_not_work && (eimicSpeedCtrl < -0.99 * SpeedCtrlUnit.DesiredPower);
 					eSCP = -1.0;
 				}
 				SpeedCtrlUnit.BrakeInterventionUnbraking = (eSCP > 0.0) || (Vel == 0.0);
@@ -7092,7 +7100,11 @@ void TMoverParameters::CheckSpeedCtrl(double dt)
 				else {
 					eimicSpeedCtrlIntegral = 0;
 				}
-				eimicSpeedCtrl = clamp(eimicSpeedCtrlIntegral + eSCP, -SpeedCtrlUnit.DesiredPower, accfactor);
+                auto const DesiredeimicSpeedCtrl { clamp( eimicSpeedCtrlIntegral + eSCP, -SpeedCtrlUnit.DesiredPower, accfactor ) };
+                eimicSpeedCtrl = clamp(
+                    DesiredeimicSpeedCtrl,
+                    eimicSpeedCtrl - SpeedCtrlUnit.PowerDownSpeed * dt,
+                    eimicSpeedCtrl + SpeedCtrlUnit.PowerUpSpeed * dt );
 				if (Vel < SpeedCtrlUnit.FullPowerVelocity) {
 					eimicSpeedCtrl = std::min(eimicSpeedCtrl, SpeedCtrlUnit.InitialPower);
 				}
@@ -10090,6 +10102,7 @@ void TMoverParameters::LoadFIZ_Cntrl( std::string const &line ) {
             0;
 
     extract_value( StopBrakeDecc, "SBD", line, "" );
+    extract_value( ReleaseParkingBySpringBrake, "ReleaseParkingBySpringBrake", line, "" );
 
     std::map<std::string, start_t> starts {
         { "Disabled", start_t::disabled },
@@ -10368,8 +10381,8 @@ void TMoverParameters::LoadFIZ_SpeedControl(std::string const &Line) {
 	extract_value(SpeedCtrlUnit.FactorIpos, "kIpos", Line, "");
 	extract_value(SpeedCtrlUnit.FactorIneg, "kIneg", Line, "");
 	extract_value(SpeedCtrlUnit.BrakeInterventionVel, "BrakeIntMaxVel", Line, "");
-	
-
+    extract_value(SpeedCtrlUnit.PowerUpSpeed, "PowerUpSpeed", Line, "" );
+    extract_value(SpeedCtrlUnit.PowerDownSpeed, "PowerDownSpeed", Line, "" );
 }
 
 void TMoverParameters::LoadFIZ_Engine( std::string const &Input ) {

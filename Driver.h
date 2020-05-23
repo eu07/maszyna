@@ -240,7 +240,7 @@ private:
     bool IncBrakeEIM();
     bool DecBrakeEIM();
     bool IncSpeedEIM();
-    bool DecSpeedEIM();
+    bool DecSpeedEIM( int const Amount = 1 );
     void BrakeLevelSet( double b );
     bool BrakeLevelAdd( double b );
     void SpeedSet();
@@ -370,7 +370,7 @@ private:
     void OrderCheck();
     void OrdersInit( double fVel );
     void OrdersClear();
-    void OrdersDump();
+    void OrdersDump( std::string const Neworder, bool const Verbose = true );
     std::string Order2Str( TOrders Order ) const;
 // members
     std::string m_assignment;
@@ -484,6 +484,7 @@ private:
     bool IsAnyMotorOverloadRelayOpen{ false }; // state of motor overload relays in all vehicles under control
     bool IsAnyGroundRelayOpen{ false };
     bool IsAnyCompressorEnabled{ false };
+    bool IsAnyCouplerStretched{ false }; // whether there's a coupler in the consist stretched above limit
 
 // logs
 // methods
