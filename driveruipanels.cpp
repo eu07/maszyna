@@ -369,6 +369,7 @@ timetable_panel::update() {
                        ( owner->iStationStart < table.StationIndex )
                     && ( i < table.StationIndex )
                     && ( ( tableline->Ah < 0 ) // pass-through, always valid
+                      || ( tableline->is_maintenance ) // maintenance stop, always valid
                       || ( time.wHour * 60 + time.wMinute + time.wSecond * 0.0167 >= tableline->Dh * 60 + tableline->Dm ) ) ) };
                 auto const loadchangeinprogress { ( ( static_cast<int>( std::ceil( -1.0 * owner->fStopTime ) ) ) > 0 ) };
                 auto const isatpassengerstop { ( true == owner->IsAtPassengerStop ) && ( vehicle->MoverParameters->Vel < 1.0 ) };

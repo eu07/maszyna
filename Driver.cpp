@@ -967,16 +967,10 @@ TCommandType TController::TableUpdate(double &fVelDes, double &fDist, double &fN
                             // jeśli jedzie (nie trzeba czekać, aż się drgania wytłumią - drzwi zamykane od 1.0) to będzie zatrzymanie
                             sSpeedTable[ i ].fVelNext = 0;
                         } else if( true == IsAtPassengerStop ) {
-                         // jeśli się zatrzymał przy W4, albo stał w momencie zobaczenia W4
+                            // jeśli się zatrzymał przy W4, albo stał w momencie zobaczenia W4
                             if( !AIControllFlag ) {
                                 // w razie przełączenia na AI ma nie podciągać do W4, gdy użytkownik zatrzymał za daleko
                                 iDrivigFlags &= ~moveStopCloser;
-                            }
-
-                            if( ( iDrivigFlags & moveDoorOpened ) == 0 ) {
-                                // drzwi otwierać jednorazowo
-                                iDrivigFlags |= moveDoorOpened; // nie wykonywać drugi raz
-                                Doors( true, static_cast<int>( std::floor( std::abs( sSpeedTable[ i ].evEvent->input_value( 2 ) ) ) ) % 10 );
                             }
 
                             if (TrainParams.UpdateMTable( simulation::Time, asNextStop) ) {
@@ -997,6 +991,15 @@ TCommandType TController::TableUpdate(double &fVelDes, double &fDist, double &fN
                                     WaitingSet( exchangetime );
                                     m_lastexchangestop = asNextStop;
                                 }
+
+                                if( false == TrainParams.IsMaintenance() )
+//                                 && ( ( iDrivigFlags & moveDoorOpened ) == 0 ) )
+                                {
+                                    // drzwi otwierać jednorazowo
+                                    iDrivigFlags |= moveDoorOpened; // nie wykonywać drugi raz
+                                    Doors( true, static_cast<int>( std::floor( std::abs( sSpeedTable[ i ].evEvent->input_value( 2 ) ) ) ) % 10 );
+                                }
+
 
                                 if (TrainParams.DirectionChange()) {
                                     // jeśli "@" w rozkładzie, to wykonanie dalszych komend
@@ -1193,13 +1196,22 @@ TCommandType TController::TableUpdate(double &fVelDes, double &fDist, double &fN
                             VelSignalLast = v; //!!! to też koniec ograniczenia
                     }
                     else
-                    { // w trybie manewrowym: skanować od niego wstecz, stanąć po wyjechaniu za
-                        // sygnalizator i zmienić kierunek
-                        v = 0.0; // zmiana kierunku może być podanym sygnałem, ale wypadało by
-                        // zmienić światło wcześniej
-                        if (!(iDrivigFlags & moveSwitchFound)) // jeśli nie ma rozjazdu
-                            iDrivigFlags |= moveTrackEnd; // to dalsza jazda trwale ograniczona (W5,
-                        // koniec toru)
+                    { // w trybie manewrowym: skanować od niego wstecz, stanąć po wyjechaniu za sygnalizator i zmienić kierunek
+                        v = 0.0; // zmiana kierunku może być podanym sygnałem, ale wypadało by zmienić światło wcześniej
+                        if( !( iDrivigFlags & moveSwitchFound ) ) { // jeśli nie ma rozjazdu
+                            // check for presence of a signal facing the opposite direction
+                            // if there's one, we'll want to pass it before changing direction
+                            basic_event *foundevent = nullptr;
+                            if( sSpeedTable[ i ].fDist - fMaxProximityDist > 0 ) {
+                                auto scandistance{ sSpeedTable[ i ].fDist + fLength - fMaxProximityDist };
+                                auto *scanvehicle{ pVehicles[ end::rear ] };
+                                auto scandirection{ scanvehicle->DirectionGet() * scanvehicle->RaDirectionGet() };
+                                auto *foundtrack = BackwardTraceRoute( scandistance, scandirection, scanvehicle, foundevent, -1, end::front, false );
+                            }
+                            if( foundevent == nullptr ) {
+                                iDrivigFlags |= moveTrackEnd; // to dalsza jazda trwale ograniczona (W5, koniec toru)
+                            }
+                        }
                     }
                 }
                 else if (sSpeedTable[i].iFlags & spStopOnSBL) {
@@ -3183,7 +3195,7 @@ bool TController::IncSpeed()
         return false;
     }
     bool OK = true;
-    if( ( iDrivigFlags & moveDoorOpened )
+    if( ( doors_open() )
      && ( VelDesired > 0.0 ) ) { // to prevent door shuffle on stop
         // zamykanie drzwi - tutaj wykonuje tylko AI (zmienia fActionTime)
         Doors( false );
@@ -4073,7 +4085,7 @@ void TController::Doors( bool const Open, int const Side ) {
             }
         }
 
-        if( ( true == TestFlag( iDrivigFlags, moveDoorOpened ) )
+        if( ( true == doors_open() )
          && ( ( fActionTime > -0.5 )
            || ( false == AIControllFlag ) ) ) {
             // ai doesn't close the door until it's free to depart, but human driver has free reign to do stupid things
@@ -4095,7 +4107,9 @@ void TController::Doors( bool const Open, int const Side ) {
             auto *vehicle = pVehicles[ 0 ]; // pojazd na czole składu
             while( vehicle != nullptr ) {
                 // zamykanie drzwi w pojazdach - flaga zezwolenia była by lepsza
-                if( vehicle->MoverParameters->Doors.auto_velocity < 0.f ) {
+                if( ( vehicle->MoverParameters->Doors.auto_velocity < 0.f )
+                 && ( ( vehicle->LoadExchangeTime() == 0.f )
+                   || ( vehicle->MoverParameters->Vel > 0.1 ) ) ) {
                     vehicle->MoverParameters->OperateDoors( side::right, false, range_t::local ); // w lokomotywie można by nie zamykać...
                     vehicle->MoverParameters->OperateDoors( side::left, false, range_t::local );
                 }
@@ -4172,7 +4186,7 @@ bool TController::PutCommand( std::string NewCommand, double NewValue1, double N
 
     if (NewCommand == "Emergency_brake") // wymuszenie zatrzymania, niezależnie kto prowadzi
     { // Ra: no nadal nie jest zbyt pięknie
-        SetVelocity(0, 0, reason);
+//        SetVelocity(0, 0, reason);
         mvOccupied->PutCommand("Emergency_brake", 1.0, 1.0, mvOccupied->Loc);
         return true; // załatwione
     }
@@ -4820,8 +4834,9 @@ TController::UpdateSituation(double dt) {
     // for human-controlled vehicles with no door control and dynamic brake auto-activating with door open
     // TODO: check if this situation still happens and the hack is still needed
     if( ( false == AIControllFlag )
-     && ( iDrivigFlags & moveDoorOpened )
-     && ( mvOccupied->Doors.close_control != control_t::driver ) ) {
+//     && ( iDrivigFlags & moveDoorOpened )
+//     && ( mvOccupied->Doors.close_control != control_t::driver )
+     && ( doors_open() ) ) {
         // for diesel engines react when engine is put past idle revolutions
         // for others straightforward master controller check
         if( ( mvControlling->EngineType == TEngineType::DieselEngine ?
@@ -4866,7 +4881,7 @@ TController::UpdateSituation(double dt) {
 
         if( mvOccupied->Vel > 1.0 ) {
             // jeżeli jedzie
-            if( iDrivigFlags & moveDoorOpened ) {
+            if( doors_open() ) {
                 // jeśli drzwi otwarte
                 // nie zamykać drzwi przy drganiach, bo zatrzymanie na W4 akceptuje niewielkie prędkości
                 Doors( false );
@@ -5166,7 +5181,8 @@ TController::UpdateSituation(double dt) {
         }
 */
         Obstacle = neighbour_data();
-        auto const lookup { frontvehicle->find_vehicle( routescandirection, routescanrange ) };
+        auto const obstaclescanrange { std::max( ( mvOccupied->CategoryFlag == 2 ? 250.0 : 1000.0 ), routescanrange ) };
+        auto const lookup { frontvehicle->find_vehicle( routescandirection, obstaclescanrange ) };
 
         if( std::get<bool>( lookup ) == true ) {
 
@@ -5560,6 +5576,7 @@ TController::UpdateSituation(double dt) {
             VelNext = VelDesired; // maksymalna prędkość wynikająca z innych czynników niż trajektoria ruchu
             ActualProximityDist = routescanrange; // funkcja Update() może pozostawić wartości bez zmian
             // Ra: odczyt (ActualProximityDist), (VelNext) i (AccPreferred) z tabelki prędkosci
+
             TCommandType comm = TableUpdate(VelDesired, ActualProximityDist, VelNext, AccDesired);
 
             switch (comm) {
@@ -6218,10 +6235,10 @@ TController::UpdateSituation(double dt) {
                 }
                 // HACK: limit acceleration for cargo trains, to reduce probability of breaking couplers on sudden jolts
                 // TBD: expand this behaviour to all trains with car(s) exceeding certain weight?
-                if( IsCargoTrain ) {
+                if( ( IsCargoTrain ) && ( iVehicles - ControlledEnginesCount > 0 ) ) {
                     AccDesired = std::min( AccDesired, CargoTrainAcceleration );
                 }
-                if( IsHeavyCargoTrain ) {
+                if( ( IsHeavyCargoTrain ) && ( iVehicles - ControlledEnginesCount > 0 ) ) {
                     AccDesired = std::min( AccDesired, HeavyCargoTrainAcceleration );
                 }
             }
@@ -6919,7 +6936,7 @@ std::string TController::StopReasonText() const
 //- rozpoznają tylko zerową prędkość (jako koniec toru i brak podstaw do dalszego skanowania)
 //----------------------------------------------------------------------------------------------------------------------
 
-bool TController::BackwardTrackBusy(TTrack *Track)
+bool TController::IsOccupiedByAnotherConsist(TTrack *Track)
 { // najpierw sprawdzamy, czy na danym torze są pojazdy z innego składu
     if( false == Track->Dynamics.empty() ) {
         for( auto dynamic : Track->Dynamics ) {
@@ -6932,13 +6949,13 @@ bool TController::BackwardTrackBusy(TTrack *Track)
     return false; // wolny
 };
 
-basic_event * TController::CheckTrackEventBackward(double fDirection, TTrack *Track)
+basic_event * TController::CheckTrackEventBackward(double fDirection, TTrack *Track, TDynamicObject *Vehicle, int const Eventdirection, end const End)
 { // sprawdzanie eventu w torze, czy jest sygnałowym - skanowanie do tyłu
     // NOTE: this method returns only one event which meets the conditions, due to limitations in the caller
     // TBD, TODO: clean up the caller and return all suitable events, as in theory things will go awry if the track has more than one signal
-    auto const dir{ pVehicles[ 0 ]->VectorFront() * pVehicles[ 0 ]->DirectionGet() };
-    auto const pos{ pVehicles[ 0 ]->HeadPosition() };
-    auto const &eventsequence { ( fDirection > 0 ? Track->m_events2 : Track->m_events1 ) };
+    auto const dir{ Vehicle->VectorFront() * Vehicle->DirectionGet() };
+    auto const pos{ End == end::front ? Vehicle->RearPosition() : Vehicle->HeadPosition() };
+    auto const &eventsequence { ( fDirection * Eventdirection > 0 ? Track->m_events2 : Track->m_events1 ) };
     for( auto const &event : eventsequence ) {
         if( ( event.second != nullptr )
          && ( event.second->m_passive )
@@ -6946,7 +6963,8 @@ basic_event * TController::CheckTrackEventBackward(double fDirection, TTrack *Tr
             // since we're checking for events behind us discard the sources in front of the scanning vehicle
             auto const sl{ event.second->input_location() }; // położenie komórki pamięci
             auto const sem{ sl - pos }; // wektor do komórki pamięci od końca składu
-            if( dir.x * sem.x + dir.z * sem.z < 0 ) {
+            auto const isahead { dir.x * sem.x + dir.z * sem.z > 0 };
+            if( ( End == end::front ? isahead : !isahead ) ) {
                 // iloczyn skalarny jest ujemny, gdy sygnał stoi z tyłu
                 return event.second;
             }
@@ -6955,30 +6973,29 @@ basic_event * TController::CheckTrackEventBackward(double fDirection, TTrack *Tr
     return nullptr;
 };
 
-TTrack * TController::BackwardTraceRoute(double &fDistance, double &fDirection, TTrack *Track, basic_event *&Event)
+TTrack * TController::BackwardTraceRoute(double &fDistance, double &fDirection, TDynamicObject *Vehicle, basic_event *&Event, int const Eventdirection, end const End, bool const Untiloccupied )
 { // szukanie sygnalizatora w kierunku przeciwnym jazdy (eventu odczytu komórki pamięci)
-    TTrack *pTrackChVel = Track; // tor ze zmianą prędkości
-    TTrack *pTrackFrom; // odcinek poprzedni, do znajdywania końca dróg
-    double fDistChVel = -1; // odległość do toru ze zmianą prędkości
-    double fCurrentDistance = pVehicle->RaTranslationGet(); // aktualna pozycja na torze
-    double s = 0;
+    auto *Track = Vehicle->GetTrack();
+    double fCurrentDistance = Vehicle->RaTranslationGet(); // aktualna pozycja na torze
     if (fDirection > 0) // jeśli w kierunku Point2 toru
         fCurrentDistance = Track->Length() - fCurrentDistance;
-    if (BackwardTrackBusy(Track))
-    { // jak tor zajęty innym składem, to nie ma po co skanować
-        fDistance = 0; // to na tym torze stoimy
-        return NULL; // stop, skanowanie nie dało sensownych rezultatów
+    double s = 0;
+
+    if( Track->VelocityGet() == 0.0 ) { // jak prędkosć 0 albo uszkadza, to nie ma po co skanować
+        fDistance = s; // to na tym torze stoimy
+        return nullptr; // stop, skanowanie nie dało sensownych rezultatów
     }
-    if ((Event = CheckTrackEventBackward(fDirection, Track)) != NULL)
+    if (Untiloccupied && IsOccupiedByAnotherConsist(Track))
+    { // jak tor zajęty innym składem, to nie ma po co skanować
+        fDistance = s; // to na tym torze stoimy
+        return nullptr; // stop, skanowanie nie dało sensownych rezultatów
+    }
+    if ((Event = CheckTrackEventBackward(fDirection, Track, Vehicle, Eventdirection, End)) != nullptr)
     { // jeśli jest semafor na tym torze
-        fDistance = 0; // to na tym torze stoimy
+        fDistance = s; // to na tym torze stoimy
         return Track;
     }
-    if ((Track->VelocityGet() == 0.0) || (Track->iDamageFlag & 128))
-    { // jak prędkosć 0 albo uszkadza, to nie ma po co skanować
-        fDistance = 0; // to na tym torze stoimy
-        return NULL; // stop, skanowanie nie dało sensownych rezultatów
-    }
+    TTrack *pTrackFrom; // odcinek poprzedni, do znajdywania końca dróg
     while (s < fDistance)
     {
         // Track->ScannedFlag=true; //do pokazywania przeskanowanych torów
@@ -6997,31 +7014,34 @@ TTrack * TController::BackwardTraceRoute(double &fDistance, double &fDirection, 
             Track = Track->CurrentPrev(); // może być NULL
         }
         if (Track == pTrackFrom)
-            Track = NULL; // koniec, tak jak dla torów
-        if( ( Track ?
-                ( ( Track->VelocityGet() == 0.0 )
-               || ( Track->iDamageFlag & 128 )
-               || ( true == BackwardTrackBusy( Track ) ) ) :
-                true ) )
-        { // gdy dalej toru nie ma albo zerowa prędkość, albo uszkadza pojazd
+            Track = nullptr; // koniec, tak jak dla torów
+
+        // gdy dalej toru nie ma albo zerowa prędkość, albo uszkadza pojazd
+        // zwraca NULL, że skanowanie nie dało sensownych rezultatów
+        if( Track == nullptr ) {
             fDistance = s;
-            return NULL; // zwraca NULL, że skanowanie nie dało sensownych rezultatów
+            return nullptr;
+        }
+        if( Track->VelocityGet() == 0.0 )
+        {
+            fDistance = s;
+            return nullptr;
+        }
+        if( Untiloccupied && IsOccupiedByAnotherConsist( Track ) ) {
+            fDistance = s;
+            return nullptr;
         }
         fCurrentDistance = Track->Length();
-        if ((Event = CheckTrackEventBackward(fDirection, Track)) != NULL)
+        if ((Event = CheckTrackEventBackward(fDirection, Track, Vehicle, Eventdirection, End)) != nullptr)
         { // znaleziony tor z eventem
             fDistance = s;
             return Track;
         }
     }
-    Event = NULL; // jak dojdzie tu, to nie ma semafora
-    if (fDistChVel < 0)
-    { // zwraca ostatni sprawdzony tor
-        fDistance = s;
-        return Track;
-    }
-    fDistance = fDistChVel; // odległość do zmiany prędkości
-    return pTrackChVel; // i tor na którym się zmienia
+    Event = nullptr; // jak dojdzie tu, to nie ma semafora
+    // zwraca ostatni sprawdzony tor
+    fDistance = s;
+    return Track;
 }
 
 // sprawdzanie zdarzeń semaforów i ograniczeń szlakowych
@@ -7071,8 +7091,8 @@ TCommandType TController::BackwardScan()
         double scandist = scanmax; // zmodyfikuje na rzeczywiście przeskanowane
         basic_event *e = NULL; // event potencjalnie od semafora
         // opcjonalnie może być skanowanie od "wskaźnika" z przodu, np. W5, Tm=Ms1, koniec toru wg drugiej osi w kierunku ruchu
-        TTrack *scantrack = BackwardTraceRoute(scandist, scandir, pVehicles[0]->GetTrack(), e);
-        auto const dir = startdir * pVehicles[0]->VectorFront(); // wektor w kierunku jazdy/szukania
+        TTrack *scantrack = BackwardTraceRoute(scandist, scandir, pVehicles[end::front], e);
+        auto const dir = startdir * pVehicles[end::front]->VectorFront(); // wektor w kierunku jazdy/szukania
         if( !scantrack ) {
             // jeśli wstecz wykryto koniec toru to raczej nic się nie da w takiej sytuacji zrobić
             return TCommandType::cm_Unknown;
@@ -7095,7 +7115,7 @@ TCommandType TController::BackwardScan()
                 if( typeid( *e ) == typeid( getvalues_event ) )
                 { // przesłać info o zbliżającym się semaforze
 #if LOGBACKSCAN
-                    edir += "(" + ( e->asNodeName ) + ")";
+                    edir += "(" + ( e->name() ) + ")";
 #endif
                     auto sl = e->input_location(); // położenie komórki pamięci
                     auto sem = sl - pos; // wektor do komórki pamięci od końca składu
@@ -7147,7 +7167,7 @@ TCommandType TController::BackwardScan()
                                 WriteLog(
                                     edir + " - [SetVelocity] ["
                                     + to_string( vmechmax, 2 ) + "] ["
-                                    + to_string( e->Params[ 9 ].asMemCell->Value2(), 2 ) + "]" );
+                                    + to_string( e->input_value( 2 ), 2 ) + "]" );
 #endif
                                 return (
                                     vmechmax > 0 ?
@@ -7191,7 +7211,7 @@ TCommandType TController::BackwardScan()
                                     WriteLog(
                                         edir + " - [ShuntVelocity] ["
                                         + to_string( vmechmax, 2 ) + "] ["
-                                        + to_string( e->value( 2 ), 2 ) + "]" );
+                                        + to_string( e->input_value( 2 ), 2 ) + "]" );
 #endif
                                     return (
                                         vmechmax > 0 ?

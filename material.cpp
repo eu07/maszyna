@@ -77,6 +77,7 @@ void opengl_material::finalize(bool Loadnow)
 
             if (key.size() > 0 && key[0] != '_')
             {
+                key.erase( key.find_first_not_of( "-1234567890" ) );
                 size_t num = std::stoi(key) - 1;
                 if (num < gl::MAX_TEXTURES) {
                     textures[num] = GfxRenderer->Fetch_Texture(value, Loadnow);
@@ -99,8 +100,11 @@ void opengl_material::finalize(bool Loadnow)
                     textures[ lookup->second ] = GfxRenderer->Fetch_Texture( value, Loadnow );
                 }
                 else {
-                    log_error( "unknown texture binding: " + key );
-                    is_good = false;
+                    // ignore unrecognized texture bindings in legacy render mode, it's most likely data for more advanced shaders
+                    if( Global.GfxRenderer == "default" ) {
+                        log_error( "unknown texture binding: " + key );
+                        is_good = false;
+                    }
                 }
             }
             else {
@@ -129,49 +133,65 @@ void opengl_material::finalize(bool Loadnow)
             }
         }
 
-        if( !shader ) {
-            is_good = false;
-            return;
-        }
+        // TBD, TODO: move material validation to renderer, to eliminate branching?
+        if( Global.GfxRenderer == "default" ) {
 
-        for (auto it : parse_info->param_mapping)
-        {
-            std::string key = it.first;
-            glm::vec4 value = it.second.data;
-
-            if (key.size() > 1 && key[0] != '_')
-            {
-                size_t num = std::stoi(key) - 1;
-                if (num < gl::MAX_PARAMS) {
-                    params[num] = value;
-                }
-                else {
-                    log_error("invalid param binding: " + std::to_string(num));
-                    is_good = false;
-                }
+            if( !shader ) {
+                is_good = false;
+                return;
             }
-            else if (key.size() > 2)
+
+            for (auto it : parse_info->param_mapping)
             {
-                key.erase(0, 1);
-                key.pop_back();
-                if (shader->param_conf.find(key) != shader->param_conf.end())
+                std::string key = it.first;
+                glm::vec4 value = it.second.data;
+
+                if (key.size() > 1 && key[0] != '_')
                 {
-                    gl::shader::param_entry entry = shader->param_conf[key];
-                    for (size_t i = 0; i < entry.size; i++)
-                        params[entry.location][entry.offset + i] = value[i];
+                    size_t num = std::stoi(key) - 1;
+                    if (num < gl::MAX_PARAMS) {
+                        params[num] = value;
+                    }
+                    else {
+                        log_error("invalid param binding: " + std::to_string(num));
+                        is_good = false;
+                    }
+                }
+                else if (key.size() > 2)
+                {
+                    key.erase(0, 1);
+                    key.pop_back();
+                    if (shader->param_conf.find(key) != shader->param_conf.end())
+                    {
+                        gl::shader::param_entry entry = shader->param_conf[key];
+                        for (size_t i = 0; i < entry.size; i++)
+                            params[entry.location][entry.offset + i] = value[i];
+                    }
+                    else {
+                        log_error("unknown param binding: " + key);
+                        is_good = false;
+                    }
                 }
                 else {
-                    log_error("unknown param binding: " + key);
+                    log_error("unrecognized param binding: " + key);
                     is_good = false;
                 }
             }
-            else {
-                log_error("unrecognized param binding: " + key);
+        }
+        parse_info.reset();
+    }
+
+    if( Global.GfxRenderer != "default" ) {
+        // basic texture validation for legacy branch
+        for( auto texturehandle : textures ) {
+            if( texturehandle == null_handle ) {
+                break;
+            }
+            if( GfxRenderer->Texture( texturehandle ).id <= 0 ) {
                 is_good = false;
             }
         }
-
-        parse_info.reset();
+        return;
     }
 
     if( !shader ) {
@@ -206,7 +226,10 @@ void opengl_material::finalize(bool Loadnow)
     {
         gl::shader::texture_entry &entry = it.second;
         texture_handle handle = textures[entry.id];
-        if (handle) {
+        // NOTE: texture validation at this stage relies on forced texture load behaviour during its create() call
+        // TODO: move texture id validation to later stage if/when deferred texture loading is implemented
+        if( ( handle )
+         && ( GfxRenderer->Texture( handle ).id > 0 ) ) {
             GfxRenderer->Texture(handle).set_components_hint((GLint)entry.components);
         }
         else {
@@ -476,7 +499,9 @@ material_manager::create( std::string const &Filename, bool const Loadnow ) {
     if( ( false == isgenerated )
      && ( false == locator.first.empty() ) ) {
         // try to parse located file resource
-        cParser materialparser( locator.first + locator.second, cParser::buffer_FILE );
+        cParser materialparser(
+            locator.first + locator.second,
+            cParser::buffer_FILE );
         if( true == material.deserialize( materialparser, Loadnow ) ) {
             material.name = locator.first;
         }
@@ -485,12 +510,11 @@ material_manager::create( std::string const &Filename, bool const Loadnow ) {
         // if there's no .mat file, this can be either autogenerated texture,
         // or legacy method of referring just to diffuse texture directly.
         // wrap basic material around it in either case
-        material.textures[0] = GfxRenderer->Fetch_Texture( Filename, Loadnow );
-		if( material.textures[0] != null_handle )
-		{
+        auto const texturehandle { GfxRenderer->Fetch_Texture( Filename, Loadnow ) };
+		if( texturehandle != null_handle ) {
 			// use texture path and name to tell the newly created materials apart
-			material.name = GfxRenderer->Texture( material.textures[0] ).name;
-
+			material.name = GfxRenderer->Texture( texturehandle ).name;
+/*
             // material would attach default shader anyway, but it would spit to error log
 	        try
 	        {
@@ -500,6 +524,13 @@ material_manager::create( std::string const &Filename, bool const Loadnow ) {
 	        {
 	            ErrorLog("invalid shader: " + std::string(e.what()));
 	        }
+        }
+*/
+            // HACK: create parse info for material finalize() method
+            cParser materialparser(
+                "texture1: " + Filename,
+                cParser::buffer_TEXT );
+            material.deserialize( materialparser, Loadnow );
         }
     }
 

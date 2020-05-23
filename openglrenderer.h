@@ -278,6 +278,7 @@ private:
     texture_handle m_reflectiontexture { -1 };
     texture_handle m_smoketexture { -1 };
     GLUquadricObj *m_quadric { nullptr }; // helper object for drawing debug mode scene elements
+    material_handle m_invalid_material;
     // TODO: refactor framebuffer stuff into an object
     bool m_framebuffersupport { false };
 #ifdef EU07_USE_PICKING_FRAMEBUFFER

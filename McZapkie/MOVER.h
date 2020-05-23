@@ -1545,7 +1545,7 @@ public:
 	double eimv[21];
     static std::vector<std::string> const eimv_labels;
 	double SpeedCtrlTimer = 0; /*zegar dzialania tempomatu z wybieralna predkoscia*/
-	double eimicSpeedCtrl = 0; /*pozycja sugerowana przez tempomat*/
+	double eimicSpeedCtrl = 1; /*pozycja sugerowana przez tempomat*/
 	double eimicSpeedCtrlIntegral = 0; /*calkowany blad ustawienia predkosci*/
 	double NewSpeed = 0; /*nowa predkosc do zadania*/
 	double MED_EPVC_CurrentTime = 0; /*aktualny czas licznika czasu korekcji siły EP*/

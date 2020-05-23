@@ -31,7 +31,7 @@ struct opengl_texture {
     static void
         unbind( size_t unit );
     bool
-        create();
+        create( bool const Static = false );
     // releases resources allocated on the opengl end, storing local copy if requested
     void
         release();
@@ -78,6 +78,7 @@ private:
     void gles_match_internalformat( GLuint format );
 
 // members
+    bool is_static = false; // is excluded from garbage collection
     bool is_rendertarget = false; // is used as postfx rendertarget, without loaded data
     int samples = 1;
     int layers = 1;

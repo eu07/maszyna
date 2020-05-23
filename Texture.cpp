@@ -787,7 +787,7 @@ opengl_texture::unbind(size_t unit)
 }
 
 bool
-opengl_texture::create() {
+opengl_texture::create( bool const Static ) {
 
     if( data_state != resource_state::good && !is_rendertarget ) {
         // don't bother until we have useful texture data
@@ -934,6 +934,8 @@ opengl_texture::create() {
             make_request();
         }
 
+        is_static = Static;
+
         is_ready = true;
     }
 
@@ -945,6 +947,7 @@ void
 opengl_texture::release() {
 
     if( id == -1 ) { return; }
+    if( is_static ) { return; }
 
     if( true == Global.ResourceMove ) {
         // if resource move is enabled we don't keep a cpu side copy after upload

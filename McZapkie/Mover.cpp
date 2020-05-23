@@ -1310,8 +1310,7 @@ double TMoverParameters::ComputeMovement(double dt, double dt1, const TTrackShap
     compute_movement_( dt );
 
     // security system
-    if (!DebugModeFlag)
-        SecuritySystemCheck(dt1);
+    SecuritySystemCheck(dt1);
 
     return d;
 };
@@ -2906,6 +2905,11 @@ void TMoverParameters::SecuritySystemCheck(double dt)
     { // wyłączenie baterii deaktywuje sprzęt
 		RadiostopSwitch(false);
         // SecuritySystem.Status = 0; //deaktywacja czuwaka
+    }
+
+    // automatic reset in debug mode
+    if( DebugModeFlag ) {
+        SSReset();
     }
 }
 
@@ -7132,6 +7136,7 @@ void TMoverParameters::CheckSpeedCtrl(double dt)
 		eimicSpeedCtrl = 1;
 		eimicSpeedCtrlIntegral = 0;
 		SpeedCtrlUnit.Parking = false;
+        SendCtrlToNext( "SpeedCtrlUnit.Parking", SpeedCtrlUnit.Parking, CabActive );
 	}
 }
 

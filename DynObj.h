@@ -589,10 +589,10 @@ private:
     inline Math3D::vector3 GetWorldPosition( Math3D::vector3 const &Location ) const {
         return vPosition + mMatrix * Location; }
     // pobranie współrzędnych czoła
-    inline Math3D::vector3 HeadPosition() {
+    inline Math3D::vector3 HeadPosition() const {
         return vCoulpler[iDirection ^ 1]; };
     // pobranie współrzędnych tyłu
-    inline Math3D::vector3 RearPosition() {
+    inline Math3D::vector3 RearPosition() const {
         return vCoulpler[iDirection]; };
     inline Math3D::vector3 CouplerPosition( end const End ) const {
         return vCoulpler[ End ]; }

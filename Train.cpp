@@ -2437,8 +2437,8 @@ void TTrain::OnCommand_pantographcompressorvalveenable( TTrain *Train, command_d
 
     auto const valveispresent {
         ( Train->ggPantCompressorValve.SubModel != nullptr )
-     || ( ( Train->iCabn == 0 )
-       && ( Train->mvControlled == Train->mvOccupied ) ) };
+     || ( ( Train->mvOccupied == Train->mvPantographUnit )
+       && ( Train->iCabn == 0 ) ) };
 
     if( false == valveispresent ) {
         // tylko w maszynowym, unless actual device is present
@@ -2458,8 +2458,8 @@ void TTrain::OnCommand_pantographcompressorvalvedisable( TTrain *Train, command_
 
     auto const valveispresent {
         ( Train->ggPantCompressorValve.SubModel != nullptr )
-     || ( ( Train->iCabn == 0 )
-       && ( Train->mvControlled == Train->mvOccupied ) ) };
+     || ( ( Train->mvOccupied == Train->mvPantographUnit )
+       && ( Train->iCabn == 0 ) ) };
 
     if( false == valveispresent ) {
         // tylko w maszynowym, unless actual device is present
@@ -2477,11 +2477,12 @@ void TTrain::OnCommand_pantographcompressorvalvedisable( TTrain *Train, command_
 
 void TTrain::OnCommand_pantographcompressoractivate( TTrain *Train, command_data const &Command ) {
 
-    if( ( Train->ggPantCompressorValve.SubModel == nullptr )
-     && ( Train->mvControlled->TrainType == dt_EZT ?
-            ( Train->mvOccupied == Train->mvPantographUnit ) :
-            ( Train->iCabn != 0 ) ) ) {
-        // tylko w maszynowym
+    // tylko w maszynowym, unless actual device is present
+    auto const switchispresent {
+        ( Train->m_controlmapper.contains( "pantcompressor_sw:" ) )
+     || ( ( Train->mvOccupied == Train->mvPantographUnit )
+       && ( Train->iCabn == 0 ) ) };
+    if( false == switchispresent ) {
         return;
     }
 
@@ -7869,7 +7870,8 @@ bool TTrain::InitializeCab(int NewCabNo, std::string const &asFileName)
 					tex->make_stub();
 				}
 
-				tex->create();
+				tex->create( true ); // make the surface static so it doesn't get destroyed by garbage collector if the user spends long time outside cab
+                // TBD, TODO: keep texture handles around, so we can undo the static switch when the user changes cabs?
 
                 auto touch_list = std::make_shared<std::vector<glm::vec2>>();
 				auto rt = std::make_shared<python_rt>();

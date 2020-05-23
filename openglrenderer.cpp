@@ -115,6 +115,7 @@ opengl_renderer::Init( GLFWwindow *Window ) {
         m_reflectiontexture = Fetch_Texture( "fx/reflections" );
     }
     m_smoketexture = Fetch_Texture( "fx/smoke" );
+    m_invalid_material = Fetch_Material( "fx/invalid" );
 
 #ifdef EU07_USE_PICKING_FRAMEBUFFER
     // pick buffer resources
@@ -1705,11 +1706,30 @@ opengl_renderer::Fetch_Material( std::string const &Filename, bool const Loadnow
 void
 opengl_renderer::Bind_Material( material_handle const Material, TSubModel const *sm, lighting_data const *lighting ) {
 
-    auto const &material = m_materials.material( Material );
-    if( false == Global.BasicRenderer ) {
-        m_textures.bind( m_normaltextureunit, material.textures[1] );
+	if( Material != null_handle ) {
+
+        auto const &material { m_materials.material( Material ) };
+
+        if( false == material.is_good ) {
+            // use failure indicator instead
+            if( Material != m_invalid_material ) {
+                Bind_Material( m_invalid_material );
+            }
+            return;
+        }
+
+        if( false == Global.BasicRenderer ) {
+            m_textures.bind( m_normaltextureunit, material.textures[1] );
+        }
+        m_textures.bind( m_diffusetextureunit, material.textures[0] );
+	}
+    else {
+        // null material, unbind all textures
+        if( false == Global.BasicRenderer ) {
+            m_textures.bind( m_normaltextureunit, null_handle );
+        }
+        m_textures.bind( m_diffusetextureunit, null_handle );
     }
-    m_textures.bind( m_diffusetextureunit, material.textures[0] );
 }
 
 opengl_material const &

@@ -1779,7 +1779,7 @@ void opengl33_renderer::Bind_Material( material_handle const Material, TSubModel
 {
 	if (Material != null_handle)
 	{
-		auto &material = m_materials.material(Material);
+        auto const &material { m_materials.material( Material ) };
 
         if( false == material.is_good ) {
             // use failure indicator instead
