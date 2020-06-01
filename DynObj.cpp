@@ -931,13 +931,13 @@ void TDynamicObject::ABuLittleUpdate(double ObjSqrDist)
         // Winger 160204 - podnoszenie pantografow
 
         // przewody sterowania ukrotnionego
-        if (TestFlag(MoverParameters->Couplers[0].CouplingFlag, ctrain_controll))
+        if (TestFlag(MoverParameters->Couplers[0].CouplingFlag, coupling::control))
         {
             btCCtrl1.Turn( true );
             btnOn = true;
         }
         // else btCCtrl1.TurnOff();
-        if (TestFlag(MoverParameters->Couplers[1].CouplingFlag, ctrain_controll))
+        if (TestFlag(MoverParameters->Couplers[1].CouplingFlag, coupling::control))
         {
             btCCtrl2.Turn( true );
             btnOn = true;
@@ -1495,9 +1495,8 @@ TDynamicObject::couple( int const Side ) {
     }
     if( false == TestFlag( MoverParameters->Couplers[ Side ].CouplingFlag, coupling::control ) ) {
         // ukrotnionko
-        if( ( coupler.AllowedFlag
-            & othercoupler.AllowedFlag
-            & coupling::control ) == coupling::control ) {
+        if( ( ( coupler.AllowedFlag & othercoupler.AllowedFlag & coupling::control ) == coupling::control )
+         && ( coupler.control_type == othercoupler.control_type ) ) {
             if( MoverParameters->Attach(
                     Side, neighbour.vehicle_end,
                     othervehicleparams,
@@ -6838,41 +6837,6 @@ void TDynamicObject::move_set(double distance)
 		d->Move( distance * d->DirectionGet() );
 		d = d->Prev(); // w drugą stronę też
 	}
-}
-
-// returns type of the nearest functional power source present in the trainset
-TPowerSource
-TDynamicObject::ConnectedEnginePowerSource( TDynamicObject const *Caller ) const {
-
-    // if there's engine in the current vehicle, that's good enough...
-    if( MoverParameters->EnginePowerSource.SourceType != TPowerSource::NotDefined ) {
-        return MoverParameters->EnginePowerSource.SourceType;
-    }
-    // ...otherwise check rear first...
-    // NOTE: the order should be reversed in flipped vehicles, but we ignore this out of laziness
-    if( ( nullptr != NextConnected() )
-     && ( NextConnected() != Caller )
-     && ( ( MoverParameters->Couplers[1].CouplingFlag & ctrain_controll ) == ctrain_controll ) ) {
-
-        auto source = NextConnected()->ConnectedEnginePowerSource( this );
-        if( source != TPowerSource::NotDefined ) {
-
-            return source;
-            }
-        }
-    // ...then rear...
-    if( ( nullptr != PrevConnected() )
-        && ( PrevConnected() != Caller )
-        && ( ( MoverParameters->Couplers[ 0 ].CouplingFlag & ctrain_controll ) == ctrain_controll ) ) {
-
-        auto source = PrevConnected()->ConnectedEnginePowerSource( this );
-        if( source != TPowerSource::NotDefined ) {
-
-            return source;
-        }
-    }
-    // ...if we're still here, report lack of power source
-    return MoverParameters->EnginePowerSource.SourceType;
 }
 
 void

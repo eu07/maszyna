@@ -1752,15 +1752,15 @@ double TMoverParameters::ShowEngineRotation(int VehN)
         return std::abs(enrot);
     case 2:
         for (b = 0; b <= 1; ++b)
-            if (TestFlag(Couplers[b].CouplingFlag, ctrain_controll))
+            if (TestFlag(Couplers[b].CouplingFlag, coupling::control))
                 if (Couplers[b].Connected->Power > 0.01)
                     return fabs(Couplers[b].Connected->enrot);
         break;
     case 3: // to nie uwzględnia ewentualnego odwrócenia pojazdu w środku
         for (b = 0; b <= 1; ++b)
-            if (TestFlag(Couplers[b].CouplingFlag, ctrain_controll))
+            if (TestFlag(Couplers[b].CouplingFlag, coupling::control))
                 if (Couplers[b].Connected->Power > 0.01)
-                    if (TestFlag(Couplers[b].Connected->Couplers[b].CouplingFlag, ctrain_controll))
+                    if (TestFlag(Couplers[b].Connected->Couplers[b].CouplingFlag, coupling::control))
                         if (Couplers[b].Connected->Couplers[b].Connected->Power > 0.01)
                             return fabs(Couplers[b].Connected->Couplers[b].Connected->enrot);
         break;
@@ -2318,8 +2318,7 @@ bool TMoverParameters::DecMainCtrl(int CtrlSpeed)
                     case TEngineType::DieselElectric:
                     case TEngineType::ElectricInductionMotor:
                     {
-                        if (((CtrlSpeed == 1) &&
-                             /*(ScndCtrlPos==0) and*/ (EngineType != TEngineType::DieselElectric)) ||
+                        if (((CtrlSpeed == 1) && (EngineType != TEngineType::DieselElectric)) ||
                             ((CtrlSpeed == 1) && (EngineType == TEngineType::DieselElectric)))
                         {
                             MainCtrlPos--;
@@ -2723,8 +2722,8 @@ bool TMoverParameters::Sandbox( bool const State, range_t const Notify )
         // if requested pass the command on
         auto const couplingtype =
             ( Notify == range_t::unit ?
-                ctrain_controll | ctrain_depot :
-                ctrain_controll );
+                coupling::control | coupling::permanent :
+                coupling::control );
 
         if( State == true ) {
             // switch on
@@ -3732,7 +3731,7 @@ bool TMoverParameters::DynamicBrakeSwitch(bool Switch)
         DBS = true;
         for (int b = 0; b < 2; b++)
             //  with Couplers[b] do
-            if (TestFlag(Couplers[b].CouplingFlag, ctrain_controll))
+            if (TestFlag(Couplers[b].CouplingFlag, coupling::control))
                 Couplers[b].Connected->DynamicBrakeFlag = Switch;
         // end;
         // if (DynamicBrakeType=dbrake_passive) and (TrainType=dt_ET42) then
@@ -5160,7 +5159,13 @@ double TMoverParameters::CouplerForce( int const End, double dt ) {
                  && ( coupler.CouplingFlag == coupling::faux )
                  && ( coupler.AutomaticCouplingAllowed && othercoupler.AutomaticCouplingAllowed ) ) {
                     // sprzeganie wagonow z samoczynnymi sprzegami
-                    if( Attach( End, otherend, othervehicle, ( coupler.AutomaticCouplingFlag & othercoupler.AutomaticCouplingFlag ) ) ) {
+                    auto couplingtype { coupler.AutomaticCouplingFlag & othercoupler.AutomaticCouplingFlag };
+                    // potentially exclude incompatible control coupling
+                    if( coupler.control_type != othercoupler.control_type ) {
+                        couplingtype &= ~( coupling::control );
+                    }
+
+                    if( Attach( End, otherend, othervehicle, couplingtype ) ) {
                         SetFlag( AIFlag, sound::attachcoupler );
                         coupler.AutomaticCouplingAllowed = false;
                         othercoupler.AutomaticCouplingAllowed = false;
@@ -6242,7 +6247,7 @@ bool TMoverParameters::FuseFlagCheck(void) const
         FFC = FuseFlag;
     else // pobor pradu jezeli niema mocy
         for (int b = 0; b < 2; b++)
-            if (TestFlag(Couplers[b].CouplingFlag, ctrain_controll))
+            if (TestFlag(Couplers[b].CouplingFlag, coupling::control))
                 if (Couplers[b].Connected->Power > 0.01)
                     FFC = Couplers[b].Connected->FuseFlagCheck();
 
@@ -6501,7 +6506,7 @@ bool TMoverParameters::ResistorsFlagCheck(void) const
 	else // pobor pradu jezeli niema mocy
 	{
 		for (int b = 0; b < 2; b++)
-			if (TestFlag(Couplers[b].CouplingFlag, ctrain_controll))
+			if (TestFlag(Couplers[b].CouplingFlag, coupling::control))
 				if (Couplers[b].Connected->Power > 0.01)
 					RFC = Couplers[b].Connected->ResistorsFlagCheck();
 	}
@@ -9880,6 +9885,7 @@ void TMoverParameters::LoadFIZ_BuffCoupl( std::string const &line, int const Ind
         coupler->AllowedFlag = ( ( -coupler->AllowedFlag ) | coupling::permanent );
     }
     extract_value( coupler->PowerFlag, "PowerFlag", line, "" );
+    extract_value( coupler->control_type, "ControlType", line, "" );
 
     if( ( coupler->CouplerType != TCouplerType::NoCoupler )
      && ( coupler->CouplerType != TCouplerType::Bare )
@@ -11289,26 +11295,6 @@ double TMoverParameters::GetExternalCommand(std::string &Command)
 
 // *************************************************************************************************
 // Q: 20160714
-// GF: 20161117
-// rozsyłanie komend do całego składu
-// *************************************************************************************************
-bool TMoverParameters::SendCtrlBroadcast(std::string CtrlCommand, double ctrlvalue)
-{
-    int b;
-    bool OK;
-
-    OK = ((CtrlCommand != CommandIn.Command) && (ctrlvalue != CommandIn.Value1));
-    if (OK)
-        for (b = 0; b < 2; b++)
-            if (TestFlag(Couplers[b].CouplingFlag, ctrain_controll))
-                if (Couplers[b].Connected->SetInternalCommand(CtrlCommand, ctrlvalue, DirF(b)))
-                    OK = (Couplers[b].Connected->RunInternalCommand() || OK);
-
-    return OK;
-}
-
-// *************************************************************************************************
-// Q: 20160714
 // Ustawienie komendy wraz z parametrami
 // *************************************************************************************************
 bool TMoverParameters::SetInternalCommand(std::string NewCommand, double NewValue1, double NewValue2, int const Couplertype)
@@ -11935,7 +11921,7 @@ double TMoverParameters::ShowCurrentP(int AmpN) const
         int current = 0;
         for (b = 0; b < 2; b++)
             // with Couplers[b] do
-            if (TestFlag(Couplers[b].CouplingFlag, ctrain_controll))
+            if (TestFlag(Couplers[b].CouplingFlag, coupling::control))
                 if (Couplers[b].Connected->Power > 0.01)
                     current = static_cast<int>(Couplers[b].Connected->ShowCurrent(AmpN));
         return current;

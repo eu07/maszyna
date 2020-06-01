@@ -200,6 +200,7 @@ enum string {
     cab_battery_sw,
     cab_batteryon_sw,
     cab_batteryoff_sw,
+    cab_couplingdisconnect_sw,
     cab_universal0,
     cab_universal1,
     cab_universal2,

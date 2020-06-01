@@ -387,10 +387,11 @@ class TTrain {
     static void OnCommand_doorcloseall( TTrain *Train, command_data const &Command );
     static void OnCommand_doorsteptoggle( TTrain *Train, command_data const &Command );
     static void OnCommand_doormodetoggle( TTrain *Train, command_data const &Command );
-    static void OnCommand_carcouplingincrease( TTrain *Train, command_data const &Command );
-    static void OnCommand_carcouplingdisconnect( TTrain *Train, command_data const &Command );
-    static void OnCommand_carcoupleradapterattach( TTrain *Train, command_data const &Command );
-    static void OnCommand_carcoupleradapterremove( TTrain *Train, command_data const &Command );
+    static void OnCommand_nearestcarcouplingincrease( TTrain *Train, command_data const &Command );
+    static void OnCommand_nearestcarcouplingdisconnect( TTrain *Train, command_data const &Command );
+    static void OnCommand_nearestcarcoupleradapterattach( TTrain *Train, command_data const &Command );
+    static void OnCommand_nearestcarcoupleradapterremove( TTrain *Train, command_data const &Command );
+    static void OnCommand_occupiedcarcouplingdisconnect( TTrain *Train, command_data const &Command );
     static void OnCommand_departureannounce( TTrain *Train, command_data const &Command );
     static void OnCommand_hornlowactivate( TTrain *Train, command_data const &Command );
     static void OnCommand_hornhighactivate( TTrain *Train, command_data const &Command );
@@ -786,6 +787,8 @@ private:
     double m_brakehandlecp{ 0.0 };
     int m_pantselection{ 0 };
     bool m_doors{ false }; // helper, true if any door is open
+    // ld substitute
+    bool m_couplingdisconnect;
 
   public:
     float fPress[20][3]; // cisnienia dla wszystkich czlonow

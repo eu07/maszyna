@@ -1855,7 +1855,7 @@ void TController::Activation()
         ZeroSpeed();
         ZeroDirection();
 		mvOccupied->SpringBrakeActivate( true );
-        if (TestFlag(d->MoverParameters->Couplers[iDirectionOrder < 0 ? end::rear : end::front].CouplingFlag, ctrain_controll)) {
+        if (TestFlag(d->MoverParameters->Couplers[iDirectionOrder < 0 ? end::rear : end::front].CouplingFlag, coupling::control)) {
             mvControlling->MainSwitch( false ); // dezaktywacja czuwaka, jeśli przejście do innego członu
             mvOccupied->DecLocalBrakeLevel(LocalBrakePosNo); // zwolnienie hamulca w opuszczanym pojeździe
             //   mvOccupied->BrakeLevelSet((mvOccupied->BrakeHandle==FVel6)?4:-2); //odcięcie na
@@ -1866,7 +1866,7 @@ void TController::Activation()
         mvOccupied->CabOccupied = mvOccupied->CabActive; // użytkownik moze zmienić CabOccupied wychodząc
         mvOccupied->CabDeactivisation(); // tak jest w Train.cpp
         // przejście AI na drugą stronę EN57, ET41 itp.
-        while (TestFlag(d->MoverParameters->Couplers[iDirection < 0 ? end::rear : end::front].CouplingFlag, ctrain_controll))
+        while (TestFlag(d->MoverParameters->Couplers[iDirection < 0 ? end::rear : end::front].CouplingFlag, coupling::control))
         { // jeśli pojazd z przodu jest ukrotniony, to przechodzimy do niego
             d = iDirection * d->DirectionGet() < 0 ? d->Next() :
                                                      d->Prev(); // przechodzimy do następnego członu

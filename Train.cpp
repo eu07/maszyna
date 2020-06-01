@@ -363,10 +363,11 @@ TTrain::commandhandler_map const TTrain::m_commandhandlers = {
     { user_command::doorcloseall, &TTrain::OnCommand_doorcloseall },
     { user_command::doorsteptoggle, &TTrain::OnCommand_doorsteptoggle },
     { user_command::doormodetoggle, &TTrain::OnCommand_doormodetoggle },
-    { user_command::carcouplingincrease, &TTrain::OnCommand_carcouplingincrease },
-    { user_command::carcouplingdisconnect, &TTrain::OnCommand_carcouplingdisconnect },
-    { user_command::carcoupleradapterattach, &TTrain::OnCommand_carcoupleradapterattach },
-    { user_command::carcoupleradapterremove, &TTrain::OnCommand_carcoupleradapterremove },
+    { user_command::nearestcarcouplingincrease, &TTrain::OnCommand_nearestcarcouplingincrease },
+    { user_command::nearestcarcouplingdisconnect, &TTrain::OnCommand_nearestcarcouplingdisconnect },
+    { user_command::nearestcarcoupleradapterattach, &TTrain::OnCommand_nearestcarcoupleradapterattach },
+    { user_command::nearestcarcoupleradapterremove, &TTrain::OnCommand_nearestcarcoupleradapterremove },
+    { user_command::occupiedcarcouplingdisconnect, &TTrain::OnCommand_occupiedcarcouplingdisconnect },
     { user_command::departureannounce, &TTrain::OnCommand_departureannounce },
     { user_command::hornlowactivate, &TTrain::OnCommand_hornlowactivate },
     { user_command::hornhighactivate, &TTrain::OnCommand_hornhighactivate },
@@ -953,7 +954,7 @@ void TTrain::OnCommand_mastercontrollerincreasefast( TTrain *Train, command_data
             OnCommand_independentbrakedecreasefast( Train, Command );
         }
         else {
-            Train->mvControlled->IncMainCtrl( 2 );
+            Train->mvControlled->IncMainCtrl( Train->mvControlled->MainCtrlPosNo );
             Train->m_mastercontrollerinuse = true;
         }
     }
@@ -993,7 +994,7 @@ void TTrain::OnCommand_mastercontrollerdecreasefast( TTrain *Train, command_data
             OnCommand_independentbrakeincreasefast( Train, Command );
         }
         else {
-            Train->mvControlled->DecMainCtrl( 2 );
+            Train->mvControlled->DecMainCtrl( Train->mvControlled->MainCtrlPowerPos() );
             Train->m_mastercontrollerinuse = true;
         }
     }
@@ -5397,7 +5398,7 @@ void TTrain::OnCommand_doormodetoggle( TTrain *Train, command_data const &Comman
     }
 }
 
-void TTrain::OnCommand_carcouplingincrease( TTrain *Train, command_data const &Command ) {
+void TTrain::OnCommand_nearestcarcouplingincrease( TTrain *Train, command_data const &Command ) {
 
     if( ( true == FreeFlyModeFlag )
      && ( Command.action == GLFW_PRESS ) ) {
@@ -5419,7 +5420,7 @@ void TTrain::OnCommand_carcouplingincrease( TTrain *Train, command_data const &C
     }
 }
 
-void TTrain::OnCommand_carcouplingdisconnect( TTrain *Train, command_data const &Command ) {
+void TTrain::OnCommand_nearestcarcouplingdisconnect( TTrain *Train, command_data const &Command ) {
 
     if( ( true == FreeFlyModeFlag )
      && ( Command.action == GLFW_PRESS ) ) {
@@ -5441,7 +5442,7 @@ void TTrain::OnCommand_carcouplingdisconnect( TTrain *Train, command_data const 
     }
 }
 
-void TTrain::OnCommand_carcoupleradapterattach( TTrain *Train, command_data const &Command ) {
+void TTrain::OnCommand_nearestcarcoupleradapterattach( TTrain *Train, command_data const &Command ) {
 
     if( ( true == FreeFlyModeFlag )
      && ( Command.action == GLFW_PRESS ) ) {
@@ -5458,7 +5459,7 @@ void TTrain::OnCommand_carcoupleradapterattach( TTrain *Train, command_data cons
     }
 }
 
-void TTrain::OnCommand_carcoupleradapterremove( TTrain *Train, command_data const &Command ) {
+void TTrain::OnCommand_nearestcarcoupleradapterremove( TTrain *Train, command_data const &Command ) {
 
     if( ( true == FreeFlyModeFlag )
      && ( Command.action == GLFW_PRESS ) ) {
@@ -5472,6 +5473,30 @@ void TTrain::OnCommand_carcoupleradapterremove( TTrain *Train, command_data cons
                 end::rear );
 
         vehicle->remove_coupler_adapter( coupler );
+    }
+}
+
+void TTrain::OnCommand_occupiedcarcouplingdisconnect( TTrain *Train, command_data const &Command ) {
+
+//    if( false == Train->m_controlmapper.contains( "couplingdisconnect_sw:" ) ) { return; }
+
+    if( Command.action == GLFW_PRESS ) {
+        // visual feedback
+        Train->m_couplingdisconnect = true;
+
+        if( Train->iCabn == 0 ) { return; }
+
+        if( Train->DynamicObject ) {
+            Train->DynamicObject->uncouple( Train->cab_to_end() );
+        }
+        if( Train->DynamicObject->Mechanik ) {
+            // aktualizacja flag kierunku w składzie
+            Train->DynamicObject->Mechanik->CheckVehicles( Disconnect );
+        }
+    }
+    else if( Command.action == GLFW_RELEASE ) {
+        // visual feedback
+        Train->m_couplingdisconnect = false;
     }
 }
 
@@ -6216,11 +6241,11 @@ bool TTrain::Update( double const Deltatime )
     {
         TDynamicObject *tmp { nullptr };
         if (DynamicObject->NextConnected())
-            if ((TestFlag(mvControlled->Couplers[end::rear].CouplingFlag, ctrain_controll)) &&
+            if ((TestFlag(mvControlled->Couplers[end::rear].CouplingFlag, coupling::control)) &&
                 (mvOccupied->CabOccupied == 1))
                 tmp = DynamicObject->NextConnected();
         if (DynamicObject->PrevConnected())
-            if ((TestFlag(mvControlled->Couplers[end::front].CouplingFlag, ctrain_controll)) &&
+            if ((TestFlag(mvControlled->Couplers[end::front].CouplingFlag, coupling::control)) &&
                 (mvOccupied->CabOccupied == -1))
                 tmp = DynamicObject->PrevConnected();
         if( tmp ) {
@@ -6647,10 +6672,10 @@ bool TTrain::Update( double const Deltatime )
     { // yB - wskazniki drugiego czlonu
         TDynamicObject *tmp { nullptr }; //=mvControlled->mvSecond; //Ra 2014-07: trzeba to jeszcze wyjąć z kabiny...
         // Ra 2014-07: no nie ma potrzeby szukać tego w każdej klatce
-        if ((TestFlag(mvControlled->Couplers[1].CouplingFlag, ctrain_controll)) &&
+        if ((TestFlag(mvControlled->Couplers[1].CouplingFlag, coupling::control)) &&
             (mvOccupied->CabOccupied > 0))
             tmp = DynamicObject->NextConnected();
-        if ((TestFlag(mvControlled->Couplers[0].CouplingFlag, ctrain_controll)) &&
+        if ((TestFlag(mvControlled->Couplers[0].CouplingFlag, coupling::control)) &&
             (mvOccupied->CabOccupied < 0))
             tmp = DynamicObject->PrevConnected();
 
@@ -8019,7 +8044,7 @@ void TTrain::DynamicSet(TDynamicObject *d)
     mvSecond = NULL; // gdyby się nic nie znalazło
     if (mvOccupied->Power > 1.0) // dwuczłonowe lub ukrotnienia, żeby nie szukać każdorazowo
         if (mvOccupied->Couplers[1].Connected ?
-                mvOccupied->Couplers[1].AllowedFlag & ctrain_controll :
+                mvOccupied->Couplers[1].AllowedFlag & coupling::control :
                 false)
         { // gdy jest człon od sprzęgu 1, a sprzęg łączony
             // warsztatowo (powiedzmy)
@@ -8028,7 +8053,7 @@ void TTrain::DynamicSet(TDynamicObject *d)
                     (TMoverParameters *)mvOccupied->Couplers[1].Connected; // wskaźnik na drugiego
         }
         else if (mvOccupied->Couplers[0].Connected ?
-                     mvOccupied->Couplers[0].AllowedFlag & ctrain_controll :
+                     mvOccupied->Couplers[0].AllowedFlag & coupling::control :
                      false)
         { // gdy jest człon od sprzęgu 0, a sprzęg łączony
             // warsztatowo (powiedzmy)
@@ -9099,6 +9124,7 @@ bool TTrain::initialize_gauge(cParser &Parser, std::string const &Label, int con
         { "radio_sw:", &mvOccupied->Radio },
         { "cablight_sw:", &Cabine[ iCabn ].bLight },
         { "springbraketoggle_bt:", &mvOccupied->SpringBrake.Activate },
+        { "couplingdisconnect_sw:", &m_couplingdisconnect },
     };
     {
         auto lookup = autoboolgauges.find( Label );

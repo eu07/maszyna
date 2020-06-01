@@ -715,6 +715,7 @@ struct TCoupling {
 
     int sounds { 0 }; // sounds emitted by the coupling devices
     bool Render = false;             /*ABu: czy rysowac jak zaczepiony sprzeg*/
+    std::string control_type; // abstraction of control coupling interface and communication standard
 
     inline bool
         has_adapter() const {
@@ -1641,11 +1642,10 @@ public:
 	double BrakeVP(void) const;
 
 	/*! przesylanie komend sterujacych*/
-	bool SendCtrlBroadcast(std::string CtrlCommand, double ctrlvalue);
-	bool SendCtrlToNext(std::string const CtrlCommand, double const ctrlvalue, double const dir, int const Couplertype = ctrain_controll);
-    bool SetInternalCommand( std::string NewCommand, double NewValue1, double NewValue2, int const Couplertype = ctrain_controll );
+	bool SendCtrlToNext(std::string const CtrlCommand, double const ctrlvalue, double const dir, int const Couplertype = coupling::control );
+    bool SetInternalCommand( std::string NewCommand, double NewValue1, double NewValue2, int const Couplertype = coupling::control );
 	double GetExternalCommand(std::string &Command);
-    bool RunCommand( std::string Command, double CValue1, double CValue2, int const Couplertype = ctrain_controll );
+    bool RunCommand( std::string Command, double CValue1, double CValue2, int const Couplertype = coupling::control );
     bool RunInternalCommand();
 	void PutCommand(std::string NewCommand, double NewValue1, double NewValue2, const TLocation &NewLocation);
 	bool CabActivisation( bool const Enforce = false );

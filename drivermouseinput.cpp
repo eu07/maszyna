@@ -864,6 +864,9 @@ drivermouse_input::default_bindings() {
         { "batteryoff_sw:", {
             user_command::batterydisable,
             user_command::none } },
+        { "couplingdisconnect_sw:",{
+			user_command::occupiedcarcouplingdisconnect,
+			user_command::none } },
         { "universal0:", {
             user_command::generictoggle0,
             user_command::none } },
@@ -935,7 +938,7 @@ drivermouse_input::default_bindings() {
 			user_command::none } },
 		{ "speedbutton9:",{
 			user_command::speedcontrolbutton9,
-			user_command::none } }
+			user_command::none } },
     };
 }
 

@@ -199,8 +199,6 @@ public:
     inline int PrevConnectedNo() const { return MoverParameters->Neighbours[ end::front ].vehicle_end; }
 //    double fTrackBlock; // odległość do przeszkody do dalszego ruchu (wykrywanie kolizji z innym pojazdem)
 
-    TPowerSource ConnectedEnginePowerSource( TDynamicObject const *Caller ) const;
-
     // modele składowe pojazdu
     TModel3d *mdModel; // model pudła
     TModel3d *mdLoad; // model zmiennego ładunku
