@@ -819,7 +819,7 @@ eu07_application::init_gfx() {
         // legacy render path
         GfxRenderer = std::make_unique<opengl_renderer>();
         Global.GfxFramebufferSRGB = false;
-        Global.DisabledLogTypes |= logtype::material;
+        Global.DisabledLogTypes |= static_cast<unsigned int>( logtype::material );
     }
 
     if( false == GfxRenderer->Init( m_windows.front() ) ) {

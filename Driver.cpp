@@ -861,7 +861,8 @@ TCommandType TController::TableUpdate(double &fVelDes, double &fDist, double &fN
     double v; // prędkość
     double d; // droga
 	double d_to_next_sem = 10000.0; //ustaiwamy na pewno dalej niż widzi AI
-    IsAtPassengerStop = false; 
+    IsAtPassengerStop = false;
+    auto IsScheduledPassengerStopVisible { false };
     TCommandType go = TCommandType::cm_Unknown;
     eSignNext = NULL;
     // te flagi są ustawiane tutaj, w razie potrzeby
@@ -879,7 +880,9 @@ TCommandType TController::TableUpdate(double &fVelDes, double &fDist, double &fN
                 // first 19 chars of the command is expected to be "PassengerStopPoint:" so we skip them
                 if ( ToLower(sSpeedTable[i].evEvent->input_text()).compare( 19, sizeof(asNextStop), ToLower(asNextStop)) != 0 )
                 { // jeśli nazwa nie jest zgodna
-                    if (sSpeedTable[i].fDist < 300.0 && sSpeedTable[i].fDist > 0) // tylko jeśli W4 jest blisko, przy dwóch może zaczać szaleć
+                    if( ( false == IsScheduledPassengerStopVisible ) // check if our next scheduled stop didn't show up earlier in the scan
+                     && ( sSpeedTable[i].fDist < ( 1.15 * fBrakeDist + 300 ) )
+                     && ( sSpeedTable[i].fDist > 0 ) ) // tylko jeśli W4 jest blisko, przy dwóch może zaczać szaleć
                     {
                         // porównuje do następnej stacji, więc trzeba przewinąć do poprzedniej
                         // nastepnie ustawić następną na aktualną tak żeby prawidłowo ją obsłużył w następnym kroku
@@ -896,6 +899,7 @@ TCommandType TController::TableUpdate(double &fVelDes, double &fDist, double &fN
                 }
                 else if (iDrivigFlags & moveStopPoint) // jeśli pomijanie W4, to nie sprawdza czasu odjazdu
                 { // tylko gdy nazwa zatrzymania się zgadza
+                    IsScheduledPassengerStopVisible = true; // block potential timetable rewind if the next stop shows up later in the scan
                     if (false == TrainParams.IsStop())
                     { // jeśli nie ma tu postoju
                         sSpeedTable[i].fVelNext = -1; // maksymalna prędkość w tym miejscu

@@ -27,6 +27,8 @@ namespace audio {
 openal_buffer::openal_buffer( std::string const &Filename ) :
     name( Filename ) {
 
+    WriteLog( "Loading sound data from \"" + Filename + "\"", logtype::sound );
+
     ::alGenBuffers( 1, &id );
     // fetch audio data
     if( Filename.substr( Filename.rfind( '.' ) ) == ".wav" ) {

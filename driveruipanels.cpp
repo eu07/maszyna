@@ -88,9 +88,9 @@ drivingaid_panel::update() {
         std::snprintf(
             m_buffer.data(), m_buffer.size(),
             locale::strings[ locale::string::driver_aid_throttle ].c_str(),
-            driver->Controlling()->MainCtrlPos,
-            driver->Controlling()->ScndCtrlPos,
-            ( mover->DirActive > 0 ? 'D' : mover->DirActive < 0 ? 'R' : 'N' ),
+            ( mover->EIMCtrlType > 0 ? std::max( 0, static_cast<int>( 100.4 * mover->eimic_real ) ) : driver->Controlling()->MainCtrlPos ),
+            ( mover->EIMCtrlType > 0 ? driver->Controlling()->MainCtrlPos : driver->Controlling()->ScndCtrlPos ),
+            ( mover->SpeedCtrlUnit.IsActive ? 'T' : mover->DirActive > 0 ? 'D' : mover->DirActive < 0 ? 'R' : 'N' ),
             expandedtext.c_str());
 
         text_lines.emplace_back( m_buffer.data(), Global.UITextColor );
@@ -106,10 +106,12 @@ drivingaid_panel::update() {
                 mover->PipePress * 100 );
             expandedtext = m_buffer.data();
         }
+        auto const basicbraking { mover->fBrakeCtrlPos };
+        auto const eimicbraking { std::max( 0.0, -100.0 * mover->eimic_real ) };
         std::snprintf(
             m_buffer.data(), m_buffer.size(),
             locale::strings[ locale::string::driver_aid_brakes ].c_str(),
-            mover->fBrakeCtrlPos,
+            ( mover->EIMCtrlType == 0 ? basicbraking : mover->EIMCtrlType == 3 ? ( mover->UniCtrlIntegratedBrakeCtrl ? eimicbraking : basicbraking ) : eimicbraking ),
             mover->LocalBrakePosA * LocalBrakePosNo,
             ( mover->SlippingWheels ? '!' : ' ' ),
             expandedtext.c_str() );

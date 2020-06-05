@@ -14,6 +14,7 @@ http://mozilla.org/MPL/2.0/.
 #include "utilities.h"
 #include "Console.h"
 #include "Timer.h"
+#include "Driver.h"
 #include "DynObj.h"
 #include "MOVER.h"
 
@@ -188,7 +189,8 @@ void TCamera::Update()
         // attached movement position update
         auto movement { Velocity * -2.0 };
         movement.y = -movement.y;
-        if( m_owner->MoverParameters->CabOccupied < 0 ) {
+        if( ( m_owner->ctOwner )
+         && ( m_owner->ctOwner->Vehicle()->MoverParameters->CabOccupied < 0 ) ) {
             movement *= -1.f;
             movement.y = -movement.y;
         }
