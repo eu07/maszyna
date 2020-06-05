@@ -472,6 +472,7 @@ private:
     int iVehicles = 0; // ilość pojazdów w składzie
     int ControlledEnginesCount{ 0 }; // number of powered vehicles under driver's control
     bool iEngineActive{ false }; // ABu: Czy silnik byl juz zalaczony
+    bool IsPassengerTrain{ false };
     bool IsCargoTrain{ false };
     bool IsHeavyCargoTrain{ false };
     double fReady = 0.0; // poziom odhamowania wagonów

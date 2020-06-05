@@ -10994,7 +10994,6 @@ bool TMoverParameters::CheckLocomotiveParameters(bool ReadyFlag, int Dir)
             WriteLog( "XBT EStED" );
             Hamulec = std::make_shared<TEStED>( MaxBrakePress[ 3 ], BrakeCylRadius, BrakeCylDist, BrakeVVolume, BrakeCylNo, BrakeDelays, BrakeMethod, NAxles, NBpA );
             Hamulec->SetRM( RapidMult );
-			Hamulec->SetRV( RapidVel );
             if( MBPM < 2 ) {
                 //jesli przystawka wazaca
                 Hamulec->SetLP( 0, MaxBrakePress[ 3 ], 0 );
@@ -11017,7 +11016,6 @@ bool TMoverParameters::CheckLocomotiveParameters(bool ReadyFlag, int Dir)
 			Hamulec = std::make_shared<TEStEP1>(MaxBrakePress[3], BrakeCylRadius, BrakeCylDist, BrakeVVolume, BrakeCylNo, BrakeDelays, BrakeMethod, NAxles, NBpA);
 			Hamulec->SetLP( Mass, MBPM, MaxBrakePress[1] );
             Hamulec->SetRM( RapidMult );
-            Hamulec->SetRV( RapidVel );
             break;
 		}
         case TBrakeValve::CV1:
@@ -11037,6 +11035,7 @@ bool TMoverParameters::CheckLocomotiveParameters(bool ReadyFlag, int Dir)
     }
 
     Hamulec->SetASBP( MaxBrakePress[ 4 ] );
+    Hamulec->SetRV( RapidVel );
 
     switch( BrakeHandle ) {
         case TBrakeHandle::FV4a:

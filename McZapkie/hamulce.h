@@ -192,8 +192,9 @@ class TBrake {
 		double SizeBC = 0.0; //rozmiar^2 CH (w stosunku do 14")
 		bool DCV = false; //podwojny zawor zwrotny
 		double ASBP = 0.0; //cisnienie hamulca pp
-		int UniversalFlag = 0; //flaga wcisnietych przyciskow uniwersalnych
+        double RV = 0.0; // rapid activation vehicle velocity threshold
 
+		int UniversalFlag = 0; //flaga wcisnietych przyciskow uniwersalnych
         int BrakeStatus{ b_off }; //flaga stanu
 		int SoundFlag = 0;
 
@@ -216,7 +217,7 @@ class TBrake {
         bool Releaser() const;
         virtual void SetEPS( double const nEPS ); //hamulec EP
         virtual void SetRM( double const RMR ) {};   //ustalenie przelozenia rapida
-		virtual void SetRV( double const RVR) {};   //ustalenie przelozenia rapida
+        virtual void SetRV( double const RVR ) { RV = RVR; };   //ustalenie przelozenia rapida
 		virtual void SetLP(double const TM, double const LM, double const TBP) {};  //parametry przystawki wazacej
 		virtual void SetLBP(double const P) {};   //cisnienie z hamulca pomocniczego
 		virtual void PLC(double const mass) {};  //wspolczynnik cisnienia przystawki wazacej
@@ -347,7 +348,6 @@ class TLSt : public TESt4R {
   protected:
 		double LBP = 0.0;       //cisnienie hamulca pomocniczego
 		double RM = 0.0;        //przelozenie rapida
-		double RV = 0.0;
 		double EDFlag = 0.0; //luzowanie hamulca z powodu zalaczonego ED
 
   public:
@@ -383,7 +383,6 @@ class TEStED : public TLSt {  //zawor z EP09 - Est4 z oddzielnym przekladnikiem,
 		double GetEDBCP()/*override*/;    //cisnienie tylko z hamulca zasadniczego, uzywane do hamulca ED
 		void PLC(double const mass);  //wspolczynnik cisnienia przystawki wazacej
         void SetLP( double const TM, double const LM, double const TBP );  //parametry przystawki wazacej        
-		void SetRV(double const RVR);   //ustalenie predkosci przelaczenia rapida
 
 		inline TEStED(double i_mbp, double i_bcr, double i_bcd, double i_brc, int i_bcn, int i_BD, int i_mat, int i_ba, int i_nbpa) :
                  TLSt(       i_mbp,        i_bcr,        i_bcd,        i_brc,     i_bcn,     i_BD,     i_mat,     i_ba,     i_nbpa)

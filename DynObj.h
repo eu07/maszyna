@@ -230,16 +230,12 @@ public:
     struct vehicle_section {
         TSubModel *compartment;
         TSubModel *load;
+        int load_chunks_visible;
         float light_level;
     };
     std::vector<vehicle_section> Sections; // table of recognized vehicle sections
     bool SectionLightsActive { false }; // flag indicating whether section lights were set.
-    struct section_visibility {
-        TSubModel *submodel;
-        bool visible;
-        int visible_chunks;
-    };
-    std::vector<section_visibility> SectionLoadVisibility; // visibility of specific sections of the load 3d model
+    std::vector<vehicle_section *> SectionLoadOrder; // helper, activation/deactivation load chunk sequence
 
 private:
     // zmienne i metody do animacji submodeli; Ra: sprzatam animacje w pojeździe
@@ -574,7 +570,7 @@ private:
     void update_load_sections();
     void update_load_visibility();
     void update_load_offset();
-    void shuffle_load_sections();
+    void shuffle_load_order();
     void update_destinations();
     bool Update(double dt, double dt1);
     bool FastUpdate(double dt);

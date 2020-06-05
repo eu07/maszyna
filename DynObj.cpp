@@ -686,7 +686,7 @@ TDynamicObject::toggle_lights() {
                 ( sectionname.find( "compartment" ) == 0 )
              || ( sectionname.find( "przedzial" )   == 0 ) ) {
                 // compartments are lit with 75% probability
-                section.light_level = ( Random() < 0.75 ? 0.75f : 0.15f );
+                section.light_level = ( Random() < 0.75 ? 0.75f : 0.10f );
             }
         }
         SectionLightsActive = true;
@@ -1119,21 +1119,22 @@ void TDynamicObject::ABuLittleUpdate(double ObjSqrDist)
         }
     }
     // load chunks visibility
-    for( auto const &section : SectionLoadVisibility ) {
-        section.submodel->iVisible = section.visible;
-        if( false == section.visible ) {
-            // if the section root isn't visible we can skip meddling with its children
-            continue;
-        }
+    for( auto const &section : Sections ) {
+        // section isn't guaranteed to have load model, so check that first
+        if( section.load == nullptr ) { continue; }
+        section.load->iVisible = ( section.load_chunks_visible > 0 );
+        // if the section root isn't visible we can skip meddling with its children
+        if( false == section.load->iVisible ) { continue; }
         // if the section root is visible set the state of section chunks
-        auto *sectionchunk { section.submodel->ChildGet() };
-        auto visiblechunkcount { section.visible_chunks };
+        auto *sectionchunk { section.load->ChildGet() };
+        auto visiblechunkcount { section.load_chunks_visible };
         while( sectionchunk != nullptr ) {
             sectionchunk->iVisible = ( visiblechunkcount > 0 );
             --visiblechunkcount;
             sectionchunk = sectionchunk->NextGet();
         }
     }
+
     // driver cabs visibility
     for( int cabidx = 0; cabidx < LowPolyIntCabs.size(); ++cabidx ) {
         if( LowPolyIntCabs[ cabidx ] == nullptr ) { continue; }
@@ -2136,15 +2137,15 @@ TDynamicObject::Init(std::string Name, // nazwa pojazdu, np. "EU07-424"
         // TODO: definition of relevant compartments in the .mmd file
         TSubModel *submodel { nullptr };
         if( ( submodel = mdLowPolyInt->GetFromName( "cab0" ) ) != nullptr ) {
-            Sections.push_back( { submodel, nullptr, 0.0f } );
+            Sections.push_back( { submodel, nullptr, 0, 0.0f } );
             LowPolyIntCabs[ 0 ] = submodel;
         }
         if( ( submodel = mdLowPolyInt->GetFromName( "cab1" ) ) != nullptr ) {
-            Sections.push_back( { submodel, nullptr, 0.0f } );
+            Sections.push_back( { submodel, nullptr, 0, 0.0f } );
             LowPolyIntCabs[ 1 ] = submodel;
         }
         if( ( submodel = mdLowPolyInt->GetFromName( "cab2" ) ) != nullptr ) {
-            Sections.push_back( { submodel, nullptr, 0.0f } );
+            Sections.push_back( { submodel, nullptr, 0, 0.0f } );
             LowPolyIntCabs[ 2 ] = submodel;
         }
         // passenger car compartments
@@ -2280,6 +2281,7 @@ TDynamicObject::init_sections( TModel3d const *Model, std::string const &Namepre
             Sections.push_back( {
                 sectionsubmodel,
                 nullptr, // pointers to load sections are generated afterwards
+                0,
                 0.0f } );
             ++sectioncount;
         }
@@ -2723,58 +2725,49 @@ void TDynamicObject::LoadUpdate() {
 void
 TDynamicObject::update_load_sections() {
 
-    SectionLoadVisibility.clear();
+    SectionLoadOrder.clear();
 
     for( auto &section : Sections ) {
 
         section.load = GetSubmodelFromName( mdLoad,  section.compartment->pName );
 
-        if( ( section.load != nullptr )
-         && ( section.load->count_children() > 0 ) ) {
-            SectionLoadVisibility.push_back( { section.load, false } );
+        if( section.load != nullptr ) {
+            // create entry for each load model chunk assigned to the section
+            // TBD, TODO: store also pointer to chunk submodel and control its visibility more directly, instead of per-section visibility flag?
+            auto loadchunkcount { section.load->count_children() };
+            while( loadchunkcount-- ) {
+                SectionLoadOrder.push_back( &section );
+            }
             // HACK: disable automatic self-illumination threshold, at least until 3d model update
             if( MoverParameters->CompartmentLights.start_type == start_t::manual ) {
                 section.load->SetSelfIllum( 2.0f, true, false );
             }
         }
     }
-    shuffle_load_sections();
+    shuffle_load_order();
 }
 
 void
 TDynamicObject::update_load_visibility() {
-/*
-    if( Random() < 0.25 ) {
-        shuffle_load_sections();
+    // start with clean load chunk visibility slate
+    for( auto &section : Sections ) {
+        section.load_chunks_visible = 0;
     }
-*/
-    auto loadpercentage { (
+    // each entry in load order sequence matches a single chunk of the section it points to
+    // the length of load order sequence matches total number of load chunks
+    auto const loadpercentage { (
         MoverParameters->MaxLoad == 0.f ?
             0.0 :
-            100.0 * MoverParameters->LoadAmount / MoverParameters->MaxLoad ) };
-    auto const sectionloadpercentage { (
-        SectionLoadVisibility.empty() ?
-            0.0 :
-            100.0 / SectionLoadVisibility.size() ) };
-    // set as many sections as we can, given overall load percentage and how much of full percentage is covered by each chunk
-    std::for_each(
-        std::begin( SectionLoadVisibility ), std::end( SectionLoadVisibility ),
-        [&]( section_visibility &section ) {
-            section.visible = ( loadpercentage > 0.0 );
-            section.visible_chunks = 0;
-            auto const sectionchunkcount { section.submodel->count_children() };
-            auto const sectionchunkloadpercentage{ (
-                sectionchunkcount == 0 ?
-                    0.0 :
-                    sectionloadpercentage / sectionchunkcount ) };
-            auto *sectionchunk { section.submodel->ChildGet() };
-            while( sectionchunk != nullptr ) {
-                if( loadpercentage > 0.0 ) {
-                    ++section.visible_chunks;
-                    loadpercentage -= sectionchunkloadpercentage;
-                }
-                sectionchunk = sectionchunk->NextGet();
-            } } );
+            MoverParameters->LoadAmount / MoverParameters->MaxLoad ) };
+    auto visiblechunkcount { (
+        SectionLoadOrder.empty() ?
+            0 :
+            static_cast<int>( std::ceil( loadpercentage * SectionLoadOrder.size() ) ) ) };
+    for( auto *section : SectionLoadOrder ) {
+        if( visiblechunkcount == 0 ) { break; }
+        section->load_chunks_visible++;
+        --visiblechunkcount;
+    }
 }
 
 void
@@ -2791,16 +2784,16 @@ TDynamicObject::update_load_offset() {
 }
 
 void 
-TDynamicObject::shuffle_load_sections() {
+TDynamicObject::shuffle_load_order() {
 
-    std::shuffle( std::begin( SectionLoadVisibility ), std::end( SectionLoadVisibility ), Global.random_engine );
+    std::shuffle( std::begin( SectionLoadOrder ), std::end( SectionLoadOrder ), Global.random_engine );
     // shift chunks assigned to corridors to the end of the list, so they show up last
     std::stable_partition(
-        std::begin( SectionLoadVisibility ), std::end( SectionLoadVisibility ),
-        []( section_visibility const &section ) {
+        std::begin( SectionLoadOrder ), std::end( SectionLoadOrder ),
+        []( vehicle_section const *section ) {
             return (
-                ( section.submodel->pName.find( "compartment" ) == 0 )
-             || ( section.submodel->pName.find( "przedzial" )   == 0 ) ); } );
+                ( section->compartment->pName.find( "compartment" ) == 0 )
+             || ( section->compartment->pName.find( "przedzial" )   == 0 ) ); } );
     // NOTE: potentially we're left with a mix of corridor and external section loads
     // but that's not necessarily a wrong outcome, so we leave it this way for the time being
 }

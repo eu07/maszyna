@@ -1685,11 +1685,6 @@ void TEStED::SetLP( double const TM, double const LM, double const TBP )
     TareBP = TBP;
 }
 
-void TEStED::SetRV(double const RVR)
-{
-	RV = RVR;
-}
-
 //---DAKO CV1---
 
 void TCV1::CheckState( double const BCP, double &dV1 )
@@ -2137,13 +2132,13 @@ double TKE::GetPF( double const PP, double const dt, double const Vel )
     if (!((typeid(*FM) == typeid(TDisk1)) ||
           (typeid(*FM) == typeid(TDisk2)))) // jesli zeliwo to schodz
         RapidStatus = ((BrakeDelayFlag & bdelay_R) == bdelay_R) &&
-                      (((Vel > 50) && (RapidStatus)) || (Vel > 70));
+                      ((RV < 0) || ((Vel > RV) && (RapidStatus)) || (Vel > (RV + 20)));
     else // jesli tarczowki, to zostan
         RapidStatus = ((BrakeDelayFlag & bdelay_R) == bdelay_R);
 
     //  temp:=1.9-0.9*int(RapidStatus);
 
-    if ((RM * RM > 0.1)) // jesli jest rapid
+    if ((RM * RM > 0.001)) // jesli jest rapid
         if ((RM > 0)) // jesli dodatni (naddatek);
             temp = 1 - RM * int(RapidStatus);
         else

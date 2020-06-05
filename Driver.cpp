@@ -153,6 +153,8 @@ const double EasyReactionTime = 0.5; //[s] przebłyski świadomości dla zwykłe
 const double HardReactionTime = 0.2;
 const double EasyAcceleration = 0.85; //[m/ss]
 const double HardAcceleration = 9.81;
+const double PassengetTrainAcceleration = 0.40;
+const double HeavyPassengetTrainAcceleration = 0.20;
 const double CargoTrainAcceleration = 0.25;
 const double HeavyCargoTrainAcceleration = 0.10;
 const double PrepareTime = 2.0; //[s] przebłyski świadomości przy odpalaniu
@@ -2065,6 +2067,7 @@ void TController::AutoRewident()
 		    fBrake_a1[i+1] /= (12*fMass);
 	    }
 
+        IsPassengerTrain = ( mvOccupied->CategoryFlag == 1 ) && ( mvOccupied->TrainType != dt_EZT ) && ( mvOccupied->TrainType != dt_DMU ) && ( ( mvOccupied->BrakeDelayFlag & bdelay_G ) == 0 );
         IsCargoTrain = ( mvOccupied->CategoryFlag == 1 ) && ( ( mvOccupied->BrakeDelayFlag & bdelay_G ) != 0 );
         IsHeavyCargoTrain = ( true == IsCargoTrain ) && ( fBrake_a0[ 1 ] > 0.4 ) && ( iVehicles - ControlledEnginesCount > 0 ) && ( fMass / iVehicles > 50000 );
 
@@ -6235,6 +6238,9 @@ TController::UpdateSituation(double dt) {
                 }
                 // HACK: limit acceleration for cargo trains, to reduce probability of breaking couplers on sudden jolts
                 // TBD: expand this behaviour to all trains with car(s) exceeding certain weight?
+                if( ( IsPassengerTrain ) && ( iVehicles - ControlledEnginesCount > 0 ) ) {
+                    AccDesired = std::min( AccDesired, ( iVehicles - ControlledEnginesCount > 8 ? HeavyPassengetTrainAcceleration : PassengetTrainAcceleration ) );
+                }
                 if( ( IsCargoTrain ) && ( iVehicles - ControlledEnginesCount > 0 ) ) {
                     AccDesired = std::min( AccDesired, CargoTrainAcceleration );
                 }
