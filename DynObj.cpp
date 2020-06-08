@@ -748,25 +748,41 @@ void TDynamicObject::ABuLittleUpdate(double ObjSqrDist)
             // ABu011104: liczenie obrotow wozkow
             ABuBogies();
             // Mczapkie-100402: rysowanie lub nie - sprzegow
-            // ABu-240105: Dodatkowy warunek: if (...).Render, zeby rysowal tylko
-            // jeden
-            // z polaczonych sprzegow
-            if ((false == MoverParameters->Couplers[ end::front ].has_adapter()) &&
-                (TestFlag(MoverParameters->Couplers[end::front].CouplingFlag, ctrain_coupler)) &&
-                (MoverParameters->Couplers[end::front].Render))
-            {
-                btCoupler1.Turn( true );
+            // ABu-240105: Dodatkowy warunek: if (...).Render, zeby rysowal tylko jeden z polaczonych sprzegow
+            // display _on if connected with another vehicle and the coupling owner (render flag)
+            // display _xon if connected with another vehicle and not the coupling owner
+            // display _xon if not connected, but equipped with coupling adapter
+            // display _off if not connected, not equipped with coupling adapter or if _xon model is missing
+            if( TestFlag( MoverParameters->Couplers[ end::front ].CouplingFlag, coupling::coupler ) ) {
+                if( MoverParameters->Couplers[ end::front ].Render ) {
+                    btCoupler1.TurnOn();
+                }
+                else {
+                    btCoupler1.TurnxOnWithOffAsFallback();
+                }
                 btnOn = true;
             }
-            // else btCoupler1.TurnOff();
-            if ((false == MoverParameters->Couplers[ end::rear ].has_adapter()) &&
-                (TestFlag(MoverParameters->Couplers[end::rear].CouplingFlag, ctrain_coupler)) &&
-                (MoverParameters->Couplers[end::rear].Render))
-            {
-                btCoupler2.Turn( true );
+            else {
+                if( true == MoverParameters->Couplers[ end::front ].has_adapter() ) {
+                    btCoupler1.TurnxOnWithOffAsFallback();
+                    btnOn = true;
+                }
+            }
+            if( TestFlag( MoverParameters->Couplers[ end::rear ].CouplingFlag, coupling::coupler ) ) {
+                if( MoverParameters->Couplers[ end::rear ].Render ) {
+                    btCoupler2.TurnOn();
+                }
+                else {
+                    btCoupler2.TurnxOnWithOffAsFallback();
+                }
                 btnOn = true;
             }
-            // else btCoupler2.TurnOff();
+            else {
+                if( true == MoverParameters->Couplers[ end::rear ].has_adapter() ) {
+                    btCoupler2.TurnxOnWithOffAsFallback();
+                    btnOn = true;
+                }
+            }
             //********************************************************************************
             // przewody powietrzne j.w., ABu: decyzja czy rysowac tylko na podstawie
             // 'render' - juz
@@ -960,7 +976,7 @@ void TDynamicObject::ABuLittleUpdate(double ObjSqrDist)
         { // sygnaly konca pociagu
             if (btEndSignals1.Active())
             {
-                if (TestFlag(iLights[0], 2) || TestFlag(iLights[0], 32))
+                if (TestFlag(MoverParameters->iLights[0], 2) || TestFlag(MoverParameters->iLights[0], 32))
                 {
                     btEndSignals1.Turn( true );
                     btnOn = true;
@@ -969,13 +985,13 @@ void TDynamicObject::ABuLittleUpdate(double ObjSqrDist)
             }
             else
             {
-                if (TestFlag(iLights[0], 2))
+                if (TestFlag(MoverParameters->iLights[0], 2))
                 {
                     btEndSignals11.Turn( true );
                     btnOn = true;
                 }
                 // else btEndSignals11.TurnOff();
-                if (TestFlag(iLights[0], 32))
+                if (TestFlag(MoverParameters->iLights[0], 32))
                 {
                     btEndSignals13.Turn( true );
                     btnOn = true;
@@ -984,7 +1000,7 @@ void TDynamicObject::ABuLittleUpdate(double ObjSqrDist)
             }
             if (btEndSignals2.Active())
             {
-                if (TestFlag(iLights[1], 2) || TestFlag(iLights[1], 32))
+                if (TestFlag(MoverParameters->iLights[1], 2) || TestFlag(MoverParameters->iLights[1], 32))
                 {
                     btEndSignals2.Turn( true );
                     btnOn = true;
@@ -993,13 +1009,13 @@ void TDynamicObject::ABuLittleUpdate(double ObjSqrDist)
             }
             else
             {
-                if (TestFlag(iLights[1], 2))
+                if (TestFlag(MoverParameters->iLights[1], 2))
                 {
                     btEndSignals21.Turn( true );
                     btnOn = true;
                 }
                 // else btEndSignals21.TurnOff();
-                if (TestFlag(iLights[1], 32))
+                if (TestFlag(MoverParameters->iLights[1], 32))
                 {
                     btEndSignals23.Turn( true );
                     btnOn = true;
@@ -1008,13 +1024,13 @@ void TDynamicObject::ABuLittleUpdate(double ObjSqrDist)
             }
         }
         // tablice blaszane:
-        if (TestFlag(iLights[end::front], light::rearendsignals))
+        if (TestFlag(MoverParameters->iLights[end::front], light::rearendsignals))
         {
             btEndSignalsTab1.Turn( true );
             btnOn = true;
         }
         // else btEndSignalsTab1.TurnOff();
-        if (TestFlag(iLights[end::rear], light::rearendsignals))
+        if (TestFlag(MoverParameters->iLights[end::rear], light::rearendsignals))
         {
             btEndSignalsTab2.Turn( true );
             btnOn = true;
@@ -1060,42 +1076,67 @@ void TDynamicObject::ABuLittleUpdate(double ObjSqrDist)
     { // sygnały czoła pociagu //Ra: wyświetlamy bez
         // ograniczeń odległości, by były widoczne z
         // daleka
-        if (TestFlag(iLights[0], 1))
+        if (TestFlag(MoverParameters->iLights[end::front], light::headlight_left))
         {
-            btHeadSignals11.Turn( true );
+            if( DimHeadlights ) {
+                btHeadSignals11.TurnxOnWithOnAsFallback();
+            }
+            else {
+                btHeadSignals11.TurnOn();
+            }
             btnOn = true;
         }
-        // else btHeadSignals11.TurnOff();
-        if (TestFlag(iLights[0], 4))
+        if (TestFlag(MoverParameters->iLights[end::front], light::headlight_upper))
         {
-            btHeadSignals12.Turn( true );
+            if( DimHeadlights ) {
+                btHeadSignals12.TurnxOnWithOnAsFallback();
+            }
+            else {
+                btHeadSignals12.TurnOn();
+            }
             btnOn = true;
         }
-        // else btHeadSignals12.TurnOff();
-        if (TestFlag(iLights[0], 16))
+        if (TestFlag(MoverParameters->iLights[end::front], light::headlight_right))
         {
-            btHeadSignals13.Turn( true );
+            if( DimHeadlights ) {
+                btHeadSignals13.TurnxOnWithOnAsFallback();
+            }
+            else {
+                btHeadSignals13.TurnOn();
+            }
             btnOn = true;
         }
         // else btHeadSignals13.TurnOff();
-        if (TestFlag(iLights[1], 1))
+        if (TestFlag(MoverParameters->iLights[end::rear], light::headlight_left))
         {
-            btHeadSignals21.Turn( true );
+            if( DimHeadlights ) {
+                btHeadSignals21.TurnxOnWithOnAsFallback();
+            }
+            else {
+                btHeadSignals21.TurnOn();
+            }
             btnOn = true;
         }
-        // else btHeadSignals21.TurnOff();
-        if (TestFlag(iLights[1], 4))
+        if (TestFlag(MoverParameters->iLights[end::rear], light::headlight_upper))
         {
-            btHeadSignals22.Turn( true );
+            if( DimHeadlights ) {
+                btHeadSignals22.TurnxOnWithOnAsFallback();
+            }
+            else {
+                btHeadSignals22.TurnOn();
+            }
             btnOn = true;
         }
-        // else btHeadSignals22.TurnOff();
-        if (TestFlag(iLights[1], 16))
+        if (TestFlag(MoverParameters->iLights[end::rear], light::headlight_right))
         {
-            btHeadSignals23.Turn( true );
+            if( DimHeadlights ) {
+                btHeadSignals23.TurnxOnWithOnAsFallback();
+            }
+            else {
+                btHeadSignals23.TurnOn();
+            }
             btnOn = true;
         }
-        // else btHeadSignals23.TurnOff();
     }
     // interior light levels
     auto sectionlightcolor { glm::vec4( 1.f ) };
@@ -1764,7 +1805,6 @@ TDynamicObject::Init(std::string Name, // nazwa pojazdu, np. "EU07-424"
 */
     // utworzenie parametrów fizyki
     MoverParameters = new TMoverParameters(iDirection ? fVel : -fVel, Type_Name, asName, Cab);
-    iLights = MoverParameters->iLights; // wskaźnik na stan własnych świateł
     // McZapkie: TypeName musi byc nazwą CHK/MMD pojazdu
     if (!MoverParameters->LoadFIZ(asBaseDir))
     { // jak wczytanie CHK się nie uda, to błąd
@@ -2072,8 +2112,8 @@ TDynamicObject::Init(std::string Name, // nazwa pojazdu, np. "EU07-424"
     erase_extension( asReplacableSkin );
     LoadMMediaFile(Type_Name, asReplacableSkin);
     // McZapkie-100402: wyszukiwanie submodeli sprzegów
-    btCoupler1.Init( "coupler1", mdModel, false ); // false - ma być wyłączony
-    btCoupler2.Init( "coupler2", mdModel, false);
+    btCoupler1.Init( "coupler1", mdModel ); // false - ma być wyłączony
+    btCoupler2.Init( "coupler2", mdModel );
     // brake hoses
     btCPneumatic1.Init("cpneumatic1", mdModel);
     btCPneumatic2.Init("cpneumatic2", mdModel);
@@ -2110,12 +2150,12 @@ TDynamicObject::Init(std::string Name, // nazwa pojazdu, np. "EU07-424"
     iInventory[ end::rear ] |= btEndSignals2.Active() ? ( light::redmarker_left | light::redmarker_right ) : 0;
     iInventory[ end::rear ] |= btEndSignalsTab2.Active() ? light::rearendsignals : 0;
     // ABu Uwaga! tu zmienic w modelu!
-    btHeadSignals11.Init( "headlamp13", mdModel, false); // lewe
-    btHeadSignals12.Init( "headlamp11", mdModel, false); // górne
-    btHeadSignals13.Init( "headlamp12", mdModel, false); // prawe
-    btHeadSignals21.Init( "headlamp23", mdModel, false);
-    btHeadSignals22.Init( "headlamp21", mdModel, false);
-    btHeadSignals23.Init( "headlamp22", mdModel, false);
+    btHeadSignals11.Init( "headlamp13", mdModel); // lewe
+    btHeadSignals12.Init( "headlamp11", mdModel); // górne
+    btHeadSignals13.Init( "headlamp12", mdModel); // prawe
+    btHeadSignals21.Init( "headlamp23", mdModel);
+    btHeadSignals22.Init( "headlamp21", mdModel);
+    btHeadSignals23.Init( "headlamp22", mdModel);
     iInventory[ end::front ] |= btHeadSignals11.Active() ? light::headlight_left : 0;
     iInventory[ end::front ] |= btHeadSignals12.Active() ? light::headlight_upper : 0;
     iInventory[ end::front ] |= btHeadSignals13.Active() ? light::headlight_right : 0;
@@ -2877,7 +2917,7 @@ bool TDynamicObject::Update(double dt, double dt1)
     // TTrackParam tp;
     tp.Width = MyTrack->fTrackWidth;
     // McZapkie-250202
-    tp.friction = MyTrack->fFriction * Global.fFriction * Global.FrictionWeatherFactor;
+    tp.friction = MyTrack->Friction() * Global.fFriction * Global.FrictionWeatherFactor;
     tp.CategoryFlag = MyTrack->iCategoryFlag & 15;
     tp.DamageFlag = MyTrack->iDamageFlag;
     tp.QualityFlag = MyTrack->iQualityFlag;
@@ -3928,8 +3968,8 @@ void TDynamicObject::TurnOff()
 { // wyłączenie rysowania submodeli zmiennych dla
     // egemplarza pojazdu
     btnOn = false;
-    btCoupler1.Turn( false );
-    btCoupler2.Turn( false );
+    btCoupler1.TurnOff();
+    btCoupler2.TurnOff();
     btCPneumatic1.TurnOff();
     btCPneumatic1r.TurnOff();
     btCPneumatic2.TurnOff();
@@ -3950,12 +3990,12 @@ void TDynamicObject::TurnOff()
     btEndSignals2.Turn( false );
     btEndSignalsTab1.Turn( false );
     btEndSignalsTab2.Turn( false );
-    btHeadSignals11.Turn( false );
-    btHeadSignals12.Turn( false );
-    btHeadSignals13.Turn( false );
-    btHeadSignals21.Turn( false );
-    btHeadSignals22.Turn( false );
-    btHeadSignals23.Turn( false );
+    btHeadSignals11.TurnOff();
+    btHeadSignals12.TurnOff();
+    btHeadSignals13.TurnOff();
+    btHeadSignals21.TurnOff();
+    btHeadSignals22.TurnOff();
+    btHeadSignals23.TurnOff();
 	btMechanik1.Turn( false );
 	btMechanik2.Turn( false );
     btShutters1.Turn( false );
@@ -6308,32 +6348,21 @@ void TDynamicObject::Damage(char flag)
 
 void TDynamicObject::SetLights() {
 
-    TDynamicObject *p = GetFirstDynamic(MoverParameters->CabOccupied < 0 ? 1 : 0, 4);
-    bool kier = (DirectionGet() * MoverParameters->CabOccupied > 0);
-    int xs = (kier ? 0 : 1);
-    if (kier ? p->NextC(1) : p->PrevC(1)) // jesli jest nastepny, to tylko przod
-    {
-        p->RaLightsSet(MoverParameters->Lights[xs][MoverParameters->LightsPos - 1] * (1 - xs),
-                       MoverParameters->Lights[1 - xs][MoverParameters->LightsPos - 1] * xs);
-        p = (kier ? p->NextC(4) : p->PrevC(4));
-        while (p)
-        {
-            if (kier ? p->NextC(1) : p->PrevC(1))
-            {
-                p->RaLightsSet(0, 0);
-            }
-            else
-            {
-                p->RaLightsSet(MoverParameters->Lights[xs][MoverParameters->LightsPos - 1] * xs,
-                               MoverParameters->Lights[1 - xs][MoverParameters->LightsPos - 1] * (1 - xs));
-            }
-            p = (kier ? p->NextC(4) : p->PrevC(4));
-        }
-    }
-    else // calosc
-    {
-        p->RaLightsSet(MoverParameters->Lights[xs][MoverParameters->LightsPos - 1],
-                       MoverParameters->Lights[1 - xs][MoverParameters->LightsPos - 1]);
+    auto const isfrontcaboccupied { MoverParameters->CabOccupied * DirectionGet() >= 0 };
+    int const front { ( isfrontcaboccupied ? end::front : end::rear ) };
+    int const rear { 1 - front };
+    auto const lightpos { MoverParameters->LightsPos - 1 };
+    auto const frontlights { MoverParameters->Lights[ front ][ lightpos ] };
+    auto const rearlights { MoverParameters->Lights[ rear ][ lightpos ] };
+    auto *vehicle { GetFirstDynamic( MoverParameters->CabOccupied >= 0 ? end::front : end::rear, coupling::control ) };
+    while( vehicle != nullptr ) {
+        // set lights on given side if there's no coupling with another vehicle, turn them off otherwise
+        auto const *frontvehicle { ( isfrontcaboccupied ? vehicle->PrevC( coupling::coupler ) : vehicle->NextC( coupling::coupler ) ) };
+        auto const *rearvehicle { ( isfrontcaboccupied ? vehicle->NextC( coupling::coupler ) : vehicle->PrevC( coupling::coupler ) ) };
+        vehicle->RaLightsSet(
+            ( frontvehicle == nullptr ? frontlights : 0 ),
+            ( rearvehicle == nullptr ? rearlights : 0 ) );
+        vehicle = ( isfrontcaboccupied ? vehicle->NextC( coupling::control ) : vehicle->PrevC( coupling::control ) );
     }
 };
 
@@ -6370,16 +6399,16 @@ void TDynamicObject::RaLightsSet(int head, int rear)
     if (iDirection) // w zależności od kierunku pojazdu w składzie
     { // jesli pojazd stoi sprzęgiem 0 w stronę czoła
         if (head >= 0)
-            iLights[0] = head;
+            MoverParameters->iLights[0] = head;
         if (rear >= 0)
-            iLights[1] = rear;
+            MoverParameters->iLights[1] = rear;
     }
     else
     { // jak jest odwrócony w składzie (-1), to zapalamy odwrotnie
         if (head >= 0)
-            iLights[1] = head;
+            MoverParameters->iLights[1] = head;
         if (rear >= 0)
-            iLights[0] = rear;
+            MoverParameters->iLights[0] = rear;
     }
 };
 

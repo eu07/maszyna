@@ -29,7 +29,8 @@ public:
         mode_add    = 1 << 3,
         // whois
         mode_alt    = 1 << 3,
-        load        = 1 << 4,
+        whois_load  = 1 << 4,
+        whois_name  = 1 << 5,
         // condition values
         track_busy  = 1 << 3,
         track_free  = 1 << 4,
@@ -341,6 +342,8 @@ private:
     event_conditions m_conditions;
 };
 
+
+
 class sound_event : public basic_event {
 
 public:
@@ -368,6 +371,42 @@ private:
     int m_soundmode{ 0 };
     int m_soundradiochannel{ 0 };
 };
+
+
+
+// assigns a texture as specified replacable skin to a list of specified scene model nodes
+// skin filename is built dynamically using specified expression and list of parameters from optional specified memory cell
+class texture_event : public basic_event {
+
+public:
+// methods
+    // prepares event for use
+    void init() override;
+
+private:
+// types
+    struct input_data {
+        basic_node data_source { "", nullptr };
+
+        TMemCell const * data_cell() const;
+        TMemCell * data_cell();
+    };
+// methods
+    // event type string
+    std::string type() const override;
+    // deserialize() subclass details
+    void deserialize_( cParser &Input, scene::scratch_data &Scratchpad ) override;
+    // run() subclass details
+    void run_() override;
+    // export_as_text() subclass details
+    void export_as_text_( std::ostream &Output ) const override;
+// members
+    int m_skinindex { 0 }; // index of target replacable skin
+    std::string m_skin; // expression defining skin filename
+    input_data m_input; // optional source of expression parameters
+};
+
+
 
 class animation_event : public basic_event {
 
@@ -398,6 +437,8 @@ private:
     char *m_animationfiledata{ nullptr };
 };
 
+
+
 class lights_event : public basic_event {
 
 public:
@@ -418,6 +459,8 @@ private:
 // members
     std::vector<float> m_lights;
 };
+
+
 
 class switch_event : public basic_event {
 
@@ -442,6 +485,8 @@ private:
     float m_switchmovedelay{ -1.f };
 };
 
+
+
 class track_event : public basic_event {
 
 public:
@@ -462,6 +507,8 @@ private:
 // members
     float m_velocity{ 0.f };
 };
+
+
 
 class voltage_event : public basic_event {
 
@@ -484,6 +531,8 @@ private:
     float m_voltage{ -1.f };
 };
 
+
+
 class visible_event : public basic_event {
 
 public:
@@ -505,6 +554,8 @@ private:
     bool m_visible{ true };
 };
 
+
+
 class friction_event : public basic_event {
 
 public:
@@ -525,6 +576,8 @@ private:
 // members
     float m_friction{ -1.f };
 };
+
+
 
 class message_event : public basic_event {
 

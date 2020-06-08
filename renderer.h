@@ -12,7 +12,7 @@ http://mozilla.org/MPL/2.0/.
 #include "geometrybank.h"
 #include "material.h"
 
-class lighting_data;
+struct lighting_data;
 
 class gfx_renderer {
 

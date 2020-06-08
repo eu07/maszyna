@@ -140,6 +140,7 @@ public:
     TAnimContainer * AddContainer(std::string const &Name);
     TAnimContainer * GetContainer(std::string const &Name = "");
     void LightSet( int const n, float const v );
+    void SkinSet( int const Index, material_handle const Material );
     void AnimationVND( void *pData, double a, double b, double c, double d );
     int TerrainCount();
     TSubModel * TerrainSquare(int n);

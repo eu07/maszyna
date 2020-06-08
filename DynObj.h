@@ -394,8 +394,8 @@ private:
     void update_exchange( double const Deltatime );
 
 // members
-    TButton btCoupler1; // sprzegi
-    TButton btCoupler2;
+    TAirCoupler btCoupler1; // sprzegi
+    TAirCoupler btCoupler2;
     std::array<TModel3d *, 2> m_coupleradapters = { nullptr, nullptr };
     TAirCoupler btCPneumatic1; // sprzegi powietrzne //yB - zmienione z Button na AirCoupler - krzyzyki
     TAirCoupler btCPneumatic2;
@@ -420,12 +420,12 @@ private:
     TButton btEndSignals2;
     TButton btEndSignalsTab1; // sygnaly konca pociagu (blachy)
     TButton btEndSignalsTab2;
-    TButton btHeadSignals11; // oswietlenie czolowe - przod
-    TButton btHeadSignals12;
-    TButton btHeadSignals13;
-    TButton btHeadSignals21; // oswietlenie czolowe - tyl
-    TButton btHeadSignals22;
-    TButton btHeadSignals23;
+    TAirCoupler btHeadSignals11; // oswietlenie czolowe - przod
+    TAirCoupler btHeadSignals12;
+    TAirCoupler btHeadSignals13;
+    TAirCoupler btHeadSignals21; // oswietlenie czolowe - tyl
+    TAirCoupler btHeadSignals22;
+    TAirCoupler btHeadSignals23;
 	TButton btMechanik1;
 	TButton btMechanik2;
     TButton btShutters1; // cooling shutters for primary water circuit
@@ -498,7 +498,6 @@ private:
     void ABuCheckMyTrack();
 
   public:
-    int *iLights; // wskaźnik na bity zapalonych świateł (własne albo innego członu)
     bool DimHeadlights{ false }; // status of the headlight dimming toggle. NOTE: single toggle for all lights is a simplification. TODO: separate per-light switches
     TDynamicObject * PrevAny() const;
     TDynamicObject * Prev() const;
@@ -665,7 +664,7 @@ private:
     TDynamicObject * FirstFind(int &coupler_nr, int cf = 1);
     float GetEPP(); // wyliczanie sredniego cisnienia w PG
     int DirectionSet(int d); // ustawienie kierunku w składzie
-    // odczyt kierunku w składzie
+    // odczyt kierunku w składzie; returns 1 if true, -1 otherwise
     int DirectionGet() const {
         return iDirection + iDirection - 1; };
     int DettachStatus(int dir);

@@ -61,7 +61,7 @@ light_array::update() {
          || ( true == light.owner->MoverParameters->Power110vIsAvailable ) ) {
             // with power on, the intensity depends on the state of activated switches
             // first we cross-check the list of enabled lights with the lights installed in the vehicle...
-            auto const lights { light.owner->iLights[ light.index ] & light.owner->LightList( static_cast<end>( light.index ) ) };
+            auto const lights { light.owner->MoverParameters->iLights[ light.index ] & light.owner->LightList( static_cast<end>( light.index ) ) };
             // ...then check their individual state
             light.count = 0
                 + ( ( lights & light::headlight_left  ) ? 1 : 0 )

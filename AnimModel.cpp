@@ -861,6 +861,11 @@ void TAnimModel::LightSet(int const n, float const v)
     lsLights[ n ] = v;
 };
 
+void TAnimModel::SkinSet( int const Index, material_handle const Material ) {
+
+    m_materialdata.replacable_skins[ clamp( Index, 1, 4 ) ] = Material;
+}
+
 void TAnimModel::AnimUpdate(double dt)
 { // wykonanie zakolejkowanych animacji, nawet gdy modele nie są aktualnie wyświetlane
     TAnimContainer *p = TAnimModel::acAnimList;

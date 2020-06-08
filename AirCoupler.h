@@ -42,7 +42,34 @@ class TAirCoupler
         bxOn = true;
         Update();
     };
-    //  inline bool Active() { if ((pModelOn)||(pModelOff)) return true; return false;};
+    // if the xOn model is missing, activate plain On instead
+    inline void TurnxOnWithOnAsFallback()
+    {
+        if( pModelxOn != nullptr ) {
+            bOn = false;
+            bxOn = true;
+            Update();
+        }
+        else {
+            TurnOn();
+        }
+    };
+    // if the xOn model is missing, activate plain Off instead
+    inline void TurnxOnWithOffAsFallback()
+    {
+        if( pModelxOn != nullptr ) {
+            bOn = false;
+            bxOn = true;
+            Update();
+        }
+        else {
+            TurnOff();
+        }
+    };
+    inline bool Active() const
+    {
+        return ( ( pModelOn != nullptr ) || ( pModelxOn != nullptr ) );
+    };
     int GetStatus();
     void Init(std::string const &asName, TModel3d *pModel);
     void Load(cParser *Parser, TModel3d *pModel);

@@ -891,6 +891,10 @@ void TTrack::Load(cParser *parser, glm::dvec3 const &pOrigin)
                 m_profile1 = fetch_track_rail_profile( railprofile );
             }
         }
+        else if( str == "friction" ) {
+            // memory cell holding friction value modifiers
+            m_friction.first = parser->getToken<std::string>();
+        }
         else
             ErrorLog("Bad track: unknown property: \"" + str + "\" defined for track \"" + m_name + "\"");
         parser->getTokens();
@@ -2162,6 +2166,9 @@ TTrack::export_as_text_( std::ostream &Output ) const {
         }
         Output << "trackbed " << texturefile << ' ';
     }
+    if( false == m_friction.first.empty() ) {
+        Output << "friction " << m_friction.first << ' ';
+    }
     // footer
     Output
         << "endtrack"
@@ -2312,6 +2319,16 @@ double TTrack::VelocityGet()
 { // pobranie dozwolonej prędkości podczas skanowania
     return ((iDamageFlag & 128) ? 0.0 : fVelocity); // tor uszkodzony = prędkość zerowa
 };
+
+float TTrack::Friction() const {
+
+    if( m_friction.second == nullptr ) {
+        return fFriction;
+    }
+    else {
+        return clamp( fFriction * m_friction.second->Value1() + m_friction.second->Value2(), 0.0, 1.0 );
+    }
+}
 
 void TTrack::ConnectionsLog()
 { // wypisanie informacji o połączeniach
@@ -3297,6 +3314,17 @@ path_table::InitTracks() {
             // możliwy portal, jeśli nie podłączony od strony 1
             // ustawienie flagi portalu
             track->iCategoryFlag |= 0x100;
+        }
+
+        {
+            auto const inputcellname { track->m_friction.first };
+
+            if( false == inputcellname.empty() ) {
+                track->m_friction.second = simulation::Memory.find( inputcellname );
+                if( track->m_friction.second == nullptr ) {
+                    ErrorLog( "Bad track: " + ( trackname.empty() ? "unnamed track" : "\"" + trackname + "\"" ) + " can't find assigned memory cell \"" + inputcellname + "\"" );
+                }
+            }
         }
     }
 

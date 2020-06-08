@@ -27,6 +27,7 @@ http://mozilla.org/MPL/2.0/.
 #include "AnimModel.h"
 #include "DynObj.h"
 #include "Driver.h"
+#include "renderer.h"
 #include "Timer.h"
 #include "Logs.h"
 
@@ -234,11 +235,12 @@ basic_event::event_conditions::export_as_text( std::ostream &Output ) const {
                 << probability << ' ';
         }
         if( ( flags & ( flags::text | flags::value1 | flags::value2 ) ) != 0 ) {
+            // NOTE: export doesn't preserve original memcompare condition, these are all upgraded to memcompareex format for simplicity
             Output
-                << "memcompare "
-                << ( ( flags & flags::text )   == 0 ? "*" :            memcompare_text ) << ' '
-                << ( ( flags & flags::value1 ) == 0 ? "*" : to_string( memcompare_value1 ) ) << ' '
-                << ( ( flags & flags::value2 ) == 0 ? "*" : to_string( memcompare_value2 ) ) << ' ';
+                << "memcompareex "
+                << ( ( flags & flags::text )   == 0 ? "*" :            memcompare_text     + ' ' + to_string( memcompare_text_operator ) ) << ' '
+                << ( ( flags & flags::value1 ) == 0 ? "*" : to_string( memcompare_value1 ) + ' ' + to_string( memcompare_value1_operator ) ) << ' '
+                << ( ( flags & flags::value2 ) == 0 ? "*" : to_string( memcompare_value2 ) + ' ' + to_string( memcompare_value2_operator ) ) << ' ';
         }
     }
 }
@@ -937,11 +939,26 @@ whois_event::run_() {
         auto *targetcell { static_cast<TMemCell *>( std::get<scene::basic_node *>( target ) ) };
         if( targetcell == nullptr ) { continue; }
         // event effect code
+        // +32: vehicle name
         // +24: vehicle type, consist brake level, obstacle distance
         // +16: load type, load amount, max load amount
         // +8: destination, direction, engine power
         // +0: train name, station count, stop on next station
-        if( m_input.flags & flags::load ) {
+        if( m_input.flags & flags::whois_name ) {
+            // +32 or +40
+                targetcell->UpdateValues(
+                    m_activator->asName, // vehicle name
+                    0, // unused
+                    0, // unused
+                    m_input.flags & ( flags::text | flags::value1 | flags::value2 ) );
+
+                WriteLog(
+                    "Type: WhoIs (" + to_string( m_input.flags ) + ") - "
+                    + "[name: " + m_activator->asName + "], "
+                    + "[X], "
+                    + "[X]" );
+        }
+        else if( m_input.flags & flags::whois_load ) {
             // +16 or +24
             // jeśli pytanie o ładunek
             if( m_input.flags & flags::mode_alt ) {
@@ -1317,6 +1334,105 @@ sound_event::deserialize_targets( std::string const &Input ) {
             m_sounds.emplace_back( target, nullptr );
         }
     }
+}
+
+
+
+TMemCell const *
+texture_event::input_data::data_cell() const {
+
+    return static_cast<TMemCell const *>( std::get<scene::basic_node *>( data_source ) );
+}
+TMemCell *
+texture_event::input_data::data_cell() {
+
+    return static_cast<TMemCell *>( std::get<scene::basic_node *>( data_source ) );
+}
+
+
+
+// prepares event for use
+void
+texture_event::init() {
+    // target models
+    init_targets( simulation::Instances, "model instance" );
+    // optional input data memory cell
+    TMemCell *inputcell { nullptr };
+    auto const inputcellname { std::get<std::string>( m_input.data_source ) };
+    if( inputcellname != "none" ) {
+        inputcell = simulation::Memory.find( inputcellname );
+        if( inputcell == nullptr ) {
+            ErrorLog( "Bad event: \"" + m_name + "\" (type: " + type() + ") can't find memory cell \"" + inputcellname + "\"" );
+        }
+    }
+    std::get<scene::basic_node *>( m_input.data_source ) = inputcell;
+}
+
+// event type string
+std::string
+texture_event::type() const {
+
+    return "texture";
+}
+
+// deserialize() subclass details
+void
+texture_event::deserialize_( cParser &Input, scene::scratch_data &Scratchpad ) {
+
+    Input.getTokens( 3 );
+    Input
+        >> m_skinindex
+        >> m_skin
+        >> std::get<std::string>( m_input.data_source );
+
+    // validate input
+    if( m_skinindex < 0 ) {
+        // intercept potential error, index specified using .t3d format convention
+        m_skinindex *= -1;
+    }
+    m_skinindex = clamp( m_skinindex, 1, 4 ); // TODO: define-based upper bound in case of future extension
+
+    Input.getTokens(); // preload next token
+}
+
+// run() subclass details
+void
+texture_event::run_() {
+
+    material_handle material { null_handle };
+
+    if( m_input.data_cell() == nullptr ) {
+        // straightforward variant without parameters, we can pass expression directly
+        material = GfxRenderer->Fetch_Material( m_skin );
+    }
+    else {
+        // variant with memory cell: pass the cell content as parameters and generate filename
+        cParser expression(
+            m_skin, cParser::buffer_TEXT,
+            "", true,
+            {   m_input.data_cell()->Text(),
+                to_string( m_input.data_cell()->Value1(), 0 ), // memory cell values are passed as ints
+                to_string( m_input.data_cell()->Value2(), 0 ) } );
+        material = GfxRenderer->Fetch_Material( expression.getToken<std::string>( false, "\n\r" ) );
+    }
+    // assign received material to target models
+    for( auto &target : m_targets ) {
+        auto *targetmodel = static_cast<TAnimModel *>( std::get<scene::basic_node *>( target ) );
+        if( targetmodel == nullptr ) { continue; }
+        // event effect code
+        targetmodel->SkinSet( m_skinindex, material );
+    }
+}
+
+// export_as_text() subclass details
+void
+texture_event::export_as_text_( std::ostream &Output ) const {
+
+    // playback mode
+    Output
+        << m_skinindex << ' '
+        << m_skin << ' '
+        << std::get<std::string>( m_input.data_source ) << ' ';
 }
 
 
@@ -1947,6 +2063,7 @@ make_event( cParser &Input, scene::scratch_data &Scratchpad ) {
     else if( type == "switch" )       { event = new switch_event(); }
     else if( type == "trackvel" )     { event = new track_event(); }
     else if( type == "sound" )        { event = new sound_event(); }
+    else if( type == "texture" )      { event = new texture_event(); }
     else if( type == "animation" )    { event = new animation_event(); }
     else if( type == "lights" )       { event = new lights_event(); }
     else if( type == "voltage" )      { event = new voltage_event(); }
@@ -1955,7 +2072,7 @@ make_event( cParser &Input, scene::scratch_data &Scratchpad ) {
     else if( type == "message" )      { event = new message_event(); }
 
     if( event == nullptr ) {
-        WriteLog( "Bad event: unrecognized type \"" + type + "\" specified for event \"" + name + "\"." );
+        ErrorLog( "Bad event: unrecognized type \"" + type + "\" specified for event \"" + name + "\"." );
         return event;
     }
 
