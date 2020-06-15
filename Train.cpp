@@ -7881,7 +7881,10 @@ bool TTrain::InitializeCab(int NewCabNo, std::string const &asFileName)
 				opengl_texture *tex = nullptr;
                 TSubModel *submodel = nullptr;
 				if (submodelname != "none") {
-                    submodel = ( DynamicObject->mdKabina ? DynamicObject->mdKabina->GetFromName( submodelname ) : nullptr );
+                    submodel = (
+                        DynamicObject->mdKabina ? DynamicObject->mdKabina->GetFromName( submodelname ) :
+                        DynamicObject->mdLowPolyInt ? DynamicObject->mdLowPolyInt->GetFromName( submodelname ) :
+                        nullptr );
 					if( submodel == nullptr ) {
 						WriteLog( "Python Screen: submodel " + submodelname + " not found - Ignoring screen" );
 						continue;

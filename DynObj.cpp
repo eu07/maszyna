@@ -4122,19 +4122,19 @@ void TDynamicObject::RenderSounds() {
     if( m_lastbrakepressure != -1.f ) {
         // calculate rate of pressure drop in brake cylinder, once it's been initialized
         auto const brakepressuredifference{ m_lastbrakepressure - MoverParameters->BrakePress };
-        m_brakepressurechange = interpolate<float>( m_brakepressurechange, brakepressuredifference / dt, 0.005f );
+        m_brakepressurechange = interpolate<float>( m_brakepressurechange, brakepressuredifference / dt, 0.05f );
     }
     m_lastbrakepressure = MoverParameters->BrakePress;
     // ensure some basic level of volume and scale it up depending on pressure in the cylinder; scale this by the air release rate
     volume = 20 * m_brakepressurechange * ( 0.25 + 0.75 * brakepressureratio );
-    if( volume > 0.075f ) {
+    if( ( m_brakepressurechange > 0.05 ) && ( brakepressureratio > 0.05 ) ) {
         rsUnbrake
             .gain( volume )
             .play( sound_flags::exclusive | sound_flags::looping );
     }
     else {
         // don't stop the sound too abruptly
-        volume = std::max( 0.0, rsUnbrake.gain() - 0.2 * dt );
+        volume = std::max( 0.0, rsUnbrake.gain() - 0.5 * dt );
         rsUnbrake.gain( volume );
         if( volume < 0.05 ) {
             rsUnbrake.stop();
@@ -5011,6 +5011,9 @@ void TDynamicObject::LoadMMediaFile( std::string const &TypeName, std::string co
                             if( pants[ i ].smElement[ 2 ] ) {
                                 pants[ i ].smElement[ 2 ]->WillBeAnimated();
                             }
+                            else {
+                                ErrorLog( "Bad model: " + asFileName + " - missed submodel " + asAnimName, logtype::model ); // brak ramienia
+                            }
                         }
                     }
                 }
@@ -5025,6 +5028,9 @@ void TDynamicObject::LoadMMediaFile( std::string const &TypeName, std::string co
                             pants[ i ].smElement[ 3 ] = GetSubmodelFromName( mdModel, asAnimName );
                             if( pants[ i ].smElement[ 3 ] ) {
                                 pants[ i ].smElement[ 3 ]->WillBeAnimated();
+                            }
+                            else {
+                                ErrorLog( "Bad model: " + asFileName + " - missed submodel " + asAnimName, logtype::model ); // brak ramienia
                             }
                         }
                     }
@@ -5043,6 +5049,9 @@ void TDynamicObject::LoadMMediaFile( std::string const &TypeName, std::string co
                                 pants[ i ].yUpdate = std::bind( &TDynamicObject::UpdatePant, this, std::placeholders::_1 );
                                 pants[ i ].fMaxDist = 300 * 300; // nie podnosić w większej odległości
                                 pants[ i ].iNumber = i;
+                            }
+                            else {
+                                ErrorLog( "Bad model: " + asFileName + " - missed submodel " + asAnimName, logtype::model ); // brak ramienia
                             }
                         }
                     }
