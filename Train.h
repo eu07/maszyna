@@ -788,7 +788,7 @@ private:
     int m_pantselection{ 0 };
     bool m_doors{ false }; // helper, true if any door is open
     // ld substitute
-    bool m_couplingdisconnect;
+    bool m_couplingdisconnect { false };
 
   public:
     float fPress[20][3]; // cisnienia dla wszystkich czlonow

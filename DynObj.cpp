@@ -974,11 +974,11 @@ void TDynamicObject::ABuLittleUpdate(double ObjSqrDist)
         // else btCPass2.TurnOff();
         if (MoverParameters->Power24vIsAvailable || MoverParameters->Power110vIsAvailable)
         { // sygnaly konca pociagu
-            if (btEndSignals1.Active())
+            if (m_endsignals1.Active())
             {
                 if (TestFlag(MoverParameters->iLights[0], 2) || TestFlag(MoverParameters->iLights[0], 32))
                 {
-                    btEndSignals1.Turn( true );
+                    m_endsignals1.Turn( true );
                     btnOn = true;
                 }
                 // else btEndSignals1.TurnOff();
@@ -987,22 +987,22 @@ void TDynamicObject::ABuLittleUpdate(double ObjSqrDist)
             {
                 if (TestFlag(MoverParameters->iLights[0], 2))
                 {
-                    btEndSignals11.Turn( true );
+                    m_endsignal13.Turn( true );
                     btnOn = true;
                 }
                 // else btEndSignals11.TurnOff();
                 if (TestFlag(MoverParameters->iLights[0], 32))
                 {
-                    btEndSignals13.Turn( true );
+                    m_endsignal12.Turn( true );
                     btnOn = true;
                 }
                 // else btEndSignals13.TurnOff();
             }
-            if (btEndSignals2.Active())
+            if (m_endsignals2.Active())
             {
                 if (TestFlag(MoverParameters->iLights[1], 2) || TestFlag(MoverParameters->iLights[1], 32))
                 {
-                    btEndSignals2.Turn( true );
+                    m_endsignals2.Turn( true );
                     btnOn = true;
                 }
                 // else btEndSignals2.TurnOff();
@@ -1011,13 +1011,13 @@ void TDynamicObject::ABuLittleUpdate(double ObjSqrDist)
             {
                 if (TestFlag(MoverParameters->iLights[1], 2))
                 {
-                    btEndSignals21.Turn( true );
+                    m_endsignal23.Turn( true );
                     btnOn = true;
                 }
                 // else btEndSignals21.TurnOff();
                 if (TestFlag(MoverParameters->iLights[1], 32))
                 {
-                    btEndSignals23.Turn( true );
+                    m_endsignal22.Turn( true );
                     btnOn = true;
                 }
                 // else btEndSignals23.TurnOff();
@@ -1026,13 +1026,13 @@ void TDynamicObject::ABuLittleUpdate(double ObjSqrDist)
         // tablice blaszane:
         if (TestFlag(MoverParameters->iLights[end::front], light::rearendsignals))
         {
-            btEndSignalsTab1.Turn( true );
+            m_endtab1.Turn( true );
             btnOn = true;
         }
         // else btEndSignalsTab1.TurnOff();
         if (TestFlag(MoverParameters->iLights[end::rear], light::rearendsignals))
         {
-            btEndSignalsTab2.Turn( true );
+            m_endtab2.Turn( true );
             btnOn = true;
         }
         // destination signs
@@ -1079,30 +1079,30 @@ void TDynamicObject::ABuLittleUpdate(double ObjSqrDist)
         if (TestFlag(MoverParameters->iLights[end::front], light::headlight_left))
         {
             if( DimHeadlights ) {
-                btHeadSignals11.TurnxOnWithOnAsFallback();
+                m_headlamp13.TurnxOnWithOnAsFallback();
             }
             else {
-                btHeadSignals11.TurnOn();
+                m_headlamp13.TurnOn();
             }
             btnOn = true;
         }
         if (TestFlag(MoverParameters->iLights[end::front], light::headlight_upper))
         {
             if( DimHeadlights ) {
-                btHeadSignals12.TurnxOnWithOnAsFallback();
+                m_headlamp11.TurnxOnWithOnAsFallback();
             }
             else {
-                btHeadSignals12.TurnOn();
+                m_headlamp11.TurnOn();
             }
             btnOn = true;
         }
         if (TestFlag(MoverParameters->iLights[end::front], light::headlight_right))
         {
             if( DimHeadlights ) {
-                btHeadSignals13.TurnxOnWithOnAsFallback();
+                m_headlamp12.TurnxOnWithOnAsFallback();
             }
             else {
-                btHeadSignals13.TurnOn();
+                m_headlamp12.TurnOn();
             }
             btnOn = true;
         }
@@ -1110,30 +1110,71 @@ void TDynamicObject::ABuLittleUpdate(double ObjSqrDist)
         if (TestFlag(MoverParameters->iLights[end::rear], light::headlight_left))
         {
             if( DimHeadlights ) {
-                btHeadSignals21.TurnxOnWithOnAsFallback();
+                m_headlamp23.TurnxOnWithOnAsFallback();
             }
             else {
-                btHeadSignals21.TurnOn();
+                m_headlamp23.TurnOn();
             }
             btnOn = true;
         }
         if (TestFlag(MoverParameters->iLights[end::rear], light::headlight_upper))
         {
             if( DimHeadlights ) {
-                btHeadSignals22.TurnxOnWithOnAsFallback();
+                m_headlamp21.TurnxOnWithOnAsFallback();
             }
             else {
-                btHeadSignals22.TurnOn();
+                m_headlamp21.TurnOn();
             }
             btnOn = true;
         }
         if (TestFlag(MoverParameters->iLights[end::rear], light::headlight_right))
         {
             if( DimHeadlights ) {
-                btHeadSignals23.TurnxOnWithOnAsFallback();
+                m_headlamp22.TurnxOnWithOnAsFallback();
             }
             else {
-                btHeadSignals23.TurnOn();
+                m_headlamp22.TurnOn();
+            }
+            btnOn = true;
+        }
+        // auxiliary lights
+        if (TestFlag(MoverParameters->iLights[end::front], light::auxiliary_left))
+        {
+            if( DimHeadlights ) {
+                m_headsignal13.TurnxOnWithOnAsFallback();
+            }
+            else {
+                m_headsignal13.TurnOn();
+            }
+            btnOn = true;
+        }
+        if (TestFlag(MoverParameters->iLights[end::front], light::auxiliary_right))
+        {
+            if( DimHeadlights ) {
+                m_headsignal12.TurnxOnWithOnAsFallback();
+            }
+            else {
+                m_headsignal12.TurnOn();
+            }
+            btnOn = true;
+        }
+        if (TestFlag(MoverParameters->iLights[end::rear], light::auxiliary_left))
+        {
+            if( DimHeadlights ) {
+                m_headsignal23.TurnxOnWithOnAsFallback();
+            }
+            else {
+                m_headsignal23.TurnOn();
+            }
+            btnOn = true;
+        }
+        if (TestFlag(MoverParameters->iLights[end::rear], light::auxiliary_right))
+        {
+            if( DimHeadlights ) {
+                m_headlamp22.TurnxOnWithOnAsFallback();
+            }
+            else {
+                m_headlamp22.TurnOn();
             }
             btnOn = true;
         }
@@ -2131,37 +2172,43 @@ TDynamicObject::Init(std::string Name, // nazwa pojazdu, np. "EU07-424"
     btCPass1.Init( "cpass1", mdModel, false);
     btCPass2.Init( "cpass2", mdModel, false);
     // sygnaly
-    // ABu 060205: Zmiany dla koncowek swiecacych:
-    btEndSignals11.Init( "endsignal13", mdModel, false);
-    btEndSignals21.Init( "endsignal23", mdModel, false);
-    btEndSignals13.Init( "endsignal12", mdModel, false);
-    btEndSignals23.Init( "endsignal22", mdModel, false);
-    iInventory[ end::front ] |= btEndSignals11.Active() ? light::redmarker_left : 0; // informacja, czy ma poszczególne światła
-    iInventory[ end::front ] |= btEndSignals13.Active() ? light::redmarker_right : 0;
-    iInventory[ end::rear ] |= btEndSignals21.Active() ? light::redmarker_left : 0;
-    iInventory[ end::rear ] |= btEndSignals23.Active() ? light::redmarker_right : 0;
-    // ABu: to niestety zostawione dla kompatybilnosci modeli:
-    btEndSignals1.Init( "endsignals1", mdModel, false);
-    btEndSignals2.Init( "endsignals2", mdModel, false);
-    btEndSignalsTab1.Init( "endtab1", mdModel, false);
-    btEndSignalsTab2.Init( "endtab2", mdModel, false);
-    iInventory[ end::front ] |= btEndSignals1.Active() ? ( light::redmarker_left | light::redmarker_right ) : 0;
-    iInventory[ end::front ] |= btEndSignalsTab1.Active() ? light::rearendsignals : 0; // tabliczki blaszane
-    iInventory[ end::rear ] |= btEndSignals2.Active() ? ( light::redmarker_left | light::redmarker_right ) : 0;
-    iInventory[ end::rear ] |= btEndSignalsTab2.Active() ? light::rearendsignals : 0;
-    // ABu Uwaga! tu zmienic w modelu!
-    btHeadSignals11.Init( "headlamp13", mdModel); // lewe
-    btHeadSignals12.Init( "headlamp11", mdModel); // górne
-    btHeadSignals13.Init( "headlamp12", mdModel); // prawe
-    btHeadSignals21.Init( "headlamp23", mdModel);
-    btHeadSignals22.Init( "headlamp21", mdModel);
-    btHeadSignals23.Init( "headlamp22", mdModel);
-    iInventory[ end::front ] |= btHeadSignals11.Active() ? light::headlight_left : 0;
-    iInventory[ end::front ] |= btHeadSignals12.Active() ? light::headlight_upper : 0;
-    iInventory[ end::front ] |= btHeadSignals13.Active() ? light::headlight_right : 0;
-    iInventory[ end::rear ] |= btHeadSignals21.Active() ? light::headlight_left : 0;
-    iInventory[ end::rear ] |= btHeadSignals22.Active() ? light::headlight_upper : 0;
-    iInventory[ end::rear ] |= btHeadSignals23.Active() ? light::headlight_right : 0;
+    m_endsignal12.Init( "endsignal12", mdModel, false );
+    m_endsignal13.Init( "endsignal13", mdModel, false );
+    m_endsignal22.Init( "endsignal22", mdModel, false );
+    m_endsignal23.Init( "endsignal23", mdModel, false );
+    m_endsignals1.Init( "endsignals1", mdModel, false );
+    m_endsignals2.Init( "endsignals2", mdModel, false );
+    m_endtab1.Init( "endtab1", mdModel, false );
+    m_endtab2.Init( "endtab2", mdModel, false );
+    m_headlamp11.Init( "headlamp11", mdModel ); // górne
+    m_headlamp12.Init( "headlamp12", mdModel ); // prawe
+    m_headlamp13.Init( "headlamp13", mdModel ); // lewe
+    m_headlamp21.Init( "headlamp21", mdModel );
+    m_headlamp22.Init( "headlamp22", mdModel );
+    m_headlamp23.Init( "headlamp23", mdModel );
+    m_headsignal12.Init( "headsignal12", mdModel );
+    m_headsignal13.Init( "headsignal13", mdModel );
+    m_headsignal22.Init( "headsignal22", mdModel );
+    m_headsignal23.Init( "headsignal23", mdModel );
+    // informacja, czy ma poszczególne światła
+    iInventory[ end::front ] |= m_endsignal12.Active() ? light::redmarker_right : 0;
+    iInventory[ end::front ] |= m_endsignal13.Active() ? light::redmarker_left : 0;
+    iInventory[ end::rear ]  |= m_endsignal22.Active() ? light::redmarker_right : 0;
+    iInventory[ end::rear ]  |= m_endsignal23.Active() ? light::redmarker_left : 0;
+    iInventory[ end::front ] |= m_endsignals1.Active() ? ( light::redmarker_left | light::redmarker_right ) : 0;
+    iInventory[ end::rear ]  |= m_endsignals2.Active() ? ( light::redmarker_left | light::redmarker_right ) : 0;
+    iInventory[ end::front ] |= m_endtab1.Active() ? light::rearendsignals : 0; // tabliczki blaszane
+    iInventory[ end::rear ]  |= m_endtab2.Active() ? light::rearendsignals : 0;
+    iInventory[ end::front ] |= m_headlamp11.Active() ? light::headlight_upper : 0;
+    iInventory[ end::front ] |= m_headlamp12.Active() ? light::headlight_right : 0;
+    iInventory[ end::front ] |= m_headlamp13.Active() ? light::headlight_left : 0;
+    iInventory[ end::rear ]  |= m_headlamp21.Active() ? light::headlight_upper : 0;
+    iInventory[ end::rear ]  |= m_headlamp22.Active() ? light::headlight_right : 0;
+    iInventory[ end::rear ]  |= m_headlamp23.Active() ? light::headlight_left : 0;
+    iInventory[ end::front ] |= m_headsignal12.Active() ? light::auxiliary_right : 0;
+    iInventory[ end::front ] |= m_headsignal13.Active() ? light::auxiliary_left : 0;
+    iInventory[ end::rear ]  |= m_headsignal22.Active() ? light::auxiliary_right : 0;
+    iInventory[ end::rear ]  |= m_headsignal23.Active() ? light::auxiliary_left : 0;
     btMechanik1.Init( "mechanik1", mdLowPolyInt, false);
 	btMechanik2.Init( "mechanik2", mdLowPolyInt, false);
     if( MoverParameters->dizel_heat.water.config.shutters ) {
@@ -3982,20 +4029,24 @@ void TDynamicObject::TurnOff()
     btCCtrl2.Turn( false );
     btCPass1.Turn( false );
     btCPass2.Turn( false );
-    btEndSignals11.Turn( false );
-    btEndSignals13.Turn( false );
-    btEndSignals21.Turn( false );
-    btEndSignals23.Turn( false );
-    btEndSignals1.Turn( false );
-    btEndSignals2.Turn( false );
-    btEndSignalsTab1.Turn( false );
-    btEndSignalsTab2.Turn( false );
-    btHeadSignals11.TurnOff();
-    btHeadSignals12.TurnOff();
-    btHeadSignals13.TurnOff();
-    btHeadSignals21.TurnOff();
-    btHeadSignals22.TurnOff();
-    btHeadSignals23.TurnOff();
+    m_endsignal12.Turn( false );
+    m_endsignal13.Turn( false );
+    m_endsignal22.Turn( false );
+    m_endsignal23.Turn( false );
+    m_endsignals1.Turn( false );
+    m_endsignals2.Turn( false );
+    m_endtab1.Turn( false );
+    m_endtab2.Turn( false );
+    m_headlamp11.TurnOff();
+    m_headlamp12.TurnOff();
+    m_headlamp13.TurnOff();
+    m_headlamp21.TurnOff();
+    m_headlamp22.TurnOff();
+    m_headlamp23.TurnOff();
+    m_headsignal12.TurnOff();
+    m_headsignal13.TurnOff();
+    m_headsignal22.TurnOff();
+    m_headsignal23.TurnOff();
 	btMechanik1.Turn( false );
 	btMechanik2.Turn( false );
     btShutters1.Turn( false );

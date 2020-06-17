@@ -119,11 +119,11 @@
       <LanguageStandard>stdcpp17</LanguageStandard>
     </ClCompile>
     <Link>
-      <GenerateDebugInformation>true</GenerateDebugInformation>
       <AdditionalLibraryDirectories>$(DXSKD_DIR)lib/$(PlatformShortName);$(SolutionDir)ref/glfw/lib/msvc-$(MSBuildToolsVersion)/$(PlatformShortName);$(SolutionDir)ref/openal/lib/$(PlatformShortName);$(SolutionDir)ref/python/lib/$(PlatformShortName);$(SolutionDir)ref/libserialport/lib/$(PlatformShortName);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <SubSystem>Windows</SubSystem>
       <IgnoreSpecificDefaultLibraries>
       </IgnoreSpecificDefaultLibraries>
+      <GenerateDebugInformation>DebugFull</GenerateDebugInformation>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
@@ -139,7 +139,6 @@
       <LanguageStandard>stdcpp17</LanguageStandard>
     </ClCompile>
     <Link>
-      <GenerateDebugInformation>true</GenerateDebugInformation>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
       <AdditionalLibraryDirectories>$(DXSKD_DIR)lib/$(PlatformShortName);$(SolutionDir)ref/glfw/lib/msvc-$(MSBuildToolsVersion)/$(PlatformShortName);$(SolutionDir)ref/openal/lib/$(PlatformShortName);$(SolutionDir)ref/python/lib/$(PlatformShortName);$(SolutionDir)ref/libserialport/lib/$(PlatformShortName);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
@@ -163,7 +162,6 @@
       <LanguageStandard>stdcpp17</LanguageStandard>
     </ClCompile>
     <Link>
-      <GenerateDebugInformation>true</GenerateDebugInformation>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
       <AdditionalLibraryDirectories>$(DXSKD_DIR)lib/$(PlatformShortName);$(SolutionDir)ref/glfw/lib/msvc-$(MSBuildToolsVersion)/$(PlatformShortName);$(SolutionDir)ref/openal/lib/$(PlatformShortName);$(SolutionDir)ref/python/lib/$(PlatformShortName);$(SolutionDir)ref/libserialport/lib/$(PlatformShortName);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>

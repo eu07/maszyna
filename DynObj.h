@@ -412,21 +412,25 @@ private:
     TButton btCPass2;
     char cp1, sp1, cp2, sp2; // ustawienia węży
 
-    TButton btEndSignals11; // sygnalu konca pociagu
-    TButton btEndSignals13;
-    TButton btEndSignals21;
-    TButton btEndSignals23;
-    TButton btEndSignals1; // zeby bylo kompatybilne ze starymi modelami...
-    TButton btEndSignals2;
-    TButton btEndSignalsTab1; // sygnaly konca pociagu (blachy)
-    TButton btEndSignalsTab2;
-    TAirCoupler btHeadSignals11; // oswietlenie czolowe - przod
-    TAirCoupler btHeadSignals12;
-    TAirCoupler btHeadSignals13;
-    TAirCoupler btHeadSignals21; // oswietlenie czolowe - tyl
-    TAirCoupler btHeadSignals22;
-    TAirCoupler btHeadSignals23;
-	TButton btMechanik1;
+    TButton m_endsignal12; // sygnalu konca pociagu
+    TButton m_endsignal13;
+    TButton m_endsignal22;
+    TButton m_endsignal23;
+    TButton m_endsignals1; // zeby bylo kompatybilne ze starymi modelami...
+    TButton m_endsignals2;
+    TButton m_endtab1; // sygnaly konca pociagu (blachy)
+    TButton m_endtab2;
+    TAirCoupler m_headlamp11; // oswietlenie czolowe - przod
+    TAirCoupler m_headlamp12;
+    TAirCoupler m_headlamp13;
+    TAirCoupler m_headlamp21; // oswietlenie czolowe - tyl
+    TAirCoupler m_headlamp22;
+    TAirCoupler m_headlamp23;
+    TAirCoupler m_headsignal12;
+    TAirCoupler m_headsignal13;
+    TAirCoupler m_headsignal22;
+    TAirCoupler m_headsignal23;
+    TButton btMechanik1;
 	TButton btMechanik2;
     TButton btShutters1; // cooling shutters for primary water circuit
     TButton btShutters2; // cooling shutters for auxiliary water circuit

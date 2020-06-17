@@ -194,12 +194,15 @@ enum class start_t {
 // recognized vehicle light locations and types; can be combined
 enum light {
 
-    headlight_left = 0x01,
-    redmarker_left = 0x02,
-    headlight_upper = 0x04,
-    headlight_right = 0x10,
-    redmarker_right = 0x20,
-    rearendsignals = 0x40
+    headlight_left  = ( 1 << 0 ),
+    redmarker_left  = ( 1 << 1 ),
+    headlight_upper = ( 1 << 2 ),
+// TBD, TODO: redmarker_upper support?
+    headlight_right = ( 1 << 4 ),
+    redmarker_right = ( 1 << 5 ),
+    rearendsignals  = ( 1 << 6 ),
+    auxiliary_left  = ( 1 << 7 ),
+    auxiliary_right = ( 1 << 8 ),
 };
 
 // door operation methods; exclusive

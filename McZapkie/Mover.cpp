@@ -11327,7 +11327,7 @@ bool TMoverParameters::SendCtrlToNext( std::string const CtrlCommand, double con
 
     // Ra: był problem z propagacją, jeśli w składzie jest pojazd wstawiony odwrotnie
     // Ra: problem jest również, jeśli AI będzie na końcu składu
-    OK = ( dir != 0 ); // and Mains;
+    OK = true; // ( dir != 0 ); // experimentally disabled
     d = ( 1 + static_cast<int>(Sign( dir )) ) / 2; // dir=-1=>d=0, dir=1=>d=1 - wysyłanie tylko w tył
     if( OK ) {
         // musi być wybrana niezerowa kabina
