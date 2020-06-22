@@ -3650,7 +3650,6 @@ bool TMoverParameters::IncLocalBrakeLevel(float const CtrlSpeed)
     }
     else
         IBL = false;
-    UnBrake = true;
 
     return IBL;
 }
@@ -3669,7 +3668,6 @@ bool TMoverParameters::DecLocalBrakeLevel(float const CtrlSpeed)
     }
     else
         DBL = false;
-    UnBrake = true;
 
     return DBL;
 }

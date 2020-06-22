@@ -111,7 +111,8 @@ drivingaid_panel::update() {
         std::snprintf(
             m_buffer.data(), m_buffer.size(),
             locale::strings[ locale::string::driver_aid_brakes ].c_str(),
-            ( mover->EIMCtrlType == 0 ? basicbraking : mover->EIMCtrlType == 3 ? ( mover->UniCtrlIntegratedBrakeCtrl ? eimicbraking : basicbraking ) : eimicbraking ),
+//            ( mover->EIMCtrlType == 0 ? basicbraking : mover->EIMCtrlType == 3 ? ( mover->UniCtrlIntegratedBrakeCtrl ? eimicbraking : basicbraking ) : eimicbraking ),
+            ( mover->UniCtrlIntegratedBrakeCtrl ? eimicbraking : basicbraking ),
             mover->LocalBrakePosA * LocalBrakePosNo,
             ( mover->SlippingWheels ? '!' : ' ' ),
             expandedtext.c_str() );
