@@ -545,7 +545,7 @@ class TDriverHandle {
     virtual double GetSound(int i); //pobranie glosnosci wybranego dzwieku
     virtual double GetPos(int i); //pobranie numeru pozycji o zadanym kodzie (funkcji)
     virtual double GetEP(double pos); //pobranie sily hamulca ep
-	virtual void SetParams(bool AO, bool MO, double, double) {}; //ustawianie jakichs parametrów dla zaworu
+	virtual void SetParams(bool AO, bool MO, double, double, double OMP, double OPD) {}; //ustawianie jakichs parametrow dla zaworu
 	virtual void OvrldButton(bool Active);  //przycisk recznego przeladowania/asymilacji
 	virtual void SetUniversalFlag(int flag); //przycisk uniwersalny
     inline TDriverHandle() { memset( Sounds, 0, sizeof( Sounds ) ); }
@@ -603,6 +603,8 @@ class TMHZ_EN57 : public TDriverHandle {
 		double RedAdj = 0.0; //dostosowanie reduktora cisnienia (krecenie kapturkiem)
 		bool Fala = false;
 		double UnbrakeOverPressure = 0.0;
+		double OverloadMaxPressure = 1.0; //maksymalne zwiekszenie cisnienia przy asymilacji
+		double OverloadPressureDecrease = 0.045; //predkosc spadku cisnienia przy asymilacji
 		static double const pos_table[11]; //= { -2, 10, -1, 0, 0, 2, 9, 10, 0, 0, 0 };
 
     double LPP_RP(double pos);
@@ -616,7 +618,7 @@ class TMHZ_EN57 : public TDriverHandle {
 		double GetPos(int i)/*override*/;
 		double GetCP()/*override*/;
     double GetEP(double pos);
-		void SetParams(bool AO, bool MO, double OverP, double);
+		void SetParams(bool AO, bool MO, double OverP, double, double OMP, double OPD);
 		inline TMHZ_EN57(void) :
 			TDriverHandle()
 		{}
@@ -631,6 +633,8 @@ private:
 	double RedAdj = 0.0; //dostosowanie reduktora cisnienia (krecenie kapturkiem)
 	bool Fala = false; //czy jest napelnianie uderzeniowe
 	double UnbrakeOverPressure = 0.0;
+	double OverloadMaxPressure = 1.0; //maksymalne zwiekszenie cisnienia przy asymilacji
+	double OverloadPressureDecrease = 0.002; //predkosc spadku cisnienia przy asymilacji
 	static double const pos_table[11]; //= { -2, 10, -1, 0, 0, 2, 9, 10, 0, 0, 0 };
 
 	bool EQ(double pos, double i_pos);
@@ -642,7 +646,7 @@ public:
 	double GetSound(int i)/*override*/;
 	double GetPos(int i)/*override*/;
 	double GetCP()/*override*/;
-	void SetParams(bool AO, bool MO, double, double); /*ovveride*/
+	void SetParams(bool AO, bool MO, double, double, double OMP, double OPD); /*ovveride*/
 
 	inline TMHZ_K5P(void) :
 		TDriverHandle()
@@ -658,6 +662,8 @@ private:
 	double RedAdj = 0.0; //dostosowanie reduktora cisnienia (krecenie kapturkiem)
 	bool Fala = false; //czy jest napelnianie uderzeniowe
 	double UnbrakeOverPressure = 0.0; //wartosc napelniania uderzeniowego
+	double OverloadMaxPressure = 1.0; //maksymalne zwiekszenie cisnienia przy asymilacji
+	double OverloadPressureDecrease = 0.002; //predkosc spadku cisnienia przy asymilacji
 	static double const pos_table[11]; //= { -2, 10, -1, 0, 0, 2, 9, 10, 0, 0, 0 };
 
 	bool EQ(double pos, double i_pos);
@@ -669,7 +675,7 @@ public:
 	double GetSound(int i)/*override*/;
 	double GetPos(int i)/*override*/;
 	double GetCP()/*override*/;
-	void SetParams(bool AO, bool MO, double, double); /*ovveride*/
+	void SetParams(bool AO, bool MO, double, double, double OMP, double OPD); /*ovveride*/
 
 	inline TMHZ_6P(void) :
 		TDriverHandle()
