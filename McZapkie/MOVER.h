@@ -12,6 +12,7 @@ http://mozilla.org/MPL/2.0/.
 //Q: 20160805 - odlaczenie pliku fizyki .pas od kompilacji
 #include <map>
 #include "hamulce.h"
+#include "ladderlogic.h"
 /*
 MaSzyna EU07 locomotive simulator
 Copyright (C) 2001-2004  Maciej Czapkiewicz and others
@@ -1599,6 +1600,8 @@ public:
     bool PantAutoValve { false }; // type of installed pantograph compressor valve
 	int iProblem = 0; // flagi problemów z taborem, aby AI nie musiało porównywać; 0=może jechać
 	int iLights[2]; // bity zapalonych świateł tutaj, żeby dało się liczyć pobór prądu
+
+    plc::basic_controller m_plc;
 
     int AIHintPantstate{ 0 }; // suggested pantograph setup
     bool AIHintPantUpIfIdle{ true }; // whether raise both pantographs if idling for a while
