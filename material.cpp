@@ -483,7 +483,7 @@ material_manager::create( std::string const &Filename, bool const Loadnow ) {
         erase_leading_slashes( filename );
     }
 
-    auto const databanklookup { find_in_databank( ToLower( filename ) ) };
+    auto const databanklookup { find_in_databank( filename ) };
     if( databanklookup != null_handle ) {
         return databanklookup;
     }
@@ -528,7 +528,7 @@ material_manager::create( std::string const &Filename, bool const Loadnow ) {
 */
             // HACK: create parse info for material finalize() method
             cParser materialparser(
-                "texture1: " + Filename,
+                "texture1: \"" + Filename + "\"",
                 cParser::buffer_TEXT );
             material.deserialize( materialparser, Loadnow );
         }
