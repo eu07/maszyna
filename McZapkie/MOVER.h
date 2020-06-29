@@ -1077,10 +1077,12 @@ public:
 	double P2FTrans = 0.0;
 	double TrackBrakeForce = 0.0;    /*sila nacisku hamulca szynowego*/
 	int BrakeMethod = 0;        /*flaga rodzaju hamulca*/
-	bool Handle_AutomaticOverload = false;
-	bool Handle_ManualOverload = false;
+	bool Handle_AutomaticOverload = false; //automatyczna asymilacja na pozycji napelniania
+	bool Handle_ManualOverload = false; //reczna asymilacja na guzik
 	double Handle_GenericDoubleParameter1 = 0.0;
 	double Handle_GenericDoubleParameter2 = 0.0;
+	double Handle_OverloadMaxPressure = 1.0; //maksymalne zwiekszenie cisnienia przy asymilacji
+	double Handle_OverloadPressureDecrease = 0.002; //predkosc spadku cisnienia przy asymilacji
 							/*max. cisnienie w cyl. ham., stala proporcjonalnosci p-K*/
 	double HighPipePress = 0.0;
     double LowPipePress = 0.0;

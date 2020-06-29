@@ -10015,6 +10015,8 @@ void TMoverParameters::LoadFIZ_Cntrl( std::string const &line ) {
 		extract_value( Handle_ManualOverload, "HMO", line, "" );
 		extract_value( Handle_GenericDoubleParameter1, "HGDP1", line, "" );
 		extract_value( Handle_GenericDoubleParameter2, "HGDP2", line, "" );
+		extract_value( Handle_OverloadMaxPressure, "OMP", line, "" );
+		extract_value( Handle_OverloadPressureDecrease, "OPD", line, "" );
         // brakelochandle
         {
             std::map<std::string, TBrakeHandle> locbrakehandles{
@@ -11070,7 +11072,7 @@ bool TMoverParameters::CheckLocomotiveParameters(bool ReadyFlag, int Dir)
         default:
             Handle = std::make_shared<TDriverHandle>();
     }
-	Handle->SetParams(Handle_AutomaticOverload, Handle_ManualOverload, Handle_GenericDoubleParameter1, Handle_GenericDoubleParameter2);
+	Handle->SetParams(Handle_AutomaticOverload, Handle_ManualOverload, Handle_GenericDoubleParameter1, Handle_GenericDoubleParameter2, Handle_OverloadMaxPressure, Handle_OverloadPressureDecrease);
 
     switch( BrakeLocHandle ) {
         case TBrakeHandle::FD1:

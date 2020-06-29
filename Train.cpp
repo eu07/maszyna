@@ -336,7 +336,7 @@ TTrain::commandhandler_map const TTrain::m_commandhandlers = {
     { user_command::headlightsdimdisable, &TTrain::OnCommand_headlightsdimdisable },
     { user_command::interiorlighttoggle, &TTrain::OnCommand_interiorlighttoggle },
     { user_command::interiorlightenable, &TTrain::OnCommand_interiorlightenable },
-    { user_command::interiorlightdimdisable, &TTrain::OnCommand_interiorlightdisable },
+    { user_command::interiorlightdisable, &TTrain::OnCommand_interiorlightdisable },
     { user_command::interiorlightdimtoggle, &TTrain::OnCommand_interiorlightdimtoggle },
     { user_command::interiorlightdimenable, &TTrain::OnCommand_interiorlightdimenable },
     { user_command::interiorlightdimdisable, &TTrain::OnCommand_interiorlightdimdisable },
