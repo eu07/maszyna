@@ -217,6 +217,7 @@
     <ClCompile Include="gl\ubo.cpp" />
     <ClCompile Include="gl\vao.cpp" />
     <ClCompile Include="keyboardinput.cpp" />
+    <ClCompile Include="ladderlogic.cpp" />
     <ClCompile Include="lightarray.cpp" />
     <ClCompile Include="Logs.cpp" />
     <ClCompile Include="material.cpp" />
@@ -396,6 +397,7 @@
     <ClInclude Include="gl\ubo.h" />
     <ClInclude Include="gl\vao.h" />
     <ClInclude Include="keyboardinput.h" />
+    <ClInclude Include="ladderlogic.h" />
     <ClInclude Include="light.h" />
     <ClInclude Include="lightarray.h" />
     <ClInclude Include="Logs.h" />

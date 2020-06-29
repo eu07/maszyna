@@ -465,6 +465,9 @@
     <ClCompile Include="network\backend\asio.cpp">
       <Filter>Source Files\application\network\backend</Filter>
     </ClCompile>
+    <ClCompile Include="ladderlogic.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Globals.h">
@@ -849,6 +852,9 @@
       <Filter>Header Files\application\network\backend</Filter>
     </ClInclude>
     <ClInclude Include="comparison.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="ladderlogic.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

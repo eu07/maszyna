@@ -1458,6 +1458,8 @@ void TMoverParameters::compute_movement_( double const Deltatime ) {
     // automatic doors
     update_doors( Deltatime );
 
+    m_plc.update( Deltatime );
+
     PowerCouplersCheck( Deltatime, coupling::highvoltage );
     PowerCouplersCheck( Deltatime, coupling::power110v );
     PowerCouplersCheck( Deltatime, coupling::power24v );

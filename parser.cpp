@@ -288,7 +288,7 @@ void cParser::skipComment( std::string const &Endmark ) { // pobieranie znaków 
             ++mLine;
         }
         input += c;
-        if( input.find( Endmark ) != std::string::npos ) // szukanie znacznika końca
+        if( input == Endmark ) // szukanie znacznika końca
             break;
         if( input.size() >= endmarksize ) {
             // keep the read text short, to avoid pointless string re-allocations on longer comments
@@ -300,9 +300,9 @@ void cParser::skipComment( std::string const &Endmark ) { // pobieranie znaków 
 
 bool cParser::findQuotes( std::string &String ) {
 
-    if( String.rfind( '\"' ) != std::string::npos ) {
+    if( String.back() == '\"' ) {
 
-        String.erase( String.rfind( '\"' ), 1 );
+        String.pop_back();
         String += readQuotes();
         return true;
     }
@@ -311,12 +311,14 @@ bool cParser::findQuotes( std::string &String ) {
 
 bool cParser::trimComments(std::string &String)
 {
-    for (commentmap::iterator cmIt = mComments.begin(); cmIt != mComments.end(); ++cmIt)
+    for (auto const &comment : mComments)
     {
-        if (String.rfind((*cmIt).first) != std::string::npos)
+        if( String.size() < comment.first.size() ) { continue; }
+
+        if (String.compare( String.size() - comment.first.size(), comment.first.size(), comment.first ) == 0)
         {
-            skipComment((*cmIt).second);
-            String.resize(String.rfind((*cmIt).first));
+            skipComment(comment.second);
+            String.resize(String.rfind(comment.first));
             return true;
         }
     }

@@ -45,6 +45,11 @@ struct light_array;
 class particle_manager;
 struct dictionary_source;
 
+namespace plc {
+using element_handle = short;
+class basic_controller;
+}
+
 namespace scene {
 struct node_data;
 class basic_node;
