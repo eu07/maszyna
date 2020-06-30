@@ -230,23 +230,14 @@ std::string cParser::readToken( bool ToLower, const char *Break ) {
                 token.insert( pos, "none" ); // zabezpieczenie przed brakiem parametru
         }
     }
-
+    // launch child parser if include directive found.
+    // NOTE: parameter collecting uses default set of token separators.
     if( token == "include" ) {
-        // launch child parser if include directive found.
-        // NOTE: parameter collecting uses default set of token separators.
         std::string includefile = readToken(ToLower); // nazwa pliku
         if( ( true == LoadTraction )
          || ( ( includefile.find( "tr/" ) == std::string::npos )
            && ( includefile.find( "tra/" ) == std::string::npos ) ) ) {
-            // get parameter list for the child parser
-            std::vector<std::string> includeparameters;
-            std::string parameter = readToken( false ); // w parametrach nie zmniejszamy
-            while( ( parameter.empty() == false )
-                && ( parameter != "end" ) ) {
-                includeparameters.emplace_back( parameter );
-                parameter = readToken( false );
-            }
-            mIncludeParser = std::make_shared<cParser>( includefile, buffer_FILE, mPath, LoadTraction, includeparameters );
+            mIncludeParser = std::make_shared<cParser>( includefile, buffer_FILE, mPath, LoadTraction, readParameters( *this ) );
             mIncludeParser->autoclear( m_autoclear );
             if( mIncludeParser->mSize <= 0 ) {
                 ErrorLog( "Bad include: can't open file \"" + includefile + "\"" );
@@ -259,8 +250,35 @@ std::string cParser::readToken( bool ToLower, const char *Break ) {
         }
         token = readToken(ToLower, Break);
     }
+    else if( ( std::strcmp( Break, "\n\r" ) == 0 ) && ( token.compare( 0, 7, "include" ) == 0 ) ) {
+        // HACK: if the parser reads full lines we expect this line to contain entire include directive, to make parsing easier
+        cParser includeparser( token.substr( 7 ) );
+        std::string includefile = includeparser.readToken( ToLower ); // nazwa pliku
+        if( ( true == LoadTraction )
+         || ( ( includefile.find( "tr/" ) == std::string::npos )
+           && ( includefile.find( "tra/" ) == std::string::npos ) ) ) {
+            mIncludeParser = std::make_shared<cParser>( includefile, buffer_FILE, mPath, LoadTraction, readParameters( includeparser ) );
+            mIncludeParser->autoclear( m_autoclear );
+            if( mIncludeParser->mSize <= 0 ) {
+                ErrorLog( "Bad include: can't open file \"" + includefile + "\"" );
+            }
+        }
+        token = readToken( ToLower, Break );
+    }
     // all done
     return token;
+}
+
+std::vector<std::string> cParser::readParameters( cParser &Input ) {
+
+    std::vector<std::string> includeparameters;
+    std::string parameter = Input.readToken( false ); // w parametrach nie zmniejszamy
+    while( ( parameter.empty() == false )
+        && ( parameter != "end" ) ) {
+        includeparameters.emplace_back( parameter );
+        parameter = Input.readToken( false );
+    }
+    return includeparameters;
 }
 
 std::string cParser::readQuotes(char const Quote) { // read the stream until specified char or stream end

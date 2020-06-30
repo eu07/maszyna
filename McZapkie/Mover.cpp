@@ -9099,7 +9099,7 @@ bool TMoverParameters::LoadFIZ(std::string chkpath)
 */
     while( fizparser.ok() ) {
 
-        inputline = fizparser.getToken<std::string>( false, "\n" );
+        inputline = fizparser.getToken<std::string>( false, "\n\r" );
 
         bool comment = ( ( inputline.find('#') != std::string::npos )
 			          || ( inputline.compare( 0, 2, "//" ) == 0 ) );

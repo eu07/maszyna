@@ -89,6 +89,7 @@ class cParser //: public std::stringstream
   private:
     // methods:
     std::string readToken(bool ToLower = true, const char *Break = "\n\r\t ;");
+    std::vector<std::string> readParameters( cParser &Input );
     std::string readQuotes( char const Quote = '\"' );
     void skipComment( std::string const &Endmark );
     bool findQuotes( std::string &String );

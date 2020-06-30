@@ -174,7 +174,7 @@ gamepad_input::recall_bindings() {
         { "value_invert", input_type::value_invert } };
 
     // NOTE: to simplify things we expect one entry per line, and whole entry in one line
-    while( true == bindingparser.getTokens( 1, true, "\n" ) ) {
+    while( true == bindingparser.getTokens( 1, true, "\n\r" ) ) {
 
         std::string bindingentry;
         bindingparser >> bindingentry;
