@@ -1492,7 +1492,9 @@ void TMoverParameters::MainsCheck( double const Deltatime ) {
 
     if( true == maincircuitpowersupply ) {
         // all is well
-        if( MainsInitTimeCountdown > 0.0 ) {
+        if( MainsInitTimeCountdown >= 0.0 ) {
+            // NOTE: we ensure main circuit readiness meets condition MainsInitTimeCountdown < 0
+            // this allows for simpler rejection of cases where MainsInitTime == 0
             MainsInitTimeCountdown -= Deltatime;
         }
     }

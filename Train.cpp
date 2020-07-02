@@ -735,8 +735,9 @@ TTrain::get_state() const {
         { fHCurrent[ ( mvControlled->TrainType & dt_EZT ) ? 0 : 1 ], fHCurrent[ 2 ], fHCurrent[ 3 ] },
         ggLVoltage.GetValue(),
         mvOccupied->DistCounter,
-		RadioChannel(),
-		btLampkaSpringBrakeActive.GetValue()
+        static_cast<std::uint8_t>( RadioChannel() ),
+        btLampkaSpringBrakeActive.GetValue(),
+        btLampkaNapNastHam.GetValue(),
     };
 }
 
@@ -6457,6 +6458,12 @@ bool TTrain::Update( double const Deltatime )
              || ( true == mvControlled->Mains ) ) ?
                 false :
                 true ) );
+        btLampkaMainBreakerBlinkingIfReady.Turn(
+            ( ( (m_linebreakerstate == 2)
+             || (true == mvControlled->Mains)
+             || ( ( mvControlled->MainsInitTimeCountdown < 0.0 ) && ( simulation::Time.data().wMilliseconds > 500 ) ) ) ?
+                true :
+                false ) );
 
         btLampkaPrzetw.Turn( mvOccupied->Power110vIsAvailable );
         btLampkaPrzetwOff.Turn( false == mvOccupied->Power110vIsAvailable );
@@ -6618,6 +6625,7 @@ bool TTrain::Update( double const Deltatime )
         btLampkaWylSzybki.Turn( false );
         btLampkaWylSzybkiOff.Turn( false );
         btLampkaMainBreakerReady.Turn( false );
+        btLampkaMainBreakerBlinkingIfReady.Turn( false );
         btLampkaWysRozr.Turn( false );
         btLampkaOpory.Turn( false );
         btLampkaStyczn.Turn( false );
@@ -8395,6 +8403,7 @@ void TTrain::clear_cab_controls()
     btLampkaWylSzybkiB.Clear();
     btLampkaWylSzybkiBOff.Clear();
     btLampkaMainBreakerReady.Clear();
+    btLampkaMainBreakerBlinkingIfReady.Clear();
     btLampkaBezoporowa.Clear();
     btLampkaBezoporowaB.Clear();
     btLampkaMaxSila.Clear();
@@ -8821,6 +8830,7 @@ bool TTrain::initialize_button(cParser &Parser, std::string const &Label, int co
         { "i-mainbreakeroff:", btLampkaWylSzybkiOff },
         { "i-mainbreakerboff:", btLampkaWylSzybkiBOff },
         { "i-mainbreakerready:", btLampkaMainBreakerReady },
+        { "i-mainbreakerblinking:", btLampkaMainBreakerBlinkingIfReady },
         { "i-vent_ovld:", btLampkaNadmWent },
         { "i-comp_ovld:", btLampkaNadmSpr },
         { "i-resistors:", btLampkaOpory },

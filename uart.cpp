@@ -354,7 +354,8 @@ void uart_input::poll()
 			SPLIT_INT16(tacho),
             //byte 2
 			(uint8_t)(
-                trainstate.ventilator_overload << 1
+                trainstate.epbrake_enabled << 0
+              | trainstate.ventilator_overload << 1
               | trainstate.motor_overload_threshold << 2),
             //byte 3
 			(uint8_t)(

@@ -107,8 +107,9 @@ class TTrain {
         std::array<float, 3> hv_current;
         float lv_voltage;
 		double distance;
-		int radio_channel;
-		bool springbrake_active;
+		std::uint8_t radio_channel;
+		std::uint8_t springbrake_active;
+        std::uint8_t epbrake_enabled;
     };
 
     struct screen_entry {
@@ -611,6 +612,7 @@ public: // reszta może by?publiczna
     TButton btLampkaWylSzybki;
     TButton btLampkaWylSzybkiOff;
     TButton btLampkaMainBreakerReady;
+    TButton btLampkaMainBreakerBlinkingIfReady;
     TButton btLampkaNadmWent;
     TButton btLampkaNadmSpr; // TODO: implement
     // yB: drugie lampki dla EP05 i ET42

@@ -4625,25 +4625,38 @@ void TDynamicObject::RenderSounds() {
                     .play( sound_flags::exclusive );
             }
         }
-
-        // TODO: dedicated sound for each connection type
-        // until then, play legacy placeholders:
-        if( ( coupler.sounds & ( sound::attachcoupler | sound::attachcontrol | sound::attachgangway ) ) != 0 ) {
-            m_couplersounds[ couplerindex ].dsbCouplerAttach.play();
+        // attach/detach sounds
+        if( ( coupler.sounds & sound::attachcoupler ) != 0 ) {
+            couplersounds.attach_coupler.play();
         }
-        if( ( coupler.sounds & ( sound::attachbrakehose | sound::attachmainhose | sound::attachheating ) ) != 0 ) {
-            m_couplersounds[ couplerindex ].dsbCouplerDetach.play();
+        if( ( coupler.sounds & sound::attachbrakehose ) != 0 ) {
+            couplersounds.attach_brakehose.play();
+        }
+        if( ( coupler.sounds & sound::attachmainhose ) != 0 ) {
+            couplersounds.attach_mainhose.play();
+        }
+        if( ( coupler.sounds & sound::attachcontrol ) != 0 ) {
+            couplersounds.attach_control.play();
+        }
+        if( ( coupler.sounds & sound::attachgangway ) != 0 ) {
+            couplersounds.attach_gangway.play();
+        }
+        if( ( coupler.sounds & sound::attachheating ) != 0 ) {
+            couplersounds.attach_heating.play();
         }
         if( true == TestFlag( coupler.sounds, sound::detachall ) ) {
-            // TODO: dedicated disconnect sounds
-            m_couplersounds[ couplerindex ].dsbCouplerAttach.play();
-            m_couplersounds[ couplerindex ].dsbCouplerDetach.play();
+            couplersounds.detach_coupler.play();
+            couplersounds.detach_brakehose.play();
+            couplersounds.detach_mainhose.play();
+            couplersounds.detach_control.play();
+            couplersounds.detach_gangway.play();
+            couplersounds.detach_heating.play();
         }
         if( true == TestFlag( coupler.sounds, sound::attachadapter ) ) {
-            m_couplersounds[ couplerindex ].dsbAdapterAttach.play();
+            couplersounds.dsbAdapterAttach.play();
         }
         if( true == TestFlag( coupler.sounds, sound::removeadapter ) ) {
-            m_couplersounds[ couplerindex ].dsbAdapterRemove.play();
+            couplersounds.dsbAdapterRemove.play();
         }
 
         ++couplerindex;
@@ -5999,21 +6012,110 @@ void TDynamicObject::LoadMMediaFile( std::string const &TypeName, std::string co
                 }
                 // coupler sounds
                 else if( token == "couplerattach:" ) {
-                    // laczenie:
-                    sound_source couplerattach { sound_placement::external };
-                    couplerattach.deserialize( parser, sound_type::single );
-                    couplerattach.owner( this );
+                    sound_source soundtemplate { sound_placement::external };
+                    soundtemplate.deserialize( parser, sound_type::single );
+                    soundtemplate.owner( this );
                     for( auto &couplersounds : m_couplersounds ) {
-                        couplersounds.dsbCouplerAttach = couplerattach;
+                        couplersounds.attach_coupler = soundtemplate;
+                    }
+                }
+                else if( token == "brakehoseattach:" ) {
+                    // laczenie:
+                    sound_source soundtemplate { sound_placement::external };
+                    soundtemplate.deserialize( parser, sound_type::single );
+                    soundtemplate.owner( this );
+                    for( auto &couplersounds : m_couplersounds ) {
+                        couplersounds.attach_brakehose = soundtemplate;
+                    }
+                }
+                else if( token == "mainhoseattach:" ) {
+                    // laczenie:
+                    sound_source soundtemplate{ sound_placement::external };
+                    soundtemplate.deserialize( parser, sound_type::single );
+                    soundtemplate.owner( this );
+                    for( auto &couplersounds : m_couplersounds ) {
+                        couplersounds.attach_mainhose = soundtemplate;
+                    }
+                }
+                else if( token == "controlattach:" ) {
+                    // laczenie:
+                    sound_source soundtemplate{ sound_placement::external };
+                    soundtemplate.deserialize( parser, sound_type::single );
+                    soundtemplate.owner( this );
+                    for( auto &couplersounds : m_couplersounds ) {
+                        couplersounds.attach_control = soundtemplate;
+                    }
+                }
+                else if( token == "gangwayattach:" ) {
+                    // laczenie:
+                    sound_source soundtemplate{ sound_placement::external };
+                    soundtemplate.deserialize( parser, sound_type::single );
+                    soundtemplate.owner( this );
+                    for( auto &couplersounds : m_couplersounds ) {
+                        couplersounds.attach_gangway = soundtemplate;
+                    }
+                }
+                else if( token == "heatingattach:" ) {
+                    // laczenie:
+                    sound_source soundtemplate{ sound_placement::external };
+                    soundtemplate.deserialize( parser, sound_type::single );
+                    soundtemplate.owner( this );
+                    for( auto &couplersounds : m_couplersounds ) {
+                        couplersounds.attach_heating = soundtemplate;
                     }
                 }
                 else if( token == "couplerdetach:" ) {
                     // rozlaczanie:
-                    sound_source couplerdetach { sound_placement::external };
-                    couplerdetach.deserialize( parser, sound_type::single );
-                    couplerdetach.owner( this );
+                    sound_source soundtemplate { sound_placement::external };
+                    soundtemplate.deserialize( parser, sound_type::single );
+                    soundtemplate.owner( this );
                     for( auto &couplersounds : m_couplersounds ) {
-                        couplersounds.dsbCouplerDetach = couplerdetach;
+                        couplersounds.detach_coupler = soundtemplate;
+                    }
+                }
+                else if( token == "brakehosedetach:" ) {
+                    // rozlaczanie:
+                    sound_source soundtemplate { sound_placement::external };
+                    soundtemplate.deserialize( parser, sound_type::single );
+                    soundtemplate.owner( this );
+                    for( auto &couplersounds : m_couplersounds ) {
+                        couplersounds.detach_brakehose = soundtemplate;
+                    }
+                }
+                else if( token == "mainhosedetach:" ) {
+                    // rozlaczanie:
+                    sound_source soundtemplate{ sound_placement::external };
+                    soundtemplate.deserialize( parser, sound_type::single );
+                    soundtemplate.owner( this );
+                    for( auto &couplersounds : m_couplersounds ) {
+                        couplersounds.detach_mainhose = soundtemplate;
+                    }
+                }
+                else if( token == "controldetach:" ) {
+                    // rozlaczanie:
+                    sound_source soundtemplate{ sound_placement::external };
+                    soundtemplate.deserialize( parser, sound_type::single );
+                    soundtemplate.owner( this );
+                    for( auto &couplersounds : m_couplersounds ) {
+                        couplersounds.detach_control = soundtemplate;
+                    }
+                }
+                else if( token == "gangwaydetach:" ) {
+                    // rozlaczanie:
+                    sound_source soundtemplate{ sound_placement::external };
+                    soundtemplate.deserialize( parser, sound_type::single );
+                    soundtemplate.owner( this );
+                    for( auto &couplersounds : m_couplersounds ) {
+                        couplersounds.detach_gangway = soundtemplate;
+                    }
+                }
+                else if( token == "heatingdetach:" ) {
+                    // rozlaczanie:
+                    sound_source soundtemplate{ sound_placement::external };
+                    soundtemplate.deserialize( parser, sound_type::single );
+                    soundtemplate.owner( this );
+                    for( auto &couplersounds : m_couplersounds ) {
+                        couplersounds.detach_heating = soundtemplate;
                     }
                 }
                 else if( token == "couplerstretch:" ) {
@@ -6182,13 +6284,13 @@ void TDynamicObject::LoadMMediaFile( std::string const &TypeName, std::string co
         }
         // couplers
         for( auto &couplersounds : m_couplersounds ) {
-            if( true == couplersounds.dsbCouplerAttach.empty() ) {
-                couplersounds.dsbCouplerAttach.deserialize( "couplerattach_default", sound_type::single );
-                couplersounds.dsbCouplerAttach.owner( this );
+            if( true == couplersounds.attach_coupler.empty() ) {
+                couplersounds.attach_coupler.deserialize( "couplerattach_default", sound_type::single );
+                couplersounds.attach_coupler.owner( this );
             }
-            if( true == couplersounds.dsbCouplerDetach.empty() ) {
-                couplersounds.dsbCouplerDetach.deserialize( "couplerdetach_default", sound_type::single );
-                couplersounds.dsbCouplerDetach.owner( this );
+            if( true == couplersounds.detach_coupler.empty() ) {
+                couplersounds.detach_coupler.deserialize( "couplerdetach_default", sound_type::single );
+                couplersounds.detach_coupler.owner( this );
             }
             if( true == couplersounds.dsbCouplerStretch.empty() ) {
                 couplersounds.dsbCouplerStretch.deserialize( "couplerstretch_default", sound_type::single );
@@ -6261,8 +6363,18 @@ void TDynamicObject::LoadMMediaFile( std::string const &TypeName, std::string co
     }
     // couplers
     auto const frontcoupleroffset { glm::vec3{ 0.f, 1.f, MoverParameters->Dim.L * 0.5f } };
-    m_couplersounds[ end::front ].dsbCouplerAttach.offset( frontcoupleroffset );
-    m_couplersounds[ end::front ].dsbCouplerDetach.offset( frontcoupleroffset );
+    m_couplersounds[ end::front ].attach_coupler.offset( frontcoupleroffset );
+    m_couplersounds[ end::front ].attach_brakehose.offset( frontcoupleroffset );
+    m_couplersounds[ end::front ].attach_mainhose.offset( frontcoupleroffset );
+    m_couplersounds[ end::front ].attach_control.offset( frontcoupleroffset );
+    m_couplersounds[ end::front ].attach_gangway.offset( frontcoupleroffset );
+    m_couplersounds[ end::front ].attach_heating.offset( frontcoupleroffset );
+    m_couplersounds[ end::front ].detach_coupler.offset( frontcoupleroffset );
+    m_couplersounds[ end::front ].detach_brakehose.offset( frontcoupleroffset );
+    m_couplersounds[ end::front ].detach_mainhose.offset( frontcoupleroffset );
+    m_couplersounds[ end::front ].detach_control.offset( frontcoupleroffset );
+    m_couplersounds[ end::front ].detach_gangway.offset( frontcoupleroffset );
+    m_couplersounds[ end::front ].detach_heating.offset( frontcoupleroffset );
     m_couplersounds[ end::front ].dsbCouplerStretch.offset( frontcoupleroffset );
     m_couplersounds[ end::front ].dsbCouplerStretch_loud.offset( frontcoupleroffset );
     m_couplersounds[ end::front ].dsbBufferClamp.offset( frontcoupleroffset );
@@ -6270,8 +6382,18 @@ void TDynamicObject::LoadMMediaFile( std::string const &TypeName, std::string co
     m_couplersounds[ end::front ].dsbAdapterAttach.offset( frontcoupleroffset );
     m_couplersounds[ end::front ].dsbAdapterRemove.offset( frontcoupleroffset );
     auto const rearcoupleroffset { glm::vec3{ 0.f, 1.f, MoverParameters->Dim.L * -0.5f } };
-    m_couplersounds[ end::rear ].dsbCouplerAttach.offset( rearcoupleroffset );
-    m_couplersounds[ end::rear ].dsbCouplerDetach.offset( rearcoupleroffset );
+    m_couplersounds[ end::rear ].attach_coupler.offset( rearcoupleroffset );
+    m_couplersounds[ end::rear ].attach_brakehose.offset( rearcoupleroffset );
+    m_couplersounds[ end::rear ].attach_mainhose.offset( rearcoupleroffset );
+    m_couplersounds[ end::rear ].attach_control.offset( rearcoupleroffset );
+    m_couplersounds[ end::rear ].attach_gangway.offset( rearcoupleroffset );
+    m_couplersounds[ end::rear ].attach_heating.offset( rearcoupleroffset );
+    m_couplersounds[ end::rear ].detach_coupler.offset( rearcoupleroffset );
+    m_couplersounds[ end::rear ].detach_brakehose.offset( rearcoupleroffset );
+    m_couplersounds[ end::rear ].detach_mainhose.offset( rearcoupleroffset );
+    m_couplersounds[ end::rear ].detach_control.offset( rearcoupleroffset );
+    m_couplersounds[ end::rear ].detach_gangway.offset( rearcoupleroffset );
+    m_couplersounds[ end::rear ].detach_heating.offset( rearcoupleroffset );
     m_couplersounds[ end::rear ].dsbCouplerStretch.offset( rearcoupleroffset );
     m_couplersounds[ end::rear ].dsbCouplerStretch_loud.offset( rearcoupleroffset );
     m_couplersounds[ end::rear ].dsbBufferClamp.offset( rearcoupleroffset );

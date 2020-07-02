@@ -312,8 +312,19 @@ private:
     };
 
     struct coupler_sounds {
-        sound_source dsbCouplerAttach { sound_placement::external }; // moved from cab
-        sound_source dsbCouplerDetach { sound_placement::external }; // moved from cab
+        // TBD: change to an array with index-based access for easier initialization?
+        sound_source attach_coupler { sound_placement::external };
+        sound_source attach_brakehose { sound_placement::external };
+        sound_source attach_mainhose { sound_placement::external };
+        sound_source attach_control { sound_placement::external };
+        sound_source attach_gangway { sound_placement::external };
+        sound_source attach_heating { sound_placement::external };
+        sound_source detach_coupler { sound_placement::external };
+        sound_source detach_brakehose { sound_placement::external };
+        sound_source detach_mainhose { sound_placement::external };
+        sound_source detach_control { sound_placement::external };
+        sound_source detach_gangway { sound_placement::external };
+        sound_source detach_heating { sound_placement::external };
         sound_source dsbCouplerStretch { sound_placement::external }; // moved from cab
         sound_source dsbCouplerStretch_loud { sound_placement::external };
         sound_source dsbBufferClamp { sound_placement::external }; // moved from cab
