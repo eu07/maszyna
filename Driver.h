@@ -300,6 +300,8 @@ private:
     double VelRestricted = -1.0; // speed of travel after passing a permissive signal at stop
     double FirstSemaphorDist = 10000.0; // odległość do pierwszego znalezionego semafora
     double ActualProximityDist = 1.0; // odległość brana pod uwagę przy wyliczaniu prędkości i przyspieszenia
+    std::pair<double, double> VelLimitLastDist { 0.0, 0.0 }; // distance to velocity change point
+    double SwitchClearDist { 0.0 }; // distance to point after farthest detected switch
     int iDirection = 0; // kierunek jazdy względem sprzęgów pojazdu, w którym siedzi AI (1=przód,-1=tył)
     int iDirectionOrder = 0; //żadany kierunek jazdy (służy do zmiany kierunku)
     int iVehicleCount = -2; // wartość neutralna // ilość pojazdów do odłączenia albo zabrania ze składu (-1=wszystkie)

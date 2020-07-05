@@ -2142,7 +2142,13 @@ void TTrain::OnCommand_pantographtogglefront( TTrain *Train, command_data const 
     else if( Command.action == GLFW_RELEASE ) {
         // impulse switches return automatically to neutral position
         if( Train->mvOccupied->PantSwitchType == "impulse" ) {
-            Train->mvOccupied->OperatePantographValve( end::front, operation_t::none );
+            auto const ismanual { Train->mvOccupied->Pantographs[ end::front ].valve.start_type == start_t::manual };
+            Train->mvOccupied->OperatePantographValve(
+                end::front,
+                operation_t::none,
+                ( ismanual ?
+                    range_t::local :
+                    range_t::consist ) );
         }
     }
 }
@@ -2168,7 +2174,13 @@ void TTrain::OnCommand_pantographtogglerear( TTrain *Train, command_data const &
     else if( Command.action == GLFW_RELEASE ) {
         // impulse switches return automatically to neutral position
         if( Train->mvOccupied->PantSwitchType == "impulse" ) {
-            Train->mvOccupied->OperatePantographValve( end::rear, operation_t::none );
+            auto const ismanual { Train->mvOccupied->Pantographs[ end::rear ].valve.start_type == start_t::manual };
+            Train->mvOccupied->OperatePantographValve(
+                end::rear,
+                operation_t::none,
+                ( ismanual ?
+                    range_t::local :
+                    range_t::consist ) );
         }
     }
 }
@@ -2183,10 +2195,15 @@ void TTrain::OnCommand_pantographraisefront( TTrain *Train, command_data const &
 
     if( Command.action == GLFW_PRESS ) {
         // only reacting to press, so the switch doesn't flip back and forth if key is held down
-        Train->mvOccupied->OperatePantographValve( end::front,
-            Train->mvOccupied->PantSwitchType == "impulse" ?
+        auto const ismanual { Train->mvOccupied->Pantographs[ end::front ].valve.start_type == start_t::manual };
+        Train->mvOccupied->OperatePantographValve(
+            end::front,
+            ( Train->mvOccupied->PantSwitchType == "impulse" ?
                 operation_t::enable_on :
-                operation_t::enable );
+                operation_t::enable ),
+            ( ismanual ?
+                range_t::local :
+                range_t::consist ) );
     }
     else if( Command.action == GLFW_RELEASE ) {
         // NOTE: bit of a hax here, we're reusing button reset routine so we don't need a copy in every branch
@@ -2204,10 +2221,15 @@ void TTrain::OnCommand_pantographraiserear( TTrain *Train, command_data const &C
 
     if( Command.action == GLFW_PRESS ) {
         // only reacting to press, so the switch doesn't flip back and forth if key is held down
-        Train->mvOccupied->OperatePantographValve( end::rear,
-             Train->mvOccupied->PantSwitchType == "impulse" ?
+        auto const ismanual { Train->mvOccupied->Pantographs[ end::rear ].valve.start_type == start_t::manual };
+        Train->mvOccupied->OperatePantographValve(
+            end::rear,
+            ( Train->mvOccupied->PantSwitchType == "impulse" ?
                 operation_t::enable_on :
-                operation_t::enable );
+                operation_t::enable ),
+            ( ismanual ?
+                range_t::local :
+                range_t::consist ) );
    }
     else if( Command.action == GLFW_RELEASE ) {
         // NOTE: bit of a hax here, we're reusing button reset routine so we don't need a copy in every branch
@@ -2230,10 +2252,15 @@ void TTrain::OnCommand_pantographlowerfront( TTrain *Train, command_data const &
 
     if( Command.action == GLFW_PRESS ) {
         // only reacting to press, so the switch doesn't flip back and forth if key is held down
-        Train->mvOccupied->OperatePantographValve( end::front,
-            Train->mvOccupied->PantSwitchType == "impulse" ?
+        auto const ismanual { Train->mvOccupied->Pantographs[ end::front ].valve.start_type == start_t::manual };
+        Train->mvOccupied->OperatePantographValve(
+            end::front,
+            ( Train->mvOccupied->PantSwitchType == "impulse" ?
                 operation_t::disable_on :
-                operation_t::disable );
+                operation_t::disable ),
+            ( ismanual ?
+                range_t::local :
+                range_t::consist ) );
     }
     else if( Command.action == GLFW_RELEASE ) {
         // NOTE: bit of a hax here, we're reusing button reset routine so we don't need a copy in every branch
@@ -2255,10 +2282,15 @@ void TTrain::OnCommand_pantographlowerrear( TTrain *Train, command_data const &C
 
     if( Command.action == GLFW_PRESS ) {
         // only reacting to press, so the switch doesn't flip back and forth if key is held down
-        Train->mvOccupied->OperatePantographValve( end::rear,
-            Train->mvOccupied->PantSwitchType == "impulse" ?
+        auto const ismanual { Train->mvOccupied->Pantographs[ end::rear ].valve.start_type == start_t::manual };
+        Train->mvOccupied->OperatePantographValve(
+            end::rear,
+            ( Train->mvOccupied->PantSwitchType == "impulse" ?
                 operation_t::disable_on :
-                operation_t::disable );
+                operation_t::disable ),
+            ( ismanual ?
+                range_t::local :
+                range_t::consist ) );
     }
     else if( Command.action == GLFW_RELEASE ) {
         // NOTE: bit of a hax here, we're reusing button reset routine so we don't need a copy in every branch
@@ -6375,7 +6407,8 @@ bool TTrain::Update( double const Deltatime )
                 ggMainGearStatus.UpdateValue(0.0);
             ggMainGearStatus.Update();
         }
-        if (ggIgnitionKey.SubModel)
+        if( ( ggIgnitionKey.SubModel)
+         && ( ggIgnitionKey.GetDesiredValue() == 0.0 ) )
         {
             ggIgnitionKey.UpdateValue(
                 ( mvControlled->Mains )
@@ -6383,8 +6416,8 @@ bool TTrain::Update( double const Deltatime )
                 || ( fMainRelayTimer > 0.f )
                 || ( ( ggMainButton.SubModel != nullptr ) && ( ggMainButton.GetDesiredValue() > 0.95 ) )
                 || ( ( ggMainOnButton.SubModel != nullptr ) && ( ggMainOnButton.GetDesiredValue() > 0.95 ) ) );
-            ggIgnitionKey.Update();
         }
+        ggIgnitionKey.Update();
     }
 
     if (mvControlled->SlippingWheels) {
@@ -6581,8 +6614,10 @@ bool TTrain::Update( double const Deltatime )
         btLampkaRadioStop.Turn( mvOccupied->Radio && mvOccupied->RadioStopFlag );
         btLampkaHamulecReczny.Turn(mvOccupied->ManualBrakePos > 0);
         // NBMX wrzesien 2003 - drzwi oraz sygnał odjazdu
-        btLampkaDoorLeft.Turn( DynamicObject->Mechanik->IsAnyDoorOpen[ ( cab_to_end() == end::front ? side::left : side::right ) ] );
-        btLampkaDoorRight.Turn( DynamicObject->Mechanik->IsAnyDoorOpen[ ( cab_to_end() == end::front ? side::right : side::left ) ] );
+        if( DynamicObject->Mechanik != nullptr ) {
+            btLampkaDoorLeft.Turn( DynamicObject->Mechanik->IsAnyDoorOpen[ ( cab_to_end() == end::front ? side::left : side::right ) ] );
+            btLampkaDoorRight.Turn( DynamicObject->Mechanik->IsAnyDoorOpen[ ( cab_to_end() == end::front ? side::right : side::left ) ] );
+        }
         btLampkaBlokadaDrzwi.Turn( mvOccupied->Doors.is_locked );
         btLampkaDoorLockOff.Turn( false == mvOccupied->Doors.lock_enabled );
         btLampkaDepartureSignal.Turn( mvControlled->DepartureSignal );

@@ -828,8 +828,7 @@ void TController::TableCheck(double fDistance)
                             typeid( *(sSpeedTable[i].evEvent) ) == typeid( putvalues_event ) ?
                                 -fLength :
                                 0)) // jeśli jest z tyłu
-                        if ((mvOccupied->CategoryFlag & 1) ? false :
-                                                             sSpeedTable[i].fDist < -fLength)
+                        if ((mvOccupied->CategoryFlag == 2) && (sSpeedTable[i].fDist < -0.75))
                         { // pociąg staje zawsze, a samochód tylko jeśli nie przejedzie całą długością (może być zaskoczony zmianą)
 							// WriteLog("TableCheck: Event is behind. Delete from table: " + sSpeedTable[i].evEvent->asName);
                             sSpeedTable[i].iFlags &= ~spEnabled; // degradacja pozycji dla samochodu;
@@ -1137,6 +1136,7 @@ TCommandType TController::TableUpdate(double &fVelDes, double &fDist, double &fN
             if( sSpeedTable[ i ].iFlags & spSwitch ) {
                 // zwrotnice są usuwane z tabelki dopiero po zjechaniu z nich
                 iDrivigFlags |= moveSwitchFound; // rozjazd z przodu/pod ogranicza np. sens skanowania wstecz
+                SwitchClearDist = sSpeedTable[ i ].fDist + sSpeedTable[ i ].trTrack->Length() + fLength;
             }
             else if (sSpeedTable[i].iFlags & spEvent) // W4 może się deaktywować
             { // jeżeli event, może być potrzeba wysłania komendy, aby ruszył
@@ -1453,6 +1453,9 @@ TCommandType TController::TableUpdate(double &fVelDes, double &fDist, double &fN
                             // ograniczenie aktualnej prędkości aż do wyjechania za ograniczenie
                             fVelDes = v;
                         }
+                        if( v < VelLimitLastDist.first ) {
+                            VelLimitLastDist.second = d + sSpeedTable[ i ].trTrack->Length() + fLength;
+                        }
                         if( false == railwaytrackend )
                             continue; // i tyle wystarczy
                     }
@@ -1483,7 +1486,7 @@ TCommandType TController::TableUpdate(double &fVelDes, double &fDist, double &fN
                     }
                 }
 
-                if ((a < fAcc) && (v == std::min(v, fNext))) {
+                if ((a < fAcc) && (v == min_speed(v, fNext))) {
                     // mniejsze przyspieszenie to mniejsza możliwość rozpędzenia się albo konieczność hamowania
                     // jeśli droga wolna, to może być a>1.0 i się tu nie załapuje
                     fAcc = a; // zalecane przyspieszenie (nie musi być uwzględniane przez AI)
@@ -1494,6 +1497,14 @@ TCommandType TController::TableUpdate(double &fVelDes, double &fDist, double &fN
                     // jeśli nie ma wskazań do hamowania, można podać drogę i prędkość na jej końcu
                     fNext = v; // istotna jest prędkość na końcu tego odcinka
                     fDist = d; // dlugość odcinka (kolejne pozycje mogą wydłużać drogę, jeśli prędkość jest stała)
+                }
+                if( ( v < VelLimitLastDist.first ) /* && ( d < VelLimitLastDist.second ) */ ) {
+                    // if we encounter another speed limit before we can clear current/last registered one,
+                    // update our calculation where we'll be able to resume regular speed
+                    VelLimitLastDist.second = d + fLength;
+                    if( ( sSpeedTable[ i ].iFlags & spTrack ) != 0 ) {
+                        VelLimitLastDist.second += sSpeedTable[ i ].trTrack->Length();
+                    }
                 }
             } // if (v>=0.0)
             if (fNext >= 0.0)
@@ -1512,6 +1523,10 @@ TCommandType TController::TableUpdate(double &fVelDes, double &fDist, double &fN
      && ( ( iDrivigFlags & ( moveSemaphorFound | moveSwitchFound | moveStopPointFound ) ) == 0 )
      && ( true == TestFlag( OrderCurrentGet(), Obey_train ) ) ) {
         VelSignalLast = -1.0;
+    }
+    if( ( VelSignalLast >= 0.0 ) && ( SwitchClearDist >= 0.0 ) ) {
+        // take into account the effect switches have on duration of signal-imposed speed limit, in calculation of speed limit end point
+        VelLimitLastDist.second = std::max( VelLimitLastDist.second, SwitchClearDist );
     }
 
     //analiza spisanych z tabelki ograniczeń i nadpisanie aktualnego
@@ -5582,6 +5597,8 @@ TController::UpdateSituation(double dt) {
             AccDesired = AccPreferred; // AccPreferred wynika z osobowości mechanika
             VelNext = VelDesired; // maksymalna prędkość wynikająca z innych czynników niż trajektoria ruchu
             ActualProximityDist = routescanrange; // funkcja Update() może pozostawić wartości bez zmian
+            VelLimitLastDist = { VelDesired, -1 };
+            SwitchClearDist = -1;
             // Ra: odczyt (ActualProximityDist), (VelNext) i (AccPreferred) z tabelki prędkosci
 
             TCommandType comm = TableUpdate(VelDesired, ActualProximityDist, VelNext, AccDesired);
@@ -5804,6 +5821,7 @@ TController::UpdateSituation(double dt) {
                 // mamy coś z przodu
                 // prędkość pojazdu z przodu (zakładając, że jedzie w tę samą stronę!!!)
                 auto const k { Obstacle.vehicle->MoverParameters->Vel };
+
                 if( k - vel < 5 ) {
                     // porównanie modułów prędkości [km/h]
                     // zatroszczyć się trzeba, jeśli tamten nie jedzie znacząco szybciej

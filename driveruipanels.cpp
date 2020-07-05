@@ -64,14 +64,29 @@ drivingaid_panel::update() {
             }
             // next speed limit
             auto const speedlimit { static_cast<int>( std::floor( owner->VelDesired ) ) };
-            auto const nextspeedlimit { static_cast<int>( std::floor( owner->VelNext ) ) };
+            auto nextspeedlimit { speedlimit };
+            auto nextspeedlimitdistance { 0.0 };
+            if( speedlimit != 0 ) {
+                // if we aren't allowed to move then any next speed limit is irrelevant
+                if( ( owner->VelLimitLastDist.first > 0.0 ) && ( owner->VelLimitLastDist.second > 0.0 ) ) {
+                    // first take note of any speed change which should occur after passing potential current speed limit
+                    nextspeedlimit = static_cast<int>( std::floor( owner->VelLimitLastDist.first ) );
+                    nextspeedlimitdistance = owner->VelLimitLastDist.second;
+                }
+                auto const speedatproximitydistance{ static_cast<int>( std::floor( owner->VelNext ) ) };
+                if( ( speedatproximitydistance != speedlimit ) && ( speedatproximitydistance < nextspeedlimit ) ) {
+                    // if there's speed reduction down the road then it's more important than any potential speedup
+                    nextspeedlimit = speedatproximitydistance;
+                    nextspeedlimitdistance = owner->ActualProximityDist;
+                }
+            }
             std::string nextspeedlimittext;
             if( nextspeedlimit != speedlimit ) {
                 std::snprintf(
                     m_buffer.data(), m_buffer.size(),
                     locale::strings[ locale::string::driver_aid_nextlimit ].c_str(),
                     nextspeedlimit,
-                    driver->ActualProximityDist * 0.001 );
+                    nextspeedlimitdistance * 0.001 );
                 nextspeedlimittext = m_buffer.data();
             }
             // current speed and limit

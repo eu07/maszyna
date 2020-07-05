@@ -240,7 +240,7 @@ opengl_texture::load() {
     }
     else {
 
-        WriteLog( "Loading texture data from \"" + name + type + "\"", logtype::texture );
+        WriteLog( "Loading texture data from \"" + name + "\"", logtype::texture );
 
         data_state = resource_state::loading;
 
@@ -254,6 +254,16 @@ opengl_texture::load() {
     // data state will be set by called loader, so we're all done here
     if( data_state == resource_state::good ) {
 
+        // verify texture size
+        if( ( clamp_power_of_two( data_width ) != data_width ) || ( clamp_power_of_two( data_height ) != data_height ) ) {
+            if( name != "logo" ) {
+                WriteLog( "Warning: dimensions of texture \"" + name + "\" aren't powers of 2", logtype::texture );
+            }
+        }
+        if( ( quantize( data_width, 4 ) != data_width ) || ( quantize( data_height, 4 ) != data_height ) ) {
+            WriteLog( "Warning: dimensions of texture \"" + name + "\" aren't multiples of 4", logtype::texture );
+        }
+
         has_alpha = (
             data_components == GL_RGBA ?
                 true :
@@ -266,7 +276,7 @@ opengl_texture::load() {
 
 fail:
     data_state = resource_state::failed;
-    ErrorLog( "Bad texture: failed to load texture \"" + name + type + "\"" );
+    ErrorLog( "Bad texture: failed to load texture \"" + name + "\"" );
     // NOTE: temporary workaround for texture assignment errors
     id = 0;
     return;
@@ -275,8 +285,8 @@ fail:
 void
 opengl_texture::make_stub() {
 
-    data_width = 2;
-    data_height = 2;
+    data_width = 4;
+    data_height = 4;
     data.resize( data_width * data_height * 3 );
     std::fill( std::begin( data ), std::end( data ), static_cast<char>( 0xc0 ) );
     data_mapcount = 1;
