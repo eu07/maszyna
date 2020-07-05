@@ -465,6 +465,9 @@ public: // reszta może by?publiczna
     TGauge ggScndCtrl;
     TGauge ggScndCtrlButton;
     TGauge ggDirKey;
+    TGauge ggDirForwardButton;
+    TGauge ggDirNeutralButton;
+    TGauge ggDirBackwardButton;
     TGauge ggBrakeCtrl;
     TGauge ggLocalBrake;
     TGauge ggAlarmChain;
@@ -789,6 +792,9 @@ private:
     double m_brakehandlecp{ 0.0 };
     int m_pantselection{ 0 };
     bool m_doors{ false }; // helper, true if any door is open
+    bool m_dirforward{ false }; // helper, true if direction set to forward
+    bool m_dirneutral{ false }; // helper, true if direction set to neutral
+    bool m_dirbackward{ false }; // helper, true if direction set to backward
     // ld substitute
     bool m_couplingdisconnect { false };
 

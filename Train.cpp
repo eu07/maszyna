@@ -1965,15 +1965,6 @@ void TTrain::OnCommand_reverserforwardhigh( TTrain *Train, command_data const &C
 
     if( Command.action == GLFW_PRESS ) {
 
-        OnCommand_reverserforward( Train, Command );
-        OnCommand_reverserincrease( Train, Command );
-    }
-}
-
-void TTrain::OnCommand_reverserforward( TTrain *Train, command_data const &Command ) {
-
-    if( Command.action == GLFW_PRESS ) {
-
         // HACK: master controller position isn't set in occupied vehicle in E(D)MUs
         // so we do a manual check in relevant vehicle here
         if( false == Train->mvControlled->EIMDirectionChangeAllow() ) { return; }
@@ -1994,7 +1985,42 @@ void TTrain::OnCommand_reverserforward( TTrain *Train, command_data const &Comma
                 Train->DynamicObject->Mechanik->DirectionChange();
             }
         }
+    OnCommand_reverserincrease( Train, Command );
     }
+}
+
+void TTrain::OnCommand_reverserforward( TTrain *Train, command_data const &Command ) {
+
+    if( Command.action == GLFW_PRESS ) {
+
+        // HACK: master controller position isn't set in occupied vehicle in E(D)MUs
+        // so we do a manual check in relevant vehicle here
+        if( false == Train->mvControlled->EIMDirectionChangeAllow() ) { return; }
+
+        // HACK: try to move the reverser one position back, in case it's set to "high forward"
+        //OnCommand_reverserdecrease( Train, Command );
+		// visual feedback
+		Train->ggDirForwardButton.UpdateValue(1.0, Train->dsbSwitch);
+
+        if( Train->mvOccupied->DirActive == 0 ) {
+
+            while( ( Train->mvOccupied->DirActive < 1 )
+                && ( true == Train->mvOccupied->DirectionForward() ) ) {
+                // all work is done in the header
+            }
+            // aktualizacja skrajnych pojazdów w składzie
+            if( ( Train->mvOccupied->DirActive == 1 )
+             && ( Train->DynamicObject->Mechanik ) ) {
+
+                Train->DynamicObject->Mechanik->DirectionChange();
+            }
+        }
+    }
+	else if (Command.action == GLFW_RELEASE) {
+		// release
+		// visual feedback
+		Train->ggDirForwardButton.UpdateValue(0.0, Train->dsbSwitch);
+	}
 }
 
 void TTrain::OnCommand_reverserneutral( TTrain *Train, command_data const &Command ) {
@@ -2004,7 +2030,8 @@ void TTrain::OnCommand_reverserneutral( TTrain *Train, command_data const &Comma
         // HACK: master controller position isn't set in occupied vehicle in E(D)MUs
         // so we do a manual check in relevant vehicle here
         if( false == Train->mvControlled->EIMDirectionChangeAllow() ) { return; }
-
+		// visual feedback
+		Train->ggDirNeutralButton.UpdateValue(1.0, Train->dsbSwitch);
         while( ( Train->mvOccupied->DirActive < 0 )
             && ( true == Train->mvOccupied->DirectionForward() ) ) {
             // all work is done in the header
@@ -2014,6 +2041,11 @@ void TTrain::OnCommand_reverserneutral( TTrain *Train, command_data const &Comma
             // all work is done in the header
         }
     }
+	else if (Command.action == GLFW_RELEASE) {
+		// release
+		// visual feedback
+		Train->ggDirNeutralButton.UpdateValue(0.0, Train->dsbSwitch);
+	}
 }
 
 void TTrain::OnCommand_reverserbackward( TTrain *Train, command_data const &Command ) {
@@ -2023,8 +2055,8 @@ void TTrain::OnCommand_reverserbackward( TTrain *Train, command_data const &Comm
         // HACK: master controller position isn't set in occupied vehicle in E(D)MUs
         // so we do a manual check in relevant vehicle here
         if( false == Train->mvControlled->EIMDirectionChangeAllow() ) { return; }
-
-        if( Train->mvOccupied->DirActive > -1 ) {
+        Train->ggDirBackwardButton.UpdateValue(1.0, Train->dsbSwitch);
+        if( Train->mvOccupied->DirActive == 0 ) {
 
             while( ( Train->mvOccupied->DirActive > -1 )
                 && ( true == Train->mvOccupied->DirectionBackward() ) ) {
@@ -2038,6 +2070,11 @@ void TTrain::OnCommand_reverserbackward( TTrain *Train, command_data const &Comm
             }
         }
     }
+	else if (Command.action == GLFW_RELEASE) {
+		// release
+		// visual feedback
+		Train->ggDirBackwardButton.UpdateValue(0.0, Train->dsbSwitch);
+	}
 }
 
 void TTrain::OnCommand_alerteracknowledge( TTrain *Train, command_data const &Command ) {
@@ -5974,6 +6011,9 @@ bool TTrain::Update( double const Deltatime )
     }
     // helper variables
     m_doors = ( DynamicObject->Mechanik->IsAnyDoorOpen[ side::right ] || DynamicObject->Mechanik->IsAnyDoorOpen[ side::left ] );
+	m_dirforward = ( mvControlled->DirActive > 0 );
+	m_dirneutral = ( mvControlled->DirActive == 0 );
+	m_dirbackward = ( mvControlled->DirActive <0 );
 
     // check for received user commands
     // NOTE: this is a temporary arrangement, for the transition period from old command setup to the new one
@@ -6936,6 +6976,9 @@ bool TTrain::Update( double const Deltatime )
         }
         ggLocalBrake.Update();
     }
+    ggDirForwardButton.Update();
+    ggDirNeutralButton.Update();
+    ggDirBackwardButton.Update();
     ggAlarmChain.Update();
     ggBrakeProfileCtrl.Update();
     ggBrakeProfileG.Update();
@@ -8304,6 +8347,9 @@ void TTrain::clear_cab_controls()
     ggScndCtrlButton.Clear();
     ggDistanceCounterButton.Clear();
     ggDirKey.Clear();
+    ggDirForwardButton.Clear();
+    ggDirNeutralButton.Clear();
+    ggDirBackwardButton.Clear();
     ggBrakeCtrl.Clear();
     ggLocalBrake.Clear();
     ggAlarmChain.Clear();
@@ -9155,6 +9201,9 @@ bool TTrain::initialize_gauge(cParser &Parser, std::string const &Label, int con
         { "doorleftpermit_sw:", { ggDoorLeftPermitButton, &mvOccupied->Doors.instances[ ( cab_to_end() == end::front ? side::left : side::right ) ].open_permit } },
         { "doorrightpermit_sw:", { ggDoorRightPermitButton, &mvOccupied->Doors.instances[ ( cab_to_end() == end::front ? side::right : side::left ) ].open_permit } },
         { "dooralloff_sw:", { ggDoorAllOffButton, &m_doors } },
+		{ "dirforward_bt:", { ggDirForwardButton, &m_dirforward } },
+		{ "dirneutral_bt:", { ggDirNeutralButton, &m_dirneutral } },
+		{ "dirbackward_bt:", { ggDirBackwardButton, &m_dirbackward } },
     };
     {
         auto const lookup { stategauges.find( Label ) };

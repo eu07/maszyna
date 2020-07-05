@@ -530,6 +530,15 @@ drivermouse_input::default_bindings() {
         { "dirkey:", {
             user_command::reverserincrease,
             user_command::reverserdecrease } },
+        { "dirforward_bt:", {
+            user_command::reverserforward,
+            user_command::none } },
+        { "dirneutral_bt:", {
+            user_command::reverserneutral,
+            user_command::none } },
+        { "dirbackward_bt:", {
+            user_command::reverserbackward,
+            user_command::none } },
         { "brakectrl:", {
             user_command::trainbrakeset,
             user_command::none } },
