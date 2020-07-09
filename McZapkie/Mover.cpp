@@ -2054,12 +2054,11 @@ void TMoverParameters::PantographsCheck( double const Timestep ) {
 
         valve.is_active = (
             ( ( valve.spring ? lowvoltagepower : true ) ) // spring actuator needs power to maintain non-default state
-         && ( ( ( manualcontrol && lowvoltagepower ) ? false == valve.is_disabled : true ) ) // needs power to change state
+         && ( ( ( manualcontrol && lowvoltagepower ) ? false == valve.is_disabled : true ) ) // needs power to change state, without it just pass through
          && ( ( ( manualcontrol && lowvoltagepower ) ? false == PantAllDown : true ) )
          && ( ( valve.is_active )
-           || (  autostart ? lowvoltagepower :
-                !autostart ? ( lowvoltagepower && valve.is_enabled ) :
-                false ) ) ); // shouldn't ever get this far but, eh
+           || ( manualcontrol && lowvoltagepower && valve.is_enabled )
+           || ( autostart && lowvoltagepower ) ) ); // shouldn't ever get this far but, eh
 
         pantograph.is_active = (
             ( valve.is_active )
@@ -7240,9 +7239,16 @@ bool TMoverParameters::dizel_EngageChange(double dt)
 // *************************************************************************************************
 bool TMoverParameters::dizel_AutoGearCheck(void)
 {
-    bool OK;
+    auto OK { false };
 
-    OK = false;
+    auto const VelUp { ( MotorParam[ ScndCtrlActualPos ].mfi0 != 0.0 ?
+        MotorParam[ ScndCtrlActualPos ].mfi0 + ( MotorParam[ ScndCtrlActualPos ].mfi - MotorParam[ ScndCtrlActualPos ].mfi0 ) * std::max( 0.0, eimic_real ) :
+        MotorParam[ ScndCtrlActualPos ].mfi ) };
+
+    auto const VelDown { ( ( MotorParam[ ScndCtrlActualPos ].fi0 != 0.0 ) && ( eimic_real <= 0.0 ) ?
+        MotorParam[ ScndCtrlActualPos ].fi0 :
+        MotorParam[ ScndCtrlActualPos ].fi ) };
+
     if (MotorParam[ScndCtrlActualPos].AutoSwitch && Mains)
     {
         if ((RList[MainCtrlPos].Mn == 0)&&(!hydro_TC))
@@ -7257,14 +7263,14 @@ bool TMoverParameters::dizel_AutoGearCheck(void)
             if (MotorParam[ScndCtrlActualPos].AutoSwitch &&
                 (dizel_automaticgearstatus == 0)) // sprawdz czy zmienic biegi
             {
-                if( Vel > MotorParam[ ScndCtrlActualPos ].mfi ) {
+                if( Vel > VelUp  ) {
                     // shift up
                     if( ScndCtrlActualPos < ScndCtrlPosNo ) {
                         dizel_automaticgearstatus = 1;
                         OK = true;
                     }
                 }
-                else if( Vel < MotorParam[ ScndCtrlActualPos ].fi ) {
+                else if( Vel < VelDown  ) {
                     // shift down
                     if( ScndCtrlActualPos > 0 ) {
                         dizel_automaticgearstatus = -1;
@@ -7465,7 +7471,7 @@ double TMoverParameters::dizel_fillcheck(int mcp, double dt)
             // napelnienie zalezne od MainCtrlPos
 			if (EIMCtrlType > 0)
 			{
-				realfill = std::max(0.0, eimic_real);
+                realfill = std::max(0.0, std::min(eimic_real, 1 - MotorParam[ ScndCtrlActualPos ].Isat));
 				if (eimic_real>0.005 && !hydro_TC_Lockup)
 				{
 					dizel_nreg_min = std::min(dizel_nreg_min + 2.5 * dt, dizel_nmin_hdrive + eimic_real * dizel_nmin_hdrive_factor);
@@ -8634,6 +8640,7 @@ int s2NNW(std::string s)
 // parsowanie Motor Param Table
 bool TMoverParameters::readMPT0( std::string const &line ) {
 
+    // TBD, TODO: split into separate functions similar to readMPT if more varied schemes appear?
     cParser parser( line );
     if( false == parser.getTokens( 7, false ) ) {
         WriteLog( "Read MPT0: arguments missing in line " + std::to_string( LISTLINE ) );
@@ -8641,13 +8648,28 @@ bool TMoverParameters::readMPT0( std::string const &line ) {
     }
     int idx = 0; // numer pozycji
     parser >> idx;
-    parser
-        >> MotorParam[ idx ].mfi
-        >> MotorParam[ idx ].mIsat
-        >> MotorParam[ idx ].mfi0
-        >> MotorParam[ idx ].fi
-        >> MotorParam[ idx ].Isat
-        >> MotorParam[ idx ].fi0;
+    switch( EngineType ) {
+        case TEngineType::DieselEngine: {
+            parser
+                >> MotorParam[ idx ].mIsat
+                >> MotorParam[ idx ].fi0
+                >> MotorParam[ idx ].fi
+                >> MotorParam[ idx ].mfi0
+                >> MotorParam[ idx ].mfi
+                >> MotorParam[ idx ].Isat;
+            break;
+        }
+        default: {
+            parser
+                >> MotorParam[ idx ].mfi
+                >> MotorParam[ idx ].mIsat
+                >> MotorParam[ idx ].mfi0
+                >> MotorParam[ idx ].fi
+                >> MotorParam[ idx ].Isat
+                >> MotorParam[ idx ].fi0;
+            break;
+        }
+    }
     if( true == parser.getTokens( 1, false ) ) {
         int autoswitch;
         parser >> autoswitch;

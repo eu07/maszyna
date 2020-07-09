@@ -2179,7 +2179,7 @@ void TTrain::OnCommand_pantographtogglefront( TTrain *Train, command_data const 
     else if( Command.action == GLFW_RELEASE ) {
         // impulse switches return automatically to neutral position
         if( Train->mvOccupied->PantSwitchType == "impulse" ) {
-            auto const ismanual { Train->mvOccupied->Pantographs[ end::front ].valve.start_type == start_t::manual };
+            auto const ismanual { Train->iCabn == 0 };
             Train->mvOccupied->OperatePantographValve(
                 end::front,
                 operation_t::none,
@@ -2211,7 +2211,7 @@ void TTrain::OnCommand_pantographtogglerear( TTrain *Train, command_data const &
     else if( Command.action == GLFW_RELEASE ) {
         // impulse switches return automatically to neutral position
         if( Train->mvOccupied->PantSwitchType == "impulse" ) {
-            auto const ismanual { Train->mvOccupied->Pantographs[ end::rear ].valve.start_type == start_t::manual };
+            auto const ismanual { Train->iCabn == 0 };
             Train->mvOccupied->OperatePantographValve(
                 end::rear,
                 operation_t::none,
@@ -2232,7 +2232,8 @@ void TTrain::OnCommand_pantographraisefront( TTrain *Train, command_data const &
 
     if( Command.action == GLFW_PRESS ) {
         // only reacting to press, so the switch doesn't flip back and forth if key is held down
-        auto const ismanual { Train->mvOccupied->Pantographs[ end::front ].valve.start_type == start_t::manual };
+        // HACK: don't propagate pantograph commands issued from engine compartment, these are presumed to be manually moved levers
+        auto const ismanual { Train->iCabn == 0 };
         Train->mvOccupied->OperatePantographValve(
             end::front,
             ( Train->mvOccupied->PantSwitchType == "impulse" ?
@@ -2258,7 +2259,8 @@ void TTrain::OnCommand_pantographraiserear( TTrain *Train, command_data const &C
 
     if( Command.action == GLFW_PRESS ) {
         // only reacting to press, so the switch doesn't flip back and forth if key is held down
-        auto const ismanual { Train->mvOccupied->Pantographs[ end::rear ].valve.start_type == start_t::manual };
+        // HACK: don't propagate pantograph commands issued from engine compartment, these are presumed to be manually moved levers
+        auto const ismanual { Train->iCabn == 0 };
         Train->mvOccupied->OperatePantographValve(
             end::rear,
             ( Train->mvOccupied->PantSwitchType == "impulse" ?
@@ -2289,7 +2291,8 @@ void TTrain::OnCommand_pantographlowerfront( TTrain *Train, command_data const &
 
     if( Command.action == GLFW_PRESS ) {
         // only reacting to press, so the switch doesn't flip back and forth if key is held down
-        auto const ismanual { Train->mvOccupied->Pantographs[ end::front ].valve.start_type == start_t::manual };
+        // HACK: don't propagate pantograph commands issued from engine compartment, these are presumed to be manually moved levers
+        auto const ismanual { Train->iCabn == 0 };
         Train->mvOccupied->OperatePantographValve(
             end::front,
             ( Train->mvOccupied->PantSwitchType == "impulse" ?
@@ -2319,7 +2322,8 @@ void TTrain::OnCommand_pantographlowerrear( TTrain *Train, command_data const &C
 
     if( Command.action == GLFW_PRESS ) {
         // only reacting to press, so the switch doesn't flip back and forth if key is held down
-        auto const ismanual { Train->mvOccupied->Pantographs[ end::rear ].valve.start_type == start_t::manual };
+        // HACK: don't propagate pantograph commands issued from engine compartment, these are presumed to be manually moved levers
+        auto const ismanual { Train->iCabn == 0 };
         Train->mvOccupied->OperatePantographValve(
             end::rear,
             ( Train->mvOccupied->PantSwitchType == "impulse" ?
@@ -2389,7 +2393,7 @@ void TTrain::OnCommand_pantographtoggleselected( TTrain *Train, command_data con
         // only reacting to press, so the switch doesn't flip back and forth if key is held down
         auto const state {
             Train->mvPantographUnit->PantsValve.is_enabled
-          | Train->mvPantographUnit->PantsValve.is_active }; // fallback for impulse switches
+         || Train->mvPantographUnit->PantsValve.is_active }; // fallback for impulse switches
         if( state ) {
             OnCommand_pantographlowerselected( Train, Command );
         }
