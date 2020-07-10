@@ -297,3 +297,79 @@ itemproperties_panel::render_group() {
 
     return true;
 }
+
+
+
+nodebank_panel::nodebank_panel( std::string const &Name, bool const Isopen ) : ui_panel( Name, Isopen ) {
+	size_min = { 100, 50 };
+	size_max = { 1000, 1000 };
+
+	std::ifstream file;
+	file.open("nodebank.txt", std::ios_base::in | std::ios_base::binary);
+
+	std::string line;
+	while (std::getline(file, line))
+		if (line.size() > 2)
+			m_nodebank.push_back(std::make_unique<std::string>(line));
+}
+
+void
+nodebank_panel::render() {
+
+    if( false == is_open ) { return; }
+
+    auto flags =
+        ImGuiWindowFlags_NoFocusOnAppearing
+        | ImGuiWindowFlags_NoCollapse
+        | ( size.x > 0 ? ImGuiWindowFlags_NoResize : 0 );
+
+    if( size.x > 0 ) {
+        ImGui::SetNextWindowSize( ImVec2( size.x, size.y ) );
+    }
+    if( size_min.x > 0 ) {
+        ImGui::SetNextWindowSizeConstraints( ImVec2( size_min.x, size_min.y ), ImVec2( size_max.x, size_max.y ) );
+    }
+    auto const panelname { (
+        title.empty() ?
+            name :
+            title )
+        + "###" + name };
+
+    if( true == ImGui::Begin( panelname.c_str(), nullptr, flags ) ) {
+
+	    ImGui::RadioButton("modify node", (int*)&mode, MODIFY);
+        ImGui::SameLine();
+	    ImGui::RadioButton("insert from bank", (int*)&mode, ADD);
+        ImGui::SameLine();
+        ImGui::RadioButton( "copy to bank", (int*)&mode, COPY );
+
+	    ImGui::PushItemWidth(-1);
+	    if (ImGui::ListBoxHeader("##nodebank", ImVec2(-1, -1)))
+	    {
+		    int i = 0;
+		    for (auto const entry : m_nodebank) {
+			    std::string label = *entry + "##" + std::to_string(i);
+			    if (ImGui::Selectable(label.c_str(), entry == m_selectedtemplate))
+				    m_selectedtemplate = entry;
+			    i++;
+		    }
+
+		    ImGui::ListBoxFooter();
+	    }
+    }
+
+    ImGui::End();
+}
+
+void
+nodebank_panel::add_template(const std::string &desc) {
+	std::ofstream file;
+	file.open("nodebank.txt", std::ios_base::out | std::ios_base::app | std::ios_base::binary);
+	file << desc;
+
+	m_nodebank.push_back(std::make_unique<std::string>(desc));
+}
+
+const std::string *nodebank_panel::get_active_template() {
+	return m_selectedtemplate.get();
+}

@@ -93,8 +93,8 @@ node_groups::insert( scene::group_handle const Group, basic_event *Event ) {
 
 // sends basic content of the class in legacy (text) format to provided stream
 void
-node_groups::export_as_text( std::ostream &Output ) const {
-
+node_groups::export_as_text( std::ostream &Output, bool const Dirty ) const {
+/*
     for( auto const &group : m_groupmap ) {
 
         Output << "group\n";
@@ -111,6 +111,38 @@ node_groups::export_as_text( std::ostream &Output ) const {
             event->export_as_text( Output );
         }
         Output << "endgroup\n";
+    }
+*/
+    for( auto const &group : m_groupmap ) {
+		bool any = false;
+        for( auto *node : group.second.nodes ) {
+			if (node->dirty() != Dirty)
+				continue;
+            // HACK: auto-generated memory cells aren't exported, so we check for this
+            // TODO: is_exportable as basic_node method
+            if( ( typeid( *node ) == typeid( TMemCell ) )
+             && ( false == static_cast<TMemCell *>( node )->is_exportable ) ) {
+                continue;
+            }
+
+			if (!any)
+				Output << "group\n";
+			any = true;
+
+            node->export_as_text( Output );
+        }
+        for( auto *event : group.second.events ) {
+			if (Dirty)
+				continue;
+
+			if (!any)
+				Output << "group\n";
+			any = true;
+
+            event->export_as_text( Output );
+        }
+		if (any)
+			Output << "endgroup\n";
     }
 }
 

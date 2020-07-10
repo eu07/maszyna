@@ -929,7 +929,12 @@ TAnimModel::export_as_text_( std::ostream &Output ) const {
         // don't include 'textures/' in the path
         texturefile.erase( 0, std::string{ szTexturePath }.size() );
     }
-    Output << texturefile << ' ';
+    if( texturefile.find( ' ' ) == std::string::npos ) {
+        Output << texturefile << ' ';
+    }
+    else {
+        Output << "\"" << texturefile << "\"" << ' ';
+    }
     // light submodels activation configuration
     if( iNumLights > 0 ) {
         Output << "lights ";

@@ -81,6 +81,7 @@ private:
     void skip_until( cParser &Input, std::string const &Token );
     // transforms provided location by specifed rotation and offset
     glm::dvec3 transform( glm::dvec3 Location, scene::scratch_data const &Scratchpad );
+    void export_nodes_to_stream( std::ostream &, bool Dirty ) const;
 };
 
 } // simulation

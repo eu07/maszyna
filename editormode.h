@@ -89,5 +89,5 @@ private:
     scene::basic_editor m_editor;
     scene::basic_node *m_node; // currently selected scene node
     bool m_takesnapshot { true }; // helper, hints whether snapshot of selected node(s) should be taken before modification
-
+    bool m_dragging = false;
 };
