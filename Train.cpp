@@ -7200,8 +7200,6 @@ bool TTrain::Update( double const Deltatime )
 void
 TTrain::update_sounds( double const Deltatime ) {
 
-    if( Deltatime == 0.0 ) { return; }
-
     double volume { 0.0 };
     double const brakevolumescale { 0.5 };
 
@@ -7382,6 +7380,15 @@ TTrain::update_sounds( double const Deltatime ) {
     else {
         // don't play the optional ending sound if the listener switches views
         rsHuntingNoise.stop( true == FreeFlyModeFlag );
+    }
+    // rain sound
+    if( ( false == FreeFlyModeFlag )
+     && ( false == Global.CabWindowOpen )
+     && ( Global.Weather == "rain:" ) ) {
+        m_precipitationsound.play( sound_flags::exclusive | sound_flags::looping );
+    }
+    else {
+        m_precipitationsound.stop();
     }
 
     if( fTachoCount >= 3.f ) {
@@ -7720,6 +7727,11 @@ bool TTrain::LoadMMediaFile(std::string const &asFileName)
 //                rsHuntingNoise.m_amplitudefactor /= ( 1 + mvOccupied->Vmax );
                 rsHuntingNoise.m_frequencyfactor /= ( 1 + mvOccupied->Vmax );
             }
+            else if( token == "rainsound:" ) {
+                // precipitation sound:
+                m_precipitationsound.deserialize( parser, sound_type::single );
+                m_precipitationsound.owner( DynamicObject );
+            }
 
         } while (token != "");
     }
@@ -8030,6 +8042,11 @@ bool TTrain::InitializeCab(int NewCabNo, std::string const &asFileName)
     if (DynamicObject->mdKabina)
     {
 */
+        // assign default samples to sound emitters which weren't included in the config file
+        if( m_precipitationsound.empty() ) {
+            m_precipitationsound.deserialize( "rainsound_default", sound_type::single );
+            m_precipitationsound.owner( DynamicObject );
+        }
         // configure placement of sound emitters which aren't bound with any device model, and weren't placed manually
         // try first to bind sounds to location of possible devices
         if( dsbReverserKey.offset() == nullvector ) {

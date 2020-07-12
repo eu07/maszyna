@@ -179,7 +179,8 @@ world_environment::update() {
             "day:" :
             "night:" );
 
-    if( Global.Weather == "rain:" ) {
+    if( ( true == ( FreeFlyModeFlag || Global.CabWindowOpen ) )
+     && ( Global.Weather == "rain:" ) ) {
         m_precipitationsound.play( sound_flags::exclusive | sound_flags::looping );
     }
     else {
