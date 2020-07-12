@@ -49,8 +49,6 @@ private:
 };
 
 class nodebank_panel : public ui_panel {
-	std::vector<std::shared_ptr<std::string>> m_nodebank;
-	std::shared_ptr<std::string> m_selectedtemplate;
 
 public:
 	enum edit_mode {
@@ -66,4 +64,12 @@ public:
 	void render() override;
 	void add_template(const std::string &desc);
 	const std::string* get_active_template();
+
+private:
+// methods:
+    std::string generate_node_label( std::string Input ) const;
+// members:
+    std::vector<std::pair<std::string, std::shared_ptr<std::string>>> m_nodebank;
+    char m_nodesearch[ 128 ];
+    std::shared_ptr<std::string> m_selectedtemplate;
 };
