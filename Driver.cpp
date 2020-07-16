@@ -898,6 +898,21 @@ TCommandType TController::TableUpdate(double &fVelDes, double &fDist, double &fN
                 }
                 else if (iDrivigFlags & moveStopPoint) // jeśli pomijanie W4, to nie sprawdza czasu odjazdu
                 { // tylko gdy nazwa zatrzymania się zgadza
+                    if( ( OrderCurrentGet() & ( Obey_train | Bank ) ) != 0 ) {
+                        // check whether the station specifies radio channel change
+                        // NOTE: we don't do it in shunt mode, as shunting operations tend to use dedicated radio channel
+                        // NOTE: there's a risk radio channel change was specified by a station which we skipped during timetable rewind
+                        // we ignore this for the time being as it's not a high priority error
+                        auto const radiochannel { TrainParams.radio_channel() };
+                        if( radiochannel > 0 ) {
+                            if( iGuardRadio != 0 ) {
+                                iGuardRadio = radiochannel;
+                            }
+                            if( AIControllFlag ) {
+                                iRadioChannel = radiochannel;
+                            }
+                        }
+                    }
                     IsScheduledPassengerStopVisible = true; // block potential timetable rewind if the next stop shows up later in the scan
                     if (false == TrainParams.IsStop())
                     { // jeśli nie ma tu postoju
@@ -3217,8 +3232,8 @@ bool TController::IncSpeed()
         return false;
     }
     bool OK = true;
-    if( ( doors_open() )
-     && ( VelDesired > 0.0 ) ) { // to prevent door shuffle on stop
+    if( ( VelDesired > 0.0 )  // to prevent door shuffle on stop
+     && ( doors_open() || doors_permit_active() ) ) {
         // zamykanie drzwi - tutaj wykonuje tylko AI (zmienia fActionTime)
         Doors( false );
     }
@@ -4091,14 +4106,14 @@ void TController::Doors( bool const Open, int const Side ) {
     }
     else {
         // zamykanie
-        if( ( false == pVehicle->MoverParameters->Doors.permit_needed )
+        if( ( false == doors_permit_active() )
          && ( false == doors_open() ) ) {
             // the doors are already closed and we don't have to revoke control permit, we can skip all hard work
             iDrivigFlags &= ~moveDoorOpened;
             return;
         }
 
-        if( AIControllFlag ) {
+        if( ( AIControllFlag ) && ( doors_open() ) ) {
             if( ( true == mvOccupied->Doors.has_warning )
              && ( false == mvOccupied->DepartureSignal )
              && ( true == TestFlag( iDrivigFlags, moveDoorOpened ) ) ) {
@@ -4107,20 +4122,22 @@ void TController::Doors( bool const Open, int const Side ) {
             }
         }
 
-        if( ( true == doors_open() )
-         && ( ( fActionTime > -0.5 )
-           || ( false == AIControllFlag ) ) ) {
+        if( ( false == AIControllFlag ) || ( fActionTime > -0.5 ) ) {
             // ai doesn't close the door until it's free to depart, but human driver has free reign to do stupid things
-            if( ( pVehicle->MoverParameters->Doors.close_control == control_t::conductor )
-             || ( ( true == AIControllFlag ) ) ) {
-                // if the door are controlled by the driver, we let the user operate them unless this user is an ai
-                // the train conductor, if present, handles door operation also for human-driven trains
-                if( ( pVehicle->MoverParameters->Doors.close_control == control_t::driver )
-                 || ( pVehicle->MoverParameters->Doors.close_control == control_t::mixed ) ) {
-                    pVehicle->MoverParameters->OperateDoors( side::right, false );
-                    pVehicle->MoverParameters->OperateDoors( side::left, false );
+            if( true == doors_open() ) {
+                if( ( pVehicle->MoverParameters->Doors.close_control == control_t::conductor )
+                 || ( ( true == AIControllFlag ) ) ) {
+                    // if the door are controlled by the driver, we let the user operate them unless this user is an ai
+                    // the train conductor, if present, handles door operation also for human-driven trains
+                    if( ( pVehicle->MoverParameters->Doors.close_control == control_t::driver )
+                     || ( pVehicle->MoverParameters->Doors.close_control == control_t::mixed ) ) {
+                        pVehicle->MoverParameters->OperateDoors( side::right, false );
+                        pVehicle->MoverParameters->OperateDoors( side::left, false );
+                    }
                 }
-                if( pVehicle->MoverParameters->Doors.permit_needed ) {
+            }
+            if( true == doors_permit_active() ) {
+                if( true == AIControllFlag ) {
                     pVehicle->MoverParameters->PermitDoors( side::right, false );
                     pVehicle->MoverParameters->PermitDoors( side::left, false );
                 }
@@ -4157,19 +4174,14 @@ TController::doors_open() const {
     return (
         IsAnyDoorOpen[ side::right ]
      || IsAnyDoorOpen[ side::left ] );
-/*
-    auto *vehicle = pVehicles[ 0 ]; // pojazd na czole składu
-    while( vehicle != nullptr ) {
-        if( ( false == vehicle->MoverParameters->Doors.instances[side::right].is_closed )
-         || ( false == vehicle->MoverParameters->Doors.instances[side::left].is_closed ) ) {
-            // any open door is enough
-            return true;
-        }
-        vehicle = vehicle->Next();
-    }
-    // if we're still here there's nothing open
-    return false;
-*/
+}
+
+bool
+TController::doors_permit_active() const {
+
+    return (
+        IsAnyDoorPermitActive[ side::right ]
+     || IsAnyDoorPermitActive[ side::left ] );
 }
 
 void TController::RecognizeCommand()
@@ -4275,7 +4287,7 @@ bool TController::PutCommand( std::string NewCommand, double NewValue1, double N
                             { ".ogg", ".flac", ".wav" } );
                     if( false == lookup.first.empty() ) {
                         //  wczytanie dźwięku odjazdu w wersji radiowej (słychać tylko w kabinie)
-                        tsGuardSignal = sound_source( sound_placement::internal, 2 * EU07_SOUND_CABCONTROLSCUTOFFRANGE ).deserialize( lookup.first + lookup.second, sound_type::single );
+                        tsGuardSignal = sound_source( sound_placement::internal, EU07_SOUND_HANDHELDRADIORANGE ).deserialize( lookup.first + lookup.second, sound_type::single );
                         iGuardRadio = iRadioChannel;
                     }
                 }
@@ -4733,6 +4745,7 @@ TController::UpdateSituation(double dt) {
     double AbsAccS = 0;
     IsAnyCouplerStretched = false;
     IsAnyDoorOpen[ side::right ] = IsAnyDoorOpen[ side::left ] = false;
+    IsAnyDoorPermitActive[ side::right ] = IsAnyDoorPermitActive[ side::left ] = false;
     ConsistShade = 0.0;
     TDynamicObject *p = pVehicles[0]; // pojazd na czole składu
     while (p)
@@ -4777,12 +4790,11 @@ TController::UpdateSituation(double dt) {
             || ( vehicle->Couplers[ end::rear ].stretch_duration > 0.0 );
         // check door state
         auto const switchsides { p->DirectionGet() != iDirection };
-        IsAnyDoorOpen[ side::right ] =
-            IsAnyDoorOpen[ side::right ]
-         || ( false == vehicle->Doors.instances[ ( switchsides ? side::left : side::right ) ].is_closed );
-        IsAnyDoorOpen[ side::left ] =
-            IsAnyDoorOpen[ side::left ]
-         || ( false == vehicle->Doors.instances[ ( switchsides ? side::right : side::left ) ].is_closed );
+        IsAnyDoorOpen[ side::right ] |= ( false == vehicle->Doors.instances[ ( switchsides ? side::left : side::right ) ].is_closed );
+        IsAnyDoorOpen[ side::left ]  |= ( false == vehicle->Doors.instances[ ( switchsides ? side::right : side::left ) ].is_closed );
+        IsAnyDoorPermitActive[ side::right ] |= ( vehicle->Doors.permit_needed && vehicle->Doors.instances[ ( switchsides ? side::left : side::right ) ].open_permit );
+        IsAnyDoorPermitActive[ side::left ]  |= ( vehicle->Doors.permit_needed && vehicle->Doors.instances[ ( switchsides ? side::right : side::left ) ].open_permit );
+
         // measure lighting level
         // TBD: apply weight (multiplier) to partially lit vehicles?
         ConsistShade += ( p->fShade > 0.0 ? p->fShade : 1.0 );
@@ -6012,14 +6024,13 @@ TController::UpdateSituation(double dt) {
                         fActionTime = -5.0; // niech trochę potrzyma
                     }
                     else {
-                        // if (iGuardRadio==iRadioChannel) //zgodność kanału
-                        // if (!FreeFlyModeFlag) //obserwator musi być w środku pojazdu
-                        // (albo może mieć radio przenośne) - kierownik mógłby powtarzać przy braku reakcji
-                        // TODO: proper system for sending/receiving radio messages
-                        // place the sound in appropriate cab of the manned vehicle
+                        // radio message
                         tsGuardSignal.owner( pVehicle );
+/*
                         tsGuardSignal.offset( { 0.f, 2.f, pVehicle->MoverParameters->Dim.L * 0.4f * ( pVehicle->MoverParameters->CabOccupied < 0 ? -1 : 1 ) } );
                         tsGuardSignal.play( sound_flags::exclusive );
+*/
+                        simulation::radio_message( &tsGuardSignal, iGuardRadio );
                         // NOTE: we can't rely on is_playing() check as sound playback is based on distance from local camera
                         fActionTime = -5.0; // niech trochę potrzyma
                     }

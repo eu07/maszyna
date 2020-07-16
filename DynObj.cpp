@@ -4096,6 +4096,15 @@ void TDynamicObject::RenderSounds() {
     if( MoverParameters->CompressorSpeed > 0.0 ) {
         // McZapkie! - dzwiek compressor.wav tylko gdy dziala sprezarka
         if( MoverParameters->CompressorFlag ) {
+            if( MoverParameters->CompressorPower == 3 ) {
+                // presume the compressor sound is recorded for idle revolutions
+                // increase the pitch according to increase of engine revolutions
+                auto const enginefactor { ( MoverParameters->EngineMaxRPM() / MoverParameters->EngineIdleRPM() ) * MoverParameters->EngineRPMRatio() };
+                sCompressor.pitch(
+                    clamp( // try to keep the sound pitch in semi-reasonable range
+                        enginefactor,
+                        0.5, 2.5 ) );
+            }
             sCompressor.play( sound_flags::exclusive | sound_flags::looping );
         }
         else {
@@ -7269,7 +7278,7 @@ TDynamicObject::powertrain_sounds::render( TMoverParameters const &Vehicle, doub
                         engine.m_amplitudeoffset
                         + engine.m_amplitudefactor * (
                             0.25 * ( Vehicle.EnginePower / Vehicle.Power )
-                          + 0.75 * ( Vehicle.enrot * 60 ) / ( Vehicle.DElist[ Vehicle.MainCtrlPosNo ].RPM ) );
+                          + 0.75 * Vehicle.EngineRPMRatio() );
                     break;
                 }
                 case TEngineType::DieselEngine: {
@@ -7299,11 +7308,7 @@ TDynamicObject::powertrain_sounds::render( TMoverParameters const &Vehicle, doub
                         // calculate potential recent increase of engine revolutions
                         auto const revolutionsperminute { Vehicle.enrot * 60 };
                         auto const revolutionsdifference { revolutionsperminute - engine_revs_last };
-                        auto const idlerevolutionsthreshold { 1.01 * (
-                            Vehicle.EngineType == TEngineType::DieselElectric ?
-                                Vehicle.DElist[ 0 ].RPM :
-                                Vehicle.dizel_nmin * 60 ) };
-
+                        auto const idlerevolutionsthreshold { 1.01 * Vehicle.EngineIdleRPM() };
                         engine_revs_change = std::max( 0.0, engine_revs_change - 2.5 * Deltatime );
                         if( ( revolutionsperminute > idlerevolutionsthreshold )
                          && ( revolutionsdifference > 1.0 * Deltatime ) ) {

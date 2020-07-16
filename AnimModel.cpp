@@ -432,6 +432,15 @@ bool TAnimModel::Init(std::string const &asName, std::string const &asReplacable
     return ( pModel != nullptr );
 }
 
+bool
+TAnimModel::is_keyword( std::string const &Token ) const {
+
+    return ( Token == "endmodel" )
+        || ( Token == "lights" )
+        || ( Token == "lightcolors" )
+        || ( Token == "angles" );
+}
+
 bool TAnimModel::Load(cParser *parser, bool ter)
 { // rozpoznanie wpisu modelu i ustawienie świateł
 	std::string name = parser->getToken<std::string>();
@@ -485,8 +494,7 @@ bool TAnimModel::Load(cParser *parser, bool ter)
         if( token == "lights" ) {
             auto i{ 0 };
             while( ( false == ( token = parser->getToken<std::string>() ).empty() )
-                && ( token != "lightcolors" )
-                && ( token != "endmodel" ) ) {
+                && ( false == is_keyword( token ) ) ) {
 
                 if( i < iNumLights ) {
                     // stan światła jest liczbą z ułamkiem
@@ -499,8 +507,7 @@ bool TAnimModel::Load(cParser *parser, bool ter)
         if( token == "lightcolors" ) {
             auto i{ 0 };
             while( ( false == ( token = parser->getToken<std::string>() ).empty() )
-                && ( token != "lights" )
-                && ( token != "endmodel" ) ) {
+                && ( false == is_keyword( token ) ) ) {
 
                 if( ( i < iNumLights )
                  && ( token != "-1" ) ) { // -1 leaves the default color intact
@@ -513,6 +520,15 @@ bool TAnimModel::Load(cParser *parser, bool ter)
                 ++i;
             }
         }
+
+        if( token == "angles" ) {
+            parser->getTokens( 3 );
+            *parser
+                >> vAngle[ 0 ]
+                >> vAngle[ 1 ]
+                >> vAngle[ 2 ];
+        }
+
     } while( ( false == token.empty() )
           && ( token != "endmodel" ) );
 

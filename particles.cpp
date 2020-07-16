@@ -275,9 +275,10 @@ smoke_source::location() const {
             break;
         }
         case owner_type::node: {
-            // TODO: take into account node rotation
-            auto const rotation { glm::angleAxis( glm::radians( m_owner.node->Angles().y ), glm::vec3{ 0.f, 1.f, 0.f } ) };
-            location = rotation * glm::vec3{ m_offset };
+            auto const rotationx { glm::angleAxis( glm::radians( m_owner.node->Angles().x ), glm::vec3{ 1.f, 0.f, 0.f } ) };
+            auto const rotationy { glm::angleAxis( glm::radians( m_owner.node->Angles().y ), glm::vec3{ 0.f, 1.f, 0.f } ) };
+            auto const rotationz { glm::angleAxis( glm::radians( m_owner.node->Angles().z ), glm::vec3{ 0.f, 0.f, 1.f } ) };
+            location = rotationy * rotationx * rotationz * glm::vec3{ m_offset };
             location += m_owner.node->location();
             break;
         }

@@ -465,6 +465,7 @@ private:
     void Doors( bool const Open, int const Side = 0 );
     // returns true if any vehicle in the consist has an open door
     bool doors_open() const;
+    bool doors_permit_active() const;
     void AutoRewident(); // ustawia hamulce w składzie
     void UpdatePantographs();
 // members
@@ -482,6 +483,7 @@ private:
     double ConsistShade{ 1.0 }; // averaged amount of sunlight received by the consist
     TDynamicObject *pVehicles[ 2 ]; // skrajne pojazdy w składzie (niekoniecznie bezpośrednio sterowane)
     bool IsAnyDoorOpen[ 2 ]; // state of door in the consist
+    bool IsAnyDoorPermitActive[ 2 ]; // state of door permit in the consist
     bool IsAnyLineBreakerOpen{ false }; // state of line breaker in all powered vehicles under control
     bool IsAnyConverterOverloadRelayOpen{ false }; // state of converter overload relays in all vehicles under control
     bool IsAnyMotorOverloadRelayOpen{ false }; // state of motor overload relays in all vehicles under control

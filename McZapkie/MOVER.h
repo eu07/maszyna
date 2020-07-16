@@ -1647,6 +1647,9 @@ public:
 	double PipeRatio(void);/*ile napelniac*/
 	double RealPipeRatio(void);/*jak szybko*/
 	double BrakeVP(void) const;
+    double EngineRPMRatio() const; // returns current engine revolutions as percentage of max engine revolutions, in range 0-1
+    double EngineIdleRPM() const;
+    double EngineMaxRPM() const;
 
 	/*! przesylanie komend sterujacych*/
 	bool SendCtrlToNext(std::string const CtrlCommand, double const ctrlvalue, double const dir, int const Couplertype = coupling::control );

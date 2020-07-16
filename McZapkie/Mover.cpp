@@ -1000,6 +1000,34 @@ double TMoverParameters::PipeRatio(void)
     return pr;
 }
 
+double
+TMoverParameters::EngineRPMRatio() const {
+
+    return clamp( (
+            EngineType == TEngineType::DieselElectric ? ( ( 60.0 * std::abs( enrot ) ) / DElist[ MainCtrlPosNo ].RPM ) :
+            EngineType == TEngineType::DieselEngine ? ( std::abs( enrot ) / nmax ) :
+            1.0 ), // shouldn't ever get here but, eh
+            0.0, 1.0 );
+}
+
+double
+TMoverParameters::EngineIdleRPM() const {
+
+    return (
+        EngineType == TEngineType::DieselEngine ? dizel_nmin * 60 :
+        EngineType == TEngineType::DieselElectric ? DElist[ MainCtrlNoPowerPos() ].RPM :
+        std::numeric_limits<double>::max() ); // shouldn't ever get here but, eh
+}
+
+double
+TMoverParameters::EngineMaxRPM() const {
+
+    return (
+        EngineType == TEngineType::DieselEngine ? dizel_nmax * 60 :
+        EngineType == TEngineType::DieselElectric ? DElist[ MainCtrlPosNo ].RPM :
+        std::numeric_limits<double>::max() ); // shouldn't ever get here but, eh
+}
+
 // *************************************************************************************************
 // Q: 20160716
 // Wykrywanie kolizji
@@ -1959,17 +1987,13 @@ void TMoverParameters::OilPumpCheck( double const Timestep ) {
             OilPump.start_type == start_t::manualwithautofallback ? ( OilPump.is_enabled || dizel_startup ) :
             false ) ) ); // shouldn't ever get this far but, eh
 
-    auto const maxrevolutions {
-        EngineType == TEngineType::DieselEngine ?
-            dizel_nmax :
-            DElist[ MainCtrlPosNo ].RPM / 60.0 };
     auto const minpressure {
         OilPump.pressure_minimum > 0.f ?
             OilPump.pressure_minimum :
             0.15f }; // arbitrary fallback value
 
     OilPump.pressure_target = (
-        enrot > 0.1 ? interpolate( minpressure, OilPump.pressure_maximum, static_cast<float>( clamp( enrot / maxrevolutions, 0.0, 1.0 ) ) ) * OilPump.resource_amount :
+        enrot > 0.1 ? interpolate( minpressure, OilPump.pressure_maximum, static_cast<float>( EngineRPMRatio() ) ) * OilPump.resource_amount :
         true == OilPump.is_active ? std::min( minpressure + 0.1f, OilPump.pressure_maximum ) : // slight pressure margin to give time to switch off the pump and start the engine
         0.f );
 
@@ -4128,14 +4152,10 @@ void TMoverParameters::CompressorCheck(double dt) {
     switch( CompressorPower ) {
         case 3: {
             // the compressor is coupled with the diesel engine, engine revolutions affect the output
-            auto const enginefactor { (
-                EngineType == TEngineType::DieselElectric ? ( ( 60.0 * std::abs( enrot ) ) / DElist[ MainCtrlPosNo ].RPM ) :
-                EngineType == TEngineType::DieselEngine ? ( std::abs( enrot ) / nmax ) :
-                1.0 ) }; // shouldn't ever get here but, eh
             CompressedVolume +=
                 CompressorSpeedF
                 * ( 2.0 * MaxCompressorF - Compressor ) / MaxCompressorF
-                * enginefactor
+                * EngineRPMRatio()
                 * dt
                 * ( CompressorGovernorLock ? 0.0 : 1.0 ); // with the lock active air is vented out
             break;
@@ -5217,7 +5237,7 @@ double TMoverParameters::TractionForce( double dt ) {
                         std::max(
                             tmp,
                             std::min(
-                                DElist[ MainCtrlPosNo ].RPM,
+                                EngineMaxRPM(),
                                 EngineHeatingRPM )
                                 / 60.0 );
                 }
@@ -5576,7 +5596,7 @@ double TMoverParameters::TractionForce( double dt ) {
             if (EIMCtrlType > 0) //sterowanie cyfrowe
             {
                 auto eimic_positive = std::max(0.0, eimic_real);
-                auto const rpmratio {60.0 * enrot / DElist[MainCtrlPosNo].RPM};
+                auto const rpmratio { EngineRPMRatio() };
                 tempImax = DElist[MainCtrlPosNo].Imax * eimic_positive;
                 tempUmax = DElist[MainCtrlPosNo].Umax * std::min(eimic_positive, rpmratio);
                 tempPmax = DElist[MainCtrlPosNo].GenPower * std::min(eimic_positive, rpmratio);
@@ -5611,8 +5631,7 @@ double TMoverParameters::TractionForce( double dt ) {
                     EngineVoltage = ( SST[ MainCtrlPos ].Umax * AnPos ) + ( SST[ MainCtrlPos ].Umin * ( 1.0 - AnPos ) );
                     // NOTE: very crude way to approximate power generated at current rpm instead of instant top output
                     // NOTE, TODO: doesn't take into account potentially increased revolutions if heating is on, fix it
-                    auto const rpmratio { 60.0 * enrot / DElist[ MainCtrlPos ].RPM };
-                    tmp = rpmratio * ( SST[ MainCtrlPos ].Pmax * AnPos ) + ( SST[ MainCtrlPos ].Pmin * ( 1.0 - AnPos ) );
+                    tmp = EngineRPMRatio() * ( SST[ MainCtrlPos ].Pmax * AnPos ) + ( SST[ MainCtrlPos ].Pmin * ( 1.0 - AnPos ) );
                     Ft = tmp * 1000.0 / ( abs( tmpV ) + 1.6 );
                 }
                 else {
@@ -6203,8 +6222,7 @@ double TMoverParameters::TractionForce( double dt ) {
     switch( EngineType ) {
         case TEngineType::DieselElectric: {
             // rough approximation of extra effort to overcome friction etc
-            auto const rpmratio{ 60.0 * enrot / DElist[ MainCtrlPosNo ].RPM };
-            EnginePower += rpmratio * 0.15 * DElist[ MainCtrlPosNo ].GenPower;
+            EnginePower += EngineRPMRatio() * 0.15 * DElist[ MainCtrlPosNo ].GenPower;
             break;
         }
         default: {
@@ -7780,11 +7798,7 @@ void TMoverParameters::dizel_Heat( double const dt ) {
     auto const engineoff { ( Mains ? 0 : 1 ) };
     auto const rpm { enrot * 60 };
     // TODO: calculate this once and cache for further use, instead of doing it repeatedly all over the place
-    auto const maxrevolutions { (
-        EngineType == TEngineType::DieselEngine ? dizel_nmax * 60 :
-        EngineType == TEngineType::DieselElectric ? DElist[ MainCtrlPosNo ].RPM :
-        std::numeric_limits<double>::max() ) }; // shouldn't ever get here but, eh
-    auto const revolutionsfactor { clamp( rpm / maxrevolutions, 0.0, 1.0 ) };
+    auto const revolutionsfactor { EngineRPMRatio() };
     auto const waterpump { WaterPump.is_active ? 1 : 0 };
 
     auto const gw = engineon * interpolate( gwmin, gwmax, revolutionsfactor ) + waterpump * 1000 + engineoff * 200;

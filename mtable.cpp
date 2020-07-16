@@ -57,6 +57,13 @@ bool TTrainParameters::IsMaintenance() const {
         return false;
 }
 
+int TTrainParameters::radio_channel() const {
+    if( ( StationIndex < StationCount ) )
+        return TimeTable[ StationIndex ].radio_channel;
+    else
+        return -1;
+}
+
 bool TTrainParameters::UpdateMTable( scenario_time const &Time, std::string const &NewName ) {
 
     return UpdateMTable( Time.data().wHour, Time.data().wMinute + Time.data().wSecond * 0.0167, NewName );
@@ -406,8 +413,21 @@ bool TTrainParameters::LoadTTfile(std::string scnpath, int iPlus, double vmax)
                                            || ( s == "2" )
                                            || fin.bad() ) ) {
                                 record->StationWare += s;
-                                record->is_maintenance = ( s.find( "pt" ) != std::string::npos );
                                 fin >> s;
+                            }
+                            // cache relevant station data
+                            record->is_maintenance = ( s.find( "pt" ) != std::string::npos );
+                            {
+                                auto const stationware { Split( record->StationWare, ',' ) };
+                                for( auto const &entry : stationware ) {
+                                    if( entry[ 0 ] == 'R' ) {
+                                        auto const entrysplit { split_index( entry ) };
+                                        if( ( entrysplit.first == "R" )
+                                         && ( entrysplit.second <= 10 ) ) {
+                                            record->radio_channel = entrysplit.second;
+                                        }
+                                    }
+                                }
                             }
                             record->TrackNo = atoi(s.c_str());
                             fin >> s;

@@ -28,11 +28,11 @@ struct global_settings {
     bool shiftState{ false }; //m7todo: brzydko
     bool ctrlState{ false };
     bool altState{ false };
-	std::mt19937 random_engine;
-	std::mt19937 local_random_engine;
-	bool ready_to_load { false };
-	std::time_t starting_timestamp = 0; // starting time, in local timezone
-	uint32_t random_seed = 0;
+    std::mt19937 random_engine;
+    std::mt19937 local_random_engine;
+    bool ready_to_load{ false };
+    std::time_t starting_timestamp = 0; // starting time, in local timezone
+    uint32_t random_seed = 0;
     TCamera pCamera; // parametry kamery
     TCamera pDebugCamera;
     std::array<Math3D::vector3, 10> FreeCameraInit; // pozycje kamery
@@ -56,12 +56,12 @@ struct global_settings {
     std::string asCurrentTexturePath{ szTexturePath };
     std::string asCurrentDynamicPath;
     int CurrentMaxTextureSize{ 4096 };
-    bool GfxFramebufferSRGB { true };
-    bool UpdateMaterials { true };
+    bool GfxFramebufferSRGB{ true };
+    bool UpdateMaterials{ true };
     // settings
     // filesystem
     bool bLoadTraction{ true };
-    bool CreateSwitchTrackbeds { true };
+    bool CreateSwitchTrackbeds{ true };
     std::string szTexturesTGA{ ".tga" }; // lista tekstur od TGA
     std::string szTexturesDDS{ ".dds" }; // lista tekstur od DDS
     std::string szDefaultExt{ szTexturesDDS };
@@ -77,7 +77,7 @@ struct global_settings {
     bool RealisticControlMode{ false }; // controls ability to steer the vehicle from outside views
     bool bEnableTraction{ true };
     float fFriction{ 1.f }; // mnożnik tarcia - KURS90
-    float FrictionWeatherFactor { 1.f };
+    float FrictionWeatherFactor{ 1.f };
     bool bLiveTraction{ true };
     float Overcast{ 0.1f }; // NOTE: all this weather stuff should be moved elsewhere
     glm::vec3 FogColor = { 0.6f, 0.7f, 0.8f };
@@ -91,9 +91,9 @@ struct global_settings {
     bool FakeLight{ false }; // toggle between fixed and dynamic daylight
     double fTimeSpeed{ 1.0 }; // przyspieszenie czasu, zmienna do testów
     double fLatitudeDeg{ 52.0 }; // szerokość geograficzna
-    float ScenarioTimeOverride { std::numeric_limits<float>::quiet_NaN() }; // requested scenario start time
-    float ScenarioTimeOffset { 0.f }; // time shift (in hours) applied to train timetables
-    bool ScenarioTimeCurrent { false }; // automatic time shift to match scenario time with local clock
+    float ScenarioTimeOverride{ std::numeric_limits<float>::quiet_NaN() }; // requested scenario start time
+    float ScenarioTimeOffset{ 0.f }; // time shift (in hours) applied to train timetables
+    bool ScenarioTimeCurrent{ false }; // automatic time shift to match scenario time with local clock
     bool bInactivePause{ true }; // automatyczna pauza, gdy okno nieaktywne
     int iSlowMotionMask{ -1 }; // maska wyłączanych właściwości
     bool bHideConsole{ false }; // hunter-271211: ukrywanie konsoli
@@ -101,16 +101,16 @@ struct global_settings {
     bool bJoinEvents{ false }; // czy grupować eventy o tych samych nazwach
     int iHiddenEvents{ 1 }; // czy łączyć eventy z torami poprzez nazwę toru
     // ui
-    int PythonScreenUpdateRate { 200 }; // delay between python-based screen updates, in milliseconds
+    int PythonScreenUpdateRate{ 200 }; // delay between python-based screen updates, in milliseconds
     int iTextMode{ 0 }; // tryb pracy wyświetlacza tekstowego
-    glm::vec4 UITextColor { glm::vec4( 225.f / 255.f, 225.f / 255.f, 225.f / 255.f, 1.f ) }; // base color of UI text
-    float UIBgOpacity { 0.65f }; // opacity of ui windows
+    glm::vec4 UITextColor{ glm::vec4( 225.f / 255.f, 225.f / 255.f, 225.f / 255.f, 1.f ) }; // base color of UI text
+    float UIBgOpacity{ 0.65f }; // opacity of ui windows
     std::string asLang{ "pl" }; // domyślny język - http://tools.ietf.org/html/bcp47
     // gfx
     int iWindowWidth{ 800 };
     int iWindowHeight{ 600 };
     float fDistanceFactor{ 1.f }; // baza do przeliczania odległości dla LoD
-    float targetfps { 0.0f };
+    float targetfps{ 0.0f };
     bool bFullScreen{ false };
     bool VSync{ false };
     bool bWireFrame{ false };
@@ -179,7 +179,7 @@ struct global_settings {
     // wartości maksymalne wyjść dla pulpitu
     double fCalibrateOutMax[ 7 ] = {
         0, 0, 0, 0, 0, 0, 0 };
-    int iCalibrateOutDebugInfo { -1 }; // numer wyjścia kalibrowanego dla którego wyświetlać informacje podczas kalibracji
+    int iCalibrateOutDebugInfo{ -1 }; // numer wyjścia kalibrowanego dla którego wyświetlać informacje podczas kalibracji
     int iPoKeysPWM[ 7 ] = { 0, 1, 2, 3, 4, 5, 6 }; // numery wejść dla PWM
 #ifdef WITH_UART
     uart_input::conf_t uart_conf;
@@ -192,14 +192,14 @@ struct global_settings {
     // TODO: move these to relevant areas
     bool render_cab = true;
 
-	std::chrono::duration<float> minframetime {0.0f};
+    std::chrono::duration<float> minframetime{ 0.0f };
 
     std::string fullscreen_monitor;
 
     bool python_enabled = true;
-	bool python_mipmaps = true;
-	bool python_threadedupload = true;
-	bool python_uploadmain = true;
+    bool python_mipmaps = true;
+    bool python_threadedupload = true;
+    bool python_uploadmain = true;
 
     bool gfx_skiprendering = false;
     int gfx_framebuffer_width = -1;
@@ -227,7 +227,28 @@ struct global_settings {
 // methods
     void LoadIniFile( std::string asFileName );
     void ConfigParse( cParser &parser );
+    // sends basic content of the class in legacy (text) format to provided stream
+    void
+        export_as_text( std::ostream &Output ) const;
+    template <typename Type_>
+    void
+        export_as_text( std::ostream &Output, std::string const Key, Type_ const &Value ) const;
 };
+
+template <typename Type_>
+void
+global_settings::export_as_text( std::ostream &Output, std::string const Key, Type_ const &Value ) const {
+
+    Output << Key << " " << Value << "\n";
+}
+
+template <>
+void
+global_settings::export_as_text( std::ostream &Output, std::string const Key, std::string const &Value ) const;
+
+template <>
+void
+global_settings::export_as_text( std::ostream &Output, std::string const Key, bool const &Value ) const;
 
 extern global_settings Global;
 

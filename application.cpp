@@ -127,6 +127,15 @@ eu07_application::init( int Argc, char *Argv[] ) {
 	WriteLog( "Authors: Marcin_EU, McZapkie, ABu, Winger, Tolaris, nbmx, OLO_EU, Bart, Quark-t, "
 	    "ShaXbee, Oli_EU, youBy, KURS90, Ra, hunter, szociu, Stele, Q, firleju and others\n" );
 
+    {
+        WriteLog( "// settings" );
+        std::stringstream settingspipe;
+        Global.export_as_text( settingspipe );
+        WriteLog( settingspipe.str() );
+    }
+
+    WriteLog( "// startup" );
+
     if( ( result = init_glfw() ) != 0 ) {
         return result;
     }

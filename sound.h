@@ -17,6 +17,7 @@ float const EU07_SOUND_GLOBALRANGE { -1.f };
 float const EU07_SOUND_CABCONTROLSCUTOFFRANGE { 7.5f };
 float const EU07_SOUND_BRAKINGCUTOFFRANGE { 100.f };
 float const EU07_SOUND_RUNNINGNOISECUTOFFRANGE { 200.f };
+float const EU07_SOUND_HANDHELDRADIORANGE { 750.f };
 
 enum class sound_type {
     single,

@@ -37,6 +37,7 @@ struct TMTableLine
     float Dm{ -1.f }; // godz. i min. odjazdu
     float tm{ 0.f }; // czas jazdy do tej stacji w min. (z kolumny)
     bool is_maintenance{ false };
+    int radio_channel{ -1 };
 };
 
 typedef TMTableLine TMTable[MaxTTableSize + 1];
@@ -77,6 +78,8 @@ class TTrainParameters
     bool DirectionChange();
     void StationIndexInc();
     void serialize( dictionary_source *Output ) const;
+    // returns: radio channel associated with current station, or -1
+    int radio_channel() const;
 };
 
 class TMTableTime
