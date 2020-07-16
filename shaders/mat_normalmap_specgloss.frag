@@ -52,7 +52,7 @@ void main()
 	vec3 fragnormal = normalize(f_tbn * normalize(normal.xyz));
 	float reflectivity = param[1].z * texture(normalmap, f_coord).a;
 	float specularity = texture(specgloss, f_coord).r;
-	glossiness = texture(specgloss, f_coord).g * 8;
+	glossiness = texture(specgloss, f_coord).g * abs(param[1].w);
 	metalic = (texture(specgloss, f_coord).b > 0.5) ? true : false;
 
 	fragcolor = apply_lights(fragcolor, fragnormal, tex_color.rgb, reflectivity, specularity, shadow_tone);
