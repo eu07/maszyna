@@ -198,10 +198,8 @@ auto python_taskqueue::init() -> bool {
 
     // release the lock, save the state for future use
     m_mainthread = PyEval_SaveThread();
-	if( Global.python_enabled == true )
-		WriteLog( "Python Interpreter: setup complete" );
-	else
-		WriteLog( "Python module disabled" );
+
+    WriteLog( "Python Interpreter: setup complete" );
 
     // init workers
     for( auto &worker : m_workers ) {
