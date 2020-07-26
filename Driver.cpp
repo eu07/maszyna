@@ -4601,10 +4601,12 @@ bool TController::PutCommand( std::string NewCommand, double NewValue1, double N
         // wybór kanału radiowego (którego powinien używać AI, ręczny maszynista musi go ustawić sam)
         if (NewValue1 >= 0) {
             // wartości ujemne są zarezerwowane, -1 = nie zmieniać kanału
-            iRadioChannel = NewValue1;
+            if( AIControllFlag ) {
+                iRadioChannel = NewValue1;
+            }
             if( iGuardRadio ) {
                 // kierownikowi też zmienić
-                iGuardRadio = iRadioChannel;
+                iGuardRadio = NewValue1;
             }
         }
         // NewValue2 może zawierać dodatkowo oczekiwany kod odpowiedzi, np. dla W29 "nawiązać

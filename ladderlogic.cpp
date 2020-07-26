@@ -152,7 +152,7 @@ basic_controller::deserialize_operation( cParser &Input ) -> bool {
     }
 
     if( false == operationparameter.empty() ) {
-        auto const parameter{ split_index( operationparameter ) };
+        auto const parameter{ split_string_and_number( operationparameter ) };
         operation.parameter1 = static_cast<short>( parameter.second );
     }
 
@@ -379,7 +379,7 @@ basic_controller::log_error( std::string const &Error, int const Line ) const {
 auto
 basic_controller::guess_element_type_from_name( std::string const &Name ) const -> basic_element::type_e {
 
-    auto const name { split_index( Name ) };
+    auto const name { split_string_and_number( Name ) };
 
     if( ( name.first == "t" ) || ( name.first == "ton" ) || ( name.first.find( "timer." ) == 0 ) ) {
         return basic_element::type_e::timer;

@@ -271,6 +271,8 @@ private:
     void run_() override;
     // export_as_text() subclass details
     void export_as_text_( std::ostream &Output ) const override;
+    //determines whether provided input should be passed to consist owner
+    bool is_command_for_owner( input_data const &Input ) const;
 };
 
 

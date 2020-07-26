@@ -383,7 +383,7 @@ timetable_panel::update() {
                     tableline->Dh >= 0 ?
                         to_string( int( 100 + tableline->Dh ) ).substr( 1, 2 ) + ":" + to_minutes_str( tableline->Dm, true, 3 ) :
                         u8"  │   " ) };
-                auto const candeparture { (
+                auto const candepart { (
                        ( owner->iStationStart < table.StationIndex )
                     && ( i < table.StationIndex )
                     && ( ( tableline->Ah < 0 ) // pass-through, always valid
@@ -398,7 +398,7 @@ timetable_panel::update() {
                 auto const linecolor { (
                     ( i != owner->iStationStart ) ? Global.UITextColor :
                     loadchangeinprogress ? loadingcolor :
-                    candeparture ? readycolor : // czas minął i odjazd był, to nazwa stacji będzie na zielono
+                    candepart ? readycolor : // czas minął i odjazd był, to nazwa stacji będzie na zielono
                     isatpassengerstop ? waitcolor :
                     Global.UITextColor ) };
                 auto const trackcount{ ( tableline->TrackNo == 1 ? u8" ┃  " : u8" ║  " ) };

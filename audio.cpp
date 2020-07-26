@@ -48,7 +48,7 @@ openal_buffer::openal_buffer( std::string const &Filename ) :
             }
         }
         else {
-            ErrorLog( "Bad file: failed do load audio file \"" + Filename + "\"", logtype::file );
+            ErrorLog( "Bad file: failed to load audio file \"" + Filename + "\"", logtype::file );
         }
         // we're done with the disk data
         drwav_close( file );
@@ -70,7 +70,7 @@ openal_buffer::openal_buffer( std::string const &Filename ) :
             }
         }
         else {
-            ErrorLog( "Bad file: failed do load audio file \"" + Filename + "\"", logtype::file );
+            ErrorLog( "Bad file: failed to load audio file \"" + Filename + "\"", logtype::file );
         }
         // we're done with the disk data
         drflac_close( file );
@@ -92,7 +92,7 @@ openal_buffer::openal_buffer( std::string const &Filename ) :
             }
         }
         else {
-            ErrorLog( "Bad file: failed do load audio file \"" + Filename + "\"", logtype::file );
+            ErrorLog( "Bad file: failed to load audio file \"" + Filename + "\"", logtype::file );
         }
     }
 
@@ -194,7 +194,7 @@ buffer_manager::create( std::string const &Filename ) {
         return emplace( filelookup );
     }
     // if we still didn't find anything, give up
-    ErrorLog( "Bad file: failed do locate audio file \"" + Filename + "\"", logtype::file );
+    ErrorLog( "Bad file: failed to locate audio file \"" + Filename + "\"", logtype::file );
     return null_handle;
 }
 

@@ -730,7 +730,8 @@ putvalues_event::run_() {
             m_input.data_value_2,
             loc );
     }
-    else if( m_activator->ctOwner ) {
+    else if( ( m_activator->ctOwner )
+          && ( is_command_for_owner( m_input ) ) ) {
         // send the command to consist owner,
         // we're acting on presumption there's hardly ever need to issue command to unmanned vehicle
         // and the intended recipient moved between vehicles after the event was queued
@@ -763,6 +764,17 @@ putvalues_event::export_as_text_( std::ostream &Output ) const {
         << m_input.data_text << ' '
         << m_input.data_value_1 << ' '
         << m_input.data_value_2 << ' ';
+}
+
+//determines whether provided input should be passed to consist owner
+bool
+putvalues_event::is_command_for_owner( input_data const &Input ) const {
+
+    if( Input.data_text.rfind( "Load=", 0 ) == std::string::npos ) { return false; }
+    if( Input.data_text.rfind( "UnLoad=", 0 ) == std::string::npos ) { return false; }
+    // TBD, TODO: add other exceptions
+
+    return true;
 }
 
 // input data access

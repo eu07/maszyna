@@ -201,7 +201,7 @@ std::vector<std::string> Split(const std::string &s)
 }
 
 std::pair<std::string, int>
-split_index( std::string const &Key ) {
+split_string_and_number( std::string const &Key ) {
 
     auto const indexstart{ Key.find_first_of( "-1234567890" ) };
     auto const indexend{ Key.find_first_not_of( "-1234567890", indexstart ) };

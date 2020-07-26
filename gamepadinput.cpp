@@ -184,7 +184,7 @@ gamepad_input::recall_bindings() {
 
         std::string bindingpoint {};
         entryparser >> bindingpoint;
-        auto const splitbindingpoint { split_index( bindingpoint ) };
+        auto const splitbindingpoint { split_string_and_number( bindingpoint ) };
 
         if( splitbindingpoint.first == "axis" ) {
             // one or more sets of: [modeIDX] input type, parameters
@@ -204,7 +204,7 @@ gamepad_input::recall_bindings() {
                 std::string key {};
                 entryparser >> key;
                 // check for potential mode indicator
-                auto const splitkey { split_index( key ) };
+                auto const splitkey { split_string_and_number( key ) };
                 if( splitkey.first == "mode" ) {
                     // indicate we'll be processing specified mode
                     controlmode = splitkey.second;
