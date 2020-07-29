@@ -459,6 +459,14 @@ len_common_prefix( std::string const &Left, std::string const &Right ) {
         std::distance( left,  std::mismatch( left,  left + Left.size(),  right ).first ) );
 }
 
+// returns true if provided string ends with another provided string
+bool
+ends_with( std::string const &String, std::string const &Suffix ) {
+
+    return ( String.size() >= Suffix.size() )
+        && ( 0 == String.compare( String.size() - Suffix.size(), Suffix.size(), Suffix ) );
+}
+
 // helper, restores content of a 3d vector from provided input stream
 // TODO: review and clean up the helper routines, there's likely some redundant ones
 glm::dvec3 LoadPoint( cParser &Input ) {

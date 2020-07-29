@@ -986,6 +986,12 @@ TCommandType TController::TableUpdate(double &fVelDes, double &fDist, double &fN
                         if( mvOccupied->Vel > 0.3 ) {
                             // jeśli jedzie (nie trzeba czekać, aż się drgania wytłumią - drzwi zamykane od 1.0) to będzie zatrzymanie
                             sSpeedTable[ i ].fVelNext = 0;
+                            // potentially announce pending stop
+                            if( ( m_lastannouncement != announcement_t::approaching )
+                             && ( sSpeedTable[ i ].fDist < 750 )
+                             && ( sSpeedTable[ i ].fDist > 250 ) ) {
+                                announce( announcement_t::approaching );
+                            }
                         } else if( true == IsAtPassengerStop ) {
                             // jeśli się zatrzymał przy W4, albo stał w momencie zobaczenia W4
                             if( !AIControllFlag ) {
@@ -1009,17 +1015,11 @@ TCommandType TController::TableUpdate(double &fVelDes, double &fDist, double &fN
                                     auto const platformside = static_cast<int>( std::floor( std::abs( sSpeedTable[ i ].evEvent->input_value( 2 ) ) ) ) % 10;
                                     auto const exchangetime = simulation::Station.update_load( pVehicles[ 0 ], TrainParams, platformside );
                                     WaitingSet( exchangetime );
+                                    // announce the stop name while at it
+                                    announce( announcement_t::current );
                                     m_lastexchangestop = asNextStop;
+                                    m_makenextstopannouncement = true;
                                 }
-
-                                if( false == TrainParams.IsMaintenance() )
-//                                 && ( ( iDrivigFlags & moveDoorOpened ) == 0 ) )
-                                {
-                                    // drzwi otwierać jednorazowo
-                                    iDrivigFlags |= moveDoorOpened; // nie wykonywać drugi raz
-                                    Doors( true, static_cast<int>( std::floor( std::abs( sSpeedTable[ i ].evEvent->input_value( 2 ) ) ) ) % 10 );
-                                }
-
 
                                 if (TrainParams.DirectionChange()) {
                                     // jeśli "@" w rozkładzie, to wykonanie dalszych komend
@@ -1051,6 +1051,13 @@ TCommandType TController::TableUpdate(double &fVelDes, double &fDist, double &fN
                                     // nie analizować prędkości
                                     continue;
                                 }
+                            }
+
+                            if( ( false == TrainParams.IsMaintenance() )
+                             && ( ( false == TestFlag( iDrivigFlags, moveDoorOpened ) )
+                               || ( true == DoesAnyDoorNeedOpening ) ) ) {
+                                iDrivigFlags |= moveDoorOpened; // nie wykonywać drugi raz
+                                Doors( true, static_cast<int>( std::floor( std::abs( sSpeedTable[ i ].evEvent->input_value( 2 ) ) ) ) % 10 );
                             }
 
                             if (OrderCurrentGet() & ( Shunt | Loose_shunt )) {
@@ -4184,6 +4191,23 @@ TController::doors_permit_active() const {
      || IsAnyDoorPermitActive[ side::left ] );
 }
 
+void
+TController::announce( announcement_t const Announcement ) {
+
+    m_lastannouncement = Announcement;
+
+    if( IsCargoTrain ) {
+        // cargo trains aren't likely to have announcement systems, so we can skip the procedure altogether
+        return;
+    }
+
+    auto *vehicle { pVehicles[ end::front ] };
+    while( vehicle ) {
+        vehicle->announce( Announcement );
+        vehicle = vehicle->Next();
+    }
+}
+
 void TController::RecognizeCommand()
 { // odczytuje i wykonuje komendę przekazaną lokomotywie
     TCommand *c = &mvOccupied->CommandIn;
@@ -4268,6 +4292,7 @@ bool TController::PutCommand( std::string NewCommand, double NewValue1, double N
                 TrainParams.StationIndexInc(); // przejście do następnej
                 iStationStart = TrainParams.StationIndex;
                 asNextStop = TrainParams.NextStop();
+                m_lastannouncement = announcement_t::idle;
                 iDrivigFlags |= movePrimary; // skoro dostał rozkład, to jest teraz głównym
 //                NewCommand = Global.asCurrentSceneryPath + NewCommand;
                 auto lookup =
@@ -4294,7 +4319,7 @@ bool TController::PutCommand( std::string NewCommand, double NewValue1, double N
                 NewCommand = TrainParams.Relation2; // relacja docelowa z rozkładu
             }
             // jeszcze poustawiać tekstury na wyświetlaczach
-            TDynamicObject *p = pVehicles[0];
+            TDynamicObject *p = pVehicles[end::front];
             while (p)
             {
                 p->DestinationSet(NewCommand, TrainParams.TrainName); // relacja docelowa
@@ -4726,6 +4751,10 @@ TController::UpdateSituation(double dt) {
         // zaktualizować wyświetlanie rozkładu
         iStationStart = TrainParams.StationIndex;
         fLastStopExpDist = -1.0; // usunąć licznik
+        if( true == m_makenextstopannouncement ) {
+            announce( announcement_t::next );
+            m_makenextstopannouncement = false; // keep next stop announcements suppressed until another scheduled stop
+        }
     }
 
     // ABu-160305 testowanie gotowości do jazdy
@@ -5960,6 +5989,7 @@ TController::UpdateSituation(double dt) {
                         VelforDriver );
             }
             // recalculate potential load exchange duration
+            DoesAnyDoorNeedOpening = false;
             ExchangeTime = 0.f;
             if( fStopTime < 0 ) {
                 // czas postoju przed dalszą jazdą (np. na przystanku)
@@ -5967,7 +5997,9 @@ TController::UpdateSituation(double dt) {
                 // verify progress of load exchange
                 auto *vehicle { pVehicles[ 0 ] };
                 while( vehicle != nullptr ) {
-                    ExchangeTime = std::max( ExchangeTime, vehicle->LoadExchangeTime() );
+                    auto const vehicleexchangetime { vehicle->LoadExchangeTime() };
+                    DoesAnyDoorNeedOpening |= ( ( vehicleexchangetime > 0 ) && ( vehicle->LoadExchangeSpeed() == 0 ) );
+                    ExchangeTime = std::max( ExchangeTime, vehicleexchangetime );
                     vehicle = vehicle->Next();
                 }
                 if( ( ExchangeTime > 0 )

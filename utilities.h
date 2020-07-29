@@ -216,6 +216,9 @@ std::string substr_path( std::string const &Filename );
 // returns common prefix of two provided strings
 std::ptrdiff_t len_common_prefix( std::string const &Left, std::string const &Right );
 
+// returns true if provided string ends with another provided string
+bool ends_with( std::string const &String, std::string const &Suffix );
+
 template <typename Type_>
 void SafeDelete( Type_ &Pointer ) {
     delete Pointer;

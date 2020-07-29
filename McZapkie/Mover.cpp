@@ -9146,7 +9146,7 @@ bool TMoverParameters::LoadFIZ(std::string chkpath)
             continue;
         }
 
-        if( inputline[ 0 ] == ' ' ) {
+        if( !inputline.empty() && inputline.front() == ' ' ) {
             // guard against malformed config files with leading spaces
             inputline.erase( 0, inputline.find_first_not_of( ' ' ) );
         }

@@ -29,6 +29,7 @@ http://mozilla.org/MPL/2.0/.
 #include "renderer.h"
 #include "uitranscripts.h"
 #include "messaging.h"
+#include "Driver.h"
 
 // Ra: taki zapis funkcjonuje lepiej, ale może nie jest optymalny
 #define vWorldFront Math3D::vector3(0, 0, 1)
@@ -2022,7 +2023,7 @@ TDynamicObject::Init(std::string Name, // nazwa pojazdu, np. "EU07-424"
             }
         } // koniec hamulce
         else if( ( ActPar.size() >= 3 )
-              && ( ActPar[ 0 ] == 'W' ) ) {
+              && ( ActPar.front() == 'W' ) ) {
             // wheel
             ActPar.erase( 0, 1 );
 
@@ -2032,7 +2033,7 @@ TDynamicObject::Init(std::string Name, // nazwa pojazdu, np. "EU07-424"
 
             while( false == ActPar.empty() ) {
                 // TODO: convert this whole copy and paste mess to something more elegant one day
-                switch( ActPar[ 0 ] ) {
+                switch( ActPar.front() ) {
                     case 'F': {
                         // fixed flat size
                         auto const indexstart { 1 };
@@ -2078,14 +2079,14 @@ TDynamicObject::Init(std::string Name, // nazwa pojazdu, np. "EU07-424"
             }
         } // wheel
         else if( ( ActPar.size() >= 2 )
-              && ( ActPar[ 0 ] == 'T' ) ) {
+              && ( ActPar.front() == 'T' ) ) {
             // temperature
             ActPar.erase( 0, 1 );
 
             auto setambient { false };
 
             while( false == ActPar.empty() ) {
-                switch( ActPar[ 0 ] ) {
+                switch( ActPar.front() ) {
                     case 'A': {
                         // cold start, set all temperatures to ambient level
                         setambient = true;
@@ -4304,7 +4305,7 @@ void TDynamicObject::RenderSounds() {
     // NBMX sygnal odjazdu
     if( MoverParameters->Doors.has_warning ) {
         auto const lowvoltagepower { MoverParameters->Power24vIsAvailable || MoverParameters->Power110vIsAvailable };
-        for( auto &departuresignalsound : m_departuresignalsounds ) {
+        for( auto &speaker : m_speakers ) {
             // TBD, TODO: per-location door state triggers?
             if( ( MoverParameters->DepartureSignal )
              && ( lowvoltagepower )
@@ -4316,11 +4317,30 @@ void TDynamicObject::RenderSounds() {
                  ) {
                 // for the autonomous doors play the warning automatically whenever a door is closing
                 // MC: pod warunkiem ze jest zdefiniowane w chk
-                departuresignalsound.play( sound_flags::exclusive | sound_flags::looping );
+                speaker.departure_signal.play( sound_flags::exclusive | sound_flags::looping );
             }
             else {
-                departuresignalsound.stop();
+                speaker.departure_signal.stop();
             }
+        }
+    }
+    // announcements
+    for( auto &speaker : m_speakers ) {
+        auto const lowvoltagepower { MoverParameters->Power24vIsAvailable || MoverParameters->Power110vIsAvailable };
+        if( lowvoltagepower ) {
+            // speaker is powered up, can play queued announcements
+            if( speaker.announcement.is_playing() )  { continue; }
+            if( speaker.announcement_queue.empty() ) { continue; }
+            // pull first sound from the queue
+            speaker.announcement = speaker.announcement_queue.front();
+            speaker.announcement.owner( this );
+            speaker.announcement.offset( speaker.offset );
+            speaker.announcement.play();
+            speaker.announcement_queue.pop_front();
+        }
+        else {
+            speaker.announcement.stop();
+            speaker.announcement_queue.clear();
         }
     }
     // NBMX Obsluga drzwi, MC: zuniwersalnione
@@ -4747,15 +4767,13 @@ void TDynamicObject::LoadMMediaFile( std::string const &TypeName, std::string co
 			parser.getTokens();
 			parser >> asModel;
             replace_slashes( asModel );
-            if( asModel[asModel.size() - 1] == '#' ) // Ra 2015-01: nie podoba mi siê to
+            if( asModel.back() == '#' ) // Ra 2015-01: nie podoba mi siê to
             { // model wymaga wielu tekstur wymiennych
                 m_materialdata.multi_textures = 1;
                 asModel.erase( asModel.length() - 1 );
             }
             // name can contain leading slash, erase it to avoid creation of double slashes when the name is combined with current directory
-            if( asModel[ 0 ] == '/' ) {
-                asModel.erase( 0, 1 );
-            }
+            erase_leading_slashes( asModel );
             /*
             // never really used, may as well get rid of it
             std::size_t i = asModel.find( ',' );
@@ -4871,7 +4889,7 @@ void TDynamicObject::LoadMMediaFile( std::string const &TypeName, std::string co
                     // value can be optionally set of values enclosed in "[]" in which case one value will be picked randomly
                     while( ( ( token = parser.getToken<std::string>() ) != "" )
                         && ( token != "}" ) ) {
-                        if( token[ token.size() - 1 ] == ':' ) {
+                        if( token.back() == ':' ) {
                             auto loadmodel { deserialize_random_set( parser ) };
                             replace_slashes( loadmodel );
                             LoadModelOverrides.emplace( token.erase( token.size() - 1 ), loadmodel );
@@ -5694,14 +5712,12 @@ void TDynamicObject::LoadMMediaFile( std::string const &TypeName, std::string co
 
                 else if( token == "departuresignal:" ) {
 					// pliki z sygnalem odjazdu
-                    sound_source soundtemplate { sound_placement::general };
+                    sound_source soundtemplate { sound_placement::general, 25.f };
                     soundtemplate.deserialize( parser, sound_type::multipart, sound_parameters::range );
                     soundtemplate.owner( this );
-                    for( auto &departuresignalsound : m_departuresignalsounds ) {
-                        // apply configuration to all defined doors, but preserve their individual offsets
-                        auto const soundoffset { departuresignalsound.offset() };
-                        departuresignalsound = soundtemplate;
-                        departuresignalsound.offset( soundoffset );
+                    for( auto &speaker : m_speakers ) {
+                        speaker.departure_signal = soundtemplate;
+                        speaker.departure_signal.offset( speaker.offset );
                     }
                 }
 
@@ -5844,6 +5860,38 @@ void TDynamicObject::LoadMMediaFile( std::string const &TypeName, std::string co
                     m_wheelflat.owner( this );
                 }
 
+                else if(token == "announcements:") {
+					// announcement sounds
+                    // content provided as "key: value" pairs together enclosed in "{}"
+                    // value can be optionally set of values enclosed in "[]" in which case one value will be picked randomly
+                    std::array<sound_source, static_cast<int>( announcement_t::end )> announcementsounds;
+                    std::unordered_map<std::string, announcement_t> const announcements = {
+                        { "near_stop:", announcement_t::approaching },
+                        { "stop:", announcement_t::current },
+                        { "next_stop:", announcement_t::next },
+                        { "destination:", announcement_t::destination } };
+                    while( ( ( token = parser.getToken<std::string>() ) != "" )
+                        && ( token != "}" ) ) {
+                        if( token.back() == ':' ) {
+                            auto const lookup { announcements.find( token ) };
+                            auto const announcementtype { (
+                                lookup != announcements.end() ?
+                                    lookup->second :
+                                    announcement_t::idle ) };
+                            // NOTE: we retrieve key value for all keys, not just recognized ones
+                            auto announcementsound{ deserialize_random_set( parser ) };
+                            replace_slashes( announcementsound );
+                            if( announcementtype == announcement_t::idle ) {
+                                continue;
+                            }
+                            sound_source soundtemplate { sound_placement::general, EU07_SOUND_CABANNOUNCEMENTCUTOFFRANGE };
+                            soundtemplate.deserialize( announcementsound, sound_type::single );
+                            soundtemplate.owner( this );
+                            m_announcements[ static_cast<int>( announcementtype ) ] = soundtemplate;
+                        }
+                    }
+                }
+
 			} while( ( token != "" )
 				  && ( token != "endsounds" ) );
 
@@ -5891,10 +5939,11 @@ void TDynamicObject::LoadMMediaFile( std::string const &TypeName, std::string co
                             door.step_open.offset( location );
                             m_doorsounds.emplace_back( door );
                         }
-                        // potential departure sound, one per door (pair) on vehicle centreline
-                        sound_source departuresignalsound { sound_placement::general, 25.f };
-                        departuresignalsound.offset( glm::vec3{ 0.f, 3.f, offset } );
-                        m_departuresignalsounds.emplace_back( departuresignalsound );
+                        m_speakers.emplace_back(
+                            speaker_sounds {
+                                { 0.f, 3.f, offset },
+                                {},
+                                {} } );
                     }
                 }
 
@@ -7007,6 +7056,57 @@ material_handle TDynamicObject::DestinationFind( std::string Destination ) {
     Global.asCurrentTexturePath = currenttexturepath;
 
     return destinationhandle;
+}
+
+void TDynamicObject::announce( announcement_t const Announcement ) {
+
+    if( m_speakers.empty() ) { return; }
+
+    auto const *driver { ( 
+        ctOwner != nullptr ?
+            ctOwner :
+            Mechanik ) };
+    if( driver == nullptr ) { return; }
+
+    auto const &timetable { driver->TrainTimetable() };
+
+    if( m_announcements[ static_cast<int>( Announcement ) ].empty() ) {
+        goto followup;
+    }
+    // if the announcement sound was defined queue playback
+    {
+        sound_source stopnamesound;
+        switch( Announcement ) {
+            case announcement_t::approaching:
+            case announcement_t::next: {
+                stopnamesound = timetable.next_stop_sound();
+                break;
+            }
+            case announcement_t::current: {
+                stopnamesound = timetable.current_stop_sound();
+                break;
+            }
+            case announcement_t::destination: {
+                stopnamesound = timetable.last_stop_sound();
+                break;
+            }
+            default: {
+                break;
+            }
+        }
+        if( stopnamesound.empty() ) {
+            goto followup;
+        }
+        for( auto &speaker : m_speakers ) {
+            speaker.announcement_queue.emplace_back( m_announcements[ static_cast<int>( Announcement ) ] );
+            speaker.announcement_queue.emplace_back( stopnamesound );
+        }
+    }
+followup:
+    // potentially follow up with another announcement
+    if( Announcement == announcement_t::next ) {
+        announce( announcement_t::destination );
+    }
 }
 
 void TDynamicObject::OverheadTrack(float o)

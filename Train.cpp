@@ -7926,9 +7926,7 @@ bool TTrain::InitializeCab(int NewCabNo, std::string const &asFileName)
                     // szukaj kabinę jako oddzielny model
                     // name can contain leading slash, erase it to avoid creation of double slashes when the name is combined with current directory
                     replace_slashes( token );
-                    if( token[ 0 ] == '/' ) {
-                        token.erase( 0, 1 );
-                    }
+                    erase_leading_slashes( token );
                     TModel3d *kabina = TModelsManager::GetModel(DynamicObject->asBaseDir + token, true);
                     // z powrotem defaultowa sciezka do tekstur
                     Global.asCurrentTexturePath = szTexturePath;

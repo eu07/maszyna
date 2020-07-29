@@ -454,6 +454,8 @@ private:
     int iRadioChannel = 1; // numer aktualnego kanału radiowego
     int iGuardRadio = 0; // numer kanału radiowego kierownika (0, gdy nie używa radia)
     sound_source tsGuardSignal{ sound_placement::internal };
+    announcement_t m_lastannouncement{ announcement_t::idle };
+    bool m_makenextstopannouncement{ false };
 
 // consist
 // methods
@@ -468,6 +470,7 @@ private:
     bool doors_permit_active() const;
     void AutoRewident(); // ustawia hamulce w składzie
     void UpdatePantographs();
+    void announce( announcement_t const Announcement );
 // members
     double fLength = 0.0; // długość składu (do wyciągania z ograniczeń)
     double fMass = 0.0; // całkowita masa do liczenia stycznej składowej grawitacji
@@ -482,6 +485,7 @@ private:
     bool Ready = false; // ABu: stan gotowosci do odjazdu - sprawdzenie odhamowania wagonow
     double ConsistShade{ 1.0 }; // averaged amount of sunlight received by the consist
     TDynamicObject *pVehicles[ 2 ]; // skrajne pojazdy w składzie (niekoniecznie bezpośrednio sterowane)
+    bool DoesAnyDoorNeedOpening{ false };
     bool IsAnyDoorOpen[ 2 ]; // state of door in the consist
     bool IsAnyDoorPermitActive[ 2 ]; // state of door permit in the consist
     bool IsAnyLineBreakerOpen{ false }; // state of line breaker in all powered vehicles under control

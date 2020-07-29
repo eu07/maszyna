@@ -74,17 +74,50 @@ basic_event::event_conditions::test() const {
         }
     }
     if( flags & flags::track_busy ) {
+        auto trackbusyresult { true };
+        std::string trackbusylog { "Test: Track busy - " };
         for( auto *track : tracks ) {
             if( true == track->IsEmpty() ) {
-                return false;
+                trackbusylog += "[" + track->name() + "]";
+                trackbusyresult = false;
+                break;
             }
+            else {
+                auto const &vehicles { track->Dynamics };
+                if( trackbusylog.back() == ']' ) {
+                    trackbusylog += ", ";
+                }
+                trackbusylog += "[" + vehicles.front()->asName + "] @ [" + track->name() + "]";
+            }
+        }
+
+        WriteLog(
+            trackbusylog
+            + " - "
+            + ( trackbusyresult ? "Pass" : "Fail" ) );
+
+        if( false == trackbusyresult ) {
+            return false;
         }
     }
     if( flags & flags::track_free ) {
+        auto trackfreeresult { true };
+        std::string trackfreelog{ "Test: Track free - " };
         for( auto *track : tracks ) {
             if( false == track->IsEmpty() ) {
-                return false;
+                auto const &vehicles { track->Dynamics };
+                trackfreelog += "[" + vehicles.front()->asName + "] @ [" + track->name() + "] - ";
+                trackfreeresult = false;
+                break;
             }
+        }
+
+        WriteLog(
+            trackfreelog
+            + ( trackfreeresult ? "Pass" : "Fail" ) );
+
+        if( false == trackfreeresult ) {
+            return false;
         }
     }
     if( flags & ( flags::text | flags::value1 | flags::value2 ) ) {

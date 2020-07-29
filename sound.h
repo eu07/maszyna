@@ -15,6 +15,7 @@ http://mozilla.org/MPL/2.0/.
 
 float const EU07_SOUND_GLOBALRANGE { -1.f };
 float const EU07_SOUND_CABCONTROLSCUTOFFRANGE { 7.5f };
+float const EU07_SOUND_CABANNOUNCEMENTCUTOFFRANGE{ 30.f };
 float const EU07_SOUND_BRAKINGCUTOFFRANGE { 100.f };
 float const EU07_SOUND_RUNNINGNOISECUTOFFRANGE { 200.f };
 float const EU07_SOUND_HANDHELDRADIORANGE { 3500.f };
@@ -50,7 +51,7 @@ class sound_source {
 
 public:
 // constructors
-    sound_source( sound_placement const Placement, float const Range = 50.f );
+    sound_source( sound_placement const Placement = sound_placement::general, float const Range = 50.f );
 
 // destructor
     ~sound_source();

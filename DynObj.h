@@ -150,6 +150,15 @@ public:
 
 //---------------------------------------------------------------------------
 
+enum class announcement_t : int {
+    idle = 0,
+    approaching,
+    current,
+    next,
+    destination,
+    end
+};
+
 // parameters for the material object, as currently used by various simulator models
 struct material_data {
 
@@ -395,6 +404,13 @@ private:
         void position( glm::vec3 const Location );
         void render( TMoverParameters const &Vehicle, double const Deltatime );
     };
+    // single source per door (pair) on the centreline
+    struct speaker_sounds {
+        glm::vec3 offset;
+        sound_source departure_signal;
+        sound_source announcement;
+        std::deque<sound_source> announcement_queue; // fifo queue
+    };
 
 // methods
     void ABuLittleUpdate(double ObjSqrDist);
@@ -476,7 +492,6 @@ private:
     std::array<coupler_sounds, 2> m_couplersounds; // always front and rear
     std::vector<pantograph_sounds> m_pantographsounds; // typically 2 but can be less (or more?)
     std::vector<door_sounds> m_doorsounds; // can expect symmetrical arrangement, but don't count on it
-    std::vector<sound_source> m_departuresignalsounds; // single source per door (pair) on the centreline
     bool m_doorlocks { false }; // sound helper, current state of door locks
     sound_source sHorn1 { sound_placement::external, 5 * EU07_SOUND_RUNNINGNOISECUTOFFRANGE };
     sound_source sHorn2 { sound_placement::external, 5 * EU07_SOUND_RUNNINGNOISECUTOFFRANGE };
@@ -492,6 +507,9 @@ private:
 
     exchange_data m_exchange; // state of active load exchange procedure, if any
     exchange_sounds m_exchangesounds; // sounds associated with the load exchange
+
+    std::vector<speaker_sounds> m_speakers;
+    std::array<sound_source, static_cast<int>( announcement_t::end )> m_announcements;
 
     coupleradapter_data m_coupleradapter;
 
@@ -702,6 +720,7 @@ private:
     void OverheadTrack(float o);
     glm::dvec3 get_future_movement() const;
 	void move_set(double distance);
+    void announce( announcement_t const Announcement );
 
     double MED[9][8]; // lista zmiennych do debugowania hamulca ED
     static std::string const MED_labels[ 8 ];

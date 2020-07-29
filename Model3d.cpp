@@ -511,7 +511,7 @@ int TSubModel::Load( cParser &parser, TModel3d *Model, /*int Pos,*/ bool dynamic
 		// zapewni to jakąś zgodność wstecz, bo zamiast liczby będzie ciąg, którego
 		// wartość powinna być uznana jako zerowa
 		// parser.getToken(iNumVerts);
-		if (token[0] == '*')
+		if (token.front() == '*')
 		{ // jeśli pierwszy znak jest gwiazdką, poszukać
 		  // submodelu o nazwie bez tej gwiazdki i wziąć z
 		  // niego wierzchołki

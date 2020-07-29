@@ -1181,7 +1181,7 @@ texture_manager::create( std::string Filename, bool const Loadnow, GLint Formath
         replace_slashes( Filename );
         erase_leading_slashes( Filename );
         // temporary code for legacy assets -- textures with names beginning with # are to be sharpened
-        if( ( Filename[ 0 ] == '#' )
+        if( ( Filename.front() == '#' )
          || ( Filename.find( "/#" ) != std::string::npos ) ) {
             traits += '#';
         }
