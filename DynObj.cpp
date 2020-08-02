@@ -2758,7 +2758,7 @@ void TDynamicObject::update_exchange( double const Deltatime ) {
     if( ( m_exchange.unload_count < 0.01 )
      && ( m_exchange.load_count < 0.01 ) ) {
 
-        MoverParameters->LoadStatus = 0;
+        MoverParameters->LoadStatus = 4;
         // if the exchange is completed (or canceled) close the door, if applicable
         if( ( MoverParameters->Doors.close_control == control_t::passenger )
          || ( MoverParameters->Doors.close_control == control_t::mixed ) ) {
@@ -2774,40 +2774,33 @@ void TDynamicObject::update_exchange( double const Deltatime ) {
                 MoverParameters->OperateDoors( side::right, false, range_t::local );
             }
         }
+        // if the vehicle was emptied potentially switch load visualization model
+        if( MoverParameters->LoadAmount == 0 ) {
+            MoverParameters->AssignLoad( "" );
+        }
     }
 }
 
 void TDynamicObject::LoadUpdate() {
+
+    MoverParameters->LoadStatus &= ( 1 | 2 ); // po zakończeniu będzie równe zero
     // przeładowanie modelu ładunku
-    // Ra: nie próbujemy wczytywać modeli miliony razy podczas renderowania!!!
-    if( ( mdLoad == nullptr )
-     && ( MoverParameters->LoadAmount > 0 ) ) {
-
-        if( false == MoverParameters->LoadType.name.empty() ) {
-            // bieżąca ścieżka do tekstur to dynamic/...
-            Global.asCurrentTexturePath = asBaseDir;
-
-            mdLoad = LoadMMediaFile_mdload( MoverParameters->LoadType.name );
-            // TODO: discern from vehicle component which merely uses vehicle directory and has no animations, so it can be initialized outright
-            // and actual vehicles which get their initialization after their animations are set up
-            if( mdLoad != nullptr ) {
-                mdLoad->Init();
-            }
-            // update bindings between lowpoly sections and potential load chunks placed inside them
-            update_load_sections();
-            // z powrotem defaultowa sciezka do tekstur
-            Global.asCurrentTexturePath = std::string( szTexturePath );
+    if( MoverParameters->LoadTypeChange ) {
+        // whether we succeed or not don't try more than once
+        MoverParameters->LoadTypeChange = false;
+        // bieżąca ścieżka do tekstur to dynamic/...
+        Global.asCurrentTexturePath = asBaseDir;
+        mdLoad = LoadMMediaFile_mdload( MoverParameters->LoadType.name );
+        // TODO: discern from vehicle component which merely uses vehicle directory and has no animations, so it can be initialized outright
+        // and actual vehicles which get their initialization after their animations are set up
+        if( mdLoad != nullptr ) {
+            mdLoad->Init();
         }
-        // Ra: w MMD można by zapisać położenie modelu ładunku (np. węgiel) w zależności od załadowania
-    }
-    else if( MoverParameters->LoadAmount == 0 ) {
-        // nie ma ładunku
-//        MoverParameters->AssignLoad( "" );
-        mdLoad = nullptr;
-        // erase bindings between lowpoly sections and potential load chunks placed inside them
+        // update bindings between lowpoly sections and potential load chunks placed inside them
         update_load_sections();
+        // z powrotem defaultowa sciezka do tekstur
+        Global.asCurrentTexturePath = std::string( szTexturePath );
     }
-    MoverParameters->LoadStatus &= 3; // po zakończeniu będzie równe zero
 }
 
 void
@@ -6463,13 +6456,12 @@ void TDynamicObject::LoadMMediaFile( std::string const &TypeName, std::string co
 TModel3d *
 TDynamicObject::LoadMMediaFile_mdload( std::string const &Name ) const {
 
-    if( Name.empty() ) { return nullptr; }
-
+    auto const loadname { ( Name.empty() ? "none" : Name ) };
     TModel3d *loadmodel { nullptr };
 
     // check if we don't have model override for this load type
     {
-        auto const lookup { LoadModelOverrides.find( Name ) };
+        auto const lookup { LoadModelOverrides.find( loadname ) };
         if( lookup != LoadModelOverrides.end() ) {
             loadmodel = TModelsManager::GetModel( asBaseDir + lookup->second, true );
             // if the override was succesfully loaded call it a day
@@ -6479,13 +6471,13 @@ TDynamicObject::LoadMMediaFile_mdload( std::string const &Name ) const {
     // regular routine if there's no override or it couldn't be loaded
     // try first specialized version of the load model, vehiclename_loadname
     {
-        auto const specializedloadfilename { asBaseDir + MoverParameters->TypeName + "_" + Name };
+        auto const specializedloadfilename { asBaseDir + MoverParameters->TypeName + "_" + loadname };
         loadmodel = TModelsManager::GetModel( specializedloadfilename, true, false );
         if( loadmodel != nullptr ) { return loadmodel; }
     }
     // try generic version of the load model next, loadname
     {
-        auto const genericloadfilename { asBaseDir + Name };
+        auto const genericloadfilename { asBaseDir + loadname };
         loadmodel = TModelsManager::GetModel( genericloadfilename, true, false );
         if( loadmodel != nullptr ) { return loadmodel; }
     }
@@ -7622,10 +7614,9 @@ TDynamicObject::powertrain_sounds::render( TMoverParameters const &Vehicle, doub
             }
         }
     }
-
     // inverter sounds
     if( Vehicle.EngineType == TEngineType::ElectricInductionMotor ) {
-        if( Vehicle.InverterFrequency > 0.1 ) {
+        if( Vehicle.InverterFrequency > 0.001 ) {
 
             volume = inverter.m_amplitudeoffset + inverter.m_amplitudefactor * std::sqrt( std::abs( Vehicle.eimv_pr) );
 

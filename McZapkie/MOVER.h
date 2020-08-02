@@ -1569,6 +1569,7 @@ public:
     load_attributes LoadType;
     std::string LoadQuantity; // jednostki miary
     int LoadStatus = 0; //+1=trwa rozladunek,+2=trwa zaladunek,+4=zakończono,0=zaktualizowany model
+    bool LoadTypeChange{ false }; // indicates load type was changed
 	double LastLoadChangeTime = 0.0; //raz (roz)ładowania
 #ifdef EU07_USEOLDDOORCODE
 	bool DoorBlocked = false;    //Czy jest blokada drzwi

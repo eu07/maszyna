@@ -7988,6 +7988,7 @@ TMoverParameters::AssignLoad( std::string const &Name, float const Amount ) {
 
     if( Name.empty() ) {
         // empty the vehicle if requested
+        LoadTypeChange = ( LoadType.name != Name );
         LoadType = load_attributes();
         LoadAmount = 0.f;
         return true;
@@ -7997,6 +7998,7 @@ TMoverParameters::AssignLoad( std::string const &Name, float const Amount ) {
 
     for( auto const &loadattributes : LoadAttributes ) {
         if( Name == loadattributes.name ) {
+            LoadTypeChange = ( LoadType.name != Name );
             LoadType = loadattributes;
             LoadAmount = clamp( Amount, 0.f, MaxLoad ) ;
             ComputeMass();

@@ -907,6 +907,7 @@ debug_panel::update_section_engine( std::vector<text_line> &Output ) {
 
             Output.emplace_back( parameters, Global.UITextColor );
         }
+        Output.emplace_back( "Inverter:\n frequency: " + to_string( mover.InverterFrequency, 2 ), Global.UITextColor );
     }
     // diesel engine data
     if( mover.EngineType == TEngineType::DieselEngine ) {

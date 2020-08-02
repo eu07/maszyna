@@ -79,12 +79,6 @@ global_settings::ConfigParse(cParser &Parser) {
             Parser.getTokens(1, false);
             Parser >> iWindowHeight;
         }
-        else if (token == "heightbase")
-        {
-            Parser.getTokens(1, false);
-            Parser >> fDistanceFactor;
-            fDistanceFactor = clamp( fDistanceFactor, 250.f, 10000.f ); // arbitrary limits to keep users from hurting themselves
-        }
 		else if (token == "targetfps")
 		{
 			Parser.getTokens(1, false);
@@ -94,6 +88,7 @@ global_settings::ConfigParse(cParser &Parser) {
 		{
 			Parser.getTokens(1);
 			Parser >> BaseDrawRange;
+            BaseDrawRange = clamp( BaseDrawRange, 500.f, 5000.f ); // arbitrary limits to keep users from hurting themselves
 		}
         else if (token == "fullscreen")
         {
@@ -965,7 +960,6 @@ global_settings::export_as_text( std::ostream &Output ) const {
     export_as_text( Output, "fieldofview", FieldOfView );
     export_as_text( Output, "width", iWindowWidth );
     export_as_text( Output, "height", iWindowHeight );
-    export_as_text( Output, "heightbase", fDistanceFactor );
     export_as_text( Output, "targetfps", targetfps );
     export_as_text( Output, "basedrawrange", BaseDrawRange );
     export_as_text( Output, "fullscreen", bFullScreen );
