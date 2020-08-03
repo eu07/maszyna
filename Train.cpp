@@ -4516,6 +4516,12 @@ void TTrain::OnCommand_compartmentlightsenable( TTrain *Train, command_data cons
 
     if( Command.action == GLFW_PRESS ) {
         Train->mvOccupied->CompartmentLightsSwitch( true );
+        if( Train->m_controlmapper.contains( "compartmentlights_sw:" ) ) {
+            auto const istoggle{ ( static_cast<int>( Train->ggCompartmentLightsButton.type() ) & static_cast<int>( TGaugeType::toggle ) ) != 0 };
+            if( istoggle ) {
+                Train->mvOccupied->CompartmentLightsSwitchOff( false );
+            }
+        }
         // visual feedback
         if( Train->m_controlmapper.contains( "compartmentlights_sw:" ) ) {
             Train->ggCompartmentLightsButton.UpdateValue( 1.0f, Train->dsbSwitch );
@@ -4543,6 +4549,13 @@ void TTrain::OnCommand_compartmentlightsenable( TTrain *Train, command_data cons
 void TTrain::OnCommand_compartmentlightsdisable( TTrain *Train, command_data const &Command ) {
 
     if( Command.action == GLFW_PRESS ) {
+        Train->mvOccupied->CompartmentLightsSwitchOff( true );
+        if( Train->m_controlmapper.contains( "compartmentlights_sw:" ) ) {
+            auto const istoggle{ ( static_cast<int>( Train->ggCompartmentLightsButton.type() ) & static_cast<int>( TGaugeType::toggle ) ) != 0 };
+            if( istoggle ) {
+                Train->mvOccupied->CompartmentLightsSwitch( false );
+            }
+        }
         // visual feedback
         if( Train->m_controlmapper.contains( "compartmentlights_sw:" ) ) {
             Train->ggCompartmentLightsButton.UpdateValue( 0.0f, Train->dsbSwitch );
@@ -4550,8 +4563,6 @@ void TTrain::OnCommand_compartmentlightsdisable( TTrain *Train, command_data con
         if( Train->m_controlmapper.contains( "compartmentlightsoff_sw:" ) ) {
             Train->ggCompartmentLightsOffButton.UpdateValue( 1.0f, Train->dsbSwitch );
         }
-
-        Train->mvOccupied->CompartmentLightsSwitchOff( true );
     }
     else if( Command.action == GLFW_RELEASE ) {
         if( Train->m_controlmapper.contains( "compartmentlights_sw:" ) ) {
