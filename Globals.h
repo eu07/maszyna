@@ -127,7 +127,12 @@ struct global_settings {
         unsigned int map_size{ 2048 };
         float range{ 250.f };
     } shadowtune;
-    double ReflectionUpdateInterval{ 300.0 };
+    struct reflectiontune_t {
+        double update_interval{ 300.0 };
+        int fidelity{ 0 }; // 0: sections, 1: +static models, 2: +vehicles
+        float range_instances{ 750.f };
+        float range_vehicles{ 250.f };
+    } reflectiontune;
     bool bUseVBO{ true }; // czy jest VBO w karcie graficznej (czy użyć)
     float AnisotropicFiltering{ 8.f }; // requested level of anisotropic filtering. TODO: move it to renderer object
     float FieldOfView{ 45.f }; // vertical field of view for the camera. TODO: move it to the renderer

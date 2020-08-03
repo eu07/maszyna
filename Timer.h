@@ -12,6 +12,7 @@ http://mozilla.org/MPL/2.0/.
 namespace Timer {
 
 double GetTime();
+double GetRenderTime();
 
 double GetDeltaTime();
 double GetDeltaRenderTime();

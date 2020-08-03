@@ -22,7 +22,8 @@ http://mozilla.org/MPL/2.0/.
 #include "application.h"
 #include "AnimModel.h"
 
-int const EU07_PICKBUFFERSIZE{1024}; // size of (square) textures bound with the pick framebuffer
+int const EU07_PICKBUFFERSIZE{ 1024 }; // size of (square) textures bound with the pick framebuffer
+int const EU07_REFLECTIONFIDELITYOFFSET { 250 }; // artificial increase of range for reflection pass detail reduction
 
 auto const gammacorrection { glm::vec3( 2.2f ) };
 
@@ -1110,12 +1111,12 @@ bool opengl33_renderer::Render_coupler_adapter( TDynamicObject *Dynamic, float c
 // creates dynamic environment cubemap
 bool opengl33_renderer::Render_reflections(viewport_config &vp)
 {
-    if( Global.ReflectionUpdateInterval == 0 ) { return false; }
+    if( Global.reflectiontune.update_interval == 0 ) { return false; }
 
-    auto const timestamp{ Timer::GetTime() };
-    if( ( timestamp - m_environmentupdatetime < Global.ReflectionUpdateInterval )
-        && ( glm::length( m_renderpass.pass_camera.position() - m_environmentupdatelocation ) < 1000.0 ) ) {
-           // run update every 5+ mins of simulation time, or at least 1km from the last location
+    auto const timestamp{ Timer::GetRenderTime() };
+    if( ( timestamp - m_environmentupdatetime < Global.reflectiontune.update_interval )
+     && ( glm::length( m_renderpass.pass_camera.position() - m_environmentupdatelocation ) < 1000.0 ) ) {
+        // run update every 5+ mins of simulation time, or at least 1km from the last location
         return false;
     }
     m_environmentupdatetime = timestamp;
@@ -2044,8 +2045,10 @@ void opengl33_renderer::Render(scene::basic_region *Region)
 	}
 	case rendermode::reflections:
 	{
-		// for the time being reflections render only terrain geometry
 		Render(std::begin(m_sectionqueue), std::end(m_sectionqueue));
+        if( Global.reflectiontune.fidelity >= 1 ) {
+            Render(std::begin(m_cellqueue), std::end(m_cellqueue));
+        }
 		break;
 	}
 	case rendermode::pickcontrols:
@@ -2120,6 +2123,7 @@ void opengl33_renderer::Render(section_sequence::iterator First, section_sequenc
 		case rendermode::shadows:
         case rendermode::pickscenery:
 		{
+            // TBD, TODO: refactor into a method to reuse below?
 			for (auto &cell : section->m_cells)
 			{
 				if ((true == cell.m_active) && (m_renderpass.pass_camera.visible(cell.m_area)))
@@ -2131,6 +2135,19 @@ void opengl33_renderer::Render(section_sequence::iterator First, section_sequenc
 			break;
 		}
 		case rendermode::reflections:
+        {
+            // we can skip filling the cell queue if reflections pass isn't going to use it
+            if( Global.reflectiontune.fidelity == 0 ) { break; }
+			for (auto &cell : section->m_cells)
+			{
+				if ((true == cell.m_active) && (m_renderpass.pass_camera.visible(cell.m_area)))
+				{
+					// store visible cells with content as well as their current distance, for sorting later
+					m_cellqueue.emplace_back(glm::length2(m_renderpass.pass_camera.position() - cell.m_area.center), &cell);
+				}
+			}
+			break;
+        }
 		case rendermode::pickcontrols:
 		default:
 		{
@@ -2190,6 +2207,23 @@ void opengl33_renderer::Render(cell_sequence::iterator First, cell_sequence::ite
 
 			break;
 		}
+        case rendermode::reflections:
+        {
+			// since all shapes of the section share center point we can optimize out a few calls here
+			::glPushMatrix();
+			auto const originoffset{cell->m_area.center - m_renderpass.pass_camera.position()};
+			::glTranslated(originoffset.x, originoffset.y, originoffset.z);
+
+			// render
+			// opaque non-instanced shapes
+			for (auto const &shape : cell->m_shapesopaque)
+				Render(shape, false);
+
+			// post-render cleanup
+			::glPopMatrix();
+
+			break;
+        }
 		case rendermode::shadows:
 		{
 			// since all shapes of the section share center point we can optimize out a few calls here
@@ -2232,7 +2266,6 @@ void opengl33_renderer::Render(cell_sequence::iterator First, cell_sequence::ite
 			::glPopMatrix();
 			break;
 		}
-		case rendermode::reflections:
 		case rendermode::pickcontrols:
 		default:
 		{
@@ -2251,8 +2284,9 @@ void opengl33_renderer::Render(cell_sequence::iterator First, cell_sequence::ite
 		switch (m_renderpass.draw_mode)
 		{
 		case rendermode::color:
-		case rendermode::shadows:
+        case rendermode::shadows:
         {
+            // TBD, TODO: refactor in to a method to reuse in branch below?
 			// opaque parts of instanced models
 			for (auto *instance : cell->m_instancesopaque)
 			{
@@ -2268,7 +2302,25 @@ void opengl33_renderer::Render(cell_sequence::iterator First, cell_sequence::ite
 			}
 			break;
 		}
-		case rendermode::pickscenery:
+        case rendermode::reflections:
+        {
+            if( Global.reflectiontune.fidelity >= 1 ) {
+                // opaque parts of instanced models
+                for( auto *instance : cell->m_instancesopaque ) {
+                    Render( instance );
+                }
+            }
+            if( Global.reflectiontune.fidelity >= 2 ) {
+                // opaque parts of vehicles
+                for( auto *path : cell->m_paths ) {
+                    for( auto *dynamic : path->Dynamics ) {
+                        Render( dynamic );
+                    }
+                }
+            }
+			break;
+        }
+        case rendermode::pickscenery:
 		{
 			// opaque parts of instanced models
 			// same procedure like with regular render, but each node receives custom colour used for picking
@@ -2280,7 +2332,6 @@ void opengl33_renderer::Render(cell_sequence::iterator First, cell_sequence::ite
 			// vehicles aren't included in scenery picking for the time being
 			break;
 		}
-		case rendermode::reflections:
 		case rendermode::pickcontrols:
 		default:
 		{
@@ -2333,6 +2384,19 @@ void opengl33_renderer::Render(scene::shape_node const &Shape, bool const Ignore
 			distancesquared = Math3D::SquareMagnitude((data.area.center - m_renderpass.viewport_camera.position()) / (double)Global.ZoomFactor) / Global.fDistanceFactor;
 			break;
 		}
+        case rendermode::reflections:
+        {
+            // reflection mode draws simplified version of the shapes, by artificially increasing view range
+            distancesquared =
+                // TBD, TODO: bind offset value with setting variable?
+                ( EU07_REFLECTIONFIDELITYOFFSET * EU07_REFLECTIONFIDELITYOFFSET )
+                + glm::length2( ( data.area.center - m_renderpass.pass_camera.position() ) );
+/*
+                // TBD: take into account distance multipliers?
+                / Global.fDistanceFactor;
+*/
+            break;
+        }
 		default:
 		{
 			distancesquared = glm::length2((data.area.center - m_renderpass.pass_camera.position()) / (double)Global.ZoomFactor) / Global.fDistanceFactor;
@@ -2385,6 +2449,20 @@ void opengl33_renderer::Render(TAnimModel *Instance)
 		distancesquared = glm::length2((Instance->location() - m_renderpass.viewport_camera.position()) / (double)Global.ZoomFactor) / Global.fDistanceFactor;
 		break;
 	}
+    case rendermode::reflections:
+    {
+        // reflection mode draws simplified version of the shapes, by artificially increasing view range
+        // it also ignores zoom settings and distance multipliers
+        // TBD: take into account distance multipliers?
+        distancesquared = glm::length2((Instance->location() - m_renderpass.pass_camera.position())) /* / Global.fDistanceFactor */;
+        // NOTE: arbitrary draw range limit
+        if( distancesquared > Global.reflectiontune.range_instances * Global.reflectiontune.range_instances ) {
+            return;
+        }
+        // TBD, TODO: bind offset value with setting variable?
+        distancesquared += ( EU07_REFLECTIONFIDELITYOFFSET * EU07_REFLECTIONFIDELITYOFFSET );
+        break;
+    }
 	default:
 	{
 		distancesquared = glm::length2((Instance->location() - m_renderpass.pass_camera.position()) / (double)Global.ZoomFactor) / Global.fDistanceFactor;
@@ -2460,6 +2538,24 @@ bool opengl33_renderer::Render(TDynamicObject *Dynamic)
         }
 		break;
 	}
+    case rendermode::reflections:
+    {
+        // reflection mode draws simplified version of the shapes, by artificially increasing view range
+        // it also ignores zoom settings and distance multipliers
+        squaredistance =
+            std::max(
+                100.f * 100.f,
+                // TBD: take into account distance multipliers?
+                glm::length2( glm::vec3{ originoffset } ) /* / Global.fDistanceFactor */ );
+        // NOTE: arbitrary draw range limit
+        if( squaredistance > Global.reflectiontune.range_vehicles * Global.reflectiontune.range_vehicles ) {
+            return false;
+        }
+        // TBD, TODO: bind offset value with setting variable?
+        // NOTE: combined 'squared' distance doesn't equal actual squared (distance + offset) but, eh
+        squaredistance += ( EU07_REFLECTIONFIDELITYOFFSET * EU07_REFLECTIONFIDELITYOFFSET );
+        break;
+    }
 	default:
 	{
 		squaredistance = glm::length2(glm::vec3{originoffset} / Global.ZoomFactor);
@@ -2467,7 +2563,11 @@ bool opengl33_renderer::Render(TDynamicObject *Dynamic)
 		break;
 	}
 	}
-
+    // crude way to reject early items too far to affect the output (mostly relevant for shadow and reflection passes)
+    auto const drawdistancethreshold{ m_renderpass.draw_range + 250 };
+    if( squaredistance > drawdistancethreshold * drawdistancethreshold ) {
+        return false;
+    }
     // second stage visibility cull, reject vehicles too far away to be noticeable
     auto const squareradius{ Dynamic->radius() * Dynamic->radius() };
     Dynamic->renderme = ( squareradius * Global.ZoomFactor / squaredistance > 0.003 * 0.003 );
@@ -2493,6 +2593,7 @@ bool opengl33_renderer::Render(TDynamicObject *Dynamic)
 	{
 
 	case rendermode::color:
+    case rendermode::reflections:
 	{
 		if (Dynamic->fShade > 0.0f)
 		{

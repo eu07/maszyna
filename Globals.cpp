@@ -447,7 +447,12 @@ global_settings::ConfigParse(cParser &Parser) {
         else if( token == "gfx.reflections.framerate" ) {
 
             auto const updatespersecond { std::abs( Parser.getToken<double>() ) };
-			ReflectionUpdateInterval = 1.0 / updatespersecond;
+			reflectiontune.update_interval = 1.0 / updatespersecond;
+        }
+        else if( token == "gfx.reflections.fidelity" ) {
+            Parser.getTokens( 1, false );
+            Parser >> reflectiontune.fidelity;
+            reflectiontune.fidelity = clamp( reflectiontune.fidelity, 0, 2 );
         }
         else if( token == "timespeed" ) {
            // przyspieszenie czasu, zmienna do testów
@@ -1032,7 +1037,8 @@ global_settings::export_as_text( std::ostream &Output ) const {
     export_as_text( Output, "createswitchtrackbeds", CreateSwitchTrackbeds );
     export_as_text( Output, "gfx.resource.sweep", ResourceSweep );
     export_as_text( Output, "gfx.resource.move", ResourceMove );
-    export_as_text( Output, "gfx.reflections.framerate", 1.0 / ReflectionUpdateInterval );
+    export_as_text( Output, "gfx.reflections.framerate", 1.0 / reflectiontune.update_interval );
+    export_as_text( Output, "gfx.reflections.fidelity", reflectiontune.fidelity );
     export_as_text( Output, "timespeed", fTimeSpeed );
     export_as_text( Output, "multisampling", iMultisampling );
     export_as_text( Output, "latitude", fLatitudeDeg );

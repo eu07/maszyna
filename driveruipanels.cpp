@@ -572,7 +572,10 @@ debug_panel::render() {
             ImGui::Checkbox( "Debug Traction", &DebugTractionFlag );
         }
         render_section( "Camera", m_cameralines );
-        render_section( "Gfx Renderer", m_rendererlines );
+        if( true == render_section( "Gfx Renderer", m_rendererlines ) ) {
+            // reflection fidelity
+            ImGui::SliderInt( ( to_string( Global.reflectiontune.fidelity ) + "###reflectionfidelity" ).c_str(), &Global.reflectiontune.fidelity, 0, 2, "Reflection fidelity" );
+        }
         // toggles
         ImGui::Separator();
         ImGui::Checkbox( "Debug Mode", &DebugModeFlag );

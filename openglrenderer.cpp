@@ -26,6 +26,7 @@ http://mozilla.org/MPL/2.0/.
 
 int const EU07_PICKBUFFERSIZE { 1024 }; // size of (square) textures bound with the pick framebuffer
 int const EU07_ENVIRONMENTBUFFERSIZE { 256 }; // size of (square) environmental cube map texture
+int const EU07_REFLECTIONFIDELITYOFFSET { 250 }; // artificial increase of range for reflection pass detail reduction
 
 float const EU07_OPACITYDEFAULT { 0.5f };
 
@@ -871,10 +872,10 @@ bool opengl_renderer::Render_coupler_adapter( TDynamicObject *Dynamic, float con
 bool
 opengl_renderer::Render_reflections() {
 
-    if( Global.ReflectionUpdateInterval == 0 ) { return false; }
+    if( Global.reflectiontune.update_interval == 0 ) { return false; }
 
-    auto const timestamp { Timer::GetTime() };
-    if( ( timestamp - m_environmentupdatetime < Global.ReflectionUpdateInterval )
+    auto const timestamp { Timer::GetRenderTime() };
+    if( ( timestamp - m_environmentupdatetime < Global.reflectiontune.update_interval )
      && ( glm::length( m_renderpass.camera.position() - m_environmentupdatelocation ) < 1000.0 ) ) {
         // run update every 5+ mins of simulation time, or at least 1km from the last location
         return false;
@@ -1847,8 +1848,10 @@ opengl_renderer::Render( scene::basic_region *Region ) {
             break;
         }
         case rendermode::reflections: {
-            // for the time being reflections render only terrain geometry
             Render( std::begin( m_sectionqueue ), std::end( m_sectionqueue ) );
+            if( Global.reflectiontune.fidelity >= 1 ) {
+                Render(std::begin(m_cellqueue), std::end(m_cellqueue));
+            }
             break;
         }
         case rendermode::pickcontrols:
@@ -1918,6 +1921,7 @@ opengl_renderer::Render( section_sequence::iterator First, section_sequence::ite
             case rendermode::shadows:
             case rendermode::cabshadows:
             case rendermode::pickscenery: {
+                // TBD, TODO: refactor into a method to reuse below?
                 for( auto &cell : section->m_cells ) {
                     if( ( true == cell.m_active )
                      && ( m_renderpass.camera.visible( cell.m_area ) ) ) {
@@ -1929,7 +1933,17 @@ opengl_renderer::Render( section_sequence::iterator First, section_sequence::ite
                 }
                 break;
             }
-            case rendermode::reflections:
+            case rendermode::reflections: {
+                // we can skip filling the cell queue if reflections pass isn't going to use it
+                if( Global.reflectiontune.fidelity == 0 ) { break; }
+                for( auto &cell : section->m_cells ) {
+                    if( ( true == cell.m_active ) && ( m_renderpass.camera.visible( cell.m_area ) ) ) {
+                        // store visible cells with content as well as their current distance, for sorting later
+                        m_cellqueue.emplace_back( glm::length2( m_renderpass.camera.position() - cell.m_area.center ), &cell );
+                    }
+                }
+                break;
+            }
             case rendermode::pickcontrols:
             default: {
                 break;
@@ -2011,6 +2025,22 @@ opengl_renderer::Render( cell_sequence::iterator First, cell_sequence::iterator 
 
                 break;
             }
+            case rendermode::reflections:
+            {
+                // since all shapes of the section share center point we can optimize out a few calls here
+                ::glPushMatrix();
+                auto const originoffset{ cell->m_area.center - m_renderpass.camera.position() };
+                ::glTranslated( originoffset.x, originoffset.y, originoffset.z );
+
+                // render
+                // opaque non-instanced shapes
+                for( auto const &shape : cell->m_shapesopaque ) { Render( shape, false ); }
+
+                // post-render cleanup
+                ::glPopMatrix();
+
+                break;
+            }
             case rendermode::shadows: {
                 // since all shapes of the section share center point we can optimize out a few calls here
                 ::glPushMatrix();
@@ -2019,7 +2049,9 @@ opengl_renderer::Render( cell_sequence::iterator First, cell_sequence::iterator 
 
                 // render
                 // opaque non-instanced shapes
-                for( auto const &shape : cell->m_shapesopaque ) { Render( shape, false ); }
+                for( auto const &shape : cell->m_shapesopaque ) {
+                    Render( shape, false );
+                }
                 // tracks
                 Render( std::begin( cell->m_paths ), std::end( cell->m_paths ) );
 
@@ -2036,7 +2068,9 @@ opengl_renderer::Render( cell_sequence::iterator First, cell_sequence::iterator 
 
                 // render
                 // opaque non-instanced shapes
-                for( auto const &shape : cell->m_shapesopaque ) { Render( shape, false ); }
+                for( auto const &shape : cell->m_shapesopaque ) {
+                    Render( shape, false );
+                }
                 // NOTE: tracks aren't likely to cast shadows into the cab, so we skip them in this pass
 
                 // post-render cleanup
@@ -2066,7 +2100,6 @@ opengl_renderer::Render( cell_sequence::iterator First, cell_sequence::iterator 
 
                 break;
             }
-            case rendermode::reflections:
             case rendermode::pickcontrols:
             default: {
                 break;
@@ -2084,8 +2117,11 @@ opengl_renderer::Render( cell_sequence::iterator First, cell_sequence::iterator 
             case rendermode::color:
             case rendermode::shadows:
             case rendermode::cabshadows: {
+                // TBD, TODO: refactor in to a method to reuse in branch below?
                 // opaque parts of instanced models
-                for( auto *instance : cell->m_instancesopaque ) { Render( instance ); }
+                for( auto *instance : cell->m_instancesopaque ) {
+                    Render( instance );
+                }
                 // opaque parts of vehicles
                 for( auto *path : cell->m_paths ) {
                     for( auto *dynamic : path->Dynamics ) {
@@ -2102,6 +2138,23 @@ opengl_renderer::Render( cell_sequence::iterator First, cell_sequence::iterator 
                         Render( memorycell );
                     }
                     ::glPopAttrib();
+                }
+                break;
+            }
+            case rendermode::reflections: {
+                if( Global.reflectiontune.fidelity >= 1 ) {
+                    // opaque parts of instanced models
+                    for( auto *instance : cell->m_instancesopaque ) {
+                        Render( instance );
+                    }
+                }
+                if( Global.reflectiontune.fidelity >= 2 ) {
+                    // opaque parts of vehicles
+                    for( auto *path : cell->m_paths ) {
+                        for( auto *dynamic : path->Dynamics ) {
+                            Render( dynamic );
+                        }
+                    }
                 }
                 break;
             }
@@ -2123,7 +2176,6 @@ opengl_renderer::Render( cell_sequence::iterator First, cell_sequence::iterator 
                 // vehicles aren't included in scenery picking for the time being
                 break;
             }
-            case rendermode::reflections:
             case rendermode::pickcontrols:
             default: {
                 break;
@@ -2180,6 +2232,15 @@ opengl_renderer::Render( scene::shape_node const &Shape, bool const Ignorerange 
                 distancesquared = Math3D::SquareMagnitude( ( data.area.center - Global.pCamera.Pos ) / Global.ZoomFactor ) / Global.fDistanceFactor;
                 break;
             }
+            case rendermode::reflections: {
+                // reflection mode draws simplified version of the shapes, by artificially increasing view range
+                distancesquared =
+                    // TBD, TODO: bind offset value with setting variable?
+                    ( EU07_REFLECTIONFIDELITYOFFSET * EU07_REFLECTIONFIDELITYOFFSET )
+                    // TBD: take into account distance multipliers?
+                    + glm::length2( ( data.area.center - m_renderpass.camera.position() ) ) /* / Global.fDistanceFactor */;
+                break;
+            }
             default: {
                 distancesquared = glm::length2( ( data.area.center - m_renderpass.camera.position() ) / (double)Global.ZoomFactor ) / Global.fDistanceFactor;
                 break;
@@ -2233,6 +2294,19 @@ opengl_renderer::Render( TAnimModel *Instance ) {
         case rendermode::cabshadows: {
             // 'camera' for the light pass is the light source, but we need to draw what the 'real' camera sees
     		distancesquared = glm::length2((Instance->location() - m_renderpass.camera.position()) / (double)Global.ZoomFactor) / Global.fDistanceFactor;
+            break;
+        }
+        case rendermode::reflections: {
+            // reflection mode draws simplified version of the shapes, by artificially increasing view range
+            // it also ignores zoom settings and distance multipliers
+            // TBD: take into account distance multipliers?
+            distancesquared = glm::length2( ( Instance->location() - m_renderpass.camera.position() ) ) /* / Global.fDistanceFactor */;
+            // NOTE: arbitrary draw range limit
+            if( distancesquared > Global.reflectiontune.range_instances * Global.reflectiontune.range_instances ) {
+                return;
+            }
+            // TBD, TODO: bind offset value with setting variable?
+            distancesquared += ( EU07_REFLECTIONFIDELITYOFFSET * EU07_REFLECTIONFIDELITYOFFSET );
             break;
         }
         default: {
@@ -2308,13 +2382,34 @@ opengl_renderer::Render( TDynamicObject *Dynamic ) {
             squaredistance = std::max( 100.f * 100.f, squaredistance );
             break;
         }
+        case rendermode::reflections: {
+            // reflection mode draws simplified version of the shapes, by artificially increasing view range
+            // it also ignores zoom settings and distance multipliers
+            squaredistance =
+                std::max(
+                    100.f * 100.f,
+                    // TBD: take into account distance multipliers?
+                    glm::length2( glm::vec3{ originoffset } ) /* / Global.fDistanceFactor */ );
+            // NOTE: arbitrary draw range limit
+            if( squaredistance > Global.reflectiontune.range_vehicles * Global.reflectiontune.range_vehicles ) {
+                return false;
+            }
+            // TBD, TODO: bind offset value with setting variable?
+        // NOTE: combined 'squared' distance doesn't equal actual squared (distance + offset) but, eh
+            squaredistance += ( EU07_REFLECTIONFIDELITYOFFSET * EU07_REFLECTIONFIDELITYOFFSET );
+            break;
+        }
         default: {
             squaredistance = glm::length2( glm::vec3{ originoffset } / Global.ZoomFactor );
             // TODO: filter out small details based on fidelity setting
             break;
         }
     }
-
+    // crude way to reject early items too far to affect the output (mostly relevant for shadow and reflection passes)
+    auto const drawdistancethreshold{ m_renderpass.draw_range + 250 };
+    if( squaredistance > drawdistancethreshold * drawdistancethreshold ) {
+        return false;
+    }
     // second stage visibility cull, reject vehicles too far away to be noticeable
     Dynamic->renderme = ( Dynamic->radius() * Global.ZoomFactor / std::sqrt( squaredistance ) > 0.003 );
     if( false == Dynamic->renderme ) {
