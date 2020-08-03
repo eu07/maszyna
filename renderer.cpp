@@ -406,8 +406,10 @@ bool opengl_renderer::Init(GLFWwindow *Window)
 			return false;
 	}
 
-	m_timequery.emplace(gl::query::TIME_ELAPSED);
-	m_timequery->begin();
+    if (!Global.gfx_usegles) {
+        m_timequery.emplace(gl::query::TIME_ELAPSED);
+        m_timequery->begin();
+    }
 
 	WriteLog("picking objects created");
 
@@ -3590,13 +3592,16 @@ void opengl_renderer::Render_Alpha(TSubModel *Submodel)
 					model_ubs.param[1].x = pointsize * resolutionratio * 2.0f;
 					model_ubs.param[0] = glm::vec4(glm::vec3(lightcolor), Submodel->fVisible * std::min(1.f, lightlevel));
 
-					if (!Submodel->occlusion_query)
-						Submodel->occlusion_query.emplace(gl::query::ANY_SAMPLES_PASSED);
-					Submodel->occlusion_query->begin();
+                    if (gl::vao::use_vao) {
+                        if (!Submodel->occlusion_query)
+                            Submodel->occlusion_query.emplace(gl::query::ANY_SAMPLES_PASSED);
+                        Submodel->occlusion_query->begin();
+                    }
 
 					draw(Submodel->m_geometry);
 
-					Submodel->occlusion_query->end();
+                    if (gl::vao::use_vao)
+                        Submodel->occlusion_query->end();
 
 					// post-draw reset
 					model_ubs.emission = 0.0f;
