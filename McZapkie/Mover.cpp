@@ -1649,13 +1649,13 @@ void TMoverParameters::PowerCouplersCheck( double const Deltatime, coupling cons
             }
 
             case coupling::power110v: {
-                oppositecouplingispresent = ( ( oppositecoupler.CouplingFlag & coupling::permanent ) != 0 ) && ( ( oppositecoupler.PowerFlag & coupling::power110v ) != 0 );
+                oppositecouplingispresent = ( TestFlag( oppositecoupler.CouplingFlag, oppositecoupler.PowerCoupling ) ) && ( ( oppositecoupler.PowerFlag & coupling::power110v ) != 0 );
                 localpowerexportisenabled = ( oppositecouplingispresent );
                 break;
             }
 
             case coupling::power24v: {
-                oppositecouplingispresent = ( ( oppositecoupler.CouplingFlag & coupling::permanent ) != 0 ) && ( ( oppositecoupler.PowerFlag & coupling::power24v ) != 0 );
+                oppositecouplingispresent = ( TestFlag( oppositecoupler.CouplingFlag, oppositecoupler.PowerCoupling ) ) && ( ( oppositecoupler.PowerFlag & coupling::power24v ) != 0 );
                 localpowerexportisenabled = ( oppositecouplingispresent );
                 break;
             }
@@ -8530,59 +8530,32 @@ std::string TMoverParameters::EngineDescription(int what) const
 // *************************************************************************************************
 double TMoverParameters::GetTrainsetVoltage( int const Coupling ) const
 {//ABu: funkcja zwracajaca napiecie dla calego skladu, przydatna dla EZT
-    // TBD, TODO: roll into a loop, call once per vehicle update, return cached results?
-    auto frontvoltage { 0.0 };
-    if( Couplers[ end::front ].Connected != nullptr ) {
-        auto const frontcouplingflag {
-            Couplers[ end::front ].CouplingFlag
-          | ( ( Couplers[ end::front ].CouplingFlag & coupling::permanent ) != 0 ?
-              Couplers[ end::front ].PowerFlag :
+    // TBD, TODO: call once per vehicle update, return cached results?
+    double voltages[] = { 0.0, 0.0 };
+    for( int end = end::front; end <= end::rear; ++end ) {
+        if( Couplers[ end ].Connected == nullptr ) {
+            continue;
+        }
+        auto const &coupler { Couplers[ end ] };
+        auto const fullcoupling {
+            coupler.CouplingFlag
+          | ( TestFlag( coupler.CouplingFlag, coupler.PowerCoupling ) ?
+              coupler.PowerFlag :
               0 ) };
-        if( ( frontcouplingflag & Coupling ) != 0 ) {
-            auto *connectedpowercoupling = (
-                ( Coupling & ( coupling::highvoltage | coupling::heating ) ) != 0 ? &Couplers[ end::front ].Connected->Couplers[ Couplers[ end::front ].ConnectedNr ].power_high :
-                ( Coupling & coupling::power110v ) != 0 ? &Couplers[ end::front ].Connected->Couplers[ Couplers[ end::front ].ConnectedNr ].power_110v :
-                ( Coupling & coupling::power24v ) != 0 ? &Couplers[ end::front ].Connected->Couplers[ Couplers[ end::front ].ConnectedNr ].power_24v :
-                nullptr );
-            if( ( connectedpowercoupling != nullptr )
-             && ( connectedpowercoupling->is_live ) ) {
-                frontvoltage = connectedpowercoupling->voltage;
-            }
+        if( ( fullcoupling & Coupling ) == 0 ) {
+            continue;
+        }
+        auto *connectedpowercoupling = (
+            ( Coupling & ( coupling::highvoltage | coupling::heating ) ) != 0 ? &coupler.Connected->Couplers[ coupler.ConnectedNr ].power_high :
+            ( Coupling & coupling::power110v ) != 0 ? &coupler.Connected->Couplers[ coupler.ConnectedNr ].power_110v :
+            ( Coupling & coupling::power24v ) != 0 ? &coupler.Connected->Couplers[ coupler.ConnectedNr ].power_24v :
+            nullptr );
+        if( ( connectedpowercoupling != nullptr )
+         && ( connectedpowercoupling->is_live ) ) {
+            voltages[ end ] = connectedpowercoupling->voltage;
         }
     }
-    auto rearvoltage{ 0.0 };
-    if( Couplers[ end::rear ].Connected != nullptr ) {
-        auto const rearcouplingflag {
-            Couplers[ end::rear ].CouplingFlag
-          | ( ( Couplers[ end::rear ].CouplingFlag & coupling::permanent ) != 0 ?
-              Couplers[ end::rear ].PowerFlag :
-              0 ) };
-        if( ( rearcouplingflag & Coupling ) != 0 ) {
-            auto *connectedpowercoupling = (
-                ( Coupling & ( coupling::highvoltage | coupling::heating ) ) != 0 ? &Couplers[ end::rear ].Connected->Couplers[ Couplers[ end::rear ].ConnectedNr ].power_high :
-                ( Coupling & coupling::power110v ) != 0 ? &Couplers[ end::rear ].Connected->Couplers[ Couplers[ end::rear ].ConnectedNr ].power_110v :
-                ( Coupling & coupling::power24v ) != 0 ? &Couplers[ end::rear ].Connected->Couplers[ Couplers[ end::rear ].ConnectedNr ].power_24v :
-                nullptr );
-            if( ( connectedpowercoupling != nullptr )
-             && ( connectedpowercoupling->is_live ) ) {
-                rearvoltage = connectedpowercoupling->voltage;
-            }
-        }
-    }
-    return std::max( frontvoltage, rearvoltage );
-/*
-    return std::max(
-        ( ( ( Couplers[end::front].Connected )
-         && ( Couplers[ end::front ].Connected->Couplers[ Couplers[ end::front ].ConnectedNr ].power_high.is_live )
-         && ( ( Couplers[ end::front ].CouplingFlag & Coupling ) != 0 ) ) ?
-            Couplers[end::front].Connected->Couplers[ Couplers[end::front].ConnectedNr ].power_high.voltage :
-            0.0 ),
-        ( ( ( Couplers[end::rear].Connected )
-         && ( Couplers[ end::rear ].Connected->Couplers[ Couplers[ end::rear ].ConnectedNr ].power_high.is_live )
-         && ( ( Couplers[ end::rear ].CouplingFlag & Coupling ) != 0 ) ) ?
-            Couplers[ end::rear ].Connected->Couplers[ Couplers[ end::rear ].ConnectedNr ].power_high.voltage :
-            0.0 ) );
-*/
+    return std::max( voltages[ end::front ], voltages[ end::rear ] );
 }
 
 double TMoverParameters::GetTrainsetHighVoltage() const {
@@ -9924,6 +9897,7 @@ void TMoverParameters::LoadFIZ_BuffCoupl( std::string const &line, int const Ind
     if( coupler->AllowedFlag < 0 ) {
         coupler->AllowedFlag = ( ( -coupler->AllowedFlag ) | coupling::permanent );
     }
+    extract_value( coupler->PowerCoupling, "PowerCoupling", line, "" );
     extract_value( coupler->PowerFlag, "PowerFlag", line, "" );
     extract_value( coupler->control_type, "ControlType", line, "" );
 

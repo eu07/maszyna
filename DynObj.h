@@ -156,6 +156,7 @@ enum class announcement_t : int {
     current,
     next,
     destination,
+    chime,
     end
 };
 
@@ -720,7 +721,8 @@ private:
     void OverheadTrack(float o);
     glm::dvec3 get_future_movement() const;
 	void move_set(double distance);
-    void announce( announcement_t const Announcement );
+    // playes specified announcement, potentially preceding it with a chime
+    void announce( announcement_t const Announcement, bool const Chime = true );
 
     double MED[9][8]; // lista zmiennych do debugowania hamulca ED
     static std::string const MED_labels[ 8 ];

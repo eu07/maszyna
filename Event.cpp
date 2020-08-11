@@ -567,6 +567,10 @@ getvalues_event::init() {
             m_passive = true;
         }
     }
+    if( m_targets.empty() ) {
+        m_ignored = true;
+        return;
+    }
     // NOTE: GetValues retrieves data only from first specified memory cell
     // TBD, TODO: allow retrieval from more than one cell?
     m_input.data_source = m_targets.front();

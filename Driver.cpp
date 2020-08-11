@@ -1013,7 +1013,7 @@ TCommandType TController::TableUpdate(double &fVelDes, double &fDist, double &fN
                                 // TODO: remove the check once the station system is in place
                                 if( m_lastexchangestop != asNextStop ) {
                                     auto const platformside = static_cast<int>( std::floor( std::abs( sSpeedTable[ i ].evEvent->input_value( 2 ) ) ) ) % 10;
-                                    auto const exchangetime = simulation::Station.update_load( pVehicles[ 0 ], TrainParams, platformside );
+                                    auto const exchangetime = simulation::Station.update_load( pVehicles[ end::front ], TrainParams, platformside );
                                     WaitingSet( exchangetime );
                                     // announce the stop name while at it
                                     announce( announcement_t::current );

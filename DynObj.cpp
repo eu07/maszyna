@@ -5862,7 +5862,8 @@ void TDynamicObject::LoadMMediaFile( std::string const &TypeName, std::string co
                         { "near_stop:", announcement_t::approaching },
                         { "stop:", announcement_t::current },
                         { "next_stop:", announcement_t::next },
-                        { "destination:", announcement_t::destination } };
+                        { "destination:", announcement_t::destination },
+                        { "chime:", announcement_t::chime } };
                     while( ( ( token = parser.getToken<std::string>() ) != "" )
                         && ( token != "}" ) ) {
                         if( token.back() == ':' ) {
@@ -7050,7 +7051,7 @@ material_handle TDynamicObject::DestinationFind( std::string Destination ) {
     return destinationhandle;
 }
 
-void TDynamicObject::announce( announcement_t const Announcement ) {
+void TDynamicObject::announce( announcement_t const Announcement, bool const Chime ) {
 
     if( m_speakers.empty() ) { return; }
 
@@ -7061,6 +7062,7 @@ void TDynamicObject::announce( announcement_t const Announcement ) {
     if( driver == nullptr ) { return; }
 
     auto const &timetable { driver->TrainTimetable() };
+    auto playchime { Chime };
 
     if( m_announcements[ static_cast<int>( Announcement ) ].empty() ) {
         goto followup;
@@ -7089,6 +7091,15 @@ void TDynamicObject::announce( announcement_t const Announcement ) {
         if( stopnamesound.empty() ) {
             goto followup;
         }
+        // potentially precede the announcement with a chime...
+        if( ( true == playchime )
+         && ( false == m_announcements[ static_cast<int>( announcement_t::chime ) ].empty() ) ) {
+            for( auto &speaker : m_speakers ) {
+                speaker.announcement_queue.emplace_back( m_announcements[ static_cast<int>( announcement_t::chime ) ] );
+            }
+            playchime = false; 
+        }
+        // ...then play the announcement itself
         for( auto &speaker : m_speakers ) {
             speaker.announcement_queue.emplace_back( m_announcements[ static_cast<int>( Announcement ) ] );
             speaker.announcement_queue.emplace_back( stopnamesound );
@@ -7097,7 +7108,7 @@ void TDynamicObject::announce( announcement_t const Announcement ) {
 followup:
     // potentially follow up with another announcement
     if( Announcement == announcement_t::next ) {
-        announce( announcement_t::destination );
+        announce( announcement_t::destination, playchime );
     }
 }
 

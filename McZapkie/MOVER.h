@@ -699,6 +699,7 @@ struct TCoupling {
     int AutomaticCouplingFlag = coupling::coupler;
     int AllowedFlag = ( coupling::coupler | coupling::brakehose ); //Ra: maska dostępnych
     int PowerFlag = ( coupling::power110v | coupling::power24v );
+    int PowerCoupling = coupling::permanent; // type of coupling required for power transfer
     /*zmienne*/
     bool AutomaticCouplingAllowed { true }; // whether automatic coupling can be currently performed
 	int CouplingFlag = 0; /*0 - wirtualnie, 1 - sprzegi, 2 - pneumatycznie, 4 - sterowanie, 8 - kabel mocy*/
