@@ -32,8 +32,22 @@ uniform sampler2D normalmap;
 
 vec3 apply_lights_sunless(vec3 fragcolor, vec3 fragnormal, vec3 texturecolor, float reflectivity, float specularity, float shadowtone)
 {
-	vec3 emissioncolor = param[0].rgb * emission;
+	vec3 basecolor = param[0].rgb;
+
+	fragcolor *= basecolor;
+
+	vec3 emissioncolor = basecolor * emission;
 	vec3 envcolor = envmap_color(fragnormal);
+
+// yuv path
+	vec3 texturecoloryuv = rgb2yuv(texturecolor);
+	vec3 texturecolorfullv = yuv2rgb(vec3(0.2176, texturecoloryuv.gb));
+// hsl path
+//	vec3 texturecolorhsl = rgb2hsl(texturecolor);
+//	vec3 texturecolorfullv = hsl2rgb(vec3(texturecolorhsl.rg, 0.5));
+
+	vec3 envyuv = rgb2yuv(envcolor);
+	texturecolor = mix(texturecolor, texturecolorfullv, envyuv.r * reflectivity);
 
 	if(lights_count == 0U) 
 		return (fragcolor + emissioncolor + envcolor * reflectivity) * texturecolor;
