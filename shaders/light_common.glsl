@@ -5,6 +5,10 @@ uniform sampler2DArrayShadow shadowmap;
 uniform sampler2D headlightmap;
 
 #include <envmapping.glsl>
+#include <conversion.glsl>
+
+float glossiness = 1.0;
+bool metalic = false;
 
 float length2(vec3 v)
 {
@@ -42,9 +46,6 @@ float calc_shadow()
 #endif
 }
 
-float glossiness = 1.0;
-// [0] - diffuse, [1] - specular
-// do magic here
 vec2 calc_light(vec3 light_dir, vec3 fragnormal)
 {
 	vec3 view_dir = normalize(vec3(0.0f, 0.0f, 0.0f) - f_pos.xyz);
@@ -107,14 +108,26 @@ vec2 calc_headlights(light_s light, vec3 fragnormal)
 	return part * atten * lightintensity;
 }
 
-	bool metalic = false;
-
+// [0] - diffuse, [1] - specular
+// do magic here
 vec3 apply_lights(vec3 fragcolor, vec3 fragnormal, vec3 texturecolor, float reflectivity, float specularity, float shadowtone)
 {
-	fragcolor *= param[1].x;
+	vec3 basecolor = param[0].rgb;
 
-	vec3 emissioncolor = param[0].rgb * emission;
+	fragcolor *= basecolor;
+
+	vec3 emissioncolor = basecolor * emission;
 	vec3 envcolor = envmap_color(fragnormal);
+
+// yuv path
+	vec3 texturecoloryuv = rgb2yuv(texturecolor);
+	vec3 texturecolorfullv = yuv2rgb(vec3(0.2176, texturecoloryuv.gb));
+// hsl path
+//	vec3 texturecolorhsl = rgb2hsl(texturecolor);
+//	vec3 texturecolorfullv = hsl2rgb(vec3(texturecolorhsl.rg, 0.5));
+
+	vec3 envyuv = rgb2yuv(envcolor);
+	texturecolor = mix(texturecolor, texturecolorfullv, envyuv.r * reflectivity);
 
 	if(lights_count == 0U) 
 		return (fragcolor + emissioncolor + envcolor * reflectivity) * texturecolor;
@@ -153,6 +166,7 @@ vec3 apply_lights(vec3 fragcolor, vec3 fragnormal, vec3 texturecolor, float refl
 	}
 	fragcolor += emissioncolor;
 	vec3 specularcolor = specularamount * lights[0].color;
+
 	if ((param[1].w < 0.0) || (metalic == true))
 	{
 		fragcolor += specularcolor;
