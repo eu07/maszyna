@@ -6025,7 +6025,9 @@ bool TTrain::Update( double const Deltatime )
         }
     }
     // helper variables
-    m_doors = ( DynamicObject->Mechanik->IsAnyDoorOpen[ side::right ] || DynamicObject->Mechanik->IsAnyDoorOpen[ side::left ] );
+    if( DynamicObject->Mechanik != nullptr ) {
+        m_doors = ( DynamicObject->Mechanik->IsAnyDoorOpen[ side::right ] || DynamicObject->Mechanik->IsAnyDoorOpen[ side::left ] );
+    }
 	m_dirforward = ( mvControlled->DirActive > 0 );
 	m_dirneutral = ( mvControlled->DirActive == 0 );
 	m_dirbackward = ( mvControlled->DirActive <0 );
@@ -6991,9 +6993,9 @@ bool TTrain::Update( double const Deltatime )
         }
         ggLocalBrake.Update();
     }
-    ggDirForwardButton.Update();
-    ggDirNeutralButton.Update();
-    ggDirBackwardButton.Update();
+    ggDirForwardButton.Update( lowvoltagepower );
+    ggDirNeutralButton.Update( lowvoltagepower );
+    ggDirBackwardButton.Update( lowvoltagepower );
     ggAlarmChain.Update();
     ggBrakeProfileCtrl.Update();
     ggBrakeProfileG.Update();
@@ -7001,8 +7003,8 @@ bool TTrain::Update( double const Deltatime )
 	ggBrakeOperationModeCtrl.Update();
     ggMaxCurrentCtrl.Update();
     // NBMX wrzesien 2003 - drzwi
-    ggDoorLeftPermitButton.Update();
-    ggDoorRightPermitButton.Update();
+    ggDoorLeftPermitButton.Update( lowvoltagepower );
+    ggDoorRightPermitButton.Update( lowvoltagepower );
     ggDoorPermitPresetButton.Update();
     ggDoorLeftButton.Update();
     ggDoorRightButton.Update();
@@ -7011,7 +7013,7 @@ bool TTrain::Update( double const Deltatime )
     ggDoorLeftOffButton.Update();
     ggDoorRightOffButton.Update();
     ggDoorAllOnButton.Update();
-    ggDoorAllOffButton.Update();
+    ggDoorAllOffButton.Update( lowvoltagepower );
     ggDoorSignallingButton.Update();
     // NBMX dzwignia sprezarki
     ggCompressorButton.Update();
@@ -7534,6 +7536,7 @@ void TTrain::update_sounds_radio() {
     for( auto &message : m_radiomessages ) {
         auto const volume {
             ( true == radioenabled )
+         && ( Dynamic()->Mechanik != nullptr )
          && ( message.first == RadioChannel() ) ?
                 Global.RadioVolume :
                 0.0 };
@@ -8125,24 +8128,13 @@ bool TTrain::InitializeCab(int NewCabNo, std::string const &asFileName)
 
 Math3D::vector3 TTrain::MirrorPosition(bool lewe)
 { // zwraca współrzędne widoku kamery z lusterka
-    switch (iCabn)
-    {
-    case 2: // tylna (-1)
-        return DynamicObject->mMatrix *
-               Math3D::vector3(
-                   mvOccupied->Dim.W * ( lewe ? -0.5 : 0.5 ) + 0.2 * ( lewe ? -1 : 1 ),
-                   1.5 + Cabine[iCabn].CabPos1.y,
-                   Cabine[iCabn].CabPos1.z);
-    case 1: // przednia (1)
-        [[fallthrough]];
-    default:
-        return DynamicObject->mMatrix *
-               Math3D::vector3(
-                   mvOccupied->Dim.W * ( lewe ? 0.5 : -0.5 ) + 0.2 * ( lewe ? 1 : -1 ),
-                   1.5 + Cabine[iCabn].CabPos1.y,
-                   Cabine[iCabn].CabPos2.z);
-    }
-//    return DynamicObject->GetPosition(); // współrzędne środka pojazdu
+    auto const shiftdirection { ( lewe ? -1 : 1 ) * ( iCabn == 2 ? 1 : -1 ) };
+
+    return DynamicObject->mMatrix
+        * Math3D::vector3(
+            mvOccupied->Dim.W * ( 0.5 * shiftdirection ) + ( 0.2 * shiftdirection ),
+            1.5 + Cabine[iCabn].CabPos1.y,
+            interpolate( Cabine[ iCabn ].CabPos1.z , Cabine[ iCabn ].CabPos2.z, 0.5 ) );
 };
 
 void TTrain::DynamicSet(TDynamicObject *d)
@@ -8337,6 +8329,7 @@ TTrain::radio_message( sound_source *Message, int const Channel ) {
     auto const radioenabled { ( true == mvOccupied->Radio ) && ( mvOccupied->Power24vIsAvailable || mvOccupied->Power110vIsAvailable ) };
     auto const volume {
         ( true == radioenabled )
+     && ( Dynamic()->Mechanik != nullptr )
      && ( Channel == RadioChannel() ) ?
             1.0 :
             0.0 };

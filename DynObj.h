@@ -406,9 +406,13 @@ private:
         void render( TMoverParameters const &Vehicle, double const Deltatime );
     };
     // single source per door (pair) on the centreline
-    struct speaker_sounds {
+    struct doorspeaker_sounds {
         glm::vec3 offset;
         sound_source departure_signal;
+    };
+    // single source per vehicle
+    struct pasystem_sounds {
+        std::array<sound_source, static_cast<int>( announcement_t::end )> announcements;
         sound_source announcement;
         std::deque<sound_source> announcement_queue; // fifo queue
     };
@@ -509,8 +513,8 @@ private:
     exchange_data m_exchange; // state of active load exchange procedure, if any
     exchange_sounds m_exchangesounds; // sounds associated with the load exchange
 
-    std::vector<speaker_sounds> m_speakers;
-    std::array<sound_source, static_cast<int>( announcement_t::end )> m_announcements;
+    std::vector<doorspeaker_sounds> m_doorspeakers;
+    pasystem_sounds m_pasystem;
 
     coupleradapter_data m_coupleradapter;
 

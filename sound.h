@@ -15,7 +15,7 @@ http://mozilla.org/MPL/2.0/.
 
 float const EU07_SOUND_GLOBALRANGE { -1.f };
 float const EU07_SOUND_CABCONTROLSCUTOFFRANGE { 7.5f };
-float const EU07_SOUND_CABANNOUNCEMENTCUTOFFRANGE{ 30.f };
+float const EU07_SOUND_CABANNOUNCEMENTCUTOFFRANGE{ -10.f };
 float const EU07_SOUND_BRAKINGCUTOFFRANGE { 100.f };
 float const EU07_SOUND_RUNNINGNOISECUTOFFRANGE { 200.f };
 float const EU07_SOUND_HANDHELDRADIORANGE { 3500.f };
@@ -122,6 +122,8 @@ public:
     glm::dvec3 const
         location() const;
     // returns defined range of the sound
+    void
+        range( float const Range );
     float const
         range() const;
 

@@ -190,7 +190,7 @@ void TCamera::Update()
         auto movement { Velocity * -2.0 };
         movement.y = -movement.y;
         if( ( m_owner->ctOwner )
-         && ( m_owner->ctOwner->Vehicle()->MoverParameters->CabOccupied < 0 ) ) {
+         && ( m_owner->ctOwner->Vehicle()->DirectionGet() != m_owner->DirectionGet() ) ) {
             movement *= -1.f;
             movement.y = -movement.y;
         }

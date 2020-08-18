@@ -198,7 +198,8 @@ private:
     std::array<float, iMaxNumLights> m_lightopacities; // {1} in constructor
     float fOnTime { 1.f / 2 };// { 60.f / 45.f / 2 };
     float fOffTime { 1.f / 2 };// { 60.f / 45.f / 2 }; // były stałymi, teraz mogą być zmienne dla każdego egzemplarza
-    float fTransitionTime { fOnTime * 0.9f }; // time
+//    float fTransitionTime { fOnTime * 0.9f }; // time
+    bool m_transition { true }; // smooth transition between light states
     unsigned int m_framestamp { 0 }; // id of last rendered gfx frame
 };
 

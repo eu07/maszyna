@@ -39,7 +39,7 @@ struct TMTableLine
     float tm{ 0.f }; // czas jazdy do tej stacji w min. (z kolumny)
     bool is_maintenance{ false };
     int radio_channel{ -1 };
-    sound_source name_sound{ sound_placement::internal };
+    sound_source name_sound{ sound_placement::engine };
 };
 
 typedef TMTableLine TMTable[MaxTTableSize + 1];
@@ -73,6 +73,8 @@ class TTrainParameters
     bool IsLastStop() const;
     bool IsMaintenance() const;
     bool IsTimeToGo(double hh, double mm);
+    // returns: difference between specified time and scheduled departure from current stop, in seconds
+    double seconds_until_departure( double const Hour, double const Minute ) const;
     bool UpdateMTable(double hh, double mm, std::string const &NewName);
     bool UpdateMTable( scenario_time const &Time, std::string const &NewName );
     bool RewindTimeTable( std::string actualStationName );

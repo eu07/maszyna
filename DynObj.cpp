@@ -4298,7 +4298,7 @@ void TDynamicObject::RenderSounds() {
     // NBMX sygnal odjazdu
     if( MoverParameters->Doors.has_warning ) {
         auto const lowvoltagepower { MoverParameters->Power24vIsAvailable || MoverParameters->Power110vIsAvailable };
-        for( auto &speaker : m_speakers ) {
+        for( auto &doorspeaker : m_doorspeakers ) {
             // TBD, TODO: per-location door state triggers?
             if( ( MoverParameters->DepartureSignal )
              && ( lowvoltagepower )
@@ -4310,30 +4310,31 @@ void TDynamicObject::RenderSounds() {
                  ) {
                 // for the autonomous doors play the warning automatically whenever a door is closing
                 // MC: pod warunkiem ze jest zdefiniowane w chk
-                speaker.departure_signal.play( sound_flags::exclusive | sound_flags::looping );
+                doorspeaker.departure_signal.play( sound_flags::exclusive | sound_flags::looping );
             }
             else {
-                speaker.departure_signal.stop();
+                doorspeaker.departure_signal.stop();
             }
         }
     }
     // announcements
-    for( auto &speaker : m_speakers ) {
+    {
         auto const lowvoltagepower { MoverParameters->Power24vIsAvailable || MoverParameters->Power110vIsAvailable };
         if( lowvoltagepower ) {
-            // speaker is powered up, can play queued announcements
-            if( speaker.announcement.is_playing() )  { continue; }
-            if( speaker.announcement_queue.empty() ) { continue; }
-            // pull first sound from the queue
-            speaker.announcement = speaker.announcement_queue.front();
-            speaker.announcement.owner( this );
-            speaker.announcement.offset( speaker.offset );
-            speaker.announcement.play();
-            speaker.announcement_queue.pop_front();
+            // system is powered up, can play queued announcements
+            if( ( false == m_pasystem.announcement_queue.empty() )
+             && ( false == m_pasystem.announcement.is_playing() ) ) {
+                // pull first sound from the queue
+                m_pasystem.announcement = m_pasystem.announcement_queue.front();
+                m_pasystem.announcement.owner( this );
+                m_pasystem.announcement.range( 0.5 * MoverParameters->Dim.L * -1 );
+                m_pasystem.announcement.play();
+                m_pasystem.announcement_queue.pop_front();
+            }
         }
         else {
-            speaker.announcement.stop();
-            speaker.announcement_queue.clear();
+            m_pasystem.announcement.stop();
+            m_pasystem.announcement_queue.clear();
         }
     }
     // NBMX Obsluga drzwi, MC: zuniwersalnione
@@ -5708,7 +5709,7 @@ void TDynamicObject::LoadMMediaFile( std::string const &TypeName, std::string co
                     sound_source soundtemplate { sound_placement::general, 25.f };
                     soundtemplate.deserialize( parser, sound_type::multipart, sound_parameters::range );
                     soundtemplate.owner( this );
-                    for( auto &speaker : m_speakers ) {
+                    for( auto &speaker : m_doorspeakers ) {
                         speaker.departure_signal = soundtemplate;
                         speaker.departure_signal.offset( speaker.offset );
                     }
@@ -5787,11 +5788,13 @@ void TDynamicObject::LoadMMediaFile( std::string const &TypeName, std::string co
                 }
 
                 else if( token == "unloading:" ) {
+                    m_exchangesounds.unloading.range( MoverParameters->Dim.L * 0.5f * -1 );
                     m_exchangesounds.unloading.deserialize( parser, sound_type::single );
                     m_exchangesounds.unloading.owner( this );
                 }
 
                 else if( token == "loading:" ) {
+                    m_exchangesounds.loading.range( MoverParameters->Dim.L * 0.5f * -1 );
                     m_exchangesounds.loading.deserialize( parser, sound_type::single );
                     m_exchangesounds.loading.owner( this );
                 }
@@ -5878,10 +5881,10 @@ void TDynamicObject::LoadMMediaFile( std::string const &TypeName, std::string co
                             if( announcementtype == announcement_t::idle ) {
                                 continue;
                             }
-                            sound_source soundtemplate { sound_placement::general, EU07_SOUND_CABANNOUNCEMENTCUTOFFRANGE };
+                            sound_source soundtemplate { sound_placement::engine }; // NOTE: sound range gets filled by pa system
                             soundtemplate.deserialize( announcementsound, sound_type::single );
                             soundtemplate.owner( this );
-                            m_announcements[ static_cast<int>( announcementtype ) ] = soundtemplate;
+                            m_pasystem.announcements[ static_cast<int>( announcementtype ) ] = soundtemplate;
                         }
                     }
                 }
@@ -5933,10 +5936,9 @@ void TDynamicObject::LoadMMediaFile( std::string const &TypeName, std::string co
                             door.step_open.offset( location );
                             m_doorsounds.emplace_back( door );
                         }
-                        m_speakers.emplace_back(
-                            speaker_sounds {
+                        m_doorspeakers.emplace_back(
+                            doorspeaker_sounds {
                                 { 0.f, 3.f, offset },
-                                {},
                                 {} } );
                     }
                 }
@@ -7053,7 +7055,7 @@ material_handle TDynamicObject::DestinationFind( std::string Destination ) {
 
 void TDynamicObject::announce( announcement_t const Announcement, bool const Chime ) {
 
-    if( m_speakers.empty() ) { return; }
+    if( m_doorspeakers.empty() ) { return; }
 
     auto const *driver { ( 
         ctOwner != nullptr ?
@@ -7062,9 +7064,10 @@ void TDynamicObject::announce( announcement_t const Announcement, bool const Chi
     if( driver == nullptr ) { return; }
 
     auto const &timetable { driver->TrainTimetable() };
+    auto const &announcements { m_pasystem.announcements };
     auto playchime { Chime };
 
-    if( m_announcements[ static_cast<int>( Announcement ) ].empty() ) {
+    if( announcements[ static_cast<int>( Announcement ) ].empty() ) {
         goto followup;
     }
     // if the announcement sound was defined queue playback
@@ -7093,17 +7096,13 @@ void TDynamicObject::announce( announcement_t const Announcement, bool const Chi
         }
         // potentially precede the announcement with a chime...
         if( ( true == playchime )
-         && ( false == m_announcements[ static_cast<int>( announcement_t::chime ) ].empty() ) ) {
-            for( auto &speaker : m_speakers ) {
-                speaker.announcement_queue.emplace_back( m_announcements[ static_cast<int>( announcement_t::chime ) ] );
-            }
+         && ( false == announcements[ static_cast<int>( announcement_t::chime ) ].empty() ) ) {
+            m_pasystem.announcement_queue.emplace_back( announcements[ static_cast<int>( announcement_t::chime ) ] );
             playchime = false; 
         }
         // ...then play the announcement itself
-        for( auto &speaker : m_speakers ) {
-            speaker.announcement_queue.emplace_back( m_announcements[ static_cast<int>( Announcement ) ] );
-            speaker.announcement_queue.emplace_back( stopnamesound );
-        }
+        m_pasystem.announcement_queue.emplace_back( announcements[ static_cast<int>( Announcement ) ] );
+        m_pasystem.announcement_queue.emplace_back( stopnamesound );
     }
 followup:
     // potentially follow up with another announcement

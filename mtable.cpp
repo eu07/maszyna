@@ -45,7 +45,7 @@ std::string TTrainParameters::NextStop() const
 sound_source
 TTrainParameters::next_stop_sound() const {
     if( StationIndex > StationCount ) {
-        return { sound_placement::general };
+        return { sound_placement::engine };
     }
     for( auto stationidx { StationIndex }; stationidx < StationCount + 1; ++stationidx ) {
         auto &station{ TimeTable[ stationidx ] };
@@ -56,7 +56,7 @@ TTrainParameters::next_stop_sound() const {
         return station.name_sound;
     }
     // shouldn't normally get here, unless the timetable is malformed
-    return { sound_placement::general };
+    return { sound_placement::engine };
 }
 
 sound_source
@@ -98,7 +98,7 @@ sound_source TTrainParameters::current_stop_sound() const {
     if( ( StationIndex <= StationCount ) )
         return TimeTable[ StationIndex ].name_sound;
     else
-        return { sound_placement::general };
+        return { sound_placement::engine };
 }
 
 bool TTrainParameters::UpdateMTable( scenario_time const &Time, std::string const &NewName ) {
@@ -179,6 +179,15 @@ bool TTrainParameters::IsTimeToGo(double hh, double mm)
     }
     else // gdy rozkład się skończył
         return false; // dalej nie jechać
+}
+
+// returns: difference between specified time and scheduled departure from current stop, in seconds
+double TTrainParameters::seconds_until_departure( double const Hour, double const Minute ) const {
+
+    if( ( TimeTable[ StationIndex ].Ah < 0 ) ) { // passthrough
+        return 0;
+    }
+    return ( 60.0 * CompareTime( Hour, Minute, TimeTable[ StationIndex ].Dh, TimeTable[ StationIndex ].Dm ) );
 }
 
 std::string TTrainParameters::ShowRelation() const
@@ -595,7 +604,7 @@ TTrainParameters::load_sounds() {
         }
         //  wczytanie dźwięku odjazdu w wersji radiowej (słychać tylko w kabinie)
         station.name_sound =
-            sound_source{ sound_placement::general, EU07_SOUND_CABANNOUNCEMENTCUTOFFRANGE }
+            sound_source{ sound_placement::engine, EU07_SOUND_CABANNOUNCEMENTCUTOFFRANGE }
                 .deserialize( lookup.first + lookup.second, sound_type::single );
     }
 }

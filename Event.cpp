@@ -17,6 +17,7 @@ http://mozilla.org/MPL/2.0/.
 #include "Event.h"
 
 #include "simulation.h"
+#include "simulationtime.h"
 #include "messaging.h"
 #include "Globals.h"
 #include "MemCell.h"
@@ -307,6 +308,10 @@ basic_event::deserialize( cParser &Input, scene::scratch_data &Scratchpad ) {
             Input.getTokens();
             Input >> m_delayrandom; // Ra 2014-03-11
         }
+        if( token == "departuredelay" ) { // timetable-based delay
+            Input.getTokens();
+            Input >> m_delaydeparture;
+        }
         Input.getTokens();
     }
 }
@@ -362,6 +367,11 @@ basic_event::export_as_text( std::ostream &Output ) const {
         Output
             << "randomdelay "
             << m_delayrandom << ' ';
+    }
+    if( false == std::isnan( m_delayrandom ) ) {
+        Output
+            << "departuredelay "
+            << m_delaydeparture << ' ';
     }
     // footer
     Output
@@ -428,9 +438,10 @@ basic_event::input_location() const {
 
 bool
 basic_event::is_keyword( std::string const &Token ) {
-
+    // TODO: convert to array lookup if keyword list gets longer
     return ( Token == "endevent" )
-        || ( Token == "randomdelay" );
+        || ( Token == "randomdelay" )
+        || ( Token == "departuredelay" );
 }
 
 
@@ -2289,10 +2300,24 @@ event_manager::AddToQuery( basic_event *Event, TDynamicObject const *Owner ) {
         // standardowe dodanie do kolejki
         ++(Event->m_inqueue); // zabezpieczenie przed podwójnym dodaniem do kolejki
         WriteLog( "EVENT ADDED TO QUEUE" + ( Owner ? ( " by " + Owner->asName ) : "" ) + ": " + Event->m_name );
-        Event->m_launchtime = std::abs( Event->m_delay ) + Timer::GetTime(); // czas od uruchomienia scenerii
+        Event->m_launchtime = Timer::GetTime() + std::abs( Event->m_delay ); // czas od uruchomienia scenerii
         if( Event->m_delayrandom > 0.0 ) {
             // doliczenie losowego czasu opóźnienia
             Event->m_launchtime += Event->m_delayrandom * Random();
+        }
+        if( ( Owner != nullptr )
+         && ( false == std::isnan( Event->m_delaydeparture ) ) ) {
+            auto const *timetableowner { (
+                ( ( Owner->Mechanik != nullptr ) && ( Owner->Mechanik->primary() ) ) ?
+                    Owner->Mechanik :
+                    Owner->ctOwner ) };
+            if( timetableowner != nullptr ) {
+                auto const &timetable { timetableowner->TrainTimetable() };
+                auto const &time { simulation::Time.data() };
+                Event->m_launchtime +=
+                    timetable.seconds_until_departure( time.wHour, time.wMinute + time.wSecond * 0.0167 )
+                    + Event->m_delaydeparture;
+            }
         }
         if( QueryRootEvent != nullptr ) {
             basic_event *target { QueryRootEvent };

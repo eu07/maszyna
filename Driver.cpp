@@ -1909,24 +1909,24 @@ void TController::Activation()
         mvOccupied->CabOccupied = mvOccupied->CabActive; // użytkownik moze zmienić CabOccupied wychodząc
         mvOccupied->CabDeactivisation(); // tak jest w Train.cpp
         // przejście AI na drugą stronę EN57, ET41 itp.
-        while (TestFlag(d->MoverParameters->Couplers[iDirection < 0 ? end::rear : end::front].CouplingFlag, coupling::control))
-        { // jeśli pojazd z przodu jest ukrotniony, to przechodzimy do niego
-            d = iDirection * d->DirectionGet() < 0 ? d->Next() :
-                                                     d->Prev(); // przechodzimy do następnego członu
-            if (d)
-            {
+        {
+            int movedirection { ( iDirection < 0 ? end::rear : end::front ) };
+            d = pVehicle->FirstFind( movedirection, coupling::control );
+            if( pVehicle != d ) {
                 drugi = d->Mechanik; // zapamiętanie tego, co ewentualnie tam siedzi, żeby w razie dwóch zamienić miejscami
                 d->Mechanik = this; // na razie bilokacja
                 d->MoverParameters->SetInternalCommand("", 0, 0); // usunięcie ewentualnie zalegającej komendy (Change_direction?)
-                if (d->DirectionGet() != pVehicle->DirectionGet()) // jeśli są przeciwne do siebie
-                    iDirection = -iDirection; // to będziemy jechać w drugą stronę względem zasiedzianego pojazdu
+                if( d->DirectionGet() != pVehicle->DirectionGet() ) {
+                    // jeśli są przeciwne do siebie to będziemy jechać w drugą stronę względem zasiedzianego pojazdu
+                    iDirection = -iDirection;
+                }
                 pVehicle->Mechanik = drugi; // wsadzamy tego, co ewentualnie był (podwójna trakcja)
+/*
                 pVehicle->MoverParameters->CabActive = 0; // wyłączanie kabin po drodze
                 pVehicle->MoverParameters->CabOccupied = 0; // i zaznaczenie, że nie ma tam nikogo
+*/
                 pVehicle = d; // a mechu ma nowy pojazd (no, człon)
             }
-            else
-                break; // jak koniec składu, to mechanik dalej nie idzie
         }
         if (pVehicle != old)
         { // jeśli zmieniony został pojazd prowadzony
@@ -2371,7 +2371,7 @@ bool TController::CheckVehicles(TOrders user)
                     ( ( mvControlling->EngineType == TEngineType::DieselElectric )
                    || ( mvControlling->EngineType == TEngineType::DieselEngine ) ) ? ( Global.AirTemperature < 10 ) :
                     true );
-           }
+            }
         }
         else { // gdy człowiek i gdy nastąpiło połącznie albo rozłączenie
                // Ra 2014-02: lepiej tu niż w pętli obsługującej komendy, bo tam się zmieni informacja o składzie
@@ -3197,7 +3197,7 @@ bool TController::DecBrakeEIM()
 	{
         case 0: {
             if( mvOccupied->MED_amax != 9.81 ) {
-                auto const brakeposition { clamp( -1.0 * mvOccupied->AIHintLocalBrakeAccFactor * AccDesired / mvOccupied->MED_amax, 0.0, 1.0 ) };
+                auto const brakeposition { clamp( -1.0 * mvOccupied->AIHintLocalBrakeAccFactor * std::max( 0.0, AccDesired ) / mvOccupied->MED_amax, 0.0, 1.0 ) };
                 OK = ( brakeposition != mvOccupied->LocalBrakePosA );
                 mvOccupied->LocalBrakePosA = brakeposition;
             }

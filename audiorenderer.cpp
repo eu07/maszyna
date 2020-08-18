@@ -135,8 +135,9 @@ openal_source::sync_with( sound_properties const &State ) {
     // location
     properties.location = State.location;
     sound_distance = properties.location - glm::dvec3 { Global.pCamera.Pos };
-    if( sound_range > 0 ) {
-        // range cutoff check
+    if( sound_range != -1 ) {
+        // range cutoff check for songs other than 'unlimited'
+        // NOTE: since we're comparing squared distances we can ignore that sound range can be negative
         auto const cutoffrange = (
             is_multipart ?
                 EU07_SOUND_CUTOFFRANGE : // we keep multi-part sounds around longer, to minimize restarts as the sounds get out and back in range
@@ -151,7 +152,7 @@ openal_source::sync_with( sound_properties const &State ) {
         ::alSourcefv( id, AL_POSITION, glm::value_ptr( sound_distance ) );
     }
     else {
-        // sounds with 'unlimited' range are positioned on top of the listener
+        // sounds with 'unlimited' or negative range are positioned on top of the listener
         ::alSourcefv( id, AL_POSITION, glm::value_ptr( glm::vec3() ) );
     }
     // gain
@@ -168,7 +169,7 @@ openal_source::sync_with( sound_properties const &State ) {
                 5 ) }; // range of -1 means sound of unlimited range, positioned at the listener
         ::alSourcef( id, AL_REFERENCE_DISTANCE, range * ( 1.f / 16.f ) * properties.soundproofing );
     }
-    if( sound_range > 0 ) {
+    if( sound_range != -1 ) {
         auto const rangesquared { sound_range * sound_range };
         auto const distancesquared { glm::length2( sound_distance ) };
         if( ( distancesquared > rangesquared )
@@ -428,7 +429,7 @@ openal_renderer::fetch_source() {
                 continue;
             }
             auto const sourceweight { (
-                source->sound_range > 0 ?
+                source->sound_range != -1 ?
                     ( source->sound_range * source->sound_range ) / ( glm::length2( source->sound_distance ) + 1 ) :
                     std::numeric_limits<float>::max() ) };
             if( sourceweight < leastimportantweight ) {

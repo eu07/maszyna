@@ -438,7 +438,8 @@ TAnimModel::is_keyword( std::string const &Token ) const {
     return ( Token == "endmodel" )
         || ( Token == "lights" )
         || ( Token == "lightcolors" )
-        || ( Token == "angles" );
+        || ( Token == "angles" )
+        || ( Token == "notransition" );
 }
 
 bool TAnimModel::Load(cParser *parser, bool ter)
@@ -529,6 +530,10 @@ bool TAnimModel::Load(cParser *parser, bool ter)
                 >> vAngle[ 2 ];
         }
 
+        if( token == "notransition" ) {
+            m_transition = false;
+        }
+
     } while( ( false == token.empty() )
           && ( token != "endmodel" ) );
 
@@ -589,6 +594,13 @@ void TAnimModel::RaAnimate( unsigned int const Framestamp ) {
         auto &timer { m_lighttimers[ idx ] };
         if( ( modeintegral < ls_Blink ) && ( modefractional < 0.01f ) ) {
             // simple flip modes
+            auto const transitiontime { (
+                m_transition ?
+                    std::min(
+                        1.f,
+                        std::min( fOnTime, fOffTime ) * 0.9f ) :
+                    0.01f ) };
+
             switch( mode ) {
                 case ls_Off: {
                     // reduce to zero
@@ -597,14 +609,14 @@ void TAnimModel::RaAnimate( unsigned int const Framestamp ) {
                 }
                 case ls_On: {
                     // increase to max value
-                    timer = std::min<float>( fTransitionTime, timer + timedelta );
+                    timer = std::min<float>( transitiontime, timer + timedelta );
                     break;
                 }
                 default: {
                     break;
                 }
             }
-            opacity = timer / fTransitionTime;
+            opacity = timer / transitiontime;
         }
         else {
             // blink modes
@@ -618,10 +630,12 @@ void TAnimModel::RaAnimate( unsigned int const Framestamp ) {
                 ( mode == ls_Off ) ? ontime :
                 ( mode == ls_On ) ? ( fOnTime + fOffTime ) - ontime :
                 fOffTime ) }; // fallback
-            auto const transitiontime {
-                std::min(
-                    1.f,
-                    std::min( ontime, offtime ) * 0.9f ) };
+            auto const transitiontime { (
+                m_transition ?
+                    std::min(
+                        1.f,
+                        std::min( ontime, offtime ) * 0.9f ) :
+                    0.01f ) };
 
             timer = clamp_circular<float>( timer + timedelta * ( lsLights[ idx ] > 0.f ? 1.f : -1.f ), ontime + offtime );
             // set opacity depending on blink stage
@@ -957,6 +971,10 @@ TAnimModel::export_as_text_( std::ostream &Output ) const {
         for( int lightidx = 0; lightidx < iNumLights; ++lightidx ) {
             Output << lsLights[ lightidx ] << ' ';
         }
+    }
+    // potential light transition switch
+    if( false == m_transition ) {
+        Output << "notransition" << ' ';
     }
     // footer
     Output

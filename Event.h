@@ -91,6 +91,7 @@ public:
     double m_launchtime { 0.0 };
     double m_delay { 0.0 };
     double m_delayrandom { 0.0 }; // zakres dodatkowego opóźnienia // standardowo nie będzie dodatkowego losowego opóźnienia
+    double m_delaydeparture { std::numeric_limits<double>::quiet_NaN() }; // departure-based event delay
 
 protected:
 // types
