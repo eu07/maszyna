@@ -467,23 +467,24 @@ bool TTrainParameters::LoadTTfile(std::string scnpath, int iPlus, double vmax)
                             {
                                 auto const stationware { Split( record->StationWare, ',' ) };
                                 for( auto const &entry : stationware ) {
-                                    if( entry.front() == 'R' ) {
-                                        auto const entrysplit { split_string_and_number( entry ) };
-                                        if( ( entrysplit.first == "R" )
-                                         && ( entrysplit.second <= 10 ) ) {
-                                            auto const radiochannel { entrysplit.second };
-                                            if( ( record->radio_channel == -1 )
-                                             || ( radiochannel != activeradiochannel ) ) {
-                                                // if the station has more than one radiochannel listed,
-                                                // it generally means we should switch to the one we weren't using so far
-                                                // TODO: reverse this behaviour (keep the channel used so far) once W28 signs are included in the system
-                                                record->radio_channel = radiochannel;
-                                            }
+                                    if( entry.front() != 'R' ) {
+                                        continue;
+                                    }
+                                    auto const entrysplit { split_string_and_number( entry ) };
+                                    if( ( entrysplit.first == "R" )
+                                     && ( entrysplit.second <= 10 ) ) {
+                                        auto const radiochannel { entrysplit.second };
+                                        if( ( record->radio_channel == -1 )
+                                         || ( radiochannel != activeradiochannel ) ) {
+                                            // if the station has more than one radiochannel listed,
+                                            // it generally means we should switch to the one we weren't using so far
+                                            // TODO: reverse this behaviour (keep the channel used so far) once W28 signs are included in the system
+                                            record->radio_channel = radiochannel;
                                         }
                                     }
                                 }
                                 if( record->radio_channel != -1 ) {
-                                    activeradiochannel == record->radio_channel;
+                                    activeradiochannel = record->radio_channel;
                                 }
                             }
                             record->TrackNo = atoi(s.c_str());

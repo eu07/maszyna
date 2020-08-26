@@ -763,10 +763,12 @@ debug_panel::update_section_vehicle( std::vector<text_line> &Output ) {
         locale::strings[ locale::string::debug_vehicle_brakespressures ].c_str(),
         // brakes
         mover.fBrakeCtrlPos,
-        mover.LocalBrakePosA,
         mover.BrakeOpModeFlag,
         update_vehicle_brake().c_str(),
         mover.LoadFlag,
+        mover.LocalBrakePosA,
+        ( mover.ManualBrakePos / ManualBrakePosNo ),
+        ( mover.SpringBrake.Activate ? 1.f : 0.f ),
         // cylinders
         mover.BrakePress,
         mover.LocBrakePress,

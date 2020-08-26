@@ -211,6 +211,17 @@ std::string cParser::readToken( bool ToLower, const char *Break ) {
             }
         } while( token == "" && mStream->peek() != EOF ); // double check in case of consecutive separators
     }
+    // check the first token for potential presence of utf bom
+    if( mFirstToken ) {
+        mFirstToken = false;
+        if( token.rfind( "\xef\xbb\xbf", 0 ) == 0 ) {
+            token.erase( 0, 3 );
+        }
+        if( true == token.empty() ) {
+            // potentially possible if our first token was standalone utf bom
+            token = readToken( ToLower, Break );
+        }
+    }
 
     if( false == parameters.empty() ) {
         // if there's parameter list, check the token for potential parameters to replace

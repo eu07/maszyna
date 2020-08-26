@@ -4112,7 +4112,7 @@ void opengl33_renderer::Update(double const Deltatime)
 	// TODO: it doesn't make much sense with vsync
     if( Global.targetfps == 0.0f ) {
         // automatic adjustment
-        auto const framerate = interpolate( 1000.f / Timer::subsystem.gfx_color.average(), m_framerate, 0.25f );
+        auto const framerate = interpolate( 1000.f / Timer::subsystem.gfx_color.average(), m_framerate, 0.75f );
         float targetfactor;
              if( framerate > 120.0 ) { targetfactor = 3.00f; }
         else if( framerate >  90.0 ) { targetfactor = 1.50f; }

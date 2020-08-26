@@ -4170,7 +4170,7 @@ opengl_renderer::Update( double const Deltatime ) {
     // adjust draw ranges etc, based on recent performance
     if( Global.targetfps == 0.0f ) {
         // automatic adjustment
-        auto const framerate = 0.5f * ( m_framerate + 1000.f / Timer::subsystem.gfx_color.average() );
+        auto const framerate = interpolate( 1000.f / Timer::subsystem.gfx_color.average(), m_framerate, 0.75f );
         float targetfactor;
              if( framerate > 120.0 ) { targetfactor = 3.00f; }
         else if( framerate >  90.0 ) { targetfactor = 1.50f; }

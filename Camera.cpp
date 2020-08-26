@@ -189,11 +189,22 @@ void TCamera::Update()
         // attached movement position update
         auto movement { Velocity * -2.0 };
         movement.y = -movement.y;
+        auto const *owner { (
+            m_owner->Mechanik ?
+                m_owner->Mechanik :
+                m_owner->ctOwner ) };
+        if( ( owner )
+         && ( owner->Occupied()->CabOccupied < 0 ) ) { 
+            movement *= -1.f;
+            movement.y = -movement.y;
+        }
+/*
         if( ( m_owner->ctOwner )
          && ( m_owner->ctOwner->Vehicle()->DirectionGet() != m_owner->DirectionGet() ) ) {
             movement *= -1.f;
             movement.y = -movement.y;
         }
+*/
         movement.RotateY( Angle.y );
 
         m_owneroffset += movement * deltatime;

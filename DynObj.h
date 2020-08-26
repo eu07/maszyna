@@ -598,8 +598,10 @@ private:
     void AttachNext(TDynamicObject *Object, int iType = 1);
     bool UpdateForce(double dt);
     // initiates load change by specified amounts, with a platform on specified side
-    void LoadExchange( int const Disembark, int const Embark, int const Platform );
-    // calculates time needed to complete current load change
+    void LoadExchange( int const Disembark, int const Embark, int const Platforms );
+    // calculates time needed to complete current load change, using specified platforms
+    float LoadExchangeTime( int const Platforms );
+    // calculates time needed to complete current load change, using previously specified platforms
     float LoadExchangeTime() const;
     // calculates current load exchange factor, where 1 = nominal rate, higher = faster
     float LoadExchangeSpeed() const; // TODO: make private when cleaning up

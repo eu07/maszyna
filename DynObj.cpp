@@ -2632,7 +2632,7 @@ bool TDynamicObject::UpdateForce(double dt)
 }
 
 // initiates load change by specified amounts, with a platform on specified side
-void TDynamicObject::LoadExchange( int const Disembark, int const Embark, int const Platform ) {
+void TDynamicObject::LoadExchange( int const Disembark, int const Embark, int const Platforms ) {
 /*
     if( ( MoverParameters->Doors.open_control == control_t::passenger )
      || ( MoverParameters->Doors.open_control == control_t::mixed ) ) {
@@ -2647,15 +2647,21 @@ void TDynamicObject::LoadExchange( int const Disembark, int const Embark, int co
         }
     }
 */
-    if( Platform == 0 ) { return; } // edge case, if there's no accessible platforms discard the request
+    if( Platforms == 0 ) { return; } // edge case, if there's no accessible platforms discard the request
 
     m_exchange.unload_count += Disembark;
     m_exchange.load_count += Embark;
-    m_exchange.platforms = Platform;
+    m_exchange.platforms = Platforms;
     m_exchange.time = 0.0;
 }
 
 // calculates time needed to complete current load change
+float TDynamicObject::LoadExchangeTime( int const Platforms ) {
+
+    m_exchange.platforms = Platforms;
+    return LoadExchangeTime();
+}
+
 float TDynamicObject::LoadExchangeTime() const {
 
     if( ( m_exchange.unload_count < 0.01 ) && ( m_exchange.load_count < 0.01 ) ) { return 0.f; }
@@ -4754,8 +4760,7 @@ void TDynamicObject::LoadMMediaFile( std::string const &TypeName, std::string co
 		token = "";
 		parser.getTokens(); parser >> token;
 
-		if( ( token == "models:" )
-         || ( token == "\xef\xbb\xbfmodels:" ) ) { // crude way to handle utf8 bom potentially appearing before the first token
+		if( token == "models:" ) {
 			// modele i podmodele
             m_materialdata.multi_textures = 0; // czy jest wiele tekstur wymiennych?
 			parser.getTokens();

@@ -76,7 +76,8 @@ enum class TCommandType
     cm_ChangeDirection,
     cm_PassengerStopPoint,
     cm_OutsideStation,
-    cm_Shunt,
+//    cm_Shunt, // unused?
+    cm_EmergencyBrake,
     cm_Command // komenda pobierana z komórki
 };
 

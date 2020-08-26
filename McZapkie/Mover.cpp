@@ -609,42 +609,20 @@ bool TMoverParameters::DecBrakeLevel()
 
 bool TMoverParameters::ChangeCab(int direction)
 { // zmiana kabiny i resetowanie ustawien
-    if (abs(CabOccupied + direction) < 2)
+    if (std::abs(CabOccupied + direction) < 2)
     {
-        //  if (CabOccupied+direction=0) then LastCab:=CabOccupied;
         CabOccupied = CabOccupied + direction;
         if( ( BrakeCtrlPosNo > 0 )
          && ( ( BrakeSystem == TBrakeSystem::Pneumatic )
            || ( BrakeSystem == TBrakeSystem::ElectroPneumatic ) ) ) {
-            //    if (BrakeHandle==FV4a)   //!!!POBIERAĆ WARTOŚĆ Z KLASY ZAWORU!!!
-            //     BrakeLevelSet(-2); //BrakeCtrlPos=-2;
-            //    else if ((BrakeHandle==FVel6)||(BrakeHandle==St113))
-            //     BrakeLevelSet(2);
-            //    else
-            //     BrakeLevelSet(1);
             BrakeLevelSet(Handle->GetPos(bh_NP));
             LimPipePress = PipePress;
             ActFlowSpeed = 0;
         }
         else
-            // if (TrainType=dt_EZT) and (BrakeCtrlPosNo>0) then
-            //  BrakeCtrlPos:=5; //z Megapacka
-            // else
-            //    BrakeLevelSet(0); //BrakeCtrlPos=0;
             BrakeLevelSet(Handle->GetPos(bh_NP));
-        //   if not TestFlag(BrakeStatus,b_dmg) then
-        //    BrakeStatus:=b_off; //z Megapacka
         MainCtrlPos = MainCtrlNoPowerPos();
         ScndCtrlPos = 0;
-        // Ra: to poniżej jest bez sensu - można przejść nie wyłączając
-        // if ((EngineType!=DieselEngine)&&(EngineType!=DieselElectric))
-        //{
-        // Mains=false;
-        // CompressorAllow=false;
-        // ConverterAllow=false;
-        //}
-        // DirActive=0;
-        // DirAbsolute=0;
         return true;
     }
     return false;
@@ -6170,7 +6148,7 @@ double TMoverParameters::TractionForce( double dt ) {
 
                 if( ( RlistSize > 0 )
                  && ( ( std::abs( eimv[ eimv_If ] ) > 1.0 )
-                   && ( tmpV > 0.1 ) ) ) {
+                   && ( tmpV > 0.0001 ) ) ) {
 
                     int i = 0;
                     while( ( i < RlistSize - 1 )

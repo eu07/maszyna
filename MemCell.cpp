@@ -81,6 +81,11 @@ TCommandType TMemCell::CommandCheck()
         eCommand = TCommandType::cm_SetProximityVelocity;
         bCommand = false; // ta komenda nie jest wysyłana
     }
+    else if( szText == "Emergency_brake" )
+    {
+        eCommand = TCommandType::cm_EmergencyBrake;
+        bCommand = false;
+    }
     else
     {
         eCommand = TCommandType::cm_Unknown; // ciąg nierozpoznany (nie jest komendą)
