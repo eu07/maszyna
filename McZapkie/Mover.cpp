@@ -3510,7 +3510,7 @@ bool TMoverParameters::MainSwitchCheck() const {
        && ( true == NoVoltRelay )
        && ( true == OvervoltageRelay )
        && ( LastSwitchingTime > CtrlDelay )
-       && ( HasCamshaft ? IsMainCtrlActualNoPowerPos() : ( LineBreakerClosesAtNoPowerPosOnly ? IsMainCtrlNoPowerPos() : true ) )
+       && ( HasCamshaft ? IsMainCtrlActualNoPowerPos() : ( LineBreakerClosesOnlyAtNoPowerPos ? IsMainCtrlNoPowerPos() : true ) )
        && ( false == TestFlag( DamageFlag, dtrain_out ) )
        && ( false == TestFlag( EngDmgFlag, 1 ) ) );
 }
@@ -3820,7 +3820,7 @@ bool TMoverParameters::BrakeReleaser(int state)
     bool OK = true; //false tylko jeśli nie uda się wysłać, GF 20161124
     if( state != 0 ) {
         // additional limitations imposed by pressure switch
-        if( ( false == ControlPressureSwitch ) || ( true == IsMainCtrlNoPowerPos() ) ) {
+        if( ( false == ControlPressureSwitch ) || ( false == ReleaserEnabledOnlyAtNoPowerPos ) || ( true == IsMainCtrlNoPowerPos() ) ) {
             Hamulec->Releaser( state );
         }
     }
@@ -9751,6 +9751,10 @@ void TMoverParameters::LoadFIZ_Brake( std::string const &line ) {
         // the parameter is provided in form of a multiplier, where 1.0 means the default rate of 0.01
         AirLeakRate *= 0.01;
     }
+
+    extract_value(
+        ReleaserEnabledOnlyAtNoPowerPos, "ReleaserPowerPosLock", line,
+        ( ( EngineType == TEngineType::DieselEngine ) || ( EngineType == TEngineType::DieselElectric ) ) ? "yes" : "no" );
 }
 
 void TMoverParameters::LoadFIZ_Doors( std::string const &line ) {

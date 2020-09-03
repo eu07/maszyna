@@ -588,7 +588,7 @@ dictionary_source *TTrain::GetTrainState() {
 	dict->insert( "speedctrlstandby", mvOccupied->SpeedCtrlUnit.Standby );
    // brakes
     dict->insert( "manual_brake", ( mvOccupied->ManualBrakePos > 0 ) );
-    bool const bEP = ( mvControlled->LocHandle->GetCP() > 0.2 ) || ( fEIMParams[ 0 ][ 2 ] > 0.01 );
+    bool const bEP = ( mvControlled->LocHandle->GetCP() > 0.2 ) || ( fEIMParams[ 0 ][ 5 ] > 0.01 );
     dict->insert( "dir_brake", bEP );
     bool bPN;
     if( ( typeid( *mvOccupied->Hamulec ) == typeid( TLSt ) )

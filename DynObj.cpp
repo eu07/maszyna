@@ -1172,10 +1172,10 @@ void TDynamicObject::ABuLittleUpdate(double ObjSqrDist)
         if (TestFlag(MoverParameters->iLights[end::rear], light::auxiliary_right))
         {
             if( DimHeadlights ) {
-                m_headlamp22.TurnxOnWithOnAsFallback();
+                m_headsignal22.TurnxOnWithOnAsFallback();
             }
             else {
-                m_headlamp22.TurnOn();
+                m_headsignal22.TurnOn();
             }
             btnOn = true;
         }
@@ -4139,6 +4139,14 @@ void TDynamicObject::RenderSounds() {
     // brake cylinder piston
     auto const brakepressureratio { std::max( 0.0, MoverParameters->BrakePress ) / std::max( 1.0, MoverParameters->MaxBrakePress[ 3 ] ) };
     if( m_lastbrakepressure != -1.f ) {
+        // HACK: potentially reset playback of opening bookend sounds
+        if( false == m_brakecylinderpistonadvance.is_playing() ) {
+            m_brakecylinderpistonadvance.stop();
+        }
+        if( false == m_brakecylinderpistonrecede.is_playing() ) {
+            m_brakecylinderpistonrecede.stop();
+        }
+        // actual sound playback
         auto const quantizedratio { static_cast<int>( 15 * brakepressureratio ) };
         auto const lastbrakepressureratio { std::max( 0.f, m_lastbrakepressure ) / std::max( 1.0, MoverParameters->MaxBrakePress[ 3 ] ) };
         auto const quantizedratiochange { quantizedratio - static_cast<int>( 15 * lastbrakepressureratio ) };

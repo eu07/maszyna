@@ -1450,9 +1450,10 @@ public:
 	bool Mains = false;    /*polozenie glownego wylacznika*/
     double MainsInitTime{ 0.0 }; // config, initialization time (in seconds) of the main circuit after it receives power, before it can be closed
     double MainsInitTimeCountdown{ 0.0 }; // current state of main circuit initialization, remaining time (in seconds) until it's ready
-    bool LineBreakerClosesAtNoPowerPosOnly{ false };
+    bool LineBreakerClosesOnlyAtNoPowerPos{ false };
     bool ControlPressureSwitch{ false }; // activates if the main pipe and/or brake cylinder pressure aren't within operational levels
     bool HasControlPressureSwitch{ true };
+    bool ReleaserEnabledOnlyAtNoPowerPos{ false };
 	int MainCtrlPos = 0; /*polozenie glownego nastawnika*/
 	int ScndCtrlPos = 0; /*polozenie dodatkowego nastawnika*/
 	int LightsPos = 0; /*polozenie przelacznika wielopozycyjnego swiatel*/

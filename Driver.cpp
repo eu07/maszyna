@@ -4871,14 +4871,21 @@ TController::UpdateSituation(double dt) {
         IsAnyCouplerStretched =
             IsAnyCouplerStretched
             || ( vehicle->Couplers[ end::front ].stretch_duration > 0.0 )
-            || ( vehicle->Couplers[ end::rear ].stretch_duration > 0.0 );
+            || ( vehicle->Couplers[ end::rear  ].stretch_duration > 0.0 );
         // check door state
-        auto const switchsides { p->DirectionGet() != iDirection };
-        IsAnyDoorOpen[ side::right ] |= ( false == vehicle->Doors.instances[ ( switchsides ? side::left : side::right ) ].is_closed );
-        IsAnyDoorOpen[ side::left ]  |= ( false == vehicle->Doors.instances[ ( switchsides ? side::right : side::left ) ].is_closed );
-        IsAnyDoorPermitActive[ side::right ] |= ( vehicle->Doors.permit_needed && vehicle->Doors.instances[ ( switchsides ? side::left : side::right ) ].open_permit );
-        IsAnyDoorPermitActive[ side::left ]  |= ( vehicle->Doors.permit_needed && vehicle->Doors.instances[ ( switchsides ? side::right : side::left ) ].open_permit );
-
+        {
+            auto const switchsides { p->DirectionGet() != iDirection };
+            auto const &rightdoor { vehicle->Doors.instances[ ( switchsides ? side::left : side::right ) ] };
+            auto const &leftdoor { vehicle->Doors.instances[ ( switchsides ? side::right : side::left ) ] };
+            if( vehicle->Doors.close_control != control_t::autonomous ) {
+                IsAnyDoorOpen[ side::right ] |= ( false == rightdoor.is_closed );
+                IsAnyDoorOpen[ side::left  ] |= ( false == leftdoor.is_closed );
+            }
+            if( vehicle->Doors.permit_needed ) {
+                IsAnyDoorPermitActive[ side::right ] |= rightdoor.open_permit;
+                IsAnyDoorPermitActive[ side::left  ] |= leftdoor.open_permit;
+            }
+        }
         // measure lighting level
         // TBD: apply weight (multiplier) to partially lit vehicles?
         ConsistShade += ( p->fShade > 0.0 ? p->fShade : 1.0 );
