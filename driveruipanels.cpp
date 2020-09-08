@@ -767,7 +767,8 @@ debug_panel::update_section_vehicle( std::vector<text_line> &Output ) {
         update_vehicle_brake().c_str(),
         mover.LoadFlag,
         mover.LocalBrakePosA,
-        ( mover.ManualBrakePos / ManualBrakePosNo ),
+        mover.LocalBrakePosAEIM,
+        ( mover.ManualBrakePos / static_cast<float>( ManualBrakePosNo ) ),
         ( mover.SpringBrake.Activate ? 1.f : 0.f ),
         // cylinders
         mover.BrakePress,

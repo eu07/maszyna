@@ -5969,16 +5969,17 @@ double TMoverParameters::TractionForce( double dt ) {
                     SpeedCtrlUnit.IsActive = ( SpeedCtrlValue > 0 );
 				}
 				double edBCP = Hamulec->GetEDBCP();
+                auto const localbrakeactive { ( CabOccupied != 0 ) && ( LocHandle->GetCP() > 0.25 ) };
                 if( ( false == Doors.instances[ side::left ].is_closed )
                  || ( false == Doors.instances[ side::right ].is_closed )
                  || ( Doors.permit_needed && ( Doors.instances[ side::left ].open_permit || Doors.instances[ side::right ].open_permit ) ) ) {
                     DynamicBrakeFlag = true;
                 }
-                else if (((edBCP < 0.25) && (LocHandle->GetCP() < 0.25) && (AnPos < 0.01)) ||
-                         ((edBCP < 0.25) && (ShuntModeAllow) && (LocalBrakePosA < 0.01)))
+                else if (((edBCP < 0.25) && (false == localbrakeactive) && (AnPos < 0.01))
+                      || ((edBCP < 0.25) && (ShuntModeAllow) && (LocalBrakePosA < 0.01)))
                     DynamicBrakeFlag = false;
-                else if ((((BrakePress > 0.25) && (edBCP > 0.25) || (LocHandle->GetCP() > 0.25))) ||
-                         (AnPos > 0.02))
+                else if ((((BrakePress > 0.25) && (edBCP > 0.25) || localbrakeactive))
+                      || (AnPos > 0.02))
                     DynamicBrakeFlag = true;
 				edBCP = Hamulec->GetEDBCP() * eimc[eimc_p_abed]; // stala napedu
                 if ((DynamicBrakeFlag))
