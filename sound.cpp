@@ -362,6 +362,13 @@ sound_source::play( int const Flags ) {
         m_stopend = true;
     }
 */
+    // determine sound category
+    // TBD, TODO: user-configurable
+    m_properties.category = (
+        m_owner ? sound_category::vehicle :
+        m_range < 0 ? sound_category::ambient :
+        sound_category::local );
+
     if( sound( sound_id::main ).buffer != null_handle ) {
         // basic variant: single main sound, with optional bookends
         play_basic();
@@ -986,7 +993,7 @@ sound_source::update_soundproofing() {
         case sound_placement::internal: {
             if( m_range >= -1 ) { // limited range sound
                 m_properties.soundproofing = (
-                    soundproofingstamp == 0 ?
+                    ( FreeFlyModeFlag || externalcamera ) ?
                         EU07_SOUNDPROOFING_STRONG : // listener outside HACK: won't be true if active vehicle has open window
                         ( simulation::Train->Dynamic() != m_owner ?
                             EU07_SOUNDPROOFING_STRONG : // in another vehicle
@@ -996,7 +1003,7 @@ sound_source::update_soundproofing() {
             }
             else { // global sound
                 m_properties.soundproofing = (
-                    soundproofingstamp == 0 ?
+                    ( FreeFlyModeFlag || externalcamera ) ?
                         EU07_SOUNDPROOFING_GLOBAL_STRONG : // listener outside HACK: won't be true if active vehicle has open window
                         ( simulation::Train->Dynamic() != m_owner ?
                             EU07_SOUNDPROOFING_GLOBAL_VERYSTRONG : // in another vehicle
@@ -1009,7 +1016,7 @@ sound_source::update_soundproofing() {
         case sound_placement::engine: {
             if( m_range >= -1 ) { // limited range sound
                 m_properties.soundproofing = (
-                    externalcamera ?
+                    ( FreeFlyModeFlag || externalcamera ) ?
                         EU07_SOUNDPROOFING_SOME : // listener outside or has a window open
                         ( simulation::Train->Dynamic() != m_owner ?
                             EU07_SOUNDPROOFING_STRONG : // in another vehicle
@@ -1019,7 +1026,7 @@ sound_source::update_soundproofing() {
             }
             else { // global sound
                 m_properties.soundproofing = (
-                    ( externalcamera ) ?
+                    ( FreeFlyModeFlag || externalcamera ) ?
                         EU07_SOUNDPROOFING_GLOBAL_STRONG : // listener outside or has a window open
                         ( simulation::Train->Dynamic() != m_owner ?
                             EU07_SOUNDPROOFING_GLOBAL_VERYSTRONG : // in another vehicle

@@ -8296,7 +8296,7 @@ TMoverParameters::update_doors( double const Deltatime ) {
 
         auto const ispowered { (
             Doors.voltage == 0 ? true :
-            Doors.voltage == 24 ? Power24vIsAvailable :
+            Doors.voltage == 24 ? ( Power24vIsAvailable || Power110vIsAvailable ) :
             Doors.voltage == 110 ? Power110vIsAvailable :
             false ) };
 

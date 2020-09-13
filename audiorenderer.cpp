@@ -21,6 +21,7 @@ http://mozilla.org/MPL/2.0/.
 namespace audio {
 
 openal_renderer renderer;
+bool event_volume_change { false };
 
 float const EU07_SOUND_CUTOFFRANGE { 3000.f }; // 2750 m = max expected emitter spawn range, plus safety margin
 float const EU07_SOUND_VELOCITYLIMIT { 250 / 3.6f }; // 343 m/sec ~= speed of sound; arbitrary limit of 250 km/h
@@ -133,8 +134,7 @@ openal_source::sync_with( sound_properties const &State ) {
     // NOTE: velocity at this point can be either listener velocity for global sounds, actual sound velocity, or 0 if sound position is yet unknown
     ::alSourcefv( id, AL_VELOCITY, glm::value_ptr( sound_velocity ) );
     // location
-    properties.location = State.location;
-    sound_distance = properties.location - glm::dvec3 { Global.pCamera.Pos };
+    sound_distance = State.location - glm::dvec3 { Global.pCamera.Pos };
     if( sound_range != -1 ) {
         // range cutoff check for songs other than 'unlimited'
         // NOTE: since we're comparing squared distances we can ignore that sound range can be negative
@@ -156,18 +156,23 @@ openal_source::sync_with( sound_properties const &State ) {
         ::alSourcefv( id, AL_POSITION, glm::value_ptr( glm::vec3() ) );
     }
     // gain
+    auto const gain {
+        State.gain
+        * State.soundproofing
+        * ( State.category == sound_category::vehicle ? Global.VehicleVolume :
+            State.category == sound_category::local ? Global.EnvironmentPositionalVolume :
+            State.category == sound_category::ambient ? Global.EnvironmentAmbientVolume :
+            1.f ) };
     if( ( State.gain != properties.gain )
-     || ( State.soundproofing_stamp != properties.soundproofing_stamp ) ) {
+     || ( State.soundproofing_stamp != properties.soundproofing_stamp )
+     || ( audio::event_volume_change ) ) {
         // gain value has changed
-        properties.gain = State.gain;
-        properties.soundproofing = State.soundproofing;
-        properties.soundproofing_stamp = State.soundproofing_stamp;
-        ::alSourcef( id, AL_GAIN, properties.gain * properties.soundproofing );
+        ::alSourcef( id, AL_GAIN, gain );
         auto const range { (
             sound_range >= 0 ?
                 sound_range :
                 5 ) }; // range of -1 means sound of unlimited range, positioned at the listener
-        ::alSourcef( id, AL_REFERENCE_DISTANCE, range * ( 1.f / 16.f ) * properties.soundproofing );
+        ::alSourcef( id, AL_REFERENCE_DISTANCE, range * ( 1.f / 16.f ) * State.soundproofing );
     }
     if( sound_range != -1 ) {
         auto const rangesquared { sound_range * sound_range };
@@ -183,17 +188,17 @@ openal_source::sync_with( sound_properties const &State ) {
                     clamp<float>(
                         ( distancesquared - rangesquared ) / ( fadedistance * fadedistance ),
                         0.f, 1.f ) ) };
-            ::alSourcef( id, AL_GAIN, properties.gain * properties.soundproofing * rangefactor );
+            ::alSourcef( id, AL_GAIN, gain * rangefactor );
         }
         is_in_range = ( distancesquared <= rangesquared );
     }
     // pitch
     if( State.pitch != properties.pitch ) {
         // pitch value has changed
-        properties.pitch = State.pitch;
-
-        ::alSourcef( id, AL_PITCH, clamp( properties.pitch * pitch_variation, 0.1f, 10.f ) );
+        ::alSourcef( id, AL_PITCH, clamp( State.pitch * pitch_variation, 0.1f, 10.f ) );
     }
+    // all synced up
+    properties = State;
     sync = sync_state::good;
 }
 
@@ -341,16 +346,7 @@ openal_renderer::update( double const Deltatime ) {
     ::alListenerfv( AL_ORIENTATION, reinterpret_cast<ALfloat const *>( orientation ) );
     // velocity
     if( Deltatime > 0 ) {
-/*
-        glm::dvec3 const listenerposition { Global.pCamera.Pos };
-        glm::dvec3 const listenermovement { listenerposition - m_listenerposition };
-        m_listenerposition = listenerposition;
-        m_listenervelocity = (
-            glm::length( listenermovement ) < 1000.0 ? // large jumps are typically camera changes
-                limit_velocity( listenermovement / Deltatime ) :
-                glm::vec3() );
-*/
-        auto cameramove{ glm::dvec3{ Global.pCamera.Pos - m_camerapos} };
+        auto cameramove { glm::dvec3{ Global.pCamera.Pos - m_camerapos} };
         m_camerapos = Global.pCamera.Pos;
         // intercept sudden user-induced camera jumps...
         // ...from free fly mode change
@@ -396,6 +392,8 @@ openal_renderer::update( double const Deltatime ) {
             ++source;
         }
     }
+    // reset potentially used volume change flag
+    audio::event_volume_change = false;
 }
 
 // returns an instance of implementation-side part of the sound emitter

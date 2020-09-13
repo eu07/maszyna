@@ -155,6 +155,9 @@ struct global_settings {
     bool bSoundEnabled{ true };
     float AudioVolume{ 1.f };
     float RadioVolume{ 0.75f };
+    float VehicleVolume{ 1.0f };
+    float EnvironmentPositionalVolume{ 1.0f };
+    float EnvironmentAmbientVolume{ 1.0f };
     std::string AudioRenderer;
     // input
     float fMouseXScale{ 1.5f };

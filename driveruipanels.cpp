@@ -572,10 +572,8 @@ debug_panel::render() {
             ImGui::Checkbox( "Debug Traction", &DebugTractionFlag );
         }
         render_section( "Camera", m_cameralines );
-        if( true == render_section( "Gfx Renderer", m_rendererlines ) ) {
-            // reflection fidelity
-            ImGui::SliderInt( ( to_string( Global.reflectiontune.fidelity ) + "###reflectionfidelity" ).c_str(), &Global.reflectiontune.fidelity, 0, 2, "Reflection fidelity" );
-        }
+        render_section( "Gfx Renderer", m_rendererlines );
+        render_section_settings();
         // toggles
         ImGui::Separator();
         ImGui::Checkbox( "Debug Mode", &DebugModeFlag );
@@ -1263,6 +1261,36 @@ debug_panel::render_section( std::string const &Header, std::vector<text_line> c
         ImGui::PopStyleColor();
 //        ImGui::TextColored( ImVec4( line.color.r, line.color.g, line.color.b, line.color.a ), line.data.c_str() );
     }
+    return true;
+}
+
+bool
+debug_panel::render_section_settings() {
+
+    if( false == ImGui::CollapsingHeader( "Settings" ) ) { return false; }
+
+    ImGui::PushStyleColor( ImGuiCol_Text, { Global.UITextColor.r, Global.UITextColor.g, Global.UITextColor.b, Global.UITextColor.a } );
+    ImGui::TextUnformatted( "Graphics" );
+    ImGui::PopStyleColor();
+    // reflection fidelity
+    ImGui::SliderInt( ( to_string( Global.reflectiontune.fidelity ) + "###reflectionfidelity" ).c_str(), &Global.reflectiontune.fidelity, 0, 2, "Reflection fidelity" );
+
+    ImGui::PushStyleColor( ImGuiCol_Text, { Global.UITextColor.r, Global.UITextColor.g, Global.UITextColor.b, Global.UITextColor.a } );
+    ImGui::TextUnformatted( "Sound" );
+    ImGui::PopStyleColor();
+    // audio volume sliders
+    ImGui::SliderFloat( ( to_string( static_cast<int>( Global.AudioVolume * 100 ) ) + "%###volumemain" ).c_str(), &Global.AudioVolume, 0.0f, 2.0f, "Main audio volume" );
+    if( ImGui::SliderFloat( ( to_string( static_cast<int>( Global.VehicleVolume * 100 ) ) + "%###volumevehicle" ).c_str(), &Global.VehicleVolume, 0.0f, 1.0f, "Vehicle sounds" ) ) {
+        audio::event_volume_change = true;
+    }
+    if( ImGui::SliderFloat( ( to_string( static_cast<int>( Global.EnvironmentPositionalVolume * 100 ) ) + "%###volumepositional" ).c_str(), &Global.EnvironmentPositionalVolume, 0.0f, 1.0f, "Positional sounds" ) ) {
+        audio::event_volume_change = true;
+    }
+    if( ImGui::SliderFloat( ( to_string( static_cast<int>( Global.EnvironmentAmbientVolume * 100 ) ) + "%###volumeambient" ).c_str(), &Global.EnvironmentAmbientVolume, 0.0f, 1.0f, "Ambient sounds" ) ) {
+        audio::event_volume_change = true;
+    }
+    ImGui::PushStyleColor( ImGuiCol_Text, { Global.UITextColor.r, Global.UITextColor.g, Global.UITextColor.b, Global.UITextColor.a } );
+
     return true;
 }
 

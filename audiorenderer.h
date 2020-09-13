@@ -20,13 +20,21 @@ class sound_source;
 
 using uint32_sequence = std::vector<std::uint32_t>;
 
+enum class sound_category : unsigned int {
+    unknown = 0, // source gain is unaltered
+    vehicle, // source gain is altered by vehicle sound volume modifier
+    local, // source gain is altered by positional environment sound volume modifier
+    ambient, // source gain is altered by ambient environment sound volume modifier
+};
+
 // sound emitter state sync item
 struct sound_properties {
     glm::dvec3 location;
+    float pitch { 1.f };
+    sound_category category { sound_category::unknown };
     float gain { 1.f };
     float soundproofing { 1.f };
     std::uintptr_t soundproofing_stamp { ~( std::uintptr_t{ 0 } ) };
-    float pitch { 1.f };
 };
 
 enum class sync_state {
@@ -165,6 +173,7 @@ private:
 };
 
 extern openal_renderer renderer;
+extern bool event_volume_change;
 
 
 
