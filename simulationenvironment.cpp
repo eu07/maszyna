@@ -10,6 +10,7 @@ http://mozilla.org/MPL/2.0/.
 #include "stdafx.h"
 #include "simulationenvironment.h"
 
+#include "simulationsounds.h"
 #include "Globals.h"
 #include "Timer.h"
 
@@ -78,7 +79,14 @@ world_environment::init() {
     m_stars.init();
     m_clouds.Init();
     m_precipitation.init();
-    m_precipitationsound.deserialize( "rain-sound-loop", sound_type::single );
+    {
+        auto const rainsoundoverride { simulation::Sound_overrides.find( "weather.rainsound:" ) };
+        m_rainsound.deserialize(
+            ( rainsoundoverride != simulation::Sound_overrides.end() ?
+                rainsoundoverride->second :
+                "rain-sound-loop" ),
+            sound_type::single );
+    }
     m_wind = basic_wind{
         static_cast<float>( Random( 0, 360 ) ),
         static_cast<float>( Random( -5, 5 ) ),
@@ -181,10 +189,13 @@ world_environment::update() {
 
     if( ( true == ( FreeFlyModeFlag || Global.CabWindowOpen ) )
      && ( Global.Weather == "rain:" ) ) {
-        m_precipitationsound.play( sound_flags::exclusive | sound_flags::looping );
+        if( m_rainsound.is_combined() ) {
+            m_rainsound.pitch( Global.Overcast - 1.0 );
+        }
+        m_rainsound.play( sound_flags::exclusive | sound_flags::looping );
     }
     else {
-        m_precipitationsound.stop();
+        m_rainsound.stop();
     }
 
     update_wind();

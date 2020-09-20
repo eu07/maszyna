@@ -9904,13 +9904,21 @@ void TMoverParameters::LoadFIZ_BuffCoupl( std::string const &line, int const Ind
         coupler->beta = 0.3;
     }
     else if( coupler->CouplerType == TCouplerType::Articulated ) {
-
+/*
         coupler->SpringKC = 60.0 * Mass + 1000;
         coupler->DmaxC = 0.05;
         coupler->FmaxC = 20000000.0 + 2.0 * Ftmax;
         coupler->SpringKB = 70.0 * Mass + 1000;
         coupler->DmaxB = 0.05;
         coupler->FmaxB = 4000000.0 + 2.0 * Ftmax;
+        coupler->beta = 0.55;
+*/
+        coupler->SpringKC = 4500 * 1000;
+        coupler->DmaxC = 0.05;
+        coupler->FmaxC = 850 * 1000;
+        coupler->SpringKB = 9200 * 1000;
+        coupler->DmaxB = 0.05;
+        coupler->FmaxB = 320 * 1000;
         coupler->beta = 0.55;
     }
 

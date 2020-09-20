@@ -976,6 +976,18 @@ TCommandType TController::TableUpdate(double &fVelDes, double &fDist, double &fN
 								sSpeedTable[i].iFlags = 0;
                             }
                         }
+                        // for human-driven vehicles discard the stop point if they leave it far enough behind
+                        if( ( false == AIControllFlag )
+                         && ( sSpeedTable[ i ].fDist < -1 * std::max( fLength + 100, 250.0 ) ) ) {
+                            sSpeedTable[ i ].iFlags = 0; // nie liczy się już zupełnie (nie wyśle SetVelocity)
+                            sSpeedTable[ i ].fVelNext = -1; // można jechać za W4
+                            if( ( sSpeedTable[ i ].fDist <= 0.0 ) && ( eSignNext == sSpeedTable[ i ].evEvent ) ) {
+                                // sanity check, if we're held by this stop point, let us go
+                                VelSignalLast = -1;
+                            }
+                            continue;
+                        }
+
                         IsAtPassengerStop = (
                             ( sSpeedTable[ i ].fDist <= passengerstopmaxdistance )
                             // Ra 2F1I: odległość plus długość pociągu musi być mniejsza od długości
@@ -1234,8 +1246,8 @@ TCommandType TController::TableUpdate(double &fVelDes, double &fDist, double &fN
                             }
                         }
                         if( ( SemNextStopIndex == -1 )
-                            || ( ( sSpeedTable[ SemNextStopIndex ].fVelNext != 0 )
-                                && ( sSpeedTable[ i ].fVelNext == 0 ) ) ) {
+                         || ( ( sSpeedTable[ SemNextStopIndex ].fVelNext != 0 )
+                           && ( sSpeedTable[ i ].fVelNext == 0 ) ) ) {
                             SemNextStopIndex = i;
                         }
                     }
@@ -1296,8 +1308,19 @@ TCommandType TController::TableUpdate(double &fVelDes, double &fDist, double &fN
                 }
                 else if (sSpeedTable[i].IsProperSemaphor(OrderCurrentGet()))
                 { // to semaphor
-                    if (sSpeedTable[i].fDist < 0)
-						VelSignalLast = sSpeedTable[i].fVelNext; //minięty daje prędkość obowiązującą
+                    if( sSpeedTable[ i ].fDist < 0 ) {
+                        if( ( false == AIControllFlag )
+                         && ( sSpeedTable[ i ].fDist < -1 * std::max( fLength + 100, 250.0 ) ) ) {
+                            // for human-driven vehicles ignore the signal if it was passed by sufficient distance
+                            sSpeedTable[ i ].iFlags &= ~spEnabled;
+                            VelSignal = -1.0;
+                            continue;
+                        }
+                        else {
+                            // for ai-driven vehicles always play by the rules
+                            VelSignalLast = sSpeedTable[ i ].fVelNext; //minięty daje prędkość obowiązującą
+                        }
+                    }
                     else
                     {
 						iDrivigFlags |= moveSemaphorFound; //jeśli z przodu to dajemy falgę, że jest

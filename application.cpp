@@ -15,6 +15,7 @@ http://mozilla.org/MPL/2.0/.
 
 #include "Globals.h"
 #include "simulation.h"
+#include "simulationsounds.h"
 #include "Train.h"
 #include "dictionary.h"
 #include "sceneeditor.h"
@@ -868,6 +869,7 @@ eu07_application::init_data() {
         weightpair.first.erase( weightpair.first.end() - 1 ); // trim trailing ':' from the key
         simulation::Weights.emplace( weightpair.first, weightpair.second );
     }
+    deserialize_map( simulation::Sound_overrides, cParser( "data/sound_overrides.txt", cParser::buffer_FILE ) );
 
     return 0;
 }

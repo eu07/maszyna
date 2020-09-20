@@ -353,6 +353,19 @@ deserialize_random_set( cParser &Input, char const *Break = "\n\r\t ;" );
 
 int count_trailing_zeros( uint32_t val );
 
+// extracts a group of <key, value> pairs from provided data stream
+// NOTE: expects no more than single pair per line
+template <typename MapType_>
+void
+deserialize_map( MapType_ &Map, cParser &Input ) {
+
+    while( Input.ok() && !Input.eof() ) {
+        auto const key { Input.getToken<typename MapType_::key_type>( false ) };
+        auto const value { Input.getToken<typename MapType_::mapped_type>( false, "\n" ) };
+        Map.emplace( key, value );
+    }
+}
+
 namespace threading {
 
 // simple POD pairing of a data item and a mutex

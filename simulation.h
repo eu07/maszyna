@@ -69,7 +69,6 @@ extern memory_table Memory;
 extern path_table Paths;
 extern traction_table Traction;
 extern powergridsource_table Powergrid;
-extern sound_table Sounds;
 extern instance_table Instances;
 extern vehicle_table Vehicles;
 extern train_table Trains;

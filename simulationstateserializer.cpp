@@ -15,6 +15,7 @@ http://mozilla.org/MPL/2.0/.
 #include "Globals.h"
 #include "simulation.h"
 #include "simulationtime.h"
+#include "simulationsounds.h"
 #include "simulationenvironment.h"
 #include "scenenodegroups.h"
 #include "particles.h"

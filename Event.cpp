@@ -18,6 +18,7 @@ http://mozilla.org/MPL/2.0/.
 
 #include "simulation.h"
 #include "simulationtime.h"
+#include "simulationsounds.h"
 #include "messaging.h"
 #include "Globals.h"
 #include "MemCell.h"

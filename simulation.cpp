@@ -36,7 +36,6 @@ memory_table Memory;
 path_table Paths;
 traction_table Traction;
 powergridsource_table Powergrid;
-sound_table Sounds;
 instance_table Instances;
 vehicle_table Vehicles;
 train_table Trains;

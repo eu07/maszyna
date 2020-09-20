@@ -468,6 +468,9 @@
     <ClCompile Include="ladderlogic.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="simulationsounds.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Globals.h">
@@ -855,6 +858,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="ladderlogic.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="simulationsounds.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
