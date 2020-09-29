@@ -162,7 +162,7 @@ public:
 	static std::string *pasText; // tekst dla wyświetlacza (!!!! do przemyślenia)
     TSubModel() = default;
 	~TSubModel();
-	int Load(cParser &Parser, TModel3d *Model, /*int Pos,*/ bool dynamic);
+    int Load(cParser &Parser, TModel3d *Model, /*int Pos,*/ bool dynamic);
 	void ChildAdd(TSubModel *SubModel);
 	void NextAdd(TSubModel *SubModel);
 	TSubModel * NextGet() { return Next; };
@@ -217,6 +217,8 @@ public:
     material_handle GetMaterial() const {
 		return m_material; }
 	void ParentMatrix(float4x4 *m) const;
+    void ReplaceMatrix(const glm::mat4 &mat);
+    void ReplaceMaterial(const std::string &name);
 	float MaxY( float4x4 const &m );
     std::shared_ptr<std::vector<glm::vec2>> screen_touch_list; // for python screen touching
 	std::optional<gl::query> occlusion_query;
@@ -267,7 +269,8 @@ public:
 	void AddTo(TSubModel *tmp, TSubModel *SubModel);
 	void LoadFromTextFile(std::string const &FileName, bool dynamic);
 	void LoadFromBinFile(std::string const &FileName, bool dynamic);
-	bool LoadFromFile(std::string const &FileName, bool dynamic);
+    bool LoadFromFile(std::string const &FileName, bool dynamic);
+    TSubModel *AppendChildFromGeometry(const std::string &name, const std::string &parent, const gfx::vertex_array &data);
 	void SaveToBinFile(std::string const &FileName);
 	uint32_t Flags() const { return iFlags; };
 	void Init();

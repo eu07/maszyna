@@ -42,8 +42,13 @@ struct opengl_texture {
     int
         height() const {
             return data_height; }
+    inline
+    bool
+        is_stub() const {
+            return is_texstub; }
 
 	void make_stub();
+    void make_from_memory(size_t width, size_t height, const uint8_t *data);
 	void alloc_rendertarget(GLint format, GLint components, int width, int height, int samples = 1, GLint wrap = GL_CLAMP_TO_BORDER);
     void set_components_hint(GLint hint);
     static void reset_unit_cache();
@@ -77,6 +82,7 @@ private:
 // members
 	bool is_rendertarget = false; // is used as postfx rendertarget, without loaded data
 	int samples = 1;
+    bool is_texstub = false; // for make_from_memory internal_src: functionality
 
     std::vector<unsigned char> data; // texture data (stored GL-style, bottom-left origin)
     resource_state data_state{ resource_state::none }; // current state of texture data

@@ -61,7 +61,7 @@ void TSubModel::Name_Material(std::string const &Name)
   // ile nie jest wczytany z E3D
 	if (iFlags & 0x0200)
 	{ // tylko jeżeli submodel zosta utworzony przez new
-		m_materialname = Name;
+        m_materialname = Name;
 	}
 };
 
@@ -1244,6 +1244,16 @@ void TSubModel::ParentMatrix( float4x4 *m ) const {
 */	
 };
 
+void TSubModel::ReplaceMatrix(const glm::mat4 &mat)
+{
+    *fMatrix = float4x4(glm::value_ptr(mat));
+}
+
+void TSubModel::ReplaceMaterial(const std::string &name)
+{
+    m_material = GfxRenderer.Fetch_Material(name);
+}
+
 // obliczenie maksymalnej wysokości, na początek ślizgu w pantografie
 float TSubModel::MaxY( float4x4 const &m ) {
     // tylko dla trójkątów liczymy
@@ -1925,6 +1935,32 @@ void TModel3d::LoadFromBinFile(std::string const &FileName, bool dynamic)
 
     WriteLog( "Finished loading 3d model data from \"" + FileName + "\"", logtype::model );
 };
+
+TSubModel* TModel3d::AppendChildFromGeometry(const std::string &name, const std::string &parent, const gfx::vertex_array &data)
+{
+    iFlags |= 0x0200;
+
+    TSubModel *sm = new TSubModel();
+    sm->Parent = AddToNamed(parent.c_str(), sm);
+    sm->iNumVerts = data.size();
+    sm->eType = GL_TRIANGLES;
+    sm->pName = name;
+    sm->m_material = GfxRenderer.Fetch_Material("colored");
+    sm->fMatrix = new float4x4();
+    sm->fMatrix->Identity();
+    sm->iFlags |= 0x10;
+    sm->iFlags |= 0x8000;
+        sm->WillBeAnimated();
+    if (data.empty())
+        sm->iFlags &= ~0x3F;
+    sm->Vertices = data;
+    iNumVerts += data.size();
+
+    if (!Root)
+        Root = sm;
+
+    return sm;
+}
 
 void TModel3d::LoadFromTextFile(std::string const &FileName, bool dynamic)
 { // wczytanie submodelu z pliku tekstowego

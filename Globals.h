@@ -231,6 +231,8 @@ struct global_settings {
     bool gfx_extraeffects = true;
     bool gfx_shadergamma = false;
     bool gfx_usegles = false;
+    bool vr = false;
+    std::string vr_backend;
 
 	float map_highlight_distance = 3000.0f;
 
@@ -271,7 +273,7 @@ struct global_settings {
     headtrack_config headtrack_conf;
 
     glm::vec3 viewport_move;
-    glm::vec3 viewport_rotate;
+    glm::mat3 viewport_rotate;
 
 	std::vector<std::pair<std::string, std::string>> network_servers;
 	std::optional<std::pair<std::string, std::string>> network_client;

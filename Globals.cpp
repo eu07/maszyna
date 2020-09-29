@@ -943,7 +943,7 @@ global_settings::ConfigParse(cParser &Parser) {
 			extra_viewports.push_back(conf);
             if (gl::vao::use_vao && conf.monitor != "MAIN") {
 				gl::vao::use_vao = false;
-				WriteLog("using multiple viewports, disabling vao!");
+                WriteLog("using multiple windows, disabling vao!");
 			}
 		}
 		else if (token == "map.highlightdistance") {
@@ -968,12 +968,24 @@ global_settings::ConfigParse(cParser &Parser) {
             Parser >> headtrack_conf.rot_axes[0] >> headtrack_conf.rot_axes[1] >> headtrack_conf.rot_axes[2];
             Parser >> headtrack_conf.rot_mul[0] >> headtrack_conf.rot_mul[1] >> headtrack_conf.rot_mul[2];
         }
+        else if (token == "vr.enabled") {
+            Parser.getTokens(1);
+            Parser >> vr;
+        }
+        else if (token == "vr.backend") {
+            Parser.getTokens(1);
+            Parser >> vr_backend;
+        }
     } while ((token != "") && (token != "endconfig")); //(!Parser->EndOfFile)
     // na koniec trochę zależności
     if (!bLoadTraction) // wczytywanie drutów i słupów
     { // tutaj wyłączenie, bo mogą nie być zdefiniowane w INI
         bEnableTraction = false; // false = pantograf się nie połamie
         bLiveTraction = false; // false = pantografy zawsze zbierają 95% MaxVoltage
+    }
+    if (vr) {
+        gfx_skippipeline = false;
+        VSync = false;
     }
 /*
     fFpsMin = fFpsAverage -

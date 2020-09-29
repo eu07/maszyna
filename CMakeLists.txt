@@ -27,6 +27,7 @@ file(GLOB HEADERS "*.h"
 "McZapkie/*.h"
 "gl/*.h"
 "network/*.h"
+"vr/*.h"
 "network/backend/*.h"
 "widgets/*.h"
 "launcher/*.h"
@@ -38,6 +39,7 @@ endif()
 
 option(USE_IMGUI_GL3 "Use OpenGL3+ imgui implementation" ON)
 option(WITH_UART "Compile with libserialport" ON)
+option(WITH_OPENVR "Compile with OpenVR" ON)
 option(WITH_ZMQ "Compile with cppzmq" ON)
 option(USE_VSDEV_CAMERA "Use VS_Dev camera preview implementation" OFF)
 
@@ -195,6 +197,12 @@ if (WITH_ZMQ)
 	set(SOURCES ${SOURCES} "zmq_input.cpp")
 endif()
 
+if (WITH_OPENVR)
+        add_definitions(-DWITH_OPENVR)
+        set(SOURCES ${SOURCES} "vr/openvr_imp.cpp" "vr/vr_interface.cpp")
+endif()
+
+
 if (USE_VSDEV_CAMERA)
 	add_definitions(-DUSE_VSDEV_CAMERA)
 	set(SOURCES ${SOURCES} "extras/VS_Dev.cpp" "widgets/cameraview_vsdev.cpp")
@@ -266,6 +274,10 @@ set_target_properties( ${PROJECT_NAME}
 	OUTPUT_NAME "${PROJECT_NAME}${PREFIX}_${data_exe}"
 	DEBUG_POSTFIX "_d"
 )
+
+if (WITH_OPENVR)
+        target_link_libraries(${PROJECT_NAME} openvr_api)
+endif()
 
 find_package(GLFW3 REQUIRED)
 include_directories(${GLFW3_INCLUDE_DIR})

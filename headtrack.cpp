@@ -35,7 +35,7 @@ void headtrack::update()
 {
     if (joy_id == -1 || !glfwJoystickPresent(joy_id)) {
         Global.viewport_move = glm::vec3();
-        Global.viewport_rotate = glm::vec3();
+        Global.viewport_rotate = glm::mat3();
         find_joy();
         return;
     }
@@ -59,5 +59,5 @@ void headtrack::update()
     rotate.z = get_axis(axes, count, rot_axes.z, rot_mul.z);
 
     Global.viewport_move = move;
-    Global.viewport_rotate = rotate;
+    Global.viewport_rotate = glm::orientate3(rotate);
 }

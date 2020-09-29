@@ -74,11 +74,19 @@ void gl::framebuffer::blit(framebuffer *src, framebuffer *dst, int sx, int sy, i
     {
         int attachment_n = attachment - GL_COLOR_ATTACHMENT0;
 
-        GLenum outputs[8] = { GL_NONE };
-        outputs[attachment_n] = attachment;
+        {
+            GLenum outputs[8] = { GL_NONE };
+            outputs[attachment_n] = src != 0 ? attachment : GL_BACK_LEFT;
 
-        glReadBuffer(attachment);
-        glDrawBuffers(attachment_n + 1, outputs);
+            glReadBuffer(attachment);
+        }
+
+        {
+            GLenum outputs[8] = { GL_NONE };
+            outputs[attachment_n] = dst != 0 ? attachment : GL_BACK_LEFT;
+
+            glDrawBuffers(attachment_n + 1, outputs);
+        }
     }
 
     glBlitFramebuffer(sx, sy, sx + w, sy + h, 0, 0, w, h, mask, GL_NEAREST);

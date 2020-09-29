@@ -291,6 +291,33 @@ bool opengl_renderer::Init(GLFWwindow *Window)
 	default_viewport.window = m_window;
 	default_viewport.draw_range = 1.0f;
 
+    if (Global.vr)
+        vr = vr_interface_factory::get_instance()->create(Global.vr_backend);
+
+    if (vr) {
+        glm::ivec2 target_size = vr->get_target_size();
+        WriteLog("using vr rendertarget: " + glm::to_string(target_size));
+
+        // hijack main window for left eye
+        default_viewport.width = target_size.x;
+        default_viewport.height = target_size.y;
+        default_viewport.custom_backbuffer = true;
+        default_viewport.proj_type = viewport_config::vr_left;
+
+        // create right eye viewport
+        m_viewports.push_back(std::make_unique<viewport_config>());
+        m_viewports.back()->width = target_size.x;
+        m_viewports.back()->height = target_size.y;
+        m_viewports.back()->window = m_window; // we can reuse context
+        m_viewports.back()->real_window = false; // but don't draw anything to it
+        m_viewports.back()->custom_backbuffer = true;
+        m_viewports.back()->proj_type = viewport_config::vr_right;
+        m_viewports.back()->draw_range = 1.0f;
+
+        if (!init_viewport(*m_viewports.back()))
+            return false;
+    }
+
 	if (!init_viewport(default_viewport))
 		return false;
 	glfwMakeContextCurrent(m_window);
@@ -418,6 +445,11 @@ bool opengl_renderer::Init(GLFWwindow *Window)
 	return true;
 }
 
+void opengl_renderer::Shutdown()
+{
+    vr.reset();
+}
+
 bool opengl_renderer::AddViewport(const global_settings::extraviewport_config &conf)
 {
     viewport_config *vp;
@@ -434,7 +466,7 @@ bool opengl_renderer::AddViewport(const global_settings::extraviewport_config &c
     vp->width = conf.width;
     vp->height = conf.height;
     vp->projection = conf.projection;
-    vp->custom_projection = true;
+    vp->proj_type = viewport_config::custom;
     vp->draw_range = conf.draw_range;
 
     bool ret = init_viewport(*vp);
@@ -453,7 +485,8 @@ bool opengl_renderer::init_viewport(viewport_config &vp)
 
 	WriteLog("init viewport: " + std::to_string(vp.width) + ", " + std::to_string(vp.height));
 
-	glfwSwapInterval( Global.VSync ? 1 : 0 );
+    if (vp.real_window)
+        glfwSwapInterval( Global.VSync ? 1 : 0 );
 
 	glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
 	glPixelStorei(GL_PACK_ALIGNMENT, 1);
@@ -542,6 +575,17 @@ bool opengl_renderer::init_viewport(viewport_config &vp)
 			return false;
 	}
 
+    if (vp.custom_backbuffer)
+    {
+        vp.backbuffer_tex = std::make_unique<opengl_texture>();
+        vp.backbuffer_tex->alloc_rendertarget(GL_SRGB8, GL_RGB, vp.width, vp.height);
+
+        vp.backbuffer_fb = std::make_unique<gl::framebuffer>();
+        vp.backbuffer_fb->attach(*vp.backbuffer_tex, GL_COLOR_ATTACHMENT0);
+        if (!vp.backbuffer_fb->is_complete())
+            return false;
+    }
+
     vp.initialized = true;
 	return true;
 }
@@ -578,6 +622,9 @@ bool opengl_renderer::Render()
 	// generate new frame
 	m_renderpass.draw_mode = rendermode::none; // force setup anew
 	m_debugstats = debug_stats();
+
+    if (vr)
+        vr->begin_frame();
 
 	for (auto &viewport : m_viewports) {
 		Render_pass(*viewport, rendermode::color);
@@ -620,9 +667,12 @@ void opengl_renderer::SwapBuffers()
 	Timer::subsystem.gfx_swap.start();
 
 	for (auto &viewport : m_viewports) {
-		if (viewport->window)
+        if (viewport->window && viewport->real_window)
 			glfwSwapBuffers(viewport->window);
 	}
+
+    if (vr)
+        vr->finish_frame();
 
 	// swapbuffers() could unbind current buffers so we prepare for it on our end
 	gfx::opengl_vbogeometrybank::reset();
@@ -725,7 +775,7 @@ void opengl_renderer::Render_pass(viewport_config &vp, rendermode const Mode)
 		setup_drawing(false);
 
 		glm::ivec2 target_size(vp.width, vp.height);
-		if (vp.main) // TODO: update window sizes also for extra viewports
+        if (vp.main && !vp.custom_backbuffer) // TODO: update window sizes also for extra viewports
 			target_size = glm::ivec2(Global.iWindowWidth, Global.iWindowHeight);
 
 		if (!Global.gfx_skippipeline)
@@ -745,7 +795,8 @@ void opengl_renderer::Render_pass(viewport_config &vp, rendermode const Mode)
 		{
 			if (!Global.gfx_usegles && !Global.gfx_shadergamma)
 				glEnable(GL_FRAMEBUFFER_SRGB);
-			glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+            glBindFramebuffer(GL_FRAMEBUFFER, 0);
 			glViewport(0, 0, target_size.x, target_size.y);
 			glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 		}
@@ -795,6 +846,8 @@ void opengl_renderer::Render_pass(viewport_config &vp, rendermode const Mode)
 			setup_shadow_map(m_shadow_tex.get(), m_shadowpass);
 
 		Render(simulation::Region);
+
+        Render_vr_models();
 
 		// ...translucent parts
 		glDebug("render translucent region");
@@ -856,9 +909,25 @@ void opengl_renderer::Render_pass(viewport_config &vp, rendermode const Mode)
 				glEnable(GL_FRAMEBUFFER_SRGB);
 
 			glViewport(0, 0, target_size.x, target_size.y);
-			m_pfx_tonemapping->apply(*vp.main2_tex, nullptr);
+
+            gl::framebuffer *target = nullptr;
+            if (vp.custom_backbuffer)
+                target = vp.backbuffer_fb.get();
+            m_pfx_tonemapping->apply(*vp.main2_tex, target);
+
+            if (vr) {
+                if (vp.proj_type == viewport_config::vr_left)
+                    vr->submit(vr_interface::eye_left, vp.backbuffer_tex.get());
+                if (vp.proj_type == viewport_config::vr_right)
+                    vr->submit(vr_interface::eye_right, vp.backbuffer_tex.get());
+            }
+
+            if (vp.custom_backbuffer && vp.real_window) {
+                vp.backbuffer_fb->blit_to(nullptr, vp.width, vp.height, GL_COLOR_BUFFER_BIT, GL_COLOR_ATTACHMENT0);
+            }
+
 			opengl_texture::reset_unit_cache();
-		}
+        }
 
 		if (!Global.gfx_usegles && !Global.gfx_shadergamma)
 			glDisable(GL_FRAMEBUFFER_SRGB);
@@ -899,6 +968,8 @@ void opengl_renderer::Render_pass(viewport_config &vp, rendermode const Mode)
 		scene_ubs.projection = OpenGLMatrices.data(GL_PROJECTION);
 		scene_ubo->update(scene_ubs);
 		Render(simulation::Region);
+
+        Render_vr_models();
 
 		m_shadowpass = m_renderpass;
 
@@ -1210,46 +1281,43 @@ void opengl_renderer::setup_pass(viewport_config &Viewport, renderpass_config &C
 
 	glm::mat4 frustumtest_proj;
 
-	if (!Viewport.custom_projection && Viewport.main) {
-		// TODO: update window sizes also for extra viewports
-		float const fovy = glm::radians(Global.FieldOfView / Global.ZoomFactor);
-
-		// setup virtual screen
-		glm::vec2 screen_h = glm::vec2(Global.iWindowWidth, Global.iWindowHeight) / 2.0f;
-		float const dist = screen_h.y / glm::tan(fovy / 2.0f);
-
-		Viewport.projection.pa = glm::vec3(-screen_h.x, -screen_h.y, -dist);
-		Viewport.projection.pb = glm::vec3( screen_h.x, -screen_h.y, -dist);
-		Viewport.projection.pc = glm::vec3(-screen_h.x,  screen_h.y, -dist);
-        Viewport.projection.pe = glm::vec3(0.0f, 0.0f, 0.0f);
-	}
-
-    if (Global.headtrack_conf.magic_window)
-        Viewport.projection.pe = Global.viewport_move;
-
     Config.viewport_camera.position() = Global.pCamera.Pos;
 
 	switch (Mode)
 	{
 	case rendermode::color:
 	{
-        if (!Global.headtrack_conf.magic_window) {
-            Global.pCamera.Pos += Global.viewport_move;
-            Global.pCamera.LookAt += Global.viewport_move;
-            Global.pCamera.Angle += Global.viewport_rotate;
+        if (Viewport.proj_type == viewport_config::normal && Viewport.main) {
+            // TODO: update window sizes also for extra viewports
+            float const fovy = glm::radians(Global.FieldOfView / Global.ZoomFactor);
+
+            // setup virtual screen
+            glm::vec2 screen_h = glm::vec2(Global.iWindowWidth, Global.iWindowHeight) / 2.0f;
+            float const dist = screen_h.y / glm::tan(fovy / 2.0f);
+
+            Viewport.projection.pa = glm::vec3(-screen_h.x, -screen_h.y, -dist);
+            Viewport.projection.pb = glm::vec3( screen_h.x, -screen_h.y, -dist);
+            Viewport.projection.pc = glm::vec3(-screen_h.x,  screen_h.y, -dist);
+            Viewport.projection.pe = glm::vec3(0.0f, 0.0f, 0.0f);
         }
 
-		// modelview
-		if ((false == DebugCameraFlag) || (true == Ignoredebug))
-		{
-            camera.position() = Global.pCamera.Pos;
-			Global.pCamera.SetMatrix(viewmatrix);
-		}
-		else
-		{
-			camera.position() = Global.pDebugCamera.Pos;
-			Global.pDebugCamera.SetMatrix(viewmatrix);
-		}
+        if (vr && (Viewport.proj_type == viewport_config::vr_left || Viewport.proj_type == viewport_config::vr_right)) {
+            Viewport.projection = vr->get_proj_config(Viewport.proj_type == viewport_config::vr_left ? vr_interface::eye_left : vr_interface::eye_right);
+            Global.pCamera.Angle.x = 0.0;
+            Global.pCamera.Angle.z = 0.0;
+        }
+
+        if (Global.headtrack_conf.magic_window)
+            Viewport.projection.pe = Global.viewport_move;
+
+        TCamera *cam = ((false == DebugCameraFlag) || (true == Ignoredebug)) ? &Global.pCamera : &Global.pDebugCamera;
+        camera.position() = cam->Pos;
+        cam->SetMatrix(viewmatrix);
+
+        if (!Global.headtrack_conf.magic_window || vr) {
+            camera.position() += Global.viewport_move * glm::mat3(viewmatrix);
+            viewmatrix = glm::dmat4(glm::inverse(Global.viewport_rotate)) * viewmatrix;
+        }
 
 		// projection
 		auto const zfar = Config.draw_range * Global.fDistanceFactor * Zfar;
@@ -1320,12 +1388,18 @@ void opengl_renderer::setup_pass(viewport_config &Viewport, renderpass_config &C
 		break;
 	}
 	case rendermode::cabshadows:
-	{
+    {
+        renderpass_config worldview;
+        setup_pass(Viewport, worldview, rendermode::color, 0.f, Zfar, true);
+        //glm::dmat4 tmpmat;
+        //Global.pCamera.SetMatrix(tmpmat);
+
 		// fixed size cube large enough to enclose a vehicle compartment
 		// modelview
 		auto const lightvector = glm::normalize(glm::vec3{m_sunlight.direction.x, std::min(m_sunlight.direction.y, -0.2f), m_sunlight.direction.z});
-		camera.position() = Global.pCamera.Pos - glm::dvec3{lightvector};
-		viewmatrix *= glm::lookAt(camera.position(), glm::dvec3{Global.pCamera.Pos}, glm::dvec3{0.f, 1.f, 0.f});
+        camera.position() = worldview.pass_camera.position() - glm::dvec3{lightvector};
+        viewmatrix *= glm::lookAt(camera.position(), worldview.pass_camera.position(), glm::dvec3{0.f, 1.f, 0.f});
+
 		// projection
 		auto const maphalfsize{Config.draw_range * 0.5f};
 		camera.projection() = ortho_projection(-maphalfsize, maphalfsize, -maphalfsize, maphalfsize, -Config.draw_range, Config.draw_range);
@@ -2494,7 +2568,7 @@ bool opengl_renderer::Render_cab(TDynamicObject const *Dynamic, float const Ligh
 			else
 			{
 				// opaque parts
-				Render(Dynamic->mdKabina, Dynamic->Material(), 0.0);
+                Render(Dynamic->mdKabina, Dynamic->Material(), 0.0);
 			}
 			// post-render restore
 			if (Dynamic->fShade > 0.0f)
@@ -3018,6 +3092,25 @@ void opengl_renderer::Render_particles()
 	Bind_Texture(0, m_smoketexture);
 	m_particlerenderer.update(m_renderpass.pass_camera);
 	m_particlerenderer.render();
+}
+
+void opengl_renderer::Render_vr_models()
+{
+    if (!vr)
+        return;
+
+    glDebug("Render_vr_models");
+
+    ::glPushMatrix();
+    glm::dmat4 tmpmat;
+    Global.pCamera.SetMatrix(tmpmat);
+    tmpmat = glm::dmat3(tmpmat);
+    glMultMatrixd(glm::value_ptr(glm::inverse(tmpmat)));
+    std::vector<TModel3d*> list = vr->get_render_models();
+    material_data data;
+    for (TModel3d *mdl : list)
+        Render(mdl, &data, 0.0);
+    ::glPopMatrix();
 }
 
 void opengl_renderer::Render_precipitation()

@@ -95,6 +95,7 @@
 #include <glm/gtc/type_ptr.hpp>
 #include <glm/gtc/epsilon.hpp>
 #include <glm/gtx/rotate_vector.hpp>
+#include <glm/gtx/euler_angles.hpp>
 #include <glm/gtx/norm.hpp>
 #include <glm/gtx/string_cast.hpp>
 
@@ -106,4 +107,5 @@ int const null_handle = 0;
 #define glDebug(x) if (GLAD_GL_GREMEDY_string_marker) glStringMarkerGREMEDY(0, __FILE__ ":" STRINGIZE(__LINE__) ": " x);
 
 #include "imgui/imgui.h"
+
 #endif

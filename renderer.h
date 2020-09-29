@@ -20,6 +20,7 @@ http://mozilla.org/MPL/2.0/.
 #include "scene.h"
 #include "light.h"
 #include "particles.h"
+#include "vr/vr_interface.h"
 #include "gl/ubo.h"
 #include "gl/framebuffer.h"
 #include "gl/renderbuffer.h"
@@ -167,6 +168,7 @@ class opengl_renderer
 
 	// methods
 	bool Init(GLFWwindow *Window);
+    void Shutdown();
 	bool AddViewport(const global_settings::extraviewport_config &conf);
 
 	// main draw call. returns false on error
@@ -281,22 +283,36 @@ class opengl_renderer
 		float draw_range;
 
 		bool main = false;
-		GLFWwindow *window = nullptr;
+        GLFWwindow *window = nullptr; // ogl window context
+        bool real_window = true; // whether we need to blit onto GLFWwindow surface
+        bool custom_backbuffer = false; // whether we want to render to our offscreen LDR backbuffer (pipeline required)
 
-		bool custom_projection = false;
+        enum vp_type {
+            normal,
+            custom,
+            vr_left,
+            vr_right
+        } proj_type;
 		viewport_proj_config projection;
 
+        // main msaa render target for pipeline mode
 		std::unique_ptr<gl::framebuffer> msaa_fb;
 		std::unique_ptr<gl::renderbuffer> msaa_rbc;
 		std::unique_ptr<gl::renderbuffer> msaa_rbv;
 		std::unique_ptr<gl::renderbuffer> msaa_rbd;
 
+        // msaa resolve buffer (when using motion blur)
 		std::unique_ptr<gl::framebuffer> main_fb;
 		std::unique_ptr<opengl_texture> main_texv;
 		std::unique_ptr<opengl_texture> main_tex;
 
+        // final HDR buffer (also serving as msaa resolve buffer when not using motion blur)
 		std::unique_ptr<gl::framebuffer> main2_fb;
 		std::unique_ptr<opengl_texture> main2_tex;
+
+        // LDR backbuffer for offscreen rendering
+        std::unique_ptr<gl::framebuffer> backbuffer_fb;
+        std::unique_ptr<opengl_texture> backbuffer_tex;
 
         bool initialized = false;
 	};
@@ -334,6 +350,7 @@ class opengl_renderer
 	void Render(TMemCell *Memcell);
 	void Render_particles();
 	void Render_precipitation();
+    void Render_vr_models();
 	void Render_Alpha(scene::basic_region *Region);
 	void Render_Alpha(cell_sequence::reverse_iterator First, cell_sequence::reverse_iterator Last);
 	void Render_Alpha(TAnimModel *Instance);
@@ -497,6 +514,8 @@ class opengl_renderer
 	};
 
 	headlight_config_s headlight_config;
+
+    std::unique_ptr<vr_interface> vr;
 };
 
 extern opengl_renderer GfxRenderer;

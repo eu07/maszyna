@@ -212,7 +212,7 @@ public:
 	void deserialize_float64(std::istream&);
 	void serialize_float32(std::ostream&);
     float4x4(void){};
-    float4x4(float f[16])
+    float4x4(const float f[16])
     {
         for (int i = 0; i < 16; ++i)
             e[i] = f[i];

@@ -354,6 +354,7 @@ eu07_application::exit() {
 	for (auto &mode : m_modes)
 		mode.reset();
 
+    GfxRenderer.Shutdown();
 	m_network.reset();
 
     SafeDelete( simulation::Train );

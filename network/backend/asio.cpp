@@ -147,11 +147,11 @@ network::tcp::server::server(std::shared_ptr<std::istream> buf, asio::io_context
 }
 
 void network::tcp::server::accept_conn()
-{
+{/*
 	std::shared_ptr<connection> conn = std::make_shared<connection>(m_acceptor.get_executor().context());
 	conn->set_handler(std::bind(&server::handle_message, this, conn, std::placeholders::_1));
 
-	m_acceptor.async_accept(conn->m_socket, std::bind(&server::handle_accept, this, conn, std::placeholders::_1));
+    m_acceptor.async_accept(conn->m_socket, std::bind(&server::handle_accept, this, conn, std::placeholders::_1));*/
 }
 
 void network::tcp::server::handle_accept(std::shared_ptr<connection> conn, const asio::error_code &err)
