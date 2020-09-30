@@ -9,7 +9,7 @@ http://mozilla.org/MPL/2.0/.
 
 #pragma once
 
-#include "openglgeometrybank.h"
+#include "opengl33geometrybank.h"
 #include "material.h"
 #include "light.h"
 #include "lightarray.h"
@@ -19,7 +19,7 @@ http://mozilla.org/MPL/2.0/.
 #include "MemCell.h"
 #include "scene.h"
 #include "light.h"
-#include "particles.h"
+#include "opengl33particles.h"
 #include "vr/vr_interface.h"
 #include "gl/ubo.h"
 #include "gl/framebuffer.h"

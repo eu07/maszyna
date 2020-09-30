@@ -11,7 +11,7 @@ http://mozilla.org/MPL/2.0/.
 #include "uilayer.h"
 
 #include "Globals.h"
-#include "renderer.h"
+#include "opengl33renderer.h"
 #include "Logs.h"
 #include "Timer.h"
 #include "simulation.h"

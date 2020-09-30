@@ -16,7 +16,7 @@ http://mozilla.org/MPL/2.0/.
 #include "AnimModel.h"
 #include "Track.h"
 #include "Event.h"
-#include "renderer.h"
+#include "opengl33renderer.h"
 #include "utilities.h"
 
 void

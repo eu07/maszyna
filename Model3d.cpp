@@ -18,7 +18,7 @@ Copyright (C) 2001-2004  Marcin Wozniak, Maciej Czapkiewicz and others
 #include "Globals.h"
 #include "Logs.h"
 #include "utilities.h"
-#include "renderer.h"
+#include "opengl33renderer.h"
 #include "Timer.h"
 #include "simulation.h"
 #include "simulationtime.h"

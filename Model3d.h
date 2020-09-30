@@ -12,7 +12,7 @@ http://mozilla.org/MPL/2.0/.
 #include "Classes.h"
 #include "dumb3d.h"
 #include "Float3d.h"
-#include "openglgeometrybank.h"
+#include "opengl33geometrybank.h"
 #include "material.h"
 #include "gl/query.h"
 

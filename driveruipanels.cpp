@@ -24,7 +24,7 @@ http://mozilla.org/MPL/2.0/.
 #include "AnimModel.h"
 #include "DynObj.h"
 #include "Model3d.h"
-#include "renderer.h"
+#include "opengl33renderer.h"
 #include "utilities.h"
 #include "Logs.h"
 #include "widgets/vehicleparams.h"

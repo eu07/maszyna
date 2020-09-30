@@ -2,7 +2,7 @@
 #include "openvr_imp.h"
 #include "Logs.h"
 #include "Globals.h"
-#include "renderer.h"
+#include "opengl33renderer.h"
 
 vr_openvr::vr_openvr()
 {

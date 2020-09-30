@@ -19,7 +19,7 @@ http://mozilla.org/MPL/2.0/.
 #include "Timer.h"
 #include "Logs.h"
 #include "sn_utils.h"
-#include "renderer.h"
+#include "opengl33renderer.h"
 #include "widgets/map_objects.h"
 
 namespace scene {

@@ -1,7 +1,7 @@
 #pragma once
 
 #include "gl/shader.h"
-#include "renderer.h"
+#include "opengl33renderer.h"
 #include "Texture.h"
 #include "uilayer.h"
 #include "widgets/map_objects.h"

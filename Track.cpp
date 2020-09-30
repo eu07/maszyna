@@ -24,7 +24,7 @@ http://mozilla.org/MPL/2.0/.
 #include "Track.h"
 #include "Timer.h"
 #include "Logs.h"
-#include "renderer.h"
+#include "opengl33renderer.h"
 #include "utilities.h"
 
 // 101206 Ra: trapezoidalne drogi i tory

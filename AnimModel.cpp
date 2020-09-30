@@ -15,7 +15,7 @@ http://mozilla.org/MPL/2.0/.
 #include "stdafx.h"
 #include "AnimModel.h"
 
-#include "renderer.h"
+#include "opengl33renderer.h"
 #include "MdlMngr.h"
 #include "simulation.h"
 #include "simulationtime.h"
@@ -23,7 +23,7 @@ http://mozilla.org/MPL/2.0/.
 #include "Globals.h"
 #include "Timer.h"
 #include "Logs.h"
-#include "renderer.h"
+#include "opengl33renderer.h"
 
 std::list<std::weak_ptr<TAnimContainer>> TAnimModel::acAnimList;
 

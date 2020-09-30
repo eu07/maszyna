@@ -8,11 +8,11 @@ http://mozilla.org/MPL/2.0/.
 */
 
 #include "stdafx.h"
-#include "precipitation.h"
+#include "opengl33precipitation.h"
 
 #include "Globals.h"
 #include "openglmatrixstack.h"
-#include "renderer.h"
+#include "opengl33renderer.h"
 #include "Timer.h"
 #include "simulation.h"
 #include "Train.h"

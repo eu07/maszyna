@@ -1,7 +1,7 @@
 #pragma once
 
 #include "Texture.h"
-#include "renderer.h"
+#include "opengl33renderer.h"
 
 class deferred_image {
 public:

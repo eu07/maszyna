@@ -13,8 +13,8 @@ http://mozilla.org/MPL/2.0/.
 #include "sun.h"
 #include "moon.h"
 #include "stars.h"
-#include "skydome.h"
-#include "precipitation.h"
+#include "opengl33skydome.h"
+#include "opengl33precipitation.h"
 #include "sound.h"
 
 class opengl_renderer;

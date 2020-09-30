@@ -11,7 +11,7 @@ http://mozilla.org/MPL/2.0/.
 #include "editoruilayer.h"
 
 #include "Globals.h"
-#include "renderer.h"
+#include "opengl33renderer.h"
 
 editor_ui::editor_ui() {
 

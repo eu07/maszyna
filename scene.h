@@ -16,7 +16,7 @@ http://mozilla.org/MPL/2.0/.
 #include <unordered_set>
 
 #include "parser.h"
-#include "openglgeometrybank.h"
+#include "opengl33geometrybank.h"
 #include "scenenode.h"
 #include "Track.h"
 #include "Traction.h"

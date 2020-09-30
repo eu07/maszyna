@@ -20,7 +20,7 @@ http://mozilla.org/MPL/2.0/.
 #include "DynObj.h"
 #include "Timer.h"
 #include "Logs.h"
-#include "renderer.h"
+#include "opengl33renderer.h"
 
 TGauge::TGauge( sound_source const &Soundtemplate ) :
     m_soundtemplate( Soundtemplate )

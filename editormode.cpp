@@ -18,7 +18,7 @@ http://mozilla.org/MPL/2.0/.
 #include "simulationenvironment.h"
 #include "Timer.h"
 #include "Console.h"
-#include "renderer.h"
+#include "opengl33renderer.h"
 #include "AnimModel.h"
 
 bool

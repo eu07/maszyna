@@ -27,7 +27,7 @@ http://mozilla.org/MPL/2.0/.
 #include "sound.h"
 #include "MdlMngr.h"
 #include "Model3d.h"
-#include "renderer.h"
+#include "opengl33renderer.h"
 #include "uitranscripts.h"
 #include "messaging.h"
 

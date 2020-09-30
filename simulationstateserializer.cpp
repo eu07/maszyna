@@ -14,14 +14,14 @@ http://mozilla.org/MPL/2.0/.
 #include "simulation.h"
 #include "simulationtime.h"
 #include "scenenodegroups.h"
-#include "particles.h"
+#include "opengl33particles.h"
 #include "Event.h"
 #include "Driver.h"
 #include "DynObj.h"
 #include "AnimModel.h"
 #include "TractionPower.h"
 #include "application.h"
-#include "renderer.h"
+#include "opengl33renderer.h"
 #include "Logs.h"
 
 namespace simulation {

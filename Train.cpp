@@ -30,7 +30,7 @@ http://mozilla.org/MPL/2.0/.
 #include "mtable.h"
 #include "Console.h"
 #include "application.h"
-#include "renderer.h"
+#include "opengl33renderer.h"
 #include "dictionary.h"
 /*
 namespace input {

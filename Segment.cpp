@@ -14,7 +14,7 @@ http://mozilla.org/MPL/2.0/.
 #include "Logs.h"
 #include "utilities.h"
 #include "Track.h"
-#include "renderer.h"
+#include "opengl33renderer.h"
 
 void
 segment_data::deserialize( cParser &Input, glm::dvec3 const &Offset ) {

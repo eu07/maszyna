@@ -17,7 +17,7 @@ http://mozilla.org/MPL/2.0/.
 #include "simulationtime.h"
 #include "simulationenvironment.h"
 #include "lightarray.h"
-#include "particles.h"
+#include "opengl33particles.h"
 #include "Train.h"
 #include "Driver.h"
 #include "DynObj.h"
@@ -25,7 +25,7 @@ http://mozilla.org/MPL/2.0/.
 #include "Event.h"
 #include "messaging.h"
 #include "Timer.h"
-#include "renderer.h"
+#include "opengl33renderer.h"
 #include "utilities.h"
 #include "Logs.h"
 /*

@@ -16,7 +16,7 @@ http://mozilla.org/MPL/2.0/.
 #include "Timer.h"
 #include "application.h"
 #include "scenarioloaderuilayer.h"
-#include "renderer.h"
+#include "opengl33renderer.h"
 #include "Logs.h"
 #include "translation.h"
 

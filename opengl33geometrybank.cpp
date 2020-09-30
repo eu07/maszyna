@@ -8,7 +8,7 @@ http://mozilla.org/MPL/2.0/.
 */
 
 #include "stdafx.h"
-#include "openglgeometrybank.h"
+#include "opengl33geometrybank.h"
 
 #include "sn_utils.h"
 #include "Logs.h"

@@ -10,7 +10,7 @@ http://mozilla.org/MPL/2.0/.
 #include "stdafx.h"
 
 #include "material.h"
-#include "renderer.h"
+#include "opengl33renderer.h"
 #include "Globals.h"
 #include "utilities.h"
 #include "Logs.h"

@@ -1,5 +1,5 @@
 #include "stdafx.h"
-#include "skydome.h"
+#include "opengl33skydome.h"
 #include "color.h"
 #include "utilities.h"
 

@@ -9,7 +9,7 @@ http://mozilla.org/MPL/2.0/.
 
 #include "stdafx.h"
 
-#include "renderer.h"
+#include "opengl33renderer.h"
 #include "color.h"
 #include "Globals.h"
 #include "Timer.h"
