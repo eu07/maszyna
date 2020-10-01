@@ -416,6 +416,7 @@ void uart_input::poll()
 		if (conf.debug)
 		{
 			char buf[buffer.size() * 3 + 1];
+            buf[ buffer.size() * 3 ] = NULL;
 			size_t pos = 0;
 			for (uint8_t b : buffer)
 				pos += sprintf(&buf[pos], "%02X ", b);

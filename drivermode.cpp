@@ -573,7 +573,8 @@ driver_mode::update_camera( double const Deltatime ) {
     // uwzględnienie ruchu wywołanego klawiszami
     if( false == DebugCameraFlag ) {
         // regular camera
-        if( ( false == FreeFlyModeFlag )
+        if( ( simulation::Train != nullptr )
+         && ( false == FreeFlyModeFlag )
          && ( false == Global.CabWindowOpen ) ) {
             // if in cab potentially alter camera placement based on changes in train object
             Camera.m_owneroffset = simulation::Train->pMechOffset;
@@ -583,12 +584,14 @@ driver_mode::update_camera( double const Deltatime ) {
 
         Camera.Update();
 
-        if( false == FreeFlyModeFlag ) {
+        if( ( simulation::Train != nullptr )
+         && ( false == FreeFlyModeFlag ) ) {
             // keep the camera within cab boundaries
             Camera.m_owneroffset = simulation::Train->clamp_inside( Camera.m_owneroffset );
         }
 
-        if( ( false == FreeFlyModeFlag )
+        if( ( simulation::Train != nullptr )
+         && ( false == FreeFlyModeFlag )
          && ( false == Global.CabWindowOpen ) ) {
             // cache cab camera in case of view type switch
             simulation::Train->pMechViewAngle = { Camera.Angle.x, Camera.Angle.y };

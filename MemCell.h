@@ -51,6 +51,8 @@ public:
     TCommandType CommandCheck();
     bool IsVelocity() const;
     void AssignEvents(basic_event *e);
+    std::string Values() const;
+    void LogValues() const;
 // members
     std::string asTrackName; // McZapkie-100302 - zeby nazwe toru na ktory jest Putcommand wysylane pamietac
     TTrack *Track { nullptr }; // resolved binding with the specified track

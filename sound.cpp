@@ -229,6 +229,7 @@ sound_source::deserialize_mapping( cParser &Input ) {
             { "internal", sound_placement::internal },
             { "engine", sound_placement::engine },
             { "external", sound_placement::external },
+            { "custom", sound_placement::custom },
             { "general", sound_placement::general } };
         auto lookup{ placements.find( value ) };
         if( lookup != placements.end() ) {
@@ -933,114 +934,52 @@ sound_source::update_location() {
     m_properties.location = location();
 }
 
-float const EU07_SOUNDPROOFING_GLOBAL_VERYSTRONG { 0.01f };
-float const EU07_SOUNDPROOFING_GLOBAL_STRONG { std::sqrtf( 0.025 ) };
-float const EU07_SOUNDPROOFING_GLOBAL_SOME { std::sqrtf( 0.15 ) };
-float const EU07_SOUNDPROOFING_GLOBAL_NONE { std::sqrtf( 0.40 ) };
-float const EU07_SOUNDPROOFING_STRONG { std::sqrtf( 0.20 ) };
-float const EU07_SOUNDPROOFING_SOME { std::sqrtf( 0.65 ) };
-float const EU07_SOUNDPROOFING_NONE { 1.f };
-
 bool
 sound_source::update_soundproofing() {
     // NOTE, HACK: current cab id can vary from -1 to +1, and we use higher priority values for open cab window and external views
     // we use this as modifier to force re-calculations when moving between compartments or changing window state
-    int const occupiedcab = (
-        Global.CabWindowOpen ? 2 :
+    auto const *listenervehicle { Global.pCamera.m_owner }; // nullptr in free roam mode
+    auto const occupiedcab { (
+        Global.CabWindowOpen ? 2 : // window view
         FreeFlyModeFlag ? (
-            Global.pCamera.m_owner ?
-                3 :
-                0 ) :
-        ( simulation::Train ?
-            simulation::Train->Occupied()->CabOccupied :
-            0 ) );
+            listenervehicle ?
+                3 : // external view
+                4 ) : // free roam view
+        listenervehicle->MoverParameters->CabOccupied ) }; // some internal view so we can be sure listener isn't a nullptr
     // location-based gain factor:
-    std::uintptr_t soundproofingstamp = reinterpret_cast<std::uintptr_t>( (
-        FreeFlyModeFlag ?
-            Global.pCamera.m_owner :
-            ( simulation::Train ?
-                simulation::Train->Dynamic() :
-                nullptr ) ) )
-        + occupiedcab;
+    std::uintptr_t soundproofingstamp =
+        reinterpret_cast<std::uintptr_t>( listenervehicle )
+        + ( listenervehicle ?
+                occupiedcab :
+                0 );
 
     if( soundproofingstamp == m_properties.soundproofing_stamp ) { return false; }
 
     // listener location has changed, calculate new location-based gain factor
-    auto const externalcamera { ( Global.CabWindowOpen ) || ( Global.pCamera.m_owner && FreeFlyModeFlag ) };
-    switch( m_placement ) {
-        case sound_placement::general: {
-            m_properties.soundproofing = (
-                m_range >= -1 ?
-                    EU07_SOUNDPROOFING_NONE :
-                    EU07_SOUNDPROOFING_GLOBAL_NONE );
-            break;
+    // TBD, TODO: clean up parameters for soundproofing() call -- make ambient separate, explicit placement
+    m_properties.soundproofing = EU07_SOUNDPROOFING_NONE; // default proofing for environment sounds and free listener
+    if( m_placement != sound_placement::general ) {
+        auto const isambient { ( ( m_placement == sound_placement::external ) && ( m_owner == nullptr ) && ( m_range < -1 ) ? 1 : 0 ) };
+        auto const placement { ( isambient ? sound_placement::external_ambient : m_placement ) };
+        if( m_owner != nullptr ) {
+            m_properties.soundproofing =
+                m_owner->soundproofing(
+                    static_cast<int>( placement ),
+                    ( m_owner != listenervehicle ?
+                        4 : // part of two-stage calculation owner->outside->listener, or single stage owner->outside one
+                        occupiedcab ) );
         }
-        case sound_placement::external: {
-            if( m_range >= -1 ) { // limited range sound...
-                m_properties.soundproofing = (
-                    soundproofingstamp == 0 ? EU07_SOUNDPROOFING_NONE : // ...with listener outside
-                    externalcamera ? EU07_SOUNDPROOFING_SOME : // ...with listener inside and window open
-                    EU07_SOUNDPROOFING_STRONG ); // ...with listener inside and window closed
-            }
-            else { // global sound...
-                m_properties.soundproofing = (
-                    soundproofingstamp == 0 ? EU07_SOUNDPROOFING_GLOBAL_NONE : // ...with listener outside
-                    externalcamera ? EU07_SOUNDPROOFING_GLOBAL_STRONG : // ...with listener inside and window open
-                    EU07_SOUNDPROOFING_GLOBAL_VERYSTRONG ); // ...with listener inside and window closed
-            }
-            break;
+        if( ( listenervehicle ) && ( listenervehicle != m_owner ) ) {
+            // if the listener is located in another vehicle, calculate additional proofing of the sound coming from outside
+            m_properties.soundproofing *=
+                listenervehicle->soundproofing(
+                    static_cast<int>( sound_placement::external ) + isambient,
+                    occupiedcab );
         }
-        case sound_placement::internal: {
-            if( m_range >= -1 ) { // limited range sound
-                m_properties.soundproofing = (
-                    ( FreeFlyModeFlag || externalcamera ) ?
-                        EU07_SOUNDPROOFING_STRONG : // listener outside HACK: won't be true if active vehicle has open window
-                        ( simulation::Train->Dynamic() != m_owner ?
-                            EU07_SOUNDPROOFING_STRONG : // in another vehicle
-                            ( occupiedcab == 0 ?
-                                EU07_SOUNDPROOFING_STRONG : // listener in the engine compartment
-                                EU07_SOUNDPROOFING_NONE ) ) ); // listener in the cab of the same vehicle
-            }
-            else { // global sound
-                m_properties.soundproofing = (
-                    ( FreeFlyModeFlag || externalcamera ) ?
-                        EU07_SOUNDPROOFING_GLOBAL_STRONG : // listener outside HACK: won't be true if active vehicle has open window
-                        ( simulation::Train->Dynamic() != m_owner ?
-                            EU07_SOUNDPROOFING_GLOBAL_VERYSTRONG : // in another vehicle
-                            ( occupiedcab == 0 ?
-                                EU07_SOUNDPROOFING_GLOBAL_NONE : // listener in the engine compartment
-                                EU07_SOUNDPROOFING_GLOBAL_STRONG ) ) ); // listener in the cab of the same vehicle
-            }
-            break;
-        }
-        case sound_placement::engine: {
-            if( m_range >= -1 ) { // limited range sound
-                m_properties.soundproofing = (
-                    ( FreeFlyModeFlag || externalcamera ) ?
-                        EU07_SOUNDPROOFING_SOME : // listener outside or has a window open
-                        ( simulation::Train->Dynamic() != m_owner ?
-                            EU07_SOUNDPROOFING_STRONG : // in another vehicle
-                            ( occupiedcab == 0 ?
-                                EU07_SOUNDPROOFING_NONE : // listener in the engine compartment
-                                EU07_SOUNDPROOFING_STRONG ) ) ); // listener in another compartment of the same vehicle
-            }
-            else { // global sound
-                m_properties.soundproofing = (
-                    ( FreeFlyModeFlag || externalcamera ) ?
-                        EU07_SOUNDPROOFING_GLOBAL_STRONG : // listener outside or has a window open
-                        ( simulation::Train->Dynamic() != m_owner ?
-                            EU07_SOUNDPROOFING_GLOBAL_VERYSTRONG : // in another vehicle
-                            ( occupiedcab == 0 ?
-                                EU07_SOUNDPROOFING_NONE : // listener in the engine compartment
-                                EU07_SOUNDPROOFING_GLOBAL_STRONG ) ) ); // listener in another compartment of the same vehicle
-            }
-            break;
-        }
-        default: {
-            // shouldn't ever land here, but, eh
-            m_properties.soundproofing = EU07_SOUNDPROOFING_NONE;
-            break;
-        }
+    }
+    // for ambient sounds reduce their volume to account for their placement right on top of the listener
+    if( m_range < -1 ) {
+        m_properties.soundproofing *= 0.4f;
     }
 
     m_properties.soundproofing_stamp = soundproofingstamp;

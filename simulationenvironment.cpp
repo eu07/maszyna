@@ -192,7 +192,9 @@ world_environment::update() {
         if( m_rainsound.is_combined() ) {
             m_rainsound.pitch( Global.Overcast - 1.0 );
         }
-        m_rainsound.play( sound_flags::exclusive | sound_flags::looping );
+        m_rainsound
+            .gain( m_rainsound.m_amplitudeoffset + m_rainsound.m_amplitudefactor * 1.f )
+            .play( sound_flags::exclusive | sound_flags::looping );
     }
     else {
         m_rainsound.stop();

@@ -205,6 +205,16 @@ void TMemCell::AssignEvents(basic_event *e)
     OnSent = e;
 };
 
+std::string TMemCell::Values() const {
+
+    return { "[" + Text() + "] [" + to_string( Value1(), 2 ) + "] [" + to_string( Value2(), 2 ) + "]" };
+}
+
+void TMemCell::LogValues() const {
+
+    WriteLog( "Memcell " + name() + ": " + Values() );
+}
+
 // serialize() subclass details, sends content of the subclass to provided stream
 void
 TMemCell::serialize_( std::ostream &Output ) const {
@@ -264,10 +274,6 @@ void
 memory_table::log_all() {
 
     for( auto *cell : m_items ) {
-
-        WriteLog( "Memcell \"" + cell->name() + "\": ["
-            + cell->Text() + "] ["
-            + to_string( cell->Value1(), 2 ) + "] ["
-            + to_string( cell->Value2(), 2 ) + "]" );
+        cell->LogValues();
     }
 }

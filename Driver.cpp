@@ -2021,9 +2021,7 @@ void TController::Activation()
         if (initiallocalbrakelevel > 0.0) // hamowanie tylko jeśli był wcześniej zahamowany (bo możliwe, że jedzie!)
             mvOccupied->LocalBrakePosA = initiallocalbrakelevel; // zahamuj jak wcześniej
 */
-        if( initialspringbrakestate ) {
-            mvOccupied->SpringBrakeActivate( initialspringbrakestate );
-        }
+        mvOccupied->SpringBrakeActivate( initialspringbrakestate );
         CheckVehicles(); // sprawdzenie składu, AI zapali światła
         TableClear(); // resetowanie tabelki skanowania torów
     }
@@ -2292,11 +2290,15 @@ bool TController::CheckVehicles(TOrders user)
             if (p->Mechanik != this) // ale chodzi o inny pojazd, niż aktualnie sprawdzający
                 if( p->Mechanik->iDrivigFlags & movePrimary ) {
                     // a tamten ma priorytet
+                    // TODO: take into account drivers' operating modes, one or more of them might be on banking duty
                     if( ( iDrivigFlags & movePrimary )
                      && ( mvOccupied->DirAbsolute )
                      && ( mvOccupied->BrakeCtrlPos >= -1 ) ) {
                         // jeśli rządzi i ma kierunek
                         p->Mechanik->primary( false ); // dezaktywuje tamtego
+                        p->Mechanik->ZeroLocalBrake();
+                        p->MoverParameters->BrakeLevelSet( p->MoverParameters->Handle->GetPos( bh_NP ) ); // odcięcie na zaworze maszynisty
+                        p->Mechanik->BrakeLevelSet( p->MoverParameters->BrakeCtrlPos ); //ustawienie zmiennej GBH
                     }
                     else {
                         main = false; // nici z rządzenia
@@ -2444,6 +2446,14 @@ bool TController::CheckVehicles(TOrders user)
                     ( ( mvControlling->EngineType == TEngineType::DieselElectric )
                    || ( mvControlling->EngineType == TEngineType::DieselEngine ) ) ? ( Global.AirTemperature < 10 ) :
                     true );
+            }
+
+            if( ( true == TestFlag( iDrivigFlags, moveConnect ) )
+             && ( true == TestFlag( OrderCurrentGet(), Connect ) ) ) {
+                iCoupler = 0; // dalsza jazda manewrowa już bez łączenia
+                iDrivigFlags &= ~moveConnect; // zdjęcie flagi doczepiania
+                SetVelocity( 0, 0, stopJoin ); // wyłączyć przyspieszanie
+                JumpToNextOrder(); // wykonanie następnej komendy
             }
         }
         else { // gdy człowiek i gdy nastąpiło połącznie albo rozłączenie
@@ -2808,6 +2818,9 @@ bool TController::PrepareEngine()
                 if( lookup != brakepositions.end() ) {
                     BrakeLevelSet( lookup->second ); // GBH
                 }
+                // sync spring brake state across consist
+                mvOccupied->SpringBrakeActivate( mvOccupied->SpringBrake.Activate );
+
                 OK = ( false == IsAnyConverterOverloadRelayOpen )
                   && ( VelforDriver == -1 );
             }
@@ -3479,17 +3492,28 @@ bool TController::IncSpeed()
         }
         break;
     case TEngineType::ElectricInductionMotor:
-        if (!IsAnyMotorOverloadRelayOpen)
-			if (Ready || (iDrivigFlags & movePress) || (mvOccupied->ShuntMode)) //{(BrakePress<=0.01*MaxBrakePress)}
+        if( !IsAnyMotorOverloadRelayOpen ) {
+            if( Ready || ( iDrivigFlags & movePress ) || ( mvOccupied->ShuntMode ) ) //{(BrakePress<=0.01*MaxBrakePress)}
             {
                 OK = IncSpeedEIM();
-                // cruise control
-                auto const SpeedCntrlVel { (
-                    ( ActualProximityDist > std::max( 50.0, fMaxProximityDist ) ) ?
-                        VelDesired :
-                        min_speed( VelDesired, VelNext ) ) };
-				SpeedCntrl(SpeedCntrlVel);
+                if( ( mvControlling->SpeedCtrl ) && ( mvControlling->Mains ) ) {
+                    // cruise control
+                    auto const couplinginprogress{ ( true == TestFlag( iDrivigFlags, moveConnect ) ) && ( true == TestFlag( OrderCurrentGet(), Connect ) ) };
+                    auto const SpeedCntrlVel{ (
+                        ( ActualProximityDist > std::max( 50.0, fMaxProximityDist ) ) || ( couplinginprogress ) ?
+                            VelDesired :
+                            min_speed( VelDesired, VelNext ) ) };
+                    if( ( SpeedCntrlVel >= mvControlling->SpeedCtrlUnit.MinVelocity )
+                     && ( SpeedCntrlVel - mvControlling->SpeedCtrlUnit.MinVelocity == quantize( SpeedCntrlVel - mvControlling->SpeedCtrlUnit.MinVelocity, mvControlling->SpeedCtrlUnit.VelocityStep ) ) ) {
+                        SpeedCntrl( SpeedCntrlVel );
+                    }
+                    else if( SpeedCntrlVel > 0.1 ) {
+                        SpeedCntrl( 0.0 );
+                        mvControlling->DecScndCtrl( 2 );
+                    }
+                }
             }
+        }
         break;
     case TEngineType::WheelsDriven:
         if (!mvControlling->CabActive)
@@ -3505,16 +3529,19 @@ bool TController::IncSpeed()
             // mvControlling->ShuntMode=(OrderList[OrderPos]&Shunt)||(fMass>224000.0);
         }
 		if ((mvControlling->SpeedCtrl)&&(mvControlling->Mains)) {// cruise control
-			auto const SpeedCntrlVel{ (
-				(ActualProximityDist > std::max(50.0, fMaxProximityDist)) ?
-				VelDesired :
-				min_speed(VelDesired, VelNext)) };
-			if (SpeedCntrlVel >= mvControlling->SpeedCtrlUnit.MinVelocity) {
-				SpeedCntrl(SpeedCntrlVel);
-			}
-			else if (SpeedCntrlVel > 0.1) {
-				SpeedCntrl(0.0);
-			}
+            auto const couplinginprogress { ( true == TestFlag( iDrivigFlags, moveConnect ) ) && ( true == TestFlag( OrderCurrentGet(), Connect ) ) };
+            auto const SpeedCntrlVel { (
+                ( ActualProximityDist > std::max( 50.0, fMaxProximityDist ) ) || ( couplinginprogress ) ?
+                    VelDesired :
+                    min_speed( VelDesired, VelNext ) ) };
+            if( ( SpeedCntrlVel >= mvControlling->SpeedCtrlUnit.MinVelocity )
+             && ( SpeedCntrlVel - mvControlling->SpeedCtrlUnit.MinVelocity == quantize( SpeedCntrlVel - mvControlling->SpeedCtrlUnit.MinVelocity, mvControlling->SpeedCtrlUnit.VelocityStep ) ) ) {
+                SpeedCntrl(SpeedCntrlVel);
+            }
+            else if (SpeedCntrlVel > 0.1) {
+                SpeedCntrl(0.0);
+                mvControlling->DecScndCtrl( 2 );
+            }
 		}
 		if (mvControlling->EIMCtrlType > 0) {
 			if (true == Ready)
@@ -3538,6 +3565,7 @@ bool TController::IncSpeed()
         }
         if( false == mvControlling->Mains ) {
 			SpeedCntrl(0.0);
+            mvControlling->DecScndCtrl( 2 );
             mvOccupied->MainSwitch( true );
             mvOccupied->ConverterSwitch( true );
             mvOccupied->CompressorSwitch( true );
@@ -5428,11 +5456,7 @@ TController::UpdateSituation(double dt) {
                                 iCoupler );
                             if( vehicleparameters->Couplers[ end ].CouplingFlag == iCoupler ) {
                                 // jeżeli został podłączony
-                                iCoupler = 0; // dalsza jazda manewrowa już bez łączenia
-                                iDrivigFlags &= ~moveConnect; // zdjęcie flagi doczepiania
-                                SetVelocity( 0, 0, stopJoin ); // wyłączyć przyspieszanie
                                 CheckVehicles( Connect ); // sprawdzić światła nowego składu
-                                JumpToNextOrder(); // wykonanie następnej komendy
                             }
                         }
                     }

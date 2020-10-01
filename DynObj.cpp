@@ -6284,6 +6284,17 @@ void TDynamicObject::LoadMMediaFile( std::string const &TypeName, std::string co
                         >> HuntingShake.fadein_end;
                 }
 
+                else if( token == "soundproofing:" ) {
+                    for( auto &soundproofingtable : m_soundproofing ) {
+                        for( auto &soundproofingelement : soundproofingtable ) {
+                            auto const value { parser.getToken<float>( false ) };
+                            if( value != -1.f ) {
+                                soundproofingelement = std::sqrtf( clamp( value, 0.f, 1.f ) );
+                            }
+                        }
+                    }
+                }
+
                 else if( token == "jointcabs:" ) {
                     parser.getTokens();
                     parser >> JointCabs;
@@ -6786,7 +6797,8 @@ TDynamicObject::update_neighbours() {
             neighbour.vehicle_end = std::get<int>( lookup );
             neighbour.distance = std::get<double>( lookup );
 
-            if( neighbour.distance < ( neighbour.vehicle->MoverParameters->CategoryFlag == 2 ? 50 : 100 ) ) {
+            if( ( neighbour.vehicle )
+             && ( neighbour.distance < ( neighbour.vehicle->MoverParameters->CategoryFlag == 2 ? 50 : 100 ) ) ) {
                 // at short distances (re)calculate range between couplers directly
                 neighbour.distance = TMoverParameters::CouplerDist( MoverParameters, neighbour.vehicle->MoverParameters );
                 // take into account potential adapters attached to the couplers
@@ -6835,7 +6847,9 @@ TDynamicObject::find_vehicle( int const Direction, double const Distance ) const
                     // jeśli następny tor jest podpięty od Point2
                     direction = -direction; // to zmieniamy kierunek szukania na tym torze
                 }
-                track = track->CurrentNext(); // potem dopiero zmieniamy wskaźnik
+                if( track ) {
+                    track = track->CurrentNext(); // potem dopiero zmieniamy wskaźnik
+                }
             }
             else {
                 // w kierunku Point1
@@ -6845,7 +6859,9 @@ TDynamicObject::find_vehicle( int const Direction, double const Distance ) const
                     // jeśli poprzedni tor nie jest podpięty od Point2
                     direction = -direction; // to zmieniamy kierunek szukania na tym torze
                 }
-                track = track->CurrentPrev(); // potem dopiero zmieniamy wskaźnik
+                if( track ) {
+                    track = track->CurrentPrev(); // potem dopiero zmieniamy wskaźnik
+                }
             }
             if (track) {
                 // jesli jest kolejny odcinek toru

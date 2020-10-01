@@ -763,8 +763,16 @@ eu07_application::init_glfw() {
         }
     }
 
+    if( Global.fullscreen_windowed ) {
+        // overwrite resolution settings to match default monitor
+        auto const mode = glfwGetVideoMode( monitor );
+        Global.iWindowWidth = mode->width;
+        Global.iWindowHeight = mode->height;
+        glfwWindowHint( GLFW_DECORATED, GLFW_FALSE );
+        monitor = nullptr;
+    }
     auto *mainwindow = window(
-        -1, true, Global.iWindowWidth, Global.iWindowHeight, Global.bFullScreen ? monitor : nullptr, true, false );
+        -1, true, Global.iWindowWidth, Global.iWindowHeight, ( Global.bFullScreen ? monitor : nullptr ), true, false );
 
     if( mainwindow == nullptr ) {
         ErrorLog( "Bad init: failed to create glfw window" );

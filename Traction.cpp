@@ -372,6 +372,8 @@ TTraction::Connect(int my, TTraction *with, int to) {
         iLast = 0;
     }
 
+    if( with == nullptr ) { return; }
+
     with->hvNext[ to ] = this;
     with->iNext[ to ] = my;
 

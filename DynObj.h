@@ -516,6 +516,16 @@ private:
     std::vector<doorspeaker_sounds> m_doorspeakers;
     pasystem_sounds m_pasystem;
 
+    std::array<
+        std::array<float, 6> // listener: rear cab, engine, front cab, window, attached camera, free camera
+        , 5> m_soundproofing = {{
+            {{ EU07_SOUNDPROOFING_NONE, EU07_SOUNDPROOFING_STRONG, EU07_SOUNDPROOFING_NONE, EU07_SOUNDPROOFING_SOME, EU07_SOUNDPROOFING_STRONG, EU07_SOUNDPROOFING_STRONG }}, // internal sounds
+            {{ EU07_SOUNDPROOFING_STRONG, EU07_SOUNDPROOFING_NONE, EU07_SOUNDPROOFING_STRONG, EU07_SOUNDPROOFING_SOME, EU07_SOUNDPROOFING_SOME, EU07_SOUNDPROOFING_SOME }}, // engine sounds
+            {{ EU07_SOUNDPROOFING_STRONG, EU07_SOUNDPROOFING_STRONG, EU07_SOUNDPROOFING_STRONG, EU07_SOUNDPROOFING_SOME, EU07_SOUNDPROOFING_SOME, EU07_SOUNDPROOFING_NONE }}, // external sound
+            {{ EU07_SOUNDPROOFING_VERYSTRONG, EU07_SOUNDPROOFING_VERYSTRONG, EU07_SOUNDPROOFING_VERYSTRONG, EU07_SOUNDPROOFING_STRONG, EU07_SOUNDPROOFING_STRONG, EU07_SOUNDPROOFING_NONE }}, // external ambient sound
+            {{ EU07_SOUNDPROOFING_NONE, EU07_SOUNDPROOFING_NONE, EU07_SOUNDPROOFING_NONE, EU07_SOUNDPROOFING_NONE, EU07_SOUNDPROOFING_NONE, EU07_SOUNDPROOFING_NONE }}, // custom sounds
+        }};
+
     coupleradapter_data m_coupleradapter;
 
     bool renderme; // yB - czy renderowac
@@ -729,6 +739,9 @@ private:
 	void move_set(double distance);
     // playes specified announcement, potentially preceding it with a chime
     void announce( announcement_t const Announcement, bool const Chime = true );
+    // returns soundproofing for specified sound type and listener location
+    float soundproofing( int const Placement, int const Listener ) const {
+        return m_soundproofing[ Placement - 1 ][ Listener + 1 ]; }
 
     double MED[9][8]; // lista zmiennych do debugowania hamulca ED
     static std::string const MED_labels[ 8 ];

@@ -1717,13 +1717,17 @@ void TMoverParameters::PowerCouplersCheck( double const Deltatime, coupling cons
     for( auto side = 0; side < 2; ++side ) {
 
         auto &coupler { Couplers[ side ] };
-        auto const &connectedothercoupler { coupler.Connected->Couplers[ ( coupler.ConnectedNr == end::front ? end::rear : end::front ) ] };
-
         auto *coupling = (
             Coupling == coupling::highvoltage ? &coupler.power_high :
             Coupling == coupling::power110v ? &coupler.power_110v :
             Coupling == coupling::power24v ? &coupler.power_24v :
             nullptr );
+
+        coupling->current = 0.0;
+
+        if( coupler.Connected == nullptr ) { continue; }
+
+        auto const &connectedothercoupler { coupler.Connected->Couplers[ ( coupler.ConnectedNr == end::front ? end::rear : end::front ) ] };
         auto const *connectedothercoupling = (
             Coupling == coupling::highvoltage ? &connectedothercoupler.power_high :
             Coupling == coupling::power110v ? &connectedothercoupler.power_110v :
@@ -1733,7 +1737,6 @@ void TMoverParameters::PowerCouplersCheck( double const Deltatime, coupling cons
             Coupling == coupling::highvoltage ? std::abs( Itot ) * IsVehicleEIMBrakingFactor() :
             0.0 );
 
-        coupling->current = 0.0;
         if( false == localpowersource ) {
             // bez napiecia...
             if( couplervoltage != 0.0 ) {
@@ -3493,7 +3496,7 @@ bool TMoverParameters::MainSwitchCheck() const {
         }
         case TEngineType::ElectricSeriesMotor:
         case TEngineType::ElectricInductionMotor: {
-            powerisavailable == ( std::max( GetTrainsetHighVoltage(), PantographVoltage ) > 0.5 * EnginePowerSource.MaxVoltage );
+            powerisavailable = ( std::max( GetTrainsetHighVoltage(), PantographVoltage ) > 0.5 * EnginePowerSource.MaxVoltage );
             break;
         }
         default: {
