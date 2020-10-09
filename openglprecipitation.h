@@ -19,14 +19,10 @@ public:
 // destructor
 	~opengl_precipitation();
 // methods
-    inline
-    void
-        set_unit( GLint const Textureunit ) {
-            m_textureunit = Textureunit; }
     void
         update();
 	void
-        render();
+        render( GLint const Textureunit );
 
 private:
 // methods
@@ -38,7 +34,6 @@ private:
     GLuint m_vertexbuffer { (GLuint)-1 };
     GLuint m_uvbuffer { (GLuint)-1 };
     GLuint m_indexbuffer { (GLuint)-1 };
-    GLint m_textureunit { 0 };
     texture_handle m_texture { null_handle };
     float m_overcast { -1.f }; // cached overcast level, difference from current state triggers texture update
 };

@@ -15,8 +15,10 @@ http://mozilla.org/MPL/2.0/.
 
 float const EU07_SOUND_GLOBALRANGE { -1.f };
 float const EU07_SOUND_CABCONTROLSCUTOFFRANGE { 7.5f };
+float const EU07_SOUND_CABANNOUNCEMENTCUTOFFRANGE{ -10.f };
 float const EU07_SOUND_BRAKINGCUTOFFRANGE { 100.f };
 float const EU07_SOUND_RUNNINGNOISECUTOFFRANGE { 200.f };
+float const EU07_SOUND_HANDHELDRADIORANGE { 3500.f };
 
 enum class sound_type {
     single,
@@ -39,8 +41,15 @@ enum class sound_placement {
     general, // source is equally audible in potential carrier and outside of it
     internal, // source is located inside of the carrier, and less audible when the listener is outside
     engine, // source is located in the engine compartment, less audible when the listener is outside and even less in the cabs
-    external // source is located on the outside of the carrier, and less audible when the listener is inside
+    external, // source is located on the outside of the carrier, and less audible when the listener is inside
+    external_ambient, // source is located on the outside of the carrier, with fixed volume
+    custom, // source doesn't fit in any standard location or requires custom soundproofing
 };
+
+auto const EU07_SOUNDPROOFING_NONE{ 1.f };
+auto const EU07_SOUNDPROOFING_SOME{ std::sqrtf( 0.65f ) };
+auto const EU07_SOUNDPROOFING_STRONG{ std::sqrtf( 0.20f ) };
+auto const EU07_SOUNDPROOFING_VERYSTRONG{ std::sqrtf( 0.01f ) };
 
 // mini controller and audio dispatcher; issues play commands for the audio renderer,
 // updates parameters of created audio emitters for the playback duration
@@ -49,7 +58,7 @@ class sound_source {
 
 public:
 // constructors
-    sound_source( sound_placement const Placement, float const Range = 50.f );
+    sound_source( sound_placement const Placement = sound_placement::general, float const Range = 50.f );
 
 // destructor
     ~sound_source();
@@ -102,6 +111,11 @@ public:
         name( std::string Name );
     std::string const &
         name() const;
+    // playback starting point shift setter/getter
+    void
+        start( float const Offset );
+    float const &
+        start() const;
     // returns true if there isn't any sound buffer associated with the object, false otherwise
     bool
         empty() const;
@@ -115,6 +129,8 @@ public:
     glm::dvec3 const
         location() const;
     // returns defined range of the sound
+    void
+        range( float const Range );
     float const
         range() const;
 
@@ -204,7 +220,8 @@ private:
     std::string m_name;
     int m_flags {}; // requested playback parameters
     sound_properties m_properties; // current properties of the emitted sounds
-    float m_pitchvariation {}; // emitter-specific shift in base pitch
+    float m_pitchvariation {}; // emitter-specific shift for base pitch
+    float m_startoffset {}; // emitter-specific shift for playback starting point
     bool m_stop { false }; // indicates active sample instances should be terminated
 /*
     bool m_stopend { false }; // indicates active instances of optional ending sound should be terminated
@@ -225,6 +242,9 @@ inline glm::vec3 const & sound_source::offset() const { return m_offset; }
 // sound source name setter/getter
 inline void sound_source::name( std::string Name ) { m_name = Name; }
 inline std::string const & sound_source::name() const { return m_name; }
+// playback starting point shift setter/getter
+inline void sound_source::start( float const Offset ) { m_startoffset = Offset; }
+inline float const & sound_source::start() const { return m_startoffset; }
 
 // collection of sound sources present in the scene
 class sound_table : public basic_table<sound_source> {

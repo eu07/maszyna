@@ -191,6 +191,7 @@ public:
         m_events1,
         m_events2;
     bool m_events { false }; // Ra: flaga informująca o obecności eventów
+    std::pair<std::string, TMemCell *> m_friction { "", nullptr };
 
     int iNextDirection = 0; // 0:Point1, 1:Point2, 3:do odchylonego na zwrotnicy
     int iPrevDirection = 0; // domyślnie wirtualne odcinki dołączamy stroną od Point1
@@ -293,6 +294,7 @@ public:
     void MovedUp1(float const dh);
     void VelocitySet(float v);
     double VelocityGet();
+    float Friction() const;
     void ConnectionsLog();
     bool DoubleSlip() const;
     static void fetch_default_profiles();

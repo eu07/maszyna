@@ -970,6 +970,11 @@ void TEStEP1::EPCalc(double dt)
 	LBP = LBP - dv;
 }
 
+void TEStEP1::SetEPS( double const nEPS )
+{
+    EPS = nEPS;
+}
+
 //---EST3--
 
 double TESt3::GetPF( double const PP, double const dt, double const Vel )
@@ -1680,11 +1685,6 @@ void TEStED::SetLP( double const TM, double const LM, double const TBP )
     TareBP = TBP;
 }
 
-void TEStED::SetRV(double const RVR)
-{
-	RV = RVR;
-}
-
 //---DAKO CV1---
 
 void TCV1::CheckState( double const BCP, double &dV1 )
@@ -2132,13 +2132,13 @@ double TKE::GetPF( double const PP, double const dt, double const Vel )
     if (!((typeid(*FM) == typeid(TDisk1)) ||
           (typeid(*FM) == typeid(TDisk2)))) // jesli zeliwo to schodz
         RapidStatus = ((BrakeDelayFlag & bdelay_R) == bdelay_R) &&
-                      (((Vel > 50) && (RapidStatus)) || (Vel > 70));
+                      ((RV < 0) || ((Vel > RV) && (RapidStatus)) || (Vel > (RV + 20)));
     else // jesli tarczowki, to zostan
         RapidStatus = ((BrakeDelayFlag & bdelay_R) == bdelay_R);
 
     //  temp:=1.9-0.9*int(RapidStatus);
 
-    if ((RM * RM > 0.1)) // jesli jest rapid
+    if ((RM * RM > 0.001)) // jesli jest rapid
         if ((RM > 0)) // jesli dodatni (naddatek);
             temp = 1 - RM * int(RapidStatus);
         else
@@ -2592,7 +2592,7 @@ double TMHZ_EN57::GetPF( double i_bcp, double PP, double HP, double dt, double e
 
     if ((TP > 0)&&(CP > 4.9))
     {
-        DP = 0.045;
+        DP = OverloadPressureDecrease;
         if (EQ(i_bcp, 0))
             TP = TP - DP * dt;
         Sounds[s_fv4a_t] = DP;
@@ -2636,7 +2636,7 @@ double TMHZ_EN57::GetPF( double i_bcp, double PP, double HP, double dt, double e
     {
         if ((TP < 5))
             TP = TP + dt; // 5/10
-        if ((TP < 1))
+        if ((TP < OverloadMaxPressure))
             TP = TP - 0.5 * dt; // 5/10
     }
 
@@ -2711,12 +2711,14 @@ double TMHZ_EN57::LPP_RP(double pos) // cisnienie z zaokraglonej pozycji;
         return 5.0;
 }
 
-void TMHZ_EN57::SetParams(bool AO, bool MO, double OverP, double)
+void TMHZ_EN57::SetParams(bool AO, bool MO, double OverP, double, double OMP, double OPD)
 {
 	AutoOvrld = AO;
 	ManualOvrld = MO;
 	UnbrakeOverPressure = std::max(0.0, OverP);
 	Fala = (OverP > 0.01);
+	OverloadMaxPressure = OMP;
+	OverloadPressureDecrease = OPD;
 
 }
 
@@ -2747,7 +2749,7 @@ double TMHZ_K5P::GetPF(double i_bcp, double PP, double HP, double dt, double ep)
 
 	if ((TP > 0)&&(CP>4.9))
 	{
-		DP = 0.004;
+		DP = OverloadPressureDecrease;
 		TP = TP - DP * dt;
 		Sounds[s_fv4a_t] = DP;
 	}
@@ -2785,7 +2787,7 @@ double TMHZ_K5P::GetPF(double i_bcp, double PP, double HP, double dt, double ep)
 
 	if ((EQ(i_bcp, -1) && (AutoOvrld)) || ((i_bcp<0.5) && (UniversalFlag & TUniversalBrake::ub_Overload)))
 	{
-		if ((TP < 1))
+		if ((TP < OverloadMaxPressure))
 			TP = TP + 0.03  * dt;
 	}
 
@@ -2839,13 +2841,15 @@ double TMHZ_K5P::GetCP()
 	return CP;
 }
 
-void TMHZ_K5P::SetParams(bool AO, bool MO, double OverP, double)
+void TMHZ_K5P::SetParams(bool AO, bool MO, double OverP, double, double OMP, double OPD)
 {
 	AutoOvrld = AO;
 	ManualOvrld = MO;
 	UnbrakeOverPressure = std::max(0.0, OverP);
 	Fala = (OverP > 0.01);
-
+	OverloadMaxPressure = OMP;
+	OverloadPressureDecrease = OPD;
+	
 }
 
 bool TMHZ_K5P::EQ(double pos, double i_pos)
@@ -2875,7 +2879,7 @@ double TMHZ_6P::GetPF(double i_bcp, double PP, double HP, double dt, double ep) 
 
 	if ((TP > 0)&&(CP>4.9))
 	{
-		DP = 0.004;
+		DP = OverloadPressureDecrease;
 		TP = TP - DP * dt;
 		Sounds[s_fv4a_t] = DP;
 	}
@@ -2919,7 +2923,7 @@ double TMHZ_6P::GetPF(double i_bcp, double PP, double HP, double dt, double ep) 
 
 	if ((EQ(i_bcp, -1) && (AutoOvrld)) || ((i_bcp<0.5) && (UniversalFlag & TUniversalBrake::ub_Overload)))
 	{
-		if ((TP < 1))
+		if ((TP < OverloadMaxPressure))
 			TP = TP + 0.03  * dt;
 	}
 
@@ -2973,12 +2977,14 @@ double TMHZ_6P::GetCP()
 	return CP;
 }
 
-void TMHZ_6P::SetParams(bool AO, bool MO, double OverP, double)
+void TMHZ_6P::SetParams(bool AO, bool MO, double OverP, double, double OMP, double OPD)
 {
 	AutoOvrld = AO;
 	ManualOvrld = MO;
 	UnbrakeOverPressure = std::max(0.0, OverP);
 	Fala = (OverP > 0.01);
+	OverloadMaxPressure = OMP;
+	OverloadPressureDecrease = OPD;
 
 }
 

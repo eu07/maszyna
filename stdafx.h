@@ -71,10 +71,6 @@
 #include <optional>
 #include <filesystem>
 
-#ifdef NDEBUG
-#define EU07_BUILD_STATIC
-#endif
-
 #include "glad/glad.h"
 
 //#include "GL/glu.h"

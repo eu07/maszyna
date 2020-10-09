@@ -13,16 +13,44 @@ http://mozilla.org/MPL/2.0/.
 #include "dictionary.h"
 #include "application.h"
 #include "Logs.h"
+#include "Globals.h"
+
+#ifdef __GNUC__
+#pragma GCC diagnostic ignored "-Wwrite-strings"
+#endif
 
 void render_task::run() {
 
     // convert provided input to a python dictionary
     auto *input = PyDict_New();
-    if( input == nullptr ) { goto exit; }
+    if (input == nullptr) {
+		cancel();
+		return;
+	}
     for( auto const &datapair : m_input->floats )   { auto *value{ PyGetFloat( datapair.second ) }; PyDict_SetItemString( input, datapair.first.c_str(), value ); Py_DECREF( value ); }
     for( auto const &datapair : m_input->integers ) { auto *value{ PyGetInt( datapair.second ) }; PyDict_SetItemString( input, datapair.first.c_str(), value ); Py_DECREF( value ); }
     for( auto const &datapair : m_input->bools )    { auto *value{ PyGetBool( datapair.second ) }; PyDict_SetItemString( input, datapair.first.c_str(), value ); }
     for( auto const &datapair : m_input->strings )  { auto *value{ PyGetString( datapair.second.c_str() ) }; PyDict_SetItemString( input, datapair.first.c_str(), value ); Py_DECREF( value ); }
+/*
+    for (auto const &datapair : m_input->vec2_lists) {
+        PyObject *list = PyList_New(datapair.second.size());
+
+        for (size_t i = 0; i < datapair.second.size(); i++) {
+            auto const &vec = datapair.second[i];
+
+            PyObject *tuple = PyTuple_New(2);
+            PyTuple_SetItem(tuple, 0, PyGetFloat(vec.x)); // steals ref
+            PyTuple_SetItem(tuple, 1, PyGetFloat(vec.y)); // steals ref
+
+            PyList_SetItem(list, i, tuple); // steals ref
+        }
+
+        PyDict_SetItemString(input, datapair.first.c_str(), list);
+        Py_DECREF(list);
+    }
+*/
+	delete m_input;
+	m_input = nullptr;
 
     // call the renderer
     auto *output { PyObject_CallMethod( m_renderer, "render", "O", input ) };
@@ -33,40 +61,82 @@ void render_task::run() {
         auto *outputheight { PyObject_CallMethod( m_renderer, "get_height", nullptr ) };
         // upload texture data
         if( ( outputwidth != nullptr )
-         && ( outputheight != nullptr ) ) {
+         && ( outputheight != nullptr )
+		 && m_target) {
+			int width = PyInt_AsLong( outputwidth );
+			int height = PyInt_AsLong( outputheight );
+			int components, format;
 
-            ::glBindTexture( GL_TEXTURE_2D, m_target );
-            // build texture
-            ::glTexImage2D(
-                GL_TEXTURE_2D, 0,
-                ( Global.GfxFramebufferSRGB ? GL_SRGB8 : GL_RGBA8 ),
-                PyInt_AsLong( outputwidth ), PyInt_AsLong( outputheight ), 0,
-                GL_RGB, GL_UNSIGNED_BYTE, reinterpret_cast<GLubyte const *>( PyString_AsString( output ) ) );
-            // setup texture parameters
-            if( ( Global.AnisotropicFiltering >= 0 )
-             && ( GL_EXT_texture_filter_anisotropic != 0 ) ) {
-                // anisotropic filtering
-                ::glTexParameterf( GL_TEXTURE_2D, GL_TEXTURE_MAX_ANISOTROPY_EXT, Global.AnisotropicFiltering );
-            }
-            if( Global.python_mipmaps ) {
-                ::glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR );
-                ::glGenerateMipmap( GL_TEXTURE_2D );
-            } 
-            else {
-                glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR );
-            }
-            // all done
-            ::glFlush();
+            const unsigned char *image = reinterpret_cast<const unsigned char *>( PyString_AsString( output ) );
+
+			std::lock_guard<std::mutex> guard(m_target->mutex);
+			if (m_target->image)
+				delete[] m_target->image;
+
+			if (!Global.gfx_usegles)
+			{
+				int size = width * height * 3;
+				format = ( Global.GfxFramebufferSRGB ? GL_SRGB8 : GL_RGBA8 );
+				components = GL_RGB;
+				m_target->image = new unsigned char[size];
+				memcpy(m_target->image, image, size);
+			}
+			else
+			{
+				format = GL_SRGB8_ALPHA8;
+				components = GL_RGBA;
+				m_target->image = new unsigned char[width * height * 4];
+
+				int w = width;
+				int h = height;
+				for (int y = 0; y < h; y++)
+					for (int x = 0; x < w; x++)
+					{
+						m_target->image[(y * w + x) * 4 + 0] = image[(y * w + x) * 3 + 0];
+						m_target->image[(y * w + x) * 4 + 1] = image[(y * w + x) * 3 + 1];
+						m_target->image[(y * w + x) * 4 + 2] = image[(y * w + x) * 3 + 2];
+						m_target->image[(y * w + x) * 4 + 3] = 0xFF;
+					}
+			}
+
+			m_target->width = width;
+			m_target->height = height;
+			m_target->components = components;
+			m_target->format = format;
+			m_target->timestamp = std::chrono::high_resolution_clock::now();
         }
         if( outputheight != nullptr ) { Py_DECREF( outputheight ); }
         if( outputwidth  != nullptr ) { Py_DECREF( outputwidth ); }
         Py_DECREF( output );
     }
+}
 
-exit:
-    // clean up after yourself
-    delete m_input;
-    delete this;
+void render_task::upload()
+{
+	if (Global.python_uploadmain && m_target->image)
+	{
+		glBindTexture(GL_TEXTURE_2D, m_target->shared_tex);
+		glTexImage2D(
+		    GL_TEXTURE_2D, 0,
+		    m_target->format,
+		    m_target->width, m_target->height, 0,
+		    m_target->components, GL_UNSIGNED_BYTE, m_target->image);
+
+		if (Global.python_mipmaps)
+		{
+			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+			glGenerateMipmap(GL_TEXTURE_2D);
+		}
+		else
+		{
+			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+		}
+
+		if (Global.python_threadedupload)
+			glFlush();
+	}
+
+	delete this;
 }
 
 void render_task::cancel() {
@@ -88,9 +158,21 @@ auto python_taskqueue::init() -> bool {
 		Py_SetPythonHome("linuxpython64");
 	else
 		Py_SetPythonHome("linuxpython");
+#elif __APPLE__
+	if (sizeof(void*) == 8)
+		Py_SetPythonHome("macpython64");
+	else
+		Py_SetPythonHome("macpython");
 #endif
     Py_Initialize();
     PyEval_InitThreads();
+
+    m_initialized = true;
+
+	PyObject *stringiomodule { nullptr };
+	PyObject *stringioclassname { nullptr };
+	PyObject *stringioobject { nullptr };
+
     // do the setup work while we hold the lock
     m_main = PyImport_ImportModule("__main__");
     if (m_main == nullptr) {
@@ -98,15 +180,15 @@ auto python_taskqueue::init() -> bool {
         goto release_and_exit;
     }
 
-    auto *stringiomodule { PyImport_ImportModule( "cStringIO" ) };
-    auto *stringioclassname { (
+    stringiomodule = PyImport_ImportModule( "cStringIO" );
+    stringioclassname = (
         stringiomodule != nullptr ?
             PyObject_GetAttrString( stringiomodule, "StringIO" ) :
-            nullptr ) };
-    auto *stringioobject { (
+            nullptr );
+    stringioobject = (
         stringioclassname != nullptr ?
             PyObject_CallObject( stringioclassname, nullptr ) :
-            nullptr ) };
+            nullptr );
     m_stderr = { (
         stringioobject == nullptr ? nullptr :
         PySys_SetObject( "stderr", stringioobject ) != 0 ? nullptr :
@@ -122,10 +204,12 @@ auto python_taskqueue::init() -> bool {
     // init workers
     for( auto &worker : m_workers ) {
 
-        auto *openglcontextwindow { Application.window( -1 ) };
+		GLFWwindow *openglcontextwindow = nullptr;
+		if (Global.python_threadedupload)
+			openglcontextwindow = Application.window( -1 );
         worker = std::thread(
                     &python_taskqueue::run, this,
-                    openglcontextwindow, std::ref( m_tasks ), std::ref( m_condition ), std::ref( m_exit ) );
+		            openglcontextwindow, std::ref( m_tasks ), std::ref(m_uploadtasks), std::ref( m_condition ), std::ref( m_exit ) );
 
         if( false == worker.joinable() ) { return false; }
     }
@@ -139,12 +223,16 @@ release_and_exit:
 
 // shuts down the module
 void python_taskqueue::exit() {
+    if (!m_initialized)
+        return;
+
     // let the workers know we're done with them
     m_exit = true;
     m_condition.notify_all();
     // let them free up their shit before we proceed
     for( auto &worker : m_workers ) {
-        worker.join();
+	if (worker.joinable())
+	        worker.join();
     }
     // get rid of the leftover tasks
     // with the workers dead we don't have to worry about concurrent access anymore
@@ -159,10 +247,10 @@ void python_taskqueue::exit() {
 // adds specified task along with provided collection of data to the work queue. returns true on success
 auto python_taskqueue::insert( task_request const &Task ) -> bool {
 
-    if( ( Task.renderer.empty() )
+    if( ( false == Global.python_enabled )
+     || ( Task.renderer.empty() )
      || ( Task.input == nullptr )
-     || ( Task.target == 0 )
-     || ( Task.target == (GLuint)-1 ) ) { return false; }
+     || ( Task.target == 0 ) ) { return false; }
 
     auto *renderer { fetch_renderer( Task.renderer ) };
     if( renderer == nullptr ) { return false; }
@@ -199,7 +287,8 @@ auto python_taskqueue::run_file( std::string const &File, std::string const &Pat
     if( lookup.first.empty() ) { return false; }
 
     std::ifstream inputfile { lookup.first + lookup.second };
-    std::string const input { std::istreambuf_iterator<char>( inputfile ), std::istreambuf_iterator<char>() };
+    std::string input;
+    input.assign( std::istreambuf_iterator<char>( inputfile ), std::istreambuf_iterator<char>() );
 
     if( PyRun_SimpleString( input.c_str() ) != 0 ) {
         error();
@@ -221,7 +310,7 @@ void python_taskqueue::release_lock() {
     PyEval_SaveThread();
 }
 
-auto python_taskqueue::fetch_renderer( std::string const Renderer ) -> PyObject * {
+auto python_taskqueue::fetch_renderer( std::string const Renderer ) ->PyObject * {
 
     auto const lookup { m_renderers.find( Renderer ) };
     if( lookup != std::end( m_renderers ) ) {
@@ -232,6 +321,7 @@ auto python_taskqueue::fetch_renderer( std::string const Renderer ) -> PyObject 
     auto const file { Renderer.substr( path.size() ) };
     PyObject *renderer { nullptr };
     PyObject *rendererarguments { nullptr };
+    PyObject *renderername { nullptr };
     acquire_lock();
     {
         if( m_main == nullptr ) {
@@ -242,7 +332,7 @@ auto python_taskqueue::fetch_renderer( std::string const Renderer ) -> PyObject 
         if( false == run_file( file, path ) ) {
             goto cache_and_return;
         }
-        auto *renderername{ PyObject_GetAttrString( m_main, file.c_str() ) };
+        renderername = PyObject_GetAttrString( m_main, file.c_str() );
         if( renderername == nullptr ) {
             ErrorLog( "Python Renderer: class \"" + file + "\" not defined" );
             goto cache_and_return;
@@ -271,9 +361,11 @@ cache_and_return:
     return renderer;
 }
 
-void python_taskqueue::run( GLFWwindow *Context, rendertask_sequence &Tasks, threading::condition_variable &Condition, std::atomic<bool> &Exit ) {
+void python_taskqueue::run( GLFWwindow *Context, rendertask_sequence &Tasks, uploadtask_sequence &Upload_Tasks, threading::condition_variable &Condition, std::atomic<bool> &Exit ) {
 
-    glfwMakeContextCurrent( Context );
+	if (Context)
+		glfwMakeContextCurrent( Context );
+
     // create a state object for this thread
     PyEval_AcquireLock();
     auto *threadstate { PyThreadState_New( m_mainthread->interp ) };
@@ -302,9 +394,15 @@ void python_taskqueue::run( GLFWwindow *Context, rendertask_sequence &Tasks, thr
                 {
                     // execute python code
                     task->run();
-                    if( PyErr_Occurred() != nullptr ) {
-                        error();
-                    }
+					if (Context)
+						task->upload();
+					else
+					{
+						std::lock_guard<std::mutex> lock(Upload_Tasks.mutex);
+						Upload_Tasks.data.push_back(task);
+					}
+					if( PyErr_Occurred() != nullptr )
+						error();
                 }
                 // clear the thread state
                 PyEval_SaveThread();
@@ -323,10 +421,19 @@ void python_taskqueue::run( GLFWwindow *Context, rendertask_sequence &Tasks, thr
     PyEval_ReleaseLock();
 }
 
+void python_taskqueue::update()
+{
+	std::lock_guard<std::mutex> lock(m_uploadtasks.mutex);
+
+	for (auto &task : m_uploadtasks.data)
+		task->upload();
+
+	m_uploadtasks.data.clear();
+}
+
 void
 python_taskqueue::error() {
 
-    ErrorLog( "Python Interpreter: encountered error" );
     if( m_stderr != nullptr ) {
         // std err pythona jest buforowane
         PyErr_Print();
@@ -362,3 +469,7 @@ python_taskqueue::error() {
         }
     }
 }
+
+#ifdef __GNUC__
+#pragma GCC diagnostic pop
+#endif

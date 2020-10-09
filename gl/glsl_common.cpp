@@ -12,12 +12,14 @@ void gl::glsl_common_setup()
     "#define POSTFX_ENABLED " + std::to_string((int)!Global.gfx_skippipeline) + "\n" +
     "#define EXTRAEFFECTS_ENABLED " + std::to_string((int)Global.gfx_extraeffects) + "\n" +
     "#define USE_GLES " + std::to_string((int)Global.gfx_usegles) + "\n" +
-    "const uint MAX_LIGHTS = " + std::to_string(MAX_LIGHTS) + "U;\n" +
-    "const uint MAX_PARAMS = " + std::to_string(MAX_PARAMS) + "U;\n" +
+    "#define MAX_LIGHTS " + std::to_string(MAX_LIGHTS) + "U\n" +
+    "#define MAX_CASCADES " + std::to_string(MAX_CASCADES) + "U\n" +
+    "#define MAX_PARAMS " + std::to_string(MAX_PARAMS) + "U\n" +
     R"STRING(
     const uint LIGHT_SPOT = 0U;
     const uint LIGHT_POINT = 1U;
     const uint LIGHT_DIR = 2U;
+    const uint LIGHT_HEADLIGHTS = 3U;
 
     struct light_s
     {
@@ -35,6 +37,9 @@ void gl::glsl_common_setup()
 
 	        float intensity;
 	        float ambient;
+
+            mat4 headlight_projection;
+            vec4 headlight_weights;
     };
 
     layout(std140) uniform light_ubo
@@ -64,8 +69,9 @@ void gl::glsl_common_setup()
     layout (std140) uniform scene_ubo
     {
         mat4 projection;
-        mat4 lightview;
-	    vec3 scene_extra;
+        mat4 inv_view;
+        mat4 lightview[MAX_CASCADES];
+        vec4 cascade_end;
         float time;
     };
 

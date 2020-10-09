@@ -83,7 +83,7 @@ private:
     float m_lightintensity { 1.f };
     TSky m_clouds;
     basic_precipitation m_precipitation;
-    sound_source m_precipitationsound { sound_placement::external, -1 };
+    sound_source m_rainsound { sound_placement::external, -1 };
     basic_wind m_wind;
 };
 

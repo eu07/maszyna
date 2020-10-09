@@ -67,7 +67,7 @@ public:
     material_handle
         Fetch_Material( std::string const &Filename, bool const Loadnow = true ) override;
     void
-        Bind_Material( material_handle const Material, TSubModel *sm = nullptr ) override;
+        Bind_Material( material_handle const Material, TSubModel const *sm = nullptr, lighting_data const *lighting = nullptr ) override;
     opengl_material const &
         Material( material_handle const Material ) const override;
     // shader methods
@@ -153,6 +153,7 @@ private:
         opengl_camera camera;
         rendermode draw_mode { rendermode::none };
         float draw_range { 0.0f };
+        debug_stats draw_stats;
     };
 
     struct units_state {
@@ -222,6 +223,8 @@ private:
         Render_interior( bool const Alpha = false );
     bool
         Render_lowpoly( TDynamicObject *Dynamic, float const Squaredistance, bool const Setup, bool const Alpha = false );
+    bool
+        Render_coupler_adapter( TDynamicObject *Dynamic, float const Squaredistance, int const End, bool const Alpha = false );
     void
         Render( TMemCell *Memcell );
     void
@@ -275,6 +278,7 @@ private:
     texture_handle m_reflectiontexture { -1 };
     texture_handle m_smoketexture { -1 };
     GLUquadricObj *m_quadric { nullptr }; // helper object for drawing debug mode scene elements
+    material_handle m_invalid_material;
     // TODO: refactor framebuffer stuff into an object
     bool m_framebuffersupport { false };
 #ifdef EU07_USE_PICKING_FRAMEBUFFER
@@ -306,10 +310,10 @@ private:
     double m_environmentupdatetime { 0.0 }; // time of the most recent environment map update
     glm::dvec3 m_environmentupdatelocation; // coordinates of most recent environment map update
 
-    int m_helpertextureunit { GL_TEXTURE0 };
-    int m_shadowtextureunit { GL_TEXTURE1 };
-    int m_normaltextureunit { GL_TEXTURE2 };
-    int m_diffusetextureunit{ GL_TEXTURE3 };
+    int m_helpertextureunit { 0 };
+    int m_shadowtextureunit { 1 };
+    int m_normaltextureunit { 2 };
+    int m_diffusetextureunit{ 3 };
     units_state m_unitstate;
 
     unsigned int m_framestamp; // id of currently rendered gfx frame
@@ -318,8 +322,11 @@ private:
 //    double m_pickupdateaccumulator { 0.0 };
     std::string m_debugtimestext;
     std::string m_pickdebuginfo;
-    debug_stats m_debugstats;
     std::string m_debugstatstext;
+    struct simulation_state {
+        std::string weather;
+        std::string season;
+    } m_simulationstate;
 
     glm::vec4 m_baseambient { 0.0f, 0.0f, 0.0f, 1.0f };
     glm::vec4 m_shadowcolor { colors::shadow };

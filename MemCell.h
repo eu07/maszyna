@@ -12,6 +12,7 @@ http://mozilla.org/MPL/2.0/.
 #include "Classes.h"
 #include "scenenode.h"
 #include "Names.h"
+#include "comparison.h"
 
 class TMemCell : public scene::basic_node {
 
@@ -26,7 +27,11 @@ public:
     void
         PutCommand( TController *Mech, glm::dvec3 const *Loc ) const;
     bool
-        Compare( std::string const &szTestText, double const fTestValue1, double const fTestValue2, int const CheckMask ) const;
+        Compare( std::string const &szTestText, double const fTestValue1, double const fTestValue2, int const CheckMask,
+            comparison_operator const TextOperator = comparison_operator::eq,
+            comparison_operator const Value1Operator = comparison_operator::eq,
+            comparison_operator const Value2Operator = comparison_operator::eq,
+            comparison_pass const Pass = comparison_pass::all ) const;
     std::string const &
         Text() const {
             return szText; }
@@ -46,6 +51,8 @@ public:
     TCommandType CommandCheck();
     bool IsVelocity() const;
     void AssignEvents(basic_event *e);
+    std::string Values() const;
+    void LogValues() const;
 // members
     std::string asTrackName; // McZapkie-100302 - zeby nazwe toru na ktory jest Putcommand wysylane pamietac
     TTrack *Track { nullptr }; // resolved binding with the specified track

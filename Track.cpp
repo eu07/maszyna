@@ -129,7 +129,7 @@ void TIsolated::Modify(int i, TDynamicObject *o)
                 multiplayer::WyslijString(asName, 10); // wysłanie pakietu o zwolnieniu
             if (pMemCell) // w powiązanej komórce
                 pMemCell->UpdateValues( "", 0, int( pMemCell->Value2() ) & ~0xFF,
-                basic_event::flags::value_2 ); //"zerujemy" ostatnią wartość
+                basic_event::flags::value2 ); //"zerujemy" ostatnią wartość
         }
     }
     else
@@ -142,7 +142,7 @@ void TIsolated::Modify(int i, TDynamicObject *o)
             if (Global.iMultiplayer) // jeśli multiplayer
                 multiplayer::WyslijString(asName, 11); // wysłanie pakietu o zajęciu
             if (pMemCell) // w powiązanej komórce
-                pMemCell->UpdateValues( "", 0, int( pMemCell->Value2() ) | 1, basic_event::flags::value_2 ); // zmieniamy ostatnią wartość na nieparzystą
+                pMemCell->UpdateValues( "", 0, int( pMemCell->Value2() ) | 1, basic_event::flags::value2 ); // zmieniamy ostatnią wartość na nieparzystą
         }
     }
     // pass the event to the parent
@@ -890,6 +890,10 @@ void TTrack::Load(cParser *parser, glm::dvec3 const &pOrigin)
             if( iCategoryFlag == 1 ) {
                 m_profile1 = fetch_track_rail_profile( railprofile );
             }
+        }
+        else if( str == "friction" ) {
+            // memory cell holding friction value modifiers
+            m_friction.first = parser->getToken<std::string>();
         }
         else
             ErrorLog("Bad track: unknown property: \"" + str + "\" defined for track \"" + m_name + "\"");
@@ -2162,6 +2166,9 @@ TTrack::export_as_text_( std::ostream &Output ) const {
         }
         Output << "trackbed " << texturefile << ' ';
     }
+    if( false == m_friction.first.empty() ) {
+        Output << "friction " << m_friction.first << ' ';
+    }
     // footer
     Output
         << "endtrack"
@@ -2312,6 +2319,16 @@ double TTrack::VelocityGet()
 { // pobranie dozwolonej prędkości podczas skanowania
     return ((iDamageFlag & 128) ? 0.0 : fVelocity); // tor uszkodzony = prędkość zerowa
 };
+
+float TTrack::Friction() const {
+
+    if( m_friction.second == nullptr ) {
+        return fFriction;
+    }
+    else {
+        return clamp( fFriction * m_friction.second->Value1() + m_friction.second->Value2(), 0.0, 1.0 );
+    }
+}
 
 void TTrack::ConnectionsLog()
 { // wypisanie informacji o połączeniach
@@ -3297,6 +3314,17 @@ path_table::InitTracks() {
             // możliwy portal, jeśli nie podłączony od strony 1
             // ustawienie flagi portalu
             track->iCategoryFlag |= 0x100;
+        }
+
+        {
+            auto const inputcellname { track->m_friction.first };
+
+            if( false == inputcellname.empty() ) {
+                track->m_friction.second = simulation::Memory.find( inputcellname );
+                if( track->m_friction.second == nullptr ) {
+                    ErrorLog( "Bad track: " + ( trackname.empty() ? "unnamed track" : "\"" + trackname + "\"" ) + " can't find assigned memory cell \"" + inputcellname + "\"" );
+                }
+            }
         }
     }
 

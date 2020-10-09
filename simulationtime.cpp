@@ -20,7 +20,7 @@ scenario_time Time;
 } // simulation
 
 void
-scenario_time::init() {
+scenario_time::init(std::time_t timestamp) {
 
     char monthdaycounts[ 2 ][ 13 ] = {
         { 0, 31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31 },
@@ -32,9 +32,23 @@ scenario_time::init() {
     auto const requestedhour { ( requestedtime / 60 ) % 24 };
     auto const requestedminute { requestedtime % 60 };
     // cache requested elements, if any
-    ::GetLocalTime( &m_time );
 
-    if( Global.fMoveLight > 0.0 ) {
+    if( timestamp != 0 ) {
+        std::tm *tms = std::gmtime( &timestamp );
+        m_time.wYear = tms->tm_year + 1900;
+        m_time.wMonth = tms->tm_mon + 1;
+        m_time.wDayOfWeek = tms->tm_wday;
+        m_time.wDay = tms->tm_mday;
+        m_time.wHour = tms->tm_hour;
+        m_time.wMinute = tms->tm_min;
+        m_time.wSecond = tms->tm_sec;
+        m_time.wMilliseconds = 0;
+    }
+    else {
+        ::GetLocalTime( &m_time );
+    }
+
+    if( Global.fMoveLight > 0.f ) {
         // day and month of the year can be overriden by scenario setup
         daymonth( m_time.wDay, m_time.wMonth, m_time.wYear, static_cast<WORD>( Global.fMoveLight ) );
     }
@@ -190,6 +204,13 @@ scenario_time::julian_day() const {
     }
 
     return JD;
+}
+
+void scenario_time::set_time(int yearday, int minute) {
+	m_yearday = yearday;
+	daymonth(m_time.wDay, m_time.wMonth, m_time.wYear, m_yearday);
+	m_time.wHour = minute / 60;
+	m_time.wMinute = minute % 60;
 }
 
 // calculates day of week for provided date

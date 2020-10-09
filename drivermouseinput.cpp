@@ -194,7 +194,7 @@ drivermouse_input::recall_bindings() {
     }
 
     // NOTE: to simplify things we expect one entry per line, and whole entry in one line
-    while( true == bindingparser.getTokens( 1, true, "\n" ) ) {
+    while( true == bindingparser.getTokens( 1, true, "\n\r" ) ) {
 
         std::string bindingentry;
         bindingparser >> bindingentry;
@@ -372,70 +372,70 @@ drivermouse_input::button( int const Button, int const Action ) {
                     bool pickwaiting = m_pickwaiting;
                     m_pickwaiting = false;
 
-                    auto const lookup = m_buttonbindings.find( simulation::Train->GetLabel( control ) );
-                    if( lookup != m_buttonbindings.end() ) {
-                        // if the recognized element under the cursor has a command associated with the pressed button, notify the recipient
-                        mousecommand = (
-                            Button == GLFW_MOUSE_BUTTON_LEFT ?
-                                lookup->second.left :
-                                lookup->second.right
-                            );
-                        if( mousecommand == user_command::none ) { return; }
-                        // check manually for commands which have 'fast' variants launched with shift modifier
-                        if( Global.shiftState ) {
-                            switch( mousecommand ) {
-                                case user_command::mastercontrollerincrease: { mousecommand = user_command::mastercontrollerincreasefast; break; }
-                                case user_command::mastercontrollerdecrease: { mousecommand = user_command::mastercontrollerdecreasefast; break; }
-                                case user_command::secondcontrollerincrease: { mousecommand = user_command::secondcontrollerincreasefast; break; }
-                                case user_command::secondcontrollerdecrease: { mousecommand = user_command::secondcontrollerdecreasefast; break; }
-                                case user_command::independentbrakeincrease: { mousecommand = user_command::independentbrakeincreasefast; break; }
-                                case user_command::independentbrakedecrease: { mousecommand = user_command::independentbrakedecreasefast; break; }
-                                default: { break; }
-                            }
+                    auto const controlbindings { bindings( simulation::Train->GetLabel( control ) ) };
+                    // if the recognized element under the cursor has a command associated with the pressed button, notify the recipient
+                    mousecommand = (
+                        Button == GLFW_MOUSE_BUTTON_LEFT ?
+                            controlbindings.first :
+                            controlbindings.second
+                        );
+
+                    if( mousecommand == user_command::none ) {
+                        // if we don't have any recognized element under the cursor and the right button was pressed, enter view panning mode
+                        if( Button == GLFW_MOUSE_BUTTON_RIGHT ) {
+                            m_pickmodepanning = true;
                         }
+                        return;
+                    }
+                    // check manually for commands which have 'fast' variants launched with shift modifier
+                    if( Global.shiftState ) {
+                        switch( mousecommand ) {
+                            case user_command::mastercontrollerincrease: { mousecommand = user_command::mastercontrollerincreasefast; break; }
+                            case user_command::mastercontrollerdecrease: { mousecommand = user_command::mastercontrollerdecreasefast; break; }
+                            case user_command::secondcontrollerincrease: { mousecommand = user_command::secondcontrollerincreasefast; break; }
+                            case user_command::secondcontrollerdecrease: { mousecommand = user_command::secondcontrollerdecreasefast; break; }
+                            case user_command::independentbrakeincrease: { mousecommand = user_command::independentbrakeincreasefast; break; }
+                            case user_command::independentbrakedecrease: { mousecommand = user_command::independentbrakedecreasefast; break; }
+                            default: { break; }
+                        }
+                    }
 
-					    switch( mousecommand ) {
-					        case user_command::mastercontrollerincrease:
-					        case user_command::mastercontrollerdecrease:
-					        case user_command::secondcontrollerincrease:
-					        case user_command::secondcontrollerdecrease:
-					        case user_command::trainbrakeincrease:
-					        case user_command::trainbrakedecrease:
-					        case user_command::independentbrakeincrease:
-					        case user_command::independentbrakedecrease: {
-						        // these commands trigger varying repeat rate mode,
-						        // which scales the rate based on the distance of the cursor from its point when the command was first issued
-						        m_varyingpollrateorigin = m_cursorposition;
-							    m_varyingpollrate = true;
-							    break;
-					        }
-					        case user_command::jointcontrollerset:
-					        case user_command::mastercontrollerset:
-					        case user_command::secondcontrollerset:
-					        case user_command::trainbrakeset:
-					        case user_command::independentbrakeset: {
-						        m_slider.bind( mousecommand );
-							    mousecommand = user_command::none;
-							    return;
-					        }
-					        default: {
-						        break;
-					        }
+					switch( mousecommand ) {
+					    case user_command::mastercontrollerincrease:
+					    case user_command::mastercontrollerdecrease:
+					    case user_command::secondcontrollerincrease:
+					    case user_command::secondcontrollerdecrease:
+					    case user_command::trainbrakeincrease:
+					    case user_command::trainbrakedecrease:
+					    case user_command::independentbrakeincrease:
+					    case user_command::independentbrakedecrease: {
+						    // these commands trigger varying repeat rate mode,
+						    // which scales the rate based on the distance of the cursor from its point when the command was first issued
+						    m_varyingpollrateorigin = m_cursorposition;
+							m_varyingpollrate = true;
+							break;
 					    }
-
-					    // NOTE: basic keyboard controls don't have any parameters
-					    // NOTE: as we haven't yet implemented either item id system or multiplayer, the 'local' controlled vehicle and entity have temporary ids of 0
-					    // TODO: pass correct entity id once the missing systems are in place
-					    m_relay.post( mousecommand, 0, 0, Action, 0 );
-					    if (!pickwaiting) // already depressed
-						    m_relay.post( mousecommand, 0, 0, GLFW_RELEASE, 0 );
-					    m_updateaccumulator = -0.25; // prevent potential command repeat right after issuing one
-				    }
-				    else {
-					    // if we don't have any recognized element under the cursor and the right button was pressed, enter view panning mode
-					    if( Button == GLFW_MOUSE_BUTTON_RIGHT ) {
-						    m_pickmodepanning = true;
-					    } } } );
+					    case user_command::jointcontrollerset:
+					    case user_command::mastercontrollerset:
+					    case user_command::secondcontrollerset:
+					    case user_command::trainbrakeset:
+					    case user_command::independentbrakeset: {
+						    m_slider.bind( mousecommand );
+							mousecommand = user_command::none;
+							return;
+					    }
+					    default: {
+						    break;
+					    }
+					}
+					// NOTE: basic keyboard controls don't have any parameters
+					// NOTE: as we haven't yet implemented either item id system or multiplayer, the 'local' controlled vehicle and entity have temporary ids of 0
+					// TODO: pass correct entity id once the missing systems are in place
+					m_relay.post( mousecommand, 0, 0, Action, 0 );
+					if (!pickwaiting) // already depressed
+						m_relay.post( mousecommand, 0, 0, GLFW_RELEASE, 0 );
+					m_updateaccumulator = -0.25; // prevent potential command repeat right after issuing one
+				} );
         }
     }
 }
@@ -459,16 +459,28 @@ drivermouse_input::poll() {
     while( m_updateaccumulator > updaterate ) {
 
         if( m_mousecommandleft != user_command::none ) {
-            // NOTE: basic keyboard controls don't have any parameters
-            // as we haven't yet implemented either item id system or multiplayer, the 'local' controlled vehicle and entity have temporary ids of 0
-            // TODO: pass correct entity id once the missing systems are in place
-			m_relay.post( m_mousecommandleft, 0, 0, GLFW_REPEAT, 0 );
+            if( Application.get_mouse_button( GLFW_MOUSE_BUTTON_LEFT ) == GLFW_PRESS ) {
+                // sanity check, as our button callback can trigger after button release leaving us with desync
+                // NOTE: basic keyboard controls don't have any parameters
+                // as we haven't yet implemented either item id system or multiplayer, the 'local' controlled vehicle and entity have temporary ids of 0
+                // TODO: pass correct entity id once the missing systems are in place
+                m_relay.post( m_mousecommandleft, 0, 0, GLFW_REPEAT, 0 );
+            }
+            else {
+                m_mousecommandleft = user_command::none;
+            }
         }
         if( m_mousecommandright != user_command::none ) {
+            if( Application.get_mouse_button( GLFW_MOUSE_BUTTON_RIGHT ) == GLFW_PRESS ) {
+            // sanity check, as our button callback can trigger after button release leaving us with desync
             // NOTE: basic keyboard controls don't have any parameters
             // as we haven't yet implemented either item id system or multiplayer, the 'local' controlled vehicle and entity have temporary ids of 0
             // TODO: pass correct entity id once the missing systems are in place
-			m_relay.post( m_mousecommandright, 0, 0, GLFW_REPEAT, 0 );
+                m_relay.post( m_mousecommandright, 0, 0, GLFW_REPEAT, 0 );
+            }
+            else {
+                m_mousecommandright = user_command::none;
+            }
         }
         m_updateaccumulator -= updaterate;
     }
@@ -481,6 +493,19 @@ drivermouse_input::command() const {
         m_slider.command() != user_command::none ? m_slider.command() :
         m_mousecommandleft != user_command::none ? m_mousecommandleft :
         m_mousecommandright );
+}
+
+// returns pair of bindings associated with specified cab control
+std::pair<user_command, user_command>
+drivermouse_input::bindings( std::string const &Control ) const {
+
+    auto const lookup{ m_buttonbindings.find( Control ) };
+
+    if( lookup != m_buttonbindings.end() )
+        return { lookup->second.left, lookup->second.right };
+    else {
+        return { user_command::none, user_command::none };
+    }
 }
 
 void
@@ -505,6 +530,15 @@ drivermouse_input::default_bindings() {
         { "dirkey:", {
             user_command::reverserincrease,
             user_command::reverserdecrease } },
+        { "dirforward_bt:", {
+            user_command::reverserforward,
+            user_command::none } },
+        { "dirneutral_bt:", {
+            user_command::reverserneutral,
+            user_command::none } },
+        { "dirbackward_bt:", {
+            user_command::reverserbackward,
+            user_command::none } },
         { "brakectrl:", {
             user_command::trainbrakeset,
             user_command::none } },
@@ -593,6 +627,9 @@ drivermouse_input::default_bindings() {
 		{ "universalbrake3_bt:",{
 			user_command::universalbrakebutton3,
 			user_command::none } },
+		{ "epbrake_bt:",{
+			user_command::epbrakecontroltoggle,
+			user_command::none } },
         { "sand_bt:", {
             user_command::sandboxactivate,
             user_command::none } },
@@ -616,6 +653,15 @@ drivermouse_input::default_bindings() {
             user_command::none } },
         { "converterfuse_bt:", {
             user_command::converteroverloadrelayreset,
+            user_command::none } },
+        { "relayreset1_bt:", {
+            user_command::universalrelayreset1,
+            user_command::none } },
+        { "relayreset2_bt:", {
+            user_command::universalrelayreset2,
+            user_command::none } },
+        { "relayreset3_bt:", {
+            user_command::universalrelayreset3,
             user_command::none } },
         { "stlinoff_bt:", {
             user_command::motorconnectorsopen,
@@ -757,19 +803,22 @@ drivermouse_input::default_bindings() {
             user_command::none } },
         { "pantfrontoff_sw:", {
             user_command::pantographlowerfront,
-            user_command::none } }, // TODO: dedicated lower pantograph commands
+            user_command::none } },
         { "pantrearoff_sw:", {
             user_command::pantographlowerrear,
-            user_command::none } }, // TODO: dedicated lower pantograph commands
+            user_command::none } },
         { "pantalloff_sw:", {
             user_command::pantographlowerall,
             user_command::none } },
         { "pantselected_sw:", {
-            user_command::none,
-            user_command::none } }, // TODO: selected pantograph(s) operation command
+            user_command::pantographtoggleselected,
+            user_command::none } }, // TBD: bind lowerselected in case of toggle switch
         { "pantselectedoff_sw:", {
-            user_command::none,
-            user_command::none } }, // TODO: lower selected pantograp(s) command
+            user_command::pantographlowerselected,
+            user_command::none } },
+        { "pantselect_sw:", {
+            user_command::pantographselectnext,
+            user_command::pantographselectprevious } },
         { "pantcompressor_sw:", {
             user_command::pantographcompressoractivate,
             user_command::none } },
@@ -806,9 +855,27 @@ drivermouse_input::default_bindings() {
         { "cablightdim_sw:", {
             user_command::interiorlightdimtoggle,
             user_command::none } },
+        { "compartmentlights_sw:", {
+            user_command::compartmentlightstoggle,
+            user_command::none } },
+        { "compartmentlightson_sw:", {
+            user_command::compartmentlightsenable,
+            user_command::none } },
+        { "compartmentlightsoff_sw:", {
+            user_command::compartmentlightsdisable,
+            user_command::none } },
         { "battery_sw:", {
             user_command::batterytoggle,
             user_command::none } },
+        { "batteryon_sw:", {
+            user_command::batteryenable,
+            user_command::none } },
+        { "batteryoff_sw:", {
+            user_command::batterydisable,
+            user_command::none } },
+        { "couplingdisconnect_sw:",{
+			user_command::occupiedcarcouplingdisconnect,
+			user_command::none } },
         { "universal0:", {
             user_command::generictoggle0,
             user_command::none } },
@@ -880,7 +947,7 @@ drivermouse_input::default_bindings() {
 			user_command::none } },
 		{ "speedbutton9:",{
 			user_command::speedcontrolbutton9,
-			user_command::none } }
+			user_command::none } },
     };
 }
 

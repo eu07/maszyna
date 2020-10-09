@@ -31,18 +31,18 @@ void TMemCell::UpdateValues( std::string const &szNewText, double const fNewValu
     { // dodawanie wartości
         if( TestFlag( CheckMask, basic_event::flags::text ) )
             szText += szNewText;
-        if (TestFlag(CheckMask, basic_event::flags::value_1))
+        if (TestFlag(CheckMask, basic_event::flags::value1))
             fValue1 += fNewValue1;
-        if (TestFlag(CheckMask, basic_event::flags::value_2))
+        if (TestFlag(CheckMask, basic_event::flags::value2))
             fValue2 += fNewValue2;
     }
     else
     {
         if( TestFlag( CheckMask, basic_event::flags::text ) )
             szText = szNewText;
-        if (TestFlag(CheckMask, basic_event::flags::value_1))
+        if (TestFlag(CheckMask, basic_event::flags::value1))
             fValue1 = fNewValue1;
-        if (TestFlag(CheckMask, basic_event::flags::value_2))
+        if (TestFlag(CheckMask, basic_event::flags::value2))
             fValue2 = fNewValue2;
     }
     if (TestFlag(CheckMask, basic_event::flags::text))
@@ -81,6 +81,11 @@ TCommandType TMemCell::CommandCheck()
         eCommand = TCommandType::cm_SetProximityVelocity;
         bCommand = false; // ta komenda nie jest wysyłana
     }
+    else if( szText == "Emergency_brake" )
+    {
+        eCommand = TCommandType::cm_EmergencyBrake;
+        bCommand = false;
+    }
     else
     {
         eCommand = TCommandType::cm_Unknown; // ciąg nierozpoznany (nie jest komendą)
@@ -118,8 +123,11 @@ void TMemCell::PutCommand( TController *Mech, glm::dvec3 const *Loc ) const
         Mech->PutCommand(szText, fValue1, fValue2, Loc);
 }
 
-bool TMemCell::Compare( std::string const &szTestText, double const fTestValue1, double const fTestValue2, int const CheckMask ) const {
-    // porównanie zawartości komórki pamięci z podanymi wartościami
+bool TMemCell::Compare( std::string const &szTestText, double const fTestValue1, double const fTestValue2, int const CheckMask,
+    comparison_operator const TextOperator, comparison_operator const Value1Operator, comparison_operator const Value2Operator,
+    comparison_pass const Pass ) const {
+// porównanie zawartości komórki pamięci z podanymi wartościami
+/*
     if( TestFlag( CheckMask, basic_event::flags::text ) ) {
         // porównać teksty
         auto range = szTestText.find( '*' );
@@ -137,8 +145,39 @@ bool TMemCell::Compare( std::string const &szTestText, double const fTestValue1,
         }
     }
     // tekst zgodny, porównać resztę
-    return ( ( !TestFlag( CheckMask, basic_event::flags::value_1 ) || ( fValue1 == fTestValue1 ) )
-          && ( !TestFlag( CheckMask, basic_event::flags::value_2 ) || ( fValue2 == fTestValue2 ) ) );
+    return ( ( !TestFlag( CheckMask, basic_event::flags::value1 ) || ( fValue1 == fTestValue1 ) )
+          && ( !TestFlag( CheckMask, basic_event::flags::value2 ) || ( fValue2 == fTestValue2 ) ) );
+*/
+    bool checkpassed { false };
+    bool checkfailed { false };
+
+    if( TestFlag( CheckMask, basic_event::flags::text ) ) {
+        // porównać teksty
+        auto range = szTestText.find( '*' );
+        auto const result { (
+            range == std::string::npos ?
+                compare( szText, szTestText, TextOperator ) :
+                compare( szText.substr( 0, range ), szTestText.substr( 0, range ), TextOperator ) ) };
+        checkpassed |=    result;
+        checkfailed |= ( !result );
+    }
+    if( TestFlag( CheckMask, basic_event::flags::value1 ) ) {
+        auto const result { compare( fValue1, fTestValue1, Value1Operator ) };
+        checkpassed |=    result;
+        checkfailed |= ( !result );
+    }
+    if( TestFlag( CheckMask, basic_event::flags::value2 ) ) {
+        auto const result { compare( fValue2, fTestValue2, Value2Operator ) };
+        checkpassed |=    result;
+        checkfailed |= ( !result );
+    }
+
+    switch( Pass ) {
+        case comparison_pass::all:  { return ( checkfailed == false ); }
+        case comparison_pass::any:  { return ( checkpassed == true ); }
+        case comparison_pass::none: { return ( checkpassed == false ); }
+        default:                    { return false; }
+    }
 };
 
 bool TMemCell::IsVelocity() const
@@ -165,6 +204,16 @@ void TMemCell::AssignEvents(basic_event *e)
 { // powiązanie eventu
     OnSent = e;
 };
+
+std::string TMemCell::Values() const {
+
+    return { "[" + Text() + "] [" + to_string( Value1(), 2 ) + "] [" + to_string( Value2(), 2 ) + "]" };
+}
+
+void TMemCell::LogValues() const {
+
+    WriteLog( "Memcell " + name() + ": " + Values() );
+}
 
 // serialize() subclass details, sends content of the subclass to provided stream
 void
@@ -225,10 +274,6 @@ void
 memory_table::log_all() {
 
     for( auto *cell : m_items ) {
-
-        WriteLog( "Memcell \"" + cell->name() + "\": ["
-            + cell->Text() + "] ["
-            + to_string( cell->Value1(), 2 ) + "] ["
-            + to_string( cell->Value2(), 2 ) + "]" );
+        cell->LogValues();
     }
 }

@@ -10,6 +10,7 @@ http://mozilla.org/MPL/2.0/.
 #include "stdafx.h"
 #include "simulationenvironment.h"
 
+#include "simulationsounds.h"
 #include "Globals.h"
 #include "Timer.h"
 
@@ -78,7 +79,14 @@ world_environment::init() {
     m_stars.init();
     m_clouds.Init();
     m_precipitation.init();
-    m_precipitationsound.deserialize( "rain-sound-loop", sound_type::single );
+    {
+        auto const rainsoundoverride { simulation::Sound_overrides.find( "weather.rainsound:" ) };
+        m_rainsound.deserialize(
+            ( rainsoundoverride != simulation::Sound_overrides.end() ?
+                rainsoundoverride->second :
+                "rain-sound-loop" ),
+            sound_type::single );
+    }
     m_wind = basic_wind{
         static_cast<float>( Random( 0, 360 ) ),
         static_cast<float>( Random( -5, 5 ) ),
@@ -169,15 +177,27 @@ world_environment::update() {
     Global.FogColor = m_skydome.GetAverageHorizonColor();
 
     // weather-related simulation factors
-    // TODO: dynamic change of air temperature and overcast levels
-    if( Global.Weather == "rain:" ) {
-        // reduce friction in rain
-        Global.FrictionWeatherFactor = 0.85f;
-        m_precipitationsound.play( sound_flags::exclusive | sound_flags::looping );
+    Global.FrictionWeatherFactor = (
+        Global.Weather == "rain:" ? 0.85f :
+        Global.Weather == "snow:" ? 0.75f :
+        1.0f );
+
+    Global.Period = (
+        m_sun.getAngle() > -12.0f ?
+            "day:" :
+            "night:" );
+
+    if( ( true == ( FreeFlyModeFlag || Global.CabWindowOpen ) )
+     && ( Global.Weather == "rain:" ) ) {
+        if( m_rainsound.is_combined() ) {
+            m_rainsound.pitch( Global.Overcast - 1.0 );
+        }
+        m_rainsound
+            .gain( m_rainsound.m_amplitudeoffset + m_rainsound.m_amplitudefactor * 1.f )
+            .play( sound_flags::exclusive | sound_flags::looping );
     }
-    else if( Global.Weather == "snow:" ) {
-        // reduce friction due to snow
-        Global.FrictionWeatherFactor = 0.75f;
+    else {
+        m_rainsound.stop();
     }
 
     update_wind();

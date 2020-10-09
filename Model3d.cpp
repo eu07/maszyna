@@ -151,6 +151,23 @@ TSubModel::SetLightLevel( glm::vec4 const &Level, bool const Includechildren, bo
     }
 }
 
+// sets activation threshold of self-illumination to specitied value
+void TSubModel::SetSelfIllum( float const Threshold, bool const Includechildren, bool const Includesiblings ) {
+
+    fLight = Threshold;
+    if( true == Includesiblings ) {
+        auto sibling { this };
+        while( ( sibling = sibling->Next ) != nullptr ) {
+            sibling->SetSelfIllum( Threshold, Includechildren, false ); // no need for all siblings to duplicate the work
+        }
+    }
+    if( ( true == Includechildren )
+     && ( Child != nullptr ) ) {
+        Child->SetSelfIllum( Threshold, Includechildren, true ); // node's children include child's siblings and children
+    }
+}
+
+
 int TSubModel::SeekFaceNormal(std::vector<unsigned int> const &Masks, int const Startface, unsigned int const Mask, glm::vec3 const &Position, gfx::vertex_array const &Vertices)
 { // szukanie punktu stycznego do (pt), zwraca numer wierzchołka, a nie trójkąta
 	int facecount = iNumVerts / 3; // bo maska powierzchni jest jedna na trójkąt
@@ -353,6 +370,9 @@ int TSubModel::Load( cParser &parser, TModel3d *Model, /*int Pos,*/ bool dynamic
         if( Opacity > 1.f ) {
             Opacity = std::min( 1.f, Opacity * 0.01f );
         }
+        if( Opacity < -1.f ) {
+            Opacity = std::max( -1.f, Opacity * 0.01f );
+        }
 
         if (!parser.expectToken("map:"))
             Error("Model map parse failure!");
@@ -428,9 +448,13 @@ int TSubModel::Load( cParser &parser, TModel3d *Model, /*int Pos,*/ bool dynamic
         */
         {
             // if material has opacity set, replace submodel opacity with it
+            // NOTE: reverted to use base opacity, this allows to define opacity threshold in material
+            // without it causing the translucent models to become opaque
             auto const opacity { (
+/*
                 false == std::isnan( mat.opacity ) ?
                     mat.opacity :
+*/
                     Opacity ) };
             iFlags &= ~0x30;
             iFlags |= (
@@ -487,7 +511,7 @@ int TSubModel::Load( cParser &parser, TModel3d *Model, /*int Pos,*/ bool dynamic
 		// zapewni to jakąś zgodność wstecz, bo zamiast liczby będzie ciąg, którego
 		// wartość powinna być uznana jako zerowa
 		// parser.getToken(iNumVerts);
-		if (token[0] == '*')
+		if (token.front() == '*')
 		{ // jeśli pierwszy znak jest gwiazdką, poszukać
 		  // submodelu o nazwie bez tej gwiazdki i wziąć z
 		  // niego wierzchołki
@@ -1887,7 +1911,11 @@ void TSubModel::BinInit(TSubModel *s, float4x4 *m, std::vector<std::string> *t, 
 
 	b_aAnim = b_Anim; // skopiowanie animacji do drugiego cyklu
 
-    if( (eType == TP_FREESPOTLIGHT) && (iFlags & 0x10)) {
+    if( eType == TP_STARS ) {
+        m_material = GfxRenderer->Fetch_Material( "stars" );
+        iFlags |= 0x10;
+    }
+    else if( (eType == TP_FREESPOTLIGHT) && (iFlags & 0x10)) {
         // we've added light glare which needs to be rendered during transparent phase,
         // but models converted to e3d before addition won't have the render flag set correctly for this
         // so as a workaround we're doing it here manually
@@ -2010,6 +2038,12 @@ void TModel3d::Init()
             std::size_t dataoffset = 0;
             Root->create_geometry( dataoffset, m_geometrybank );
         }
+        // determine final bounding radius from the root-level siblings
+        auto const *root { Root };
+        while( ( root = root->Next ) != nullptr ) {
+            Root->m_boundingradius = std::max( Root->m_boundingradius, root->m_boundingradius );
+        }
+
         if( ( Global.iConvertModels > 0 )
          && ( false == asBinary.empty() ) ) {
             SaveToBinFile( asBinary );

@@ -47,3 +47,29 @@ private:
     std::string m_groupprefix;
     std::vector<text_line> m_grouplines;
 };
+
+class nodebank_panel : public ui_panel {
+
+public:
+	enum edit_mode {
+		MODIFY,
+		COPY,
+		ADD
+	};
+
+	edit_mode mode = MODIFY;
+
+	nodebank_panel( std::string const &Name, bool const Isopen );
+
+	void render() override;
+	void add_template(const std::string &desc);
+	const std::string* get_active_template();
+
+private:
+// methods:
+    std::string generate_node_label( std::string Input ) const;
+// members:
+    std::vector<std::pair<std::string, std::shared_ptr<std::string>>> m_nodebank;
+    char m_nodesearch[ 128 ];
+    std::shared_ptr<std::string> m_selectedtemplate;
+};

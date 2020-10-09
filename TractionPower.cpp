@@ -74,7 +74,7 @@ bool TTractionPowerSource::Load(cParser *parser) {
 bool TTractionPowerSource::Update(double dt)
 { // powinno być wykonane raz na krok fizyki
   // iloczyn napięcia i admitancji daje prąd
-	if (NominalVoltage * TotalPreviousAdmitance > MaxOutputCurrent) {
+	if (TotalCurrent > MaxOutputCurrent) {
 
         FastFuse = true;
         FuseCounter += 1;
@@ -121,8 +121,7 @@ double TTractionPowerSource::CurrentGet(double res)
         return 0;
     }
 	if ((res > 0) || ((res < 0) && (Recuperation || true)))
-		TotalAdmitance +=
-            1.0 / res; // połączenie równoległe rezystancji jest równoważne sumie admitancji
+		TotalAdmitance += 1.0 / res; // połączenie równoległe rezystancji jest równoważne sumie admitancji
 	float NomVolt = (TotalPreviousAdmitance < 0 ? NominalVoltage * 1.083 : NominalVoltage);
 	TotalCurrent = (TotalPreviousAdmitance != 0.0) ?
 		NomVolt / (InternalRes + 1.0 / TotalPreviousAdmitance) :

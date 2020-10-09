@@ -38,6 +38,8 @@ public:
     void
         on_key( int const Key, int const Scancode, int const Action, int const Mods ) override;
     void
+        on_char( unsigned int const Char ) override;
+    void
         on_cursor_pos( double const Horizontal, double const Vertical ) override;
     void
         on_mouse_button( int const Button, int const Action, int const Mods ) override;
@@ -45,6 +47,11 @@ public:
         on_scroll( double const Xoffset, double const Yoffset ) override;
     void
         on_event_poll() override;
+    // provides key code associated with specified command
+    int
+        key_binding( user_command const Command ) const override;
+    bool
+        is_command_processor() const override;
 
 private:
 // types
@@ -82,5 +89,5 @@ private:
     scene::basic_editor m_editor;
     scene::basic_node *m_node; // currently selected scene node
     bool m_takesnapshot { true }; // helper, hints whether snapshot of selected node(s) should be taken before modification
-
+    bool m_dragging = false;
 };

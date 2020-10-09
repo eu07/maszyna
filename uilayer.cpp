@@ -165,6 +165,17 @@ ui_layer::on_key( int const Key, int const Scancode, int const Action, int const
 }
 
 bool
+ui_layer::on_char( unsigned int const Char ) {
+
+    if( m_imguiio->WantTextInput ) {
+        m_imguiio->AddInputCharacter( Char );
+        return true;
+    }
+
+    return on_char_( Char );
+}
+
+bool
 ui_layer::on_cursor_pos( double const Horizontal, double const Vertical ) {
 
     return on_cursor_pos_( Horizontal, Vertical );

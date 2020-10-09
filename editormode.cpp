@@ -19,6 +19,7 @@ http://mozilla.org/MPL/2.0/.
 #include "Timer.h"
 #include "Console.h"
 #include "renderer.h"
+#include "AnimModel.h"
 
 bool
 editor_mode::editormode_input::init() {
@@ -175,10 +176,33 @@ editor_mode::on_key( int const Key, int const Scancode, int const Action, int co
             break;
         }
 
+        // TODO: ensure delete method can play nice with history stack
+	    case GLFW_KEY_DELETE: {
+		    TAnimModel *model = dynamic_cast<TAnimModel*>(m_node);
+			if (!model)
+				break;
+
+			m_node = nullptr;
+			m_dragging = false;
+			Application.set_cursor( GLFW_CURSOR_NORMAL );
+			static_cast<editor_ui*>( m_userinterface.get() )->set_node(nullptr);
+
+			simulation::State.delete_model(model);
+
+			break;
+	    }
+
         default: {
             break;
         }
     }
+}
+
+void
+editor_mode::on_char( unsigned int const Char ) {
+
+    // give the ui first shot at the input processing...
+    if( true == m_userinterface->on_char( Char ) ) { return; }
 }
 
 void
@@ -219,6 +243,8 @@ editor_mode::on_cursor_pos( double const Horizontal, double const Vertical ) {
 
 }
 
+/*
+TODO: re-enable in post-merge cleanup
 void
 editor_mode::on_mouse_button( int const Button, int const Action, int const Mods ) {
 
@@ -250,6 +276,81 @@ editor_mode::on_mouse_button( int const Button, int const Action, int const Mods
 
     m_input.mouse.button( Button, Action );
 }
+*/
+void
+editor_mode::on_mouse_button( int const Button, int const Action, int const Mods ) {
+
+    // give the ui first shot at the input processing...
+    if( true == m_userinterface->on_mouse_button( Button, Action, Mods ) ) { return; }
+
+    if( Button == GLFW_MOUSE_BUTTON_LEFT ) {
+
+        if( Action == GLFW_PRESS ) {
+			// left button press
+			auto const mode = static_cast<editor_ui*>( m_userinterface.get() )->mode();
+
+			m_node = nullptr;
+
+			GfxRenderer->Pick_Node_Callback([this, mode](scene::basic_node *node)
+			{
+				editor_ui *ui = static_cast<editor_ui*>( m_userinterface.get() );
+
+				if (mode == nodebank_panel::MODIFY) {
+					if (!m_dragging)
+						return;
+
+					m_node = node;
+					if( m_node )
+						Application.set_cursor( GLFW_CURSOR_DISABLED );
+					else
+						m_dragging = false;
+					ui->set_node( m_node );
+				}
+				else if (mode == nodebank_panel::COPY) {
+					if (node && typeid(*node) == typeid(TAnimModel)) {
+						std::string as_text;
+						node->export_as_text(as_text);
+
+						ui->add_node_template(as_text);
+					}
+
+					m_dragging = false;
+				}
+				else if (mode == nodebank_panel::ADD) {
+					const std::string *src = ui->get_active_node_template();
+					std::string name =  "editor_" + std::to_string(LocalRandom(0.0, 100000.0));
+
+					if (!src)
+						return;
+
+					TAnimModel *cloned = simulation::State.create_model(*src, name, Camera.Pos + GfxRenderer->Mouse_Position());
+
+					if (!cloned)
+						return;
+
+					if (!m_dragging)
+						return;
+
+					m_node = cloned;
+					Application.set_cursor( GLFW_CURSOR_DISABLED );
+					ui->set_node( m_node );
+				}
+			});
+
+			m_dragging = true;
+        }
+        else {
+            // left button release
+            if( m_node )
+                Application.set_cursor( GLFW_CURSOR_NORMAL );
+            m_dragging = false;
+            // prime history stack for another snapshot
+            m_takesnapshot = true;
+        }
+    }
+
+    m_input.mouse.button( Button, Action );
+}
 
 void
 editor_mode::on_scroll( double const Xoffset, double const Yoffset ) {
@@ -264,6 +365,18 @@ void
 editor_mode::on_event_poll() {
 
     m_input.poll();
+}
+
+int
+editor_mode::key_binding( user_command const Command ) const {
+
+    return m_input.keyboard.binding( Command );
+}
+
+bool
+editor_mode::is_command_processor() const {
+
+    return false;
 }
 
 bool

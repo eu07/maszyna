@@ -48,8 +48,8 @@ private:
     void
         replace_( gfx::geometry_handle const &Geometry ) override;
     // draw() subclass details
-    void
-        draw_( gfx::geometry_handle const &Geometry, gfx::stream_units const &Units, unsigned int const Streams ) override;
+    auto
+        draw_( gfx::geometry_handle const &Geometry, gfx::stream_units const &Units, unsigned int const Streams ) -> std::size_t override;
     // release() subclass details
     void
         release_() override;
@@ -93,6 +93,7 @@ private:
     struct chunk_record {
         GLuint list { 0 }; // display list associated with the chunk
         unsigned int streams { 0 }; // stream combination used to generate the display list
+        std::size_t primitive_count { 0 };
     };
 
     using chunkrecord_sequence = std::vector<chunk_record>;
@@ -105,8 +106,8 @@ private:
     void
         replace_( gfx::geometry_handle const &Geometry ) override;
     // draw() subclass details
-    void
-        draw_( gfx::geometry_handle const &Geometry, gfx::stream_units const &Units, unsigned int const Streams ) override;
+    auto
+        draw_( gfx::geometry_handle const &Geometry, gfx::stream_units const &Units, unsigned int const Streams ) -> std::size_t override;
     // release () subclass details
     void
         release_() override;

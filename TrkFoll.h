@@ -40,6 +40,7 @@ public:
     //{ return pCurrentSegment->ComputeLength(p1,cp1,cp2,p2); };
     // inline double GetRadius(double L, double d);  //McZapkie-150503
     bool Init(TTrack *pTrack, TDynamicObject *NewOwner, double fDir);
+	void Reset();
     void Render(float fNr);
 // members
     double fOffsetH = 0.0; // Ra: odległość środka osi od osi toru (dla samochodów) - użyć do wężykowania

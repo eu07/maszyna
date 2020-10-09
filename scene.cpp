@@ -35,7 +35,7 @@ basic_cell::on_click( TAnimModel const *Instance ) {
         if( ( launcher->name() == Instance->name() )
          && ( glm::length2( launcher->location() - Instance->location() ) < launcher->dRadius )
          && ( true == launcher->check_conditions() ) ) {
-            launch_event( launcher );
+            launch_event( launcher, true );
         }
     }
 }
@@ -123,11 +123,13 @@ basic_cell::update_events() {
 
     // event launchers
     for( auto *launcher : m_eventlaunchers ) {
-        if( ( true == ( launcher->check_activation() && launcher->check_conditions() ) )
-         && ( ( launcher->dRadius < 0.0 )
-           || ( SquareMagnitude( launcher->location() - Global.pCamera.Pos ) < launcher->dRadius ) ) ) {
-
-            launch_event( launcher );
+        if( launcher->check_conditions()
+            && ( launcher->dRadius < 0.0
+                || SquareMagnitude( launcher->location() - Global.pCamera.Pos ) < launcher->dRadius ) ) {
+            if( launcher->check_activation() )
+                launch_event( launcher, true );
+            if( launcher->check_activation_key() )
+                launch_event( launcher, true );
         }
     }
 }
@@ -608,16 +610,19 @@ basic_cell::create_geometry( gfx::geometrybank_handle const &Bank ) {
 
 // executes event assigned to specified launcher
 void
-basic_cell::launch_event( TEventLauncher *Launcher ) {
-
-    WriteLog( "Eventlauncher " + Launcher->name() );
-    if( ( true == Global.shiftState )
-     && ( Launcher->Event2 != nullptr ) ) {
-        simulation::Events.AddToQuery( Launcher->Event2, nullptr );
-    }
-    else if( Launcher->Event1 ) {
-        simulation::Events.AddToQuery( Launcher->Event1, nullptr );
-    }
+basic_cell::launch_event( TEventLauncher *Launcher, bool local_only ) {
+	WriteLog( "Eventlauncher: " + Launcher->name() );
+	if (!local_only) {
+		if( Launcher->Event1 ) {
+			simulation::Events.AddToQuery( Launcher->Event1, nullptr );
+		}
+	} else {
+        command_relay commandrelay;
+        if (Global.shiftState && Launcher->Event2 != nullptr)
+			commandrelay.post(user_command::queueevent, 0.0, 0.0, GLFW_PRESS, 0, glm::vec3(0.0f), &Launcher->Event2->name());
+		else if (Launcher->Event1)
+			commandrelay.post(user_command::queueevent, 0.0, 0.0, GLFW_PRESS, 0, glm::vec3(0.0f), &Launcher->Event1->name());
+	}
 }
 
 // adjusts cell bounding area to enclose specified node

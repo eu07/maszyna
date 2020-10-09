@@ -59,6 +59,7 @@ struct scratch_data {
 
     std::string name;
     bool initialized { false };
+	bool time_initialized { false };
 };
 
 // basic element of rudimentary partitioning scheme for the section. fixed size, no further subdivision
@@ -173,7 +174,7 @@ private:
     using memorycell_sequence = std::vector<TMemCell *>;
 // methods
     void
-        launch_event( TEventLauncher *Launcher );
+	    launch_event(TEventLauncher *Launcher, bool local_only);
     void
         enclose_area( scene::basic_node *Node );
 // members

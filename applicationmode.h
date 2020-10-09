@@ -39,6 +39,11 @@ public:
         set_progress( float const Progress = 0.f, float const Subtaskprogress = 0.f ) {
             if( m_userinterface != nullptr ) {
                 m_userinterface->set_progress( Progress, Subtaskprogress ); } }
+    inline
+    void
+        set_tooltip( std::string const &Tooltip ) {
+            if( m_userinterface != nullptr ) {
+                m_userinterface->set_tooltip( Tooltip ); } }
     // maintenance method, called when the mode is activated
     virtual
     void
@@ -53,6 +58,9 @@ public:
         on_key( int const Key, int const Scancode, int const Action, int const Mods ) = 0;
     virtual
     void
+        on_char( unsigned int const Char ) = 0;
+    virtual
+    void
         on_cursor_pos( double const X, double const Y ) = 0;
     virtual
     void
@@ -63,6 +71,13 @@ public:
     virtual
     void
         on_event_poll() = 0;
+    // provides key code associated with specified command
+    virtual
+    int
+        key_binding( user_command const Command ) const = 0;
+    virtual
+	bool
+	    is_command_processor() const = 0;
 
 protected:
 // members

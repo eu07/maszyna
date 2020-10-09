@@ -42,6 +42,8 @@ public:
     void
         on_key( int const Key, int const Scancode, int const Action, int const Mods ) override;
     void
+        on_char( unsigned int const Char ) override;
+    void
         on_cursor_pos( double const Horizontal, double const Vertical ) override;
     void
         on_mouse_button( int const Button, int const Action, int const Mods ) override;
@@ -49,6 +51,11 @@ public:
         on_scroll( double const Xoffset, double const Yoffset ) override;
     void
         on_event_poll() override;
+    // provides key code associated with specified command
+    int
+        key_binding( user_command const Command ) const override;
+    bool
+        is_command_processor() const override;
 
 private:
 // types
@@ -77,13 +84,16 @@ private:
 
         bool init();
         void poll();
+        std::string
+            binding_hints( std::pair<user_command, user_command> const &Commands ) const;
+        std::pair<user_command, user_command>
+            command_fallback( user_command const Command ) const;
     };
 
 // methods
     void update_camera( const double Deltatime );
     // handles vehicle change flag
     void OnKeyDown( int cKey );
-    void ChangeDynamic();
     void InOutKey();
     void CabView();
     void ExternalView();
@@ -105,4 +115,6 @@ private:
     double m_primaryupdateaccumulator { m_secondaryupdaterate }; // keeps track of elapsed simulation time, for core fixed step routines
     double m_secondaryupdateaccumulator { m_secondaryupdaterate }; // keeps track of elapsed simulation time, for less important fixed step routines
     int iPause { 0 }; // wykrywanie zmian w zapauzowaniu
+	command_relay m_relay;
+	std::string change_train; // train name awaiting entering
 };

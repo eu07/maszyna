@@ -93,7 +93,7 @@ void opengl33_vaogeometrybank::setup_buffer()
 // draw() subclass details
 // NOTE: units and stream parameters are unused, but they're part of (legacy) interface
 // TBD: specialized bank/manager pair without the cruft?
-void
+std::size_t
 opengl33_vaogeometrybank::draw_( gfx::geometry_handle const &Geometry, gfx::stream_units const &Units, unsigned int const Streams )
 {
     setup_buffer();
@@ -101,7 +101,7 @@ opengl33_vaogeometrybank::draw_( gfx::geometry_handle const &Geometry, gfx::stre
     auto &chunkrecord = m_chunkrecords.at(Geometry.chunk - 1);
 	// sanity check; shouldn't be needed but, eh
 	if( chunkrecord.size == 0 )
-		return;
+		return 0;
     auto const &chunk = gfx::geometry_bank::chunk( Geometry );
     if( false == chunkrecord.is_good ) {
         // we may potentially need to upload new buffer data before we can draw it
@@ -113,6 +113,12 @@ opengl33_vaogeometrybank::draw_( gfx::geometry_handle const &Geometry, gfx::stre
     // render
     m_vao->bind();
     ::glDrawArrays( chunk.type, chunkrecord.offset, chunkrecord.size );
+
+    switch( chunk.type ) {
+        case GL_TRIANGLES:      { return chunkrecord.size / 3; }
+        case GL_TRIANGLE_STRIP: { return chunkrecord.size - 2; }
+        default:                { return 0; }
+    }
 }
 
 // release () subclass details

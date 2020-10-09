@@ -10,8 +10,11 @@ http://mozilla.org/MPL/2.0/.
 #pragma once
 
 #include "applicationmode.h"
+#include "simulation.h"
 
 class scenarioloader_mode : public application_mode {
+	std::shared_ptr<simulation::deserializer_state> state;
+	std::chrono::system_clock::time_point timestart;
 
 public:
 // constructors
@@ -33,6 +36,8 @@ public:
     void
         on_key( int const Key, int const Scancode, int const Action, int const Mods ) override { ; }
     void
+        on_char( unsigned int const Char ) override { ; }
+    void
         on_cursor_pos( double const Horizontal, double const Vertical ) override { ; }
     void
         on_mouse_button( int const Button, int const Action, int const Mods ) override { ; }
@@ -40,4 +45,9 @@ public:
         on_scroll( double const Xoffset, double const Yoffset ) override { ; }
     void
         on_event_poll() override { ; }
+    // provides key code associated with specified command
+    int
+        key_binding( user_command const Command ) const override { return -1; }
+    bool
+        is_command_processor() const override { return false; }
 };

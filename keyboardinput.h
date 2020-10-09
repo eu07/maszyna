@@ -45,6 +45,10 @@ public:
     user_command const
         command() const {
             return m_command; }
+    int
+        binding( user_command const Command ) const;
+    std::string
+        binding_hint( user_command const Command ) const;
 
 protected:
 // types
@@ -77,6 +81,7 @@ protected:
 private:
 // types
     using usercommand_map = std::unordered_map<int, user_command>;
+    using binding_map = std::unordered_map<user_command, int>;
 
     struct bindings_cache {
 
@@ -89,14 +94,13 @@ private:
     };
 
 // methods
-    int
-        binding( user_command const Command ) const;
     bool
         is_movement_key( int const Key ) const;
 
 // members
     user_command m_command { user_command::none }; // last, if any, issued command
-    usercommand_map m_bindings;
+    usercommand_map m_commands;
+    binding_map m_bindings;
     command_relay m_relay;
     bindings_cache m_bindingscache;
     glm::vec2 m_movementhorizontal { 0.f };

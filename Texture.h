@@ -31,12 +31,14 @@ struct opengl_texture {
     static void
         unbind( size_t unit );
     bool
-        create();
+        create( bool const Static = false );
     // releases resources allocated on the opengl end, storing local copy if requested
     void
         release();
     void
-        alloc_rendertarget( GLint format, GLint components, int width, int height, int samples = 1, GLint wrap = GL_CLAMP_TO_EDGE );
+        make_stub();
+    void
+        alloc_rendertarget( GLint format, GLint components, int width, int height, int layers = 1, int samples = 1, GLint wrap = GL_CLAMP_TO_EDGE );
     void
         set_components_hint( GLint hint );
     static void
@@ -60,11 +62,11 @@ struct opengl_texture {
     GLint components_hint = 0; // components that material wants
 
 	GLenum target = GL_TEXTURE_2D;
-    static std::array<GLuint, gl::MAX_TEXTURES + 2> units;
+    static std::array<GLuint, gl::MAX_TEXTURES + gl::HELPER_TEXTURES> units;
+    static GLint m_activeunit;
 
 private:
 // methods
-    void make_stub();
     void make_request();
     void load_BMP();
     void load_DDS();
@@ -76,8 +78,10 @@ private:
     void gles_match_internalformat( GLuint format );
 
 // members
+    bool is_static = false; // is excluded from garbage collection
     bool is_rendertarget = false; // is used as postfx rendertarget, without loaded data
     int samples = 1;
+    int layers = 1;
     std::vector<unsigned char> data; // texture data (stored GL-style, bottom-left origin)
     resource_state data_state{ resource_state::none }; // current state of texture data
     int data_width{ 0 },
@@ -95,8 +99,6 @@ private:
     static std::unordered_map<GLint, int> precompressed_formats;
     static std::unordered_map<GLint, GLint> drivercompressed_formats;
     static std::unordered_map<GLint, std::unordered_map<GLint, GLint>> mapping;
-
-    static GLint m_activeunit;
 };
 
 typedef int texture_handle;
@@ -107,8 +109,6 @@ public:
     texture_manager();
     ~texture_manager() { delete_textures(); }
 
-    void
-        assign_units( GLint const Helper, GLint const Shadows, GLint const Normals, GLint const Diffuse );
     // activates specified texture unit
     void
         unit( GLint const Textureunit );
@@ -140,11 +140,6 @@ private:
 
     typedef std::unordered_map<std::string, std::size_t> index_map;
 
-    struct texture_unit {
-        GLint unit { 0 };
-        texture_handle texture { null_handle }; // current (most recently bound) texture
-    };
-
 // methods:
     // checks whether specified texture is in the texture bank. returns texture id, or npos.
     texture_handle
@@ -160,8 +155,6 @@ private:
     texturetimepointpair_sequence m_textures;
     index_map m_texturemappings;
     garbage_collector<texturetimepointpair_sequence> m_garbagecollector { m_textures, 600, 60, "texture" };
-    std::array<texture_unit, 4> m_units;
-    GLint m_activeunit { 0 };
 };
 
 // reduces provided data image to half of original size, using basic 2x2 average

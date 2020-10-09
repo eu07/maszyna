@@ -17,6 +17,8 @@ http://mozilla.org/MPL/2.0/.
 #include "Event.h"
 
 #include "simulation.h"
+#include "simulationtime.h"
+#include "simulationsounds.h"
 #include "messaging.h"
 #include "Globals.h"
 #include "MemCell.h"
@@ -27,13 +29,14 @@ http://mozilla.org/MPL/2.0/.
 #include "AnimModel.h"
 #include "DynObj.h"
 #include "Driver.h"
+#include "renderer.h"
 #include "Timer.h"
 #include "Logs.h"
 
 void
 basic_event::event_conditions::bind( basic_event::node_sequence *Nodes ) {
 
-    cells = Nodes;
+    memcompare_cells = Nodes;
 }
 
 void
@@ -42,7 +45,7 @@ basic_event::event_conditions::init() {
     tracks.clear();
 
     if( flags & ( flags::track_busy | flags::track_free ) ) {
-        for( auto &target : *cells ) {
+        for( auto &target : *memcompare_cells ) {
             tracks.emplace_back( simulation::Paths.find( std::get<std::string>( target ) ) );
             if( tracks.back() == nullptr ) {
                 // legacy compatibility behaviour, instead of disabling the event we disable the memory cell comparison test
@@ -63,28 +66,65 @@ basic_event::event_conditions::test() const {
     // if there's conditions, check them
     if( flags & flags::probability ) {
         auto const randomroll { static_cast<float>( Random() ) };
-        WriteLog( "Test: Random integer - [" + std::to_string( randomroll ) + "] / [" + std::to_string( probability ) + "]" );
+        WriteLog(
+            "Test: Random integer - ["
+            + std::to_string( randomroll ) + "] / [" + std::to_string( probability )
+            + "] - "
+            + ( randomroll > probability ? "Pass" : "Fail" ) );
         if( randomroll > probability ) {
             return false;
         }
     }
     if( flags & flags::track_busy ) {
+        auto trackbusyresult { true };
+        std::string trackbusylog { "Test: Track busy - " };
         for( auto *track : tracks ) {
             if( true == track->IsEmpty() ) {
-                return false;
+                trackbusylog += "[" + track->name() + "]";
+                trackbusyresult = false;
+                break;
             }
+            else {
+                auto const &vehicles { track->Dynamics };
+                if( trackbusylog.back() == ']' ) {
+                    trackbusylog += ", ";
+                }
+                trackbusylog += "[" + vehicles.front()->asName + "] @ [" + track->name() + "]";
+            }
+        }
+
+        WriteLog(
+            trackbusylog
+            + " - "
+            + ( trackbusyresult ? "Pass" : "Fail" ) );
+
+        if( false == trackbusyresult ) {
+            return false;
         }
     }
     if( flags & flags::track_free ) {
+        auto trackfreeresult { true };
+        std::string trackfreelog{ "Test: Track free - " };
         for( auto *track : tracks ) {
             if( false == track->IsEmpty() ) {
-                return false;
+                auto const &vehicles { track->Dynamics };
+                trackfreelog += "[" + vehicles.front()->asName + "] @ [" + track->name() + "] - ";
+                trackfreeresult = false;
+                break;
             }
         }
+
+        WriteLog(
+            trackfreelog
+            + ( trackfreeresult ? "Pass" : "Fail" ) );
+
+        if( false == trackfreeresult ) {
+            return false;
+        }
     }
-    if( flags & ( flags::text | flags::value_1 | flags::value_2 ) ) {
+    if( flags & ( flags::text | flags::value1 | flags::value2 ) ) {
         // porównanie wartości
-        for( auto &cellwrapper : *cells ) {
+        for( auto &cellwrapper : *memcompare_cells ) {
             auto *cell { static_cast<TMemCell *>( std::get<scene::basic_node *>( cellwrapper ) ) };
             if( cell == nullptr ) {
 //                ErrorLog( "Event " + asName + " trying conditional_memcompare with nonexistent memcell" );
@@ -92,35 +132,38 @@ basic_event::event_conditions::test() const {
             }
             auto const comparisonresult =
                 cell->Compare(
-                    match_text,
-                    match_value_1,
-                    match_value_2,
-                    flags );
+                    memcompare_text, memcompare_value1, memcompare_value2,
+                    flags,
+                    memcompare_text_operator, memcompare_value1_operator, memcompare_value2_operator,
+                    memcompare_pass );
+
+            auto const combiner { (
+                memcompare_pass == comparison_pass::all ? " && " :
+                memcompare_pass == comparison_pass::any ? " || " :
+                memcompare_pass == comparison_pass::none ? " !! " :
+                " ?? " ) };
 
             std::string comparisonlog = "Test: MemCompare - " + cell->name() + " - ";
 
             comparisonlog +=
-                   "[" + cell->Text() + "]"
-                + " [" + to_string( cell->Value1(), 2 ) + "]"
-                + " [" + to_string( cell->Value2(), 2 ) + "]";
+                ( TestFlag( flags, flags::text ) ?
+                    "[" + cell->Text() + "] " + to_string( memcompare_text_operator ) + " [" + memcompare_text + "]" :
+                    "[*]" )
+                + combiner;
 
-            comparisonlog += (
-                true == comparisonresult ?
-                    " == " :
-                    " != " );
+            comparisonlog +=
+                ( TestFlag( flags, flags::value1 ) ?
+                    "[" + to_string( cell->Value1(), 2 ) + "] " + to_string( memcompare_value1_operator ) + " [" + to_string( memcompare_value1, 2 ) + "]" :
+                    "[*]" )
+                + combiner;
 
-            comparisonlog += (
-                TestFlag( flags, flags::text ) ?
-                    "[" + std::string( match_text ) + "]" :
-                    "[*]" );
-            comparisonlog += (
-                TestFlag( flags, flags::value_1 ) ?
-                    " [" + to_string( match_value_1, 2 ) + "]" :
-                    " [*]" );
-            comparisonlog += (
-                TestFlag( flags, flags::value_2 ) ?
-                    " [" + to_string( match_value_2, 2 ) + "]" :
-                    " [*]" );
+            comparisonlog +=
+                ( TestFlag( flags, flags::value2 ) ?
+                    "[" + to_string( cell->Value2(), 2 ) + "] " + to_string( memcompare_value2_operator ) + " [" + to_string( memcompare_value2, 2 ) + "]" :
+                    "[*]" )
+                + " - ";
+
+            comparisonlog += ( comparisonresult ? "Pass" : "Fail" );
 
             WriteLog( comparisonlog );
 
@@ -134,7 +177,8 @@ basic_event::event_conditions::test() const {
 }
 
 void
-basic_event::event_conditions::deserialize( cParser &Input ) { // przetwarzanie warunków, wspólne dla Multiple i UpdateValues
+basic_event::event_conditions::deserialize( cParser &Input ) {
+    // przetwarzanie warunków, wspólne dla Multiple i UpdateValues
 
     std::string token;
     while( ( true == Input.getTokens() )
@@ -156,20 +200,53 @@ basic_event::event_conditions::deserialize( cParser &Input ) { // przetwarzanie 
             Input.getTokens( 1, false ); // case sensitive
             if( Input.peek() != "*" ) //"*" - nie brac command pod uwage
             { // zapamiętanie łańcucha do porównania
-                Input >> match_text;
+                Input >> memcompare_text;
                 flags |= flags::text;
             }
             Input.getTokens();
             if( Input.peek() != "*" ) //"*" - nie brac val1 pod uwage
             {
-                Input >> match_value_1;
-                flags |= flags::value_1;
+                Input >> memcompare_value1;
+                flags |= flags::value1;
             }
             Input.getTokens();
             if( Input.peek() != "*" ) //"*" - nie brac val2 pod uwage
             {
-                Input >> match_value_2;
-                flags |= flags::value_2;
+                Input >> memcompare_value2;
+                flags |= flags::value2;
+            }
+        }
+        else if( token == "memcompareex" ) {
+            memcompare_pass = comparison_pass_from_string( Input.getToken<std::string>() );
+            Input.getTokens();
+            if( Input.peek() != "*" ) //"*" - nie brac pod uwage
+            { // two tokens, operator followed by comparison value
+                std::string operatorstring;
+                Input >> operatorstring;
+                memcompare_text_operator = comparison_operator_from_string( operatorstring );
+                Input.getTokens( 1, false ); // case sensitive
+                Input >> memcompare_text;
+                flags |= flags::text;
+            }
+            Input.getTokens();
+            if( Input.peek() != "*" ) //"*" - nie brac pod uwage
+            { // two tokens, operator followed by comparison value
+                std::string operatorstring;
+                Input >> operatorstring;
+                memcompare_value1_operator = comparison_operator_from_string( operatorstring );
+                Input.getTokens();
+                Input >> memcompare_value1;
+                flags |= flags::value1;
+            }
+            Input.getTokens();
+            if( Input.peek() != "*" ) //"*" - nie brac pod uwage
+            { // two tokens, operator followed by comparison value
+                std::string operatorstring;
+                Input >> operatorstring;
+                memcompare_value2_operator = comparison_operator_from_string( operatorstring );
+                Input.getTokens();
+                Input >> memcompare_value2;
+                flags |= flags::value2;
             }
         }
     }
@@ -192,12 +269,13 @@ basic_event::event_conditions::export_as_text( std::ostream &Output ) const {
                 << "propability "
                 << probability << ' ';
         }
-        if( ( flags & ( flags::text | flags::value_1 | flags::value_2 ) ) != 0 ) {
+        if( ( flags & ( flags::text | flags::value1 | flags::value2 ) ) != 0 ) {
+            // NOTE: export doesn't preserve original memcompare condition, these are all upgraded to memcompareex format for simplicity
             Output
-                << "memcompare "
-                << ( ( flags & flags::text )    == 0 ? "*" :            match_text ) << ' '
-                << ( ( flags & flags::value_1 ) == 0 ? "*" : to_string( match_value_1 ) ) << ' '
-                << ( ( flags & flags::value_2 ) == 0 ? "*" : to_string( match_value_2 ) ) << ' ';
+                << "memcompareex "
+                << ( ( flags & flags::text )   == 0 ? "*" :            memcompare_text     + ' ' + to_string( memcompare_text_operator ) ) << ' '
+                << ( ( flags & flags::value1 ) == 0 ? "*" : to_string( memcompare_value1 ) + ' ' + to_string( memcompare_value1_operator ) ) << ' '
+                << ( ( flags & flags::value2 ) == 0 ? "*" : to_string( memcompare_value2 ) + ' ' + to_string( memcompare_value2_operator ) ) << ' ';
         }
     }
 }
@@ -230,6 +308,10 @@ basic_event::deserialize( cParser &Input, scene::scratch_data &Scratchpad ) {
         if( token == "randomdelay" ) { // losowe opóźnienie
             Input.getTokens();
             Input >> m_delayrandom; // Ra 2014-03-11
+        }
+        if( token == "departuredelay" ) { // timetable-based delay
+            Input.getTokens();
+            Input >> m_delaydeparture;
         }
         Input.getTokens();
     }
@@ -286,6 +368,11 @@ basic_event::export_as_text( std::ostream &Output ) const {
         Output
             << "randomdelay "
             << m_delayrandom << ' ';
+    }
+    if( false == std::isnan( m_delayrandom ) ) {
+        Output
+            << "departuredelay "
+            << m_delaydeparture << ' ';
     }
     // footer
     Output
@@ -352,9 +439,10 @@ basic_event::input_location() const {
 
 bool
 basic_event::is_keyword( std::string const &Token ) {
-
+    // TODO: convert to array lookup if keyword list gets longer
     return ( Token == "endevent" )
-        || ( Token == "randomdelay" );
+        || ( Token == "randomdelay" )
+        || ( Token == "departuredelay" );
 }
 
 
@@ -404,12 +492,12 @@ updatevalues_event::deserialize_( cParser &Input, scene::scratch_data &Scratchpa
     Input.getTokens();
     if( Input.peek() != "*" ) { //"*" - nie brac val1 pod uwage
         Input >> m_input.data_value_1;
-        m_input.flags |= flags::value_1;
+        m_input.flags |= flags::value1;
     }
     Input.getTokens();
     if( Input.peek() != "*" ) { //"*" - nie brac val2 pod uwage
         Input >> m_input.data_value_2;
-        m_input.flags |= flags::value_2;
+        m_input.flags |= flags::value2;
     }
     Input.getTokens();
     // optional blocks
@@ -433,9 +521,8 @@ updatevalues_event::run_() {
 
     WriteLog( "Type: " + std::string( ( m_input.flags & flags::mode_add ) ? "AddValues" : "UpdateValues" ) + " & Track command - ["
         + ( ( m_input.flags & flags::text ) ? m_input.data_text : "X" ) + "] ["
-        + ( ( m_input.flags & flags::value_1 ) ? to_string( m_input.data_value_1, 2 ) : "X" ) + "] ["
-        + ( ( m_input.flags & flags::value_2 ) ? to_string( m_input.data_value_2, 2 ) : "X" ) + "]" );
-    // TODO: dump status of target cells after the operation
+        + ( ( m_input.flags & flags::value1 ) ? to_string( m_input.data_value_1, 2 ) : "X" ) + "] ["
+        + ( ( m_input.flags & flags::value2 ) ? to_string( m_input.data_value_2, 2 ) : "X" ) + "]" );
     for( auto &target : m_targets ) {
         auto *targetcell { static_cast<TMemCell *>( std::get<scene::basic_node *>( target ) ) };
         if( targetcell == nullptr ) { continue; }
@@ -444,13 +531,18 @@ updatevalues_event::run_() {
             m_input.data_value_1,
             m_input.data_value_2,
             m_input.flags );
+        WriteLog( " Memcell: " + targetcell->name() + " - " + targetcell->Values() );
+//        targetcell->LogValues();
         if( targetcell->Track == nullptr ) { continue; }
         // McZapkie-100302 - updatevalues oprocz zmiany wartosci robi putcommand dla wszystkich 'dynamic' na danym torze
         auto const location { targetcell->location() };
-        for( auto dynamic : targetcell->Track->Dynamics ) {
-            targetcell->PutCommand(
-                dynamic->Mechanik,
-                &location );
+        for( auto vehicle : targetcell->Track->Dynamics ) {
+            if( vehicle->Mechanik ) {
+                targetcell->PutCommand(
+                    vehicle->Mechanik,
+                    &location );
+                WriteLog( " Vehicle: [" + vehicle->name() + "]" );
+            }
         }
     }
 }
@@ -460,9 +552,9 @@ void
 updatevalues_event::export_as_text_( std::ostream &Output ) const {
 
     Output
-        << ( ( m_input.flags & flags::text )    == 0 ? "*" : m_input.data_text ) << ' '
-        << ( ( m_input.flags & flags::value_1 ) == 0 ? "*" : to_string( m_input.data_value_1 ) ) << ' '
-        << ( ( m_input.flags & flags::value_2 ) == 0 ? "*" : to_string( m_input.data_value_2 ) ) << ' ';
+        << ( ( m_input.flags & flags::text )   == 0 ? "*" : m_input.data_text ) << ' '
+        << ( ( m_input.flags & flags::value1 ) == 0 ? "*" : to_string( m_input.data_value_1 ) ) << ' '
+        << ( ( m_input.flags & flags::value2 ) == 0 ? "*" : to_string( m_input.data_value_2 ) ) << ' ';
 
     m_conditions.export_as_text( Output );
 }
@@ -490,6 +582,10 @@ getvalues_event::init() {
             // to event nie będzie dodawany do kolejki
             m_passive = true;
         }
+    }
+    if( m_targets.empty() ) {
+        m_ignored = true;
+        return;
     }
     // NOTE: GetValues retrieves data only from first specified memory cell
     // TBD, TODO: allow retrieval from more than one cell?
@@ -679,9 +775,23 @@ putvalues_event::run_() {
          m_input.location.z,
          m_input.location.y };
 
+    std::string vehiclename;
     if( m_activator->Mechanik ) {
         // przekazanie rozkazu do AI
+        vehiclename = m_activator->Mechanik->Vehicle()->name();
         m_activator->Mechanik->PutCommand(
+            m_input.data_text,
+            m_input.data_value_1,
+            m_input.data_value_2,
+            loc );
+    }
+    else if( ( m_activator->ctOwner )
+          && ( is_command_for_owner( m_input ) ) ) {
+        // send the command to consist owner,
+        // we're acting on presumption there's hardly ever need to issue command to unmanned vehicle
+        // and the intended recipient moved between vehicles after the event was queued
+        vehiclename = m_activator->ctOwner->Vehicle()->name();
+        m_activator->ctOwner->PutCommand(
             m_input.data_text,
             m_input.data_value_1,
             m_input.data_value_2,
@@ -689,12 +799,15 @@ putvalues_event::run_() {
     }
     else {
         // przekazanie do pojazdu
+        vehiclename = m_activator->name();
         m_activator->MoverParameters->PutCommand(
             m_input.data_text,
             m_input.data_value_1,
             m_input.data_value_2,
             loc );
     }
+
+    WriteLog( " Vehicle: [" + vehiclename + "]" );
 }
 
 // export_as_text() subclass details
@@ -710,6 +823,17 @@ putvalues_event::export_as_text_( std::ostream &Output ) const {
         << m_input.data_text << ' '
         << m_input.data_value_1 << ' '
         << m_input.data_value_2 << ' ';
+}
+
+//determines whether provided input should be passed to consist owner
+bool
+putvalues_event::is_command_for_owner( input_data const &Input ) const {
+
+    if( Input.data_text.rfind( "Load=", 0 ) == std::string::npos ) { return false; }
+    if( Input.data_text.rfind( "UnLoad=", 0 ) == std::string::npos ) { return false; }
+    // TBD, TODO: add other exceptions
+
+    return true;
 }
 
 // input data access
@@ -764,7 +888,7 @@ copyvalues_event::type() const {
 void
 copyvalues_event::deserialize_( cParser &Input, scene::scratch_data &Scratchpad ) {
 
-    m_input.flags = ( flags::text | flags::value_1 | flags::value_2 ); // normalnie trzy
+    m_input.flags = ( flags::text | flags::value1 | flags::value2 ); // normalnie trzy
 
     std::string token;
     int paramidx { 0 };
@@ -780,7 +904,7 @@ copyvalues_event::deserialize_( cParser &Input, scene::scratch_data &Scratchpad 
                 break;
             }
             case 2: { // maska wartości
-                m_input.flags = stol_def( token, ( flags::text | flags::value_1 | flags::value_2 ) );
+                m_input.flags = stol_def( token, ( flags::text | flags::value1 | flags::value2 ) );
                 break;
             }
             default: {
@@ -802,8 +926,8 @@ copyvalues_event::run_() {
 
     WriteLog( "Type: CopyValues - ["
         + ( ( m_input.flags & flags::text ) ? m_input.data_text : "X" ) + "] ["
-        + ( ( m_input.flags & flags::value_1 ) ? to_string( m_input.data_value_1, 2 ) : "X" ) + "] ["
-        + ( ( m_input.flags & flags::value_2 ) ? to_string( m_input.data_value_2, 2 ) : "X" ) + "]" );
+        + ( ( m_input.flags & flags::value1 ) ? to_string( m_input.data_value_1, 2 ) : "X" ) + "] ["
+        + ( ( m_input.flags & flags::value2 ) ? to_string( m_input.data_value_2, 2 ) : "X" ) + "]" );
     // TODO: dump status of target cells after the operation
     for( auto &target : m_targets ) {
         auto *targetcell { static_cast<TMemCell *>( std::get<scene::basic_node *>( target ) ) };
@@ -813,13 +937,18 @@ copyvalues_event::run_() {
             m_input.data_value_1,
             m_input.data_value_2,
             m_input.flags );
+        WriteLog( " Memcell: " + targetcell->name() + " - " + targetcell->Values() );
+//        targetcell->LogValues();
         if( targetcell->Track == nullptr ) { continue; }
         // McZapkie-100302 - updatevalues oprocz zmiany wartosci robi putcommand dla wszystkich 'dynamic' na danym torze
         auto const location { targetcell->location() };
-        for( auto dynamic : targetcell->Track->Dynamics ) {
-            targetcell->PutCommand(
-                dynamic->Mechanik,
-                &location );
+        for( auto vehicle : targetcell->Track->Dynamics ) {
+            if( vehicle->Mechanik ) {
+                targetcell->PutCommand(
+                    vehicle->Mechanik,
+                    &location );
+                WriteLog( " Vehicle: [" + vehicle->name() + "]" );
+            }
         }
     }
 }
@@ -833,7 +962,7 @@ copyvalues_event::export_as_text_( std::ostream &Output ) const {
         << ( datasource != nullptr ?
                 datasource->name() :
                 std::get<std::string>( m_input.data_source ) )
-        << ' ' << ( m_input.flags & ( flags::text | flags::value_1 | flags::value_2 ) ) << ' ';
+        << ' ' << ( m_input.flags & ( flags::text | flags::value1 | flags::value2 ) ) << ' ';
 }
 
 
@@ -856,7 +985,7 @@ whois_event::type() const {
 void
 whois_event::deserialize_( cParser &Input, scene::scratch_data &Scratchpad ) {
 
-    m_input.flags = ( flags::text | flags::value_1 | flags::value_2 ); // normalnie trzy
+    m_input.flags = ( flags::text | flags::value1 | flags::value2 ); // normalnie trzy
 
     std::string token;
     int paramidx { 0 };
@@ -868,7 +997,7 @@ whois_event::deserialize_( cParser &Input, scene::scratch_data &Scratchpad ) {
         Input >> token;
         switch( ++paramidx ) {
             case 1: { // maska wartości
-                m_input.flags = stol_def( token, ( flags::text | flags::value_1 | flags::value_2 ) );
+                m_input.flags = stol_def( token, ( flags::text | flags::value1 | flags::value2 ) );
                 break;
             }
             default: {
@@ -886,11 +1015,26 @@ whois_event::run_() {
         auto *targetcell { static_cast<TMemCell *>( std::get<scene::basic_node *>( target ) ) };
         if( targetcell == nullptr ) { continue; }
         // event effect code
+        // +32: vehicle name
         // +24: vehicle type, consist brake level, obstacle distance
         // +16: load type, load amount, max load amount
         // +8: destination, direction, engine power
         // +0: train name, station count, stop on next station
-        if( m_input.flags & flags::load ) {
+        if( m_input.flags & flags::whois_name ) {
+            // +32 or +40
+                targetcell->UpdateValues(
+                    m_activator->asName, // vehicle name
+                    0, // unused
+                    0, // unused
+                    m_input.flags & ( flags::text | flags::value1 | flags::value2 ) );
+
+                WriteLog(
+                    "Type: WhoIs (" + to_string( m_input.flags ) + ") - "
+                    + "[name: " + m_activator->asName + "], "
+                    + "[X], "
+                    + "[X]" );
+        }
+        else if( m_input.flags & flags::whois_load ) {
             // +16 or +24
             // jeśli pytanie o ładunek
             if( m_input.flags & flags::mode_alt ) {
@@ -913,7 +1057,7 @@ whois_event::run_() {
                     m_activator->MoverParameters->TypeName, // typ pojazdu
                     consistbrakelevel,
                     collisiondistance,
-                    m_input.flags & ( flags::text | flags::value_1 | flags::value_2 ) );
+                    m_input.flags & ( flags::text | flags::value1 | flags::value2 ) );
 
                 WriteLog(
                     "Type: WhoIs (" + to_string( m_input.flags ) + ") - "
@@ -927,7 +1071,7 @@ whois_event::run_() {
                     m_activator->MoverParameters->LoadType.name, // nazwa ładunku
                     m_activator->MoverParameters->LoadAmount, // aktualna ilość
                     m_activator->MoverParameters->MaxLoad, // maksymalna ilość
-                    m_input.flags & ( flags::text | flags::value_1 | flags::value_2 ) );
+                    m_input.flags & ( flags::text | flags::value1 | flags::value2 ) );
 
                 WriteLog(
                     "Type: WhoIs (" + to_string( m_input.flags ) + ") - "
@@ -942,7 +1086,7 @@ whois_event::run_() {
                 m_activator->asDestination, // adres docelowy
                 m_activator->DirectionGet(), // kierunek pojazdu względem czoła składu (1=zgodny,-1=przeciwny)
                 m_activator->MoverParameters->Power, // moc pojazdu silnikowego: 0 dla wagonu
-                m_input.flags & ( flags::text | flags::value_1 | flags::value_2 ) );
+                m_input.flags & ( flags::text | flags::value1 | flags::value2 ) );
 
             WriteLog(
                 "Type: WhoIs (" + to_string( m_input.flags ) + ") - "
@@ -974,7 +1118,7 @@ whois_event::run_() {
 void
 whois_event::export_as_text_( std::ostream &Output ) const {
 
-    Output << ( m_input.flags & ( flags::text | flags::value_1 | flags::value_2 ) ) << ' ';
+    Output << ( m_input.flags & ( flags::text | flags::value1 | flags::value2 ) ) << ' ';
 }
 
 
@@ -1013,11 +1157,7 @@ logvalues_event::run_() {
         for( auto &target : m_targets ) {
             auto *targetcell { static_cast<TMemCell *>( std::get<scene::basic_node *>( target ) ) };
             if( targetcell == nullptr ) { continue; }
-            WriteLog(
-                "Memcell \"" + targetcell->name() + "\": ["
-                + targetcell->Text() + "] ["
-                + to_string( targetcell->Value1(), 2 ) + "] ["
-                + to_string( targetcell->Value2(), 2 ) + "]" );
+            targetcell->LogValues();
         }
     }
 }
@@ -1034,12 +1174,12 @@ logvalues_event::export_as_text_( std::ostream &Output ) const {
 void
 multi_event::init() {
 
-    auto const conditiontchecksmemcell { ( m_conditions.flags & ( flags::text | flags::value_1 | flags::value_2 ) ) != 0 };
+    auto const conditiontchecksmemcell { ( m_conditions.flags & ( flags::text | flags::value1 | flags::value2 ) ) != 0 };
     // not all multi-events have memory cell checks, for the ones which don't we can keep quiet about it
     init_targets( simulation::Memory, "memory cell", conditiontchecksmemcell );
     if( m_ignored ) {
         // legacy compatibility behaviour, instead of disabling the event we disable the memory cell comparison test
-        m_conditions.flags &= ~( flags::text | flags::value_1 | flags::value_2 );
+        m_conditions.flags &= ~( flags::text | flags::value1 | flags::value2 );
         m_ignored = false;
     }
     // conditional data
@@ -1077,7 +1217,6 @@ multi_event::deserialize_( cParser &Input, scene::scratch_data &Scratchpad ) {
             // NOTE: condition block comes last so we can bail out afterwards
             break;
         }
-
         else if( token == "else" ) {
             // zmiana flagi dla słowa "else"
             m_conditions.has_else = !m_conditions.has_else;
@@ -1267,6 +1406,105 @@ sound_event::deserialize_targets( std::string const &Input ) {
             m_sounds.emplace_back( target, nullptr );
         }
     }
+}
+
+
+
+TMemCell const *
+texture_event::input_data::data_cell() const {
+
+    return static_cast<TMemCell const *>( std::get<scene::basic_node *>( data_source ) );
+}
+TMemCell *
+texture_event::input_data::data_cell() {
+
+    return static_cast<TMemCell *>( std::get<scene::basic_node *>( data_source ) );
+}
+
+
+
+// prepares event for use
+void
+texture_event::init() {
+    // target models
+    init_targets( simulation::Instances, "model instance" );
+    // optional input data memory cell
+    TMemCell *inputcell { nullptr };
+    auto const inputcellname { std::get<std::string>( m_input.data_source ) };
+    if( inputcellname != "none" ) {
+        inputcell = simulation::Memory.find( inputcellname );
+        if( inputcell == nullptr ) {
+            ErrorLog( "Bad event: \"" + m_name + "\" (type: " + type() + ") can't find memory cell \"" + inputcellname + "\"" );
+        }
+    }
+    std::get<scene::basic_node *>( m_input.data_source ) = inputcell;
+}
+
+// event type string
+std::string
+texture_event::type() const {
+
+    return "texture";
+}
+
+// deserialize() subclass details
+void
+texture_event::deserialize_( cParser &Input, scene::scratch_data &Scratchpad ) {
+
+    Input.getTokens( 3 );
+    Input
+        >> m_skinindex
+        >> m_skin
+        >> std::get<std::string>( m_input.data_source );
+
+    // validate input
+    if( m_skinindex < 0 ) {
+        // intercept potential error, index specified using .t3d format convention
+        m_skinindex *= -1;
+    }
+    m_skinindex = clamp( m_skinindex, 1, 4 ); // TODO: define-based upper bound in case of future extension
+
+    Input.getTokens(); // preload next token
+}
+
+// run() subclass details
+void
+texture_event::run_() {
+
+    material_handle material { null_handle };
+
+    if( m_input.data_cell() == nullptr ) {
+        // straightforward variant without parameters, we can pass expression directly
+        material = GfxRenderer->Fetch_Material( m_skin );
+    }
+    else {
+        // variant with memory cell: pass the cell content as parameters and generate filename
+        cParser expression(
+            m_skin, cParser::buffer_TEXT,
+            "", true,
+            {   m_input.data_cell()->Text(),
+                to_string( m_input.data_cell()->Value1(), 0 ), // memory cell values are passed as ints
+                to_string( m_input.data_cell()->Value2(), 0 ) } );
+        material = GfxRenderer->Fetch_Material( expression.getToken<std::string>( false, "\n\r" ) );
+    }
+    // assign received material to target models
+    for( auto &target : m_targets ) {
+        auto *targetmodel = static_cast<TAnimModel *>( std::get<scene::basic_node *>( target ) );
+        if( targetmodel == nullptr ) { continue; }
+        // event effect code
+        targetmodel->SkinSet( m_skinindex, material );
+    }
+}
+
+// export_as_text() subclass details
+void
+texture_event::export_as_text_( std::ostream &Output ) const {
+
+    // playback mode
+    Output
+        << m_skinindex << ' '
+        << m_skin << ' '
+        << std::get<std::string>( m_input.data_source ) << ' ';
 }
 
 
@@ -1897,6 +2135,7 @@ make_event( cParser &Input, scene::scratch_data &Scratchpad ) {
     else if( type == "switch" )       { event = new switch_event(); }
     else if( type == "trackvel" )     { event = new track_event(); }
     else if( type == "sound" )        { event = new sound_event(); }
+    else if( type == "texture" )      { event = new texture_event(); }
     else if( type == "animation" )    { event = new animation_event(); }
     else if( type == "lights" )       { event = new lights_event(); }
     else if( type == "voltage" )      { event = new voltage_event(); }
@@ -1905,7 +2144,7 @@ make_event( cParser &Input, scene::scratch_data &Scratchpad ) {
     else if( type == "message" )      { event = new message_event(); }
 
     if( event == nullptr ) {
-        WriteLog( "Bad event: unrecognized type \"" + type + "\" specified for event \"" + name + "\"." );
+        ErrorLog( "Bad event: unrecognized type \"" + type + "\" specified for event \"" + name + "\"." );
         return event;
     }
 
@@ -1956,14 +2195,19 @@ event_manager::update() {
     CheckQuery();
     // test list of global events for possible new additions to the queue
     for( auto *launcher : m_launcherqueue ) {
+		if (launcher->check_conditions() && launcher->Event1) {
+			// NOTE: we're presuming global events aren't going to use event2
 
-        if( true == ( launcher->check_activation() && launcher->check_conditions() ) ) {
-            // NOTE: we're presuming global events aren't going to use event2
-            WriteLog( "Eventlauncher " + launcher->name() );
-            if( launcher->Event1 ) {
-                AddToQuery( launcher->Event1, nullptr );
-            }
-        }
+			if (launcher->check_activation()) {
+				WriteLog( "Eventlauncher: " + launcher->name() );
+				AddToQuery( launcher->Event1, nullptr );
+			}
+
+			if (launcher->check_activation_key()) {
+				WriteLog( "Eventlauncher: " + launcher->name() );
+				m_relay.post(user_command::queueevent, 0.0, 0.0, GLFW_PRESS, 0, glm::vec3(0.0f), &launcher->Event1->name());
+			}
+		}
     }
 }
 
@@ -2068,10 +2312,24 @@ event_manager::AddToQuery( basic_event *Event, TDynamicObject const *Owner ) {
         // standardowe dodanie do kolejki
         ++(Event->m_inqueue); // zabezpieczenie przed podwójnym dodaniem do kolejki
         WriteLog( "EVENT ADDED TO QUEUE" + ( Owner ? ( " by " + Owner->asName ) : "" ) + ": " + Event->m_name );
-        Event->m_launchtime = std::abs( Event->m_delay ) + Timer::GetTime(); // czas od uruchomienia scenerii
+        Event->m_launchtime = Timer::GetTime() + std::abs( Event->m_delay ); // czas od uruchomienia scenerii
         if( Event->m_delayrandom > 0.0 ) {
             // doliczenie losowego czasu opóźnienia
             Event->m_launchtime += Event->m_delayrandom * Random();
+        }
+        if( ( Owner != nullptr )
+         && ( false == std::isnan( Event->m_delaydeparture ) ) ) {
+            auto const *timetableowner { (
+                ( ( Owner->Mechanik != nullptr ) && ( Owner->Mechanik->primary() ) ) ?
+                    Owner->Mechanik :
+                    Owner->ctOwner ) };
+            if( timetableowner != nullptr ) {
+                auto const &timetable { timetableowner->TrainTimetable() };
+                auto const &time { simulation::Time.data() };
+                Event->m_launchtime +=
+                    timetable.seconds_until_departure( time.wHour, time.wMinute + time.wSecond * 0.0167 )
+                    + Event->m_delaydeparture;
+            }
         }
         if( QueryRootEvent != nullptr ) {
             basic_event *target { QueryRootEvent };

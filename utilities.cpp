@@ -27,6 +27,8 @@ Copyright (C) 2007-2014 Maciej Cierniak
 #include "Globals.h"
 #include "parser.h"
 
+#include "Logs.h"
+
 bool DebugModeFlag = false;
 bool FreeFlyModeFlag = false;
 bool EditorModeFlag = false;
@@ -106,8 +108,13 @@ bool ClearFlag( int &Flag, int const Value ) {
 
 double Random(double a, double b)
 {
-    std::uniform_real_distribution<> dis(a, b);
-    return dis(Global.random_engine);
+	uint32_t val = Global.random_engine();
+#ifdef EU07_DEBUG_NETSYNC
+    auto const value = interpolate( a, b, (double)val / Global.random_engine.max() );
+    WriteLog( "random: [" + to_string(a,0) + "-" + to_string(b,0) + "] = " + std::to_string( value ) );
+    return value;
+#endif
+    return interpolate(a, b, (double)val / Global.random_engine.max());
 }
 
 double LocalRandom(double a, double b)
@@ -193,6 +200,19 @@ std::vector<std::string> Split(const std::string &s)
 	return elems;
 }
 
+std::pair<std::string, int>
+split_string_and_number( std::string const &Key ) {
+
+    auto const indexstart{ Key.find_first_of( "-1234567890" ) };
+    auto const indexend{ Key.find_first_not_of( "-1234567890", indexstart ) };
+    if( indexstart != std::string::npos ) {
+        return {
+            Key.substr( 0, indexstart ),
+            std::stoi( Key.substr( indexstart, indexend - indexstart ) ) };
+    }
+    return { Key, 0 };
+}
+
 std::string to_string(int Value)
 {
 	std::ostringstream o;
@@ -214,10 +234,10 @@ std::string to_string(double Value)
 	return o.str();
 };
 
-std::string to_string(int Value, int precision)
+std::string to_string(int Value, int width)
 {
 	std::ostringstream o;
-	o << std::fixed << std::setprecision(precision);
+	o.width(width);
 	o << Value;
 	return o.str();
 };
@@ -225,15 +245,6 @@ std::string to_string(int Value, int precision)
 std::string to_string(double Value, int precision)
 {
 	std::ostringstream o;
-	o << std::fixed << std::setprecision(precision);
-	o << Value;
-	return o.str();
-};
-
-std::string to_string(int Value, int precision, int width)
-{
-	std::ostringstream o;
-	o.width(width);
 	o << std::fixed << std::setprecision(precision);
 	o << Value;
 	return o.str();
@@ -446,6 +457,14 @@ len_common_prefix( std::string const &Left, std::string const &Right ) {
     return ( Right.size() <= Left.size() ?
         std::distance( right, std::mismatch( right, right + Right.size(), left ).first ) :
         std::distance( left,  std::mismatch( left,  left + Left.size(),  right ).first ) );
+}
+
+// returns true if provided string ends with another provided string
+bool
+ends_with( std::string const &String, std::string const &Suffix ) {
+
+    return ( String.size() >= Suffix.size() )
+        && ( 0 == String.compare( String.size() - Suffix.size(), Suffix.size(), Suffix ) );
 }
 
 // helper, restores content of a 3d vector from provided input stream

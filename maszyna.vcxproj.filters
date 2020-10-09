@@ -70,6 +70,18 @@
     <Filter Include="Source Files\math">
       <UniqueIdentifier>{dd00198e-a316-4bcc-a4d3-916c8dcfe08f}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Source Files\application\network">
+      <UniqueIdentifier>{a41f784b-da5a-40de-a4ec-f9b1da1aa607}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\application\network">
+      <UniqueIdentifier>{5a6c58fe-4b3c-4a46-8ef0-71d4c08d7ebe}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\application\network\backend">
+      <UniqueIdentifier>{de8b7596-9589-4320-9008-15e15ebf1d8f}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\application\network\backend">
+      <UniqueIdentifier>{db0ac2d6-9a5d-412e-87b6-8b23c8f8b7a7}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="AirCoupler.cpp">
@@ -441,6 +453,24 @@
     <ClCompile Include="opengl33geometrybank.cpp">
       <Filter>Source Files\gfx</Filter>
     </ClCompile>
+    <ClCompile Include="network\network.cpp">
+      <Filter>Source Files\application\network</Filter>
+    </ClCompile>
+    <ClCompile Include="network\manager.cpp">
+      <Filter>Source Files\application\network</Filter>
+    </ClCompile>
+    <ClCompile Include="network\message.cpp">
+      <Filter>Source Files\application\network</Filter>
+    </ClCompile>
+    <ClCompile Include="network\backend\asio.cpp">
+      <Filter>Source Files\application\network\backend</Filter>
+    </ClCompile>
+    <ClCompile Include="ladderlogic.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="simulationsounds.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Globals.h">
@@ -811,6 +841,27 @@
     </ClInclude>
     <ClInclude Include="stars.h">
       <Filter>Header Files\gfx</Filter>
+    </ClInclude>
+    <ClInclude Include="network\manager.h">
+      <Filter>Header Files\application\network</Filter>
+    </ClInclude>
+    <ClInclude Include="network\message.h">
+      <Filter>Header Files\application\network</Filter>
+    </ClInclude>
+    <ClInclude Include="network\network.h">
+      <Filter>Header Files\application\network</Filter>
+    </ClInclude>
+    <ClInclude Include="network\backend\asio.h">
+      <Filter>Header Files\application\network\backend</Filter>
+    </ClInclude>
+    <ClInclude Include="comparison.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="ladderlogic.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="simulationsounds.h">
+      <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

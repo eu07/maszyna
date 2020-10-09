@@ -60,6 +60,8 @@ private:
 
     using input_pin_t = std::tuple<std::size_t, input_type_t, user_command, user_command>;
     using inputpin_sequence = std::vector<input_pin_t>;
+    
+    bool setup_port();
 
 // members
     sp_port *port = nullptr;

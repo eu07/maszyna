@@ -47,24 +47,10 @@ driver_ui::driver_ui() {
 bool
 driver_ui::on_key_( int const Key, int const Scancode, int const Action, int const Mods ) {
 
-    if( Key == GLFW_KEY_ESCAPE ) {
-        // toggle pause
-        if( Action != GLFW_PRESS ) { return true; } // recognized, but ignored
-
-        if( Global.iPause & 1 ) {
-            // jeśli pauza startowa
-            // odpauzowanie, gdy po wczytaniu miało nie startować
-            Global.iPause ^= 1;
-        }
-        else if( ( Global.iMultiplayer & 2 ) == 0 ) {
-            // w multiplayerze pauza nie ma sensu
-            Global.iPause ^= 2; // zmiana stanu zapauzowania
-        }
-        return true;
+    if( m_paused ) {
+        // if the pause is on block input except for the pause key which we let the owner deal with
+        return ( Key != Application.key_binding( user_command::pausetoggle ) );
     }
-
-    // if the pause is on ignore block other input
-    if( m_paused ) { return true; }
 
     switch( Key ) {
 
@@ -164,29 +150,6 @@ driver_ui::update() {
     }
     m_paused = ispaused;
 
-    set_tooltip( "" );
-
-    auto const *train { simulation::Train };
-
-    if( ( train != nullptr ) && ( false == FreeFlyModeFlag ) ) {
-        if( false == DebugModeFlag ) {
-            // in regular mode show control functions, for defined controls
-            set_tooltip( locale::label_cab_control( train->GetLabel( GfxRenderer->Pick_Control() ) ) );
-        }
-        else {
-            // in debug mode show names of submodels, to help with cab setup and/or debugging
-            auto const cabcontrol = GfxRenderer->Pick_Control();
-            set_tooltip( ( cabcontrol ? cabcontrol->pName : "" ) );
-        }
-    }
-    if( ( true == Global.ControlPicking ) && ( true == FreeFlyModeFlag ) && ( true == DebugModeFlag ) ) {
-        auto const scenerynode = GfxRenderer->Pick_Node();
-        set_tooltip(
-            ( scenerynode ?
-                scenerynode->name() :
-                "" ) );
-    }
-
     ui_layer::update();
 }
 
@@ -215,12 +178,19 @@ driver_ui::render_() {
             auto const popupwidth{ locale::strings[ locale::string::driver_pause_header ].size() * 7 };
             if( ImGui::Button( locale::strings[ locale::string::driver_pause_resume ].c_str(), ImVec2( popupwidth, 0 ) ) ) {
                 ImGui::CloseCurrentPopup();
-                auto const pausemask { 1 | 2 };
-                Global.iPause &= ~pausemask;
+                command_relay commandrelay;
+    			commandrelay.post(user_command::pausetoggle, 0.0, 0.0, GLFW_PRESS, 0);
             }
             if( ImGui::Button( locale::strings[ locale::string::driver_pause_quit ].c_str(), ImVec2( popupwidth, 0 ) ) ) {
                 ImGui::CloseCurrentPopup();
-                glfwSetWindowShouldClose( m_window, 1 );
+                // NOTE: server shuts down entire network, client or standalone instance only shuts down self
+                if( Application.is_server() ) {
+                    command_relay commandrelay;
+                    commandrelay.post( user_command::quitsimulation, 0.0, 0.0, GLFW_PRESS, 0 );
+                }
+                else {
+                    Application.queue_quit();
+                }
             }
             ImGui::EndPopup();
         }

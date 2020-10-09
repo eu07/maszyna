@@ -37,14 +37,8 @@ bool
 opengl_camera::visible( TDynamicObject const *Dynamic ) const {
 
     // sphere test is faster than AABB, so we'll use it here
-    glm::vec3 diagonal(
-        static_cast<float>( Dynamic->MoverParameters->Dim.L ),
-        static_cast<float>( Dynamic->MoverParameters->Dim.H ),
-        static_cast<float>( Dynamic->MoverParameters->Dim.W ) );
     // we're giving vehicles some extra padding, to allow for things like shared bogeys extending past the main body
-    float const radius = glm::length( diagonal ) * 0.65f;
-
-    return ( m_frustum.sphere_inside( Dynamic->GetPosition(), radius ) > 0.0f );
+    return ( m_frustum.sphere_inside( Dynamic->GetPosition(), Dynamic->radius() * 1.25 ) > 0.0f );
 }
 
 // debug helper, draws shape of frustum in world space

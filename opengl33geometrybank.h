@@ -48,8 +48,8 @@ private:
     void
         replace_( gfx::geometry_handle const &Geometry ) override;
     // draw() subclass details
-    void
-        draw_( gfx::geometry_handle const &Geometry, gfx::stream_units const &Units, unsigned int const Streams ) override;
+    auto
+        draw_( gfx::geometry_handle const &Geometry, gfx::stream_units const &Units, unsigned int const Streams ) -> std::size_t override;
     // release() subclass details
     void
         release_() override;

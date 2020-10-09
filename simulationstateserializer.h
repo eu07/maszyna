@@ -14,21 +14,40 @@ http://mozilla.org/MPL/2.0/.
 
 namespace simulation {
 
+struct deserializer_state {
+	std::string scenariofile;
+	cParser input;
+	scene::scratch_data scratchpad;
+	using deserializefunctionbind = std::function<void()>;
+	std::unordered_map<
+	    std::string,
+	    deserializefunctionbind> functionmap;
+
+	deserializer_state(std::string const &File, cParser::buffertype const Type, const std::string &Path, bool const Loadtraction)
+	    : scenariofile(File), input(File, Type, Path, Loadtraction) { }
+};
+
 class state_serializer {
 
 public:
 // methods
-    // restores simulation data from specified file. returns: true on success, false otherwise
-    bool
-        deserialize( std::string const &Scenariofile );
+	// starts deserialization from specified file, returns context pointer on success, throws otherwise
+	std::shared_ptr<deserializer_state>
+	    deserialize_begin(std::string const &Scenariofile);
+	// continues deserialization for given context, amount limited by time, returns true if needs to be called again
+	bool
+	    deserialize_continue(std::shared_ptr<deserializer_state> state);
     // stores class data in specified file, in legacy (text) format
     void
         export_as_text( std::string const &Scenariofile ) const;
+	// create new model from node stirng
+	TAnimModel * create_model(std::string const &src, std::string const &name, const glm::dvec3 &position);
+	// create new eventlauncher from node stirng
+	TEventLauncher * create_eventlauncher(std::string const &src, std::string const &name, const glm::dvec3 &position);
 
 private:
 // methods
     // restores class data from provided stream
-    void deserialize( cParser &Input, scene::scratch_data &Scratchpad );
     void deserialize_area( cParser &Input, scene::scratch_data &Scratchpad );
     void deserialize_assignment( cParser &Input, scene::scratch_data &Scratchpad );
     void deserialize_atmo( cParser &Input, scene::scratch_data &Scratchpad );
@@ -57,10 +76,12 @@ private:
     TAnimModel * deserialize_model( cParser &Input, scene::scratch_data &Scratchpad, scene::node_data const &Nodedata );
     TDynamicObject * deserialize_dynamic( cParser &Input, scene::scratch_data &Scratchpad, scene::node_data const &Nodedata );
     sound_source * deserialize_sound( cParser &Input, scene::scratch_data &Scratchpad, scene::node_data const &Nodedata );
+    void init_time();
     // skips content of stream until specified token
     void skip_until( cParser &Input, std::string const &Token );
     // transforms provided location by specifed rotation and offset
     glm::dvec3 transform( glm::dvec3 Location, scene::scratch_data const &Scratchpad );
+    void export_nodes_to_stream( std::ostream &, bool Dirty ) const;
 };
 
 } // simulation

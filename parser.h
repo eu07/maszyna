@@ -89,6 +89,7 @@ class cParser //: public std::stringstream
   private:
     // methods:
     std::string readToken(bool ToLower = true, const char *Break = "\n\r\t ;");
+    std::vector<std::string> readParameters( cParser &Input );
     std::string readQuotes( char const Quote = '\"' );
     void skipComment( std::string const &Endmark );
     bool findQuotes( std::string &String );
@@ -103,6 +104,7 @@ class cParser //: public std::stringstream
     std::streamoff mSize { 0 }; // size of open stream, for progress report.
     std::size_t mLine { 0 }; // currently processed line
     bool mIncFile { false }; // the parser is processing an *.inc file
+    bool mFirstToken { true }; // processing first token in the current file; helper used when checking for utf bom
     typedef std::map<std::string, std::string> commentmap;
     commentmap mComments {
         commentmap::value_type( "/*", "*/" ),

@@ -40,9 +40,15 @@ class memory_table;
 class powergridsource_table;
 class instance_table;
 class vehicle_table;
+class train_table;
 struct light_array;
 class particle_manager;
 struct dictionary_source;
+
+namespace plc {
+using element_handle = short;
+class basic_controller;
+}
 
 namespace scene {
 struct node_data;
@@ -70,11 +76,16 @@ enum class TCommandType
     cm_ChangeDirection,
     cm_PassengerStopPoint,
     cm_OutsideStation,
-    cm_Shunt,
+//    cm_Shunt, // unused?
+    cm_EmergencyBrake,
     cm_Command // komenda pobierana z komórki
 };
 
 using material_handle = int;
 using texture_handle = int;
+
+struct invalid_scenery_exception : std::runtime_error {
+	invalid_scenery_exception() : std::runtime_error("cannot load scenery") {}
+};
 
 #endif

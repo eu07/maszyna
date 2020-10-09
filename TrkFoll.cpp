@@ -38,6 +38,12 @@ bool TTrackFollower::Init(TTrack *pTrack, TDynamicObject *NewOwner, double fDir)
     return true;
 }
 
+void TTrackFollower::Reset()
+{
+	fCurrentDistance = 0.0;
+	fDirection = 1.0;
+}
+
 TTrack * TTrackFollower::SetCurrentTrack(TTrack *pTrack, int end)
 { // przejechanie na inny odcinkek toru, z ewentualnym rozpruciem
     if (pTrack)

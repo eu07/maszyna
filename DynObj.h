@@ -21,6 +21,8 @@ http://mozilla.org/MPL/2.0/.
 #include "sound.h"
 #include "Spring.h"
 
+#define EU07_SOUND_BOGIESOUNDS
+
 //---------------------------------------------------------------------------
 //---------------------------------------------------------------------------
 //---------------------------------------------------------------------------
@@ -148,6 +150,16 @@ public:
 
 //---------------------------------------------------------------------------
 
+enum class announcement_t : int {
+    idle = 0,
+    approaching,
+    current,
+    next,
+    destination,
+    chime,
+    end
+};
+
 // parameters for the material object, as currently used by various simulator models
 struct material_data {
 
@@ -197,8 +209,6 @@ public:
     inline int PrevConnectedNo() const { return MoverParameters->Neighbours[ end::front ].vehicle_end; }
 //    double fTrackBlock; // odległość do przeszkody do dalszego ruchu (wykrywanie kolizji z innym pojazdem)
 
-    TPowerSource ConnectedEnginePowerSource( TDynamicObject const *Caller ) const;
-
     // modele składowe pojazdu
     TModel3d *mdModel; // model pudła
     TModel3d *mdLoad; // model zmiennego ładunku
@@ -212,6 +222,7 @@ public:
         bool has_light { false }; // the submodel was originally configured with self-illumination attribute
         material_handle destination { null_handle }; // most recently assigned non-blank destination texture
         material_handle destination_off { null_handle }; // blank destination sign
+        std::string background; // potential default background texture override
         std::string script; // potential python script used to generate texture data
         int update_rate { 0 }; // -1: per stop, 0: none, >0: fps // TBD, TODO: implement?
         std::string instancing; // potential method to generate more than one texture per timetable
@@ -229,16 +240,12 @@ public:
     struct vehicle_section {
         TSubModel *compartment;
         TSubModel *load;
+        int load_chunks_visible;
         float light_level;
     };
     std::vector<vehicle_section> Sections; // table of recognized vehicle sections
     bool SectionLightsActive { false }; // flag indicating whether section lights were set.
-    struct section_visibility {
-        TSubModel *submodel;
-        bool visible;
-        int visible_chunks;
-    };
-    std::vector<section_visibility> SectionLoadVisibility; // visibility of specific sections of the load 3d model
+    std::vector<vehicle_section *> SectionLoadOrder; // helper, activation/deactivation load chunk sequence
 
 private:
     // zmienne i metody do animacji submodeli; Ra: sprzatam animacje w pojeździe
@@ -309,13 +316,31 @@ private:
         float time { 0.f }; // time spent on the operation
     };
 
+    struct coupleradapter_data {
+        glm::vec2 position; // adapter placement; offset from vehicle end and height
+        std::string model; // 3d model of the adapter
+    };
+
     struct coupler_sounds {
-        sound_source dsbCouplerAttach { sound_placement::external }; // moved from cab
-        sound_source dsbCouplerDetach { sound_placement::external }; // moved from cab
+        // TBD: change to an array with index-based access for easier initialization?
+        sound_source attach_coupler { sound_placement::external };
+        sound_source attach_brakehose { sound_placement::external };
+        sound_source attach_mainhose { sound_placement::external };
+        sound_source attach_control { sound_placement::external };
+        sound_source attach_gangway { sound_placement::external };
+        sound_source attach_heating { sound_placement::external };
+        sound_source detach_coupler { sound_placement::external };
+        sound_source detach_brakehose { sound_placement::external };
+        sound_source detach_mainhose { sound_placement::external };
+        sound_source detach_control { sound_placement::external };
+        sound_source detach_gangway { sound_placement::external };
+        sound_source detach_heating { sound_placement::external };
         sound_source dsbCouplerStretch { sound_placement::external }; // moved from cab
         sound_source dsbCouplerStretch_loud { sound_placement::external };
         sound_source dsbBufferClamp { sound_placement::external }; // moved from cab
         sound_source dsbBufferClamp_loud { sound_placement::external };
+        sound_source dsbAdapterAttach { sound_placement::external };
+        sound_source dsbAdapterRemove { sound_placement::external };
     };
 
     struct pantograph_sounds {
@@ -369,6 +394,9 @@ private:
         sound_source engine_turbo { sound_placement::engine };
         double engine_turbo_pitch { 1.0 };
         sound_source oil_pump { sound_placement::engine };
+        sound_source fuel_pump { sound_placement::engine };
+        sound_source water_pump { sound_placement::engine };
+        sound_source water_heater { sound_placement::engine };
         sound_source radiator_fan { sound_placement::engine };
         sound_source radiator_fan_aux { sound_placement::engine };
         sound_source transmission { sound_placement::engine };
@@ -376,6 +404,17 @@ private:
 
         void position( glm::vec3 const Location );
         void render( TMoverParameters const &Vehicle, double const Deltatime );
+    };
+    // single source per door (pair) on the centreline
+    struct doorspeaker_sounds {
+        glm::vec3 offset;
+        sound_source departure_signal;
+    };
+    // single source per vehicle
+    struct pasystem_sounds {
+        std::array<sound_source, static_cast<int>( announcement_t::end )> announcements;
+        sound_source announcement;
+        std::deque<sound_source> announcement_queue; // fifo queue
     };
 
 // methods
@@ -387,8 +426,9 @@ private:
     void update_exchange( double const Deltatime );
 
 // members
-    TButton btCoupler1; // sprzegi
-    TButton btCoupler2;
+    TAirCoupler btCoupler1; // sprzegi
+    TAirCoupler btCoupler2;
+    std::array<TModel3d *, 2> m_coupleradapters = { nullptr, nullptr };
     TAirCoupler btCPneumatic1; // sprzegi powietrzne //yB - zmienione z Button na AirCoupler - krzyzyki
     TAirCoupler btCPneumatic2;
     TAirCoupler btCPneumatic1r; // ABu: to zeby nie bylo problemow przy laczeniu wagonow,
@@ -404,21 +444,25 @@ private:
     TButton btCPass2;
     char cp1, sp1, cp2, sp2; // ustawienia węży
 
-    TButton btEndSignals11; // sygnalu konca pociagu
-    TButton btEndSignals13;
-    TButton btEndSignals21;
-    TButton btEndSignals23;
-    TButton btEndSignals1; // zeby bylo kompatybilne ze starymi modelami...
-    TButton btEndSignals2;
-    TButton btEndSignalsTab1; // sygnaly konca pociagu (blachy)
-    TButton btEndSignalsTab2;
-    TButton btHeadSignals11; // oswietlenie czolowe - przod
-    TButton btHeadSignals12;
-    TButton btHeadSignals13;
-    TButton btHeadSignals21; // oswietlenie czolowe - tyl
-    TButton btHeadSignals22;
-    TButton btHeadSignals23;
-	TButton btMechanik1;
+    TButton m_endsignal12; // sygnalu konca pociagu
+    TButton m_endsignal13;
+    TButton m_endsignal22;
+    TButton m_endsignal23;
+    TButton m_endsignals1; // zeby bylo kompatybilne ze starymi modelami...
+    TButton m_endsignals2;
+    TButton m_endtab1; // sygnaly konca pociagu (blachy)
+    TButton m_endtab2;
+    TAirCoupler m_headlamp11; // oswietlenie czolowe - przod
+    TAirCoupler m_headlamp12;
+    TAirCoupler m_headlamp13;
+    TAirCoupler m_headlamp21; // oswietlenie czolowe - tyl
+    TAirCoupler m_headlamp22;
+    TAirCoupler m_headlamp23;
+    TAirCoupler m_headsignal12;
+    TAirCoupler m_headsignal13;
+    TAirCoupler m_headsignal22;
+    TAirCoupler m_headsignal23;
+    TButton btMechanik1;
 	TButton btMechanik2;
     TButton btShutters1; // cooling shutters for primary water circuit
     TButton btShutters2; // cooling shutters for auxiliary water circuit
@@ -442,6 +486,8 @@ private:
     sound_source m_brakecylinderpistonrecede { sound_placement::external };
     float m_lastbrakepressure { -1.f }; // helper, cached level of pressure in the brake cylinder
     float m_brakepressurechange { 0.f }; // recent change of pressure in the brake cylinder
+    sound_source m_emergencybrake { sound_placement::engine };
+    double m_emergencybrakeflow{ 0.f };
     sound_source sReleaser { sound_placement::external };
     sound_source rsSlippery { sound_placement::external, EU07_SOUND_BRAKINGCUTOFFRANGE }; // moved from cab
     sound_source sSand { sound_placement::external };
@@ -451,18 +497,36 @@ private:
     std::array<coupler_sounds, 2> m_couplersounds; // always front and rear
     std::vector<pantograph_sounds> m_pantographsounds; // typically 2 but can be less (or more?)
     std::vector<door_sounds> m_doorsounds; // can expect symmetrical arrangement, but don't count on it
-    std::vector<sound_source> m_departuresignalsounds; // single source per door (pair) on the centreline
     bool m_doorlocks { false }; // sound helper, current state of door locks
     sound_source sHorn1 { sound_placement::external, 5 * EU07_SOUND_RUNNINGNOISECUTOFFRANGE };
     sound_source sHorn2 { sound_placement::external, 5 * EU07_SOUND_RUNNINGNOISECUTOFFRANGE };
     sound_source sHorn3 { sound_placement::external, 5 * EU07_SOUND_RUNNINGNOISECUTOFFRANGE };
+#ifdef EU07_SOUND_BOGIESOUNDS
     std::vector<sound_source> m_bogiesounds; // TBD, TODO: wrapper for all bogie-related sounds (noise, brakes, squeal etc)
+#else
+    sound_source m_outernoise { sound_placement::external, EU07_SOUND_RUNNINGNOISECUTOFFRANGE };
+#endif
     sound_source m_wheelflat { sound_placement::external, EU07_SOUND_RUNNINGNOISECUTOFFRANGE };
-    sound_source rscurve { sound_placement::external, 2 * EU07_SOUND_RUNNINGNOISECUTOFFRANGE }; // youBy
+    sound_source rscurve { sound_placement::external, EU07_SOUND_RUNNINGNOISECUTOFFRANGE }; // youBy
     sound_source rsDerailment { sound_placement::external, 2 * EU07_SOUND_RUNNINGNOISECUTOFFRANGE }; // McZapkie-051202
 
     exchange_data m_exchange; // state of active load exchange procedure, if any
     exchange_sounds m_exchangesounds; // sounds associated with the load exchange
+
+    std::vector<doorspeaker_sounds> m_doorspeakers;
+    pasystem_sounds m_pasystem;
+
+    std::array<
+        std::array<float, 6> // listener: rear cab, engine, front cab, window, attached camera, free camera
+        , 5> m_soundproofing = {{
+            {{ EU07_SOUNDPROOFING_NONE, EU07_SOUNDPROOFING_STRONG, EU07_SOUNDPROOFING_NONE, EU07_SOUNDPROOFING_SOME, EU07_SOUNDPROOFING_STRONG, EU07_SOUNDPROOFING_STRONG }}, // internal sounds
+            {{ EU07_SOUNDPROOFING_STRONG, EU07_SOUNDPROOFING_NONE, EU07_SOUNDPROOFING_STRONG, EU07_SOUNDPROOFING_SOME, EU07_SOUNDPROOFING_SOME, EU07_SOUNDPROOFING_SOME }}, // engine sounds
+            {{ EU07_SOUNDPROOFING_STRONG, EU07_SOUNDPROOFING_STRONG, EU07_SOUNDPROOFING_STRONG, EU07_SOUNDPROOFING_SOME, EU07_SOUNDPROOFING_SOME, EU07_SOUNDPROOFING_NONE }}, // external sound
+            {{ EU07_SOUNDPROOFING_VERYSTRONG, EU07_SOUNDPROOFING_VERYSTRONG, EU07_SOUNDPROOFING_VERYSTRONG, EU07_SOUNDPROOFING_STRONG, EU07_SOUNDPROOFING_STRONG, EU07_SOUNDPROOFING_NONE }}, // external ambient sound
+            {{ EU07_SOUNDPROOFING_NONE, EU07_SOUNDPROOFING_NONE, EU07_SOUNDPROOFING_NONE, EU07_SOUNDPROOFING_NONE, EU07_SOUNDPROOFING_NONE, EU07_SOUNDPROOFING_NONE }}, // custom sounds
+        }};
+
+    coupleradapter_data m_coupleradapter;
 
     bool renderme; // yB - czy renderowac
     float ModCamRot;
@@ -482,7 +546,6 @@ private:
     void ABuCheckMyTrack();
 
   public:
-    int *iLights; // wskaźnik na bity zapalonych świateł (własne albo innego członu)
     bool DimHeadlights{ false }; // status of the headlight dimming toggle. NOTE: single toggle for all lights is a simplification. TODO: separate per-light switches
     TDynamicObject * PrevAny() const;
     TDynamicObject * Prev() const;
@@ -533,19 +596,22 @@ private:
 
     TDynamicObject();
     ~TDynamicObject();
+	void place_on_track(TTrack *Track, double fDist, bool Reversed);
     // zwraca długość pojazdu albo 0, jeśli błąd
     double Init(
         std::string Name, std::string BaseDir, std::string asReplacableSkin, std::string Type_Name,
         TTrack *Track, double fDist, std::string DriverType, double fVel, std::string TrainName,
         float Load, std::string LoadType, bool Reversed, std::string);
-    int init_sections( TModel3d const *Model, std::string const &Nameprefix );
+    int init_sections( TModel3d const *Model, std::string const &Nameprefix, bool const Overrideselfillum );
     bool init_destination( TModel3d *Model );
     void create_controller( std::string const Type, bool const Trainset );
-    void AttachPrev(TDynamicObject *Object, int iType = 1);
+    void AttachNext(TDynamicObject *Object, int iType = 1);
     bool UpdateForce(double dt);
     // initiates load change by specified amounts, with a platform on specified side
-    void LoadExchange( int const Disembark, int const Embark, int const Platform );
-    // calculates time needed to complete current load change
+    void LoadExchange( int const Disembark, int const Embark, int const Platforms );
+    // calculates time needed to complete current load change, using specified platforms
+    float LoadExchangeTime( int const Platforms );
+    // calculates time needed to complete current load change, using previously specified platforms
     float LoadExchangeTime() const;
     // calculates current load exchange factor, where 1 = nominal rate, higher = faster
     float LoadExchangeSpeed() const; // TODO: make private when cleaning up
@@ -553,7 +619,7 @@ private:
     void update_load_sections();
     void update_load_visibility();
     void update_load_offset();
-    void shuffle_load_sections();
+    void shuffle_load_order();
     void update_destinations();
     bool Update(double dt, double dt1);
     bool FastUpdate(double dt);
@@ -566,11 +632,13 @@ private:
     inline Math3D::vector3 GetWorldPosition( Math3D::vector3 const &Location ) const {
         return vPosition + mMatrix * Location; }
     // pobranie współrzędnych czoła
-    inline Math3D::vector3 HeadPosition() {
+    inline Math3D::vector3 HeadPosition() const {
         return vCoulpler[iDirection ^ 1]; };
     // pobranie współrzędnych tyłu
-    inline Math3D::vector3 RearPosition() {
+    inline Math3D::vector3 RearPosition() const {
         return vCoulpler[iDirection]; };
+    inline Math3D::vector3 CouplerPosition( end const End ) const {
+        return vCoulpler[ End ]; }
     inline Math3D::vector3 AxlePositionGet() {
         return iAxleFirst ?
             Axle1.pPosition :
@@ -603,6 +671,7 @@ private:
         return MoverParameters->Dim.L; };
     inline double GetWidth() const {
         return MoverParameters->Dim.W; };
+    double radius() const;
     // calculates distance between event-starting axle and front of the vehicle
     double tracing_offset() const;
     inline TTrack * GetTrack() {
@@ -634,15 +703,18 @@ private:
 
     void couple( int const Side );
     int uncouple( int const Side );
+    bool attach_coupler_adapter( int const Side, bool const Enforce = false );
+    bool remove_coupler_adapter( int const Side );
     void RadioStop();
 	void Damage(char flag);
+    void SetLights();
     void RaLightsSet(int head, int rear);
     int LightList( end const Side ) const { return iInventory[ Side ]; }
     void set_cab_lights( int const Cab, float const Level );
     TDynamicObject * FirstFind(int &coupler_nr, int cf = 1);
     float GetEPP(); // wyliczanie sredniego cisnienia w PG
     int DirectionSet(int d); // ustawienie kierunku w składzie
-    // odczyt kierunku w składzie
+    // odczyt kierunku w składzie; returns 1 if true, -1 otherwise
     int DirectionGet() const {
         return iDirection + iDirection - 1; };
     int DettachStatus(int dir);
@@ -652,7 +724,11 @@ private:
     void update_neighbours();
     // locates potential collision source within specified range, scanning its route in specified direction
     auto find_vehicle( int const Direction, double const Range ) const -> std::tuple<TDynamicObject *, int, double, bool>;
-    TDynamicObject * ControlledFind();
+    // locates potential vehicle connected with specific coupling type and satisfying supplied predicate
+    template <typename Predicate_>
+    auto find_vehicle( coupling const Coupling, Predicate_ const Predicate ) -> TDynamicObject *;
+    TDynamicObject * FindPowered();
+    TDynamicObject * FindPantographCarrier();
     void ParamSet(int what, int into);
     // zapytanie do AI, po którym segmencie skrzyżowania jechać
     int RouteWish(TTrack *tr);
@@ -660,6 +736,12 @@ private:
     material_handle DestinationFind( std::string Destination );
     void OverheadTrack(float o);
     glm::dvec3 get_future_movement() const;
+	void move_set(double distance);
+    // playes specified announcement, potentially preceding it with a chime
+    void announce( announcement_t const Announcement, bool const Chime = true );
+    // returns soundproofing for specified sound type and listener location
+    float soundproofing( int const Placement, int const Listener ) const {
+        return m_soundproofing[ Placement - 1 ][ Listener + 1 ]; }
 
     double MED[9][8]; // lista zmiennych do debugowania hamulca ED
     static std::string const MED_labels[ 8 ];
@@ -725,5 +807,26 @@ private:
     bool
         erase_disabled();
 };
+
+
+template <typename Predicate_>
+auto
+TDynamicObject::find_vehicle( coupling const Coupling, Predicate_ const Predicate ) -> TDynamicObject * {
+
+    if( Predicate( this ) ) {
+        return this; }
+    // try first to look towards the rear
+    auto *vehicle { this };
+    while( ( vehicle = vehicle->NextC( Coupling ) ) != nullptr ) {
+        if( Predicate( vehicle ) ) {
+            return vehicle; } }
+    // if we didn't yet find a suitable vehicle try in the other direction
+    vehicle = this;
+    while( ( vehicle = vehicle->PrevC( Coupling ) ) != nullptr ) {
+        if( Predicate( vehicle ) ) {
+            return vehicle; } }
+    // if we still don't have a match give up
+    return nullptr;
+}
 
 //---------------------------------------------------------------------------

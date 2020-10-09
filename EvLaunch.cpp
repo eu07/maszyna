@@ -31,20 +31,23 @@ http://mozilla.org/MPL/2.0/.
 // encodes expected key in a short, where low byte represents the actual key,
 // and the high byte holds modifiers: 0x1 = shift, 0x2 = ctrl, 0x4 = alt
 int vk_to_glfw_key( int const Keycode ) {
+	char modifier = 0;
+	char key = 0;
 
-#ifdef _WIN32
-    auto const code = VkKeyScan( Keycode );
-    char key = code & 0xff;
-    char shiftstate = ( code & 0xff00 ) >> 8;
+	if (Keycode < 'A') {
+		key = Keycode;
+	} else if (Keycode <= 'Z') {
+		key = Keycode;
+		modifier = GLFW_MOD_SHIFT;
+	} else if (Keycode < 'a') {
+		key = Keycode;
+	} else if (Keycode <= 'z') {
+		key = Keycode - 32;
+	} else {
+		ErrorLog("unknown key: " + std::to_string(Keycode));
+	}
 
-    if( (key >= 'A') && (key <= 'Z') ) {
-        key = GLFW_KEY_A + key - 'A';
-    }
-    else if( ( key >= '0' ) && ( key <= '9' ) ) {
-        key = GLFW_KEY_0 + key - '0';
-    }
-    return key + ( shiftstate << 8 );
-#endif
+	return ((int)modifier << 8) | key;
 }
 
 bool TEventLauncher::Load(cParser *parser)
@@ -109,7 +112,7 @@ bool TEventLauncher::Load(cParser *parser)
         *parser >> token;
         if (token != "*") //*=nie brać wartości 1. pod uwagę
         {
-            iCheckMask |= basic_event::flags::value_1;
+            iCheckMask |= basic_event::flags::value1;
             fVal1 = atof(token.c_str());
         }
         else
@@ -118,7 +121,7 @@ bool TEventLauncher::Load(cParser *parser)
         *parser >> token;
         if (token.compare("*") != 0) //*=nie brać wartości 2. pod uwagę
         {
-            iCheckMask |= basic_event::flags::value_2;
+            iCheckMask |= basic_event::flags::value2;
             fVal2 = atof(token.c_str());
         }
         else
@@ -152,24 +155,33 @@ bool TEventLauncher::Load(cParser *parser)
     return true;
 }
 
+bool TEventLauncher::check_activation_key() {
+	if (iKey <= 0)
+		return false;
+
+	char key = iKey & 0xff;
+
+	bool result = Console::Pressed(key);
+
+	char modifier = iKey >> 8;
+	if (modifier & GLFW_MOD_SHIFT)
+		result &= Global.shiftState;
+	if (modifier & GLFW_MOD_CONTROL)
+		result &= Global.ctrlState;
+
+	return result;
+}
+
 bool TEventLauncher::check_activation() {
 
     auto bCond { false };
 
-    if( iKey > 0 ) {
-        if( iKey > 255 ) {
-            // key and modifier
-            auto const modifier = ( iKey & 0xff00 ) >> 8;
-            bCond = ( Console::Pressed( iKey & 0xff ) )
-                 && ( ( modifier & 1 ) ? Global.shiftState : true )
-                 && ( ( modifier & 2 ) ? Global.ctrlState : true );
-        }
-        else {
-            // just key
-            bCond = ( Console::Pressed( iKey & 0xff ) ); // czy klawisz wciśnięty
-        }
-    }
-    if( DeltaTime > 0 ) {
+	if (DeltaTime == 10000.0) {
+		if (UpdatedTime == 0.0)
+			bCond = true;
+		UpdatedTime = 1.0;
+	}
+	else if( DeltaTime > 0 ) {
         if( UpdatedTime > DeltaTime ) {
             UpdatedTime = 0; // naliczanie od nowa
             bCond = true;
@@ -302,8 +314,8 @@ TEventLauncher::export_as_text_( std::ostream &Output ) const {
             << "condition "
             << asMemCellName << ' '
             << szText << ' '
-            << ( ( iCheckMask & basic_event::flags::value_1 ) != 0 ? to_string( fVal1 ) : "*" ) << ' '
-            << ( ( iCheckMask & basic_event::flags::value_2 ) != 0 ? to_string( fVal2 ) : "*" ) << ' ';
+            << ( ( iCheckMask & basic_event::flags::value1 ) != 0 ? to_string( fVal1 ) : "*" ) << ' '
+            << ( ( iCheckMask & basic_event::flags::value2 ) != 0 ? to_string( fVal2 ) : "*" ) << ' ';
     }
     // footer
     Output

@@ -28,7 +28,7 @@ http://mozilla.org/MPL/2.0/.
 
 #define EU07_DEFERRED_TEXTURE_UPLOAD
 
-std::array<GLuint, gl::MAX_TEXTURES + 2> opengl_texture::units = { 0 };
+std::array<GLuint, gl::MAX_TEXTURES + gl::HELPER_TEXTURES> opengl_texture::units = { 0 };
 GLint opengl_texture::m_activeunit = -1;
 
 std::unordered_map<GLint, int> opengl_texture::precompressed_formats =
@@ -240,7 +240,7 @@ opengl_texture::load() {
     }
     else {
 
-        WriteLog( "Loading texture data from \"" + name + type + "\"", logtype::texture );
+        WriteLog( "Loading texture data from \"" + name + "\"", logtype::texture );
 
         data_state = resource_state::loading;
 
@@ -254,6 +254,16 @@ opengl_texture::load() {
     // data state will be set by called loader, so we're all done here
     if( data_state == resource_state::good ) {
 
+        // verify texture size
+        if( ( clamp_power_of_two( data_width ) != data_width ) || ( clamp_power_of_two( data_height ) != data_height ) ) {
+            if( name != "logo" ) {
+                WriteLog( "Warning: dimensions of texture \"" + name + "\" aren't powers of 2", logtype::texture );
+            }
+        }
+        if( ( quantize( data_width, 4 ) != data_width ) || ( quantize( data_height, 4 ) != data_height ) ) {
+            WriteLog( "Warning: dimensions of texture \"" + name + "\" aren't multiples of 4", logtype::texture );
+        }
+
         has_alpha = (
             data_components == GL_RGBA ?
                 true :
@@ -266,7 +276,7 @@ opengl_texture::load() {
 
 fail:
     data_state = resource_state::failed;
-    ErrorLog( "Bad texture: failed to load texture \"" + name + type + "\"" );
+    ErrorLog( "Bad texture: failed to load texture \"" + name + "\"" );
     // NOTE: temporary workaround for texture assignment errors
     id = 0;
     return;
@@ -275,8 +285,8 @@ fail:
 void
 opengl_texture::make_stub() {
 
-    data_width = 2;
-    data_height = 2;
+    data_width = 4;
+    data_height = 4;
     data.resize( data_width * data_height * 3 );
     std::fill( std::begin( data ), std::end( data ), static_cast<char>( 0xc0 ) );
     data_mapcount = 1;
@@ -293,7 +303,10 @@ opengl_texture::make_request() {
     auto *dictionary { new dictionary_source( components.back() ) };
     if( dictionary == nullptr ) { return; }
 
-    Application.request( { ToLower( components.front() ), dictionary, id } );
+	auto rt = std::make_shared<python_rt>();
+	rt->shared_tex = id;
+
+	Application.request( { ToLower( components.front() ), dictionary, rt } );
 }
 
 void
@@ -745,7 +758,6 @@ opengl_texture::bind(size_t unit) {
 
     if (units[unit] == id)
         return true;
-
     if (GLAD_GL_ARB_direct_state_access)
     {
         glBindTextureUnit(unit, id);
@@ -759,7 +771,6 @@ opengl_texture::bind(size_t unit) {
         }
         glBindTexture(target, id);
     }
-
     units[unit] = id;
 
     return true;
@@ -782,12 +793,11 @@ opengl_texture::unbind(size_t unit)
         //todo: for other targets
         glBindTexture(GL_TEXTURE_2D, 0);
     }
-
     units[unit] = 0;
 }
 
 bool
-opengl_texture::create() {
+opengl_texture::create( bool const Static ) {
 
     if( data_state != resource_state::good && !is_rendertarget ) {
         // don't bother until we have useful texture data
@@ -817,34 +827,40 @@ opengl_texture::create() {
             datasize = 0,
             datawidth = data_width,
             dataheight = data_height;
+        // TBD: 
         if (is_rendertarget)
         {
-            glTexParameteri(target, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-            glTexParameteri(target, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-			glTexParameteri(target, GL_TEXTURE_WRAP_S, wrap_mode_s);
-			glTexParameteri(target, GL_TEXTURE_WRAP_T, wrap_mode_t);
             if (data_components == GL_DEPTH_COMPONENT)
             {
 				glTexParameteri(target, GL_TEXTURE_COMPARE_MODE, GL_COMPARE_REF_TO_TEXTURE);
-                if( false == Global.gfx_usegles ) {
-                    float borderColor[] = { 0.0f, 0.0f, 0.0f, 0.0f };
-                    glTexParameterfv( target, GL_TEXTURE_BORDER_COLOR, borderColor );
-                }
+                wrap_mode_s = GL_CLAMP_TO_BORDER;
+                wrap_mode_t = GL_CLAMP_TO_BORDER;
 			}
+            glTexParameteri( target, GL_TEXTURE_MAG_FILTER, GL_LINEAR );
+            glTexParameteri( target, GL_TEXTURE_MIN_FILTER, GL_LINEAR );
+            glTexParameteri( target, GL_TEXTURE_WRAP_S, wrap_mode_s );
+            glTexParameteri( target, GL_TEXTURE_WRAP_T, wrap_mode_t );
 
             if (Global.gfx_usegles)
             {
-                if (target == GL_TEXTURE_2D || !glTexStorage2DMultisample)
+                if( target == GL_TEXTURE_2D )
                     glTexStorage2D(target, count_trailing_zeros(std::max(data_width, data_height)) + 1, data_format, data_width, data_height);
-                else if (target == GL_TEXTURE_2D_MULTISAMPLE)
-                    glTexStorage2DMultisample(target, samples, data_format, data_width, data_height, GL_FALSE);
+                else if( target == GL_TEXTURE_2D_MULTISAMPLE )
+                    glTexStorage2DMultisample( target, samples, data_format, data_width, data_height, GL_FALSE );
+                else if( target == GL_TEXTURE_2D_ARRAY )
+                    glTexStorage3D( target, count_trailing_zeros( std::max( data_width, data_height ) ) + 1, data_format, data_width, data_height, layers );
+                else if( target == GL_TEXTURE_2D_MULTISAMPLE_ARRAY )
+                    glTexStorage3DMultisample( target, samples, data_format, data_width, data_height, layers, GL_FALSE );
             }
-            else
-            {
-                if (target == GL_TEXTURE_2D)
-                    glTexImage2D(target, 0, data_format, data_width, data_height, 0, data_components, GL_UNSIGNED_SHORT, nullptr);
-                else if (target == GL_TEXTURE_2D_MULTISAMPLE)
-                    glTexImage2DMultisample(target, samples, data_format, data_width, data_height, GL_FALSE);
+            else {
+                if( target == GL_TEXTURE_2D )
+                    glTexImage2D( target, 0, data_format, data_width, data_height, 0, data_components, GL_UNSIGNED_SHORT, nullptr );
+                else if( target == GL_TEXTURE_2D_MULTISAMPLE )
+                    glTexImage2DMultisample( target, samples, data_format, data_width, data_height, GL_FALSE );
+                else if( target == GL_TEXTURE_2D_ARRAY )
+                    glTexImage3D( target, 0, data_format, data_width, data_height, layers, 0, data_components, GL_UNSIGNED_SHORT, nullptr );
+                else if( target == GL_TEXTURE_2D_MULTISAMPLE_ARRAY )
+                    glTexImage3DMultisample( target, samples, data_format, data_width, data_height, layers, GL_FALSE );
             }
         }
         else
@@ -928,6 +944,8 @@ opengl_texture::create() {
             make_request();
         }
 
+        is_static = Static;
+
         is_ready = true;
     }
 
@@ -939,6 +957,7 @@ void
 opengl_texture::release() {
 
     if( id == -1 ) { return; }
+    if( is_static ) { return; }
 
     if( true == Global.ResourceMove ) {
         // if resource move is enabled we don't keep a cpu side copy after upload
@@ -984,7 +1003,7 @@ opengl_texture::release() {
 }
 
 void
-opengl_texture::alloc_rendertarget( GLint format, GLint components, int width, int height, int s, GLint wrap ) {
+opengl_texture::alloc_rendertarget( GLint format, GLint components, int width, int height, int l, int s, GLint wrap ) {
 
     data_width = width;
     data_height = height;
@@ -995,8 +1014,22 @@ opengl_texture::alloc_rendertarget( GLint format, GLint components, int width, i
     wrap_mode_s = wrap;
     wrap_mode_t = wrap;
     samples = s;
-    if( samples > 1 )
-        target = GL_TEXTURE_2D_MULTISAMPLE;
+    if( Global.gfx_usegles && !glTexStorage2DMultisample ) {
+        samples = 1;
+    }
+    layers = l;
+    if( layers > 1 ) {
+        target = (
+            samples > 1 ?
+                GL_TEXTURE_2D_MULTISAMPLE_ARRAY :
+                GL_TEXTURE_2D_ARRAY );
+    }
+    else {
+        target = (
+            samples > 1 ?
+                GL_TEXTURE_2D_MULTISAMPLE :
+                GL_TEXTURE_2D );
+    }
     create();
 }
 
@@ -1096,21 +1129,12 @@ opengl_texture::flip_vertical() {
 }
 
 void
-texture_manager::assign_units( GLint const Helper, GLint const Shadows, GLint const Normals, GLint const Diffuse ) {
-
-    m_units[ 0 ].unit = Helper;
-    m_units[ 1 ].unit = Shadows;
-    m_units[ 2 ].unit = Normals;
-    m_units[ 3 ].unit = Diffuse;
-}
-
-void
 texture_manager::unit( GLint const Textureunit ) {
 
-    if( m_activeunit == Textureunit ) { return; }
+    if( opengl_texture::m_activeunit == Textureunit ) { return; }
 
-    m_activeunit = Textureunit;
-    ::glActiveTexture( Textureunit );
+    opengl_texture::m_activeunit = Textureunit;
+    ::glActiveTexture( GL_TEXTURE0 + Textureunit );
 }
 
 // ustalenie numeru tekstury, wczytanie jeśli jeszcze takiej nie było
@@ -1157,7 +1181,7 @@ texture_manager::create( std::string Filename, bool const Loadnow, GLint Formath
         replace_slashes( Filename );
         erase_leading_slashes( Filename );
         // temporary code for legacy assets -- textures with names beginning with # are to be sharpened
-        if( ( Filename[ 0 ] == '#' )
+        if( ( Filename.front() == '#' )
          || ( Filename.find( "/#" ) != std::string::npos ) ) {
             traits += '#';
         }
@@ -1211,6 +1235,8 @@ texture_manager::create( std::string Filename, bool const Loadnow, GLint Formath
 void
 texture_manager::bind( std::size_t const Unit, texture_handle const Texture ) {
 
+    if( Unit == -1 ) { return; } // no texture unit, nothing to bind the texture to
+
     if (Texture != null_handle)
         mark_as_used(Texture).bind(Unit);
     else
@@ -1242,8 +1268,8 @@ void
 texture_manager::update() {
 
     if( m_garbagecollector.sweep() > 0 ) {
-        for( auto &unit : m_units ) {
-            unit.texture = -1;
+        for( auto &unit : opengl_texture::units ) {
+            unit = -1;
         }
     }
 }
@@ -1274,7 +1300,7 @@ texture_manager::info() const {
     }
 
     return
-        "; textures: "
+        "textures: "
 #ifdef EU07_DEFERRED_TEXTURE_UPLOAD
         + std::to_string( readytexturecount )
         + " ("

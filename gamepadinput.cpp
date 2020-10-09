@@ -12,6 +12,7 @@ http://mozilla.org/MPL/2.0/.
 #include "Logs.h"
 #include "Timer.h"
 #include "utilities.h"
+#include "parser.h"
 
 glm::vec2 circle_to_square( glm::vec2 const &Point, int const Roundness = 0 ) {
 
@@ -43,20 +44,11 @@ glm::vec2 circle_to_square( glm::vec2 const &Point, int const Roundness = 0 ) {
     return interpolate( Point, squared, factor );
 }
 
-gamepad_input::gamepad_input() {
-
-    m_modecommands = {
-
-        { user_command::mastercontrollerincrease, user_command::mastercontrollerdecrease },
-        { user_command::trainbrakedecrease, user_command::trainbrakeincrease },
-        { user_command::secondcontrollerincrease, user_command::secondcontrollerdecrease },
-        { user_command::independentbrakedecrease, user_command::independentbrakeincrease }
-    };
-}
-
 bool
 gamepad_input::init() {
 
+    m_inputaxes.clear();
+    m_inputbuttons.clear();
     // NOTE: we're only checking for joystick_1 and rely for it to stay connected throughout.
     // not exactly flexible, but for quick hack it'll do
     auto const name = glfwGetJoystickName( GLFW_JOYSTICK_1 );
@@ -67,18 +59,18 @@ gamepad_input::init() {
     else {
         // no joystick, 
         WriteLog( "No gamepad detected" );
-        m_axes.clear();
-        m_buttons.clear();
         return false;
     }
 
     int count;
 
     glfwGetJoystickAxes( m_deviceid, &count );
-    m_axes.resize( count );
+    m_inputaxes.assign( count, { 0.0f, 0.0f, {} } );
 
     glfwGetJoystickButtons( m_deviceid, &count );
-    m_buttons.resize( count );
+    m_inputbuttons.assign( count, { GLFW_RELEASE, -1, user_command::none } );
+
+    recall_bindings();
 
     return true;
 }
@@ -92,222 +84,427 @@ gamepad_input::poll() {
         return;
     }
 
-    int count; std::size_t idx = 0;
+    int count;
+    std::size_t idx = 0;
     // poll button state
     auto const buttons = glfwGetJoystickButtons( m_deviceid, &count );
     if( count ) { // safety check in case joystick gets pulled out
-        for( auto &button : m_buttons ) {
+        for( auto &button : m_inputbuttons ) {
 
-            if( button != buttons[ idx ] ) {
+            if( button.state != buttons[ idx ] ) {
                 // button pressed or released, both are important
                 on_button(
-                    static_cast<gamepad_button>( idx ),
+                    idx,
                     ( buttons[ idx ] == 1 ?
                         GLFW_PRESS :
                         GLFW_RELEASE ) );
             }
             else {
                 // otherwise we only pass info about button being held down
-                if( button == 1 ) {
+                if( button.state == GLFW_PRESS ) {
 
                     on_button(
-                        static_cast<gamepad_button>( idx ),
+                        idx,
                         GLFW_REPEAT );
                 }
             }
-            button = buttons[ idx ];
+            button.state = buttons[ idx ];
             ++idx;
         }
     }
 
     // poll axes state
     idx = 0;
-    glm::vec2 leftstick, rightstick, triggers;
     auto const axes = glfwGetJoystickAxes( m_deviceid, &count );
     if( count ) {
         // safety check in case joystick gets pulled out
-        if( count >= 2 ) {
-            leftstick = glm::vec2(
-                ( std::abs( axes[ gamepad_axes::leftstick_x ] ) > m_deadzone ?
-                    axes[ gamepad_axes::leftstick_x ] :
-                    0.0f ),
-                ( std::abs( axes[ gamepad_axes::leftstick_y ] ) > m_deadzone ?
-                    axes[ gamepad_axes::leftstick_y ] :
-                    0.0f ) );
-        }
-        if( count >= 4 ) {
-            rightstick = glm::vec2(
-                ( std::abs( axes[ gamepad_axes::rightstick_x ] ) > m_deadzone ?
-                    axes[ gamepad_axes::rightstick_x ] :
-                    0.0f ),
-                ( std::abs( axes[ gamepad_axes::rightstick_y ] ) > m_deadzone ?
-                    axes[ gamepad_axes::rightstick_y ] :
-                    0.0f ) );
-        }
-        if( count >= 6 ) {
-            triggers = glm::vec2(
-                ( axes[ gamepad_axes::lefttrigger ] > m_deadzone ?
-                    axes[ gamepad_axes::lefttrigger ] :
-                    0.0f ),
-                ( axes[ gamepad_axes::righttrigger ] > m_deadzone ?
-                    axes[ gamepad_axes::righttrigger ] :
-                    0.0f ) );
+        for( auto &axis : m_inputaxes ) {
+            axis.state = axes[ idx ];
+            ++idx;
         }
     }
-    process_axes( leftstick, rightstick, triggers );
+    process_axes();
 }
 
 void
-gamepad_input::on_button( gamepad_button const Button, int const Action ) {
+gamepad_input::bind( std::vector< std::reference_wrapper<user_command> > &Targets, cParser &Input, std::unordered_map<std::string, user_command> const &Translator, std::string const Point ) {
 
-    switch( Button ) {
-        // NOTE: this is rigid coupling, down the road we should support more flexible binding of functions with buttons
-        case gamepad_button::a:
-        case gamepad_button::b:
-        case gamepad_button::x:
-        case gamepad_button::y: {
+    for( auto &bindingtarget : Targets ) {
+        // grab command(s) associated with the input pin
+        auto const bindingcommandname{ Input.getToken<std::string>() };
+        if( true == bindingcommandname.empty() ) {
+            // no tokens left, may as well complain...
+            WriteLog( "Gamepad binding for " + Point + " didn't specify associated command(s)" );
+            // ...can't quit outright though, as provided references are likely to be unitialized
+            bindingtarget.get() = user_command::none;
+            continue;
+        }
+        auto const commandlookup = Translator.find( bindingcommandname );
+        if( commandlookup == Translator.end() ) {
+            WriteLog( "Gamepad binding for " + Point + " specified unknown command, \"" + bindingcommandname + "\"" );
+            bindingtarget.get() = user_command::none;
+        }
+        else {
+            bindingtarget.get() = commandlookup->second;
+        }
+    }
+}
 
-            if( Action == GLFW_RELEASE ) {
-                // TODO: send GLFW_RELEASE for whatever command could be issued by the mode active until now
-                // if the button was released the stick switches to control the movement
-                m_mode = control_mode::entity;
-                // zero the stick and the accumulator so the input won't bleed between modes
-                m_leftstick = glm::vec2();
-                m_modeaccumulator = 0.0f;
+bool
+gamepad_input::recall_bindings() {
+
+    cParser bindingparser( "eu07_input-gamepad.ini", cParser::buffer_FILE );
+    if( false == bindingparser.ok() ) {
+        return false;
+    }
+
+    // build helper translation tables
+    std::unordered_map<std::string, user_command> nametocommandmap;
+    std::size_t commandid = 0;
+    for( auto const &description : simulation::Commands_descriptions ) {
+        nametocommandmap.emplace(
+            description.name,
+            static_cast<user_command>( commandid ) );
+        ++commandid;
+    }
+
+    std::unordered_map<std::string, input_type> nametotypemap {
+        { "3state", input_type::threestate },
+        { "value", input_type::value },
+        { "value_invert", input_type::value_invert } };
+
+    // NOTE: to simplify things we expect one entry per line, and whole entry in one line
+    while( true == bindingparser.getTokens( 1, true, "\n\r" ) ) {
+
+        std::string bindingentry;
+        bindingparser >> bindingentry;
+        cParser entryparser( bindingentry );
+
+        if( false == entryparser.getTokens( 1, true, "\n\r\t " ) ) { continue; }
+
+        std::string bindingpoint {};
+        entryparser >> bindingpoint;
+        auto const splitbindingpoint { split_string_and_number( bindingpoint ) };
+
+        if( splitbindingpoint.first == "axis" ) {
+            // one or more sets of: [modeIDX] input type, parameters
+            // [optional] modeIDX associates the set with control mode IDX
+            // input types:
+            // -- range commandname IDX; axis value is passed as paramIDX of commandname
+            // -- 3state commandname commandname; positive axis value issues first commandname, negative value issues second commandname
+
+            auto const axisindex { splitbindingpoint.second };
+            // sanity check, connected gamepad isn't guaranteed to have that many axes
+            if( axisindex >= m_inputaxes.size() ) { continue; }
+
+            int controlmode { -1 }; // unless stated otherwise the set will be associated with the default control mode
+
+            while( true == entryparser.getTokens( 1, true, "\n\r\t " ) ) {
+
+                std::string key {};
+                entryparser >> key;
+                // check for potential mode indicator
+                auto const splitkey { split_string_and_number( key ) };
+                if( splitkey.first == "mode" ) {
+                    // indicate we'll be processing specified mode
+                    controlmode = splitkey.second;
+                    continue;
+                }
+                // if we're still here handle the original key as binding type
+                std::string const bindingtypename { key };
+                auto const typelookup = nametotypemap.find( bindingtypename );
+                if( typelookup == nametotypemap.end() ) {
+
+                    WriteLog( "Gamepad binding for " + bindingpoint + " specified unknown control type, \"" + bindingtypename + "\"" );
+                }
+                else {
+
+                    std::vector< std::reference_wrapper<user_command> > bindingtargets;
+                    auto const bindingtype { typelookup->second };
+                    std::get<0>( m_inputaxes[ axisindex ].bindings[ controlmode ] ) = bindingtype;
+                    // retrieve regular commands associated with the axis and mode
+                    switch( bindingtype ) {
+                        case input_type::value:
+                        case input_type::value_invert: {
+                            bindingtargets.emplace_back( std::ref( std::get<1>( m_inputaxes[ axisindex ].bindings[ controlmode ] ) ) );
+                            break;
+                        }
+                        case input_type::threestate: {
+                            bindingtargets.emplace_back( std::ref( std::get<1>( m_inputaxes[ axisindex ].bindings[ controlmode ] ) ) );
+                            bindingtargets.emplace_back( std::ref( std::get<2>( m_inputaxes[ axisindex ].bindings[ controlmode ] ) ) );
+                            break;
+                        }
+                        default: {
+                            break;
+                        }
+                    }
+                    bind( bindingtargets, entryparser, nametocommandmap, bindingpoint );
+                    // handle potential remaining input type-specific parameters
+                    switch( bindingtype ) {
+                        case input_type::value:
+                        case input_type::value_invert: {
+                            auto const paramidxname { entryparser.getToken<std::string>() };
+                            auto const paramidx { (
+                                // exceptions
+                                paramidxname == "y" ? 1 :
+                                paramidxname == "2" ? 1 : // human-readable param index starts with 1
+                                // default
+                                0 ) };
+                            std::get<2>( m_inputaxes[ axisindex ].bindings[ controlmode ] ) = static_cast<user_command>( paramidx );
+                            break;
+                        }
+                        default: {
+                            break;
+                        }
+                    }
+                }
+            }
+        }
+        else if( splitbindingpoint.first == "button" ) {
+
+            auto const buttonindex { splitbindingpoint.second };
+            // sanity check, connected gamepad isn't guaranteed to have that many buttons
+            if( buttonindex >= m_inputbuttons.size() ) { continue; }
+
+            auto const bindingtype { entryparser.getToken<std::string>() };
+            if( bindingtype == "mode" ) {
+                // special case, mode selector
+                if( true == entryparser.getTokens( 1, true, "\n\r\t " ) ) {
+                    entryparser >> m_inputbuttons[ buttonindex ].mode;
+                }
+                else {
+                    WriteLog( "Gamepad binding for " + bindingpoint + " didn't specify mode index" );
+                }
             }
             else {
-                // otherwise set control mode to match pressed button
-                m_mode = static_cast<control_mode>( Button );
+                // regular button, single bound command
+                std::vector< std::reference_wrapper<user_command> > bindingtargets;
+                bindingtargets.emplace_back( std::ref( m_inputbuttons[ buttonindex ].binding ) );
+                bind( bindingtargets, entryparser, nametocommandmap, bindingpoint );
             }
-            break;
-        }
-        default: {
-            break;
         }
     }
+
+    return true;
 }
 
 void
-gamepad_input::process_axes( glm::vec2 Leftstick, glm::vec2 const &Rightstick, glm::vec2 const &Triggers ) {
+gamepad_input::on_button( int const Button, int const Action ) {
 
-    // right stick, look around
-    if( ( Rightstick.x != 0.0f ) || ( Rightstick.y != 0.0f ) ) {
-        // TODO: make toggles for the axis flip
-        auto const deltatime = Timer::GetDeltaRenderTime() * 60.0;
-        double const turnx =  Rightstick.x * 10.0 * deltatime;
-        double const turny = -Rightstick.y * 10.0 * deltatime;
+    auto const &button { m_inputbuttons[ Button ] };
+
+    if( button.mode >= 0 ) {
+
+        switch( Action ) {
+            case GLFW_PRESS: {
+                for( auto &axis : m_inputaxes ) {
+                    axis.accumulator = 0.0f;
+                }
+                [[fallthrough]];
+            }
+            case GLFW_REPEAT: {
+                m_mode = Button;
+                break;
+            }
+            case GLFW_RELEASE: {
+                if( m_mode == Button ) {
+                    m_mode = -1;
+                    for( auto &axis : m_inputaxes ) {
+                        axis.accumulator = 0.0f;
+                    }
+                }
+                break;
+            }
+            default: {
+                break;
+            }
+        }
+    }
+
+    if( button.binding != user_command::none ) {
+
         m_relay.post(
-            user_command::viewturn,
-            turnx,
-            turny,
-            GLFW_PRESS,
+            button.binding,
+            0,
+            0,
+            Action,
             // as we haven't yet implemented either item id system or multiplayer, the 'local' controlled vehicle and entity have temporary ids of 0
             // TODO: pass correct entity id once the missing systems are in place
             0 );
     }
-
-    // left stick, either movement or controls, depending on currently active mode
-    if( m_mode == control_mode::entity ) {
-
-        if( (   Leftstick.x != 0.0 ||   Leftstick.y != 0.0 )
-         || ( m_leftstick.x != 0.0 || m_leftstick.y != 0.0 ) ) {
-            m_relay.post(
-                user_command::movehorizontal,
-                Leftstick.x,
-                Leftstick.y,
-                GLFW_PRESS,
-                0 );
-        }
-    }
-    else {
-        // vehicle control modes
-        process_mode( Leftstick.y, 0 );
-    }
-
-    m_rightstick = Rightstick;
-    m_leftstick = Leftstick;
-    m_triggers = Triggers;
 }
 
 void
-gamepad_input::process_mode( float const Value, std::uint16_t const Recipient ) {
+gamepad_input::process_axes() {
 
-    // TODO: separate multiplier for each mode, to allow different, customizable sensitivity for each control
-    auto const deltatime = Timer::GetDeltaTime() * 15.0;
-    auto const &lookup = m_modecommands.at( static_cast<size_t>( m_mode ) );
+    input_type inputtype;
+    user_command boundcommand1, boundcommand2;
+    auto binding { std::tie( inputtype, boundcommand1, boundcommand2 ) };
 
-    if( Value >= 0.0f ) {
-        if( m_modeaccumulator < 0.0f ) {
-            // reset accumulator if we're going in the other direction i.e. issuing opposite control
-            // this also means we should indicate the previous command no longer applies
-            // (normally it's handled when the stick enters dead zone, but it's possible there's no actual dead zone)
-            m_relay.post(
-                lookup.second,
-                0, 0,
-                GLFW_RELEASE,
-                Recipient );
-            m_modeaccumulator = 0.0f;
-        }
-        if( Value > m_deadzone ) {
-            m_modeaccumulator += ( Value - m_deadzone ) / ( 1.0 - m_deadzone ) * deltatime;
-            // we're making sure there's always a positive charge left in the accumulator,
-            // to more reliably decect when the stick goes from active to dead zone, below
-            while( m_modeaccumulator > 1.0f ) {
-                // send commands if the accumulator(s) was filled
-                m_relay.post(
-                    lookup.first,
-                    0, 0,
-                    GLFW_PRESS,
-                    Recipient );
-                m_modeaccumulator -= 1.0f;
+    // since some commands can potentially collect values from two different axes we can't post them directly
+    // instead, we use a small scratchpad to first put these commands together, then post them in their completed state
+    std::unordered_map<user_command, std::tuple< double, double, int > > commands;
+    // HACK: generate movement reset, it'll be eiter overriden by actual movement command, or issued if another control mode was activated
+    commands[ user_command::movehorizontal ] = { 0.0, 0.0, GLFW_PRESS };
+
+    for( auto &axis : m_inputaxes ) {
+
+        if( axis.bindings.empty() ) { continue; }
+
+        auto const lookup { axis.bindings.find( m_mode ) };
+        if( lookup == axis.bindings.end() ) { continue; }
+
+        binding = lookup->second;
+
+        switch( inputtype ) {
+            case input_type::threestate: {
+                // TODO: separate multiplier for each mode, to allow different, customizable sensitivity for each control
+                auto const deltatime { Timer::GetDeltaTime() * 15.0 };
+                if( axis.state >= 0.0f ) {
+                    // first bound command selected
+                    if( axis.accumulator < 0.0f ) {
+                        // we were issuing the other command, post notification that's no longer the case
+                        if( boundcommand2 != user_command::none ) {
+                            m_relay.post(
+                                boundcommand2,
+                                0, 0,
+                                GLFW_RELEASE,
+                                0 );
+                            axis.accumulator = 0.0f;
+                        }
+                    }
+                    if( boundcommand1 != user_command::none ) {
+                        if( axis.state > m_deadzone ) {
+                            axis.accumulator += ( axis.state - m_deadzone ) / ( 1.0 - m_deadzone ) * deltatime;
+                            // we're making sure there's always a positive charge left in the accumulator,
+                            // to more reliably decect when the stick goes from active to dead zone, below
+                            while( axis.accumulator > 1.0f ) {
+                                // send commands if the accumulator(s) was filled
+                                m_relay.post(
+                                    boundcommand1,
+                                    0, 0,
+                                    GLFW_PRESS,
+                                    0 );
+                                axis.accumulator -= 1.0f;
+                            }
+                        }
+                        else {
+                            // if the accumulator isn't empty it's an indicator the stick moved from active to neutral zone
+                            // indicate it with proper RELEASE command
+                            m_relay.post(
+                                boundcommand1,
+                                0, 0,
+                                GLFW_RELEASE,
+                                0 );
+                            axis.accumulator = 0.0f;
+                        }
+                    }
+                }
+                else {
+                    // second bound command selected
+                    if( axis.accumulator > 0.0f ) {
+                        // we were issuing the other command, post notification that's no longer the case
+                        if( boundcommand1 != user_command::none ) {
+                            m_relay.post(
+                                boundcommand1,
+                                0, 0,
+                                GLFW_RELEASE,
+                                0 );
+                            axis.accumulator = 0.0f;
+                        }
+                    }
+                    if( boundcommand1 != user_command::none ) {
+                        if( axis.state < -m_deadzone ) {
+                            axis.accumulator += ( axis.state + m_deadzone ) / ( 1.0 - m_deadzone ) * deltatime;
+                            // we're making sure there's always a positive charge left in the accumulator,
+                            // to more reliably decect when the stick goes from active to dead zone, below
+                            while( axis.accumulator < -1.0f ) {
+                                // send commands if the accumulator(s) was filled
+                                m_relay.post(
+                                    boundcommand2,
+                                    0, 0,
+                                    GLFW_PRESS,
+                                    0 );
+                                axis.accumulator += 1.0f;
+                            }
+                        }
+                        else {
+                            // if the accumulator isn't empty it's an indicator the stick moved from active to neutral zone
+                            // indicate it with proper RELEASE command
+                            m_relay.post(
+                                boundcommand2,
+                                0, 0,
+                                GLFW_RELEASE,
+                                0 );
+                            axis.accumulator = 0.0f;
+                        }
+                    }
+                }
+                break;
             }
-        }
-        else {
-            // if the accumulator isn't empty it's an indicator the stick moved from active to neutral zone
-            // indicate it with proper RELEASE command
-            m_relay.post(
-                lookup.first,
-                0, 0,
-                GLFW_RELEASE,
-                Recipient );
-            m_modeaccumulator = 0.0f;
+            case input_type::value:
+            case input_type::value_invert: {
+                auto &command { commands[ boundcommand1 ] };
+                std::get<int>( command ) = GLFW_PRESS;
+                auto &param { (
+                    static_cast<int>( boundcommand2 ) == 0 ? // for this type boundcommand2 stores param index
+                        std::get<0>( command ) :
+                        std::get<1>( command ) ) };
+                param = axis.state;
+                if( std::abs( param ) < m_deadzone ) {
+                    param = 0.0;
+                }
+                else {
+                    param = (
+                        param > 0.0 ?
+                            ( param - m_deadzone ) / ( 1.0 - m_deadzone ) :
+                            ( param + m_deadzone ) / ( 1.0 - m_deadzone ) );
+                }
+                if( param != 0.0 ) {
+                    if( inputtype == input_type::value_invert ) {
+                        param *= -1.0;
+                    }
+                }
+                // scale passed value according to command type
+                switch( boundcommand1 ) {
+                    case user_command::viewturn: {
+                        param *= 10.0 * ( Timer::GetDeltaRenderTime() * 60.0 );
+                        break;
+                    }
+                    case user_command::movehorizontal:
+                    case user_command::movehorizontalfast: {
+                        // these expect value in -1:1 range
+                        break;
+                    }
+                    default: {
+                        // commands generally expect their parameter to be in 0:1 range
+                        param = param * 0.5 + 0.5;
+                        break;
+                    }
+                }
+                break;
+            }
+            default: {
+                break;
+            }
         }
     }
-    else {
-        if( m_modeaccumulator > 0.0f ) {
-            // reset accumulator if we're going in the other direction i.e. issuing opposite control
-            // this also means we should indicate the previous command no longer applies
-            // (normally it's handled when the stick enters dead zone, but it's possible there's no actual dead zone)
+    // issue remaining, assembled commands
+    for( auto const &command : commands ) {
+        auto const param1 { std::get<0>( command.second ) };
+        auto const param2 { std::get<1>( command.second ) };
+        auto &lastparams { m_lastcommandparams[ command.first ] };
+        if( ( param1 != 0.0 ) || ( std::get<0>( lastparams ) != 0.0 )
+         || ( param2 != 0.0 ) || ( std::get<1>( lastparams ) != 0.0 ) ) {
             m_relay.post(
-                lookup.first,
-                0, 0,
-                GLFW_RELEASE,
-                Recipient );
-            m_modeaccumulator = 0.0f;
-        }
-        if( Value < m_deadzone ) {
-            m_modeaccumulator += ( Value + m_deadzone ) / ( 1.0 - m_deadzone ) * deltatime;
-            // we're making sure there's always a negative charge left in the accumulator,
-            // to more reliably decect when the stick goes from active to dead zone, below
-            while( m_modeaccumulator < -1.0f ) {
-                // send commands if the accumulator(s) was filled
-                m_relay.post(
-                    lookup.second,
-                    0, 0,
-                    GLFW_PRESS,
-                    Recipient );
-                m_modeaccumulator += 1.0f;
-            }
-        }
-        else {
-            // if the accumulator isn't empty it's an indicator the stick moved from active to neutral zone
-            // indicate it with proper RELEASE command
-            m_relay.post(
-                lookup.second,
-                0, 0,
-                GLFW_RELEASE,
-                Recipient );
-            m_modeaccumulator = 0.0f;
+                command.first,
+                param1,
+                param2,
+                std::get<2>( command.second ),
+                // as we haven't yet implemented either item id system or multiplayer, the 'local' controlled vehicle and entity have temporary ids of 0
+                // TODO: pass correct entity id once the missing systems are in place
+                0 );
+            lastparams = std::tie( param1, param2 );
         }
     }
 }

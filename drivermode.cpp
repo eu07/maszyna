@@ -13,9 +13,11 @@ http://mozilla.org/MPL/2.0/.
 
 #include "Globals.h"
 #include "application.h"
+#include "translation.h"
 #include "simulation.h"
 #include "simulationtime.h"
 #include "simulationenvironment.h"
+#include "scene.h"
 #include "lightarray.h"
 #include "particles.h"
 #include "Train.h"
@@ -80,6 +82,54 @@ driver_mode::drivermode_input::init() {
     return result;
 }
 
+std::string
+driver_mode::drivermode_input::binding_hints( std::pair<user_command, user_command> const &Commands ) const {
+
+    auto const inputhintleft { keyboard.binding_hint( Commands.first ) };
+    auto const inputhintright { keyboard.binding_hint( Commands.second ) };
+    std::string inputhints =
+        inputhintleft
+        + ( inputhintright.empty() ? "" :
+            inputhintleft.empty() ?
+                inputhintright :
+                "] [" + inputhintright );
+
+    return inputhints;
+}
+
+std::unordered_map<user_command, std::pair<user_command, user_command>> commandfallbacks = {
+    { user_command::mastercontrollerset, { user_command::mastercontrollerincrease, user_command::mastercontrollerdecrease } },
+    { user_command::secondcontrollerset, { user_command::secondcontrollerincrease, user_command::secondcontrollerdecrease } },
+    { user_command::trainbrakeset, { user_command::trainbrakeincrease, user_command::trainbrakedecrease } },
+    { user_command::independentbrakeset, { user_command::independentbrakeincrease, user_command::independentbrakedecrease } },
+    { user_command::linebreakeropen, { user_command::linebreakertoggle, user_command::none } },
+    { user_command::linebreakerclose, { user_command::linebreakertoggle, user_command::none } },
+    { user_command::pantographlowerfront, { user_command::pantographtogglefront, user_command::none } },
+    { user_command::pantographlowerrear, { user_command::pantographtogglerear, user_command::none } },
+    { user_command::compartmentlightsenable, { user_command::compartmentlightstoggle, user_command::none } },
+    { user_command::compartmentlightsdisable, { user_command::compartmentlightstoggle, user_command::none } },
+    { user_command::batteryenable, { user_command::batterytoggle, user_command::none } },
+    { user_command::batterydisable, { user_command::batterytoggle, user_command::none } },
+};
+
+std::pair<user_command, user_command>
+driver_mode::drivermode_input::command_fallback( user_command const Command ) const {
+
+    if( Command == user_command::none ) {
+        return { user_command::none, user_command::none };
+    }
+
+    auto const lookup { commandfallbacks.find( Command ) };
+
+    if( lookup == commandfallbacks.end() ) {
+        return { user_command::none, user_command::none };
+    }
+    
+    return lookup->second;
+}
+
+
+
 driver_mode::driver_mode() {
 
     m_userinterface = std::make_shared<driver_ui>();
@@ -101,124 +151,133 @@ driver_mode::update() {
 
     double const deltatime = Timer::GetDeltaTime(); // 0.0 gdy pauza
 
-    if( Global.iPause == 0 ) {
-        // jak pauza, to nie ma po co tego przeliczać
-        simulation::Time.update( deltatime );
-    }
     simulation::State.update_clocks();
+    simulation::State.update_scripting_interface();
     simulation::Environment.update();
 
+	if (deltatime != 0.0)
+	{
+        // jak pauza, to nie ma po co tego przeliczać
+        simulation::Time.update( deltatime );
+
     // fixed step, simulation time based updates
-//  m_primaryupdateaccumulator += dt; // unused for the time being
-    m_secondaryupdateaccumulator += deltatime;
-/*
-    // NOTE: until we have no physics state interpolation during render, we need to rely on the old code,
-    // as doing fixed step calculations but flexible step render results in ugly mini jitter
-    // core routines (physics)
-    int updatecount = 0;
-    while( ( m_primaryupdateaccumulator >= m_primaryupdaterate )
-         &&( updatecount < 20 ) ) {
-        // no more than 20 updates per single pass, to keep physics from hogging up all run time
-        Ground.Update( m_primaryupdaterate, 1 );
-        ++updatecount;
-        m_primaryupdateaccumulator -= m_primaryupdaterate;
-    }
-*/
-    int updatecount = 1;
-    if( deltatime > m_primaryupdaterate ) // normalnie 0.01s
-    {
-/*
-        // NOTE: experimentally disabled physics update cap
-        auto const iterations = std::ceil(dt / m_primaryupdaterate);
-        updatecount = std::min( 20, static_cast<int>( iterations ) );
-*/
-        updatecount = std::ceil( deltatime / m_primaryupdaterate );
-/*
-        // NOTE: changing dt wrecks things further down the code. re-acquire proper value later or cleanup here
-        dt = dt / iterations; // Ra: fizykę lepiej by było przeliczać ze stałym krokiem
-*/
-    }
-    auto const stepdeltatime { deltatime / updatecount };
-    // NOTE: updates are limited to 20, but dt is distributed over potentially many more iterations
-    // this means at count > 20 simulation and render are going to desync. is that right?
-    // NOTE: experimentally changing this to prevent the desync.
-    // TODO: test what happens if we hit more than 20 * 0.01 sec slices, i.e. less than 5 fps
-    Timer::subsystem.sim_dynamics.start();
-    if( true == Global.FullPhysics ) {
-        // mixed calculation mode, steps calculated in ~0.05s chunks
-        while( updatecount >= 5 ) {
-            simulation::State.update( stepdeltatime, 5 );
-            updatecount -= 5;
-        }
-        if( updatecount ) {
-            simulation::State.update( stepdeltatime, updatecount );
-        }
-    }
-    else {
-        // simplified calculation mode; faster but can lead to errors
-        simulation::State.update( stepdeltatime, updatecount );
-    }
-    Timer::subsystem.sim_dynamics.stop();
+	//  m_primaryupdateaccumulator += dt; // unused for the time being
+		m_secondaryupdateaccumulator += deltatime;
+	/*
+		// NOTE: until we have no physics state interpolation during render, we need to rely on the old code,
+		// as doing fixed step calculations but flexible step render results in ugly mini jitter
+		// core routines (physics)
+		int updatecount = 0;
+		while( ( m_primaryupdateaccumulator >= m_primaryupdaterate )
+			 &&( updatecount < 20 ) ) {
+			// no more than 20 updates per single pass, to keep physics from hogging up all run time
+			Ground.Update( m_primaryupdaterate, 1 );
+			++updatecount;
+			m_primaryupdateaccumulator -= m_primaryupdaterate;
+		}
+	*/
+		int updatecount = 1;
+		if( deltatime > m_primaryupdaterate ) // normalnie 0.01s
+		{
+	/*
+			// NOTE: experimentally disabled physics update cap
+			auto const iterations = std::ceil(dt / m_primaryupdaterate);
+			updatecount = std::min( 20, static_cast<int>( iterations ) );
+	*/
+			updatecount = std::ceil( deltatime / m_primaryupdaterate );
+	/*
+			// NOTE: changing dt wrecks things further down the code. re-acquire proper value later or cleanup here
+			dt = dt / iterations; // Ra: fizykę lepiej by było przeliczać ze stałym krokiem
+	*/
+		}
+		auto const stepdeltatime { deltatime / updatecount };
+		// NOTE: updates are limited to 20, but dt is distributed over potentially many more iterations
+		// this means at count > 20 simulation and render are going to desync. is that right?
+		// NOTE: experimentally changing this to prevent the desync.
+		// TODO: test what happens if we hit more than 20 * 0.01 sec slices, i.e. less than 5 fps
+		Timer::subsystem.sim_dynamics.start();
+		if( true == Global.FullPhysics ) {
+			// mixed calculation mode, steps calculated in ~0.05s chunks
+			while( updatecount >= 5 ) {
+				simulation::State.update( stepdeltatime, 5 );
+				updatecount -= 5;
+			}
+			if( updatecount ) {
+				simulation::State.update( stepdeltatime, updatecount );
+			}
+		}
+		else {
+			// simplified calculation mode; faster but can lead to errors
+			simulation::State.update( stepdeltatime, updatecount );
+		}
+		Timer::subsystem.sim_dynamics.stop();
 
-    // secondary fixed step simulation time routines
-    while( m_secondaryupdateaccumulator >= m_secondaryupdaterate ) {
+		// secondary fixed step simulation time routines
+		while( m_secondaryupdateaccumulator >= m_secondaryupdaterate ) {
 
-        // awaria PoKeys mogła włączyć pauzę - przekazać informację
-        if( Global.iMultiplayer ) // dajemy znać do serwera o wykonaniu
-            if( iPause != Global.iPause ) { // przesłanie informacji o pauzie do programu nadzorującego
-                multiplayer::WyslijParam( 5, 3 ); // ramka 5 z czasem i stanem zapauzowania
-                iPause = Global.iPause;
-            }
+			// awaria PoKeys mogła włączyć pauzę - przekazać informację
+			if( Global.iMultiplayer ) // dajemy znać do serwera o wykonaniu
+				if( iPause != Global.iPause ) { // przesłanie informacji o pauzie do programu nadzorującego
+					multiplayer::WyslijParam( 5, 3 ); // ramka 5 z czasem i stanem zapauzowania
+					iPause = Global.iPause;
+				}
 
-        // TODO: generic shake update pass for vehicles within view range
-        if( Camera.m_owner != nullptr ) {
-            Camera.m_owner->update_shake( m_secondaryupdaterate );
-        }
+			// TODO: generic shake update pass for vehicles within view range
+			if( Camera.m_owner != nullptr ) {
+				Camera.m_owner->update_shake( m_secondaryupdaterate );
+			}
 
-        m_secondaryupdateaccumulator -= m_secondaryupdaterate; // these should be inexpensive enough we have no cap
-    }
+			m_secondaryupdateaccumulator -= m_secondaryupdaterate; // these should be inexpensive enough we have no cap
+		}
 
-    // variable step simulation time routines
+		// variable step simulation time routines
 
-    if( ( simulation::Train == nullptr ) && ( false == FreeFlyModeFlag ) ) {
-        // intercept cases when the driven train got removed after entering portal
-        InOutKey();
-    }
+		if (!change_train.empty()) {
+			TTrain *train = simulation::Trains.find(change_train);
+			if (train) {
+                Global.local_start_vehicle = change_train;
+				simulation::Train = train;
+				InOutKey();
+				m_relay.post(user_command::aidriverdisable, 0.0, 0.0, GLFW_PRESS, 0);
+				change_train.clear();
+			}
+		}
 
-    if( Global.changeDynObj ) {
-        // ABu zmiana pojazdu - przejście do innego
-        ChangeDynamic();
-        // move inside, but only if the human is in charge (otherwise we'll get pulled in when ai switches cabs)
-        if( ( simulation::Train != nullptr )
-         && ( simulation::Train->Dynamic() != nullptr )
-         && ( simulation::Train->Dynamic()->Mechanik != nullptr )
-         && ( simulation::Train->Dynamic()->Mechanik->AIControllFlag == false )
-         && ( true == FreeFlyModeFlag ) ) {
-            InOutKey();
-        }
-    }
+		if( ( simulation::Train == nullptr ) && ( false == FreeFlyModeFlag ) ) {
+			// intercept cases when the driven train got removed after entering portal
+			InOutKey();
+		}
 
-    if( simulation::Train != nullptr ) {
-        TSubModel::iInstance = reinterpret_cast<std::uintptr_t>( simulation::Train->Dynamic() );
-        simulation::Train->Update( deltatime );
-    }
-    else {
-        TSubModel::iInstance = 0;
-    }
+		if (!FreeFlyModeFlag && simulation::Train->Dynamic() != Camera.m_owner) {
+			// fixup camera after vehicle switch
+			CabView();
+		}
 
-    simulation::Events.update();
-    simulation::Region->update_events();
-    simulation::Lights.update();
+		if( simulation::Train != nullptr )
+			TSubModel::iInstance = reinterpret_cast<std::uintptr_t>( simulation::Train->Dynamic() );
+		else
+			TSubModel::iInstance = 0;
+
+		simulation::Trains.update(deltatime);
+		simulation::Events.update();
+		simulation::Region->update_events();
+		simulation::Lights.update();
+	}
 
     // render time routines follow:
 
     auto const deltarealtime = Timer::GetDeltaRenderTime(); // nie uwzględnia pauzowania ani mnożenia czasu
 
+    simulation::State.process_commands();
+
     // fixed step render time routines
 
     fTime50Hz += deltarealtime; // w pauzie też trzeba zliczać czas, bo przy dużym FPS będzie problem z odczytem ramek
+    bool runonce { false };
     while( fTime50Hz >= 1.0 / 50.0 ) {
+#ifdef _WIN32
         Console::Update(); // to i tak trzeba wywoływać
+#endif
         ui::Transcripts.Update(); // obiekt obsługujący stenogramy dźwięków na ekranie
         m_userinterface->update();
         // decelerate camera
@@ -231,6 +290,52 @@ driver_mode::update() {
         if( std::abs( DebugCamera.Velocity.x ) < 0.01 ) { DebugCamera.Velocity.x = 0.0; }
         if( std::abs( DebugCamera.Velocity.y ) < 0.01 ) { DebugCamera.Velocity.y = 0.0; }
         if( std::abs( DebugCamera.Velocity.z ) < 0.01 ) { DebugCamera.Velocity.z = 0.0; }
+
+        if( false == runonce ) {
+            // tooltip update
+            set_tooltip( "" );
+            auto const *train{ simulation::Train };
+            if( ( train != nullptr ) && ( false == FreeFlyModeFlag ) ) {
+                if( false == DebugModeFlag ) {
+                    // in regular mode show control functions, for defined controls
+                    auto const controlname { train->GetLabel( GfxRenderer->Pick_Control() ) };
+                    if( false == controlname.empty() ) {
+                        auto const mousecommands { m_input.mouse.bindings( controlname ) };
+                        auto inputhints { m_input.binding_hints( mousecommands ) };
+                        // if the commands bound with the control don't have any assigned keys try potential fallbacks
+                        if( inputhints.empty() ) {
+                            inputhints = m_input.binding_hints( m_input.command_fallback( mousecommands.first ) );
+                        }
+                        if( inputhints.empty() ) {
+                            inputhints = m_input.binding_hints( m_input.command_fallback( mousecommands.second ) );
+                        }
+                        // ready or not, here we go
+                        if( inputhints.empty() ) {
+                            set_tooltip( locale::label_cab_control( controlname ) );
+                        }
+                        else {
+                            set_tooltip(
+                                locale::label_cab_control( controlname )
+                                + " [" + inputhints + "]" );
+                        }
+                    }
+                }
+                else {
+                    // in debug mode show names of submodels, to help with cab setup and/or debugging
+                    auto const cabcontrol = GfxRenderer->Pick_Control();
+                    set_tooltip( ( cabcontrol ? cabcontrol->pName : "" ) );
+                }
+            }
+            if( ( true == Global.ControlPicking ) && ( true == FreeFlyModeFlag ) && ( true == DebugModeFlag ) ) {
+                auto const scenerynode = GfxRenderer->Pick_Node();
+                set_tooltip(
+                    ( scenerynode ?
+                        scenerynode->name() :
+                        "" ) );
+            }
+
+            runonce = true;
+        }
 
         fTime50Hz -= 1.0 / 50.0;
     }
@@ -249,9 +354,9 @@ driver_mode::update() {
     // NOTE: particle system runs on simulation time, but needs actual camera position to determine how to update each particle source
     simulation::Particles.update();
 
-    simulation::is_ready = true;
-
     GfxRenderer->Update( deltarealtime );
+
+    simulation::is_ready = simulation::is_ready || ( ( simulation::Train != nullptr ) && ( simulation::Train->is_cab_initialized ) ) || ( Global.local_start_vehicle == "ghostview" );
 
     return true;
 }
@@ -261,46 +366,28 @@ void
 driver_mode::enter() {
 
     TDynamicObject *nPlayerTrain { (
-        ( Global.asHumanCtrlVehicle != "ghostview" ) ?
-            simulation::Vehicles.find( Global.asHumanCtrlVehicle ) :
+        ( Global.local_start_vehicle != "ghostview" ) ?
+            simulation::Vehicles.find( Global.local_start_vehicle ) :
             nullptr ) };
 
-    Camera.Init(Global.FreeCameraInit[0], Global.FreeCameraInitAngle[0], nPlayerTrain );
+	Camera.Init(Global.FreeCameraInit[0], Global.FreeCameraInitAngle[0], nullptr );
     Global.pCamera = Camera;
-    Global.pDebugCamera = DebugCamera;
+	Global.pDebugCamera = DebugCamera;
+
+	FreeFlyModeFlag = true;
+	DebugCamera = Camera;
 
     if (nPlayerTrain)
     {
-        WriteLog( "Initializing player train, \"" + Global.asHumanCtrlVehicle + "\"" );
+		WriteLog( "Trying to enter player train, \"" + Global.local_start_vehicle + "\"" );
 
-        if( simulation::Train == nullptr ) {
-            simulation::Train = new TTrain();
-        }
-        if( simulation::Train->Init( nPlayerTrain ) )
-        {
-            WriteLog("Player train initialization OK");
-
-            Application.set_title( Global.AppName + " (" + simulation::Train->Controlled()->Name + " @ " + Global.SceneryFile + ")" );
-
-            CabView();
-        }
-        else
-        {
-            Error("Bad init: player train initialization failed");
-            FreeFlyModeFlag = true; // Ra: automatycznie włączone latanie
-            SafeDelete( simulation::Train );
-            Camera.m_owner = nullptr;
-        }
+		m_relay.post(user_command::entervehicle, 0.0, 0.0, GLFW_PRESS, 0, nPlayerTrain->GetPosition(), &Global.local_start_vehicle );
+		change_train = nPlayerTrain->name();
     }
-    else
+	else if (Global.local_start_vehicle != "ghostview")
     {
-        if (Global.asHumanCtrlVehicle != "ghostview")
-        {
-            Error("Bad scenario: failed to locate player train, \"" + Global.asHumanCtrlVehicle + "\"" );
-        }
-        FreeFlyModeFlag = true; // Ra: automatycznie włączone latanie
-        Camera.m_owner = nullptr;
-        DebugCamera = Camera;
+        Global.local_start_vehicle = "ghostview";
+        Error("Bad scenario: failed to locate player train, \"" + Global.local_start_vehicle + "\"" );
     }
 
     // if (!Global.bMultiplayer) //na razie włączone
@@ -328,6 +415,13 @@ driver_mode::exit() {
 
 }
 
+// provides key code associated with specified command
+int
+driver_mode::key_binding( user_command const Command ) const {
+
+    return m_input.keyboard.binding( Command );
+}
+
 void
 driver_mode::on_key( int const Key, int const Scancode, int const Action, int const Mods ) {
 
@@ -335,8 +429,10 @@ driver_mode::on_key( int const Key, int const Scancode, int const Action, int co
     Global.ctrlState = ( Mods & GLFW_MOD_CONTROL ) ? true : false;
     Global.altState = ( Mods & GLFW_MOD_ALT ) ? true : false;
 
+    bool anyModifier = Mods & (GLFW_MOD_SHIFT | GLFW_MOD_CONTROL | GLFW_MOD_ALT);
+
     // give the ui first shot at the input processing...
-    if( true == m_userinterface->on_key( Key, Scancode, Action, Mods ) ) { return; }
+    if( !anyModifier && true == m_userinterface->on_key( Key, Scancode, Action, Mods ) ) { return; }
     // ...if the input is left untouched, pass it on
     if( true == m_input.keyboard.key( Key, Action ) ) { return; }
 
@@ -364,6 +460,11 @@ driver_mode::on_key( int const Key, int const Scancode, int const Action, int co
         }
 #endif
     }
+}
+
+void
+driver_mode::on_char( unsigned int const Char ) {
+    // TODO: implement
 }
 
 void
@@ -405,6 +506,12 @@ driver_mode::on_event_poll() {
     m_input.poll();
 }
 
+bool
+driver_mode::is_command_processor() const {
+
+    return true;
+}
+
 void
 driver_mode::update_camera( double const Deltatime ) {
 
@@ -420,12 +527,12 @@ driver_mode::update_camera( double const Deltatime ) {
             if( Camera.m_owner == nullptr ) {
                 if( controlled && LengthSquared3( controlled->GetPosition() - Camera.Pos ) < ( 1500 * 1500 ) ) {
                     // gdy bliżej niż 1.5km
-                    Camera.LookAt = controlled->GetPosition();
+                    Camera.LookAt = controlled->GetPosition() + 0.4 * controlled->VectorUp() * controlled->MoverParameters->Dim.H;
                 }
                 else {
-                    TDynamicObject *d = std::get<TDynamicObject *>( simulation::Region->find_vehicle( Global.pCamera.Pos, 300, false, false ) );
+                    TDynamicObject *d = std::get<TDynamicObject *>( simulation::Region->find_vehicle( Camera.Pos, 300, false, false ) );
                     if( !d )
-                        d = std::get<TDynamicObject *>( simulation::Region->find_vehicle( Global.pCamera.Pos, 1000, false, false ) ); // dalej szukanie, jesli bliżej nie ma
+                        d = std::get<TDynamicObject *>( simulation::Region->find_vehicle( Camera.Pos, 1000, false, false ) ); // dalej szukanie, jesli bliżej nie ma
 
                     if( d && pDynamicNearest ) {
                         // jeśli jakiś jest znaleziony wcześniej
@@ -437,7 +544,7 @@ driver_mode::update_camera( double const Deltatime ) {
                     if( d )
                         pDynamicNearest = d; // zmiana na nowy, jeśli coś znaleziony niepusty
                     if( pDynamicNearest )
-                        Camera.LookAt = pDynamicNearest->GetPosition();
+                        Camera.LookAt = pDynamicNearest->GetPosition() + 0.4 * pDynamicNearest->VectorUp() * pDynamicNearest->MoverParameters->Dim.H;
                 }
                 Camera.RaLook(); // jednorazowe przestawienie kamery
             }
@@ -466,7 +573,8 @@ driver_mode::update_camera( double const Deltatime ) {
     // uwzględnienie ruchu wywołanego klawiszami
     if( false == DebugCameraFlag ) {
         // regular camera
-        if( ( false == FreeFlyModeFlag )
+        if( ( simulation::Train != nullptr )
+         && ( false == FreeFlyModeFlag )
          && ( false == Global.CabWindowOpen ) ) {
             // if in cab potentially alter camera placement based on changes in train object
             Camera.m_owneroffset = simulation::Train->pMechOffset;
@@ -476,12 +584,14 @@ driver_mode::update_camera( double const Deltatime ) {
 
         Camera.Update();
 
-        if( false == FreeFlyModeFlag ) {
+        if( ( simulation::Train != nullptr )
+         && ( false == FreeFlyModeFlag ) ) {
             // keep the camera within cab boundaries
             Camera.m_owneroffset = simulation::Train->clamp_inside( Camera.m_owneroffset );
         }
 
-        if( ( false == FreeFlyModeFlag )
+        if( ( simulation::Train != nullptr )
+         && ( false == FreeFlyModeFlag )
          && ( false == Global.CabWindowOpen ) ) {
             // cache cab camera in case of view type switch
             simulation::Train->pMechViewAngle = { Camera.Angle.x, Camera.Angle.y };
@@ -666,7 +776,7 @@ driver_mode::OnKeyDown(int cKey) {
             // z [Shift] uruchomienie eventu
             if( ( Global.iPause == 0 ) // podczas pauzy klawisze nie działają
              && ( KeyEvents[ i ] != nullptr ) ) {
-                simulation::Events.AddToQuery( KeyEvents[ i ], NULL );
+				m_relay.post(user_command::queueevent, 0.0, 0.0, GLFW_PRESS, 0, glm::vec3(0.0f), &KeyEvents[i]->name());
             }
         }
         else if( Global.ctrlState ) {
@@ -701,21 +811,6 @@ driver_mode::OnKeyDown(int cKey) {
 
     switch (cKey) {
 
-        case GLFW_KEY_F1: {
-
-            if( DebugModeFlag ) {
-                // additional simulation clock jump keys in debug mode
-                if( Global.ctrlState ) {
-                    // ctrl-f1
-                    simulation::Time.update( 20.0 * 60.0 );
-                }
-                else if( Global.shiftState ) {
-                    // shift-f1
-                    simulation::Time.update( 5.0 * 60.0 );
-                }
-            }
-            break;
-        }
         case GLFW_KEY_F4: {
             
             if( Global.shiftState ) { ExternalView(); } // with Shift, cycle through external views 
@@ -724,86 +819,32 @@ driver_mode::OnKeyDown(int cKey) {
         }
         case GLFW_KEY_F5: {
             // przesiadka do innego pojazdu
-            if( false == FreeFlyModeFlag ) {
-                // only available in free fly mode
+            if( !FreeFlyModeFlag ) { break; }
+
+            auto const *targetvehicle { std::get<TDynamicObject *>( simulation::Region->find_vehicle( Camera.Pos, 50, false, false ) ) };
+
+            if( targetvehicle == nullptr ) { break; }
+            if( ( targetvehicle->Mechanik ) &&
+                ( false == targetvehicle->Mechanik->AIControllFlag ) ) {
+                // for the time being we don't allow more than one person per vehicle
                 break;
             }
 
-            TDynamicObject *targetvehicle = std::get<TDynamicObject *>( simulation::Region->find_vehicle( Global.pCamera.Pos, 50, false, false ) );
-
-            if( targetvehicle != nullptr ) {
-
-                if( ( true == DebugModeFlag )
-                 || ( targetvehicle->MoverParameters->Vel <= 5.0 ) ) {
-                    // works always in debug mode, or for stopped/slow moving vehicles otherwise
-                    if( simulation::Train == nullptr ) {
-                        simulation::Train = new TTrain(); // jeśli niczym jeszcze nie jeździlismy
-                    }
-                    if( simulation::Train->Dynamic() != nullptr ) {
-                        // jeśli mielismy pojazd
-                        if( simulation::Train->Dynamic()->Mechanik ) { // na skutek jakiegoś błędu może czasem zniknąć
-                            auto const *currentvehicle { simulation::Train->Dynamic() };
-                            auto const sameconsist {
-                                ( targetvehicle->ctOwner == currentvehicle->Mechanik )
-                             || ( targetvehicle->ctOwner == currentvehicle->ctOwner ) };
-                            auto const isincharge { currentvehicle->Mechanik->primary() };
-                            auto const aidriveractive { currentvehicle->Mechanik->AIControllFlag };
-                            
-                            if( !sameconsist && isincharge ) {
-                                // oddajemy dotychczasowy AI
-                                simulation::Train->Dynamic()->Mechanik->TakeControl( true );
-                            }
-
-                            if( ( !sameconsist ) // we leave behind an ai driver which should be preserved
-                             || ( aidriveractive ) // we want to preserve existing ai driver
-                             || ( targetvehicle->Mechanik != nullptr ) ) { // .changedynobj swaps drivers but we want a takeover not a swap
-
-                                if( sameconsist && !aidriveractive ) {
-                                    // we will be taking over controller in the target vehicle, so get rid of the old one
-                                    // unless it's an active ai in which case leave it running
-                                    SafeDelete( simulation::Train->Dynamic()->Mechanik );
-                                }
-                                // HACK: by resetting owned vehicle we can reuse dynamic==nullptr code branch below
-                                // TODO: refactor into utility method
-                                simulation::Train->DynamicSet( nullptr );
-                            }
-                            else {
-                                // we can simply move the 'human' controller to the new vehicle
-                                Global.changeDynObj = targetvehicle;
-                                // TODO: choose active cab based on camera's location relative to vehicle's location
-/*
-                                Global.changeDynObj->MoverParameters->CabOccupied = (
-                                    Train->DynamicObject->MoverParameters->Neighbours[ exitdirection ].vehicle_end ?
-                                    -1 :
-                                     1 );
-*/
-                            }
-                        }
-                    }
-                    if( simulation::Train->Dynamic() == nullptr ) {
-                        // jeśli niczym jeszcze nie jeździlismy
-                        if( simulation::Train->Init( targetvehicle ) ) {
-                            // przejmujemy sterowanie
-                            if( true == Global.ctrlState ) {
-                                // make sure we can take over the consist
-                                // TODO: remove ctrl key mode once manual cab (de)activation is in place
-                                simulation::Train->Dynamic()->Mechanik->primary( true );
-                            }
-                            simulation::Train->Dynamic()->Mechanik->TakeControl( false, true );
-                            if( true == simulation::Train->Dynamic()->Mechanik->primary() ) {
-                                simulation::Train->Occupied()->CabDeactivisation( true ); // potentially left active
-//                                simulation::Train->Occupied()->CabOccupied = simulation::Train->Occupied()->CabActive;
-                                simulation::Train->Occupied()->CabActivisation();
-                            }
-                            InOutKey(); // do kabiny
-                        }
-                        else {
-                            SafeDelete( simulation::Train ); // i nie ma czym sterować
-                        }
-                    }
-                }
+            if( ( true == DebugModeFlag )
+             || ( targetvehicle->MoverParameters->Vel <= 5.0 ) ) {
+                // works always in debug mode, or for stopped/slow moving vehicles otherwise
+                m_relay.post(
+                    user_command::entervehicle,
+                    ( Global.ctrlState ? GLFW_MOD_CONTROL : 0 ), // TODO: remove ctrl key mode once manual cab (de)activation is in place,
+                    ( simulation::Train ? simulation::Train->id() : 0 ),
+                    GLFW_PRESS,
+                    0,
+                    targetvehicle->GetPosition(),
+                    &targetvehicle->name() );
+				change_train = targetvehicle->name();
             }
             break;
+
         }
         case GLFW_KEY_F6: {
             // przyspieszenie symulacji do testowania scenerii... uwaga na FPS!
@@ -850,66 +891,6 @@ driver_mode::OnKeyDown(int cKey) {
             if( ( false == Global.ctrlState )
              && ( false == Global.shiftState ) ) {
                 Application.push_mode( eu07_application::mode::editor );
-            }
-            break;
-        }
-        case GLFW_KEY_F12: {
-            // quick debug mode toggle
-            if( Global.ctrlState
-             && Global.shiftState ) {
-                DebugModeFlag = !DebugModeFlag;
-            }
-            break;
-        }
-
-        case GLFW_KEY_LEFT_BRACKET:
-        case GLFW_KEY_RIGHT_BRACKET:
-        case GLFW_KEY_TAB: {
-            // consist movement in debug mode
-            if( ( true == DebugModeFlag )
-             && ( false == Global.shiftState )
-             && ( true == Global.ctrlState )
-             && ( simulation::Train != nullptr )
-             && ( simulation::Train->Dynamic()->Controller == Humandriver ) ) {
-
-                if( DebugModeFlag ) {
-                    // przesuwanie składu o 100m
-                    auto *vehicle { simulation::Train->Dynamic() };
-                    TDynamicObject *d = vehicle;
-                    if( cKey == GLFW_KEY_LEFT_BRACKET ) {
-                        while( d ) {
-                            d->Move( 100.0 * d->DirectionGet() );
-                            d = d->Next(); // pozostałe też
-                        }
-                        d = vehicle->Prev();
-                        while( d ) {
-                            d->Move( 100.0 * d->DirectionGet() );
-                            d = d->Prev(); // w drugą stronę też
-                        }
-                    }
-                    else if( cKey == GLFW_KEY_RIGHT_BRACKET ) {
-                        while( d ) {
-                            d->Move( -100.0 * d->DirectionGet() );
-                            d = d->Next(); // pozostałe też
-                        }
-                        d = vehicle->Prev();
-                        while( d ) {
-                            d->Move( -100.0 * d->DirectionGet() );
-                            d = d->Prev(); // w drugą stronę też
-                        }
-                    }
-                    else if( cKey == GLFW_KEY_TAB ) {
-                        while( d ) {
-                            d->MoverParameters->V += d->DirectionGet()*2.78;
-                            d = d->Next(); // pozostałe też
-                        }
-                        d = vehicle->Prev();
-                        while( d ) {
-                            d->MoverParameters->V += d->DirectionGet()*2.78;
-                            d = d->Prev(); // w drugą stronę też
-                        }
-                    }
-                }
             }
             break;
         }
@@ -1123,66 +1104,6 @@ driver_mode::CabView() {
             * Camera.m_owner->MoverParameters->CabOccupied;
     }
     train->pMechOffset = Camera.m_owneroffset;
-}
-
-void
-driver_mode::ChangeDynamic() {
-
-    auto *train { simulation::Train };
-    if( train == nullptr ) { return; }
-
-    auto *vehicle { train->Dynamic() };
-    auto *occupied { train->Occupied() };
-    auto *driver { vehicle->Mechanik };
-    // Ra: to nie może być tak robione, to zbytnia proteza jest
-    if( driver ) {
-        // AI może sobie samo pójść
-        if( false == driver->AIControllFlag ) {
-            // tylko jeśli ręcznie prowadzony
-            // jeśli prowadzi AI, to mu nie robimy dywersji!
-            occupied->CabDeactivisation();
-            occupied->CabOccupied = 0;
-            occupied->BrakeLevelSet( occupied->Handle->GetPos( bh_NP ) ); //rozwala sterowanie hamulcem GF 04-2016
-            vehicle->MechInside = false;
-            vehicle->Controller = AIdriver;
-        }
-    }
-    TDynamicObject *temp = Global.changeDynObj;
-    vehicle->bDisplayCab = false;
-    vehicle->ABuSetModelShake( {} );
-
-    if( driver ) // AI może sobie samo pójść
-        if( false == driver->AIControllFlag ) {
-            // tylko jeśli ręcznie prowadzony
-            // przsunięcie obiektu zarządzającego
-            driver->MoveTo( temp );
-        }
-
-    train->DynamicSet( temp );
-    // update helpers
-    train = simulation::Train;
-    vehicle = train->Dynamic();
-    occupied = train->Occupied();
-    driver = vehicle->Mechanik;
-    Global.asHumanCtrlVehicle = vehicle->name();
-    if( driver ) // AI może sobie samo pójść
-        if( false == driver->AIControllFlag ) // tylko jeśli ręcznie prowadzony
-        {
-            occupied->LimPipePress = occupied->PipePress;
-            occupied->CabOccupied = occupied->CabActive;
-            occupied->CabActivisation( true ); // załączenie rozrządu (wirtualne kabiny)
-            vehicle->MechInside = true;
-            vehicle->Controller = Humandriver;
-        }
-    train->InitializeCab(
-        occupied->CabActive,
-        vehicle->asBaseDir + occupied->TypeName + ".mmd" );
-    if( false == FreeFlyModeFlag ) {
-        vehicle->bDisplayCab = true;
-        vehicle->ABuSetModelShake( {} ); // zerowanie przesunięcia przed powrotem?
-        CabView(); // na pozycję mecha
-    }
-    Global.changeDynObj = nullptr;
 }
 
 void

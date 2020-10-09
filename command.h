@@ -105,6 +105,9 @@ enum class user_command {
     motoroverloadrelaythresholdsetlow,
     motoroverloadrelaythresholdsethigh,
     motoroverloadrelayreset,
+    universalrelayreset1,
+    universalrelayreset2,
+    universalrelayreset3,
     notchingrelaytoggle,
     epbrakecontroltoggle,
 	trainbrakeoperationmodeincrease,
@@ -144,8 +147,11 @@ enum class user_command {
     moveup,
     movedown,
 
-    carcouplingincrease,
-    carcouplingdisconnect,
+    nearestcarcouplingincrease,
+    nearestcarcouplingdisconnect,
+    nearestcarcoupleradapterattach,
+    nearestcarcoupleradapterremove,
+    occupiedcarcouplingdisconnect,
     doortoggleleft,
     doortoggleright,
     doorpermitleft,
@@ -163,6 +169,8 @@ enum class user_command {
     departureannounce,
     doorlocktoggle,
     pantographcompressorvalvetoggle,
+    pantographcompressorvalveenable,
+    pantographcompressorvalvedisable,
     pantographcompressoractivate,
     pantographtogglefront,
     pantographtogglerear,
@@ -171,6 +179,11 @@ enum class user_command {
     pantographlowerfront,
     pantographlowerrear,
     pantographlowerall,
+    pantographselectnext,
+    pantographselectprevious,
+    pantographtoggleselected,
+    pantographraiseselected,
+    pantographlowerselected,
     heatingtoggle,
     heatingenable,
     heatingdisable,
@@ -210,6 +223,9 @@ enum class user_command {
     interiorlightdimtoggle,
     interiorlightdimenable,
     interiorlightdimdisable,
+    compartmentlightstoggle,
+    compartmentlightsenable,
+    compartmentlightsdisable,
     instrumentlighttoggle,
     instrumentlightenable,
     instrumentlightdisable,
@@ -255,13 +271,42 @@ enum class user_command {
 	speedcontrolbutton7,
 	speedcontrolbutton8,
 	speedcontrolbutton9,
+
+    globalradiostop,
+    timejump,
+    timejumplarge,
+    timejumpsmall,
+    setdatetime,
+    setweather,
+    settemperature,
+    vehiclemoveforwards,
+    vehiclemovebackwards,
+    vehicleboost,
+    debugtoggle,
+    focuspauseset,
+    pausetoggle,
+    entervehicle,
+    resetconsist,
+    fillcompressor,
+    consistreleaser,
+    queueevent,
+    setlight,
+    insertmodel,
+    deletemodel,
+    dynamicmove,
+    consistteleport,
+    pullalarmchain,
+    sendaicommand,
+    spawntrainset,
+    destroytrainset,
+    quitsimulation,
+
     none = -1
 };
 
 enum class command_target {
 
     userinterface,
-    simulation,
 /*
     // NOTE: there's no need for consist- and unit-specific commands at this point, but it's a possibility.
     // since command targets are mutually exclusive these don't reduce ranges for individual vehicles etc
@@ -271,7 +316,9 @@ enum class command_target {
     // values are combined with object id. 0xffff objects of each type should be quite enough ("for everyone")
     vehicle = 0x10000,
     signal  = 0x20000,
-    entity  = 0x40000
+    entity  = 0x40000,
+
+    simulation = 0x80000
 };
 
 struct command_description {
@@ -287,6 +334,10 @@ struct command_data {
     double param1;
     double param2;
     double time_delta;
+
+    glm::vec3 location;
+
+    std::string payload;
 };
 
 // command_queues: collects and holds commands from input sources, for processing by their intended recipients
@@ -296,6 +347,9 @@ struct command_data {
 class command_queue {
 
 public:
+// types
+	typedef std::deque<command_data> commanddata_sequence;
+	typedef std::unordered_map<uint32_t, commanddata_sequence> commands_map;
 // methods
     // posts specified command for specified recipient
     void
@@ -303,15 +357,35 @@ public:
     // retrieves oldest posted command for specified recipient, if any. returns: true on retrieval, false if there's nothing to retrieve
     bool
         pop( command_data &Command, std::size_t const Recipient );
+    // checks if given command must be scheduled on server
+	bool
+	    is_network_target(const uint32_t Recipient);
+
+	// pops commands from intercept queue
+	commands_map pop_intercept_queue();
+
+	// pushes commands into main queue
+	void push_commands(const commands_map &commands);
 
 private:
-// types
-    typedef std::queue<command_data> commanddata_sequence;
-    typedef std::unordered_map<std::size_t, commanddata_sequence> commanddatasequence_map;
 // members
-    commanddatasequence_map m_commands;
+	// contains command ready to execution
+	commands_map m_commands;
 
+	// contains intercepted commands to be read by application layer
+	commands_map m_intercept_queue;
+
+	void push_direct( command_data const &Command, uint32_t const Recipient );
 };
+
+template<typename A, typename B>
+void add_to_dequemap(std::unordered_map<A, std::deque<B>> &lhs, const std::unordered_map<A, std::deque<B>> &rhs) {
+	for (auto const &kv : rhs) {
+		auto lookup = lhs.emplace(kv.first, std::deque<B>());
+		for (B const &data : kv.second)
+			lookup.first->second.emplace_back(data);
+	}
+}
 
 // NOTE: simulation should be a (light) wrapper rather than namespace so we could potentially instance it,
 //       but realistically it's not like we're going to run more than one simulation at a time
@@ -335,8 +409,8 @@ public:
     // posts specified command for the specified recipient
     // TODO: replace uint16_t with recipient handle, based on item id
     void
-        post( user_command const Command, double const Param1, double const Param2,
-            int const Action, std::uint16_t const Recipient ) const;
+	    post(user_command const Command, double const Param1, double const Param2,
+	        int const Action, uint16_t Recipient, glm::vec3 Position = glm::vec3(0.0f) , const std::string *Payload = nullptr) const;
 private:
 // types
 // members

@@ -12,6 +12,7 @@ http://mozilla.org/MPL/2.0/.
 #include <string>
 
 #include "Classes.h"
+#include "sound.h"
 
 namespace Mtable
 {
@@ -37,6 +38,8 @@ struct TMTableLine
     float Dm{ -1.f }; // godz. i min. odjazdu
     float tm{ 0.f }; // czas jazdy do tej stacji w min. (z kolumny)
     bool is_maintenance{ false };
+    int radio_channel{ -1 };
+    sound_source name_sound{ sound_placement::engine };
 };
 
 typedef TMTableLine TMTable[MaxTTableSize + 1];
@@ -64,9 +67,14 @@ class TTrainParameters
     std::string ShowRelation() const;
     double WatchMTable(double DistCounter);
     std::string NextStop() const;
+    sound_source next_stop_sound() const;
+    sound_source last_stop_sound() const;
     bool IsStop() const;
+    bool IsLastStop() const;
     bool IsMaintenance() const;
     bool IsTimeToGo(double hh, double mm);
+    // returns: difference between specified time and scheduled departure from current stop, in seconds
+    double seconds_until_departure( double const Hour, double const Minute ) const;
     bool UpdateMTable(double hh, double mm, std::string const &NewName);
     bool UpdateMTable( scenario_time const &Time, std::string const &NewName );
     bool RewindTimeTable( std::string actualStationName );
@@ -77,6 +85,12 @@ class TTrainParameters
     bool DirectionChange();
     void StationIndexInc();
     void serialize( dictionary_source *Output ) const;
+    // returns: radio channel associated with current station, or -1
+    int radio_channel() const;
+    // returns: sound file associated with current station, or -1
+    sound_source current_stop_sound() const;
+private:
+    void load_sounds();
 };
 
 class TMTableTime

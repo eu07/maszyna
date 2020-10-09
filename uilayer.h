@@ -61,13 +61,16 @@ public:
     // assign texturing hardware unit
     static
     void
-        set_unit( GLint const Textureunit ) { m_textureunit = Textureunit; }
+        set_unit( GLint const Textureunit ) { m_textureunit = GL_TEXTURE0 + Textureunit; }
     static
     void
         shutdown();
     // potentially processes provided input key. returns: true if the input was processed, false otherwise
     bool
         on_key( int const Key, int const Scancode, int const Action, int const Mods );
+    // potentially processes provided input character. returns: true if the input was processed, false otherwise
+    bool
+        on_char( unsigned int const Char );
     // potentially processes provided mouse movement. returns: true if the input was processed, false otherwise
     bool
         on_cursor_pos( double const Horizontal, double const Vertical );
@@ -136,6 +139,9 @@ private:
     virtual
     bool
         on_key_( int const Key, int const Scancode, int const Action, int const Mods ) { return false; }
+    virtual
+    bool
+        on_char_( unsigned int const Char ) { return false; }
     virtual
     bool
         on_cursor_pos_( double const Horizontal, double const Vertical ) { return false; }

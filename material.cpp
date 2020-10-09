@@ -17,6 +17,8 @@ http://mozilla.org/MPL/2.0/.
 #include "Globals.h"
 #include "Logs.h"
 
+opengl_material::path_data opengl_material::paths;
+
 opengl_material::opengl_material()
 {
     for (size_t i = 0; i < params.size(); i++)
@@ -32,6 +34,21 @@ opengl_material::deserialize( cParser &Input, bool const Loadnow ) {
         result = true; // once would suffice but, eh
     }
 
+    if( ( path == -1 )
+     && ( update_on_weather_change || update_on_season_change ) ) {
+        // record current texture path in the material, potentially needed when material is reloaded on environment change
+        // NOTE: we're storing this only for textures that can actually change, to keep the size of path database modest
+        auto const lookup{ paths.index_map.find( Global.asCurrentTexturePath ) };
+        if( lookup != paths.index_map.end() ) {
+            path = lookup->second;
+        }
+        else {
+            path = paths.data.size();
+            paths.data.emplace_back( Global.asCurrentTexturePath );
+            paths.index_map.emplace( Global.asCurrentTexturePath, path );
+        }
+    }
+
     return result;
 }
 
@@ -43,11 +60,14 @@ void opengl_material::log_error(const std::string &str)
 std::map<std::string, int> texture_bindings {
 
     { "diffuse", 0 },
-    { "normal", 1 }
+    { "normals", 1 },
+    { "normalmap", 1 }
 };
 
 void opengl_material::finalize(bool Loadnow)
 {
+    is_good = true;
+
     if (parse_info)
     {
         for (auto it : parse_info->tex_mapping)
@@ -57,11 +77,15 @@ void opengl_material::finalize(bool Loadnow)
 
             if (key.size() > 0 && key[0] != '_')
             {
+                key.erase( key.find_first_not_of( "-1234567890" ) );
                 size_t num = std::stoi(key) - 1;
-                if (num < gl::MAX_TEXTURES)
+                if (num < gl::MAX_TEXTURES) {
                     textures[num] = GfxRenderer->Fetch_Texture(value, Loadnow);
-                else
+                }
+                else {
                     log_error("invalid texture binding: " + std::to_string(num));
+                    is_good = false;
+                }
             }
             else if (key.size() > 2)
             {
@@ -76,70 +100,104 @@ void opengl_material::finalize(bool Loadnow)
                     textures[ lookup->second ] = GfxRenderer->Fetch_Texture( value, Loadnow );
                 }
                 else {
-                    log_error( "unknown texture binding: " + key );
+                    // ignore unrecognized texture bindings in legacy render mode, it's most likely data for more advanced shaders
+                    if( Global.GfxRenderer == "default" ) {
+                        log_error( "unknown texture binding: " + key );
+                        is_good = false;
+                    }
                 }
             }
-            else
+            else {
                 log_error("unrecognized texture binding: " + key);
+                is_good = false;
+            }
         }
 
         if (!shader)
         {
+// TODO: add error severity to logging, re-enable these errors as low severity messages
             if (textures[0] == null_handle)
             {
-                log_error("shader not specified, assuming \"default_0\"");
+//                log_error("shader not specified, assuming \"default_0\"");
                 shader = GfxRenderer->Fetch_Shader("default_0");
             }
             else if (textures[1] == null_handle)
             {
-                log_error("shader not specified, assuming \"default_1\"");
+//                log_error("shader not specified, assuming \"default_1\"");
                 shader = GfxRenderer->Fetch_Shader("default_1");
             }
             else if (textures[2] == null_handle)
             {
-                log_error("shader not specified, assuming \"default_2\"");
+//                log_error("shader not specified, assuming \"default_2\"");
                 shader = GfxRenderer->Fetch_Shader("default_2");
             }
         }
 
-        if (!shader)
-            return;
+        // TBD, TODO: move material validation to renderer, to eliminate branching?
+        if( Global.GfxRenderer == "default" ) {
 
-        for (auto it : parse_info->param_mapping)
-        {
-            std::string key = it.first;
-            glm::vec4 value = it.second.data;
-
-            if (key.size() > 1 && key[0] != '_')
-            {
-                size_t num = std::stoi(key) - 1;
-                if (num < gl::MAX_PARAMS)
-                    params[num] = value;
-                else
-                    log_error("invalid param binding: " + std::to_string(num));
+            if( !shader ) {
+                is_good = false;
+                return;
             }
-            else if (key.size() > 2)
+
+            for (auto it : parse_info->param_mapping)
             {
-                key.erase(0, 1);
-                key.pop_back();
-                if (shader->param_conf.find(key) != shader->param_conf.end())
+                std::string key = it.first;
+                glm::vec4 value = it.second.data;
+
+                if (key.size() > 1 && key[0] != '_')
                 {
-                    gl::shader::param_entry entry = shader->param_conf[key];
-                    for (size_t i = 0; i < entry.size; i++)
-                        params[entry.location][entry.offset + i] = value[i];
+                    size_t num = std::stoi(key) - 1;
+                    if (num < gl::MAX_PARAMS) {
+                        params[num] = value;
+                    }
+                    else {
+                        log_error("invalid param binding: " + std::to_string(num));
+                        is_good = false;
+                    }
                 }
-                else
-                    log_error("unknown param binding: " + key);
+                else if (key.size() > 2)
+                {
+                    key.erase(0, 1);
+                    key.pop_back();
+                    if (shader->param_conf.find(key) != shader->param_conf.end())
+                    {
+                        gl::shader::param_entry entry = shader->param_conf[key];
+                        for (size_t i = 0; i < entry.size; i++)
+                            params[entry.location][entry.offset + i] = value[i];
+                    }
+                    else {
+                        log_error("unknown param binding: " + key);
+                        is_good = false;
+                    }
+                }
+                else {
+                    log_error("unrecognized param binding: " + key);
+                    is_good = false;
+                }
             }
-            else
-                log_error("unrecognized param binding: " + key);
         }
-
         parse_info.reset();
     }
 
-	if (!shader)
-		return;
+    if( Global.GfxRenderer != "default" ) {
+        // basic texture validation for legacy branch
+        for( auto texturehandle : textures ) {
+            if( texturehandle == null_handle ) {
+                break;
+            }
+            if( GfxRenderer->Texture( texturehandle ).id <= 0 ) {
+                is_good = false;
+            }
+        }
+        return;
+    }
+
+    if( !shader ) {
+        is_good = false;
+        return;
+    }
 
     for (auto it : shader->param_conf)
     {
@@ -168,11 +226,66 @@ void opengl_material::finalize(bool Loadnow)
     {
         gl::shader::texture_entry &entry = it.second;
         texture_handle handle = textures[entry.id];
-        if (handle)
+        // NOTE: texture validation at this stage relies on forced texture load behaviour during its create() call
+        // TODO: move texture id validation to later stage if/when deferred texture loading is implemented
+        if( ( handle )
+         && ( GfxRenderer->Texture( handle ).id > 0 ) ) {
             GfxRenderer->Texture(handle).set_components_hint((GLint)entry.components);
-        else
+        }
+        else {
             log_error("missing texture: " + it.first);
+            is_good = false;
+        }
     }
+}
+
+bool opengl_material::update() {
+
+    auto const texturepathbackup { Global.asCurrentTexturePath };
+    auto const namebackup { name };
+    auto const pathbackup { path };
+    cParser materialparser( name + ".mat", cParser::buffer_FILE ); // fairly safe to presume .mat is present for branching materials
+
+    // temporarily set texture path to state recorded in the material
+    Global.asCurrentTexturePath = paths.data[ path ];
+
+    // clean material slate, restore relevant members
+    *this = opengl_material();
+    name = namebackup;
+    path = pathbackup;
+
+    auto result { false };
+
+    if( true == deserialize( materialparser, true ) ) {
+        try {
+            finalize( true );
+            result = true;
+        }
+        catch( gl::shader_exception const &e ) {
+            ErrorLog( "invalid shader: " + std::string( e.what() ) );
+        }
+    }
+    // restore texture path
+    Global.asCurrentTexturePath = texturepathbackup;
+
+    return result;
+}
+
+std::unordered_set<std::string> seasons = {
+    "winter:", "spring:", "summer:", "autumn:"
+};
+
+bool is_season( std::string const &String ) {
+
+    return ( seasons.find( String ) != seasons.end() );
+}
+
+std::unordered_set<std::string> weather = {
+    "clear:", "cloudy:", "rain:", "snow:" };
+
+bool is_weather( std::string const &String ) {
+
+    return ( weather.find( String ) != weather.end() );
 }
 
 // imports member data pair from the config file
@@ -186,6 +299,11 @@ opengl_material::deserialize_mapping( cParser &Input, int const Priority, bool c
 
     if( Priority != -1 ) {
         // regular attribute processing mode
+
+        // mark potential material change
+        update_on_weather_change |= is_weather( key );
+        update_on_season_change  |= is_season( key );
+
         if( key == Global.Weather ) {
             // weather textures override generic (pri 0) and seasonal (pri 1) textures
             // seasonal weather textures (pri 1+2=3) override generic weather (pri 2) textures
@@ -265,6 +383,13 @@ opengl_material::deserialize_mapping( cParser &Input, int const Priority, bool c
             std::string value = deserialize_random_set( Input );
             selfillum = std::stof(value); //m7t: handle exception
             m_selfillum_priority = Priority;
+        }
+        else if (key == "glossiness:" &&
+                Priority > m_glossiness_priority)
+        {
+            std::string value = deserialize_random_set( Input );
+            glossiness = std::stof(value); //m7t: handle exception
+            m_glossiness_priority = Priority;
         }
         else if( key == "size:" ) {
             Input.getTokens( 2 );
@@ -358,7 +483,7 @@ material_manager::create( std::string const &Filename, bool const Loadnow ) {
         erase_leading_slashes( filename );
     }
 
-    auto const databanklookup { find_in_databank( ToLower( filename ) ) };
+    auto const databanklookup { find_in_databank( filename ) };
     if( databanklookup != null_handle ) {
         return databanklookup;
     }
@@ -374,7 +499,9 @@ material_manager::create( std::string const &Filename, bool const Loadnow ) {
     if( ( false == isgenerated )
      && ( false == locator.first.empty() ) ) {
         // try to parse located file resource
-        cParser materialparser( locator.first + locator.second, cParser::buffer_FILE );
+        cParser materialparser(
+            locator.first + locator.second,
+            cParser::buffer_FILE );
         if( true == material.deserialize( materialparser, Loadnow ) ) {
             material.name = locator.first;
         }
@@ -383,12 +510,11 @@ material_manager::create( std::string const &Filename, bool const Loadnow ) {
         // if there's no .mat file, this can be either autogenerated texture,
         // or legacy method of referring just to diffuse texture directly.
         // wrap basic material around it in either case
-        material.textures[0] = GfxRenderer->Fetch_Texture( Filename, Loadnow );
-		if( material.textures[0] != null_handle )
-		{
+        auto const texturehandle { GfxRenderer->Fetch_Texture( Filename, Loadnow ) };
+		if( texturehandle != null_handle ) {
 			// use texture path and name to tell the newly created materials apart
-			material.name = GfxRenderer->Texture( material.textures[0] ).name;
-
+			material.name = GfxRenderer->Texture( texturehandle ).name;
+/*
             // material would attach default shader anyway, but it would spit to error log
 	        try
 	        {
@@ -399,18 +525,24 @@ material_manager::create( std::string const &Filename, bool const Loadnow ) {
 	            ErrorLog("invalid shader: " + std::string(e.what()));
 	        }
         }
+*/
+            // HACK: create parse info for material finalize() method
+            cParser materialparser(
+                "texture1: \"" + Filename + "\"",
+                cParser::buffer_TEXT );
+            material.deserialize( materialparser, Loadnow );
+        }
     }
 
 	if( false == material.name.empty() ) {
 		// if we have material name and shader it means resource was processed succesfully
-		try {
+        materialhandle = m_materials.size();
+        m_materialmappings.emplace( material.name, materialhandle );
+        try {
 			material.finalize(Loadnow);
-			materialhandle = m_materials.size();
-			m_materialmappings.emplace( material.name, materialhandle );
 			m_materials.emplace_back( std::move(material) );
 		} catch (gl::shader_exception const &e) {
 			ErrorLog("invalid shader: " + std::string(e.what()));
-			m_materialmappings.emplace( filename, materialhandle );
 		}
     }
     else {
@@ -420,6 +552,22 @@ material_manager::create( std::string const &Filename, bool const Loadnow ) {
 
     return materialhandle;
 };
+
+void
+material_manager::on_weather_change() {
+
+    for( auto &material : m_materials ) {
+        if( material.update_on_weather_change ) { material.update(); }
+    }
+}
+
+void
+material_manager::on_season_change() {
+
+    for( auto &material : m_materials ) {
+        if( material.update_on_season_change ) { material.update(); }
+    }
+}
 
 // checks whether specified material is in the material bank. returns handle to the material, or a null handle
 material_handle
