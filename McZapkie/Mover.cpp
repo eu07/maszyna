@@ -6940,6 +6940,8 @@ void TMoverParameters::CheckEIMIC(double dt)
 			if ((eimic < -0.001) && (BrakeHandle != TBrakeHandle::MHZ_EN57))
 				eimic = std::min(-0.002, eimic * (double)LocalBrakePosNo / ((double)LocalBrakePosNo - 1.0) + 1.0 / ((double)LocalBrakePosNo - 1.0));
 		}
+        if ((eimic > 0.001) && (SpeedCtrlUnit.IsActive))
+            eimic = std::max(eimic, SpeedCtrlUnit.MinPower);
 		break;
 	case 1:
 		switch (MainCtrlPos)
@@ -7089,7 +7091,7 @@ void TMoverParameters::CheckSpeedCtrl(double dt)
 		if (true) {
 			if ((!SpeedCtrlUnit.Standby)) {
 				if (SpeedCtrlUnit.ManualStateOverride) {
-					if (eimic > 0.009) eimic = 1.0;
+					if (eimic > 0.0009) eimic = 1.0;
 				}
 				double error = (std::max(SpeedCtrlValue + SpeedCtrlUnit.Offset, 0.0) - Vel);
 				double factorP = error > 0 ? SpeedCtrlUnit.FactorPpos : SpeedCtrlUnit.FactorPneg;
