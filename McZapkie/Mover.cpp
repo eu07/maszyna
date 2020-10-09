@@ -2162,7 +2162,7 @@ bool TMoverParameters::IncMainCtrl(int CtrlSpeed)
 				else {
 					++MainCtrlPos;
                         OK = true;
-						if ((EIMCtrlType == 0) && (SpeedCtrlAutoTurnOffFlag == 1) && (MainCtrlActualPos != MainCtrlPos))
+						if ((EIMCtrlType == 0) && (SpeedCtrlAutoTurnOffFlag & 1 == 1) && (MainCtrlActualPos != MainCtrlPos))
 						{
 							DecScndCtrl(2);
 							SpeedCtrlUnit.IsActive = false;
@@ -2331,7 +2331,7 @@ bool TMoverParameters::DecMainCtrl(int CtrlSpeed)
                         {
                             MainCtrlPos--;
                             OK = true;
-							if ((EIMCtrlType == 0) && (SpeedCtrlAutoTurnOffFlag == 1) && (MainCtrlActualPos != MainCtrlPos)) {
+							if ((EIMCtrlType == 0) && (SpeedCtrlAutoTurnOffFlag & 1 == 1) && (MainCtrlActualPos != MainCtrlPos)) {
 								DecScndCtrl(2);
 								SpeedCtrlUnit.IsActive = false;
 							}
@@ -2495,7 +2495,7 @@ bool TMoverParameters::IncScndCtrl(int CtrlSpeed)
 	if ((OK) && (EngineType == TEngineType::ElectricInductionMotor) && (ScndCtrlPosNo == 1) && (MainCtrlPos>0))
 	{
         SpeedCtrlValue = Vel;
-		if ((EIMCtrlType == 0)&&(SpeedCtrlAutoTurnOffFlag == 1))
+		if ((EIMCtrlType == 0)&&(SpeedCtrlAutoTurnOffFlag & 1 == 1))
 		{
 			MainCtrlActualPos = MainCtrlPos;
 		}
@@ -7138,6 +7138,11 @@ void TMoverParameters::CheckSpeedCtrl(double dt)
 				eimicSpeedCtrl = clamp(0.5 * (SpeedCtrlValue - Vel), -1.0, 1.0);
 			else
 				eimicSpeedCtrl = clamp(0.5 * (SpeedCtrlValue * 2 - Vel), -1.0, 1.0);
+		}
+		if (((SpeedCtrlAutoTurnOffFlag & 2) == 2) && (Hamulec->GetEDBCP() > 0.25))
+		{
+			DecScndCtrl(2);
+			SpeedCtrlUnit.IsActive = false;
 		}
 	}
 	else {
