@@ -7075,6 +7075,10 @@ void TMoverParameters::CheckEIMIC(double dt)
 
 void TMoverParameters::CheckSpeedCtrl(double dt)
 {
+    if (EIMCtrlType == 0)
+    {
+        SpeedCtrlUnit.DesiredPower = std::max(eimic, 0.0);
+    }
 	double accfactor = SpeedCtrlUnit.DesiredPower;
 	if (EIMCtrlType >= 2) {
 		if (MainCtrlPos < MainCtrlPosNo - 2) {
