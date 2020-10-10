@@ -2714,7 +2714,7 @@ bool TMoverParameters::Sandbox( bool const State, range_t const Notify )
     if( SandDose != State ) {
         if( SandDose == false ) {
             // switch on
-            if( Sand > 0 ) {
+            if(( Sand > 0 ) && ( DirActive != 0 )) {
                 SandDose = true;
                 result = true;
             }
