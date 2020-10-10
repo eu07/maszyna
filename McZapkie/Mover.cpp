@@ -4223,7 +4223,8 @@ void TMoverParameters::UpdatePipePressure(double dt)
 			dpLocalValve = LocHandle->GetPF(LocalBrakePosAEIM, Hamulec->GetBCP(), ScndPipePress, dt, 0);
 
 		LockPipe = PipePress < (LockPipe ? LockPipeOff : LockPipeOn);
-		bool lock_new = (LockPipe && !UnlockPipe && (BrakeCtrlPosR > HandleUnlock)); //new simple codition based on .fiz
+		bool lock_new = (LockPipe && !UnlockPipe && (BrakeCtrlPosR > HandleUnlock))
+						|| ((EmergencyCutsOffHandle) && (EmergencyValveFlow > 0)); //new simple codition based on .fiz
 		bool lock_old = ((BrakeHandle == TBrakeHandle::FV4a) //old complex condition based on assumptions
 			&& ((PipePress < 2.75)
 				&& ((Hamulec->GetStatus() & b_rls) == 0))
@@ -4261,6 +4262,10 @@ void TMoverParameters::UpdatePipePressure(double dt)
                 dpMainValve = Handle->GetPF( 0, PipePress, temp, dt, EqvtPipePress );
             }
         }
+        else if (BrakeCtrlPos == Handle->GetPos(bh_EB))
+		{
+            dpMainValve = Handle->GetPF(BrakeCtrlPosR, PipePress, temp, dt, EqvtPipePress);
+		}
 		
 		if (dpMainValve < 0) // && (PipePressureVal > 0.01)           //50
             if (Compressor > ScndPipePress)
@@ -9742,6 +9747,7 @@ void TMoverParameters::LoadFIZ_Brake( std::string const &line ) {
 	extract_value( LockPipeOn, "LPOn", line, "-1");
 	extract_value( LockPipeOff, "LPOff", line, "-1");
 	extract_value( HandleUnlock, "HandlePipeUnlockPos", line, "-3");
+	extract_value( EmergencyCutsOffHandle, "EmergencyCutsOffHandle", line, "");
     {
         std::map<std::string, int> compressorpowers{
             { "Main", 0 },

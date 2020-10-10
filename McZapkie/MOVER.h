@@ -1120,6 +1120,7 @@ public:
 	double LockPipeOn = -1.0;
 	double LockPipeOff = -1.0;
 	double HandleUnlock = -3.0;
+	bool EmergencyCutsOffHandle = false;
 	int CompressorListPosNo = 0;
 	int CompressorListDefPos = 1;
 	bool CompressorListWrap = false;
