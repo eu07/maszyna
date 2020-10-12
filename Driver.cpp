@@ -3149,7 +3149,10 @@ bool TController::IncBrakeEIM()
 	{
         case 0: {
             if( mvOccupied->MED_amax != 9.81 ) {
-                auto const brakeposition{ clamp( -1.0 * mvOccupied->AIHintLocalBrakeAccFactor * AccDesired / mvOccupied->MED_amax, 0.0, 1.0 ) };
+                auto const maxpos{mvOccupied->EIMCtrlEmergency ? 0.9 : 1.0 };
+                auto const brakelimit{ -2.2 * AccDesired / mvOccupied->MED_amax - 1.0}; //additional limit when hinted is too low
+				auto const brakehinted{ -1.0 * mvOccupied->AIHintLocalBrakeAccFactor * AccDesired / mvOccupied->MED_amax }; //preffered by AI
+                auto const brakeposition{ maxpos * clamp(std::max(brakelimit, brakehinted), 0.0, 1.0)};
                 OK = ( brakeposition != mvOccupied->LocalBrakePosA );
                 mvOccupied->LocalBrakePosA = brakeposition;
             }
@@ -3893,9 +3896,11 @@ void TController::SpeedSet()
 
 void TController::SpeedCntrl(double DesiredSpeed)
 {
-	while (mvControlling->SpeedCtrlUnit.DesiredPower < mvControlling->SpeedCtrlUnit.MaxPower)
-	{
-		mvControlling->SpeedCtrlPowerInc();
+    if (mvControlling->SpeedCtrlUnit.PowerStep > 0) {
+		while (mvControlling->SpeedCtrlUnit.DesiredPower < mvControlling->SpeedCtrlUnit.MaxPower)
+		{
+			mvControlling->SpeedCtrlPowerInc();
+		}
 	}
 	if (mvControlling->EngineType == TEngineType::DieselEngine)
 	{
@@ -6837,6 +6842,10 @@ TController::UpdateSituation(double dt) {
                             if( mvOccupied->LocalBrakePosA < 1.0 ) {
                                 // dodatkowy na pozycję 1
                                 mvOccupied->IncLocalBrakeLevel( LocalBrakePosNo );
+                                if (mvOccupied->EIMCtrlEmergency)
+                                {
+                                    mvOccupied->DecLocalBrakeLevel(1);
+								}
                             }
                         }
                         else {

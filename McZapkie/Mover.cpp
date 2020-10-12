@@ -4285,6 +4285,8 @@ void TMoverParameters::UpdatePipePressure(double dt)
 
     if( ( true == RadioStopFlag )
      || ( true == AlarmChainFlag )
+	 || (( true == EIMCtrlEmergency)
+	   && (LocalBrakePosA >= 1.0))
      || ( true == TestFlag( SecuritySystem.Status, s_SHPebrake ) )
      || ( true == TestFlag( SecuritySystem.Status, s_CAebrake ) )
 /*
@@ -6934,16 +6936,18 @@ bool TMoverParameters::DropAllPantographs( bool const State, range_t const Notif
 
 void TMoverParameters::CheckEIMIC(double dt)
 {
+    double offset = EIMCtrlAdditionalZeros ? 1.0 : 0.0;
+    double multiplier = (EIMCtrlEmergency ? 1.0 : 0.0) + offset;
 	switch (EIMCtrlType)
 	{
 	case 0:
 		eimic = (LocalBrakeRatio() > 0.01 ? -LocalBrakeRatio() : (double)MainCtrlPos / (double)MainCtrlPosNo);
-		if (EIMCtrlAdditionalZeros)
+            if (EIMCtrlAdditionalZeros || EIMCtrlEmergency)
 		{
 			if (eimic > 0.001)
-				eimic = std::max(0.002, eimic * (double)MainCtrlPosNo / ((double)MainCtrlPosNo - 1.0) - 1.0 / ((double)MainCtrlPosNo - 1.0));
+				eimic = std::max(0.002, eimic * (double)MainCtrlPosNo / ((double)MainCtrlPosNo - offset) - offset / ((double)MainCtrlPosNo - offset));
 			if ((eimic < -0.001) && (BrakeHandle != TBrakeHandle::MHZ_EN57))
-				eimic = std::min(-0.002, eimic * (double)LocalBrakePosNo / ((double)LocalBrakePosNo - 1.0) + 1.0 / ((double)LocalBrakePosNo - 1.0));
+				eimic = std::min(-0.002, eimic * (double)LocalBrakePosNo / ((double)LocalBrakePosNo - multiplier) + offset / ((double)LocalBrakePosNo - multiplier));
 		}
         if ((eimic > 0.001) && (SpeedCtrlUnit.IsActive))
             eimic = std::max(eimic, SpeedCtrlUnit.MinPower);
@@ -10125,6 +10129,7 @@ void TMoverParameters::LoadFIZ_Cntrl( std::string const &line ) {
     EIMCtrlType = clamp( EIMCtrlType, 0, 3 );
 	extract_value( LocHandleTimeTraxx, "LocalBrakeTraxx", line, "" );
 	extract_value( EIMCtrlAdditionalZeros, "EIMCtrlAddZeros", line, "" );
+    extract_value( EIMCtrlEmergency, "EIMCtrlEmergency", line, "");
 
     extract_value( ScndS, "ScndS", line, "" ); // brak pozycji rownoleglej przy niskiej nastawie PSR
 
