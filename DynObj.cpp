@@ -3170,8 +3170,9 @@ bool TDynamicObject::Update(double dt, double dt1)
                                                   (LBR < 0.01);
             }
             auto Fzad = amax * LBR * masa;
-			if ((MoverParameters->BrakeCtrlPos == MoverParameters->Handle->GetPos(bh_EB))
-				&& (MoverParameters->eimc[eimc_p_abed] < 0.001))
+			if (((MoverParameters->BrakeCtrlPos == MoverParameters->Handle->GetPos(bh_EB))
+				&& (MoverParameters->eimc[eimc_p_abed] < 0.001)) ||
+                (MoverParameters->EmergencyValveFlow > 0))
 				Fzad = amax * masa; //pętla bezpieczeństwa - pełne służbowe
             if ((MoverParameters->ScndS) &&
                 (MoverParameters->Vel > MoverParameters->eimc[eimc_p_Vh1]) && (FmaxED > 0))
