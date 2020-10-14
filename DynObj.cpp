@@ -1889,6 +1889,9 @@ TDynamicObject::Init(std::string Name, // nazwa pojazdu, np. "EU07-424"
             if( MoverParameters->LocalBrake != TLocalBrake::ManualBrake ) {
                 if( fVel < 1.0 ) {
                     MoverParameters->IncLocalBrakeLevel( LocalBrakePosNo );
+					if ( MoverParameters->EIMCtrlEmergency ) {
+						MoverParameters->DecLocalBrakeLevel(1);
+					}
                 }
             }
         }
