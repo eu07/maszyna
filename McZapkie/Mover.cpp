@@ -9871,6 +9871,8 @@ void TMoverParameters::LoadFIZ_Doors( std::string const &line ) {
     if( platformopenmethod == "Shift" ) { Doors.step_type = 1; } // przesuw
 
     extract_value( MirrorMaxShift, "MirrorMaxShift", line, "" );
+	extract_value( MirrorVelClose, "MirrorVelClose", line, "");
+
 }
 
 void TMoverParameters::LoadFIZ_BuffCoupl( std::string const &line, int const Index ) {
