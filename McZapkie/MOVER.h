@@ -1312,6 +1312,7 @@ public:
     int PlatformOpenMethod { 2 }; /*sposob animacji stopnia*/
 #endif
     double MirrorMaxShift { 90.0 };
+	double MirrorVelClose { 5.0 };
 	bool ScndS = false; /*Czy jest bocznikowanie na szeregowej*/
 	bool SpeedCtrl = false; /*czy jest tempomat*/
 	speed_control SpeedCtrlUnit; /*parametry tempomatu*/
