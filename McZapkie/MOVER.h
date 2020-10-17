@@ -1034,7 +1034,7 @@ public:
     start_t BatteryStart = start_t::manual;
 	bool EpFuse = true; /*Czy sa zalavzone baterie*/
 	bool Signalling = false;         /*Czy jest zalaczona sygnalizacja hamowania ostatniego wagonu*/
-	bool Radio = true;         /*Czy jest zalaczony radiotelefon*/
+	bool Radio = false;         /*Czy jest zalaczony radiotelefon*/
 	float NominalBatteryVoltage = 0.f;        /*Winger - baterie w elektrykach*/
 	TDimension Dim;          /*wymiary*/
 	double Cx = 0.0;                 /*wsp. op. aerodyn.*/

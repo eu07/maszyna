@@ -740,7 +740,8 @@ eu07_application::init_glfw() {
 		monitor = glfwGetPrimaryMonitor();
 
     glfwWindowHint( GLFW_AUTO_ICONIFY, GLFW_FALSE );
-    if( Global.iMultisampling > 0 ) {
+    glfwWindowHint( GLFW_FLOATING, GLFW_FALSE );
+    if( ( Global.iMultisampling > 0 ) && ( Global.gfx_skippipeline ) ) {
         glfwWindowHint( GLFW_SAMPLES, 1 << Global.iMultisampling );
     }
 

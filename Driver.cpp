@@ -2702,6 +2702,7 @@ bool TController::PrepareEngine()
     if (AIControllFlag) {
         // część wykonawcza dla sterowania przez komputer
         mvOccupied->BatterySwitch( true );
+        mvOccupied->Radio = true;
         if( ( mvControlling->EngineType == TEngineType::DieselElectric )
          || ( mvControlling->EngineType == TEngineType::DieselEngine ) ) {
             mvControlling->OilPumpSwitch( true );
@@ -2945,6 +2946,7 @@ bool TController::ReleaseEngine() {
                 mvOccupied->IncManualBrakeLevel( ManualBrakePosNo );
             }
             // switch off remaining power
+            mvOccupied->Radio = false;
             mvOccupied->BatterySwitch( false );
         }
     }
