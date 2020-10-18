@@ -240,6 +240,26 @@ else()
 	set(SOURCES ${SOURCES} "extras/piped_proc.cpp" "widgets/cameraview_extcam.cpp")
 endif()
 
+find_package(Git REQUIRED)
+
+string(TIMESTAMP BUILD_DATE %y%m%d)
+
+execute_process(
+  COMMAND ${GIT_EXECUTABLE} rev-parse --abbrev-ref HEAD
+  WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+  OUTPUT_VARIABLE GIT_BRANCH
+  OUTPUT_STRIP_TRAILING_WHITESPACE
+)
+
+execute_process(
+  COMMAND ${GIT_EXECUTABLE} describe --match=DUMMY --always --dirty
+  WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+  OUTPUT_VARIABLE GIT_HASH
+  OUTPUT_STRIP_TRAILING_WHITESPACE
+)
+
+configure_file("${CMAKE_SOURCE_DIR}/version.h.in" "${CMAKE_SOURCE_DIR}/version.h")
+
 set (PREFIX "")
 
 if (WIN32)
@@ -292,15 +312,13 @@ if (${CMAKE_CXX_COMPILER_ID} STREQUAL MSVC)
 	set_target_properties(${PROJECT_NAME} PROPERTIES LINK_FLAGS "/LARGEADDRESSAWARE")
 endif()
 
-string(TIMESTAMP data_exe %y%m%d)
-
 set_target_properties( ${PROJECT_NAME}
     PROPERTIES
     ARCHIVE_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/lib"
     LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/lib"
     RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin"
     PDB_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/pdb"
-	OUTPUT_NAME "${PROJECT_NAME}${PREFIX}_${data_exe}"
+        OUTPUT_NAME "${PROJECT_NAME}${PREFIX}_${BUILD_DATE}"
 	DEBUG_POSTFIX "_d"
 )
 
