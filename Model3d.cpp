@@ -213,7 +213,7 @@ std::pair<int, int> TSubModel::Load( cParser &parser, bool dynamic )
     auto token { parser.getToken<std::string>() };
     if( token != "type:" ) {
         std::string errormessage {
-            "Bad model: expected submodel type definition not found while loading model \"" + pRoot->NameGet() + "\""
+            "Bad model: expected submodel type definition not found while loading model \"" + parser.Name() + "\""
             + "\ncurrent model data stream content: \"" };
         auto count { 10 };
         while( ( true == parser.getTokens() )
@@ -509,7 +509,7 @@ std::pair<int, int> TSubModel::Load( cParser &parser, bool dynamic )
             }
             token = parser.getToken<std::string>();
         }
-		if( token == "numverts:" )
+		if( ( token == "numverts:" ) || ( token == "numverts" ) )
 		{ // normalna lista wierzchołków
 /*
             // Ra 15-01: to wczytać jako tekst - jeśli pierwszy znak zawiera "*", to
