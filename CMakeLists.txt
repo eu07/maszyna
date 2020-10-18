@@ -41,8 +41,8 @@ option(USE_IMGUI_GL3 "Use OpenGL3+ imgui implementation" ON)
 option(WITH_OPENGL_MODERN "Compile with OpenGL modern renderer" ON)
 option(WITH_OPENGL_LEGACY "Compile with OpenGL legacy renderer" ON)
 option(WITH_UART "Compile with libserialport" ON)
-option(WITH_OPENVR "Compile with OpenVR" ON)
-option(WITH_ZMQ "Compile with cppzmq" ON)
+option(WITH_OPENVR "Compile with OpenVR" OFF)
+option(WITH_ZMQ "Compile with cppzmq" OFF)
 option(USE_VSDEV_CAMERA "Use VS_Dev camera preview implementation" OFF)
 
 set(SOURCES
