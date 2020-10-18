@@ -3157,7 +3157,7 @@ bool TDynamicObject::Update(double dt, double dt1)
                && ( MoverParameters->Doors.instances[ side::left ].open_permit
                  || MoverParameters->Doors.instances[ side::right ].open_permit ) ) };
 
-            if ((MoverParameters->Vel < 0.5) && (MoverParameters->BrakePress > 0.2 || doorisopen))
+            if ((MoverParameters->Vel < 0.5) && (eimic < 0 || doorisopen || MoverParameters->Hamulec->GetEDBCP()))
             {
                 MoverParameters->ShuntMode = true;
             }
@@ -3182,8 +3182,8 @@ bool TDynamicObject::Update(double dt, double dt1)
             {
                 Fzad = std::min(LBR * FmaxED, FfulED);
             }
-            if (((MoverParameters->ShuntMode) && (Frj < 0.0015 * masa)) ||
-                (MoverParameters->V * MoverParameters->DirAbsolute < -0.2))
+            if (((MoverParameters->ShuntMode) && (eimic <= 0)) /*||
+                (MoverParameters->V * MoverParameters->DirAbsolute < -0.2)*/)
             {
                 auto const sbd { ( ( MoverParameters->SpringBrake.IsActive && MoverParameters->ReleaseParkingBySpringBrake ) ? 0.0 : MoverParameters->StopBrakeDecc ) };
                 Fzad = std::max( Fzad, sbd * masa );
