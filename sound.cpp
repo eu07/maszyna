@@ -936,11 +936,11 @@ sound_source::update_location() {
 }
 
 float const EU07_SOUNDPROOFING_GLOBAL_VERYSTRONG { 0.01f };
-float const EU07_SOUNDPROOFING_GLOBAL_STRONG { std::sqrt( 0.025 ) };
-float const EU07_SOUNDPROOFING_GLOBAL_SOME { std::sqrt( 0.15 ) };
-float const EU07_SOUNDPROOFING_GLOBAL_NONE { std::sqrt( 0.40 ) };
-float const EU07_SOUNDPROOFING_STRONG { std::sqrt( 0.20 ) };
-float const EU07_SOUNDPROOFING_SOME { std::sqrt( 0.65 ) };
+float const EU07_SOUNDPROOFING_GLOBAL_STRONG { std::sqrt( 0.025f ) };
+float const EU07_SOUNDPROOFING_GLOBAL_SOME { std::sqrt( 0.15f ) };
+float const EU07_SOUNDPROOFING_GLOBAL_NONE { std::sqrt( 0.40f ) };
+float const EU07_SOUNDPROOFING_STRONG { std::sqrt( 0.20f ) };
+float const EU07_SOUNDPROOFING_SOME { std::sqrt( 0.65f ) };
 float const EU07_SOUNDPROOFING_NONE { 1.f };
 
 bool
