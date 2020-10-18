@@ -12,6 +12,7 @@ http://mozilla.org/MPL/2.0/.
 namespace Timer {
 
 double GetTime();
+double GetRenderTime();
 
 double GetDeltaTime();
 double GetDeltaRenderTime();
@@ -35,21 +36,19 @@ public:
         stop() {
 		    m_last = std::chrono::duration_cast<std::chrono::microseconds>( ( std::chrono::steady_clock::now() - m_start ) );
 			m_accumulator = 0.95f * m_accumulator + m_last.count() / 1000.f;
-			return m_last;
-	    }
+			return m_last; }
     float
         average() const {
             return m_accumulator / 20.f;}
 	std::chrono::microseconds
-	last() const {
-		return m_last;
-	}
+	    last() const {
+		    return m_last; }
 
 private:
 // members
     std::chrono::time_point<std::chrono::steady_clock> m_start { std::chrono::steady_clock::now() };
     float m_accumulator { 1000.f / 30.f * 20.f }; // 20 last samples, initial 'neutral' rate of 30 fps
-	std::chrono::microseconds m_last;
+    std::chrono::microseconds m_last;
 };
 
 struct subsystem_stopwatches {
@@ -58,7 +57,7 @@ struct subsystem_stopwatches {
     stopwatch gfx_shadows;
     stopwatch gfx_reflections;
     stopwatch gfx_swap;
-	stopwatch gfx_gui;
+    stopwatch gfx_gui;
     stopwatch sim_total;
     stopwatch sim_dynamics;
     stopwatch sim_events;

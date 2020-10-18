@@ -154,7 +154,6 @@ node_groups::insert( scene::group_handle const Group, basic_event *Event ) {
 // sends basic content of the class in legacy (text) format to provided stream
 void
 node_groups::export_as_text( std::ostream &Output, bool Dirty ) const {
-
     for( auto const &group : m_groupmap ) {
 		bool any = false;
         for( auto *node : group.second.nodes ) {

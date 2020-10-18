@@ -21,6 +21,7 @@ double fFPS{ 0.0f };
 double fLastTime{ 0.0f };
 DWORD dwFrames{ 0 };
 double fSimulationTime{ 0.0 };
+double fRenderTime{ 0.0 };
 double fSoundTimer{ 0.0 };
 double fSinceStart{ 0.0 };
 double override_delta = -1.0f;
@@ -28,6 +29,10 @@ double override_delta = -1.0f;
 double GetTime()
 {
     return fSimulationTime;
+}
+
+double GetRenderTime() {
+    return fRenderTime;
 }
 
 double GetDeltaTime()
@@ -68,6 +73,7 @@ void UpdateTimers(bool pause)
 	fr = 1000000000;
 #endif
     DeltaRenderTime = double(count - oldCount) / double(fr);
+    fRenderTime += DeltaRenderTime;
     if (!pause)
     {
         DeltaTime = Global.fTimeSpeed * DeltaRenderTime;

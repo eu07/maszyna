@@ -14,7 +14,7 @@ http://mozilla.org/MPL/2.0/.
 #include "Classes.h"
 #include "material.h"
 #include "vertex.h"
-#include "opengl33geometrybank.h"
+#include "geometrybank.h"
 
 struct lighting_data {
 

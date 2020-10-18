@@ -13,10 +13,11 @@ http://mozilla.org/MPL/2.0/.
 #include "Globals.h"
 #include "simulation.h"
 #include "simulationtime.h"
+#include "simulationenvironment.h"
 #include "Timer.h"
 #include "application.h"
 #include "scenarioloaderuilayer.h"
-#include "opengl33renderer.h"
+#include "renderer.h"
 #include "Logs.h"
 #include "translation.h"
 
@@ -42,7 +43,8 @@ scenarioloader_mode::update() {
 	if (!state) {
 		WriteLog("using simulation seed: " + std::to_string(Global.random_seed), logtype::generic);
 
-		WriteLog( "\nLoading scenario \"" + Global.SceneryFile + "\"..." );
+        Application.set_title( Global.AppName + " (" + Global.SceneryFile + ")" );
+        WriteLog( "\nLoading scenario \"" + Global.SceneryFile + "\"..." );
 
 		timestart = std::chrono::system_clock::now();
 		state = simulation::State.deserialize_begin(Global.SceneryFile);
@@ -67,7 +69,7 @@ scenarioloader_mode::update() {
 }
 
 bool
-scenarioloader_mode::is_command_processor() {
+scenarioloader_mode::is_command_processor() const {
 	return false;
 }
 
@@ -80,16 +82,17 @@ scenarioloader_mode::enter() {
 
     simulation::is_ready = false;
 
+    m_userinterface->set_background( "logo" );
     Application.set_title( Global.AppName + " (" + Global.SceneryFile + ")" );
     m_userinterface->set_progress();
 	m_userinterface->set_progress(STR("Loading scenery"));
-    GfxRenderer.Render();
+    GfxRenderer->Render();
 }
 
 // maintenance method, called when the mode is deactivated
 void
 scenarioloader_mode::exit() {
 
-	simulation::Time.init(Global.starting_timestamp);
+    simulation::Time.init( Global.starting_timestamp );
     simulation::Environment.init();
 }

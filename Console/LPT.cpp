@@ -25,7 +25,7 @@ OutPortType OutPort;
 
 bool TLPT::Connect(int port)
 {
-	WriteLog("lpt: trying to connect lpt, port " + std::to_string(port) + "...");
+	WriteLog("lpt: trying to connect lpt, port " + std::to_string(port));
 
     // ladowanie dll-ki
     hDLL = LoadLibrary("inpout32.dll");
@@ -38,10 +38,9 @@ bool TLPT::Connect(int port)
 	else
 	{
 		WriteLog("lpt: failed to load inpout32");
-		return false; // MessageBox(NULL,"ERROR","Błąd przy ładowaniu pliku",MB_OK);
+		return false;
 	}
-    address =
-        port; //&0xFFFFFC; //ostatnie 2 bity mają być zerowe -> a niech sobie OUT-ują, gdzie chcą
+    address = port;
     switch (address) // nie dotyczy 0x3BC
     {
     case 0x0378:

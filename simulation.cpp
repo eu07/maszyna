@@ -10,6 +10,7 @@ http://mozilla.org/MPL/2.0/.
 #include "stdafx.h"
 #include "simulation.h"
 #include "simulationtime.h"
+#include "simulationenvironment.h"
 
 #include "Globals.h"
 #include "Event.h"
@@ -21,10 +22,11 @@ http://mozilla.org/MPL/2.0/.
 #include "AnimModel.h"
 #include "DynObj.h"
 #include "lightarray.h"
-#include "opengl33particles.h"
+#include "particles.h"
 #include "scene.h"
 #include "Train.h"
 #include "application.h"
+#include "Logs.h"
 #include "Driver.h"
 
 namespace simulation {
@@ -39,7 +41,6 @@ instance_table Instances;
 vehicle_table Vehicles;
 train_table Trains;
 light_array Lights;
-sound_table Sounds;
 lua Lua;
 particle_manager Particles;
 
@@ -68,15 +69,110 @@ state_manager::export_as_text( std::string const &Scenariofile ) const {
     return m_serializer.export_as_text( Scenariofile );
 }
 
+void
+state_manager::init_scripting_interface() {
+
+    // create scenario data memory cells
+    {
+        auto *memorycell = new TMemCell( {
+            0, -1,
+            "__simulation.weather",
+            "memcell" } );
+        simulation::Memory.insert( memorycell );
+        simulation::Region->insert( memorycell );
+    }
+    {
+        auto *memorycell = new TMemCell( {
+            0, -1,
+            "__simulation.time",
+            "memcell" } );
+        simulation::Memory.insert( memorycell );
+        simulation::Region->insert( memorycell );
+    }
+    {
+        auto *memorycell = new TMemCell( {
+            0, -1,
+            "__simulation.date",
+            "memcell" } );
+        simulation::Memory.insert( memorycell );
+        simulation::Region->insert( memorycell );
+    }
+}
+
 // legacy method, calculates changes in simulation state over specified time
 void
 state_manager::update( double const Deltatime, int Iterationcount ) {
+    // aktualizacja animacji krokiem FPS: dt=krok czasu [s], dt*iter=czas od ostatnich przeliczeń
+    if (Deltatime == 0.0) { return; }
+
     auto const totaltime { Deltatime * Iterationcount };
     // NOTE: we perform animations first, as they can determine factors like contact with powergrid
     TAnimModel::AnimUpdate( totaltime ); // wykonanie zakolejkowanych animacji
 
     simulation::Powergrid.update( totaltime );
     simulation::Vehicles.update( Deltatime, Iterationcount );
+}
+
+void
+state_manager::update_clocks() {
+
+    // Ra 2014-07: przeliczenie kąta czasu (do animacji zależnych od czasu)
+    auto const &time = simulation::Time.data();
+    Global.fTimeAngleDeg = time.wHour * 15.0 + time.wMinute * 0.25 + ( ( time.wSecond + 0.001 * time.wMilliseconds ) / 240.0 );
+    Global.fClockAngleDeg[ 0 ] = 36.0 * ( time.wSecond % 10 ); // jednostki sekund
+    Global.fClockAngleDeg[ 1 ] = 36.0 * ( time.wSecond / 10 ); // dziesiątki sekund
+    Global.fClockAngleDeg[ 2 ] = 36.0 * ( time.wMinute % 10 ); // jednostki minut
+    Global.fClockAngleDeg[ 3 ] = 36.0 * ( time.wMinute / 10 ); // dziesiątki minut
+    Global.fClockAngleDeg[ 4 ] = 36.0 * ( time.wHour % 10 ); // jednostki godzin
+    Global.fClockAngleDeg[ 5 ] = 36.0 * ( time.wHour / 10 ); // dziesiątki godzin
+}
+
+void
+state_manager::update_scripting_interface() {
+
+    auto *weather{ Memory.find( "__simulation.weather" ) };
+    auto *time{ Memory.find( "__simulation.time" ) };
+    auto *date{ Memory.find( "__simulation.date" ) };
+
+    if( simulation::is_ready ) {
+        // potentially adjust weather
+        if( weather->Value1() != m_scriptinginterface.weather->Value1() ) {
+            Global.Overcast = clamp<float>( weather->Value1(), 0, 2 );
+            simulation::Environment.compute_weather();
+        }
+        if( weather->Value2() != m_scriptinginterface.weather->Value2() ) {
+            Global.fFogEnd = clamp<float>( weather->Value2(), 10, 25000 );
+        }
+    }
+    else {
+        m_scriptinginterface.weather = std::make_shared<TMemCell>( scene::node_data() );
+        m_scriptinginterface.date = std::make_shared<TMemCell>( scene::node_data() );
+        m_scriptinginterface.time = std::make_shared<TMemCell>( scene::node_data() );
+    }
+
+    // update scripting interface
+    weather->UpdateValues(
+        Global.Weather,
+        Global.Overcast,
+        Global.fFogEnd,
+        basic_event::flags::text | basic_event::flags::value1 | basic_event::flags::value2 );
+
+    time->UpdateValues(
+        Global.Period,
+        Time.data().wHour,
+        Time.data().wMinute,
+        basic_event::flags::text | basic_event::flags::value1 | basic_event::flags::value2 );
+
+    date->UpdateValues(
+        Global.Season,
+        Time.year_day(),
+        0,
+        basic_event::flags::text | basic_event::flags::value1 );
+
+    // cache cell state to detect potential script-issued changes on next cycle
+    *m_scriptinginterface.weather = *weather;
+    *m_scriptinginterface.time = *time;
+    *m_scriptinginterface.date = *date;
 }
 
 void state_manager::process_commands() {
@@ -124,29 +220,70 @@ void state_manager::process_commands() {
 
 		if (commanddata.command == user_command::entervehicle) {
 			// przesiadka do innego pojazdu
-			if (!commanddata.freefly)
-				// only available in free fly mode
+            if( commanddata.payload == "ghostview" ) {
+                continue;
+            }
+
+            if (!commanddata.freefly)
+                // only available in free fly mode
+                continue;
+
+            // NOTE: because malformed scenario can have vehicle name duplicates we first try to locate vehicle in world, with name search as fallback
+            TDynamicObject *targetvehicle = std::get<TDynamicObject *>( simulation::Region->find_vehicle( commanddata.location, 50, false, false ) );
+            if( ( targetvehicle == nullptr ) || ( targetvehicle->name() != commanddata.payload ) ) {
+                targetvehicle = simulation::Vehicles.find( commanddata.payload );
+            }
+
+			if (!targetvehicle)
 				continue;
 
-			TDynamicObject *dynamic = std::get<TDynamicObject *>( simulation::Region->find_vehicle( commanddata.location, 50, true, false ) );
+            auto *senderlocaltrain { simulation::Trains.find_id( static_cast<std::uint16_t>( commanddata.param2 ) ) };
+            if( senderlocaltrain  ) {
+                auto *currentvehicle { senderlocaltrain->Dynamic() };
+                auto const samevehicle { currentvehicle == targetvehicle };
 
-			if (!dynamic)
-				continue;
+                if( samevehicle ) {
+                    // we already control desired vehicle so don't overcomplicate things
+                    continue;
+                }
 
-			TTrain *train = simulation::Trains.find(dynamic->name());
-			if (train)
-				continue;
+                auto const sameconsist{
+                    ( targetvehicle->ctOwner == currentvehicle->Mechanik )
+                 || ( targetvehicle->ctOwner == currentvehicle->ctOwner ) };
+                auto const isincharge{ currentvehicle->Mechanik->primary() };
+                auto const aidriveractive{ currentvehicle->Mechanik->AIControllFlag };
+                // TODO: support for primary mode request passed as commanddata.param1
+                if( !sameconsist && isincharge ) {
+                    // oddajemy dotychczasowy AI
+                    currentvehicle->Mechanik->TakeControl( true );
+                }
+
+                if( sameconsist && !aidriveractive ) {
+                    // since we're consist owner we can simply move to the destination vehicle
+                    senderlocaltrain->MoveToVehicle( targetvehicle );
+                    senderlocaltrain->Dynamic()->Mechanik->TakeControl( false, true );
+                }
+            }
+
+            auto *train { simulation::Trains.find( targetvehicle->name() ) };
+
+            if (train)
+                continue;
 
 			train = new TTrain();
-			if (train->Init(dynamic)) {
-				simulation::Trains.insert(train, dynamic->name());
+			if (train->Init(targetvehicle)) {
+				simulation::Trains.insert(train);
 			}
 			else {
 				delete train;
 				train = nullptr;
+                if( targetvehicle->name() == Global.local_start_vehicle ) {
+                    ErrorLog( "Failed to initialize player train, \"" + Global.local_start_vehicle + "\"" );
+                    Global.local_start_vehicle = "ghostview";
+                }
 			}
 
-		}
+        }
 
 		if (commanddata.command == user_command::queueevent) {
 			std::istringstream ss(commanddata.payload);
@@ -175,11 +312,16 @@ void state_manager::process_commands() {
 
 		if (commanddata.command == user_command::setdatetime) {
 			int yearday = std::round(commanddata.param1);
-			int minute = std::round(commanddata.param2 * 60.0);
+			int minute = std::round(commanddata.param2);
 			simulation::Time.set_time(yearday, minute);
 
-			simulation::Environment.compute_season(yearday);
-		}
+            auto const weather { Global.Weather };
+            simulation::Environment.compute_season(yearday);
+            if( weather != Global.Weather ) {
+                // HACK: force re-calculation of precipitation
+                Global.Overcast = clamp( Global.Overcast - 0.0001f, 0.0f, 2.0f );
+            }
+        }
 
 		if (commanddata.command == user_command::setweather) {
 			Global.fFogEnd = commanddata.param1;
@@ -210,7 +352,7 @@ void state_manager::process_commands() {
 			simulation::State.delete_eventlauncher(simulation::Events.FindEventlauncher(commanddata.payload + "_snd"));
 		}
 
-		if (commanddata.command == user_command::radiostop) {
+		if (commanddata.command == user_command::globalradiostop) {
 			simulation::Region->RadioStop( commanddata.location );
 		}
 
@@ -301,6 +443,7 @@ void state_manager::process_commands() {
 		}
 
 		if (commanddata.command == user_command::quitsimulation) {
+            // TBD: allow clients to go into offline mode?
 			Application.queue_quit();
 		}
 
@@ -333,20 +476,6 @@ void state_manager::delete_model(TAnimModel *model) {
 
 void state_manager::delete_eventlauncher(TEventLauncher *launcher) {
 	launcher->dRadius = 0.0f; // disable it
-}
-
-void
-state_manager::update_clocks() {
-
-    // Ra 2014-07: przeliczenie kąta czasu (do animacji zależnych od czasu)
-    auto const &time = simulation::Time.data();
-    Global.fTimeAngleDeg = time.wHour * 15.0 + time.wMinute * 0.25 + ( ( time.wSecond + 0.001 * time.wMilliseconds ) / 240.0 );
-    Global.fClockAngleDeg[ 0 ] = 36.0 * ( time.wSecond % 10 ); // jednostki sekund
-    Global.fClockAngleDeg[ 1 ] = 36.0 * ( time.wSecond / 10 ); // dziesiątki sekund
-    Global.fClockAngleDeg[ 2 ] = 36.0 * ( time.wMinute % 10 ); // jednostki minut
-    Global.fClockAngleDeg[ 3 ] = 36.0 * ( time.wMinute / 10 ); // dziesiątki minut
-    Global.fClockAngleDeg[ 4 ] = 36.0 * ( time.wHour % 10 ); // jednostki godzin
-    Global.fClockAngleDeg[ 5 ] = 36.0 * ( time.wHour / 10 ); // dziesiątki godzin
 }
 
 // passes specified sound to all vehicles within range as a radio message broadcasted on specified channel

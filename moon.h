@@ -1,5 +1,7 @@
 #pragma once
 
+#include "winheaders.h"
+
 // TODO: sun and moon share code as celestial bodies, we could make a base class out of it
 
 class cMoon {

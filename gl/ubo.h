@@ -32,16 +32,22 @@ namespace gl
 
     const size_t MAX_TEXTURES = 8;
     const size_t ENVMAP_SIZE = 1024;
+    const size_t MAX_CASCADES = 3;
+    const size_t HELPER_TEXTURES = 4;
+    const size_t SHADOW_TEX = MAX_TEXTURES + 0;
+    const size_t ENV_TEX = MAX_TEXTURES + 1;
+    const size_t HEADLIGHT_TEX = MAX_TEXTURES + 2;
 
     struct scene_ubs
     {
         glm::mat4 projection;
-        glm::mat4 lightview;
-		glm::vec3 scene_extra;
+        glm::mat4 inv_view;
+        glm::mat4 lightview[MAX_CASCADES];
+        glm::vec4 cascade_end;
         float time;
     };
 
-    static_assert(sizeof(scene_ubs) == 144, "bad size of ubs");
+    static_assert(sizeof(scene_ubs) == 340, "bad size of ubs");
 
     const size_t MAX_PARAMS = 3;
 
@@ -56,6 +62,7 @@ namespace gl
         float emission;
         float fog_density;
         float alpha_mult;
+        float shadow_tone;
         UBS_PAD(4);
 
         void set_modelview(const glm::mat4 &mv)
@@ -65,7 +72,7 @@ namespace gl
         }
     };
 
-    static_assert(sizeof(model_ubs) == 196 + 16 * MAX_PARAMS, "bad size of ubs");
+    static_assert(sizeof(model_ubs) == 200 + 16 * MAX_PARAMS, "bad size of ubs");
 
     struct light_element_ubs
     {
@@ -73,7 +80,8 @@ namespace gl
         {
             SPOT = 0,
             POINT,
-            DIR
+            DIR,
+            HEADLIGHTS
         };
 
         glm::vec3 pos;
@@ -90,9 +98,12 @@ namespace gl
 
 		float intensity;
 		float ambient;
+
+        glm::mat4 headlight_projection;
+        glm::vec4 headlight_weights;
     };
 
-    static_assert(sizeof(light_element_ubs) == 64, "bad size of ubs");
+    static_assert(sizeof(light_element_ubs) == 144, "bad size of ubs");
 
     const size_t MAX_LIGHTS = 8;
 

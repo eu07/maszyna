@@ -105,7 +105,7 @@ uart_input::recall_bindings() {
         { "value", input_type_t::value } };
 
     // NOTE: to simplify things we expect one entry per line, and whole entry in one line
-    while( true == bindingparser.getTokens( 1, true, "\n" ) ) {
+    while( true == bindingparser.getTokens( 1, true, "\n\r" ) ) {
 
         std::string bindingentry;
         bindingparser >> bindingentry;
@@ -354,7 +354,8 @@ void uart_input::poll()
 			SPLIT_INT16(tacho),
             //byte 2
 			(uint8_t)(
-                trainstate.ventilator_overload << 1
+                trainstate.epbrake_enabled << 0
+              | trainstate.ventilator_overload << 1
               | trainstate.motor_overload_threshold << 2),
             //byte 3
 			(uint8_t)(
@@ -370,6 +371,7 @@ void uart_input::poll()
 			(uint8_t)(
                 trainstate.motor_connectors << 0
               | trainstate.converter_overload << 2
+              | trainstate.ground_relay << 3
               | trainstate.motor_overload << 4
               | trainstate.line_breaker << 5
               | trainstate.compressor_overload << 6),

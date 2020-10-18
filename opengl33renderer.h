@@ -9,17 +9,16 @@ http://mozilla.org/MPL/2.0/.
 
 #pragma once
 
-#include "opengl33geometrybank.h"
-#include "material.h"
-#include "light.h"
-#include "lightarray.h"
-#include "dumb3d.h"
-#include "frustum.h"
-#include "simulationenvironment.h"
-#include "MemCell.h"
-#include "scene.h"
-#include "light.h"
+#include "renderer.h"
+#include "openglcamera.h"
+#include "opengl33light.h"
 #include "opengl33particles.h"
+#include "opengl33skydome.h"
+#include "opengl33precipitation.h"
+#include "simulationenvironment.h"
+#include "scene.h"
+#include "MemCell.h"
+#include "lightarray.h"
 #include "vr/vr_interface.h"
 #include "gl/ubo.h"
 #include "gl/framebuffer.h"
@@ -31,213 +30,107 @@ http://mozilla.org/MPL/2.0/.
 #include "gl/pbo.h"
 #include "gl/query.h"
 
-struct opengl_light : public basic_light
-{
-
-	GLuint id{(GLuint)-1};
-
-	float factor;
-
-	void apply_intensity(float const Factor = 1.0f);
-	void apply_angle();
-
-	opengl_light &operator=(basic_light const &Right)
-	{
-		basic_light::operator=(Right);
-		return *this;
-	}
-};
-
-// encapsulates basic rendering setup.
-// for modern opengl this translates to a specific collection of glsl shaders,
-// for legacy opengl this is combination of blending modes, active texture units etc
-struct opengl_technique
-{
-};
-
-// simple camera object. paired with 'virtual camera' in the scene
-class opengl_camera
-{
-
-  public:
-	// methods:
-    inline void update_frustum(glm::mat4 frustumtest_proj)
-	{
-        update_frustum(frustumtest_proj, m_modelview);
-	}
-	void update_frustum(glm::mat4 const &Projection, glm::mat4 const &Modelview);
-	bool visible(scene::bounding_area const &Area) const;
-	bool visible(TDynamicObject const *Dynamic) const;
-	inline glm::dvec3 const &position() const
-	{
-		return m_position;
-	}
-	inline glm::dvec3 &position()
-	{
-		return m_position;
-	}
-	inline glm::mat4 const &projection() const
-	{
-		return m_projection;
-	}
-	inline glm::mat4 &projection()
-	{
-		return m_projection;
-	}
-	inline glm::mat4 const &modelview() const
-	{
-		return m_modelview;
-	}
-	inline glm::mat4 &modelview()
-	{
-		return m_modelview;
-	}
-	inline std::vector<glm::vec4> &frustum_points()
-	{
-		return m_frustumpoints;
-	}
-	// transforms provided set of clip space points to world space
-	template <class Iterator_> void transform_to_world(Iterator_ First, Iterator_ Last) const
-	{
-		std::for_each(First, Last, [this](glm::vec4 &point) {
-			// transform each point using the cached matrix...
-			point = this->m_inversetransformation * point;
-			// ...and scale by transformed w
-			point = glm::vec4{glm::vec3{point} / point.w, 1.f};
-		});
-	}
-	// debug helper, draws shape of frustum in world space
-	void draw(glm::vec3 const &Offset) const;
-
-  private:
-	// members:
-	cFrustum m_frustum;
-	std::vector<glm::vec4> m_frustumpoints; // visualization helper; corners of defined frustum, in world space
-	glm::dvec3 m_position;
-	glm::mat4 m_projection;
-	glm::mat4 m_modelview;
-	glm::mat4 m_inversetransformation; // cached transformation to world space
-};
-
-// particle data visualizer
-class opengl_particles {
-public:
-// constructors
-	opengl_particles() = default;
-
-// methods
-	void
-	    update( opengl_camera const &Camera );
-	void
-	    render( );
-private:
-// types
-	struct particle_vertex {
-		glm::vec3 position; // 3d space
-		glm::vec4 color; // rgba, unsigned byte format
-		glm::vec2 texture; // uv space
-	};
-/*
-	using sourcedistance_pair = std::pair<smoke_source *, float>;
-	using source_sequence = std::vector<sourcedistance_pair>;
-*/
-	using particlevertex_sequence = std::vector<particle_vertex>;
-// methods
-// members
-/*
-	source_sequence m_sources; // list of particle sources visible in current render pass, with their respective distances to the camera
-*/
-	particlevertex_sequence m_particlevertices; // geometry data of visible particles, generated on the cpu end
-	std::optional<gl::buffer> m_buffer;
-	std::optional<gl::vao> m_vao;
-	std::unique_ptr<gl::program> m_shader;
-
-	std::size_t m_buffercapacity{ 0 }; // total capacity of the last established buffer
-};
-
 // bare-bones render controller, in lack of anything better yet
-class opengl_renderer
-{
+class opengl33_renderer : public gfx_renderer {
   public:
-	// types
-	/// Renderer runtime settings
-	struct Settings
-	{
-		bool traction_debug { false };
-	} settings;
+// constructors
+    opengl33_renderer() = default;
+// destructor
+    ~opengl33_renderer() {}
+// methods
+    bool
+        Init( GLFWwindow *Window ) override;
+    void
+        Shutdown() override;
+    bool
+        AddViewport(const global_settings::extraviewport_config &conf) override;
+    // main draw call. returns false on error
+    bool
+        Render() override;
+    inline
+    float
+        Framerate() override { return m_framerate; }
+    // geometry methods
+    // NOTE: hands-on geometry management is exposed as a temporary measure; ultimately all visualization data should be generated/handled automatically by the renderer itself
+    // creates a new geometry bank. returns: handle to the bank or NULL
+    gfx::geometrybank_handle
+        Create_Bank() override;
+    // creates a new geometry chunk of specified type from supplied vertex data, in specified bank. returns: handle to the chunk or NULL
+    gfx::geometry_handle
+        Insert( gfx::vertex_array &Vertices, gfx::geometrybank_handle const &Geometry, int const Type ) override;
+    // replaces data of specified chunk with the supplied vertex data, starting from specified offset
+    bool
+        Replace( gfx::vertex_array &Vertices, gfx::geometry_handle const &Geometry, int const Type, std::size_t const Offset = 0 ) override;
+    // adds supplied vertex data at the end of specified chunk
+    bool
+        Append( gfx::vertex_array &Vertices, gfx::geometry_handle const &Geometry, int const Type ) override;
+    // provides direct access to vertex data of specfied chunk
+    gfx::vertex_array const &
+        Vertices( gfx::geometry_handle const &Geometry ) const override;
+    // material methods
+    material_handle
+        Fetch_Material( std::string const &Filename, bool const Loadnow = true ) override;
+    void
+        Bind_Material( material_handle const Material, TSubModel const *sm = nullptr, lighting_data const *lighting = nullptr ) override;
+    opengl_material const &
+        Material( material_handle const Material ) const override;
+    // shader methods
+    auto Fetch_Shader( std::string const &name ) -> std::shared_ptr<gl::program> override;
+    // texture methods
+    texture_handle
+        Fetch_Texture( std::string const &Filename, bool const Loadnow = true, GLint format_hint = GL_SRGB_ALPHA ) override;
+    void
+        Bind_Texture( texture_handle const Texture ) override;
+    void
+        Bind_Texture( std::size_t const Unit, texture_handle const Texture ) override;
+    opengl_texture &
+        Texture( texture_handle const Texture ) override;
+    opengl_texture const &
+        Texture( texture_handle const Texture ) const override;
+    // utility methods
+    void
+        Pick_Control_Callback( std::function<void( TSubModel const *, const glm::vec2 )> Callback ) override;
+    void
+        Pick_Node_Callback( std::function<void( scene::basic_node * )> Callback ) override;
+    TSubModel const *
+        Pick_Control() const override { return m_pickcontrolitem; }
+    scene::basic_node const *
+        Pick_Node() const override { return m_picksceneryitem; }
+    glm::dvec3
+        Mouse_Position() const override { return m_worldmousecoordinates; }
+    // maintenance methods
+    void
+        Update( double const Deltatime ) override;
+    bool
+        Debug_Ui_State(std::optional<bool>) override;
+    void
+        Update_Pick_Control() override;
+    void
+        Update_Pick_Node() override;
+    glm::dvec3
+        Update_Mouse_Position() override;
+    // debug methods
+    std::string const &
+        info_times() const override;
+    std::string const &
+        info_stats() const override;
 
-	// methods
-	bool Init(GLFWwindow *Window);
-    void Shutdown();
-	bool AddViewport(const global_settings::extraviewport_config &conf);
 
-	// main draw call. returns false on error
-	bool Render();
-	void SwapBuffers();
-	inline float Framerate()
-	{
-		return m_framerate;
-	}
-	// geometry methods
-	// NOTE: hands-on geometry management is exposed as a temporary measure; ultimately all visualization data should be generated/handled automatically by the renderer itself
-	// creates a new geometry bank. returns: handle to the bank or NULL
-	gfx::geometrybank_handle Create_Bank();
-	// creates a new geometry chunk of specified type from supplied vertex data, in specified bank. returns: handle to the chunk or NULL
-	gfx::geometry_handle Insert(gfx::vertex_array &Vertices, gfx::geometrybank_handle const &Geometry, int const Type);
-	// replaces data of specified chunk with the supplied vertex data, starting from specified offset
-	bool Replace(gfx::vertex_array &Vertices, gfx::geometry_handle const &Geometry, int const Type, std::size_t const Offset = 0);
-	// adds supplied vertex data at the end of specified chunk
-	bool Append(gfx::vertex_array &Vertices, gfx::geometry_handle const &Geometry, int const Type);
+
+    opengl_material & Material( material_handle const Material );
+    void SwapBuffers() override;
     // draws supplied geometry handles
     void Draw_Geometry(std::vector<gfx::geometrybank_handle>::iterator begin, std::vector<gfx::geometrybank_handle>::iterator end);
 	void Draw_Geometry(const gfx::geometrybank_handle &handle);
-	// provides direct access to vertex data of specfied chunk
-	gfx::vertex_array const &Vertices(gfx::geometry_handle const &Geometry) const;
 	// material methods
-	material_handle Fetch_Material(std::string const &Filename, bool const Loadnow = true);
-    void Bind_Material(material_handle const Material, TSubModel *sm = nullptr);
     void Bind_Material_Shadow(material_handle const Material);
-
-	// shader methods
-	std::shared_ptr<gl::program> Fetch_Shader(std::string const &name);
-
-	opengl_material const &Material(material_handle const Material) const;
-    opengl_material &Material(material_handle const Material);
-	// texture methods
-    texture_handle Fetch_Texture(std::string const &Filename, bool const Loadnow = true, GLint format_hint = GL_SRGB_ALPHA);
-	void Bind_Texture(size_t Unit, texture_handle const Texture);
-	opengl_texture &Texture(texture_handle const Texture) const;
-	// utility methods
-    TSubModel const *get_picked_control() const
-	{
-		return m_pickcontrolitem;
-	}
-    scene::basic_node const *get_picked_node() const
-	{
-		return m_picksceneryitem;
-	}
-    glm::dvec3 Mouse_Position() const
-    {
-        return m_worldmousecoordinates;
-    }
 	void Update_AnimModel(TAnimModel *model);
-	// maintenance methods
-	void Update(double const Deltatime);
-    void Update_Pick_Control();
-    void Update_Pick_Node();
-    glm::dvec3 get_mouse_depth();
-	// debug methods
-	std::string const &info_times() const;
-	std::string const &info_stats() const;
-
-    void pick_control(std::function<void(TSubModel const *, glm::vec2)> callback);
-    void pick_node(std::function<void(scene::basic_node *)> callback);
 
 	// members
     GLenum static const sunlight{0};
 	std::size_t m_drawcount{0};
 
-	bool debug_ui_active = false;
+    static std::unique_ptr<gfx_renderer> create_func();
 
   private:
 	// types
@@ -246,7 +139,6 @@ class opengl_renderer
 		none,
 		color,
 		shadows,
-		cabshadows,
 		reflections,
 		pickcontrols,
 		pickscenery
@@ -261,7 +153,21 @@ class opengl_renderer
 		int traction{0};
 		int shapes{0};
 		int lines{0};
+    int particles{0};
 		int drawcalls{0};
+    int triangles{0};
+
+    debug_stats& operator+=( const debug_stats& Right ) {
+        dynamics += Right.dynamics;
+        models += Right.models;
+        submodels += Right.submodels;
+        paths += Right.paths;
+        traction += Right.traction;
+        shapes += Right.shapes;
+        lines += Right.lines;
+        particles += Right.particles;
+        drawcalls += Right.drawcalls;
+        return *this; }
 	};
 
 	using section_sequence = std::vector<scene::basic_section *>;
@@ -274,6 +180,7 @@ class opengl_renderer
 		opengl_camera viewport_camera;
 		rendermode draw_mode{rendermode::none};
 		float draw_range{0.0f};
+    debug_stats draw_stats;
 	};
 
 	struct viewport_config {
@@ -283,6 +190,7 @@ class opengl_renderer
 		float draw_range;
 
 		bool main = false;
+
         GLFWwindow *window = nullptr; // ogl window context
         bool real_window = true; // whether we need to blit onto GLFWwindow surface
         bool custom_backbuffer = false; // whether we want to render to our offscreen LDR backbuffer (pipeline required)
@@ -319,7 +227,7 @@ class opengl_renderer
 
 	viewport_config *m_current_viewport = nullptr;
 
-	typedef std::vector<opengl_light> opengllight_array;
+	typedef std::vector<opengl33_light> opengllight_array;
 
 	// methods
     std::unique_ptr<gl::program> make_shader(std::string v, std::string f);
@@ -327,9 +235,12 @@ class opengl_renderer
 	void setup_pass(viewport_config &Viewport, renderpass_config &Config, rendermode const Mode, float const Znear = 0.f, float const Zfar = 1.f, bool const Ignoredebug = false);
 	void setup_matrices();
     void setup_drawing(bool const Alpha = false);
-    void setup_shadow_map(opengl_texture *tex, renderpass_config conf);
+    void setup_shadow_unbind_map();
+    void setup_shadow_bind_map();
+    void setup_shadow_color( glm::vec4 const &Shadowcolor );
     void setup_env_map(gl::cubemap *tex);
 	void setup_environment_light(TEnvironmentType const Environment = e_flat);
+    void setup_sunlight_intensity( float const Factor = 1.f);
 	// runs jobs needed to generate graphics for specified render pass
 	void Render_pass(viewport_config &vp, rendermode const Mode);
 	// creates dynamic environment cubemap
@@ -347,10 +258,13 @@ class opengl_renderer
 	void Render(TTrack *Track);
 	void Render(scene::basic_cell::path_sequence::const_iterator First, scene::basic_cell::path_sequence::const_iterator Last);
 	bool Render_cab(TDynamicObject const *Dynamic, float const Lightlevel, bool const Alpha = false);
+    bool Render_interior( bool const Alpha = false );
+    bool Render_lowpoly( TDynamicObject *Dynamic, float const Squaredistance, bool const Setup, bool const Alpha = false );
+    bool Render_coupler_adapter( TDynamicObject *Dynamic, float const Squaredistance, int const End, bool const Alpha = false );
 	void Render(TMemCell *Memcell);
 	void Render_particles();
 	void Render_precipitation();
-    void Render_vr_models();
+  void Render_vr_models();
 	void Render_Alpha(scene::basic_region *Region);
 	void Render_Alpha(cell_sequence::reverse_iterator First, cell_sequence::reverse_iterator Last);
 	void Render_Alpha(TAnimModel *Instance);
@@ -376,7 +290,7 @@ class opengl_renderer
 	gfx::geometrybank_manager m_geometry;
 	material_manager m_materials;
 	texture_manager m_textures;
-	opengl_light m_sunlight;
+	opengl33_light m_sunlight;
 	opengllight_array m_lights;
 	/*
 	    float m_sunandviewangle; // cached dot product of sunlight and camera vectors
@@ -386,24 +300,30 @@ class opengl_renderer
 	texture_handle m_suntexture{-1};
     texture_handle m_moontexture{-1};
 	texture_handle m_smoketexture{-1};
+    texture_handle m_headlightstexture{-1};
 
 	// main shadowmap resources
 	int m_shadowbuffersize{2048};
 	glm::mat4 m_shadowtexturematrix; // conversion from camera-centric world space to light-centric clip space
-	glm::mat4 m_cabshadowtexturematrix; // conversion from cab-centric world space to light-centric clip space
 
 	int m_environmentcubetextureface{0}; // helper, currently processed cube map face
 	double m_environmentupdatetime{0}; // time of the most recent environment map update
 	glm::dvec3 m_environmentupdatelocation; // coordinates of most recent environment map update
-	opengl_particles m_particlerenderer; // particle visualization subsystem
+    opengl33_skydome m_skydomerenderer;
+    opengl33_precipitation m_precipitationrenderer;
+    opengl33_particles m_particlerenderer; // particle visualization subsystem
 
 	unsigned int m_framestamp; // id of currently rendered gfx frame
 	float m_framerate;
 	double m_updateaccumulator{0.0};
 	std::string m_debugtimestext;
 	std::string m_pickdebuginfo;
-	debug_stats m_debugstats;
+	//debug_stats m_debugstats;
 	std::string m_debugstatstext;
+    struct simulation_state {
+        std::string weather;
+        std::string season;
+    } m_simulationstate;
 
 	glm::vec4 m_baseambient{0.0f, 0.0f, 0.0f, 1.0f};
 	glm::vec4 m_shadowcolor{colors::shadow};
@@ -416,11 +336,10 @@ class opengl_renderer
 	renderpass_config m_renderpass; // parameters for current render pass
 	section_sequence m_sectionqueue; // list of sections in current render pass
 	cell_sequence m_cellqueue;
-    renderpass_config m_colorpass; // parametrs of most recent color pass
-	renderpass_config m_shadowpass; // parametrs of most recent shadowmap pass
-	renderpass_config m_cabshadowpass; // parameters of most recent cab shadowmap pass
+  renderpass_config m_colorpass; // parametrs of most recent color pass
+	std::array<renderpass_config, 3> m_shadowpass; // parametrs of most recent shadowmap pass for each of csm stages
 	std::vector<TSubModel const *> m_pickcontrolsitems;
-    std::vector<TSubModel const *> m_picksurfaceitems;
+  std::vector<TSubModel const *> m_picksurfaceitems;
 	TSubModel const *m_pickcontrolitem{nullptr};
     std::vector<scene::basic_node *> m_picksceneryitems;
     scene::basic_node *m_picksceneryitem{nullptr};
@@ -434,6 +353,7 @@ class opengl_renderer
 
     double m_precipitationrotation;
 
+    glm::mat4 perspective_projection_raw(float fovy, float aspect, float znear, float zfar);
 	glm::mat4 perspective_projection(const viewport_proj_config &c, float n, float f, glm::mat4 &frustum);
     glm::mat4 ortho_projection(float left, float right, float bottom, float top, float z_near, float z_far);
     glm::mat4 ortho_frustumtest_projection(float left, float right, float bottom, float top, float z_near, float z_far);
@@ -463,6 +383,7 @@ class opengl_renderer
 
 	std::unique_ptr<gl::postfx> m_pfx_motionblur;
 	std::unique_ptr<gl::postfx> m_pfx_tonemapping;
+  std::unique_ptr<gl::postfx> m_pfx_chromaticaberration;
 
 	std::unique_ptr<gl::program> m_shadow_shader;
 	std::unique_ptr<gl::program> m_alpha_shadow_shader;
@@ -470,13 +391,10 @@ class opengl_renderer
 	std::unique_ptr<gl::framebuffer> m_pick_fb;
 	std::unique_ptr<opengl_texture> m_pick_tex;
 	std::unique_ptr<gl::renderbuffer> m_pick_rb;
-    std::unique_ptr<gl::program> m_pick_surface_shader;
+  std::unique_ptr<gl::program> m_pick_surface_shader;
 	std::unique_ptr<gl::program> m_pick_shader;
 
 	std::unique_ptr<gl::cubemap> m_empty_cubemap;
-
-	std::unique_ptr<gl::framebuffer> m_cabshadows_fb;
-	std::unique_ptr<opengl_texture> m_cabshadows_tex;
 
 	std::unique_ptr<gl::framebuffer> m_env_fb;
 	std::unique_ptr<gl::renderbuffer> m_env_rb;
@@ -506,18 +424,19 @@ class opengl_renderer
 		float in_cutoff = 1.005f;
 		float out_cutoff = 0.993f;
 
-		float falloff_linear = 0.069f;
-		float falloff_quadratic = 0.03f;
+		float falloff_linear = 0.15f;
+		float falloff_quadratic = 0.15f;
 
 		float intensity = 1.0f;
-		float ambient = 0.184f;
+		float ambient = 0.0f;
 	};
 
 	headlight_config_s headlight_config;
 
     std::unique_ptr<vr_interface> vr;
-};
+    bool debug_ui_active = false;
 
-extern opengl_renderer GfxRenderer;
+    static bool renderer_register;
+};
 
 //---------------------------------------------------------------------------

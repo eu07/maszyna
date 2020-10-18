@@ -24,7 +24,7 @@ find_library(LIBSNDFILE_LIBRARY
 )
 
 find_package(PackageHandleStandardArgs)
-find_package_handle_standard_args(LibSndFile  DEFAULT_MSG  LIBSNDFILE_LIBRARY LIBSNDFILE_INCLUDE_DIR)
+find_package_handle_standard_args(libsndfile  DEFAULT_MSG  LIBSNDFILE_LIBRARY LIBSNDFILE_INCLUDE_DIR)
 
 if(LIBSNDFILE_FOUND)
   set(LIBSNDFILE_LIBRARIES ${LIBSNDFILE_LIBRARY})

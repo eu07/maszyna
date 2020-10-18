@@ -12,7 +12,7 @@ jobs:
         sudo update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-8 100
         sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-8 100
         cd ref
-        git clone "https://github.com/chriskohlhoff/asio" --depth 1 --branch asio-1-12-2 -q
+        git clone "https://github.com/chriskohlhoff/asio" --depth 1 --branch asio-1-16-1 -q
       displayName: 'Install dependencies'
     - script: |
         mkdir build

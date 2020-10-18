@@ -31,11 +31,11 @@ struct global_settings {
     bool shiftState{ false }; //m7todo: brzydko
     bool ctrlState{ false };
     bool altState{ false };
-	std::mt19937 random_engine;
-	std::mt19937 local_random_engine;
-	bool ready_to_load { false };
-	std::time_t starting_timestamp = 0; // starting time, in local timezone
-	uint32_t random_seed = 0;
+    std::mt19937 random_engine;
+    std::mt19937 local_random_engine;
+    bool ready_to_load{ false };
+    std::time_t starting_timestamp = 0; // starting time, in local timezone
+    uint32_t random_seed = 0;
     TCamera pCamera; // parametry kamery
     TCamera pDebugCamera;
     std::array<Math3D::vector3, 10> FreeCameraInit; // pozycje kamery
@@ -58,16 +58,20 @@ struct global_settings {
     std::string asCurrentSceneryPath{ "scenery/" };
     std::string asCurrentTexturePath{ szTexturePath };
     std::string asCurrentDynamicPath;
+    int CurrentMaxTextureSize{ 4096 };
+    bool UpdateMaterials{ true };
     // settings
     // filesystem
     bool bLoadTraction{ true };
-    bool CreateSwitchTrackbeds { true };
+    bool bSmoothTraction{ true };
+    bool CreateSwitchTrackbeds{ true };
     std::string szTexturesTGA{ ".tga" }; // lista tekstur od TGA
     std::string szTexturesDDS{ ".dds" }; // lista tekstur od DDS
     std::string szDefaultExt{ szTexturesDDS };
 	std::string SceneryFile;
     std::string local_start_vehicle{ "EU07-424" };
     int iConvertModels{ 0 }; // tworzenie plików binarnych
+    bool file_binary_terrain{ true }; // enable binary terrain (de)serialization
     // logs
     int iWriteLogEnabled{ 3 }; // maska bitowa: 1-zapis do pliku, 2-okienko, 4-nazwy torów
     bool MultipleLogs{ false };
@@ -76,23 +80,24 @@ struct global_settings {
     bool RealisticControlMode{ false }; // controls ability to steer the vehicle from outside views
     bool bEnableTraction{ true };
     float fFriction{ 1.f }; // mnożnik tarcia - KURS90
-    float FrictionWeatherFactor { 1.f };
+    float FrictionWeatherFactor{ 1.f };
     bool bLiveTraction{ true };
     float Overcast{ 0.1f }; // NOTE: all this weather stuff should be moved elsewhere
     glm::vec3 FogColor = { 0.6f, 0.7f, 0.8f };
-    double fFogEnd{ 2000 };
+    float fFogEnd{ 7500 };
     std::string Season{}; // season of the year, based on simulation date
     std::string Weather{ "cloudy:" }; // current weather
+    std::string Period{}; // time of the day, based on sun position
     bool FullPhysics{ true }; // full calculations performed for each simulation step
     bool bnewAirCouplers{ true };
-    double fMoveLight{ -1 }; // numer dnia w roku albo -1
+    float fMoveLight{ 0.f }; // numer dnia w roku albo -1
     bool FakeLight{ false }; // toggle between fixed and dynamic daylight
     double fTimeSpeed{ 1.0 }; // przyspieszenie czasu, zmienna do testów
 	double default_timespeed { 1.0 }; // timescale loaded from config
     double fLatitudeDeg{ 52.0 }; // szerokość geograficzna
-    float ScenarioTimeOverride { std::numeric_limits<float>::quiet_NaN() }; // requested scenario start time
-    float ScenarioTimeOffset { 0.f }; // time shift (in hours) applied to train timetables
-    bool ScenarioTimeCurrent { false }; // automatic time shift to match scenario time with local clock
+    float ScenarioTimeOverride{ std::numeric_limits<float>::quiet_NaN() }; // requested scenario start time
+    float ScenarioTimeOffset{ 0.f }; // time shift (in hours) applied to train timetables
+    bool ScenarioTimeCurrent{ false }; // automatic time shift to match scenario time with local clock
     bool bInactivePause{ true }; // automatyczna pauza, gdy okno nieaktywne
     int iSlowMotionMask{ -1 }; // maska wyłączanych właściwości
     bool bHideConsole{ false }; // hunter-271211: ukrywanie konsoli
@@ -100,17 +105,16 @@ struct global_settings {
     bool bJoinEvents{ false }; // czy grupować eventy o tych samych nazwach
     int iHiddenEvents{ 1 }; // czy łączyć eventy z torami poprzez nazwę toru
     // ui
-    int PythonScreenUpdateRate { 200 }; // delay between python-based screen updates, in milliseconds
+    int PythonScreenUpdateRate{ 200 }; // delay between python-based screen updates, in milliseconds
     int iTextMode{ 0 }; // tryb pracy wyświetlacza tekstowego
-    glm::vec4 UITextColor { glm::vec4( 225.f / 255.f, 225.f / 255.f, 225.f / 255.f, 1.f ) }; // base color of UI text
-    float UIBgOpacity { 0.65f }; // opacity of ui windows
+    glm::vec4 UITextColor{ glm::vec4( 225.f / 255.f, 225.f / 255.f, 225.f / 255.f, 1.f ) }; // base color of UI text
+    float UIBgOpacity{ 0.65f }; // opacity of ui windows
     std::string asLang{ "pl" }; // domyślny język - http://tools.ietf.org/html/bcp47
     // gfx
     int iWindowWidth{ 800 };
     int iWindowHeight{ 600 };
-
-	float fDistanceFactor{ 1.0f }; // baza do przeliczania odległości dla LoD
-	float targetfps { 0.0f };
+    float fDistanceFactor{ 1.f }; // baza do przeliczania odległości dla LoD
+    float targetfps{ 0.0f };
     bool bFullScreen{ false };
     bool VSync{ false };
     bool bWireFrame{ false };
@@ -118,16 +122,26 @@ struct global_settings {
     float BaseDrawRange{ 2500.f };
     int DynamicLightCount{ 8 };
     bool ScaleSpecularValues{ true };
+    std::string GfxRenderer{ "default" };
+    bool LegacyRenderer{ false };
+    bool BasicRenderer{ false };
+    bool RenderShadows{ true };
+    int RenderCabShadowsRange{ 0 };
     struct shadowtune_t {
         unsigned int map_size{ 2048 };
-        float width{ 250.f }; // no longer used
-        float depth{ 250.f };
-        float distance{ 500.f }; // no longer used
+        float range{ 250.f };
     } shadowtune;
-	double ReflectionUpdateInterval{300.0};
+    struct reflectiontune_t {
+        double update_interval{ 300.0 };
+        int fidelity{ 0 }; // 0: sections, 1: +static models, 2: +vehicles
+        float range_instances{ 750.f };
+        float range_vehicles{ 250.f };
+    } reflectiontune;
+    bool bUseVBO{ true }; // czy jest VBO w karcie graficznej (czy użyć)
     float AnisotropicFiltering{ 8.f }; // requested level of anisotropic filtering. TODO: move it to renderer object
     float FieldOfView{ 45.f }; // vertical field of view for the camera. TODO: move it to the renderer
     GLint iMaxTextureSize{ 4096 }; // maksymalny rozmiar tekstury
+    GLint iMaxCabTextureSize{ 4096 }; // largest allowed texture in vehicle cab
     int iMultisampling{ 2 }; // tryb antyaliasingu: 0=brak,1=2px,2=4px,3=8px,4=16px
     float SplineFidelity{ 1.f }; // determines segment size during conversion of splines to geometry
     bool Smoke{ true }; // toggles smoke simulation and visualization
@@ -144,7 +158,10 @@ struct global_settings {
     bool bSoundEnabled{ true };
     float AudioVolume{ 1.f };
     float RadioVolume{ 0.75f };
-	int audio_max_sources = 30;
+    float VehicleVolume{ 1.0f };
+    float EnvironmentPositionalVolume{ 1.0f };
+    float EnvironmentAmbientVolume{ 1.0f };
+    int audio_max_sources = 30;
     std::string AudioRenderer;
     // input
     float fMouseXScale{ 1.5f };
@@ -175,7 +192,7 @@ struct global_settings {
     // wartości maksymalne wyjść dla pulpitu
     double fCalibrateOutMax[ 7 ] = {
         0, 0, 0, 0, 0, 0, 0 };
-    int iCalibrateOutDebugInfo { -1 }; // numer wyjścia kalibrowanego dla którego wyświetlać informacje podczas kalibracji
+    int iCalibrateOutDebugInfo{ -1 }; // numer wyjścia kalibrowanego dla którego wyświetlać informacje podczas kalibracji
     int iPoKeysPWM[ 7 ] = { 0, 1, 2, 3, 4, 5, 6 }; // numery wejść dla PWM
 #ifdef WITH_UART
     uart_input::conf_t uart_conf;
@@ -194,7 +211,6 @@ struct global_settings {
 	bool dds_upper_origin = false;
     bool captureonstart = true;
 	bool render_cab = true;
-    bool skip_main_render = false;
 	bool crash_damage = true;
 	bool gui_defaultwindows = true;
 	bool gui_showtranscripts = true;
@@ -210,6 +226,7 @@ struct global_settings {
 
 	std::string fullscreen_monitor;
 
+    bool python_enabled = true;
 	bool python_mipmaps = true;
 	bool python_displaywindows = false;
 	bool python_threadedupload = true;
@@ -218,6 +235,7 @@ struct global_settings {
 	bool python_uploadmain = true;
 	std::chrono::duration<float> python_minframetime {0.01f};
 
+    bool gfx_skiprendering = false;
     int gfx_framebuffer_width = -1;
     int gfx_framebuffer_height = -1;
     bool gfx_shadowmap_enabled = true;
@@ -227,12 +245,16 @@ struct global_settings {
     GLenum gfx_postfx_motionblur_format = GL_RG16F;
     GLenum gfx_format_color = GL_RGB16F;
     GLenum gfx_format_depth = GL_DEPTH_COMPONENT32F;
+    bool gfx_postfx_chromaticaberration_enabled = true;
     bool gfx_skippipeline = false;
     bool gfx_extraeffects = true;
     bool gfx_shadergamma = false;
     bool gfx_usegles = false;
     bool vr = false;
     std::string vr_backend;
+
+    float ui_fontsize = 13.0f;
+    float ui_scale = 1.0f;
 
 	float map_highlight_distance = 3000.0f;
 
@@ -284,6 +306,27 @@ struct global_settings {
 // methods
     void LoadIniFile( std::string asFileName );
     void ConfigParse( cParser &parser );
+    // sends basic content of the class in legacy (text) format to provided stream
+    void
+        export_as_text( std::ostream &Output ) const;
+    template <typename Type_>
+    void
+        export_as_text( std::ostream &Output, std::string const Key, Type_ const &Value ) const;
 };
+
+template <typename Type_>
+void
+global_settings::export_as_text( std::ostream &Output, std::string const Key, Type_ const &Value ) const {
+
+    Output << Key << " " << Value << "\n";
+}
+
+template <>
+void
+global_settings::export_as_text( std::ostream &Output, std::string const Key, std::string const &Value ) const;
+
+template <>
+void
+global_settings::export_as_text( std::ostream &Output, std::string const Key, bool const &Value ) const;
 
 extern global_settings Global;

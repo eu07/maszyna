@@ -190,7 +190,7 @@ extern "C"
         if (!mc)
             return;
         mc->UpdateValues(std::string(str), num1, num2,
-                         basic_event::flags::text | basic_event::flags::value_1 | basic_event::flags::value_2);
+                         basic_event::flags::text | basic_event::flags::value1 | basic_event::flags::value2);
     }
 
     EXPORT void scriptapi_dynobj_putvalues(TDynamicObject *dyn, const char *str, double num1, double num2)

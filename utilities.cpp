@@ -1,4 +1,4 @@
-/*
+﻿/*
 This Source Code Form is subject to the
 terms of the Mozilla Public License, v.
 2.0. If a copy of the MPL was not
@@ -27,10 +27,13 @@ Copyright (C) 2007-2014 Maciej Cierniak
 #include "Globals.h"
 #include "parser.h"
 
+#include "Logs.h"
+
 bool DebugModeFlag = false;
 bool FreeFlyModeFlag = false;
 bool EditorModeFlag = false;
 bool DebugCameraFlag = false;
+bool DebugTractionFlag = false;
 
 double Max0R(double x1, double x2)
 {
@@ -192,6 +195,19 @@ std::vector<std::string> Split(const std::string &s)
 	return elems;
 }
 
+std::pair<std::string, int>
+split_string_and_number( std::string const &Key ) {
+
+    auto const indexstart{ Key.find_first_of( "-1234567890" ) };
+    auto const indexend{ Key.find_first_not_of( "-1234567890", indexstart ) };
+    if( indexstart != std::string::npos ) {
+        return {
+            Key.substr( 0, indexstart ),
+            std::stoi( Key.substr( indexstart, indexend - indexstart ) ) };
+    }
+    return { Key, 0 };
+}
+
 std::string to_string(int Value)
 {
 	std::ostringstream o;
@@ -213,10 +229,10 @@ std::string to_string(double Value)
 	return o.str();
 };
 
-std::string to_string(int Value, int precision)
+std::string to_string(int Value, int width)
 {
 	std::ostringstream o;
-	o << std::fixed << std::setprecision(precision);
+	o.width(width);
 	o << Value;
 	return o.str();
 };
@@ -224,15 +240,6 @@ std::string to_string(int Value, int precision)
 std::string to_string(double Value, int precision)
 {
 	std::ostringstream o;
-	o << std::fixed << std::setprecision(precision);
-	o << Value;
-	return o.str();
-};
-
-std::string to_string(int Value, int precision, int width)
-{
-	std::ostringstream o;
-	o.width(width);
 	o << std::fixed << std::setprecision(precision);
 	o << Value;
 	return o.str();
@@ -479,6 +486,14 @@ len_common_prefix( std::string const &Left, std::string const &Right ) {
         std::distance( left,  std::mismatch( left,  left + Left.size(),  right ).first ) );
 }
 
+// returns true if provided string ends with another provided string
+bool
+ends_with( std::string const &String, std::string const &Suffix ) {
+
+    return ( String.size() >= Suffix.size() )
+        && ( 0 == String.compare( String.size() - Suffix.size(), Suffix.size(), Suffix ) );
+}
+
 // helper, restores content of a 3d vector from provided input stream
 // TODO: review and clean up the helper routines, there's likely some redundant ones
 
@@ -520,11 +535,11 @@ deserialize_random_set( cParser &Input, char const *Break ) {
     }
 }
 
-int count_trailing_zeros(uint32_t val)
+int count_trailing_zeros( uint32_t val )
 {
     int r = 0;
 
-    for (uint32_t shift = 1; !(val & shift); shift <<= 1)
+    for( uint32_t shift = 1; !( val & shift ); shift <<= 1 )
         r++;
 
     return r;

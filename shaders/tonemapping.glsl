@@ -1,6 +1,15 @@
+const float pureWhite = 1.0;
+
 vec3 reinhard(vec3 x)
 {
-	return x / (x + vec3(1.0));
+//	return x / (x + vec3(1.0));
+
+	// Reinhard tonemapping operator.
+	// see: "Photographic Tone Reproduction for Digital Images", eq. 4
+	float luminance = dot(x, vec3(0.2126, 0.7152, 0.0722));
+	float mappedLuminance = (luminance * (1.0 + luminance/(pureWhite*pureWhite))) / (1.0 + luminance);
+	// Scale color by ratio of average luminances.
+	return (mappedLuminance / luminance) * x;
 }
 
 // https://knarkowicz.wordpress.com/2016/01/06/aces-filmic-tone-mapping-curve/
@@ -33,5 +42,6 @@ vec3 filmic(vec3 x)
 
 vec4 tonemap(vec4 x)
 {
-	return FBOUT(vec4(ACESFilm(x.rgb), x.a));
+//	return FBOUT(vec4(ACESFilm(x.rgb), x.a));
+	return FBOUT(vec4(reinhard(x.rgb), x.a));
 }

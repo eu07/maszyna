@@ -69,7 +69,8 @@ std::unordered_map<std::string, gl::shader::defaultparam_e> gl::shader::defaultp
     { "one", defaultparam_e::one },
     { "ambient", defaultparam_e::ambient },
     { "diffuse", defaultparam_e::diffuse },
-    { "specular", defaultparam_e::specular }
+    { "specular", defaultparam_e::specular },
+    { "glossiness", defaultparam_e::glossiness }
 };
 
 void gl::shader::process_source(std::string &str)
@@ -251,6 +252,7 @@ gl::shader::shader(const std::string &filename)
         GLchar info[512];
         glGetShaderInfoLog(*this, 512, 0, info);
         std::cerr << std::string(info) << std::endl;
+
         throw shader_exception("failed to compile " + filename + ": " + std::string(info));
     }
 }
@@ -271,8 +273,9 @@ void gl::program::init()
         glUniform1i(loc, e.id);
     }
 
-    glUniform1i(glGetUniformLocation(*this, "shadowmap"), MAX_TEXTURES + 0);
-    glUniform1i(glGetUniformLocation(*this, "envmap"), MAX_TEXTURES + 1);
+    glUniform1i(glGetUniformLocation(*this, "shadowmap"), gl::SHADOW_TEX);
+    glUniform1i(glGetUniformLocation(*this, "envmap"), gl::ENV_TEX);
+    glUniform1i(glGetUniformLocation(*this, "headlightmap"), gl::HEADLIGHT_TEX);
 
 	GLuint index;
 

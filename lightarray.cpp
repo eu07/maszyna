@@ -45,22 +45,22 @@ light_array::update() {
         // update light parameters to match current data of the owner
         if( light.index == end::front ) {
             // front light set
-            light.position = light.owner->GetPosition() + ( light.owner->VectorFront() * light.owner->GetLength() * 0.4 );
+            light.position = light.owner->GetPosition() + ( light.owner->VectorFront() * ( std::max( 0.0, light.owner->GetLength() * 0.5 - 2.0 ) ) );// +( light.owner->VectorUp() * 0.25 );
             light.direction = glm::make_vec3( light.owner->VectorFront().getArray() );
         }
         else {
             // rear light set
-            light.position = light.owner->GetPosition() - ( light.owner->VectorFront() * light.owner->GetLength() * 0.4 );
+            light.position = light.owner->GetPosition() - ( light.owner->VectorFront() * ( std::max( 0.0, light.owner->GetLength() * 0.5 - 2.0 ) ) );// +( light.owner->VectorUp() * 0.25 );
             light.direction = glm::make_vec3( light.owner->VectorFront().getArray() );
             light.direction.x = -light.direction.x;
             light.direction.z = -light.direction.z;
         }
         // determine intensity of this light set
-        if( ( true == light.owner->MoverParameters->Battery )
-         || ( true == light.owner->MoverParameters->ConverterFlag ) ) {
+        if( ( true == light.owner->MoverParameters->Power24vIsAvailable )
+         || ( true == light.owner->MoverParameters->Power110vIsAvailable ) ) {
             // with power on, the intensity depends on the state of activated switches
             // first we cross-check the list of enabled lights with the lights installed in the vehicle...
-            auto const lights { light.owner->iLights[ light.index ] & light.owner->LightList( static_cast<end>( light.index ) ) };
+            auto const lights { light.owner->MoverParameters->iLights[ light.index ] & light.owner->LightList( static_cast<end>( light.index ) ) };
             // ...then check their individual state
             light.count = 0
                 + ( ( lights & light::headlight_left  ) ? 1 : 0 )
@@ -71,9 +71,15 @@ light_array::update() {
                 light.intensity = std::max( 0.0f, std::log( (float)light.count  + 1.0f ) );
                 light.intensity *= ( light.owner->DimHeadlights ? 0.6f : 1.0f );
                 // TBD, TODO: intensity can be affected further by other factors
+                light.state = {
+                    ( ( lights & light::headlight_left  ) ? 1.f : 0.f ),
+                    ( ( lights & light::headlight_upper ) ? 1.f : 0.f ),
+                    ( ( lights & light::headlight_right ) ? 1.f : 0.f ) };
+                light.state *= ( light.owner->DimHeadlights ? 0.6f : 1.0f );
             }
             else {
                 light.intensity = 0.0f;
+                light.state = glm::vec3{ 0.f };
             }
         }
         else {

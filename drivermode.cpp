@@ -13,11 +13,13 @@ http://mozilla.org/MPL/2.0/.
 
 #include "Globals.h"
 #include "application.h"
+#include "translation.h"
 #include "simulation.h"
 #include "simulationtime.h"
 #include "simulationenvironment.h"
+#include "scene.h"
 #include "lightarray.h"
-#include "opengl33particles.h"
+#include "particles.h"
 #include "Train.h"
 #include "Driver.h"
 #include "DynObj.h"
@@ -25,7 +27,7 @@ http://mozilla.org/MPL/2.0/.
 #include "Event.h"
 #include "messaging.h"
 #include "Timer.h"
-#include "opengl33renderer.h"
+#include "renderer.h"
 #include "utilities.h"
 #include "Logs.h"
 /*
@@ -96,6 +98,54 @@ driver_mode::drivermode_input::init() {
     return result;
 }
 
+std::string
+driver_mode::drivermode_input::binding_hints( std::pair<user_command, user_command> const &Commands ) const {
+
+    auto const inputhintleft { keyboard.binding_hint( Commands.first ) };
+    auto const inputhintright { keyboard.binding_hint( Commands.second ) };
+    std::string inputhints =
+        inputhintleft
+        + ( inputhintright.empty() ? "" :
+            inputhintleft.empty() ?
+                inputhintright :
+                "] [" + inputhintright );
+
+    return inputhints;
+}
+
+std::unordered_map<user_command, std::pair<user_command, user_command>> commandfallbacks = {
+    { user_command::mastercontrollerset, { user_command::mastercontrollerincrease, user_command::mastercontrollerdecrease } },
+    { user_command::secondcontrollerset, { user_command::secondcontrollerincrease, user_command::secondcontrollerdecrease } },
+    { user_command::trainbrakeset, { user_command::trainbrakeincrease, user_command::trainbrakedecrease } },
+    { user_command::independentbrakeset, { user_command::independentbrakeincrease, user_command::independentbrakedecrease } },
+    { user_command::linebreakeropen, { user_command::linebreakertoggle, user_command::none } },
+    { user_command::linebreakerclose, { user_command::linebreakertoggle, user_command::none } },
+    { user_command::pantographlowerfront, { user_command::pantographtogglefront, user_command::none } },
+    { user_command::pantographlowerrear, { user_command::pantographtogglerear, user_command::none } },
+    { user_command::compartmentlightsenable, { user_command::compartmentlightstoggle, user_command::none } },
+    { user_command::compartmentlightsdisable, { user_command::compartmentlightstoggle, user_command::none } },
+    { user_command::batteryenable, { user_command::batterytoggle, user_command::none } },
+    { user_command::batterydisable, { user_command::batterytoggle, user_command::none } },
+};
+
+std::pair<user_command, user_command>
+driver_mode::drivermode_input::command_fallback( user_command const Command ) const {
+
+    if( Command == user_command::none ) {
+        return { user_command::none, user_command::none };
+    }
+
+    auto const lookup { commandfallbacks.find( Command ) };
+
+    if( lookup == commandfallbacks.end() ) {
+        return { user_command::none, user_command::none };
+    }
+    
+    return lookup->second;
+}
+
+
+
 driver_mode::driver_mode() {
 
     m_userinterface = std::make_shared<driver_ui>();
@@ -117,8 +167,9 @@ driver_mode::update() {
 
     double const deltatime = Timer::GetDeltaTime(); // 0.0 gdy pauza
 
-	simulation::State.update_clocks();
-	simulation::Environment.update();
+    simulation::State.update_clocks();
+    simulation::State.update_scripting_interface();
+    simulation::Environment.update();
 
 	if (deltatime != 0.0)
 	{
@@ -200,6 +251,7 @@ driver_mode::update() {
 		if (!change_train.empty()) {
 			TTrain *train = simulation::Trains.find(change_train);
 			if (train) {
+                Global.local_start_vehicle = change_train;
 				simulation::Train = train;
 				InOutKey();
 				m_relay.post(user_command::aidriverdisable, 0.0, 0.0, GLFW_PRESS, 0);
@@ -233,9 +285,12 @@ driver_mode::update() {
     auto const deltarealtime = Timer::GetDeltaRenderTime(); // nie uwzględnia pauzowania ani mnożenia czasu
 	simulation::State.process_commands();
 
+    simulation::State.process_commands();
+
     // fixed step render time routines
 
     fTime50Hz += deltarealtime; // w pauzie też trzeba zliczać czas, bo przy dużym FPS będzie problem z odczytem ramek
+    bool runonce { false };
     while( fTime50Hz >= 1.0 / 50.0 ) {
 #ifdef _WIN32
         Console::Update(); // to i tak trzeba wywoływać
@@ -253,6 +308,52 @@ driver_mode::update() {
         if( std::abs( DebugCamera.Velocity.y ) < 0.01 ) { DebugCamera.Velocity.y = 0.0; }
         if( std::abs( DebugCamera.Velocity.z ) < 0.01 ) { DebugCamera.Velocity.z = 0.0; }
 
+        if( false == runonce ) {
+            // tooltip update
+            set_tooltip( "" );
+            auto const *train{ simulation::Train };
+            if( ( train != nullptr ) && ( false == FreeFlyModeFlag ) ) {
+                if( false == DebugModeFlag ) {
+                    // in regular mode show control functions, for defined controls
+                    auto const controlname { train->GetLabel( GfxRenderer->Pick_Control() ) };
+                    if( false == controlname.empty() ) {
+                        auto const mousecommands { m_input.mouse.bindings( controlname ) };
+                        auto inputhints { m_input.binding_hints( mousecommands ) };
+                        // if the commands bound with the control don't have any assigned keys try potential fallbacks
+                        if( inputhints.empty() ) {
+                            inputhints = m_input.binding_hints( m_input.command_fallback( mousecommands.first ) );
+                        }
+                        if( inputhints.empty() ) {
+                            inputhints = m_input.binding_hints( m_input.command_fallback( mousecommands.second ) );
+                        }
+                        // ready or not, here we go
+                        if( inputhints.empty() ) {
+                            set_tooltip( Translations.label_cab_control( controlname ) );
+                        }
+                        else {
+                            set_tooltip(
+                                Translations.label_cab_control( controlname )
+                                + " [" + inputhints + "]" );
+                        }
+                    }
+                }
+                else {
+                    // in debug mode show names of submodels, to help with cab setup and/or debugging
+                    auto const cabcontrol = GfxRenderer->Pick_Control();
+                    set_tooltip( ( cabcontrol ? cabcontrol->pName : "" ) );
+                }
+            }
+            if( ( true == Global.ControlPicking ) && ( true == FreeFlyModeFlag ) && ( true == DebugModeFlag ) ) {
+                auto const scenerynode = GfxRenderer->Pick_Node();
+                set_tooltip(
+                    ( scenerynode ?
+                        scenerynode->name() :
+                        "" ) );
+            }
+
+            runonce = true;
+        }
+
         fTime50Hz -= 1.0 / 50.0;
     }
 
@@ -269,9 +370,10 @@ driver_mode::update() {
 
     // NOTE: particle system runs on simulation time, but needs actual camera position to determine how to update each particle source
     simulation::Particles.update();
-    GfxRenderer.Update( deltarealtime );
 
-    simulation::is_ready = true;
+    GfxRenderer->Update( deltarealtime );
+
+    simulation::is_ready = simulation::is_ready || ( ( simulation::Train != nullptr ) && ( simulation::Train->is_cab_initialized ) ) || ( Global.local_start_vehicle == "ghostview" );
 
     return true;
 }
@@ -281,8 +383,8 @@ void
 driver_mode::enter() {
 
     TDynamicObject *nPlayerTrain { (
-		( Global.local_start_vehicle != "ghostview" ) ?
-		    simulation::Vehicles.find( Global.local_start_vehicle ) :
+        ( Global.local_start_vehicle != "ghostview" ) ?
+            simulation::Vehicles.find( Global.local_start_vehicle ) :
             nullptr ) };
 
 	Camera.Init(Global.FreeCameraInit[0], Global.FreeCameraInitAngle[0], nullptr );
@@ -296,12 +398,13 @@ driver_mode::enter() {
     {
 		WriteLog( "Trying to enter player train, \"" + Global.local_start_vehicle + "\"" );
 
-		m_relay.post(user_command::entervehicle, 0.0, 0.0, GLFW_PRESS, 0, nPlayerTrain->GetPosition());
+		m_relay.post(user_command::entervehicle, 0.0, 0.0, GLFW_PRESS, 0, nPlayerTrain->GetPosition(), &Global.local_start_vehicle );
 		change_train = nPlayerTrain->name();
     }
 	else if (Global.local_start_vehicle != "ghostview")
     {
-		Error("Bad scenario: failed to locate player train, \"" + Global.local_start_vehicle + "\"" );
+        Global.local_start_vehicle = "ghostview";
+        Error("Bad scenario: failed to locate player train, \"" + Global.local_start_vehicle + "\"" );
     }
 
     // if (!Global.bMultiplayer) //na razie włączone
@@ -394,10 +497,10 @@ driver_mode::on_event_poll() {
     m_input.poll();
 }
 
-
 bool
-driver_mode::is_command_processor() {
-	return true;
+driver_mode::is_command_processor() const {
+
+    return true;
 }
 
 void
@@ -415,12 +518,12 @@ driver_mode::update_camera( double const Deltatime ) {
             if( Camera.m_owner == nullptr ) {
                 if( controlled && LengthSquared3( controlled->GetPosition() - Camera.Pos ) < ( 1500 * 1500 ) ) {
                     // gdy bliżej niż 1.5km
-                    Camera.LookAt = controlled->GetPosition();
+                    Camera.LookAt = controlled->GetPosition() + 0.4 * controlled->VectorUp() * controlled->MoverParameters->Dim.H;
                 }
                 else {
-                    TDynamicObject *d = std::get<TDynamicObject *>( simulation::Region->find_vehicle( Global.pCamera.Pos, 300, false, false ) );
+                    TDynamicObject *d = std::get<TDynamicObject *>( simulation::Region->find_vehicle( Camera.Pos, 300, false, false ) );
                     if( !d )
-                        d = std::get<TDynamicObject *>( simulation::Region->find_vehicle( Global.pCamera.Pos, 1000, false, false ) ); // dalej szukanie, jesli bliżej nie ma
+                        d = std::get<TDynamicObject *>( simulation::Region->find_vehicle( Camera.Pos, 1000, false, false ) ); // dalej szukanie, jesli bliżej nie ma
 
                     if( d && pDynamicNearest ) {
                         // jeśli jakiś jest znaleziony wcześniej
@@ -432,7 +535,7 @@ driver_mode::update_camera( double const Deltatime ) {
                     if( d )
                         pDynamicNearest = d; // zmiana na nowy, jeśli coś znaleziony niepusty
                     if( pDynamicNearest )
-                        Camera.LookAt = pDynamicNearest->GetPosition();
+                        Camera.LookAt = pDynamicNearest->GetPosition() + 0.4 * pDynamicNearest->VectorUp() * pDynamicNearest->MoverParameters->Dim.H;
                 }
                 Camera.RaLook(); // jednorazowe przestawienie kamery
             }
@@ -505,7 +608,7 @@ driver_mode::update_camera( double const Deltatime ) {
      && ( false == DebugCameraFlag ) ) {
         // jeśli jazda w kabinie, przeliczyć trzeba parametry kamery
 /*
-        auto tempangle = controlled->VectorFront() * ( controlled->MoverParameters->ActiveCab == -1 ? -1 : 1 );
+        auto tempangle = controlled->VectorFront() * ( controlled->MoverParameters->CabOccupied == -1 ? -1 : 1 );
         double modelrotate = atan2( -tempangle.x, tempangle.z );
 */
         if( ( false == FreeFlyModeFlag )
@@ -519,17 +622,17 @@ driver_mode::update_camera( double const Deltatime ) {
             // Camera.Yaw powinno być wyzerowane, aby po powrocie patrzeć do przodu
             Camera.Pos = controlled->GetPosition() + simulation::Train->MirrorPosition( lr ); // pozycja lusterka
             Camera.Angle.y = 0; // odchylenie na bok od Camera.LookAt
-            if( simulation::Train->Occupied()->ActiveCab == 0 ) {
+            if( simulation::Train->Occupied()->CabOccupied == 0 ) {
                 // gdy w korytarzu
                 Camera.LookAt = Camera.Pos - simulation::Train->GetDirection();
             }
             else if( Global.shiftState ) {
                 // patrzenie w bok przez szybę
-                Camera.LookAt = Camera.Pos - ( lr ? -1 : 1 ) * controlled->VectorLeft() * simulation::Train->Occupied()->ActiveCab;
+                Camera.LookAt = Camera.Pos - ( lr ? -1 : 1 ) * controlled->VectorLeft() * simulation::Train->Occupied()->CabOccupied;
             }
             else { // patrzenie w kierunku osi pojazdu, z uwzględnieniem kabiny - jakby z lusterka,
                 // ale bez odbicia
-                Camera.LookAt = Camera.Pos - simulation::Train->GetDirection() * simulation::Train->Occupied()->ActiveCab; //-1 albo 1
+                Camera.LookAt = Camera.Pos - simulation::Train->GetDirection() * simulation::Train->Occupied()->CabOccupied; //-1 albo 1
             }
             auto const shakeangles { simulation::Train->Dynamic()->shake_angles() };
             Camera.Angle.x = 0.5 * shakeangles.second; // hustanie kamery przod tyl
@@ -586,7 +689,7 @@ driver_mode::update_camera( double const Deltatime ) {
                 Controlled->ABuSetModelShake( temp );
             // ABu: koniec rzucania
 */
-            if( simulation::Train->Occupied()->ActiveCab == 0 ) {
+            if( simulation::Train->Occupied()->CabOccupied == 0 ) {
                 // gdy w korytarzu
                 Camera.LookAt =
                     Camera.m_owner->GetWorldPosition( Camera.m_owneroffset )
@@ -597,7 +700,7 @@ driver_mode::update_camera( double const Deltatime ) {
                 Camera.LookAt =
                     Camera.m_owner->GetWorldPosition( Camera.m_owneroffset )
                     + Camera.m_owner->VectorFront() * 5.0
-                    * simulation::Train->Occupied()->ActiveCab; //-1 albo 1
+                    * simulation::Train->Occupied()->CabOccupied; //-1 albo 1
             }
             Camera.vUp = simulation::Train->GetUp();
         }
@@ -659,7 +762,7 @@ driver_mode::OnKeyDown(int cKey) {
         int i = cKey - GLFW_KEY_0; // numer klawisza
         if (Global.shiftState) {
             // z [Shift] uruchomienie eventu
-            if( ( false == Global.iPause ) // podczas pauzy klawisze nie działają
+            if( ( Global.iPause == 0 ) // podczas pauzy klawisze nie działają
              && ( KeyEvents[ i ] != nullptr ) ) {
 				m_relay.post(user_command::queueevent, 0.0, 0.0, GLFW_PRESS, 0, glm::vec3(0.0f), &KeyEvents[i]->name());
             }
@@ -716,6 +819,7 @@ driver_mode::OnKeyDown(int cKey) {
 			}
 
             break;
+
         }
         case GLFW_KEY_F6: {
             // przyspieszenie symulacji do testowania scenerii... uwaga na FPS!
@@ -779,9 +883,9 @@ driver_mode::DistantView( bool const Near ) {
     if( vehicle == nullptr ) { return; }
 
     auto const cab =
-        ( vehicle->MoverParameters->ActiveCab == 0 ?
+        ( vehicle->MoverParameters->CabOccupied == 0 ?
             1 :
-            vehicle->MoverParameters->ActiveCab );
+            vehicle->MoverParameters->CabOccupied );
     auto const left = vehicle->VectorLeft() * cab;
 
     if( true == Near ) {
@@ -795,7 +899,7 @@ driver_mode::DistantView( bool const Near ) {
 
         Camera.Pos =
             vehicle->GetPosition()
-            + vehicle->VectorFront() * vehicle->MoverParameters->ActiveCab * 50.0
+            + vehicle->VectorFront() * vehicle->MoverParameters->CabOccupied * 50.0
             + Math3D::vector3( -10.0 * left.x, 1.6, -10.0 * left.z );
     }
 
@@ -841,15 +945,15 @@ driver_mode::ExternalView() {
             else {
                 // default view setup
                 auto const offsetflip{
-                    ( vehicle->MoverParameters->ActiveCab == 0 ? 1 : vehicle->MoverParameters->ActiveCab )
-                  * ( vehicle->MoverParameters->ActiveDir == 0 ? 1 : vehicle->MoverParameters->ActiveDir ) };
+                    ( vehicle->MoverParameters->CabOccupied == 0 ? 1 : vehicle->MoverParameters->CabOccupied )
+                  * ( vehicle->MoverParameters->DirActive == 0 ? 1 : vehicle->MoverParameters->DirActive ) };
 
                 Camera.m_owneroffset = {
                       1.5 * owner->MoverParameters->Dim.W * offsetflip,
                       std::max( 5.0, 1.25 * owner->MoverParameters->Dim.H ),
                     -0.4 * owner->MoverParameters->Dim.L * offsetflip };
 
-                Camera.Angle.y = glm::radians( ( vehicle->MoverParameters->ActiveDir < 0 ? 180.0 : 0.0 ) );
+                Camera.Angle.y = glm::radians( ( vehicle->MoverParameters->DirActive < 0 ? 180.0 : 0.0 ) );
             }
             auto const shakeangles{ owner->shake_angles() };
             Camera.Angle.x -= 0.5 * shakeangles.second; // hustanie kamery przod tyl
@@ -872,8 +976,8 @@ driver_mode::ExternalView() {
             else {
                 // default view setup
                 auto const offsetflip{
-                    ( vehicle->MoverParameters->ActiveCab == 0 ? 1 : vehicle->MoverParameters->ActiveCab )
-                  * ( vehicle->MoverParameters->ActiveDir == 0 ? 1 : vehicle->MoverParameters->ActiveDir )
+                    ( vehicle->MoverParameters->CabOccupied == 0 ? 1 : vehicle->MoverParameters->CabOccupied )
+                  * ( vehicle->MoverParameters->DirActive == 0 ? 1 : vehicle->MoverParameters->DirActive )
                   * -1 };
 
                 Camera.m_owneroffset = {
@@ -881,7 +985,7 @@ driver_mode::ExternalView() {
                     std::max( 5.0, 1.25 * owner->MoverParameters->Dim.H ),
                     0.2 * owner->MoverParameters->Dim.L * offsetflip };
 
-                Camera.Angle.y = glm::radians( ( vehicle->MoverParameters->ActiveDir < 0 ? 0.0 : 180.0 ) );
+                Camera.Angle.y = glm::radians( ( vehicle->MoverParameters->DirActive < 0 ? 0.0 : 180.0 ) );
             }
             auto const shakeangles { owner->shake_angles() };
             Camera.Angle.x -= 0.5 * shakeangles.second; // hustanie kamery przod tyl
@@ -902,15 +1006,15 @@ driver_mode::ExternalView() {
             else {
                 // default view setup
                 auto const offsetflip{
-                    ( vehicle->MoverParameters->ActiveCab == 0 ? 1 : vehicle->MoverParameters->ActiveCab )
-                  * ( vehicle->MoverParameters->ActiveDir == 0 ? 1 : vehicle->MoverParameters->ActiveDir ) };
+                    ( vehicle->MoverParameters->CabOccupied == 0 ? 1 : vehicle->MoverParameters->CabOccupied )
+                  * ( vehicle->MoverParameters->DirActive == 0 ? 1 : vehicle->MoverParameters->DirActive ) };
 
                 Camera.m_owneroffset = {
                     -0.65 * owner->MoverParameters->Dim.W * offsetflip,
                       0.90,
                       0.15 * owner->MoverParameters->Dim.L * offsetflip };
 
-                Camera.Angle.y = glm::radians( ( vehicle->MoverParameters->ActiveDir < 0 ? 180.0 : 0.0 ) );
+                Camera.Angle.y = glm::radians( ( vehicle->MoverParameters->DirActive < 0 ? 180.0 : 0.0 ) );
             }
             auto const shakeangles { owner->shake_angles() };
             Camera.Angle.x -= 0.5 * shakeangles.second; // hustanie kamery przod tyl
@@ -954,7 +1058,7 @@ driver_mode::CabView() {
     Camera.Angle.x -= 0.5 * shakeangles.second; // hustanie kamery przod tyl
     Camera.Angle.z = shakeangles.first; // hustanie kamery na boki
 
-    if( train->Occupied()->ActiveCab == 0 ) {
+    if( train->Occupied()->CabOccupied == 0 ) {
         Camera.LookAt =
             Camera.m_owner->GetWorldPosition( Camera.m_owneroffset )
             + Camera.m_owner->VectorFront() * 5.0;
@@ -964,7 +1068,7 @@ driver_mode::CabView() {
         Camera.LookAt =
             Camera.m_owner->GetWorldPosition( Camera.m_owneroffset )
             + Camera.m_owner->VectorFront() * 5.0
-            * Camera.m_owner->MoverParameters->ActiveCab;
+            * Camera.m_owner->MoverParameters->CabOccupied;
     }
     train->pMechOffset = Camera.m_owneroffset;
 }

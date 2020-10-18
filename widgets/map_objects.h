@@ -3,6 +3,7 @@
 #include "simulation.h"
 #include "Event.h"
 #include "scene.h"
+#include "MemCell.h"
 
 namespace map
 {

@@ -5,7 +5,7 @@ build_script:
 - ps: >-
     cd ref
     
-    git clone "https://github.com/chriskohlhoff/asio" --depth 1 --branch asio-1-12-2 -q
+    git clone "https://github.com/chriskohlhoff/asio" --depth 1 --branch asio-1-16-1 -q
     
     cd ..
     

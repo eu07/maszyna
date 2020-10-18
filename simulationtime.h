@@ -20,7 +20,7 @@ public:
     scenario_time() {
         m_time.wHour = 10; m_time.wMinute = 30; }
     void
-	    init(time_t timestamp);
+	    init(time_t timestamp = 0);
     void
         update( double const Deltatime );
     inline

@@ -16,6 +16,7 @@ http://mozilla.org/MPL/2.0/.
 #include "Logs.h"
 #include "lua.h"
 #include "command.h"
+#include "comparison.h"
 
 // common event interface
 class basic_event {
@@ -25,13 +26,14 @@ public:
     enum flags {
         // shared values
         text        = 1 << 0,
-        value_1     = 1 << 1,
-        value_2     = 1 << 2,
+        value1      = 1 << 1,
+        value2      = 1 << 2,
         // update values
         mode_add    = 1 << 3,
         // whois
         mode_alt    = 1 << 3,
-        load        = 1 << 4,
+        whois_load  = 1 << 4,
+        whois_name  = 1 << 5,
         // condition values
         track_busy  = 1 << 3,
         track_free  = 1 << 4,
@@ -92,6 +94,7 @@ public:
     double m_launchtime { 0.0 };
     double m_delay { 0.0 };
     double m_delayrandom { 0.0 }; // zakres dodatkowego opóźnienia // standardowo nie będzie dodatkowego losowego opóźnienia
+    double m_delaydeparture { std::numeric_limits<double>::quiet_NaN() }; // departure-based event delay
 
 protected:
 // types
@@ -101,10 +104,14 @@ protected:
     struct event_conditions {
         unsigned int flags { 0 };
         float probability { 0.0 }; // used by conditional_probability
-        double match_value_1 { 0.0 }; // used by conditional_memcompare
-        double match_value_2 { 0.0 }; // used by conditional_memcompare
-        std::string match_text; // used by conditional_memcompare
-        basic_event::node_sequence *cells; // used by conditional_memcompare
+        double memcompare_value1 { 0.0 }; // used by conditional_memcompare
+        double memcompare_value2 { 0.0 }; // used by conditional_memcompare
+        std::string memcompare_text; // used by conditional_memcompare
+        comparison_operator memcompare_value1_operator { comparison_operator::equal }; // used by conditional_memcompare
+        comparison_operator memcompare_value2_operator { comparison_operator::equal }; // used by conditional_memcompare
+        comparison_operator memcompare_text_operator { comparison_operator::equal }; // used by conditional_memcompare
+        comparison_pass memcompare_pass { comparison_pass::all }; // used by conditional_memcompare
+        basic_event::node_sequence *memcompare_cells; // used by conditional_memcompare
         std::vector<TTrack *> tracks; // used by conditional_track
         bool has_else { false };
 
@@ -268,6 +275,8 @@ private:
     void run_() override;
     // export_as_text() subclass details
     void export_as_text_( std::ostream &Output ) const override;
+    //determines whether provided input should be passed to consist owner
+    bool is_command_for_owner( input_data const &Input ) const;
 };
 
 
@@ -339,6 +348,8 @@ private:
     event_conditions m_conditions;
 };
 
+
+
 class sound_event : public basic_event {
 
 public:
@@ -366,6 +377,42 @@ private:
     int m_soundmode{ 0 };
     int m_soundradiochannel{ 0 };
 };
+
+
+
+// assigns a texture as specified replacable skin to a list of specified scene model nodes
+// skin filename is built dynamically using specified expression and list of parameters from optional specified memory cell
+class texture_event : public basic_event {
+
+public:
+// methods
+    // prepares event for use
+    void init() override;
+
+private:
+// types
+    struct input_data {
+        basic_node data_source { "", nullptr };
+
+        TMemCell const * data_cell() const;
+        TMemCell * data_cell();
+    };
+// methods
+    // event type string
+    std::string type() const override;
+    // deserialize() subclass details
+    void deserialize_( cParser &Input, scene::scratch_data &Scratchpad ) override;
+    // run() subclass details
+    void run_() override;
+    // export_as_text() subclass details
+    void export_as_text_( std::ostream &Output ) const override;
+// members
+    int m_skinindex { 0 }; // index of target replacable skin
+    std::string m_skin; // expression defining skin filename
+    input_data m_input; // optional source of expression parameters
+};
+
+
 
 class animation_event : public basic_event {
 
@@ -396,6 +443,8 @@ private:
     char *m_animationfiledata{ nullptr };
 };
 
+
+
 class lights_event : public basic_event {
 
 public:
@@ -416,6 +465,8 @@ private:
 // members
     std::vector<float> m_lights;
 };
+
+
 
 class switch_event : public basic_event {
 
@@ -440,6 +491,8 @@ private:
     float m_switchmovedelay{ -1.f };
 };
 
+
+
 class track_event : public basic_event {
 
 public:
@@ -460,6 +513,8 @@ private:
 // members
     float m_velocity{ 0.f };
 };
+
+
 
 class voltage_event : public basic_event {
 
@@ -482,6 +537,8 @@ private:
     float m_voltage{ -1.f };
 };
 
+
+
 class visible_event : public basic_event {
 
 public:
@@ -502,6 +559,8 @@ private:
 // members
     bool m_visible{ true };
 };
+
+
 
 class friction_event : public basic_event {
 

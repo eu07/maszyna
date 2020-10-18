@@ -130,7 +130,6 @@ static double const BPT_394[7][2] = { {13 , 10.0} , {5 , 5.0} , {0 , -1} , {5 , 
 //double *BPT_394 = zero_based_BPT_394[1]; //tablica pozycji hamulca dla zakresu -1..5
 //   BPT: array[-2..6] of array [0..1] of real= ((0, 5.0), (12, 5.4), (9, 5.0), (9, 4.6), (9, 4.2), (9, 3.8), (9, 3.4), (9, 2.8), (34, 2.8));
 //      BPT: array[-2..6] of array [0..1] of real= ((0, 0),(0, 0),(0, 0),(0, 0),(0, 0),(0, 0),(0, 0),(0, 0),(0, 0));
-static int const i_bcpno = 6;
 // static double const pi = 3.141592653589793; //definicja w mctools
 
 enum TUniversalBrake // możliwe działania uniwersalnego przycisku hamulca
@@ -193,8 +192,9 @@ class TBrake {
 		double SizeBC = 0.0; //rozmiar^2 CH (w stosunku do 14")
 		bool DCV = false; //podwojny zawor zwrotny
 		double ASBP = 0.0; //cisnienie hamulca pp
-		int UniversalFlag = 0; //flaga wcisnietych przyciskow uniwersalnych
+        double RV = 0.0; // rapid activation vehicle velocity threshold
 
+		int UniversalFlag = 0; //flaga wcisnietych przyciskow uniwersalnych
         int BrakeStatus{ b_off }; //flaga stanu
 		int SoundFlag = 0;
 
@@ -217,7 +217,7 @@ class TBrake {
         bool Releaser() const;
         virtual void SetEPS( double const nEPS ); //hamulec EP
         virtual void SetRM( double const RMR ) {};   //ustalenie przelozenia rapida
-		virtual void SetRV( double const RVR) {};   //ustalenie przelozenia rapida
+        virtual void SetRV( double const RVR ) { RV = RVR; };   //ustalenie przelozenia rapida
 		virtual void SetLP(double const TM, double const LM, double const TBP) {};  //parametry przystawki wazacej
 		virtual void SetLBP(double const P) {};   //cisnienie z hamulca pomocniczego
 		virtual void PLC(double const mass) {};  //wspolczynnik cisnienia przystawki wazacej
@@ -348,7 +348,6 @@ class TLSt : public TESt4R {
   protected:
 		double LBP = 0.0;       //cisnienie hamulca pomocniczego
 		double RM = 0.0;        //przelozenie rapida
-		double RV = 0.0;
 		double EDFlag = 0.0; //luzowanie hamulca z powodu zalaczonego ED
 
   public:
@@ -384,7 +383,6 @@ class TEStED : public TLSt {  //zawor z EP09 - Est4 z oddzielnym przekladnikiem,
 		double GetEDBCP()/*override*/;    //cisnienie tylko z hamulca zasadniczego, uzywane do hamulca ED
 		void PLC(double const mass);  //wspolczynnik cisnienia przystawki wazacej
         void SetLP( double const TM, double const LM, double const TBP );  //parametry przystawki wazacej        
-		void SetRV(double const RVR);   //ustalenie predkosci przelaczenia rapida
 
 		inline TEStED(double i_mbp, double i_bcr, double i_bcd, double i_brc, int i_bcn, int i_BD, int i_mat, int i_ba, int i_nbpa) :
                  TLSt(       i_mbp,        i_bcr,        i_bcd,        i_brc,     i_bcn,     i_BD,     i_mat,     i_ba,     i_nbpa)
@@ -419,6 +417,7 @@ class TEStEP1 : public TEStEP2 {
 
 public:
 	void EPCalc(double dt);
+    void SetEPS( double const nEPS ) override;  //stan hamulca EP
 
 	inline TEStEP1(double i_mbp, double i_bcr, double i_bcd, double i_brc, int i_bcn, int i_BD, int i_mat, int i_ba, int i_nbpa) :
 		TEStEP2(i_mbp, i_bcr, i_bcd, i_brc, i_bcn, i_BD, i_mat, i_ba, i_nbpa)
@@ -533,6 +532,7 @@ class TDriverHandle {
 	  bool ManualOvrld = false; //czy jest asymilacja reczna przyciskiem
 	  bool ManualOvrldActive = false; //czy jest wcisniety przycisk asymilacji
 	  int UniversalFlag = 0; //flaga wcisnietych przyciskow uniwersalnych
+      int i_bcpno = 6;
   public:
 		bool Time = false;
 		bool TimeEP = false;
@@ -545,7 +545,7 @@ class TDriverHandle {
     virtual double GetSound(int i); //pobranie glosnosci wybranego dzwieku
     virtual double GetPos(int i); //pobranie numeru pozycji o zadanym kodzie (funkcji)
     virtual double GetEP(double pos); //pobranie sily hamulca ep
-	virtual void SetParams(bool AO, bool MO, double, double) {}; //ustawianie jakichs parametrów dla zaworu
+	virtual void SetParams(bool AO, bool MO, double, double, double OMP, double OPD) {}; //ustawianie jakichs parametrow dla zaworu
 	virtual void OvrldButton(bool Active);  //przycisk recznego przeladowania/asymilacji
 	virtual void SetUniversalFlag(int flag); //przycisk uniwersalny
     inline TDriverHandle() { memset( Sounds, 0, sizeof( Sounds ) ); }
@@ -591,7 +591,7 @@ class TFV4aM : public TDriverHandle {
 		double GetCP();
 		inline TFV4aM() :
 			TDriverHandle()
-		{}
+        {}
 };
 
 class TMHZ_EN57 : public TDriverHandle {
@@ -603,6 +603,8 @@ class TMHZ_EN57 : public TDriverHandle {
 		double RedAdj = 0.0; //dostosowanie reduktora cisnienia (krecenie kapturkiem)
 		bool Fala = false;
 		double UnbrakeOverPressure = 0.0;
+		double OverloadMaxPressure = 1.0; //maksymalne zwiekszenie cisnienia przy asymilacji
+		double OverloadPressureDecrease = 0.045; //predkosc spadku cisnienia przy asymilacji
 		static double const pos_table[11]; //= { -2, 10, -1, 0, 0, 2, 9, 10, 0, 0, 0 };
 
     double LPP_RP(double pos);
@@ -616,7 +618,7 @@ class TMHZ_EN57 : public TDriverHandle {
 		double GetPos(int i)/*override*/;
 		double GetCP()/*override*/;
     double GetEP(double pos);
-		void SetParams(bool AO, bool MO, double OverP, double);
+		void SetParams(bool AO, bool MO, double OverP, double, double OMP, double OPD);
 		inline TMHZ_EN57(void) :
 			TDriverHandle()
 		{}
@@ -631,6 +633,8 @@ private:
 	double RedAdj = 0.0; //dostosowanie reduktora cisnienia (krecenie kapturkiem)
 	bool Fala = false; //czy jest napelnianie uderzeniowe
 	double UnbrakeOverPressure = 0.0;
+	double OverloadMaxPressure = 1.0; //maksymalne zwiekszenie cisnienia przy asymilacji
+	double OverloadPressureDecrease = 0.002; //predkosc spadku cisnienia przy asymilacji
 	static double const pos_table[11]; //= { -2, 10, -1, 0, 0, 2, 9, 10, 0, 0, 0 };
 
 	bool EQ(double pos, double i_pos);
@@ -642,7 +646,7 @@ public:
 	double GetSound(int i)/*override*/;
 	double GetPos(int i)/*override*/;
 	double GetCP()/*override*/;
-	void SetParams(bool AO, bool MO, double, double); /*ovveride*/
+	void SetParams(bool AO, bool MO, double, double, double OMP, double OPD); /*ovveride*/
 
 	inline TMHZ_K5P(void) :
 		TDriverHandle()
@@ -658,6 +662,8 @@ private:
 	double RedAdj = 0.0; //dostosowanie reduktora cisnienia (krecenie kapturkiem)
 	bool Fala = false; //czy jest napelnianie uderzeniowe
 	double UnbrakeOverPressure = 0.0; //wartosc napelniania uderzeniowego
+	double OverloadMaxPressure = 1.0; //maksymalne zwiekszenie cisnienia przy asymilacji
+	double OverloadPressureDecrease = 0.002; //predkosc spadku cisnienia przy asymilacji
 	static double const pos_table[11]; //= { -2, 10, -1, 0, 0, 2, 9, 10, 0, 0, 0 };
 
 	bool EQ(double pos, double i_pos);
@@ -669,7 +675,7 @@ public:
 	double GetSound(int i)/*override*/;
 	double GetPos(int i)/*override*/;
 	double GetCP()/*override*/;
-	void SetParams(bool AO, bool MO, double, double); /*ovveride*/
+	void SetParams(bool AO, bool MO, double, double, double OMP, double OPD); /*ovveride*/
 
 	inline TMHZ_6P(void) :
 		TDriverHandle()
@@ -722,7 +728,8 @@ class TM394 : public TDriverHandle {
 
 		inline TM394(void) :
 			TDriverHandle()
-		{}
+		{
+            i_bcpno = 5; }
 };
 
 class TH14K1 : public TDriverHandle {
@@ -744,7 +751,8 @@ class TH14K1 : public TDriverHandle {
 
 		inline TH14K1(void) :
 			TDriverHandle()
-		{}
+		{
+            i_bcpno = 4; }
 };
 
 class TSt113 : public TH14K1 {

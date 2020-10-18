@@ -11,7 +11,7 @@ http://mozilla.org/MPL/2.0/.
 
 #include "Classes.h"
 #include "dumb3d.h"
-#include "opengl33geometrybank.h"
+#include "geometrybank.h"
 #include "utilities.h"
 
 struct map_colored_paths {

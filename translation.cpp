@@ -299,7 +299,9 @@ const std::string& locale::coupling_name(int c)
 	    { coupling::mainhose, STRN("main hose") },
 	    { coupling::heating, STRN("heating") },
 	    { coupling::permanent, STRN("permanent") },
-	    { coupling::uic, STRN("uic") }
+        { coupling::power24v, STRN("power 24V") },
+        { coupling::power110v, STRN("power 110V") },
+        { coupling::power3x400v, STRN("power 3x400V") },
 	};
 
 	static std::string unknown(STRN("unknown"));

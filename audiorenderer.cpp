@@ -15,10 +15,13 @@ http://mozilla.org/MPL/2.0/.
 #include "Camera.h"
 #include "Logs.h"
 #include "utilities.h"
+#include "simulation.h"
+#include "Train.h"
 
 namespace audio {
 
 openal_renderer renderer;
+bool event_volume_change { false };
 
 float const EU07_SOUND_CUTOFFRANGE { 3000.f }; // 2750 m = max expected emitter spawn range, plus safety margin
 float const EU07_SOUND_VELOCITYLIMIT { 250 / 3.6f }; // 343 m/sec ~= speed of sound; arbitrary limit of 250 km/h
@@ -124,10 +127,10 @@ openal_source::sync_with( sound_properties const &State ) {
     // NOTE: velocity at this point can be either listener velocity for global sounds, actual sound velocity, or 0 if sound position is yet unknown
     ::alSourcefv( id, AL_VELOCITY, glm::value_ptr( sound_velocity ) );
     // location
-    properties.location = State.location;
-    sound_distance = properties.location - glm::dvec3 { Global.pCamera.Pos };
-    if( sound_range > 0 ) {
-        // range cutoff check
+    sound_distance = State.location - glm::dvec3 { Global.pCamera.Pos };
+    if( sound_range != -1 ) {
+        // range cutoff check for songs other than 'unlimited'
+        // NOTE: since we're comparing squared distances we can ignore that sound range can be negative
         auto const cutoffrange = (
             is_multipart ?
                 EU07_SOUND_CUTOFFRANGE : // we keep multi-part sounds around longer, to minimize restarts as the sounds get out and back in range
@@ -142,20 +145,29 @@ openal_source::sync_with( sound_properties const &State ) {
         ::alSourcefv( id, AL_POSITION, glm::value_ptr( sound_distance ) );
     }
     else {
-        // sounds with 'unlimited' range are positioned on top of the listener
+        // sounds with 'unlimited' or negative range are positioned on top of the listener
         ::alSourcefv( id, AL_POSITION, glm::value_ptr( glm::vec3() ) );
     }
     // gain
-    if( ( State.soundproofing_stamp != properties.soundproofing_stamp )
-     || ( State.gain != properties.gain ) ) {
+    auto const gain {
+        State.gain
+        * State.soundproofing
+        * ( State.category == sound_category::vehicle ? Global.VehicleVolume :
+            State.category == sound_category::local ? Global.EnvironmentPositionalVolume :
+            State.category == sound_category::ambient ? Global.EnvironmentAmbientVolume :
+            1.f ) };
+    if( ( State.gain != properties.gain )
+     || ( State.soundproofing_stamp != properties.soundproofing_stamp )
+     || ( audio::event_volume_change ) ) {
         // gain value has changed
-        properties.gain = State.gain;
-        properties.soundproofing = State.soundproofing;
-        properties.soundproofing_stamp = State.soundproofing_stamp;
-
-        ::alSourcef( id, AL_GAIN, properties.gain * properties.soundproofing );
+        ::alSourcef( id, AL_GAIN, gain );
+        auto const range { (
+            sound_range >= 0 ?
+                sound_range :
+                5 ) }; // range of -1 means sound of unlimited range, positioned at the listener
+        ::alSourcef( id, AL_REFERENCE_DISTANCE, range * ( 1.f / 16.f ) * State.soundproofing );
     }
-    if( sound_range > 0 ) {
+    if( sound_range != -1 ) {
         auto const rangesquared { sound_range * sound_range };
         auto const distancesquared { glm::length2( sound_distance ) };
         if( ( distancesquared > rangesquared )
@@ -169,17 +181,17 @@ openal_source::sync_with( sound_properties const &State ) {
                     clamp<float>(
                         ( distancesquared - rangesquared ) / ( fadedistance * fadedistance ),
                         0.f, 1.f ) ) };
-            ::alSourcef( id, AL_GAIN, properties.gain * properties.soundproofing * rangefactor );
+            ::alSourcef( id, AL_GAIN, gain * rangefactor );
         }
         is_in_range = ( distancesquared <= rangesquared );
     }
     // pitch
     if( State.pitch != properties.pitch ) {
         // pitch value has changed
-        properties.pitch = State.pitch;
-
-        ::alSourcef( id, AL_PITCH, clamp( properties.pitch * pitch_variation, 0.1f, 10.f ) );
+        ::alSourcef( id, AL_PITCH, clamp( State.pitch * pitch_variation, 0.1f, 10.f ) );
     }
+    // all synced up
+    properties = State;
     sync = sync_state::good;
 }
 
@@ -283,6 +295,7 @@ openal_renderer::init() {
         return false;
     }
     ::alDistanceModel( AL_INVERSE_DISTANCE_CLAMPED );
+    ::alDopplerFactor( 0.25f );
     // all done
     m_ready = true;
     return true;
@@ -357,13 +370,30 @@ openal_renderer::update( double const Deltatime ) {
     ::alListenerfv( AL_ORIENTATION, reinterpret_cast<ALfloat const *>( orientation ) );
     // velocity
     if( Deltatime > 0 ) {
-        glm::dvec3 const listenerposition { Global.pCamera.Pos };
-        glm::dvec3 const listenermovement { listenerposition - m_listenerposition };
-        m_listenerposition = listenerposition;
-        m_listenervelocity = (
-            glm::length( listenermovement ) < 1000.0 ? // large jumps are typically camera changes
-                limit_velocity( listenermovement / Deltatime ) :
-                glm::vec3() );
+        auto cameramove { glm::dvec3{ Global.pCamera.Pos - m_camerapos} };
+        m_camerapos = Global.pCamera.Pos;
+        // intercept sudden user-induced camera jumps...
+        // ...from free fly mode change
+        if( m_freeflymode != FreeFlyModeFlag ) {
+            m_freeflymode = FreeFlyModeFlag;
+            cameramove = glm::dvec3{ 0.0 };
+        }
+        // ...from jump between cab and window/mirror view
+        if( m_windowopen != Global.CabWindowOpen ) {
+            m_windowopen = Global.CabWindowOpen;
+            cameramove = glm::dvec3{ 0.0 };
+        }
+        // ... from cab change
+        if( ( simulation::Train != nullptr ) && ( simulation::Train->iCabn != m_activecab ) ) {
+            m_activecab = simulation::Train->iCabn;
+            cameramove = glm::dvec3{ 0.0 };
+        }
+        // ... from camera jump to another location
+        if( glm::length( cameramove ) > 100.0 ) {
+            cameramove = glm::dvec3{ 0.0 };
+        }
+        m_listenervelocity = limit_velocity( cameramove / Deltatime );
+
         ::alListenerfv( AL_VELOCITY, reinterpret_cast<ALfloat const *>( glm::value_ptr( m_listenervelocity ) ) );
     }
 
@@ -386,6 +416,9 @@ openal_renderer::update( double const Deltatime ) {
             ++source;
         }
     }
+
+    // reset potentially used volume change flag
+    audio::event_volume_change = false;
 
 	if (alProcessUpdatesSOFT)
 	{
@@ -426,7 +459,7 @@ openal_renderer::fetch_source() {
                 continue;
             }
             auto const sourceweight { (
-                source->sound_range > 0 ?
+                source->sound_range != -1 ?
                     ( source->sound_range * source->sound_range ) / ( glm::length2( source->sound_distance ) + 1 ) :
                     std::numeric_limits<float>::max() ) };
             if( sourceweight < leastimportantweight ) {
@@ -460,6 +493,21 @@ openal_renderer::fetch_source() {
 
 bool
 openal_renderer::init_caps() {
+
+    if( ::alcIsExtensionPresent( nullptr, "ALC_ENUMERATION_EXT" ) == AL_TRUE ) {
+        // enumeration supported
+        WriteLog( "available audio devices:" );
+        auto const *devices { ::alcGetString( nullptr, ALC_DEVICE_SPECIFIER ) };
+        auto const
+            *device { devices },
+            *next { devices + 1 };
+        while( (device) && (*device != '\0') && (next) && (*next != '\0') ) {
+            WriteLog( { device } );
+            auto const len { std::strlen( device ) };
+            device += ( len + 1 );
+            next += ( len + 2 );
+        }
+    }
 
     // NOTE: default value of audio renderer variable is empty string, meaning argument of NULL i.e. 'preferred' device
     m_device = ::alcOpenDevice( Global.AudioRenderer.c_str() );

@@ -11,7 +11,7 @@ http://mozilla.org/MPL/2.0/.
 #include "uilayer.h"
 
 #include "Globals.h"
-#include "opengl33renderer.h"
+#include "renderer.h"
 #include "Logs.h"
 #include "Timer.h"
 #include "simulation.h"
@@ -27,6 +27,7 @@ http://mozilla.org/MPL/2.0/.
 
 GLFWwindow *ui_layer::m_window{nullptr};
 ImGuiIO *ui_layer::m_imguiio{nullptr};
+GLint ui_layer::m_textureunit { GL_TEXTURE0 };
 bool ui_layer::m_cursorvisible;
 ImFont *ui_layer::font_default{nullptr};
 ImFont *ui_layer::font_mono{nullptr};
@@ -185,6 +186,7 @@ void ui_layer::imgui_style()
 	colors[ImGuiCol_PlotLines] = ImVec4(0.61f, 0.61f, 0.61f, 1.00f);
 	colors[ImGuiCol_PlotLinesHovered] = ImVec4(1.00f, 0.43f, 0.35f, 1.00f);
 	colors[ImGuiCol_PlotHistogram] = ImVec4(0.90f, 0.70f, 0.00f, 1.00f);
+
 	colors[ImGuiCol_PlotHistogramHovered] = ImVec4(1.00f, 0.60f, 0.00f, 1.00f);
 	colors[ImGuiCol_TextSelectedBg] = ImVec4(0.42f, 0.64f, 0.23f, 0.35f);
 	colors[ImGuiCol_DragDropTarget] = ImVec4(1.00f, 1.00f, 0.00f, 0.90f);
@@ -199,6 +201,8 @@ void ui_layer::imgui_style()
 	colors[ImGuiCol_TabActive] = imvec_lerp(colors[ImGuiCol_HeaderActive], colors[ImGuiCol_TitleBgActive], 0.60f);
 	colors[ImGuiCol_TabUnfocused] = imvec_lerp(colors[ImGuiCol_Tab], colors[ImGuiCol_TitleBg], 0.80f);
 	colors[ImGuiCol_TabUnfocusedActive] = imvec_lerp(colors[ImGuiCol_TabActive], colors[ImGuiCol_TitleBg], 0.40f);
+
+    ImGui::GetStyle().ScaleAllSizes(Global.ui_scale);
 }
 
 bool ui_layer::init(GLFWwindow *Window)
@@ -223,9 +227,9 @@ bool ui_layer::init(GLFWwindow *Window)
     };
 
 	if (FileExists("fonts/dejavusans.ttf"))
-		font_default = m_imguiio->Fonts->AddFontFromFileTTF("fonts/dejavusans.ttf", 13.0f, nullptr, &ranges[0]);
+        font_default = m_imguiio->Fonts->AddFontFromFileTTF("fonts/dejavusans.ttf", Global.ui_fontsize, nullptr, &ranges[0]);
 	if (FileExists("fonts/dejavusansmono.ttf"))
-		font_mono = m_imguiio->Fonts->AddFontFromFileTTF("fonts/dejavusansmono.ttf", 13.0f, nullptr, &ranges[0]);
+        font_mono = m_imguiio->Fonts->AddFontFromFileTTF("fonts/dejavusansmono.ttf", Global.ui_fontsize, nullptr, &ranges[0]);
 
 	if (!font_default && !font_mono)
 		font_default = font_mono = m_imguiio->Fonts->AddFontDefault();
@@ -235,7 +239,8 @@ bool ui_layer::init(GLFWwindow *Window)
 		font_mono = font_default;
 
 	imgui_style();
-    ImGui_ImplGlfw_InitForOpenGL(m_window);
+
+    ImGui_ImplGlfw_InitForOpenGL(m_window, false);
 #ifdef EU07_USEIMGUIIMPLOPENGL2
 	ImGui_ImplOpenGL2_Init();
 #else
@@ -322,7 +327,6 @@ void ui_layer::render()
 {
     render_background();
     render_progress();
-
     render_panels();
     render_tooltip();
     render_menu();
@@ -386,7 +390,7 @@ void ui_layer::set_background(std::string const &Filename)
 {
     if (false == Filename.empty())
     {
-		m_background = GfxRenderer.Fetch_Texture(Filename);
+        m_background = GfxRenderer->Fetch_Texture(Filename);
     }
     else
     {
@@ -394,7 +398,7 @@ void ui_layer::set_background(std::string const &Filename)
     }
     if (m_background != null_handle)
     {
-        auto const &texture = GfxRenderer.Texture(m_background);
+        auto const &texture = GfxRenderer->Texture(m_background);
     }
 }
 
@@ -480,7 +484,9 @@ void ui_layer::render_menu_contents()
         ImGui::MenuItem(STR_C("Log"), "F9", &m_logpanel.is_open);
 		if (DebugModeFlag) {
 			ImGui::MenuItem(STR_C("ImGui Demo"), nullptr, &m_imgui_demo);
-			ImGui::MenuItem(STR_C("Headlight config"), nullptr, &GfxRenderer.debug_ui_active);
+            bool ret = ImGui::MenuItem(STR_C("Headlight config"), nullptr, GfxRenderer->Debug_Ui_State(std::nullopt));
+
+            GfxRenderer->Debug_Ui_State(ret);
 		}
         ImGui::EndMenu();
     }
@@ -506,7 +512,7 @@ void ui_layer::render_background()
         return;
 
     ImVec2 size = ImGui::GetIO().DisplaySize;
-    opengl_texture &tex = GfxRenderer.Texture(m_background);
+    opengl_texture &tex = GfxRenderer->Texture(m_background);
     tex.create();
 
     ImGui::SetNextWindowPos(ImVec2(0, 0));

@@ -58,7 +58,7 @@ cSun::getDirection() {
 }
 
 float
-cSun::getAngle() {
+cSun::getAngle() const {
     
     return (float)m_body.elevref;
 }

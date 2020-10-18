@@ -1,6 +1,16 @@
+/*
+This Source Code Form is subject to the
+terms of the Mozilla Public License, v.
+2.0. If a copy of the MPL was not
+distributed with this file, You can
+obtain one at
+http://mozilla.org/MPL/2.0/.
+*/
+
 #include "stdafx.h"
 #include "network/manager.h"
 #include "simulation.h"
+#include "Logs.h"
 
 network::server_manager::server_manager()
 {
@@ -36,8 +46,8 @@ void network::server_manager::push_delta(double render_dt, double dt, double syn
 
 void network::server_manager::create_server(const std::string &backend, const std::string &conf)
 {
-	auto it = backend_list.find(backend);
-	if (it == backend_list.end()) {
+	auto it = backend_list().find(backend);
+	if (it == backend_list().end()) {
 		ErrorLog("net: unknown backend: " + backend);
 		return;
 	}
@@ -51,7 +61,7 @@ network::manager::manager()
 
 void network::manager::update()
 {
-	for (auto &backend : backend_list)
+	for (auto &backend : backend_list())
 		backend.second->update();
 
 	if (client)
@@ -66,8 +76,8 @@ void network::manager::create_server(const std::string &backend, const std::stri
 
 void network::manager::connect(const std::string &backend, const std::string &conf)
 {
-	auto it = backend_list.find(backend);
-	if (it == backend_list.end()) {
+	auto it = backend_list().find(backend);
+	if (it == backend_list().end()) {
 		ErrorLog("net: unknown backend: " + backend);
 		return;
 	}

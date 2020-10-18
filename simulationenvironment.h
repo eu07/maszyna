@@ -13,16 +13,18 @@ http://mozilla.org/MPL/2.0/.
 #include "sun.h"
 #include "moon.h"
 #include "stars.h"
-#include "opengl33skydome.h"
-#include "opengl33precipitation.h"
+#include "skydome.h"
+#include "precipitation.h"
 #include "sound.h"
 
 class opengl_renderer;
+class opengl33_renderer;
 
 // wrapper for environment elements -- sky, sun, stars, clouds etc
 class world_environment {
 
     friend opengl_renderer;
+    friend opengl33_renderer;
 
 public:
 // methods
@@ -37,10 +39,25 @@ public:
     // calculates current weather
 	void compute_weather();
     // data access
-    glm::vec3 const &
+    inline auto const &
+        sun() const {
+            return m_sun; }
+    inline auto const &
+        light_intensity() const {
+            return m_lightintensity; }
+    inline auto const &
+        skydome() const {
+            return m_skydome; }
+    inline auto &
+        skydome() {
+            return m_skydome; }
+    inline auto const &
+        precipitation() const {
+            return m_precipitation; }
+    inline auto const &
         wind() const {
             return m_wind.vector; }
-    float const &
+    inline auto const &
         wind_azimuth() const {
             return m_wind.azimuth; }
 
@@ -63,9 +80,10 @@ private:
     cStars m_stars;
     cSun m_sun;
     cMoon m_moon;
+    float m_lightintensity { 1.f };
     TSky m_clouds;
     basic_precipitation m_precipitation;
-    sound_source m_precipitationsound { sound_placement::external, -1 };
+    sound_source m_rainsound { sound_placement::external, -1 };
     basic_wind m_wind;
 };
 

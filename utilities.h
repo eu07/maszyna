@@ -16,6 +16,7 @@ http://mozilla.org/MPL/2.0/.
 #include <ctime>
 #include <vector>
 #include <sstream>
+#include "parser.h"
 #include "dumb3d.h"
 
 /*rozne takie duperele do operacji na stringach w paszczalu, pewnie w delfi sa lepsze*/
@@ -39,6 +40,7 @@ extern bool DebugModeFlag;
 extern bool FreeFlyModeFlag;
 extern bool EditorModeFlag;
 extern bool DebugCameraFlag;
+extern bool DebugTractionFlag;
 
 /*funkcje matematyczne*/
 double Max0R(double x1, double x2);
@@ -56,7 +58,7 @@ inline long Round(double const f)
 }
 
 double Random(double a, double b);
-double LocalRandom(double a, double b);
+double LocalRandom( double a, double b );
 
 inline double Random()
 {
@@ -70,12 +72,12 @@ inline double Random(double b)
 
 inline double LocalRandom()
 {
-	return LocalRandom(0.0,1.0);
+    return LocalRandom( 0.0, 1.0 );
 }
 
-inline double LocalRandom(double b)
+inline double LocalRandom( double b )
 {
-	return LocalRandom(0.0, b);
+    return LocalRandom( 0.0, b );
 }
 
 inline double BorlandTime()
@@ -110,11 +112,11 @@ std::string ExchangeCharInString( std::string const &Source, char const From, ch
 std::vector<std::string> &Split(const std::string &s, char delim, std::vector<std::string> &elems);
 std::vector<std::string> Split(const std::string &s, char delim);
 //std::vector<std::string> Split(const std::string &s);
+std::pair<std::string, int> split_string_and_number( std::string const &Key );
 
 std::string to_string(int Value);
 std::string to_string(unsigned int Value);
-std::string to_string(int Value, int precision);
-std::string to_string(int Value, int precision, int width);
+std::string to_string(int Value, int width);
 std::string to_string(double Value);
 std::string to_string(double Value, int precision);
 std::string to_string(double Value, int precision, int width);
@@ -221,6 +223,9 @@ std::string substr_path( std::string const &Filename );
 // returns common prefix of two provided strings
 std::ptrdiff_t len_common_prefix( std::string const &Left, std::string const &Right );
 
+// returns true if provided string ends with another provided string
+bool ends_with( std::string const &String, std::string const &Suffix );
+
 template <typename Type_>
 void SafeDelete( Type_ &Pointer ) {
     delete Pointer;
@@ -252,6 +257,20 @@ clamp_circular( Type_ Value, Type_ const Range = static_cast<Type_>(360) ) {
     if( Value < Type_(0) ) Value += Range;
 
     return Value;
+}
+
+// rounds down provided value to nearest power of two
+template <typename Type_>
+Type_
+clamp_power_of_two( Type_ Value, Type_ const Min = static_cast<Type_>(1), Type_ const Max = static_cast<Type_>(16384) ) {
+
+    Type_ p2size{ Min };
+    Type_ size;
+    while( ( p2size <= Max ) && ( p2size <= Value ) ) {
+        size = p2size;
+        p2size = p2size << 1;
+    }
+    return size;
 }
 
 template <typename Type_>
@@ -339,7 +358,20 @@ glm::dvec3 LoadPoint( class cParser &Input );
 std::string
 deserialize_random_set( cParser &Input, char const *Break = "\n\r\t ;" );
 
-int count_trailing_zeros(uint32_t val);
+int count_trailing_zeros( uint32_t val );
+
+// extracts a group of <key, value> pairs from provided data stream
+// NOTE: expects no more than single pair per line
+template <typename MapType_>
+void
+deserialize_map( MapType_ &Map, cParser &Input ) {
+
+    while( Input.ok() && !Input.eof() ) {
+        auto const key { Input.getToken<typename MapType_::key_type>( false ) };
+        auto const value { Input.getToken<typename MapType_::mapped_type>( false, "\n" ) };
+        Map.emplace( key, value );
+    }
+}
 
 namespace threading {
 

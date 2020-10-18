@@ -14,9 +14,10 @@ http://mozilla.org/MPL/2.0/.
 #include "Globals.h"
 #include "application.h"
 #include "simulation.h"
+#include "MemCell.h"
 #include "Camera.h"
 #include "AnimModel.h"
-#include "opengl33renderer.h"
+#include "renderer.h"
 
 namespace scene {
 
@@ -159,8 +160,8 @@ basic_editor::rotate( scene::basic_node *Node, glm::vec3 const &Angle, float con
         // rotate entire group
         // TODO: contextual switch between group and item rotation
         // TODO: translation of affected/relevant events
-        auto const rotationcenter { Node->location() };
-        auto &nodegroup { scene::Groups.group( Node->group() ).nodes };
+        auto const &rotationcenter { Node->location() };
+        auto const &nodegroup { scene::Groups.group( Node->group() ).nodes };
         std::for_each(
             std::begin( nodegroup ), std::end( nodegroup ),
             [&]( auto *node ) {

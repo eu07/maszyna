@@ -293,10 +293,14 @@ void cMoon::irradiance() {
 
 void
 cMoon::phase() {
-
-    // calculate moon's age in days from new moon
-    float ip = normalize( ( simulation::Time.julian_day() - 2451550.1f ) / 29.530588853f );
-    m_phase = ip * 29.53f;
+    SYSTEMTIME lt = simulation::Time.data();
+	if ((lt.wMonth==5)&&(lt.wDay==4)) //May the forth be with you!
+		m_phase = 50;
+	else {
+		// calculate moon's age in days from new moon
+		float ip = normalize( ( simulation::Time.julian_day() - 2451550.1f ) / 29.530588853f );
+		m_phase = ip * 29.53f;
+	}
 }
 
 // normalize values to range 0...1

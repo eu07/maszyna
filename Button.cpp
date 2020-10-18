@@ -14,7 +14,7 @@ http://mozilla.org/MPL/2.0/.
 #include "DynObj.h"
 #include "Console.h"
 #include "Logs.h"
-#include "opengl33renderer.h"
+#include "renderer.h"
 
 void TButton::Clear(int i)
 {
@@ -124,6 +124,7 @@ TButton::Turn( bool const State ) {
 }
 
 void TButton::Update( bool const Power ) {
+    // TODO: remove passing manually power state when LD is in place
 
     auto const state { Power && ( bData ? *bData : m_state ) };
 

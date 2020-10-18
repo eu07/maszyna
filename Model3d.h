@@ -12,7 +12,7 @@ http://mozilla.org/MPL/2.0/.
 #include "Classes.h"
 #include "dumb3d.h"
 #include "Float3d.h"
-#include "opengl33geometrybank.h"
+#include "geometrybank.h"
 #include "material.h"
 #include "gl/query.h"
 
@@ -56,6 +56,7 @@ class TSubModel
     //m7todo: zrobić normalną serializację
 
     friend opengl_renderer;
+    friend opengl33_renderer;
     friend TModel3d; // temporary workaround. TODO: clean up class content/hierarchy
     friend TDynamicObject; // temporary etc
     friend scene::shape_node; // temporary etc
@@ -204,12 +205,14 @@ public:
 	void ColorsSet( glm::vec3 const &Ambient, glm::vec3 const &Diffuse, glm::vec3 const &Specular );
     // sets rgb components of diffuse color override to specified value
     void SetDiffuseOverride( glm::vec3 const &Color, bool const Includechildren = false, bool const Includesiblings = false );
-	// gets rgb components of any freespot diffuse color (searches also in children)
-	std::optional<glm::vec3> GetDiffuse(float Includesiblings = false);
+    // gets rgb components of any freespot diffuse color (searches also in children)
+    std::optional<glm::vec3> GetDiffuse( float Includesiblings = false );
     // sets visibility level (alpha component) to specified value
     void SetVisibilityLevel( float const Level, bool const Includechildren = false, bool const Includesiblings = false );
     // sets light level (alpha component of illumination color) to specified value
     void SetLightLevel( glm::vec4 const &Level, bool const Includechildren = false, bool const Includesiblings = false );
+    // sets activation threshold of self-illumination to specitied value
+    void SetSelfIllum( float const Threshold, bool const Includechildren = false, bool const Includesiblings = false );
 	inline float3 Translation1Get() {
 		return fMatrix ? *(fMatrix->TranslationGet()) + v_TransVector : v_TransVector; }
 	inline float3 Translation2Get() {
@@ -237,6 +240,7 @@ public:
 class TModel3d
 {
     friend opengl_renderer;
+    friend opengl33_renderer;
 
 private:
 	TSubModel *Root; // drzewo submodeli

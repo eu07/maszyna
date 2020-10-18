@@ -15,7 +15,7 @@ http://mozilla.org/MPL/2.0/.
 #include "stdafx.h"
 #include "AnimModel.h"
 
-#include "opengl33renderer.h"
+#include "renderer.h"
 #include "MdlMngr.h"
 #include "simulation.h"
 #include "simulationtime.h"
@@ -23,7 +23,7 @@ http://mozilla.org/MPL/2.0/.
 #include "Globals.h"
 #include "Timer.h"
 #include "Logs.h"
-#include "opengl33renderer.h"
+#include "renderer.h"
 
 std::list<std::weak_ptr<TAnimContainer>> TAnimModel::acAnimList;
 
@@ -256,28 +256,7 @@ bool TAnimModel::Init(std::string const &asName, std::string const &asReplacable
         asText = asReplacableTexture.substr( 1, asReplacableTexture.length() - 1 ); // zapamiętanie tekstu
     }
     else if( asReplacableTexture != "none" ) {
-/*
-        auto const texturepath { substr_path( asReplacableTexture ) };
-        if( false == texturepath.empty() ) {
-            Global.asCurrentTexturePath = texturepath;
-        }
-*/
-        m_materialdata.replacable_skins[ 1 ] = GfxRenderer.Fetch_Material( asReplacableTexture );
-/*
-        if( false == texturepath.empty() ) {
-            // z powrotem defaultowa sciezka do tekstur
-            Global.asCurrentTexturePath = std::string( szTexturePath );
-        }
-*/
-    }
-    if( ( m_materialdata.replacable_skins[ 1 ] != null_handle )
-     && ( GfxRenderer.Material( m_materialdata.replacable_skins[ 1 ] ).get_or_guess_opacity() == 0.0f ) ) {
-        // tekstura z kanałem alfa - nie renderować w cyklu nieprzezroczystych
-        m_materialdata.textures_alpha = 0x31310031;
-    }
-    else{
-        // tekstura nieprzezroczysta - nie renderować w cyklu przezroczystych
-        m_materialdata.textures_alpha = 0x30300030;
+        m_materialdata.assign( asReplacableTexture );
     }
 
 // TODO: redo the random timer initialization
@@ -285,6 +264,16 @@ bool TAnimModel::Init(std::string const &asName, std::string const &asReplacable
 
     pModel = TModelsManager::GetModel( asName );
     return ( pModel != nullptr );
+}
+
+bool
+TAnimModel::is_keyword( std::string const &Token ) const {
+
+    return ( Token == "endmodel" )
+        || ( Token == "lights" )
+        || ( Token == "lightcolors" )
+        || ( Token == "angles" )
+        || ( Token == "notransition" );
 }
 
 bool TAnimModel::Load(cParser *parser, bool ter)
@@ -341,8 +330,7 @@ bool TAnimModel::Load(cParser *parser, bool ter)
         if( token == "lights" ) {
             auto i{ 0 };
             while( ( false == ( token = parser->getToken<std::string>() ).empty() )
-                && ( token != "lightcolors" )
-                && ( token != "endmodel" ) ) {
+                && ( false == is_keyword( token ) ) ) {
 
                 if( i < iNumLights ) {
                     // stan światła jest liczbą z ułamkiem
@@ -355,8 +343,7 @@ bool TAnimModel::Load(cParser *parser, bool ter)
         if( token == "lightcolors" ) {
             auto i{ 0 };
             while( ( false == ( token = parser->getToken<std::string>() ).empty() )
-                && ( token != "lights" )
-                && ( token != "endmodel" ) ) {
+                && ( false == is_keyword( token ) ) ) {
 
                 if( ( i < iNumLights )
                  && ( token != "-1" ) ) { // -1 leaves the default color intact
@@ -369,6 +356,19 @@ bool TAnimModel::Load(cParser *parser, bool ter)
                 ++i;
             }
         }
+
+        if( token == "angles" ) {
+            parser->getTokens( 3 );
+            *parser
+                >> vAngle[ 0 ]
+                >> vAngle[ 1 ]
+                >> vAngle[ 2 ];
+        }
+
+        if( token == "notransition" ) {
+            m_transition = false;
+        }
+
     } while( ( false == token.empty() )
           && ( token != "endmodel" ) );
 
@@ -429,6 +429,13 @@ void TAnimModel::RaAnimate( unsigned int const Framestamp ) {
         auto &timer { m_lighttimers[ idx ] };
         if( ( modeintegral < ls_Blink ) && ( modefractional < 0.01f ) ) {
             // simple flip modes
+            auto const transitiontime { (
+                m_transition ?
+                    std::min(
+                        1.f,
+                        std::min( fOnTime, fOffTime ) * 0.9f ) :
+                    0.01f ) };
+
             switch( mode ) {
                 case ls_Off: {
                     // reduce to zero
@@ -437,14 +444,14 @@ void TAnimModel::RaAnimate( unsigned int const Framestamp ) {
                 }
                 case ls_On: {
                     // increase to max value
-                    timer = std::min<float>( fTransitionTime, timer + timedelta );
+                    timer = std::min<float>( transitiontime, timer + timedelta );
                     break;
                 }
                 default: {
                     break;
                 }
             }
-            opacity = timer / fTransitionTime;
+            opacity = timer / transitiontime;
         }
         else {
             // blink modes
@@ -458,10 +465,12 @@ void TAnimModel::RaAnimate( unsigned int const Framestamp ) {
                 ( mode == ls_Off ) ? ontime :
                 ( mode == ls_On ) ? ( fOnTime + fOffTime ) - ontime :
                 fOffTime ) }; // fallback
-            auto const transitiontime {
-                std::min(
-                    1.f,
-                    std::min( ontime, offtime ) * 0.9f ) };
+            auto const transitiontime { (
+                m_transition ?
+                    std::min(
+                        1.f,
+                        std::min( ontime, offtime ) * 0.9f ) :
+                    0.01f ) };
 
             timer = clamp_circular<float>( timer + timedelta * ( lsLights[ idx ] > 0.f ? 1.f : -1.f ), ontime + offtime );
             // set opacity depending on blink stage
@@ -600,6 +609,11 @@ std::optional<std::tuple<float, float, std::optional<glm::vec3>> > TAnimModel::L
 	return std::make_tuple(lsLights[n], m_lightopacities[n], color);
 }
 
+void TAnimModel::SkinSet( int const Index, material_handle const Material ) {
+
+    m_materialdata.replacable_skins[ clamp( Index, 1, 4 ) ] = Material;
+}
+
 void TAnimModel::AnimUpdate(double dt)
 { // wykonanie zakolejkowanych animacji, nawet gdy modele nie są aktualnie wyświetlane
 	acAnimList.remove_if([](std::weak_ptr<TAnimContainer> ptr)
@@ -660,19 +674,28 @@ TAnimModel::export_as_text_( std::ostream &Output ) const {
     // texture
     auto texturefile { (
         m_materialdata.replacable_skins[ 1 ] != null_handle ?
-            GfxRenderer.Material( m_materialdata.replacable_skins[ 1 ] ).name :
+            GfxRenderer->Material( m_materialdata.replacable_skins[ 1 ] ).name :
             "none" ) };
     if( texturefile.find( szTexturePath ) == 0 ) {
         // don't include 'textures/' in the path
         texturefile.erase( 0, std::string{ szTexturePath }.size() );
     }
-    Output << texturefile << ' ';
+    if( texturefile.find( ' ' ) == std::string::npos ) {
+        Output << texturefile << ' ';
+    }
+    else {
+        Output << "\"" << texturefile << "\"" << ' ';
+    }
     // light submodels activation configuration
     if( iNumLights > 0 ) {
         Output << "lights ";
         for( int lightidx = 0; lightidx < iNumLights; ++lightidx ) {
             Output << lsLights[ lightidx ] << ' ';
         }
+    }
+    // potential light transition switch
+    if( false == m_transition ) {
+        Output << "notransition" << ' ';
     }
     // footer
     Output

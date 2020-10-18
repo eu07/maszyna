@@ -31,12 +31,12 @@ void render_task::run() {
     for( auto const &datapair : m_input->integers ) { auto *value{ PyGetInt( datapair.second ) }; PyDict_SetItemString( input, datapair.first.c_str(), value ); Py_DECREF( value ); }
     for( auto const &datapair : m_input->bools )    { auto *value{ PyGetBool( datapair.second ) }; PyDict_SetItemString( input, datapair.first.c_str(), value ); }
     for( auto const &datapair : m_input->strings )  { auto *value{ PyGetString( datapair.second.c_str() ) }; PyDict_SetItemString( input, datapair.first.c_str(), value ); Py_DECREF( value ); }
-
     for (auto const &datapair : m_input->vec2_lists) {
         PyObject *list = PyList_New(datapair.second.size());
 
         for (size_t i = 0; i < datapair.second.size(); i++) {
             auto const &vec = datapair.second[i];
+                        WriteLog("passing " + glm::to_string(vec));
 
             PyObject *tuple = PyTuple_New(2);
             PyTuple_SetItem(tuple, 0, PyGetFloat(vec.x)); // steals ref
@@ -48,7 +48,6 @@ void render_task::run() {
         PyDict_SetItemString(input, datapair.first.c_str(), list);
         Py_DECREF(list);
     }
-
 	delete m_input;
 	m_input = nullptr;
 
@@ -199,7 +198,7 @@ auto python_taskqueue::init() -> bool {
     // release the lock, save the state for future use
     m_mainthread = PyEval_SaveThread();
 
-    WriteLog( "Python Interpreter setup complete" );
+    WriteLog( "Python Interpreter: setup complete" );
 
     // init workers
     for( auto &worker : m_workers ) {
@@ -247,7 +246,8 @@ void python_taskqueue::exit() {
 // adds specified task along with provided collection of data to the work queue. returns true on success
 auto python_taskqueue::insert( task_request const &Task ) -> bool {
 
-    if( ( Task.renderer.empty() )
+    if( ( false == Global.python_enabled )
+     || ( Task.renderer.empty() )
      || ( Task.input == nullptr )
      || ( Task.target == 0 ) ) { return false; }
 

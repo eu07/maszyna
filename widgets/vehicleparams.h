@@ -3,7 +3,7 @@
 #include "uilayer.h"
 #include "translation.h"
 #include "command.h"
-#include "opengl33renderer.h"
+#include "renderer.h"
 
 namespace ui
 {

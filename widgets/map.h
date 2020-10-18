@@ -1,11 +1,15 @@
 #pragma once
 
 #include "gl/shader.h"
-#include "opengl33renderer.h"
 #include "Texture.h"
 #include "uilayer.h"
 #include "widgets/map_objects.h"
 #include "widgets/popup.h"
+#include "gl/framebuffer.h"
+#include "frustum.h"
+#ifdef WITH_OPENGL_MODERN
+#include "opengl33renderer.h"
+#endif
 
 namespace ui
 {

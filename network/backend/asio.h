@@ -1,6 +1,10 @@
-#include "network/network.h"
+#ifdef DBG_NEW
+#undef new
+#endif
 
 #include <asio.hpp>
+
+#include "network/network.h"
 
 namespace network::tcp
 {
@@ -13,7 +17,7 @@ namespace network::tcp
 		friend class client;
 
 	public:
-		connection(asio::io_context &io_ctx, bool client = false, size_t counter = 0);
+                connection(asio::io_context &io_ctx, bool client = false, size_t counter = 0);
 		~connection();
 
 		virtual void connected() override;
@@ -41,6 +45,7 @@ namespace network::tcp
 		void handle_accept(std::shared_ptr<connection> conn, const asio::error_code &err);
 
 		asio::ip::tcp::acceptor m_acceptor;
+                asio::io_context &m_io_ctx;
 
 	public:
 		server(std::shared_ptr<std::istream> buf, asio::io_context &io_ctx, const std::string &host, uint32_t port);

@@ -2,7 +2,6 @@ in vec3 f_normal;
 in vec2 f_coord;
 in vec4 f_pos;
 in mat3 f_tbn;
-in vec4 f_light_pos;
 
 in vec4 f_clip_pos;
 in vec4 f_clip_future_pos;
@@ -18,6 +17,7 @@ layout(location = 1) out vec4 out_motion;
 #param (diffuse, 1, 0, 1, diffuse)
 #param (specular, 1, 1, 1, specular)
 #param (reflection, 1, 2, 1, one)
+#param (glossiness, 1, 3, 1, glossiness)
 #param (wave_strength, 2, 1, 1, one)
 #param (wave_speed, 2, 2, 1, one)
 
@@ -30,24 +30,17 @@ uniform sampler2D dudvmap;
 #texture (diffuse, 2, sRGB_A)
 uniform sampler2D diffuse;
 
-#if SHADOWMAP_ENABLED
-uniform sampler2DShadow shadowmap;
-#endif
-#if ENVMAP_ENABLED
-uniform samplerCube envmap;
-#endif
-
 //wave distortion variables
 float move_factor = 0.0;
-vec3 normal_d;
 
 #define WATER
 #include <light_common.glsl>
+#include <apply_fog.glsl>
 #include <tonemapping.glsl>
 
 void main()
 {
-//wave distortion
+	//wave distortion
 	move_factor += (param[2].z * time);
 	move_factor = mod(move_factor, 1.0);
 	vec2 texture_coords = f_coord;
@@ -56,51 +49,31 @@ void main()
 	vec2 total_distorted_tex_coord = (texture(dudvmap, distorted_tex_coord).rg * 2.0 - 1.0 ) * param[2].y;
 	texture_coords += total_distorted_tex_coord;
 
+	vec4 tex_color = texture(diffuse, texture_coords);
+
+	vec3 fragcolor = ambient * 0.25;
+	
 	vec3 normal;
 	normal.xy = (texture(normalmap, texture_coords).rg * 2.0 - 1.0);
 	normal.z = sqrt(1.0 - clamp((dot(normal.xy, normal.xy)), 0.0, 1.0));
-	normal_d = normalize(f_tbn * normalize(normal.xyz));
-	vec3 refvec = reflect(f_pos.xyz, normal_d);
-#if ENVMAP_ENABLED
-	vec3 envcolor = texture(envmap, refvec).rgb;
-#else
-	vec3 envcolor = vec3(0.5);
-#endif
-	vec4 tex_color = texture(diffuse, texture_coords);
-//Fresnel effect
+	vec3 fragnormal = normalize(f_tbn * normalize(normal.xyz));
+	float reflectivity = param[1].z * texture(normalmap, texture_coords ).a;
+	float specularity = 1.0;
+	glossiness = abs(param[1].w);
+	
+	fragcolor = apply_lights(fragcolor, fragnormal, tex_color.rgb, reflectivity, specularity, shadow_tone);
+
+	//fragcolor = mix(fragcolor, param[0].rgb, param[1].z);
+//	fragcolor = (fragcolor * tex_color.rgb * param[1].z) + (fragcolor * (1.0 - param[1].z)); //multiply
+	//fragcolor = ( max(fragcolor + param[0].rgb -1.0,0.0) * param[1].z + fragcolor * (1.0 - param[1].z)); //linear burn
+	//fragcolor = ( min(param[0].rgb,fragcolor) * param[1].z + fragcolor * (1.0 - param[1].z)); //darken
+
+	// fresnel effect
 	vec3 view_dir = normalize(vec3(0.0f, 0.0f, 0.0f) - f_pos.xyz);
 	float fresnel = pow ( dot (f_normal, view_dir), 0.2 );
 	float fresnel_inv = ((fresnel - 1.0 ) * -1.0 );
 	
-	vec3 result = ambient * 0.5 + param[0].rgb * emission;
-
-	if (lights_count > 0U)
-	{
-		vec2 part = calc_dir_light(lights[0]);
-		vec3 c = (part.x * param[1].x + part.y * param[1].y) * calc_shadow() * lights[0].color;
-			result += mix(c, envcolor, param[1].z * texture(normalmap, texture_coords ).a);
-	}
-	//result = mix(result, param[0].rgb, param[1].z);
-	result = (result * tex_color.rgb * param[1].z) + (result * (1.0 - param[1].z)); //multiply
-	//result = ( max(result + param[0].rgb -1.0,0.0) * param[1].z + result * (1.0 - param[1].z)); //linear burn
-	//result = ( min(param[0].rgb,result) * param[1].z + result * (1.0 - param[1].z)); //darken
-	
-	for (uint i = 1U; i < lights_count; i++)
-	{
-		light_s light = lights[i];
-		vec2 part = vec2(0.0);
-
-		if (light.type == LIGHT_SPOT)
-			part = calc_spot_light(light);
-		else if (light.type == LIGHT_POINT)
-			part = calc_point_light(light);
-		else if (light.type == LIGHT_DIR)
-			part = calc_dir_light(light);
-		result += light.color * (part.x * param[1].x + part.y * param[1].y);
-	}
-
-	vec4 color = vec4(apply_fog(clamp(result,0.0,1.0)), clamp((fresnel_inv + param[0].a),0.0,1.0));
-
+	vec4 color = vec4(apply_fog(clamp(fragcolor, 0.0, 1.0)), clamp((fresnel_inv + param[0].a), 0.0, 1.0));
 #if POSTFX_ENABLED
     out_color = color;
 #else

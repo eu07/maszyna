@@ -1,6 +1,6 @@
 #include "stdafx.h"
 #include "launcher/vehicle_picker.h"
-#include "opengl33renderer.h"
+#include "renderer.h"
 
 ui::vehiclepicker_panel::vehiclepicker_panel()
     : ui_panel(STR("Select vehicle"), false), placeholder_mini("textures/mini/other")

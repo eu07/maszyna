@@ -50,20 +50,24 @@ class cParser //: public std::stringstream
     bool
         expectToken( std::string const &Value ) {
             return readToken() == Value; };
+    inline
     bool
         eof() {
             return mStream->eof(); };
+    inline
     bool
         ok() {
-            return !mStream->fail(); };
+            return ( !mStream->fail() ); };
     cParser &
         autoclear( bool const Autoclear );
+    inline
     bool
         autoclear() const {
             return m_autoclear; }
     bool
         getTokens( unsigned int Count = 1, bool ToLower = true, char const *Break = "\n\r\t ;" );
     // returns next incoming token, if any, without removing it from the set
+    inline
     std::string
         peek() const {
             return (
@@ -91,6 +95,7 @@ class cParser //: public std::stringstream
   private:
     // methods:
     std::string readToken(bool ToLower = true, const char *Break = "\n\r\t ;");
+    std::vector<std::string> readParameters( cParser &Input );
     std::string readQuotes( char const Quote = '\"' );
     void skipComment( std::string const &Endmark );
     bool findQuotes( std::string &String );
@@ -105,6 +110,7 @@ class cParser //: public std::stringstream
     std::streamoff mSize { 0 }; // size of open stream, for progress report.
     std::size_t mLine { 0 }; // currently processed line
     bool mIncFile { false }; // the parser is processing an *.inc file
+    bool mFirstToken { true }; // processing first token in the current file; helper used when checking for utf bom
     typedef std::map<std::string, std::string> commentmap;
     commentmap mComments {
         commentmap::value_type( "/*", "*/" ),

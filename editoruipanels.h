@@ -11,7 +11,21 @@ http://mozilla.org/MPL/2.0/.
 
 #include "uilayer.h"
 #include "Classes.h"
+/*
+// helper, associated bool is set when the primary value was changed and expects processing at the observer's leisure
+template<typename Type_>
+using changeable = std::pair<Type_, bool>;
 
+// helper, holds a set of changeable properties for a scene node
+struct item_properties {
+
+    scene::basic_node const *node { nullptr }; // properties' owner
+
+    changeable<std::string> name {};
+    changeable<glm::dvec3> location {};
+    changeable<glm::vec3> rotation {};
+};
+*/
 class itemproperties_panel : public ui_panel {
 
 public:
@@ -35,8 +49,6 @@ private:
 };
 
 class nodebank_panel : public ui_panel {
-	std::vector<std::shared_ptr<std::string>> m_nodebank;
-	std::shared_ptr<std::string> m_selectedtemplate;
 
 public:
 	enum edit_mode {
@@ -47,9 +59,17 @@ public:
 
 	edit_mode mode = MODIFY;
 
-	nodebank_panel();
+	nodebank_panel( std::string const &Name, bool const Isopen );
 
-	void render_contents() override;
+	void render() override;
 	void add_template(const std::string &desc);
 	const std::string* get_active_template();
+
+private:
+// methods:
+    std::string generate_node_label( std::string Input ) const;
+// members:
+    std::vector<std::pair<std::string, std::shared_ptr<std::string>>> m_nodebank;
+    char m_nodesearch[ 128 ];
+    std::shared_ptr<std::string> m_selectedtemplate;
 };

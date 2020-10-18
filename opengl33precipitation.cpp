@@ -11,21 +11,21 @@ http://mozilla.org/MPL/2.0/.
 #include "opengl33precipitation.h"
 
 #include "Globals.h"
-#include "openglmatrixstack.h"
-#include "opengl33renderer.h"
-#include "Timer.h"
-#include "simulation.h"
-#include "Train.h"
+#include "renderer.h"
+#include "simulationenvironment.h"
 
-basic_precipitation::~basic_precipitation() {
+opengl33_precipitation::~opengl33_precipitation() {
     // TODO: release allocated resources
 }
 
 void
-basic_precipitation::create( int const Tesselation ) {
-	
+opengl33_precipitation::create( int const Tesselation ) {
+
+    m_vertices.clear();
+    m_uvs.clear();
+    m_indices.clear();
+
     auto const heightfactor { 10.f }; // height-to-radius factor
-    m_moverate *= heightfactor;
     auto const verticaltexturestretchfactor { 1.5f }; // crude motion blur
 
 	// create geometry chunk
@@ -85,94 +85,8 @@ basic_precipitation::create( int const Tesselation ) {
     } // radius
 }
 
-bool
-basic_precipitation::init() {
-
-    create( 18 );
-
-    return true;
-}
-
-void
-basic_precipitation::update_weather() {
-
-	// TODO: select texture based on current overcast level
-	// TODO: when the overcast level dynamic change is in check the current level during render and pick the appropriate texture on the fly
-	std::string const densitysuffix { (
-		Global.Overcast < 1.35 ?
-		    "_light" :
-		    "_medium" ) };
-	if( Global.Weather == "rain:" ) {
-		m_moverateweathertypefactor = 2.f;
-		m_texture = GfxRenderer.Fetch_Texture( "fx/rain" + densitysuffix );
-	}
-	else if( Global.Weather == "snow:" ) {
-		m_moverateweathertypefactor = 1.25f;
-		m_texture = GfxRenderer.Fetch_Texture( "fx/snow" + densitysuffix );
-	}
-}
-
 void 
-basic_precipitation::update() {
-
-    auto const timedelta = Timer::GetDeltaTime();
-
-    if( timedelta == 0.0 ) { return; }
-
-    m_textureoffset += m_moverate * m_moverateweathertypefactor * timedelta;
-    m_textureoffset = clamp_circular( m_textureoffset, 10.f );
-
-    auto cameramove { glm::dvec3{ Global.pCamera.Pos - m_camerapos} };
-    cameramove.y = 0.0; // vertical movement messes up vector calculation
-
-    m_camerapos = Global.pCamera.Pos;
-
-    // intercept sudden user-induced camera jumps...
-    // ...from free fly mode change
-    if( m_freeflymode != FreeFlyModeFlag ) {
-        m_freeflymode = FreeFlyModeFlag;
-        if( true == m_freeflymode ) {
-            // cache last precipitation vector in the cab
-            m_cabcameramove = m_cameramove;
-            // don't carry previous precipitation vector to a new unrelated location
-            m_cameramove = glm::dvec3{ 0.0 };
-        }
-        else {
-            // restore last cached precipitation vector
-            m_cameramove = m_cabcameramove;
-        }
-        cameramove = glm::dvec3{ 0.0 };
-    }
-    // ...from jump between cab and window/mirror view
-    if( m_windowopen != Global.CabWindowOpen ) {
-        m_windowopen = Global.CabWindowOpen;
-        cameramove = glm::dvec3{ 0.0 };
-    }
-    // ... from cab change
-    if( ( simulation::Train != nullptr ) && ( simulation::Train->iCabn != m_activecab ) ) {
-        m_activecab = simulation::Train->iCabn;
-        cameramove = glm::dvec3{ 0.0 };
-    }
-    // ... from camera jump to another location
-    if( glm::length( cameramove ) > 100.0 ) {
-        cameramove = glm::dvec3{ 0.0 };
-    }
-
-    m_cameramove = m_cameramove * std::max( 0.0, 1.0 - 5.0 * timedelta ) + cameramove * ( 30.0 * timedelta );
-    if( std::abs( m_cameramove.x ) < 0.001 ) { m_cameramove.x = 0.0; }
-    if( std::abs( m_cameramove.y ) < 0.001 ) { m_cameramove.y = 0.0; }
-    if( std::abs( m_cameramove.z ) < 0.001 ) { m_cameramove.z = 0.0; }
-}
-
-float basic_precipitation::get_textureoffset()
-{
-	return m_textureoffset;
-}
-
-void
-basic_precipitation::render() {
-
-    GfxRenderer.Bind_Texture(0,  m_texture);
+opengl33_precipitation::update() {
 
 	if (!m_shader)
 	{
@@ -185,6 +99,10 @@ basic_precipitation::render() {
 		m_vao.emplace();
 		m_vao->bind();
 
+        if( m_vertices.empty() ) {
+            // create visualization mesh
+            create( 18 );
+        }
         // build the buffers
 		m_vertexbuffer.emplace();
 		m_vertexbuffer->allocate(gl::buffer::ARRAY_BUFFER, m_vertices.size() * sizeof( glm::vec3 ), GL_STATIC_DRAW);
@@ -207,10 +125,35 @@ basic_precipitation::render() {
         // NOTE: vertex and index source data is superfluous past this point, but, eh
     }
 
-	m_shader->bind();
-	m_vao->bind();
+    // TODO: include weather type check in the entry conditions
+    if( m_overcast == Global.Overcast ) { return; }
+
+    m_overcast = Global.Overcast;
+
+    std::string const densitysuffix { (
+        m_overcast < 1.35 ?
+            "_light" :
+            "_medium" ) };
+    if( Global.Weather == "rain:" ) {
+        m_texture = GfxRenderer->Fetch_Texture( "fx/rain" + densitysuffix );
+    }
+    else if( Global.Weather == "snow:" ) {
+        m_texture = GfxRenderer->Fetch_Texture( "fx/snow" + densitysuffix );
+    }
+}
+
+void
+opengl33_precipitation::render() {
+
+    if( !m_shader ) { return; }
+    if( !m_vao )    { return; }
+
+    GfxRenderer->Bind_Texture( 0, m_texture );
+
+    m_shader->bind();
+    m_vao->bind();
 
     ::glDrawElements( GL_TRIANGLES, static_cast<GLsizei>( m_indices.size() ), GL_UNSIGNED_SHORT, reinterpret_cast<void const*>( 0 ) );
 
-	m_vao->unbind();
+    m_vao->unbind();
 }

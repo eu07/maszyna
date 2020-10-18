@@ -1,7 +1,7 @@
 #pragma once
 
 #include "Texture.h"
-#include "opengl33renderer.h"
+#include "renderer.h"
 
 class deferred_image {
 public:
@@ -18,12 +18,12 @@ public:
 	GLuint get() const
 	{
 		if (!path.empty()) {
-			image = GfxRenderer.Fetch_Texture(path, true);
+            image = GfxRenderer->Fetch_Texture(path, true);
 			path.clear();
 		}
 
 		if (image != null_handle) {
-			opengl_texture &tex = GfxRenderer.Texture(image);
+            opengl_texture &tex = GfxRenderer->Texture(image);
 			tex.create();
 
 			if (tex.is_ready)
@@ -36,7 +36,7 @@ public:
 	glm::ivec2 size() const
 	{
 		if (image != null_handle) {
-			opengl_texture &tex = GfxRenderer.Texture(image);
+            opengl_texture &tex = GfxRenderer->Texture(image);
 			return glm::ivec2(tex.width(), tex.height());
 		}
 		return glm::ivec2();

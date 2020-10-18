@@ -16,10 +16,11 @@ http://mozilla.org/MPL/2.0/.
 
 #include "Globals.h"
 #include "simulation.h"
+#include "simulationsounds.h"
 #include "Train.h"
 #include "dictionary.h"
 #include "sceneeditor.h"
-#include "opengl33renderer.h"
+#include "renderer.h"
 #include "uilayer.h"
 #include "Logs.h"
 #include "screenshot.h"
@@ -28,7 +29,6 @@ http://mozilla.org/MPL/2.0/.
 #include "Timer.h"
 #include "dictionary.h"
 
-#pragma comment (lib, "glu32.lib")
 #pragma comment (lib, "dsound.lib")
 #pragma comment (lib, "winmm.lib")
 #pragma comment (lib, "setupapi.lib")
@@ -117,6 +117,15 @@ eu07_application::init( int Argc, char *Argv[] ) {
 	WriteLog( "Authors: Marcin_EU, McZapkie, ABu, Winger, Tolaris, nbmx, OLO_EU, Bart, Quark-t, "
 	    "ShaXbee, Oli_EU, youBy, KURS90, Ra, hunter, szociu, Stele, Q, firleju and others\n" );
 
+    {
+        WriteLog( "// settings" );
+        std::stringstream settingspipe;
+        Global.export_as_text( settingspipe );
+        WriteLog( settingspipe.str() );
+    }
+
+    WriteLog( "// startup" );
+
     if( ( result = init_locale() ) != 0 ) {
         return result;
     }
@@ -149,7 +158,7 @@ double eu07_application::generate_sync() {
 		return 0.0;
 	double sync = 0.0;
 	for (const TDynamicObject* vehicle : simulation::Vehicles.sequence()) {
-		 glm::vec3 pos = vehicle->GetPosition();
+        auto const pos { vehicle->GetPosition() };
 		 sync += pos.x + pos.y + pos.z;
 	}
 	sync += Random(1.0, 100.0);
@@ -160,9 +169,21 @@ void eu07_application::queue_quit() {
 	glfwSetWindowShouldClose(m_windows[0], GLFW_TRUE);
 }
 
+bool
+eu07_application::is_server() const {
+
+    return ( m_network && m_network->servers );
+}
+
+bool
+eu07_application::is_client() const {
+
+    return ( m_network && m_network->client );
+}
+
 int
 eu07_application::run() {
-
+    auto frame{ 0 };
     // main application loop
     while (!glfwWindowShouldClose( m_windows.front() ) && !m_modestack.empty())
     {
@@ -187,7 +208,6 @@ eu07_application::run() {
 
 		if (m_modes[m_modestack.top()]->is_command_processor()) {
 			// active mode is doing real calculations (e.g. drivermode)
-
 			int loop_remaining = MAX_NETWORK_PER_FRAME;
 			while (--loop_remaining > 0)
 			{
@@ -236,7 +256,7 @@ eu07_application::run() {
 
 				// do actual frame processing
 				if (!m_modes[ m_modestack.top() ]->update())
-					goto die;
+					return 0;
 
 				// update continuous commands
 				simulation::Commands.update();
@@ -275,7 +295,7 @@ eu07_application::run() {
 				float awaiting = m_network->client->get_awaiting_frames();
 
 				// TODO: don't meddle with mode progresbar
-				m_modes[m_modestack.top()]->set_progress(100.0f, 100.0f * (received - awaiting) / received);
+				m_modes[m_modestack.top()]->set_progress(100.0f * (received - awaiting) / received);
 			} else {
 				m_modes[m_modestack.top()]->set_progress(0.0f, 0.0f);
 			}
@@ -286,8 +306,8 @@ eu07_application::run() {
 			simulation::Commands.pop_intercept_queue();
 
 			// do actual frame processing
-			if (!m_modes[ m_modestack.top() ]->update())
-				goto die;
+            if (!m_modes[ m_modestack.top() ]->update())
+                return 0;
 		}
 
 		// -------------------------------------------------------------------
@@ -295,10 +315,10 @@ eu07_application::run() {
 		m_taskqueue.update();
 		opengl_texture::reset_unit_cache();
 
-        if (!GfxRenderer.Render())
+        if (!GfxRenderer->Render())
             break;
 
-        GfxRenderer.SwapBuffers();
+        GfxRenderer->SwapBuffers();
 
         if (m_modestack.empty())
             return 0;
@@ -317,7 +337,6 @@ eu07_application::run() {
 		if (Global.minframetime.count() != 0.0f && (Global.minframetime - frametime).count() > 0.0f)
 			std::this_thread::sleep_for(Global.minframetime - frametime);
     }
-    die:
 
 	return 0;
 }
@@ -354,10 +373,10 @@ eu07_application::exit() {
 	for (auto &mode : m_modes)
 		mode.reset();
 
-    GfxRenderer.Shutdown();
+    GfxRenderer->Shutdown();
 	m_network.reset();
 
-    SafeDelete( simulation::Train );
+//    SafeDelete( simulation::Train );
     SafeDelete( simulation::Region );
 
     ui_layer::shutdown();
@@ -437,6 +456,14 @@ eu07_application::set_progress( float const Progress, float const Subtaskprogres
 }
 
 void
+eu07_application::set_tooltip( std::string const &Tooltip ) {
+
+    if( m_modestack.empty() ) { return; }
+
+    m_modes[ m_modestack.top() ]->set_tooltip( Tooltip );
+}
+
+void
 eu07_application::set_cursor( int const Mode ) {
 
     ui_layer::set_cursor( Mode );
@@ -448,7 +475,9 @@ eu07_application::set_cursor_pos( double const Horizontal, double const Vertical
     glfwSetCursorPos( m_windows.front(), Horizontal, Vertical );
 }
 
-glm::dvec2 eu07_application::get_cursor_pos() const {
+glm::dvec2
+eu07_application::get_cursor_pos() const {
+
     glm::dvec2 pos;
     if( !m_windows.empty() ) {
         glfwGetCursorPos( m_windows.front(), &pos.x, &pos.y );
@@ -461,6 +490,17 @@ eu07_application::get_cursor_pos( double &Horizontal, double &Vertical ) const {
 
     glfwGetCursorPos( m_windows.front(), &Horizontal, &Vertical );
 }
+
+/*
+// provides keyboard mapping associated with specified control item
+std::string
+eu07_application::get_input_hint( user_command const Command ) const {
+
+    if( m_modestack.empty() ) { return ""; }
+
+    return m_modes[ m_modestack.top() ]->get_input_hint( Command );
+}
+*/
 
 void
 eu07_application::on_key( int const Key, int const Scancode, int const Action, int const Mods ) {
@@ -548,8 +588,9 @@ eu07_application::window(int const Windowindex, bool visible, int width, int hei
     return childwindow;
 }
 
-GLFWmonitor* eu07_application::find_monitor(const std::string &str) {
-	int monitor_count;
+// private:
+GLFWmonitor* eu07_application::find_monitor(const std::string &str) const {
+    int monitor_count;
 	GLFWmonitor **monitors = glfwGetMonitors(&monitor_count);
 
 	for (size_t i = 0; i < monitor_count; i++) {
@@ -560,7 +601,7 @@ GLFWmonitor* eu07_application::find_monitor(const std::string &str) {
 	return nullptr;
 }
 
-std::string eu07_application::describe_monitor(GLFWmonitor *monitor) {
+std::string eu07_application::describe_monitor(GLFWmonitor *monitor) const {
 	std::string name(glfwGetMonitorName(monitor));
 	std::replace(std::begin(name), std::end(name), ' ', '_');
 
@@ -578,11 +619,13 @@ eu07_application::init_debug() {
 #if defined(_MSC_VER) && defined (_DEBUG)
     // memory leaks
     _CrtSetDbgFlag( _CrtSetDbgFlag( _CRTDBG_REPORT_FLAG ) | _CRTDBG_LEAK_CHECK_DF );
+    /*
     // floating point operation errors
     auto state { _clearfp() };
     state = _control87( 0, 0 );
     // this will turn on FPE for #IND and zerodiv
     state = _control87( state & ~( _EM_ZERODIVIDE | _EM_INVALID ), _MCW_EM );
+    */
 #endif
 #ifdef _WIN32
     ::SetUnhandledExceptionFilter( unhandled_handler );
@@ -662,7 +705,6 @@ eu07_application::init_glfw() {
 
     // match requested video mode to current to allow for
     // fullwindow creation when resolution is the same
-
 	{
 		int monitor_count;
 		GLFWmonitor **monitors = glfwGetMonitors(&monitor_count);
@@ -677,41 +719,50 @@ eu07_application::init_glfw() {
 	if (!monitor)
 		monitor = glfwGetPrimaryMonitor();
 
-    glfwWindowHint(GLFW_SRGB_CAPABLE, !Global.gfx_shadergamma);
-
-    if (!Global.gfx_usegles)
-    {
-		glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
-        glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
-        glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
-    }
-    else
-    {
-#ifdef GLFW_CONTEXT_CREATION_API
-        glfwWindowHint(GLFW_CONTEXT_CREATION_API, GLFW_EGL_CONTEXT_API);
-#endif
-        glfwWindowHint(GLFW_CLIENT_API, GLFW_OPENGL_ES_API);
-        glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
-        glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 0);
-    }
-
     glfwWindowHint( GLFW_AUTO_ICONIFY, GLFW_FALSE );
     if (Global.gfx_skippipeline && Global.iMultisampling > 0) {
         glfwWindowHint( GLFW_SAMPLES, 1 << Global.iMultisampling );
     }
 
-	auto *win = window(-1, true, Global.iWindowWidth, Global.iWindowHeight, Global.bFullScreen ? monitor : nullptr, true, false);
+    if( Global.GfxRenderer == "default" ) {
+        Global.bUseVBO = true;
+        // activate core profile for opengl 3.3 renderer
+        if( !Global.gfx_usegles ) {
+            glfwWindowHint( GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE );
+            glfwWindowHint( GLFW_CONTEXT_VERSION_MAJOR, 3 );
+            glfwWindowHint( GLFW_CONTEXT_VERSION_MINOR, 3 );
+        }
+        else {
+#ifdef GLFW_CONTEXT_CREATION_API
+            glfwWindowHint( GLFW_CONTEXT_CREATION_API, GLFW_EGL_CONTEXT_API );
+#endif
+            glfwWindowHint( GLFW_CLIENT_API, GLFW_OPENGL_ES_API );
+            glfwWindowHint( GLFW_CONTEXT_VERSION_MAJOR, 3 );
+            glfwWindowHint( GLFW_CONTEXT_VERSION_MINOR, 0 );
+        }
+    } else {
+        Global.gfx_shadergamma = false;
+        glfwWindowHint( GLFW_OPENGL_PROFILE, GLFW_OPENGL_COMPAT_PROFILE );
+        glfwWindowHint( GLFW_CONTEXT_VERSION_MAJOR, 3 );
+        glfwWindowHint( GLFW_CONTEXT_VERSION_MINOR, 3 );
+    }
 
-	if( win == nullptr ) {
+    glfwWindowHint(GLFW_SRGB_CAPABLE, !Global.gfx_shadergamma);
+
+    auto *mainwindow = window(
+        -1, true, Global.iWindowWidth, Global.iWindowHeight, Global.bFullScreen ? monitor : nullptr, true, false );
+
+    if( mainwindow == nullptr ) {
         ErrorLog( "Bad init: failed to create glfw window" );
         return -1;
     }
 
-	glfwMakeContextCurrent( win );
+    glfwMakeContextCurrent( mainwindow );
+    glfwSwapInterval( Global.VSync ? 1 : 0 ); //vsync
 
 #ifdef _WIN32
 // setup wrapper for base glfw window proc, to handle copydata messages
-	Hwnd = glfwGetWin32Window( win );
+    Hwnd = glfwGetWin32Window( mainwindow );
     BaseWindowProc = ( WNDPROC )::SetWindowLongPtr( Hwnd, GWLP_WNDPROC, (LONG_PTR)WndProc );
     // switch off the topmost flag
     ::SetWindowPos( Hwnd, HWND_NOTOPMOST, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE );
@@ -720,7 +771,7 @@ eu07_application::init_glfw() {
 	if (Global.captureonstart)
 	{
 		Global.ControlPicking = false;
-		glfwSetInputMode(win, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+        glfwSetInputMode(mainwindow, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
 	}
 	else
 		Global.ControlPicking = true;
@@ -766,14 +817,30 @@ eu07_application::init_gfx() {
         }
     }
 
-    if (!ui_layer::init(m_windows.front()))
-        return -1;
+    if( Global.GfxRenderer == "default" ) {
+        // default render path
+        GfxRenderer = gfx_renderer_factory::get_instance()->create("modern");
+    }
+    else {
+        // legacy render path
+        GfxRenderer = gfx_renderer_factory::get_instance()->create("legacy");
+        Global.DisabledLogTypes |= static_cast<unsigned int>( logtype::material );
+    }
 
-    if (!GfxRenderer.Init(m_windows.front()))
+    if (!GfxRenderer) {
+        ErrorLog("no renderer found!");
         return -1;
+    }
+
+    if( false == GfxRenderer->Init( m_windows.front() ) ) {
+        return -1;
+    }
+    if( false == ui_layer::init( m_windows.front() ) ) {
+        return -1;
+    }
 
 	for (const global_settings::extraviewport_config &conf : Global.extra_viewports)
-		if (!GfxRenderer.AddViewport(conf))
+        if (!GfxRenderer->AddViewport(conf))
 			return -1;
 
     if (!Global.headtrack_conf.joy.empty())
@@ -805,6 +872,8 @@ eu07_application::init_data() {
         weightpair.first.erase( weightpair.first.end() - 1 ); // trim trailing ':' from the key
         simulation::Weights.emplace( weightpair.first, weightpair.second );
     }
+    cParser override_parser( "data/sound_overrides.txt", cParser::buffer_FILE );
+    deserialize_map( simulation::Sound_overrides,  override_parser);
 
     return 0;
 }
@@ -817,6 +886,8 @@ eu07_application::init_modes() {
 		ErrorLog("launcher mode is currently not supported in network mode");
 		return -1;
 	}
+    // NOTE: we could delay creation/initialization until transition to specific mode is requested,
+    // but doing it in one go at the start saves us some error checking headache down the road
 
     // activate the default mode
 	if (Global.SceneryFile.empty())

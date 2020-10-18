@@ -18,7 +18,7 @@ Copyright (C) 2001-2004  Marcin Wozniak, Maciej Czapkiewicz and others
 #include "Globals.h"
 #include "Logs.h"
 #include "utilities.h"
-#include "opengl33renderer.h"
+#include "renderer.h"
 #include "Timer.h"
 #include "simulation.h"
 #include "simulationtime.h"
@@ -151,6 +151,23 @@ TSubModel::SetLightLevel( glm::vec4 const &Level, bool const Includechildren, bo
         Child->SetLightLevel( Level, Includechildren, true ); // node's children include child's siblings and children
     }
 }
+
+// sets activation threshold of self-illumination to specitied value
+void TSubModel::SetSelfIllum( float const Threshold, bool const Includechildren, bool const Includesiblings ) {
+
+    fLight = Threshold;
+    if( true == Includesiblings ) {
+        auto sibling { this };
+        while( ( sibling = sibling->Next ) != nullptr ) {
+            sibling->SetSelfIllum( Threshold, Includechildren, false ); // no need for all siblings to duplicate the work
+        }
+    }
+    if( ( true == Includechildren )
+     && ( Child != nullptr ) ) {
+        Child->SetSelfIllum( Threshold, Includechildren, true ); // node's children include child's siblings and children
+    }
+}
+
 
 int TSubModel::SeekFaceNormal(std::vector<unsigned int> const &Masks, int const Startface, unsigned int const Mask, glm::vec3 const &Position, gfx::vertex_array const &Vertices)
 { // szukanie punktu stycznego do (pt), zwraca numer wierzchołka, a nie trójkąta
@@ -346,6 +363,9 @@ int TSubModel::Load( cParser &parser, TModel3d *Model, /*int Pos,*/ bool dynamic
         if( Opacity > 1.f ) {
             Opacity = std::min( 1.f, Opacity * 0.01f );
         }
+        if( Opacity < -1.f ) {
+            Opacity = std::max( -1.f, Opacity * 0.01f );
+        }
 
         if (!parser.expectToken("map:"))
             Error("Model map parse failure!");
@@ -353,8 +373,8 @@ int TSubModel::Load( cParser &parser, TModel3d *Model, /*int Pos,*/ bool dynamic
 		std::replace(material.begin(), material.end(), '\\', '/');
         if (material == "none")
         { // rysowanie podanym kolorem
-            Name_Material("colored");
-            m_material = GfxRenderer.Fetch_Material(m_materialname);
+            Name_Material( "colored" );
+            m_material = GfxRenderer->Fetch_Material( m_materialname );
             iFlags |= 0x10; // rysowane w cyklu nieprzezroczystych
         }
         else if (material.find("replacableskin") != material.npos)
@@ -390,7 +410,7 @@ int TSubModel::Load( cParser &parser, TModel3d *Model, /*int Pos,*/ bool dynamic
                 material.insert( 0, Global.asCurrentTexturePath );
             }
 */
-            m_material = GfxRenderer.Fetch_Material( material );
+            m_material = GfxRenderer->Fetch_Material( material );
             // renderowanie w cyklu przezroczystych tylko jeśli:
             // 1. Opacity=0 (przejściowo <1, czy tam <100)
 			iFlags |= Opacity < 0.999f ? 0x20 : 0x10 ; // 0x20-przezroczysta, 0x10-nieprzezroczysta
@@ -398,15 +418,48 @@ int TSubModel::Load( cParser &parser, TModel3d *Model, /*int Pos,*/ bool dynamic
     }
     else if (eType == TP_STARS)
     {
-        m_material = GfxRenderer.Fetch_Material( "stars" );
+        m_material = GfxRenderer->Fetch_Material( "stars" );
         iFlags |= 0x10;
     }
-    else
+    else {
         iFlags |= 0x10;
+    }
 
     if (m_material > 0)
     {
-        opengl_material &mat = GfxRenderer.Material(m_material);
+        opengl_material const &mat = GfxRenderer->Material(m_material);
+        /*
+        if( eType == TP_FREESPOTLIGHT ) {
+            iFlags &= ~0x30;
+            iFlags |= 0x20;
+        }
+        else
+        */
+        {
+            // if material has opacity set, replace submodel opacity with it
+            // NOTE: reverted to use base opacity, this allows to define opacity threshold in material
+            // without it causing the translucent models to become opaque
+            auto const opacity { (
+/*
+                false == std::isnan( mat.opacity ) ?
+                    mat.opacity :
+*/
+                    Opacity ) };
+            iFlags &= ~0x30;
+            iFlags |= (
+                ( ( opacity < 0.01f )
+               && ( GfxRenderer->Material( m_material ).is_translucent() ) ) ?
+                    0x20 :
+                    0x10 ); // 0x10-nieprzezroczysta, 0x20-przezroczysta
+        }
+        // and same thing with selfillum
+        if (!std::isnan(mat.selfillum))
+            fLight = mat.selfillum;
+    }
+
+    if (m_material > 0)
+    {
+        const opengl_material &mat = GfxRenderer->Material(m_material);
 
         // if material have opacity set, replace submodel opacity with it
         if (!std::isnan(mat.opacity))
@@ -466,7 +519,7 @@ int TSubModel::Load( cParser &parser, TModel3d *Model, /*int Pos,*/ bool dynamic
 		// zapewni to jakąś zgodność wstecz, bo zamiast liczby będzie ciąg, którego
 		// wartość powinna być uznana jako zerowa
 		// parser.getToken(iNumVerts);
-		if (token[0] == '*')
+		if (token.front() == '*')
 		{ // jeśli pierwszy znak jest gwiazdką, poszukać
 		  // submodelu o nazwie bez tej gwiazdki i wziąć z
 		  // niego wierzchołki
@@ -591,9 +644,11 @@ int TSubModel::Load( cParser &parser, TModel3d *Model, /*int Pos,*/ bool dynamic
                                 wsp[ adjacenvertextidx ] = vertexidx; // informacja, że w tym wierzchołku jest już policzony wektor normalny
                                 vertexnormal += facenormals[ adjacenvertextidx / 3 ];
                             }
+                            /*
                             else {
                                 ErrorLog( "Bad model: opposite normals in the same smoothing group, check sub-model \"" + pName + "\" for two-sided faces and/or scaling", logtype::model );
                             }
+                            */
                             // i szukanie od kolejnego trójkąta
 							adjacenvertextidx = SeekFaceNormal(sg, adjacenvertextidx / 3 + 1, sg[faceidx], Vertices[vertexidx].position, Vertices);
                         }
@@ -683,7 +738,7 @@ int TSubModel::TriangleAdd(TModel3d *m, material_handle tex, int tri)
             s = new TSubModel();
             m->AddTo(this, s);
         }
-        s->Name_Material(GfxRenderer.Material(tex).name);
+        s->Name_Material(GfxRenderer->Material(tex).name);
         s->m_material = tex;
         s->eType = GL_TRIANGLES;
     }
@@ -1102,8 +1157,8 @@ void TSubModel::RaAnimation(glm::mat4 &m, TAnimType a)
 	}
 	if (mAnimMatrix) // można by to dać np. do at_Translate
 	{
-		m *= glm::make_mat4(mAnimMatrix.get()->e);
-		mAnimMatrix.reset(); // jak animator będzie potrzebował, to ustawi ponownie
+		m *= glm::make_mat4(mAnimMatrix->e);
+        mAnimMatrix.reset(); // jak animator będzie potrzebował, to ustawi ponownie
 	}
 };
 
@@ -1115,7 +1170,7 @@ void TSubModel::serialize_geometry( std::ostream &Output ) const {
         Child->serialize_geometry( Output );
     }
     if( m_geometry != null_handle ) {
-        for( auto const &vertex : GfxRenderer.Vertices( m_geometry ) ) {
+        for( auto const &vertex : GfxRenderer->Vertices( m_geometry ) ) {
             vertex.serialize( Output );
         }
     }
@@ -1141,7 +1196,7 @@ TSubModel::create_geometry( std::size_t &Dataoffset, gfx::geometrybank_handle co
             eType < TP_ROTATOR ?
                 eType :
                 GL_POINTS );
-        m_geometry = GfxRenderer.Insert( Vertices, Bank, type );
+        m_geometry = GfxRenderer->Insert( Vertices, Bank, type );
     }
 
     if( m_geometry != 0 ) {
@@ -1151,7 +1206,7 @@ TSubModel::create_geometry( std::size_t &Dataoffset, gfx::geometrybank_handle co
         // since we're comparing squared radii, we need to square it back for correct results
         m_boundingradius *= m_boundingradius;
         auto const submodeloffset { offset( std::numeric_limits<float>::max() ) };
-        for( auto const &vertex : GfxRenderer.Vertices( m_geometry ) ) {
+        for( auto const &vertex : GfxRenderer->Vertices( m_geometry ) ) {
             squaredradius = glm::length2( submodeloffset + vertex.position );
             if( squaredradius > m_boundingradius ) {
                 m_boundingradius = squaredradius;
@@ -1251,7 +1306,7 @@ void TSubModel::ReplaceMatrix(const glm::mat4 &mat)
 
 void TSubModel::ReplaceMaterial(const std::string &name)
 {
-    m_material = GfxRenderer.Fetch_Material(name);
+    m_material = GfxRenderer->Fetch_Material(name);
 }
 
 // obliczenie maksymalnej wysokości, na początek ślizgu w pantografie
@@ -1263,7 +1318,7 @@ float TSubModel::MaxY( float4x4 const &m ) {
     // binary and text models invoke this function at different stages, either after or before geometry data was sent to the geometry manager
     if( m_geometry != null_handle ) {
 
-        for( auto const &vertex : GfxRenderer.Vertices( m_geometry ) ) {
+        for( auto const &vertex : GfxRenderer->Vertices( m_geometry ) ) {
             maxy = std::max(
                 maxy,
                   m[ 0 ][ 1 ] * vertex.position.x
@@ -1376,7 +1431,7 @@ TSubModel::offset( float const Geometrytestoffsetthreshold ) const {
         // TODO: do proper bounding area calculation for submodel when loading mesh and grab the centre point from it here
         auto const &vertices { (
             m_geometry != null_handle ?
-                GfxRenderer.Vertices( m_geometry ) :
+                GfxRenderer->Vertices( m_geometry ) :
                 Vertices ) };
         if( false == vertices.empty() ) {
             // transformation matrix for the submodel can still contain rotation and/or scaling,
@@ -1645,7 +1700,7 @@ void TModel3d::deserialize(std::istream &s, size_t size, bool dynamic)
 {
 	Root = nullptr;
     if( m_geometrybank == null_handle ) {
-        m_geometrybank = GfxRenderer.Create_Bank();
+        m_geometrybank = GfxRenderer->Create_Bank();
     }
 
 	std::streampos end = s.tellg() + (std::streampos)size;
@@ -1730,7 +1785,7 @@ void TModel3d::deserialize(std::istream &s, size_t size, bool dynamic)
                         break;
                     }
                 }
-                submodel.m_geometry = GfxRenderer.Insert( vertices, m_geometrybank, type );
+                submodel.m_geometry = GfxRenderer->Insert( vertices, m_geometrybank, type );
             }
 
 		}
@@ -1835,12 +1890,11 @@ void TSubModel::BinInit(TSubModel *s, float4x4 *m, std::vector<std::string> *t, 
                 m_materialname = Global.asCurrentTexturePath + m_materialname;
             }
 */
-            m_material = GfxRenderer.Fetch_Material( m_materialname );
-
+            m_material = GfxRenderer->Fetch_Material( m_materialname );
             // if we don't have phase flags set for some reason, try to fix it
             if (!(iFlags & 0x30) && m_material != null_handle)
             {
-                opengl_material &mat = GfxRenderer.Material(m_material);
+                const opengl_material &mat = GfxRenderer->Material(m_material);
                 float opacity = mat.opacity;
 
                 // if material don't have opacity set, try to guess it
@@ -1853,10 +1907,10 @@ void TSubModel::BinInit(TSubModel *s, float4x4 *m, std::vector<std::string> *t, 
                 else
                     iFlags |= 0x10; // opaque
             }
-
-            if (m_material > 0)
+            
+            if ( m_material != null_handle )
             {
-                opengl_material &mat = GfxRenderer.Material(m_material);
+                opengl_material const &mat = GfxRenderer->Material(m_material);
 
                 // replace submodel selfillum with material one
                 if (!std::isnan(mat.selfillum))
@@ -1870,15 +1924,19 @@ void TSubModel::BinInit(TSubModel *s, float4x4 *m, std::vector<std::string> *t, 
     }
 	else
     {
-        if (iTexture == 0)
-            m_material = GfxRenderer.Fetch_Material("colored");
+        if( iTexture == 0 )
+            m_material = GfxRenderer->Fetch_Material( "colored" );
         else
             m_material = iTexture;
     }
 
 	b_aAnim = b_Anim; // skopiowanie animacji do drugiego cyklu
 
-    if( (eType == TP_FREESPOTLIGHT) && (iFlags & 0x10)) {
+    if( eType == TP_STARS ) {
+        m_material = GfxRenderer->Fetch_Material( "stars" );
+        iFlags |= 0x10;
+    }
+    else if( (eType == TP_FREESPOTLIGHT) && (iFlags & 0x10)) {
         // we've added light glare which needs to be rendered during transparent phase,
         // but models converted to e3d before addition won't have the render flag set correctly for this
         // so as a workaround we're doing it here manually
@@ -1945,7 +2003,7 @@ TSubModel* TModel3d::AppendChildFromGeometry(const std::string &name, const std:
     sm->iNumVerts = data.size();
     sm->eType = GL_TRIANGLES;
     sm->pName = name;
-    sm->m_material = GfxRenderer.Fetch_Material("colored");
+    sm->m_material = GfxRenderer->Fetch_Material("colored");
     sm->fMatrix = new float4x4();
     sm->fMatrix->Identity();
     sm->iFlags |= 0x10;
@@ -2022,11 +2080,17 @@ void TModel3d::Init()
 		iFlags |= Root->FlagsCheck() | 0x8000; // flagi całego modelu
         if (iNumVerts) {
             if( m_geometrybank == null_handle ) {
-                m_geometrybank = GfxRenderer.Create_Bank();
+                m_geometrybank = GfxRenderer->Create_Bank();
             }
             std::size_t dataoffset = 0;
             Root->create_geometry( dataoffset, m_geometrybank );
         }
+        // determine final bounding radius from the root-level siblings
+        auto const *root { Root };
+        while( ( root = root->Next ) != nullptr ) {
+            Root->m_boundingradius = std::max( Root->m_boundingradius, root->m_boundingradius );
+        }
+
         if( ( Global.iConvertModels > 0 )
          && ( false == asBinary.empty() ) ) {
             SaveToBinFile( asBinary );

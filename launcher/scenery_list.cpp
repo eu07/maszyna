@@ -2,7 +2,7 @@
 #include "scenery_list.h"
 #include "imgui/imgui.h"
 #include "utilities.h"
-#include "opengl33renderer.h"
+#include "renderer.h"
 #include "McZapkie/MOVER.h"
 #include "application.h"
 #include "Logs.h"
@@ -76,12 +76,12 @@ void ui::scenerylist_panel::draw_scenery_image()
 {
 	if (!selected_scenery->image_path.empty()) {
 		scenery_desc *desc = const_cast<scenery_desc*>(selected_scenery);
-		desc->image = GfxRenderer.Fetch_Texture(selected_scenery->image_path, true);
+        desc->image = GfxRenderer->Fetch_Texture(selected_scenery->image_path, true);
 		desc->image_path.clear();
 	}
 
 	if (selected_scenery->image != null_handle) {
-		opengl_texture &tex = GfxRenderer.Texture(selected_scenery->image);
+        opengl_texture &tex = GfxRenderer->Texture(selected_scenery->image);
 		tex.create();
 
 		if (tex.is_ready) {

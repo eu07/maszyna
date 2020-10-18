@@ -211,6 +211,17 @@ std::string cParser::readToken( bool ToLower, const char *Break ) {
             }
         } while( token == "" && mStream->peek() != EOF ); // double check in case of consecutive separators
     }
+    // check the first token for potential presence of utf bom
+    if( mFirstToken ) {
+        mFirstToken = false;
+        if( token.rfind( "\xef\xbb\xbf", 0 ) == 0 ) {
+            token.erase( 0, 3 );
+        }
+        if( true == token.empty() ) {
+            // potentially possible if our first token was standalone utf bom
+            token = readToken( ToLower, Break );
+        }
+    }
 
     if( false == parameters.empty() ) {
         // if there's parameter list, check the token for potential parameters to replace
@@ -231,23 +242,15 @@ std::string cParser::readToken( bool ToLower, const char *Break ) {
         }
     }
 
+    // launch child parser if include directive found.
+    // NOTE: parameter collecting uses default set of token separators.
 	if( expandIncludes && token == "include" ) {
-        // launch child parser if include directive found.
-        // NOTE: parameter collecting uses default set of token separators.
         std::string includefile = readToken(ToLower); // nazwa pliku
 		std::replace(includefile.begin(), includefile.end(), '\\', '/');
         if( ( true == LoadTraction )
          || ( ( includefile.find( "tr/" ) == std::string::npos )
            && ( includefile.find( "tra/" ) == std::string::npos ) ) ) {
-            // get parameter list for the child parser
-            std::vector<std::string> includeparameters;
-            std::string parameter = readToken( false ); // w parametrach nie zmniejszamy
-            while( ( parameter.empty() == false )
-                && ( parameter != "end" ) ) {
-                includeparameters.emplace_back( parameter );
-                parameter = readToken( false );
-            }
-            mIncludeParser = std::make_shared<cParser>( includefile, buffer_FILE, mPath, LoadTraction, includeparameters );
+            mIncludeParser = std::make_shared<cParser>( includefile, buffer_FILE, mPath, LoadTraction, readParameters( *this ) );
             mIncludeParser->autoclear( m_autoclear );
             if( mIncludeParser->mSize <= 0 ) {
                 ErrorLog( "Bad include: can't open file \"" + includefile + "\"" );
@@ -260,8 +263,35 @@ std::string cParser::readToken( bool ToLower, const char *Break ) {
         }
         token = readToken(ToLower, Break);
     }
+    else if( ( std::strcmp( Break, "\n\r" ) == 0 ) && ( token.compare( 0, 7, "include" ) == 0 ) ) {
+        // HACK: if the parser reads full lines we expect this line to contain entire include directive, to make parsing easier
+        cParser includeparser( token.substr( 7 ) );
+        std::string includefile = includeparser.readToken( ToLower ); // nazwa pliku
+        if( ( true == LoadTraction )
+         || ( ( includefile.find( "tr/" ) == std::string::npos )
+           && ( includefile.find( "tra/" ) == std::string::npos ) ) ) {
+            mIncludeParser = std::make_shared<cParser>( includefile, buffer_FILE, mPath, LoadTraction, readParameters( includeparser ) );
+            mIncludeParser->autoclear( m_autoclear );
+            if( mIncludeParser->mSize <= 0 ) {
+                ErrorLog( "Bad include: can't open file \"" + includefile + "\"" );
+            }
+        }
+        token = readToken( ToLower, Break );
+    }
     // all done
     return token;
+}
+
+std::vector<std::string> cParser::readParameters( cParser &Input ) {
+
+    std::vector<std::string> includeparameters;
+    std::string parameter = Input.readToken( false ); // w parametrach nie zmniejszamy
+    while( ( parameter.empty() == false )
+        && ( parameter != "end" ) ) {
+        includeparameters.emplace_back( parameter );
+        parameter = Input.readToken( false );
+    }
+    return includeparameters;
 }
 
 std::string cParser::readQuotes(char const Quote) { // read the stream until specified char or stream end
@@ -303,7 +333,7 @@ void cParser::skipComment( std::string const &Endmark ) { // pobieranie znaków 
             ++mLine;
         }
         input += c;
-        if( input.find( Endmark ) != std::string::npos ) // szukanie znacznika końca
+        if( input == Endmark ) // szukanie znacznika końca
             break;
         if( input.size() >= endmarksize ) {
             // keep the read text short, to avoid pointless string re-allocations on longer comments
@@ -315,9 +345,9 @@ void cParser::skipComment( std::string const &Endmark ) { // pobieranie znaków 
 
 bool cParser::findQuotes( std::string &String ) {
 
-    if( String.rfind( '\"' ) != std::string::npos ) {
+    if( String.back() == '\"' ) {
 
-        String.erase( String.rfind( '\"' ), 1 );
+        String.pop_back();
         String += readQuotes();
         return true;
     }
@@ -326,12 +356,14 @@ bool cParser::findQuotes( std::string &String ) {
 
 bool cParser::trimComments(std::string &String)
 {
-    for (commentmap::iterator cmIt = mComments.begin(); cmIt != mComments.end(); ++cmIt)
+    for (auto const &comment : mComments)
     {
-        if (String.rfind((*cmIt).first) != std::string::npos)
+        if( String.size() < comment.first.size() ) { continue; }
+
+        if (String.compare( String.size() - comment.first.size(), comment.first.size(), comment.first ) == 0)
         {
-            skipComment((*cmIt).second);
-            String.resize(String.rfind((*cmIt).first));
+            skipComment(comment.second);
+            String.resize(String.rfind(comment.first));
             return true;
         }
     }

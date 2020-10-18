@@ -27,13 +27,22 @@ struct opengl_texture {
     void
         load();
     bool
-        bind(size_t unit);
-    static void unbind(size_t unit);
+        bind( size_t unit );
+    static void
+        unbind( size_t unit );
     bool
-        create();
+        create( bool const Static = false );
     // releases resources allocated on the opengl end, storing local copy if requested
     void
         release();
+    void
+        make_stub();
+    void
+        alloc_rendertarget( GLint format, GLint components, int width, int height, int layers = 1, int samples = 1, GLint wrap = GL_CLAMP_TO_EDGE );
+    void
+        set_components_hint( GLint hint );
+    static void
+        reset_unit_cache();
     inline
     int
         width() const {
@@ -47,11 +56,7 @@ struct opengl_texture {
         is_stub() const {
             return is_texstub; }
 
-	void make_stub();
     void make_from_memory(size_t width, size_t height, const uint8_t *data);
-	void alloc_rendertarget(GLint format, GLint components, int width, int height, int samples = 1, GLint wrap = GL_CLAMP_TO_BORDER);
-    void set_components_hint(GLint hint);
-    static void reset_unit_cache();
 
 // members
     GLuint id{ (GLuint)-1 }; // associated GL resource
@@ -64,7 +69,8 @@ struct opengl_texture {
     GLint components_hint = 0; // components that material wants
 
 	GLenum target = GL_TEXTURE_2D;
-    static std::array<GLuint, gl::MAX_TEXTURES + 2> units;
+    static std::array<GLuint, gl::MAX_TEXTURES + gl::HELPER_TEXTURES> units;
+    static GLint m_activeunit;
 
 private:
 // methods
@@ -80,10 +86,11 @@ private:
     void gles_match_internalformat(GLuint format);
 
 // members
-	bool is_rendertarget = false; // is used as postfx rendertarget, without loaded data
-	int samples = 1;
+    bool is_static = false; // is excluded from garbage collection
+    bool is_rendertarget = false; // is used as postfx rendertarget, without loaded data
+    int samples = 1;
+    int layers = 1;
     bool is_texstub = false; // for make_from_memory internal_src: functionality
-
     std::vector<unsigned char> data; // texture data (stored GL-style, bottom-left origin)
     resource_state data_state{ resource_state::none }; // current state of texture data
     int data_width{ 0 },
@@ -91,7 +98,6 @@ private:
         data_mapcount{ 0 };
     GLint data_format{ 0 },
         data_components{ 0 };
-
     GLint data_type = GL_UNSIGNED_BYTE;
 	GLint wrap_mode_s = GL_REPEAT;
 	GLint wrap_mode_t = GL_REPEAT;
@@ -99,12 +105,9 @@ private:
     std::atomic<bool> is_loaded{ false }; // indicates the texture data was loaded and can be processed
     std::atomic<bool> is_good{ false }; // indicates the texture data was retrieved without errors
 */
-
     static std::unordered_map<GLint, int> precompressed_formats;
     static std::unordered_map<GLint, GLint> drivercompressed_formats;
     static std::unordered_map<GLint, std::unordered_map<GLint, GLint>> mapping;
-
-    static GLint m_activeunit;
 };
 
 typedef int texture_handle;
@@ -115,13 +118,17 @@ public:
     texture_manager();
     ~texture_manager() { delete_textures(); }
 
+    // activates specified texture unit
+    void
+        unit( GLint const Textureunit );
     // creates texture object out of data stored in specified file
     texture_handle
-        create( std::string Filename, bool const Loadnow = true, GLint format_hint = GL_SRGB_ALPHA );
+        create( std::string Filename, bool const Loadnow = true, GLint Formathint = GL_SRGB_ALPHA );
     // binds specified texture to specified texture unit
     void
         bind( std::size_t const Unit, texture_handle const Texture );
-    opengl_texture& mark_as_used(texture_handle const Texture);
+    opengl_texture &
+        mark_as_used( texture_handle const Texture );
     // provides direct access to specified texture object
     opengl_texture &
         texture( texture_handle const Texture ) const { return *(m_textures[ Texture ].first); }

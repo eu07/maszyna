@@ -29,6 +29,76 @@ http://mozilla.org/MPL/2.0/.
 
 #define EU07_DEFERRED_TEXTURE_UPLOAD
 
+std::array<GLuint, gl::MAX_TEXTURES + gl::HELPER_TEXTURES> opengl_texture::units = { 0 };
+GLint opengl_texture::m_activeunit = -1;
+
+std::unordered_map<GLint, int> opengl_texture::precompressed_formats =
+{
+    { GL_COMPRESSED_SRGB_ALPHA_S3TC_DXT1_EXT, 8 },
+    { GL_COMPRESSED_SRGB_ALPHA_S3TC_DXT3_EXT, 16 },
+    { GL_COMPRESSED_SRGB_ALPHA_S3TC_DXT5_EXT, 16 },
+    { GL_COMPRESSED_RGBA_S3TC_DXT1_EXT, 8 },
+    { GL_COMPRESSED_RGBA_S3TC_DXT3_EXT, 16 },
+    { GL_COMPRESSED_RGBA_S3TC_DXT5_EXT, 16 },
+};
+
+std::unordered_map<GLint, GLint> opengl_texture::drivercompressed_formats =
+{
+    { GL_SRGB8_ALPHA8, GL_COMPRESSED_SRGB_ALPHA },
+    { GL_SRGB8, GL_COMPRESSED_SRGB },
+    { GL_RGBA8, GL_COMPRESSED_RGBA },
+    { GL_RGB8, GL_COMPRESSED_RGB },
+    { GL_RG8, GL_COMPRESSED_RG },
+    { GL_R8, GL_COMPRESSED_RED },
+};
+
+std::unordered_map<GLint, std::unordered_map<GLint, GLint>> opengl_texture::mapping =
+{
+    // image have,                         material wants, gl internalformat
+    { GL_COMPRESSED_RGBA_S3TC_DXT1_EXT, { { GL_SRGB_ALPHA, GL_COMPRESSED_SRGB_ALPHA_S3TC_DXT1_EXT },
+                                          { GL_SRGB,       GL_COMPRESSED_SRGB_ALPHA_S3TC_DXT1_EXT },
+                                          { GL_RGBA,       GL_COMPRESSED_RGBA_S3TC_DXT1_EXT },
+                                          { GL_RGB,        GL_COMPRESSED_RGBA_S3TC_DXT1_EXT },
+                                          { GL_RG,         GL_COMPRESSED_RGBA_S3TC_DXT1_EXT },
+                                          { GL_RED,        GL_COMPRESSED_RGBA_S3TC_DXT1_EXT } } },
+    { GL_COMPRESSED_RGBA_S3TC_DXT3_EXT, { { GL_SRGB_ALPHA, GL_COMPRESSED_SRGB_ALPHA_S3TC_DXT3_EXT },
+                                          { GL_SRGB,       GL_COMPRESSED_SRGB_ALPHA_S3TC_DXT3_EXT },
+                                          { GL_RGBA,       GL_COMPRESSED_RGBA_S3TC_DXT3_EXT },
+                                          { GL_RGB,        GL_COMPRESSED_RGBA_S3TC_DXT3_EXT },
+                                          { GL_RG,         GL_COMPRESSED_RGBA_S3TC_DXT3_EXT },
+                                          { GL_RED,        GL_COMPRESSED_RGBA_S3TC_DXT3_EXT } } },
+    { GL_COMPRESSED_RGBA_S3TC_DXT5_EXT, { { GL_SRGB_ALPHA, GL_COMPRESSED_SRGB_ALPHA_S3TC_DXT5_EXT },
+                                          { GL_SRGB,       GL_COMPRESSED_SRGB_ALPHA_S3TC_DXT5_EXT },
+                                          { GL_RGBA,       GL_COMPRESSED_RGBA_S3TC_DXT5_EXT },
+                                          { GL_RGB,        GL_COMPRESSED_RGBA_S3TC_DXT5_EXT },
+                                          { GL_RG,         GL_COMPRESSED_RGBA_S3TC_DXT5_EXT },
+                                          { GL_RED,        GL_COMPRESSED_RGBA_S3TC_DXT5_EXT } } },
+    { GL_RGBA,                          { { GL_SRGB_ALPHA, GL_SRGB8_ALPHA8 },
+                                          { GL_SRGB,       GL_SRGB8 },
+                                          { GL_RGBA,       GL_RGBA8 },
+                                          { GL_RGB,        GL_RGB8 },
+                                          { GL_RG,         GL_RG8 },
+                                          { GL_RED,        GL_R8 } } },
+    { GL_RGB,                           { { GL_SRGB_ALPHA, GL_SRGB8 }, // bad
+                                          { GL_SRGB,       GL_SRGB8 },
+                                          { GL_RGBA,       GL_RGB8 }, // bad
+                                          { GL_RGB,        GL_RGB8 },
+                                          { GL_RG,         GL_RG8 },
+                                          { GL_RED,        GL_R8 } } },
+    { GL_RG,                            { { GL_SRGB_ALPHA, GL_SRGB8 }, // bad
+                                          { GL_SRGB,       GL_SRGB8 }, // bad
+                                          { GL_RGBA,       GL_RG8 }, // bad
+                                          { GL_RGB,        GL_RG8 }, // bad
+                                          { GL_RG,         GL_RG8 },
+                                          { GL_RED,        GL_R8 } } },
+    { GL_RED,                           { { GL_SRGB_ALPHA, GL_SRGB8 }, // bad
+                                          { GL_SRGB,       GL_SRGB8 }, // bad
+                                          { GL_RGBA,       GL_R8 }, // bad
+                                          { GL_RGB,        GL_R8 },  // bad
+                                          { GL_RG,         GL_R8 }, // bad
+                                          { GL_RED,        GL_R8 } } },
+};
+
 texture_manager::texture_manager() {
 
     // since index 0 is used to indicate no texture, we put a blank entry in the first texture slot
@@ -173,7 +243,7 @@ opengl_texture::load() {
     }
     else {
 
-        WriteLog( "Loading texture data from \"" + name + type + "\"", logtype::texture );
+        WriteLog( "Loading texture data from \"" + name + "\"", logtype::texture );
 
         data_state = resource_state::loading;
 
@@ -189,6 +259,16 @@ opengl_texture::load() {
     // data state will be set by called loader, so we're all done here
     if( data_state == resource_state::good ) {
 
+        // verify texture size
+        if( ( clamp_power_of_two( data_width ) != data_width ) || ( clamp_power_of_two( data_height ) != data_height ) ) {
+            if( name != "logo" ) {
+                WriteLog( "Warning: dimensions of texture \"" + name + "\" aren't powers of 2", logtype::texture );
+            }
+        }
+        if( ( quantize( data_width, 4 ) != data_width ) || ( quantize( data_height, 4 ) != data_height ) ) {
+            WriteLog( "Warning: dimensions of texture \"" + name + "\" aren't multiples of 4", logtype::texture );
+        }
+
         has_alpha = (
             data_components == GL_RGBA ?
                 true :
@@ -201,7 +281,7 @@ opengl_texture::load() {
 
 fail:
     data_state = resource_state::failed;
-    ErrorLog( "Bad texture: failed to load texture \"" + name + type + "\"" );
+    ErrorLog( "Bad texture: failed to load texture \"" + name + "\"" );
     // NOTE: temporary workaround for texture assignment errors
     id = 0;
     return;
@@ -443,7 +523,7 @@ opengl_texture::load_DDS() {
     int blockSize = ( data_format == GL_COMPRESSED_RGBA_S3TC_DXT1_EXT ? 8 : 16 );
     int offset = 0;
 
-    while( ( data_width > Global.iMaxTextureSize ) || ( data_height > Global.iMaxTextureSize ) ) {
+    while( ( data_width > Global.CurrentMaxTextureSize ) || ( data_height > Global.CurrentMaxTextureSize ) ) {
         // pomijanie zbyt dużych mipmap, jeśli wymagane jest ograniczenie rozmiaru
         offset += ( ( data_width + 3 ) / 4 ) * ( ( data_height + 3 ) / 4 ) * blockSize;
         data_width /= 2;
@@ -690,7 +770,7 @@ opengl_texture::load_TGA() {
     }
 
     downsize( GL_BGRA );
-    if( ( data_width > Global.iMaxTextureSize ) || ( data_height > Global.iMaxTextureSize ) ) {
+    if( ( data_width > Global.CurrentMaxTextureSize ) || ( data_height > Global.CurrentMaxTextureSize ) ) {
         // for non-square textures there's currently possibility the scaling routine will have to abort
         // before it gets all work done
         data_state = resource_state::failed;
@@ -721,7 +801,6 @@ opengl_texture::bind(size_t unit) {
 
     if (units[unit] == id)
         return true;
-
     if (GLAD_GL_ARB_direct_state_access)
     {
         glBindTextureUnit(unit, id);
@@ -735,13 +814,13 @@ opengl_texture::bind(size_t unit) {
         }
         glBindTexture(target, id);
     }
-
     units[unit] = id;
 
     return true;
 }
 
-void opengl_texture::unbind(size_t unit)
+void
+opengl_texture::unbind(size_t unit)
 {
     if (GLAD_GL_ARB_direct_state_access)
     {
@@ -757,93 +836,11 @@ void opengl_texture::unbind(size_t unit)
         //todo: for other targets
         glBindTexture(GL_TEXTURE_2D, 0);
     }
-}
-
-void opengl_texture::reset_unit_cache()
-{
-    for( auto &unit : units ) {
-        unit = 0;
-    }
-    m_activeunit = -1;
-}
-
-std::array<GLuint, gl::MAX_TEXTURES + 2> opengl_texture::units = { 0 };
-GLint opengl_texture::m_activeunit = -1;
-
-std::unordered_map<GLint, int> opengl_texture::precompressed_formats =
-{
-    { GL_COMPRESSED_SRGB_ALPHA_S3TC_DXT1_EXT, 8 },
-    { GL_COMPRESSED_SRGB_ALPHA_S3TC_DXT3_EXT, 16 },
-    { GL_COMPRESSED_SRGB_ALPHA_S3TC_DXT5_EXT, 16 },
-    { GL_COMPRESSED_RGBA_S3TC_DXT1_EXT, 8 },
-    { GL_COMPRESSED_RGBA_S3TC_DXT3_EXT, 16 },
-    { GL_COMPRESSED_RGBA_S3TC_DXT5_EXT, 16 },
-};
-
-std::unordered_map<GLint, GLint> opengl_texture::drivercompressed_formats =
-{
-    { GL_SRGB8_ALPHA8, GL_COMPRESSED_SRGB_ALPHA },
-    { GL_SRGB8, GL_COMPRESSED_SRGB },
-    { GL_RGBA8, GL_COMPRESSED_RGBA },
-    { GL_RGB8, GL_COMPRESSED_RGB },
-    { GL_RG8, GL_COMPRESSED_RG },
-    { GL_R8, GL_COMPRESSED_RED },
-};
-
-std::unordered_map<GLint, std::unordered_map<GLint, GLint>> opengl_texture::mapping =
-{
-    // image have,                         material wants, gl internalformat
-    { GL_COMPRESSED_RGBA_S3TC_DXT1_EXT, { { GL_SRGB_ALPHA, GL_COMPRESSED_SRGB_ALPHA_S3TC_DXT1_EXT },
-                                          { GL_SRGB,       GL_COMPRESSED_SRGB_ALPHA_S3TC_DXT1_EXT },
-                                          { GL_RGBA,       GL_COMPRESSED_RGBA_S3TC_DXT1_EXT },
-                                          { GL_RGB,        GL_COMPRESSED_RGBA_S3TC_DXT1_EXT },
-                                          { GL_RG,         GL_COMPRESSED_RGBA_S3TC_DXT1_EXT },
-                                          { GL_RED,        GL_COMPRESSED_RGBA_S3TC_DXT1_EXT } } },
-    { GL_COMPRESSED_RGBA_S3TC_DXT3_EXT, { { GL_SRGB_ALPHA, GL_COMPRESSED_SRGB_ALPHA_S3TC_DXT3_EXT },
-                                          { GL_SRGB,       GL_COMPRESSED_SRGB_ALPHA_S3TC_DXT3_EXT },
-                                          { GL_RGBA,       GL_COMPRESSED_RGBA_S3TC_DXT3_EXT },
-                                          { GL_RGB,        GL_COMPRESSED_RGBA_S3TC_DXT3_EXT },
-                                          { GL_RG,         GL_COMPRESSED_RGBA_S3TC_DXT3_EXT },
-                                          { GL_RED,        GL_COMPRESSED_RGBA_S3TC_DXT3_EXT } } },
-    { GL_COMPRESSED_RGBA_S3TC_DXT5_EXT, { { GL_SRGB_ALPHA, GL_COMPRESSED_SRGB_ALPHA_S3TC_DXT5_EXT },
-                                          { GL_SRGB,       GL_COMPRESSED_SRGB_ALPHA_S3TC_DXT5_EXT },
-                                          { GL_RGBA,       GL_COMPRESSED_RGBA_S3TC_DXT5_EXT },
-                                          { GL_RGB,        GL_COMPRESSED_RGBA_S3TC_DXT5_EXT },
-                                          { GL_RG,         GL_COMPRESSED_RGBA_S3TC_DXT5_EXT },
-                                          { GL_RED,        GL_COMPRESSED_RGBA_S3TC_DXT5_EXT } } },
-    { GL_RGBA,                          { { GL_SRGB_ALPHA, GL_SRGB8_ALPHA8 },
-                                          { GL_SRGB,       GL_SRGB8 },
-                                          { GL_RGBA,       GL_RGBA8 },
-                                          { GL_RGB,        GL_RGB8 },
-                                          { GL_RG,         GL_RG8 },
-                                          { GL_RED,        GL_R8 } } },
-    { GL_RGB,                           { { GL_SRGB_ALPHA, GL_SRGB8 }, // bad
-                                          { GL_SRGB,       GL_SRGB8 },
-                                          { GL_RGBA,       GL_RGB8 }, // bad
-                                          { GL_RGB,        GL_RGB8 },
-                                          { GL_RG,         GL_RG8 },
-                                          { GL_RED,        GL_R8 } } },
-    { GL_RG,                            { { GL_SRGB_ALPHA, GL_SRGB8 }, // bad
-                                          { GL_SRGB,       GL_SRGB8 }, // bad
-                                          { GL_RGBA,       GL_RG8 }, // bad
-                                          { GL_RGB,        GL_RG8 }, // bad
-                                          { GL_RG,         GL_RG8 },
-                                          { GL_RED,        GL_R8 } } },
-    { GL_RED,                           { { GL_SRGB_ALPHA, GL_SRGB8 }, // bad
-                                          { GL_SRGB,       GL_SRGB8 }, // bad
-                                          { GL_RGBA,       GL_R8 }, // bad
-                                          { GL_RGB,        GL_R8 },  // bad
-                                          { GL_RG,         GL_R8 }, // bad
-                                          { GL_RED,        GL_R8 } } },
-};
-
-void opengl_texture::set_components_hint(GLint hint)
-{
-    components_hint = hint;
+    units[unit] = 0;
 }
 
 bool
-opengl_texture::create() {
+opengl_texture::create( bool const Static ) {
 
     if( data_state != resource_state::good && !is_rendertarget ) {
         // don't bother until we have useful texture data
@@ -875,30 +872,39 @@ opengl_texture::create() {
             dataheight = data_height;
         if (is_rendertarget)
         {
-            glTexParameteri(target, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-            glTexParameteri(target, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-			glTexParameteri(target, GL_TEXTURE_WRAP_S, wrap_mode_s);
-			glTexParameteri(target, GL_TEXTURE_WRAP_T, wrap_mode_t);
-			if (data_components == GL_DEPTH_COMPONENT)
+            if (data_components == GL_DEPTH_COMPONENT)
             {
 				glTexParameteri(target, GL_TEXTURE_COMPARE_MODE, GL_COMPARE_REF_TO_TEXTURE);
+                wrap_mode_s = GL_CLAMP_TO_BORDER;
+                wrap_mode_t = GL_CLAMP_TO_BORDER;
                 float borderColor[] = { 0.0f, 0.0f, 0.0f, 0.0f };
-				glTexParameterfv(target, GL_TEXTURE_BORDER_COLOR, borderColor);
+                glTexParameterfv(target, GL_TEXTURE_BORDER_COLOR, borderColor);
 			}
+            glTexParameteri( target, GL_TEXTURE_MAG_FILTER, GL_LINEAR );
+            glTexParameteri( target, GL_TEXTURE_MIN_FILTER, GL_LINEAR );
+            glTexParameteri( target, GL_TEXTURE_WRAP_S, wrap_mode_s );
+            glTexParameteri( target, GL_TEXTURE_WRAP_T, wrap_mode_t );
 
             if (Global.gfx_usegles)
             {
-                if (target == GL_TEXTURE_2D || !glTexStorage2DMultisample)
+                if( target == GL_TEXTURE_2D )
                     glTexStorage2D(target, count_trailing_zeros(std::max(data_width, data_height)) + 1, data_format, data_width, data_height);
-                else if (target == GL_TEXTURE_2D_MULTISAMPLE)
-                    glTexStorage2DMultisample(target, samples, data_format, data_width, data_height, GL_FALSE);
+                else if( target == GL_TEXTURE_2D_MULTISAMPLE )
+                    glTexStorage2DMultisample( target, samples, data_format, data_width, data_height, GL_FALSE );
+                else if( target == GL_TEXTURE_2D_ARRAY )
+                    glTexStorage3D( target, count_trailing_zeros( std::max( data_width, data_height ) ) + 1, data_format, data_width, data_height, layers );
+                else if( target == GL_TEXTURE_2D_MULTISAMPLE_ARRAY )
+                    glTexStorage3DMultisample( target, samples, data_format, data_width, data_height, layers, GL_FALSE );
             }
-            else
-            {
-                if (target == GL_TEXTURE_2D)
-                    glTexImage2D(target, 0, data_format, data_width, data_height, 0, data_components, GL_UNSIGNED_SHORT, nullptr);
-                else if (target == GL_TEXTURE_2D_MULTISAMPLE)
-                    glTexImage2DMultisample(target, samples, data_format, data_width, data_height, GL_FALSE);
+            else {
+                if( target == GL_TEXTURE_2D )
+                    glTexImage2D( target, 0, data_format, data_width, data_height, 0, data_components, GL_UNSIGNED_SHORT, nullptr );
+                else if( target == GL_TEXTURE_2D_MULTISAMPLE )
+                    glTexImage2DMultisample( target, samples, data_format, data_width, data_height, GL_FALSE );
+                else if( target == GL_TEXTURE_2D_ARRAY )
+                    glTexImage3D( target, 0, data_format, data_width, data_height, layers, 0, data_components, GL_UNSIGNED_SHORT, nullptr );
+                else if( target == GL_TEXTURE_2D_MULTISAMPLE_ARRAY )
+                    glTexImage3DMultisample( target, samples, data_format, data_width, data_height, layers, GL_FALSE );
             }
         }
         else
@@ -982,6 +988,8 @@ opengl_texture::create() {
             make_request();
         }
 
+        is_static = Static;
+
         is_ready = true;
     }
 
@@ -993,6 +1001,7 @@ void
 opengl_texture::release() {
 
     if( id == -1 ) { return; }
+    if( is_static ) { return; }
 
     if( true == Global.ResourceMove && !is_rendertarget ) {
         // if resource move is enabled we don't keep a cpu side copy after upload
@@ -1038,40 +1047,84 @@ opengl_texture::release() {
     return;
 }
 
-void opengl_texture::alloc_rendertarget(GLint format, GLint components, int width, int height, int s, GLint wrap)
-{
+void
+opengl_texture::alloc_rendertarget( GLint format, GLint components, int width, int height, int l, int s, GLint wrap ) {
+
     data_width = width;
     data_height = height;
     data_format = format;
     data_components = components;
     data_mapcount = 1;
     is_rendertarget = true;
-	wrap_mode_s = wrap;
-	wrap_mode_t = wrap;
-	samples = s;
-	if (samples > 1)
-		target = GL_TEXTURE_2D_MULTISAMPLE;
+    wrap_mode_s = wrap;
+    wrap_mode_t = wrap;
+    samples = s;
+    if( Global.gfx_usegles && !glTexStorage2DMultisample ) {
+        samples = 1;
+    }
+    layers = l;
+    if( layers > 1 ) {
+        target = (
+            samples > 1 ?
+                GL_TEXTURE_2D_MULTISAMPLE_ARRAY :
+                GL_TEXTURE_2D_ARRAY );
+    }
+    else {
+        target = (
+            samples > 1 ?
+                GL_TEXTURE_2D_MULTISAMPLE :
+                GL_TEXTURE_2D );
+    }
     create();
+}
+
+void
+opengl_texture::set_components_hint( GLint hint ) {
+
+    components_hint = hint;
+}
+
+void
+opengl_texture::reset_unit_cache() {
+
+    for( auto &unit : units ) {
+        unit = 0;
+    }
+    m_activeunit = -1;
 }
 
 void
 opengl_texture::set_filtering() const
 {
     // default texture mode
-    ::glTexParameteri(target, GL_TEXTURE_MAG_FILTER, GL_LINEAR );
-    ::glTexParameteri(target, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR );
-    if (GLAD_GL_ARB_texture_filter_anisotropic)
-        ::glTexParameterf(target, GL_TEXTURE_MAX_ANISOTROPY, Global.AnisotropicFiltering );
-    else if (GLAD_GL_EXT_texture_filter_anisotropic)
-        ::glTexParameterf(target, GL_TEXTURE_MAX_ANISOTROPY_EXT, Global.AnisotropicFiltering );
+    ::glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR );
+    ::glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR );
 
-    bool sharpen{ false };
-    for( auto const &trait : traits ) {
+    if( ( Global.AnisotropicFiltering >= 0 )
+     && ( GLAD_GL_EXT_texture_filter_anisotropic ||  GLAD_GL_ARB_texture_filter_anisotropic) ) {
+        // anisotropic filtering
+        ::glTexParameterf( GL_TEXTURE_2D, GL_TEXTURE_MAX_ANISOTROPY_EXT, Global.AnisotropicFiltering );
+    }
 
-        switch( trait ) {
+    if( Global.LegacyRenderer ) {
 
-            case '#': { sharpen = true; break; }
-            default:  {                 break; }
+        bool sharpen{ false };
+        for( auto const &trait : traits ) {
+
+            switch( trait ) {
+
+                case '#': { sharpen = true; break; }
+                default:  {                 break; }
+            }
+        }
+
+        if( true == sharpen ) {
+            // #: sharpen more
+            ::glTexEnvf( GL_TEXTURE_FILTER_CONTROL, GL_TEXTURE_LOD_BIAS, -2.0f );
+        }
+        else {
+            // regular texture sharpening
+            ::glTexEnvf( GL_TEXTURE_FILTER_CONTROL, GL_TEXTURE_LOD_BIAS, -1.0f );
         }
     }
 }
@@ -1079,7 +1132,7 @@ opengl_texture::set_filtering() const
 void
 opengl_texture::downsize( GLuint const Format ) {
 
-    while( ( data_width > Global.iMaxTextureSize ) || ( data_height > Global.iMaxTextureSize ) ) {
+    while( ( data_width > Global.CurrentMaxTextureSize ) || ( data_height > Global.CurrentMaxTextureSize ) ) {
         // scale down the base texture, if it's larger than allowed maximum
         // NOTE: scaling is uniform along both axes, meaning non-square textures can drop below the maximum
         // TODO: replace with proper scaling function once we have image middleware in place
@@ -1120,9 +1173,18 @@ opengl_texture::flip_vertical() {
     }
 }
 
+void
+texture_manager::unit( GLint const Textureunit ) {
+
+    if( opengl_texture::m_activeunit == Textureunit ) { return; }
+
+    opengl_texture::m_activeunit = Textureunit;
+    ::glActiveTexture( GL_TEXTURE0 + Textureunit );
+}
+
 // ustalenie numeru tekstury, wczytanie jeśli jeszcze takiej nie było
 texture_handle
-texture_manager::create(std::string Filename, bool const Loadnow , GLint fh) {
+texture_manager::create( std::string Filename, bool const Loadnow, GLint Formathint ) {
 
     if( Filename.find( '|' ) != std::string::npos )
         Filename.erase( Filename.find( '|' ) ); // po | może być nazwa kolejnej tekstury
@@ -1163,7 +1225,7 @@ texture_manager::create(std::string Filename, bool const Loadnow , GLint fh) {
         // clean up slashes
         erase_leading_slashes( Filename );
         // temporary code for legacy assets -- textures with names beginning with # are to be sharpened
-        if( ( Filename[ 0 ] == '#' )
+        if( ( Filename.front() == '#' )
          || ( Filename.find( "/#" ) != std::string::npos ) ) {
             traits += '#';
         }
@@ -1198,7 +1260,7 @@ texture_manager::create(std::string Filename, bool const Loadnow , GLint fh) {
     texture->name = locator.first;
     texture->type = locator.second;
     texture->traits = traits;
-    texture->components_hint = fh;
+    texture->components_hint = Formathint;
     auto const textureindex = (texture_handle)m_textures.size();
     m_textures.emplace_back( texture, std::chrono::steady_clock::time_point() );
     m_texturemappings.emplace( locator.first, textureindex );
@@ -1221,14 +1283,17 @@ texture_manager::create(std::string Filename, bool const Loadnow , GLint fh) {
 void
 texture_manager::bind( std::size_t const Unit, texture_handle const Texture ) {
 
+    if( Unit == -1 ) { return; } // no texture unit, nothing to bind the texture to
+
     if (Texture != null_handle)
         mark_as_used(Texture).bind(Unit);
     else
         opengl_texture::unbind(Unit);
 }
 
-opengl_texture &texture_manager::mark_as_used(const texture_handle Texture)
-{
+opengl_texture &
+texture_manager::mark_as_used(const texture_handle Texture) {
+
     auto &pair = m_textures[ Texture ];
     pair.second = m_garbagecollector.timestamp();
     return *pair.first;
@@ -1251,7 +1316,9 @@ void
 texture_manager::update() {
 
     if( m_garbagecollector.sweep() > 0 ) {
-        opengl_texture::reset_unit_cache();
+        for( auto &unit : opengl_texture::units ) {
+            unit = -1;
+        }
     }
 }
 
@@ -1281,7 +1348,7 @@ texture_manager::info() const {
     }
 
     return
-        "; textures: "
+        "textures: "
 #ifdef EU07_DEFERRED_TEXTURE_UPLOAD
         + std::to_string( readytexturecount )
         + " ("

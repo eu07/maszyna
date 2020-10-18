@@ -15,6 +15,17 @@ ui::map_panel::map_panel() : ui_panel(STR_C("Map"), false)
 	size_max = {fb_size, fb_size};
 	window_flags = ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse;
 
+#ifdef WITH_OPENGL_MODERN
+    opengl33_renderer *gl33 = dynamic_cast<opengl33_renderer*>(GfxRenderer.get());
+    if (!gl33) {
+        ErrorLog("map not supported on old renderer");
+        return;
+    }
+#else
+    ErrorLog("map not supported on old renderer");
+    return;
+#endif
+
 	gl::shader vert("map.vert");
 	gl::shader frag("map.frag");
 
@@ -23,11 +34,11 @@ ui::map_panel::map_panel() : ui_panel(STR_C("Map"), false)
 		gl::shader poi_frag("map_poi.frag");
 		gl::shader poi_geom("map_poi.geom");
 		m_poi_shader = std::unique_ptr<gl::program>(new gl::program({vert, poi_frag, poi_geom}));
-		m_icon_atlas = GfxRenderer.Fetch_Texture("map_icons");
+        m_icon_atlas = GfxRenderer->Fetch_Texture("map_icons");
 	}
 
 	m_tex = std::make_unique<opengl_texture>();
-	m_tex->alloc_rendertarget(GL_RGB8, GL_RGB, fb_size, fb_size);
+    m_tex->alloc_rendertarget(GL_RGB8, GL_RGB, fb_size, fb_size);
 
 	m_fb = std::make_unique<gl::framebuffer>();
 	m_fb->attach(*m_tex, GL_COLOR_ATTACHMENT0);
@@ -118,30 +129,33 @@ void ui::map_panel::render_map_texture(glm::mat4 transform, glm::vec2 surface_si
 	glViewport(0, 0, surface_size.x, surface_size.y);
 
 	scene_ubs.projection = transform;
-	scene_ubs.scene_extra = glm::vec3(0.5f);
+    scene_ubs.cascade_end = glm::vec4(0.5f, 0.5f, 0.5f, 0.0f);
 	scene_ubo->update(scene_ubs);
 	scene_ubo->bind_uniform();
 
-	GfxRenderer.Draw_Geometry(m_section_handles.begin(), m_section_handles.end());
+#ifdef WITH_OPENGL_MODERN
+    opengl33_renderer *gl33 = dynamic_cast<opengl33_renderer*>(GfxRenderer.get());
 
-	scene_ubs.scene_extra = glm::vec3(0.7f, 0.7f, 0.0f);
+    gl33->Draw_Geometry(m_section_handles.begin(), m_section_handles.end());
+
+    scene_ubs.cascade_end = glm::vec4(0.7f, 0.7f, 0.0f, 0.0f);
 	scene_ubo->update(scene_ubs);
-	GfxRenderer.Draw_Geometry(m_colored_paths.future.begin(), m_colored_paths.future.end());
+    gl33->Draw_Geometry(m_colored_paths.future.begin(), m_colored_paths.future.end());
 
 	glLineWidth(3.0f);
-	scene_ubs.scene_extra = glm::vec3(0.0f, 1.0f, 0.0f);
+    scene_ubs.cascade_end = glm::vec4(0.0f, 1.0f, 0.0f, 0.0f);
 	scene_ubo->update(scene_ubs);
-	GfxRenderer.Draw_Geometry(m_colored_paths.switches.begin(), m_colored_paths.switches.end());
+    gl33->Draw_Geometry(m_colored_paths.switches.begin(), m_colored_paths.switches.end());
 
 	glLineWidth(1.5f);
-	scene_ubs.scene_extra = glm::vec3(1.0f, 0.0f, 0.0f);
+    scene_ubs.cascade_end = glm::vec4(1.0f, 0.0f, 0.0f, 0.0f);
 	scene_ubo->update(scene_ubs);
-	GfxRenderer.Draw_Geometry(m_colored_paths.occupied.begin(), m_colored_paths.occupied.end());
+    gl33->Draw_Geometry(m_colored_paths.occupied.begin(), m_colored_paths.occupied.end());
 
 	if (!Global.gfx_usegles || GLAD_GL_EXT_geometry_shader) {
-		GfxRenderer.Bind_Texture(0, m_icon_atlas);
+        gl33->Bind_Texture(0, m_icon_atlas);
 		m_poi_shader->bind();
-		scene_ubs.scene_extra = glm::vec3(1.0f / (surface_size / 200.0f), 1.0f);
+        scene_ubs.cascade_end = glm::vec4(1.0f / (surface_size / 200.0f), 1.0f, 0.0f);
 	}
 
 	if (map::Objects.poi_dirty) {
@@ -150,7 +164,8 @@ void ui::map_panel::render_map_texture(glm::mat4 transform, glm::vec2 surface_si
 	}
 
 	scene_ubo->update(scene_ubs);
-	GfxRenderer.Draw_Geometry(simulation::Region->get_map_poi_geometry());
+    gl33->Draw_Geometry(simulation::Region->get_map_poi_geometry());
+#endif
 
 	if (Global.iMultisampling)
 		m_fb->blit_from(m_msaa_fb.get(), surface_size.x, surface_size.y, GL_COLOR_BUFFER_BIT, GL_COLOR_ATTACHMENT0);
@@ -184,16 +199,14 @@ void ui::map_panel::render_labels(glm::mat4 transform, ImVec2 origin, glm::vec2 
 		ImGui::TextUnformatted(label.c_str());
 	}
 	ImGui::PopStyleColor();
-
-	if (zoom > 0.005f)
-	{
-	}
 }
 
 void ui::map_panel::render_contents()
 {
-	if (!init_done)
-		return;
+    if (!init_done) {
+        is_open = false;
+        return;
+    }
 
 	{
 		float prev_zoom = zoom;
@@ -213,11 +226,11 @@ void ui::map_panel::render_contents()
 	glm::mat4 transform;
 	transform[0][0] = -1.0f;
 
-	ImGui::RadioButton("Pan", (int *)&mode, 0);
+    ImGui::RadioButton(STR_C("Pan"), (int *)&mode, 0);
 	ImGui::SameLine();
-	ImGui::RadioButton("Follow camera", (int *)&mode, 1);
+    ImGui::RadioButton(STR_C("Follow camera"), (int *)&mode, 1);
 	ImGui::SameLine();
-	ImGui::RadioButton("Follow vehicle", (int *)&mode, 2);
+    ImGui::RadioButton(STR_C("Follow vehicle"), (int *)&mode, 2);
 
 	ImVec2 surface_size_im = ImGui::GetContentRegionAvail();
 	glm::vec2 surface_size(surface_size_im.x, surface_size_im.y);
@@ -359,7 +372,9 @@ void ui::handle_map_object_hover(std::shared_ptr<map::map_object> &obj)
 
 			for (int i = 0; i < iMaxNumLights; i++)
 			{
-				GfxRenderer.Update_AnimModel(model); // update lamp opacities
+#ifdef WITH_OPENGL_MODERN
+                dynamic_cast<opengl33_renderer*>(GfxRenderer.get())->Update_AnimModel(model); // update lamp opacities
+#endif
 				auto state = model->LightGet(i);
 				if (!state)
 					continue;
@@ -413,7 +428,9 @@ void ui::semaphore_window::render_content()
 
 		for (int i = 0; i < iMaxNumLights; i++)
 		{
-			GfxRenderer.Update_AnimModel(model); // update lamp opacities
+#ifdef WITH_OPENGL_MODERN
+            dynamic_cast<opengl33_renderer*>(GfxRenderer.get())->Update_AnimModel(model); // update lamp opacities
+#endif
 			auto state = model->LightGet(i);
 			if (!state)
 				continue;
@@ -535,7 +552,7 @@ void ui::obstacle_insert_window::render_content()
 
 			std::vector<gfx::basic_vertex> vertices;
 			vertices.emplace_back(std::move(obstacle->vertex()));
-			GfxRenderer.Append(vertices, simulation::Region->get_map_poi_geometry(), GL_POINTS);
+            GfxRenderer->Append(vertices, simulation::Region->get_map_poi_geometry(), GL_POINTS);
 
 			map::Objects.entries.push_back(std::move(obstacle));
 

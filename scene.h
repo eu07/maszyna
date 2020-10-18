@@ -16,7 +16,7 @@ http://mozilla.org/MPL/2.0/.
 #include <unordered_set>
 
 #include "parser.h"
-#include "opengl33geometrybank.h"
+#include "geometrybank.h"
 #include "scenenode.h"
 #include "Track.h"
 #include "Traction.h"
@@ -24,6 +24,8 @@ http://mozilla.org/MPL/2.0/.
 #include "command.h"
 
 class opengl_renderer;
+class opengl33_renderer;
+
 namespace scene {
 
 int const EU07_CELLSIZE = 250;
@@ -65,7 +67,8 @@ struct scratch_data {
 // TBD, TODO: replace with quadtree scheme?
 class basic_cell {
 
-	friend opengl_renderer;
+    friend opengl_renderer;
+    friend opengl33_renderer;
 
 public:
 // constructors
@@ -176,7 +179,7 @@ private:
     using memorycell_sequence = std::vector<TMemCell *>;
 // methods
     void
-	    launch_event(TEventLauncher *Launcher , bool local_only);
+	    launch_event(TEventLauncher *Launcher, bool local_only);
     void
         enclose_area( scene::basic_node *Node );
 // members
@@ -207,7 +210,8 @@ private:
 // basic scene partitioning structure, holds terrain geometry and collection of cells
 class basic_section {
 
-	friend opengl_renderer;
+    friend opengl_renderer;
+    friend opengl33_renderer;
 
 public:
 // constructors
@@ -322,7 +326,8 @@ private:
 // top-level of scene spatial structure, holds collection of sections
 class basic_region {
 
-	friend opengl_renderer;
+    friend opengl_renderer;
+    friend opengl33_renderer;
 
 public:
 // constructors

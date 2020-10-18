@@ -106,6 +106,9 @@ enum class user_command {
     motoroverloadrelaythresholdsetlow,
     motoroverloadrelaythresholdsethigh,
     motoroverloadrelayreset,
+    universalrelayreset1,
+    universalrelayreset2,
+    universalrelayreset3,
     notchingrelaytoggle,
     epbrakecontroltoggle,
 	trainbrakeoperationmodeincrease,
@@ -129,6 +132,8 @@ enum class user_command {
     radiostopsend,
     radiostoptest,
     radiocall3send,
+	radiovolumeincrease,
+	radiovolumedecrease,
     cabchangeforward,
     cabchangebackward,
 
@@ -144,8 +149,11 @@ enum class user_command {
     moveup,
     movedown,
 
-    carcouplingincrease,
-    carcouplingdisconnect,
+    nearestcarcouplingincrease,
+    nearestcarcouplingdisconnect,
+    nearestcarcoupleradapterattach,
+    nearestcarcoupleradapterremove,
+    occupiedcarcouplingdisconnect,
     doortoggleleft,
     doortoggleright,
     doorpermitleft,
@@ -163,6 +171,8 @@ enum class user_command {
     departureannounce,
     doorlocktoggle,
     pantographcompressorvalvetoggle,
+    pantographcompressorvalveenable,
+    pantographcompressorvalvedisable,
     pantographcompressoractivate,
     pantographtogglefront,
     pantographtogglerear,
@@ -171,6 +181,11 @@ enum class user_command {
     pantographlowerfront,
     pantographlowerrear,
     pantographlowerall,
+    pantographselectnext,
+    pantographselectprevious,
+    pantographtoggleselected,
+    pantographraiseselected,
+    pantographlowerselected,
     heatingtoggle,
     heatingenable,
     heatingdisable,
@@ -210,6 +225,9 @@ enum class user_command {
     interiorlightdimtoggle,
     interiorlightdimenable,
     interiorlightdimdisable,
+    compartmentlightstoggle,
+    compartmentlightsenable,
+    compartmentlightsdisable,
     instrumentlighttoggle,
     instrumentlightenable,
     instrumentlightdisable,
@@ -240,40 +258,57 @@ enum class user_command {
 	springbrakeshutoffenable,
 	springbrakeshutoffdisable,
 	springbrakerelease,
-	radiostop,
-	timejump,
-	timejumplarge,
-	timejumpsmall,
-	setdatetime,
-	setweather,
-	settemperature,
-	vehiclemoveforwards,
-	vehiclemovebackwards,
-	vehicleboost,
-	debugtoggle,
-	focuspauseset,
-	pausetoggle,
-	entervehicle,
-	resetconsist,
-	fillcompressor,
-	consistreleaser,
-	queueevent,
-	setlight,
-	insertmodel,
-	deletemodel,
-	dynamicmove,
-	consistteleport,
-	pullalarmchain,
-	sendaicommand,
-	spawntrainset,
-	destroytrainset,
+    distancecounteractivate,
+	speedcontrolincrease,
+	speedcontroldecrease,
+	speedcontrolpowerincrease,
+	speedcontrolpowerdecrease,
+	speedcontrolbutton0,
+	speedcontrolbutton1,
+	speedcontrolbutton2,
+	speedcontrolbutton3,
+	speedcontrolbutton4,
+	speedcontrolbutton5,
+	speedcontrolbutton6,
+	speedcontrolbutton7,
+	speedcontrolbutton8,
+	speedcontrolbutton9,
 
-	quitsimulation,
+    globalradiostop,
+    timejump,
+    timejumplarge,
+    timejumpsmall,
+    setdatetime,
+    setweather,
+    settemperature,
+    vehiclemoveforwards,
+    vehiclemovebackwards,
+    vehicleboost,
+    debugtoggle,
+    focuspauseset,
+    pausetoggle,
+    entervehicle,
+    resetconsist,
+    fillcompressor,
+    consistreleaser,
+    queueevent,
+    setlight,
+    insertmodel,
+    deletemodel,
+    dynamicmove,
+    consistteleport,
+    pullalarmchain,
+    sendaicommand,
+    spawntrainset,
+    destroytrainset,
+    quitsimulation,
 
     none = -1
 };
 
 enum class command_target {
+
+    userinterface,
 /*
     // NOTE: there's no need for consist- and unit-specific commands at this point, but it's a possibility.
     // since command targets are mutually exclusive these don't reduce ranges for individual vehicles etc
@@ -283,9 +318,8 @@ enum class command_target {
     // values are combined with object id. 0xffff objects of each type should be quite enough ("for everyone")
     vehicle = 0x10000,
     signal  = 0x20000,
-	entity  = 0x40000,
-
-	simulation = 0x80000,
+    entity  = 0x40000,
+    simulation = 0x80000
 };
 
 enum class command_mode {
@@ -310,7 +344,7 @@ struct command_data {
 	bool freefly;
 	glm::vec3 location;
 
-	std::string payload;
+    std::string payload;
 };
 
 // command_queues: collects and holds commands from input sources, for processing by their intended recipients
@@ -323,19 +357,17 @@ public:
 // types
 	typedef std::deque<command_data> commanddata_sequence;
 	typedef std::unordered_map<uint32_t, commanddata_sequence> commands_map;
-
 // methods
 	// posts specified command for specified recipient into m_intercept_queue
 	void
 	    push( command_data const &Command, uint32_t const Recipient );
     // retrieves oldest posted command for specified recipient, if any. returns: true on retrieval, false if there's nothing to retrieve
     bool
-	    pop( command_data &Command, uint32_t const Recipient );
-	// generates active continuous commands
-	void
-	    update();
-
-	// checks if given command must be scheduled on server
+        pop( command_data &Command, uint32_t const Recipient );
+    // generates active continuous commands
+    void
+        update();
+    // checks if given command must be scheduled on server
 	bool
 	    is_network_target(const uint32_t Recipient);
 
@@ -397,6 +429,9 @@ public:
     void
 	    post(user_command const Command, double const Param1, double const Param2,
 	        int const Action, uint16_t Recipient, glm::vec3 Position = glm::vec3(0.0f) , const std::string *Payload = nullptr) const;
+private:
+// types
+// members
 };
 
 //---------------------------------------------------------------------------

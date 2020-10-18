@@ -8,7 +8,7 @@
 ui::vehicleparams_panel::vehicleparams_panel(const std::string &vehicle)
     : ui_panel(std::string(STR("Vehicle parameters")) + ": " + vehicle, false), m_vehicle_name(vehicle)
 {
-	vehicle_mini = GfxRenderer.Fetch_Texture("vehicle_mini");
+    vehicle_mini = GfxRenderer->Fetch_Texture("vehicle_mini");
 }
 
 void screen_window_callback(ImGuiSizeCallbackData *data) {
@@ -52,7 +52,7 @@ void ui::vehicleparams_panel::draw_mini(const TMoverParameters &mover)
 	if (vehicle_mini == null_handle)
 		return;
 
-	opengl_texture &tex = GfxRenderer.Texture(vehicle_mini);
+    opengl_texture &tex = GfxRenderer->Texture(vehicle_mini);
 	tex.create();
 
 	ImVec2 size = ImGui::GetContentRegionAvail();
@@ -63,9 +63,9 @@ void ui::vehicleparams_panel::draw_mini(const TMoverParameters &mover)
 	{
 		ImGui::Image(reinterpret_cast<void*>(tex.id), ImVec2(x, y), ImVec2(0, 1), ImVec2(1, 0));
 
-		if (mover.PantRearUp)
+        if (mover.Pantographs[end::rear].is_active)
 			draw_infobutton(u8"╨╨╨", ImVec2(126, 10));
-		if (mover.PantFrontUp)
+        if (mover.Pantographs[end::front].is_active)
 			draw_infobutton(u8"╨╨╨", ImVec2(290, 10));
 
 		if (mover.Battery)
@@ -149,8 +149,8 @@ void ui::vehicleparams_panel::render_contents()
 	    ( mover.Battery ? 'B' : '.' ),
 	    ( mover.Mains ? 'M' : '.' ),
 	    ( mover.FuseFlag ? '!' : '.' ),
-	    ( mover.PantRearUp ? ( mover.PantRearVolt > 0.0 ? 'O' : 'o' ) : '.' ),
-	    ( mover.PantFrontUp ? ( mover.PantFrontVolt > 0.0 ? 'P' : 'p' ) : '.' ),
+        ( mover.Pantographs[end::rear].is_active ? ( mover.PantRearVolt > 0.0 ? 'O' : 'o' ) : '.' ),
+        ( mover.Pantographs[end::front].is_active ? ( mover.PantFrontVolt > 0.0 ? 'P' : 'p' ) : '.' ),
 	    ( mover.PantPressLockActive ? '!' : ( mover.PantPressSwitchActive ? '*' : '.' ) ),
 	    ( mover.WaterPump.is_active ? 'W' : ( false == mover.WaterPump.breaker ? '-' : ( mover.WaterPump.is_enabled ? 'w' : '.' ) ) ),
 	    ( true == mover.WaterHeater.is_damaged ? '!' : ( mover.WaterHeater.is_active ? 'H' : ( false == mover.WaterHeater.breaker ? '-' : ( mover.WaterHeater.is_enabled ? 'h' : '.' ) ) ) ),
@@ -259,7 +259,7 @@ void ui::vehicleparams_panel::render_contents()
 	    buffer.data(), buffer.size(),
 	    STR_C("Forces:\n tractive: %.1f, brake: %.1f, friction: %.2f%s\nAcceleration:\n tangential: %.2f, normal: %.2f (path radius: %s)\nVelocity: %.2f, distance traveled: %.2f\nPosition: [%.2f, %.2f, %.2f]"),
 	    // forces
-	    mover.Ft * 0.001f * ( mover.ActiveCab ? mover.ActiveCab : vehicle.ctOwner ? vehicle.ctOwner->Controlling()->ActiveCab : 1 ) + 0.001f,
+        mover.Ft * 0.001f * ( mover.CabActive ? mover.CabActive : vehicle.ctOwner ? vehicle.ctOwner->Controlling()->CabActive : 1 ) + 0.001f,
 	    mover.Fb * 0.001f,
 	    mover.Adhesive( mover.RunningTrack.friction ),
 	    ( mover.SlippingWheels ? " (!)" : "" ),
@@ -280,7 +280,7 @@ void ui::vehicleparams_panel::render_contents()
 	draw_mini(mover);
 
 	if (ImGui::Button(STR_C("Radiostop")))
-		m_relay.post(user_command::radiostop, 0.0, 0.0, GLFW_PRESS, 0, vehicle_ptr->GetPosition());
+        m_relay.post(user_command::radiostopsend, 0.0, 0.0, GLFW_PRESS, 0, vehicle_ptr->GetPosition());
 	ImGui::SameLine();
 
 	if (ImGui::Button(STR_C("Stop and repair")))

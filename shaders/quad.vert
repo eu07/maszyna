@@ -21,4 +21,3 @@ void main()
     gl_Position = vec4(vert[gl_VertexID], 0.0, 1.0); 
     f_coords = uv[gl_VertexID];
 }  
-

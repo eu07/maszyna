@@ -79,7 +79,6 @@ public:
 			}
 		}
 	}
-
     // locates item with specified name. returns pointer to the item, or nullptr
     Type_ *
         find( std::string const &Name ) const {

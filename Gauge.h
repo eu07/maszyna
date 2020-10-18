@@ -21,10 +21,13 @@ enum class TGaugeAnimation {
     gt_Digital // licznik cyfrowy, np. kilometrów
 };
 
-enum class TGaugeType {
-    toggle,
-    push,
-    push_delayed
+enum class TGaugeType : int {
+    toggle = 1 << 0,
+    push = 1 << 1,
+    delayed = 1 << 2,
+    pushtoggle = ( toggle | push ),
+    push_delayed = ( push | delayed ),
+    pushtoggle_delayed = ( toggle | push | delayed )
 };
 
 // animowany wskaźnik, mogący przyjmować wiele stanów pośrednich
@@ -38,24 +41,26 @@ public:
     inline
     void Clear() {
         *this = TGauge(); }
-    void Init(TSubModel *Submodel, TGaugeAnimation Type, float Scale = 1, float Offset = 0, float Friction = 0, float Value = 0, float const Endvalue = -1.0, float const Endscale = -1.0, bool const Interpolate = false );
+    void Init(TSubModel *Submodel, TSubModel *Submodelon, TGaugeAnimation Type, float Scale = 1, float Offset = 0, float Friction = 0, float Value = 0, float const Endvalue = -1.0, float const Endscale = -1.0, bool const Interpolate = false );
     void Load(cParser &Parser, TDynamicObject const *Owner, double const mul = 1.0);
     void UpdateValue( float fNewDesired );
     void UpdateValue( float fNewDesired, sound_source &Fallbacksound );
     void PutValue(float fNewDesired);
     float GetValue() const;
     float GetDesiredValue() const;
-    void Update();
+    void Update( bool const Power = true );
     void AssignFloat(float *fValue);
     void AssignDouble(double *dValue);
     void AssignInt(int *iValue);
     void AssignBool(bool *bValue);
     void UpdateValue();
+    void AssignState( bool const *State );
     // returns offset of submodel associated with the button from the model centre
     glm::vec3 model_offset() const;
     TGaugeType type() const;
 // members
-    TSubModel *SubModel { nullptr }; // McZapkie-310302: zeby mozna bylo sprawdzac czy zainicjowany poprawnie
+    TSubModel *SubModel { nullptr }, // McZapkie-310302: zeby mozna bylo sprawdzac czy zainicjowany poprawnie
+              *SubModelOn { nullptr }; // optional submodel visible when the state input is set
 
 private:
 // methods
@@ -66,6 +71,8 @@ private:
         UpdateValue( float fNewDesired, sound_source *Fallbacksound );
     float
         GetScaledValue() const;
+    void
+        UpdateAnimation( TSubModel *Submodel );
 
 // members
     TGaugeAnimation m_animation { TGaugeAnimation::gt_Unknown }; // typ ruchu
@@ -86,8 +93,12 @@ private:
         int *iData;
         bool *bData;
     };
+    bool m_state { false }; // visibility of the control's submodel(s); false : default, true: active
+    bool const *m_stateinput { nullptr }; // bound variable determining visibility of the control's submodel(s)
     int m_soundtype { 0 }; // toggle between exclusive and multiple sound generation
     sound_source m_soundtemplate { sound_placement::internal, EU07_SOUND_CABCONTROLSCUTOFFRANGE }; // shared properties for control's sounds
+    sound_source m_soundfxon { m_soundtemplate }; // sound associated with switching the control to active state
+    sound_source m_soundfxoff { m_soundtemplate }; // sound associated with switching the control to default state
     sound_source m_soundfxincrease { m_soundtemplate }; // sound associated with increasing control's value
     sound_source m_soundfxdecrease { m_soundtemplate }; // sound associated with decreasing control's value
     std::map<int, sound_source> m_soundfxvalues; // sounds associated with specific values

@@ -19,7 +19,7 @@ http://mozilla.org/MPL/2.0/.
 #include "Timer.h"
 #include "Logs.h"
 #include "sn_utils.h"
-#include "opengl33renderer.h"
+#include "renderer.h"
 #include "widgets/map_objects.h"
 
 namespace scene {
@@ -36,7 +36,7 @@ basic_cell::on_click( TAnimModel const *Instance ) {
         if( ( launcher->name() == Instance->name() )
          && ( glm::length2( launcher->location() - Instance->location() ) < launcher->dRadius )
          && ( true == launcher->check_conditions() ) ) {
-			launch_event( launcher, true );
+            launch_event( launcher, true );
         }
     }
 }
@@ -124,14 +124,14 @@ basic_cell::update_events() {
 
     // event launchers
     for( auto *launcher : m_eventlaunchers ) {
-		if (launcher->check_conditions()
-		    && (launcher->dRadius < 0.0
-		        || SquareMagnitude( launcher->location() - Global.pCamera.Pos ) < launcher->dRadius)) {
-			if (launcher->check_activation())
-				launch_event(launcher, true);
-			if (launcher->check_activation_key())
-				launch_event(launcher, true);
-		}
+        if( launcher->check_conditions()
+            && ( launcher->dRadius < 0.0
+                || SquareMagnitude( launcher->location() - Global.pCamera.Pos ) < launcher->dRadius ) ) {
+            if( launcher->check_activation() )
+                launch_event( launcher, true );
+            if( launcher->check_activation_key() )
+                launch_event( launcher, true );
+        }
     }
 }
 
@@ -655,10 +655,11 @@ basic_cell::launch_event( TEventLauncher *Launcher, bool local_only ) {
 			simulation::Events.AddToQuery( Launcher->Event1, nullptr );
 		}
 	} else {
-		if (Global.shiftState && Launcher->Event2 != nullptr)
-			m_relay.post(user_command::queueevent, 0.0, 0.0, GLFW_PRESS, 0, glm::vec3(0.0f), &Launcher->Event2->name());
+        command_relay commandrelay;
+        if (Global.shiftState && Launcher->Event2 != nullptr)
+			commandrelay.post(user_command::queueevent, 0.0, 0.0, GLFW_PRESS, 0, glm::vec3(0.0f), &Launcher->Event2->name());
 		else if (Launcher->Event1)
-			m_relay.post(user_command::queueevent, 0.0, 0.0, GLFW_PRESS, 0, glm::vec3(0.0f), &Launcher->Event1->name());
+			commandrelay.post(user_command::queueevent, 0.0, 0.0, GLFW_PRESS, 0, glm::vec3(0.0f), &Launcher->Event1->name());
 	}
 }
 
@@ -940,7 +941,7 @@ basic_section::create_geometry() {
 
     // since sections can be empty, we're doing lazy initialization of the geometry bank, when something may actually use it
     if( m_geometrybank == null_handle ) {
-        m_geometrybank = GfxRenderer.Create_Bank();
+        m_geometrybank = GfxRenderer->Create_Bank();
     }
 
     for( auto &shape : m_shapes ) {
@@ -957,7 +958,7 @@ void basic_section::create_map_geometry(const gfx::geometrybank_handle handle)
     for (auto &cell : m_cells)
 		cell.create_map_geometry(lines, handle);
 
-    m_map_geometryhandle = GfxRenderer.Insert(lines, handle, GL_LINES);
+    m_map_geometryhandle = GfxRenderer->Insert(lines, handle, GL_LINES);
 }
 
 void basic_section::get_map_active_paths(map_colored_paths &handles)
@@ -1257,7 +1258,7 @@ basic_region::insert( shape_node Shape, scratch_data &Scratchpad, bool const Tra
 
     if( Global.CreateSwitchTrackbeds ) {
 
-        auto const materialname{ GfxRenderer.Material( Shape.data().material ).name };
+        auto const materialname{ GfxRenderer->Material( Shape.data().material ).name };
         for( auto const &switchtrackbedtexture : switchtrackbedtextures ) {
             if( materialname.find( switchtrackbedtexture ) != std::string::npos ) {
                 // geometry with blacklisted texture, part of old switch trackbed; ignore it
@@ -1704,7 +1705,7 @@ basic_region::section( glm::dvec3 const &Location ) {
 
 void basic_region::create_map_geometry()
 {
-    m_map_geometrybank = GfxRenderer.Create_Bank();
+    m_map_geometrybank = GfxRenderer->Create_Bank();
 
     for (int row = 0; row < EU07_REGIONSIDESECTIONCOUNT; row++)
         for (int column = 0; column < EU07_REGIONSIDESECTIONCOUNT; column++)
@@ -1722,11 +1723,11 @@ void basic_region::update_poi_geometry()
 		vertices.push_back(std::move(sem->vertex()));
 
 	if (!m_map_poipoints) {
-		gfx::geometrybank_handle poibank = GfxRenderer.Create_Bank();
-		m_map_poipoints = GfxRenderer.Insert(vertices, poibank, GL_POINTS);
+        gfx::geometrybank_handle poibank = GfxRenderer->Create_Bank();
+        m_map_poipoints = GfxRenderer->Insert(vertices, poibank, GL_POINTS);
 	}
 	else {
-		GfxRenderer.Replace(vertices, m_map_poipoints, GL_POINTS);
+        GfxRenderer->Replace(vertices, m_map_poipoints, GL_POINTS);
 	}
 }
 

@@ -73,6 +73,7 @@
 #include <chrono>
 #include <optional>
 #include <filesystem>
+#include <variant>
 
 #include "glad/glad.h"
 
@@ -107,5 +108,8 @@ int const null_handle = 0;
 #define glDebug(x) if (GLAD_GL_GREMEDY_string_marker) glStringMarkerGREMEDY(0, __FILE__ ":" STRINGIZE(__LINE__) ": " x);
 
 #include "imgui/imgui.h"
+#include "openglcolor.h"
 
 #endif
+
+#pragma warning( disable : 5033 ) // "register is no longer a supported storage class" but it's all over python headers

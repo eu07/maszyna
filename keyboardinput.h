@@ -22,10 +22,16 @@ extern bool key_shift;
 
 }
 
+namespace ui {
+class keymapper_panel;
+}
+
 class keyboard_input {
+    friend class ui::keymapper_panel;
+
 public:
 // types
-	using bindingsetup_sequence = std::map<user_command, int>;
+    using bindingsetup_sequence = std::map<user_command, int>;
 
 	enum keymodifier : int {
 
@@ -53,13 +59,15 @@ public:
     user_command const
         command() const {
             return m_command; }
-	bindingsetup_sequence&
-	    bindings() {
-		    return m_bindingsetups; }
-	void
-	    bind();
-	void
-	    dump_bindings();
+    bindingsetup_sequence&
+        bindings() {
+            return m_bindingsetups; }
+    int
+        binding( user_command const Command ) const;
+    std::string
+        binding_hint( user_command const Command ) const;
+    void
+        dump_bindings();
 
 // members
 	static std::unordered_map<int, std::string> keytonamemap;
@@ -71,13 +79,15 @@ protected:
         default_bindings() = 0;
     bool
         recall_bindings();
+    void
+        bind();
 
 // members
 	bindingsetup_sequence m_bindingsetups;
 
 private:
 // types
-	using usercommand_map = std::unordered_map<int, user_command>;
+    using usercommand_map = std::unordered_map<int, user_command>;
 
     struct bindings_cache {
 
@@ -90,8 +100,6 @@ private:
     };
 
 // methods
-    int
-        binding( user_command const Command ) const;
     bool
         is_movement_key( int const Key ) const;
 

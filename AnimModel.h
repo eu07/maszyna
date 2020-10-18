@@ -104,6 +104,7 @@ class TAnimContainer : std::enable_shared_from_this<TAnimContainer>
 class TAnimModel : public scene::basic_node {
 
     friend opengl_renderer;
+    friend opengl33_renderer;
     friend itemproperties_panel;
 
 public:
@@ -116,6 +117,7 @@ public:
 	std::shared_ptr<TAnimContainer> AddContainer(std::string const &Name);
 	std::shared_ptr<TAnimContainer> GetContainer(std::string const &Name = "");
 	void LightSet( int const n, float const v );
+    void SkinSet( int const Index, material_handle const Material );
 	std::optional<std::tuple<float, float, std::optional<glm::vec3> > > LightGet( int const n );
     int TerrainCount();
     TSubModel * TerrainSquare(int n);
@@ -155,6 +157,8 @@ private:
     void deserialize_( std::istream &Input );
     // export() subclass details, sends basic content of the class in legacy (text) format to provided stream
     void export_as_text_( std::ostream &Output ) const;
+    // checks whether provided token is a legacy (text) format keyword
+    bool is_keyword( std::string const &Token ) const;
 
 // members
 	std::shared_ptr<TAnimContainer> pRoot; // pojemniki sterujące, tylko dla aniomowanych submodeli
@@ -173,7 +177,8 @@ private:
     std::array<float, iMaxNumLights> m_lightopacities; // {1} in constructor
     float fOnTime { 1.f / 2 };// { 60.f / 45.f / 2 };
     float fOffTime { 1.f / 2 };// { 60.f / 45.f / 2 }; // były stałymi, teraz mogą być zmienne dla każdego egzemplarza
-    float fTransitionTime { fOnTime * 0.9f }; // time
+//    float fTransitionTime { fOnTime * 0.9f }; // time
+    bool m_transition { true }; // smooth transition between light states
     unsigned int m_framestamp { 0 }; // id of last rendered gfx frame
 };
 

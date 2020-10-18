@@ -26,6 +26,7 @@ struct opengl_material {
     std::shared_ptr<gl::program> shader;
     float opacity = std::numeric_limits<float>::quiet_NaN();
     float selfillum = std::numeric_limits<float>::quiet_NaN();
+    float glossiness { 10.f };
 
     std::string name;
     glm::vec2 size { -1.f, -1.f }; // 'physical' size of bound texture, in meters
@@ -37,7 +38,18 @@ struct opengl_material {
     bool
         deserialize( cParser &Input, bool const Loadnow );
     void finalize(bool Loadnow);
-    float get_or_guess_opacity();
+    bool update();
+    float get_or_guess_opacity() const;
+    bool is_translucent() const;
+// members
+    static struct path_data {
+        std::unordered_map<std::string, int> index_map;
+        std::vector<std::string> data;
+    } paths;
+    bool is_good { false }; // indicates material was compiled without failure
+    int path{ -1 }; // index to material path
+    bool update_on_weather_change{ false };
+    bool update_on_season_change{ false };
 
 private:
 // methods
@@ -45,15 +57,13 @@ private:
     bool
         deserialize_mapping( cParser &Input, int const Priority, bool const Loadnow );
         void log_error(const std::string &str);
-    // extracts name of the sound file from provided data stream
-    std::string
-        deserialize_filename( cParser &Input );
 
 // members
     // priorities for textures, shader, opacity
     int m_shader_priority = -1;
     int m_opacity_priority = -1;
     int m_selfillum_priority = -1;
+    int m_glossiness_priority = -1;
 
     struct parse_info_s
     {
@@ -84,6 +94,12 @@ public:
         material( material_handle const Material ) const { return m_materials[ Material ]; }
     opengl_material &
         material( material_handle const Material ) { return m_materials[ Material ]; }
+    // material updates executed when environment changes
+    // TODO: registerable callbacks in environment manager
+    void
+        on_weather_change();
+    void
+        on_season_change();
 
 private:
 // types

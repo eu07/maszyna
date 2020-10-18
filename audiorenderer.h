@@ -13,18 +13,28 @@ http://mozilla.org/MPL/2.0/.
 #include "ResourceManager.h"
 #include "uitranscripts.h"
 
+#define EU07_SOUND_PROOFINGUSESRANGE
+
 class opengl_renderer;
 class sound_source;
 
 using uint32_sequence = std::vector<std::uint32_t>;
 
+enum class sound_category : unsigned int {
+    unknown = 0, // source gain is unaltered
+    vehicle, // source gain is altered by vehicle sound volume modifier
+    local, // source gain is altered by positional environment sound volume modifier
+    ambient, // source gain is altered by ambient environment sound volume modifier
+};
+
 // sound emitter state sync item
 struct sound_properties {
     glm::dvec3 location;
+    float pitch { 1.f };
+    sound_category category { sound_category::unknown };
     float gain { 1.f };
     float soundproofing { 1.f };
     std::uintptr_t soundproofing_stamp { ~( std::uintptr_t{ 0 } ) };
-    float pitch { 1.f };
 };
 
 enum class sync_state {
@@ -147,8 +157,14 @@ private:
     ALCdevice * m_device { nullptr };
     ALCcontext * m_context { nullptr };
     bool m_ready { false }; // renderer is initialized and functional
+/*
     glm::dvec3 m_listenerposition;
+*/
     glm::vec3 m_listenervelocity;
+    glm::dvec3 m_camerapos{ 0.0 };
+    bool m_freeflymode{ true };
+    bool m_windowopen{ true };
+    int m_activecab{ 0 };
 
     buffer_manager m_buffers;
     // TBD: list of sources as vector, sorted by distance, for openal implementations with limited number of active sources?
@@ -162,43 +178,7 @@ private:
 };
 
 extern openal_renderer renderer;
-
-template <class Iterator_>
-openal_source &
-openal_source::bind( sound_source *Controller, uint32_sequence Sounds, Iterator_ First, Iterator_ Last ) {
-
-    controller = Controller;
-    sounds = Sounds;
-    // look up and queue assigned buffers
-    std::vector<ALuint> buffers;
-    std::for_each(
-        First, Last,
-        [&]( audio::buffer_handle const &bufferhandle ) {
-            auto const &buffer { audio::renderer.buffer( bufferhandle ) };
-			if (buffer.id != null_resource) buffers.emplace_back( buffer.id ); } );
-
-    if( id != audio::null_resource ) {
-        ::alSourceQueueBuffers( id, static_cast<ALsizei>( buffers.size() ), buffers.data() );
-        ::alSourceRewind( id );
-    }
-    is_multipart = ( buffers.size() > 1 );
-
-    return *this;
-}
-
-inline
-float
-amplitude_to_db( float const Amplitude ) {
-
-    return 20.f * std::log10( Amplitude );
-}
-
-inline
-float
-db_to_amplitude( float const Decibels ) {
-
-    return std::pow( 10.f, Decibels / 20.f );
-}
+extern bool event_volume_change;
 
 } // audio
 

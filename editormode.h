@@ -45,8 +45,8 @@ public:
         on_scroll( double const Xoffset, double const Yoffset ) override { ; }
     void
         on_event_poll() override;
-	bool
-	    is_command_processor() override;
+    bool
+        is_command_processor() const override;
 
 private:
 // types

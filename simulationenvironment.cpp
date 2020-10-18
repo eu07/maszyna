@@ -10,6 +10,7 @@ http://mozilla.org/MPL/2.0/.
 #include "stdafx.h"
 #include "simulationenvironment.h"
 
+#include "simulationsounds.h"
 #include "Globals.h"
 #include "Timer.h"
 
@@ -68,8 +69,6 @@ world_environment::compute_weather() {
         ( Global.Season != "winter:" ?
             "rain:" :
             "snow:" ) );
-
-	m_precipitation.update_weather();
 }
 
 void
@@ -80,7 +79,14 @@ world_environment::init() {
     m_stars.init();
     m_clouds.Init();
     m_precipitation.init();
-    m_precipitationsound.deserialize( "rain-sound-loop", sound_type::single );
+    {
+        auto const rainsoundoverride { simulation::Sound_overrides.find( "weather.rainsound:" ) };
+        m_rainsound.deserialize(
+            ( rainsoundoverride != simulation::Sound_overrides.end() ?
+                rainsoundoverride->second :
+                "rain-sound-loop" ),
+            sound_type::single );
+    }
     m_wind = basic_wind{
         static_cast<float>( Random( 0, 360 ) ),
         static_cast<float>( Random( -5, 5 ) ),
@@ -120,6 +126,7 @@ world_environment::update() {
         Global.DayLight.position = m_moon.getDirection();
         Global.DayLight.direction = -1.0f * m_moon.getDirection();
         keylightintensity = moonlightlevel;
+        m_lightintensity = 0.35f;
         // if the moon is up, it overrides the twilight
         twilightfactor = 0.0f;
         keylightcolor = glm::vec3( 255.0f / 255.0f, 242.0f / 255.0f, 202.0f / 255.0f );
@@ -130,6 +137,7 @@ world_environment::update() {
         Global.DayLight.position = m_sun.getDirection();
         Global.DayLight.direction = -1.0f * m_sun.getDirection();
         keylightintensity = sunlightlevel;
+        m_lightintensity = 1.0f;
         // include 'golden hour' effect in twilight lighting
         float const duskfactor = 1.0f - clamp( Global.SunAngle, 0.0f, 18.0f ) / 18.0f;
         keylightcolor = interpolate(
@@ -169,20 +177,26 @@ world_environment::update() {
     Global.FogColor = m_skydome.GetAverageHorizonColor();
 
     // weather-related simulation factors
-    // TODO: dynamic change of air temperature and overcast levels
-    if( Global.Weather == "rain:" ) {
-        // reduce friction in rain
-        Global.FrictionWeatherFactor = 0.85f;
-        m_precipitationsound.play( sound_flags::exclusive | sound_flags::looping );
+    Global.FrictionWeatherFactor = (
+        Global.Weather == "rain:" ? 0.85f :
+        Global.Weather == "snow:" ? 0.75f :
+        1.0f );
+
+    Global.Period = (
+        m_sun.getAngle() > -12.0f ?
+            "day:" :
+            "night:" );
+
+    if( ( true == ( FreeFlyModeFlag || Global.CabWindowOpen ) )
+     && ( Global.Weather == "rain:" ) ) {
+        if( m_rainsound.is_combined() ) {
+            m_rainsound.pitch( Global.Overcast - 1.0 );
+        }
+        m_rainsound.play( sound_flags::exclusive | sound_flags::looping );
     }
-    else if( Global.Weather == "snow:" ) {
-        // reduce friction due to snow
-        Global.FrictionWeatherFactor = 0.75f;
-		m_precipitationsound.stop();
+    else {
+        m_rainsound.stop();
     }
-	else {
-		m_precipitationsound.stop();
-	}
 
 	update_wind();
 }

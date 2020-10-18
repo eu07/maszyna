@@ -54,8 +54,8 @@ public:
         on_scroll( double const Xoffset, double const Yoffset ) override;
     void
         on_event_poll() override;
-	bool
-	    is_command_processor() override;
+    bool
+        is_command_processor() const override;
 
 private:
 // types
@@ -92,13 +92,16 @@ private:
 
         bool init();
         void poll();
+        std::string
+            binding_hints( std::pair<user_command, user_command> const &Commands ) const;
+        std::pair<user_command, user_command>
+            command_fallback( user_command const Command ) const;
     };
 
 // methods
     void update_camera( const double Deltatime );
     // handles vehicle change flag
     void OnKeyDown( int cKey );
-
     void InOutKey();
     void CabView();
     void ExternalView();

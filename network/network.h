@@ -114,5 +114,8 @@ namespace network
 		virtual void update() = 0;
 	};
 
-	extern std::unordered_map<std::string, backend_manager*> backend_list;
+    // HACK: static initialization order fiasco fix
+//	extern std::unordered_map<std::string, backend_manager*> backend_list;
+    using backend_list_t = std::unordered_map<std::string, backend_manager*>;
+    backend_list_t& backend_list();
 }

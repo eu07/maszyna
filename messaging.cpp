@@ -114,7 +114,7 @@ OnCommandGet(multiplayer::DaneRozkaz *pRozkaz)
             if (*pRozkaz->iPar == 0) // sprawdzenie czasu
                 if (*pRozkaz->iPar & 1) // ustawienie czasu
                 {
-                    double t = pRozkaz->fPar[1];
+                    auto t = pRozkaz->fPar[1];
                     simulation::Time.data().wDay = std::floor(t); // niby nie powinno być dnia, ale...
                     if (Global.fMoveLight >= 0)
                         Global.fMoveLight = t; // trzeba by deklinację Słońca przeliczyć
@@ -335,7 +335,7 @@ WyslijNamiary(TDynamicObject const *Vehicle)
             Vehicle->MoverParameters->ShowCurrent(p + 1); // amperomierze kolejnych grup
     // WriteLog("zapisalem prady");
     r.iPar[30] = Vehicle->MoverParameters->WarningSignal; // trabienie
-    r.fPar[31] = Vehicle->MoverParameters->RunningTraction.TractionVoltage; // napiecie WN
+    r.fPar[31] = Vehicle->MoverParameters->PantographVoltage; // napiecie WN
     // WriteLog("Parametry gotowe");
     i <<= 2; // ilość bajtów
     r.cString[i] = char(j); // na końcu nazwa, żeby jakoś zidentyfikować

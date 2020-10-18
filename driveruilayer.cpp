@@ -16,7 +16,7 @@ http://mozilla.org/MPL/2.0/.
 #include "simulation.h"
 #include "Train.h"
 #include "AnimModel.h"
-#include "opengl33renderer.h"
+#include "renderer.h"
 
 driver_ui::driver_ui() {
 
@@ -196,29 +196,6 @@ driver_ui::update() {
         set_cursor( ispaused );
     }
 	m_paused = ispaused;
-
-    set_tooltip( "" );
-
-    auto const *train { simulation::Train };
-
-    if( ( train != nullptr ) && ( false == FreeFlyModeFlag ) ) {
-        if( false == DebugModeFlag ) {
-            // in regular mode show control functions, for defined controls
-			set_tooltip( Translations.label_cab_control( train->GetLabel( GfxRenderer.get_picked_control() ) ) );
-        }
-        else {
-            // in debug mode show names of submodels, to help with cab setup and/or debugging
-            auto const cabcontrol = GfxRenderer.get_picked_control();
-            set_tooltip( ( cabcontrol ? cabcontrol->pName : "" ) );
-        }
-    }
-    if( ( true == Global.ControlPicking ) && ( true == FreeFlyModeFlag ) && ( true == DebugModeFlag ) ) {
-        auto const scenerynode = GfxRenderer.get_picked_node();
-        set_tooltip(
-            ( scenerynode ?
-                scenerynode->name() :
-                "" ) );
-    }
 
     ui_layer::update();
 }

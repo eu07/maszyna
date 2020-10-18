@@ -11,6 +11,5 @@ void main()
 {
 	vec2 texcoord = f_coords;
 	vec3 hdr_color = texture(tex1, texcoord).xyz;
-
 	out_color = tonemap(vec4(hdr_color, 1.0));
 }  

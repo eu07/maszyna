@@ -142,7 +142,7 @@ keyboard_input::recall_bindings() {
 	}
 
     // NOTE: to simplify things we expect one entry per line, and whole entry in one line
-    while( true == bindingparser.getTokens( 1, true, "\n" ) ) {
+    while( true == bindingparser.getTokens( 1, true, "\n\r" ) ) {
 
         std::string bindingentry;
         bindingparser >> bindingentry;
@@ -270,6 +270,7 @@ keyboard_input::key( int const Key, int const Action ) {
         // no binding for this key
         return false;
     }
+
     // NOTE: basic keyboard controls don't have any parameters
     // as we haven't yet implemented either item id system or multiplayer, the 'local' controlled vehicle and entity have temporary ids of 0
     // TODO: pass correct entity id once the missing systems are in place
@@ -294,7 +295,7 @@ keyboard_input::bind() {
 
     for( auto const &bindingsetup : m_bindingsetups ) {
 
-		m_bindings[ bindingsetup.second ] = bindingsetup.first;
+        m_bindings[ bindingsetup.second ] = bindingsetup.first;
     }
 
     // cache movement key bindings
@@ -380,6 +381,52 @@ keyboard_input::poll() {
     }
 
     m_movementvertical = movementvertical;
+}
+
+std::unordered_map<int, std::string> keytonamemap = {
+    { GLFW_KEY_0, "0" }, { GLFW_KEY_1, "1" }, { GLFW_KEY_2, "2" }, { GLFW_KEY_3, "3" }, { GLFW_KEY_4, "4" },
+    { GLFW_KEY_5, "5" }, { GLFW_KEY_6, "6" }, { GLFW_KEY_7, "7" }, { GLFW_KEY_8, "8" }, { GLFW_KEY_9, "9" },
+    { GLFW_KEY_MINUS, "-" }, { GLFW_KEY_EQUAL, "=" },
+    { GLFW_KEY_A, "A" }, { GLFW_KEY_B, "B" }, { GLFW_KEY_C, "C" }, { GLFW_KEY_D, "D" }, { GLFW_KEY_E, "E" },
+    { GLFW_KEY_F, "F" }, { GLFW_KEY_G, "G" }, { GLFW_KEY_H, "H" }, { GLFW_KEY_I, "I" }, { GLFW_KEY_J, "J" },
+    { GLFW_KEY_K, "K" }, { GLFW_KEY_L, "L" }, { GLFW_KEY_M, "M" }, { GLFW_KEY_N, "N" }, { GLFW_KEY_O, "O" },
+    { GLFW_KEY_P, "P" }, { GLFW_KEY_Q, "Q" }, { GLFW_KEY_R, "R" }, { GLFW_KEY_S, "S" }, { GLFW_KEY_T, "T" },
+    { GLFW_KEY_U, "U" }, { GLFW_KEY_V, "V" }, { GLFW_KEY_W, "W" }, { GLFW_KEY_X, "X" }, { GLFW_KEY_Y, "Y" }, { GLFW_KEY_Z, "Z" },
+    { GLFW_KEY_BACKSPACE, "BACKSPACE" },
+    { GLFW_KEY_LEFT_BRACKET, "[" }, { GLFW_KEY_RIGHT_BRACKET, "]" }, { GLFW_KEY_BACKSLASH, "\\" },
+    { GLFW_KEY_SEMICOLON, ";" }, { GLFW_KEY_APOSTROPHE, "'" }, { GLFW_KEY_ENTER, "ENTER" },
+    { GLFW_KEY_COMMA, "<" }, { GLFW_KEY_PERIOD, ">" }, { GLFW_KEY_SLASH, "/" },
+    { GLFW_KEY_SPACE, "SPACE" },
+    { GLFW_KEY_PAUSE, "PAUSE" }, { GLFW_KEY_INSERT, "INSERT" }, { GLFW_KEY_DELETE, "DELETE" }, { GLFW_KEY_HOME, "HOME" }, { GLFW_KEY_END, "END" },
+    // numpad block
+    { GLFW_KEY_KP_DIVIDE, "NUM /" }, { GLFW_KEY_KP_MULTIPLY, "NUM *" }, { GLFW_KEY_KP_SUBTRACT, "NUM -" },
+    { GLFW_KEY_KP_7, "NUM 7" }, { GLFW_KEY_KP_8, "NUM 8" }, { GLFW_KEY_KP_9, "NUM 9" }, { GLFW_KEY_KP_ADD, "NUM +" },
+    { GLFW_KEY_KP_4, "NUM 4" }, { GLFW_KEY_KP_5, "NUM 5" }, { GLFW_KEY_KP_6, "NUM 6" },
+    { GLFW_KEY_KP_1, "NUM 1" }, { GLFW_KEY_KP_2, "NUM 2" }, { GLFW_KEY_KP_3, "NUM 3" }, { GLFW_KEY_KP_ENTER, "NUM ENTER" },
+    { GLFW_KEY_KP_0, "NUM 0" }, { GLFW_KEY_KP_DECIMAL, "NUM ." }
+};
+
+std::string
+keyboard_input::binding_hint( user_command const Command ) const {
+
+    if( Command == user_command::none ) { return ""; }
+
+    auto const binding { this->binding( Command ) };
+    if( binding == -1 ) { return ""; }
+
+    auto const lookup { keytonamemap.find( binding & 0xffff ) };
+    if( lookup == keytonamemap.end() ) { return ""; }
+
+    std::string hint;
+    if( ( binding & keymodifier::shift ) != 0 ) {
+        hint += "SHIFT ";
+    }
+    if( ( binding & keymodifier::control ) != 0 ) {
+        hint += "CTRL ";
+    }
+    hint += lookup->second;
+
+    return hint;
 }
 
 //---------------------------------------------------------------------------

@@ -47,4 +47,34 @@ public:
         xOn = true;
         Update();
     };
+
+    // if the xOn model is missing, activate plain On instead
+    inline void TurnxOnWithOnAsFallback()
+    {
+        if (ModelxOn != nullptr) {
+            On = false;
+            xOn = true;
+            Update();
+        }
+        else {
+            TurnOn();
+        }
+    };
+    // if the xOn model is missing, activate plain Off instead
+    inline void TurnxOnWithOffAsFallback()
+    {
+        if (ModelxOn != nullptr) {
+            On = false;
+            xOn = true;
+            Update();
+        }
+        else {
+            TurnOff();
+        }
+    };
+    inline bool Active() const
+    {
+        return ( ( ModelOn != nullptr ) || ( ModelxOn != nullptr ) );
+    };
 };
+

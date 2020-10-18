@@ -41,12 +41,63 @@ std::string TTrainParameters::NextStop() const
         return "[End of route]"; //że niby koniec
 }
 
+sound_source
+TTrainParameters::next_stop_sound() const {
+    if( StationIndex > StationCount ) {
+        return { sound_placement::engine };
+    }
+    for( auto stationidx { StationIndex }; stationidx < StationCount + 1; ++stationidx ) {
+        auto &station{ TimeTable[ stationidx ] };
+        if( station.Ah == -1 ) {
+            continue;
+        }
+        // specified arrival time means it's a scheduled stop
+        return station.name_sound;
+    }
+    // shouldn't normally get here, unless the timetable is malformed
+    return { sound_placement::engine };
+}
+
+sound_source
+TTrainParameters::last_stop_sound() const {
+
+    return TimeTable[ StationCount ].name_sound;
+}
+
 bool TTrainParameters::IsStop() const
 { // zapytanie, czy zatrzymywać na następnym punkcie rozkładu
-    if ((StationIndex < StationCount))
+    if ((StationIndex <= StationCount))
         return TimeTable[StationIndex].Ah >= 0; //-1 to brak postoju
     else
         return true; // na ostatnim się zatrzymać zawsze
+}
+
+bool TTrainParameters::IsLastStop() const {
+
+    return ( StationIndex >= StationCount );
+}
+
+
+bool TTrainParameters::IsMaintenance() const {
+    if( ( StationIndex <= StationCount ) )
+        return TimeTable[ StationIndex ].is_maintenance;
+    else
+        return false;
+}
+
+int TTrainParameters::radio_channel() const {
+    if( ( StationIndex <= StationCount ) )
+        return TimeTable[ StationIndex ].radio_channel;
+    else
+        return -1;
+}
+
+// returns: sound file associated with current station, or -1
+sound_source TTrainParameters::current_stop_sound() const {
+    if( ( StationIndex <= StationCount ) )
+        return TimeTable[ StationIndex ].name_sound;
+    else
+        return { sound_placement::engine };
 }
 
 bool TTrainParameters::UpdateMTable( scenario_time const &Time, std::string const &NewName ) {
@@ -127,6 +178,15 @@ bool TTrainParameters::IsTimeToGo(double hh, double mm)
     }
     else // gdy rozkład się skończył
         return false; // dalej nie jechać
+}
+
+// returns: difference between specified time and scheduled departure from current stop, in seconds
+double TTrainParameters::seconds_until_departure( double const Hour, double const Minute ) const {
+
+    if( ( TimeTable[ StationIndex ].Ah < 0 ) ) { // passthrough
+        return 0;
+    }
+    return ( 60.0 * CompareTime( Hour, Minute, TimeTable[ StationIndex ].Dh, TimeTable[ StationIndex ].Dm ) );
 }
 
 std::string TTrainParameters::ShowRelation() const
@@ -316,6 +376,7 @@ bool TTrainParameters::LoadTTfile(std::string scnpath, int iPlus, double vmax)
                     {
                         fin >> s;
                     } while (!(s.find("[______________") != std::string::npos || fin.bad()));
+                    auto activeradiochannel{ -1 };
                     while (!fin.bad() && !EndTable)
                     {
                         ++StationCount;
@@ -402,6 +463,31 @@ bool TTrainParameters::LoadTTfile(std::string scnpath, int iPlus, double vmax)
                                 record->StationWare += s;
                                 fin >> s;
                             }
+                            // cache relevant station data
+                            record->is_maintenance = ( s.find( "pt" ) != std::string::npos );
+                            {
+                                auto const stationware { Split( record->StationWare, ',' ) };
+                                for( auto const &entry : stationware ) {
+                                    if( entry.front() != 'R' ) {
+                                        continue;
+                                    }
+                                    auto const entrysplit { split_string_and_number( entry ) };
+                                    if( ( entrysplit.first == "R" )
+                                     && ( entrysplit.second <= 10 ) ) {
+                                        auto const radiochannel { entrysplit.second };
+                                        if( ( record->radio_channel == -1 )
+                                         || ( radiochannel != activeradiochannel ) ) {
+                                            // if the station has more than one radiochannel listed,
+                                            // it generally means we should switch to the one we weren't using so far
+                                            // TODO: reverse this behaviour (keep the channel used so far) once W28 signs are included in the system
+                                            record->radio_channel = radiochannel;
+                                        }
+                                    }
+                                }
+                                if( record->radio_channel != -1 ) {
+                                    activeradiochannel = record->radio_channel;
+                                }
+                            }
                             record->TrackNo = atoi(s.c_str());
                             fin >> s;
                             if (s != "|")
@@ -469,9 +555,10 @@ bool TTrainParameters::LoadTTfile(std::string scnpath, int iPlus, double vmax)
                 TimeTable[1].Ah = TimeTable[1].Dh;
                 TimeTable[1].Am = TimeTable[1].Dm;
             }
-        // NextStationName:=TimeTable[1].StationName;
-        /*  TTVmax:=TimeTable[1].vmax;  */
     }
+    //
+    load_sounds();
+    // potentially offset table times
     auto const timeoffset { static_cast<int>( Global.ScenarioTimeOffset * 60 ) + iPlus };
     if( timeoffset != 0 ) // jeżeli jest przesunięcie rozkładu
     {
@@ -496,24 +583,31 @@ bool TTrainParameters::LoadTTfile(std::string scnpath, int iPlus, double vmax)
     return ConversionError == 0;
 }
 
-void TMTableTime::UpdateMTableTime(double deltaT)
-// dodanie czasu (deltaT) w sekundach, z przeliczeniem godziny
-{
-    mr += deltaT; // dodawanie sekund
-    while (mr >= 60.0) // przeliczenie sekund do właściwego przedziału
-    {
-        mr -= 60.0;
-        ++mm;
-    }
-    while (mm > 59) // przeliczenie minut do właściwego przedziału
-    {
-        mm -= 60;
-        ++hh;
-    }
-    while (hh > 23) // przeliczenie godzin do właściwego przedziału
-    {
-        hh -= 24;
-        ++dd; // zwiększenie numeru dnia
+void
+TTrainParameters::load_sounds() {
+
+    for( auto stationidx = 1; stationidx < StationCount + 1; ++stationidx ) {
+        auto &station { TimeTable[ stationidx ] };
+        if( station.Ah == -1 ) {
+            continue;
+        }
+        // specified arrival time means it's a scheduled stop
+        auto const stationname { (
+            ends_with( station.StationName, "_po" ) ?
+                station.StationName.substr( 0, station.StationName.size() - 3 ) :
+                station.StationName ) };
+
+        auto const lookup {
+            FileExists(
+                { Global.asCurrentSceneryPath + stationname, std::string{ szSoundPath } + "sip/" + stationname },
+                { ".ogg", ".flac", ".wav" } ) };
+        if( lookup.first.empty() ) {
+            continue;
+        }
+        //  wczytanie dźwięku odjazdu w wersji radiowej (słychać tylko w kabinie)
+        station.name_sound =
+            sound_source{ sound_placement::engine, EU07_SOUND_CABANNOUNCEMENTCUTOFFRANGE }
+                .deserialize( lookup.first + lookup.second, sound_type::single );
     }
 }
 
@@ -552,5 +646,26 @@ void TTrainParameters::serialize( dictionary_source *Output ) const {
             Output->insert( ( stationlabel + "dm" ), timetableline.Dm );
             Output->insert( ( stationlabel + "tracks" ), timetableline.TrackNo );
         }
+    }
+}
+
+void TMTableTime::UpdateMTableTime(double deltaT)
+// dodanie czasu (deltaT) w sekundach, z przeliczeniem godziny
+{
+    mr += deltaT; // dodawanie sekund
+    while (mr >= 60.0) // przeliczenie sekund do właściwego przedziału
+    {
+        mr -= 60.0;
+        ++mm;
+    }
+    while (mm > 59) // przeliczenie minut do właściwego przedziału
+    {
+        mm -= 60;
+        ++hh;
+    }
+    while (hh > 23) // przeliczenie godzin do właściwego przedziału
+    {
+        hh -= 24;
+        ++dd; // zwiększenie numeru dnia
     }
 }

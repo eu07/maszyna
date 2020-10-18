@@ -13,15 +13,19 @@ http://mozilla.org/MPL/2.0/.
 #include "Globals.h"
 #include "simulation.h"
 #include "simulationtime.h"
+#include "simulationsounds.h"
+#include "simulationenvironment.h"
 #include "scenenodegroups.h"
-#include "opengl33particles.h"
+#include "particles.h"
 #include "Event.h"
+#include "MemCell.h"
 #include "Driver.h"
 #include "DynObj.h"
 #include "AnimModel.h"
+#include "lightarray.h"
 #include "TractionPower.h"
 #include "application.h"
-#include "opengl33renderer.h"
+#include "renderer.h"
 #include "Logs.h"
 
 namespace simulation {
@@ -33,6 +37,8 @@ state_serializer::deserialize_begin( std::string const &Scenariofile ) {
     SafeDelete( Region );
     Region = new scene::basic_region();
 
+    simulation::State.init_scripting_interface();
+
 	// NOTE: for the time being import from text format is a given, since we don't have full binary serialization
 	std::shared_ptr<deserializer_state> state =
 	        std::make_shared<deserializer_state>(Scenariofile, cParser::buffer_FILE, Global.asCurrentSceneryPath, Global.bLoadTraction);
@@ -40,7 +46,8 @@ state_serializer::deserialize_begin( std::string const &Scenariofile ) {
     // TODO: check first for presence of serialized binary files
     // if this fails, fall back on the legacy text format
 	state->scratchpad.name = Scenariofile;
-    if( Scenariofile != "$.scn" ) {
+    if( ( true == Global.file_binary_terrain )
+     && ( Scenariofile != "$.scn" ) ) {
         // compilation to binary file isn't supported for rainsted-created overrides
         // NOTE: we postpone actual loading of the scene until we process time, season and weather data
 		state->scratchpad.binary.terrain = Region->is_scene( Scenariofile ) ;
@@ -117,11 +124,11 @@ state_serializer::deserialize_continue(std::shared_ptr<deserializer_state> state
         // manually perform scenario initialization
         deserialize_firstinit( Input, Scratchpad );
     }
-
 	scene::Groups.update_map();
 	Region->create_map_geometry();
 
-	if( ( false == state->scratchpad.binary.terrain )
+	if( ( true == Global.file_binary_terrain )
+     && ( false == state->scratchpad.binary.terrain )
 	 && ( state->scenariofile != "$.scn" ) ) {
 		// if we didn't find usable binary version of the scenario files, create them now for future use
 		// as long as the scenario file wasn't rainsted-created base file override
@@ -166,13 +173,22 @@ state_serializer::deserialize_atmo( cParser &Input, scene::scratch_data &Scratch
     // atmosphere color; legacy parameter, no longer used
     Input.getTokens( 3 );
     // fog range
-	Input.getTokens( 1 ); // fog start ignored
-	Input.getTokens( 1 );
-	Input >> Global.fFogEnd;
+    {
+        double fograngestart, fograngeend;
+        Input.getTokens( 2 );
+        Input
+            >> fograngestart
+            >> fograngeend;
 
-    if( Global.fFogEnd > 0.0 ) {
-        // fog colour; optional legacy parameter, no longer used
-        Input.getTokens( 3 );
+        if( Global.fFogEnd != 0.0 ) {
+            // fog colour; optional legacy parameter, no longer used
+            Input.getTokens( 3 );
+        }
+
+        Global.fFogEnd =
+            clamp(
+                Random( std::min( fograngestart, fograngeend ), std::max( fograngestart, fograngeend ) ),
+                10.0, 25000.0 );
     }
 
     std::string token { Input.getToken<std::string>() };
@@ -702,7 +718,7 @@ state_serializer::deserialize_endtrainset( cParser &Input, scene::scratch_data &
         }
         if( vehicleindex > 0 ) {
             // from second vehicle on couple it with the previous one
-            Scratchpad.trainset.vehicles[ vehicleindex - 1 ]->AttachPrev(
+            Scratchpad.trainset.vehicles[ vehicleindex - 1 ]->AttachNext(
                 vehicle,
                 Scratchpad.trainset.couplings[ vehicleindex - 1 ] );
         }
@@ -722,7 +738,12 @@ state_serializer::deserialize_endtrainset( cParser &Input, scene::scratch_data &
     }
     if( Scratchpad.trainset.couplings.back() == coupling::faux ) {
         // jeśli ostatni pojazd ma sprzęg 0 to założymy mu końcówki blaszane (jak AI się odpali, to sobie poprawi)
-        Scratchpad.trainset.vehicles.back()->RaLightsSet( -1, light::rearendsignals );
+        // place end signals only on trains without a driver, activate markers otherwise
+        Scratchpad.trainset.vehicles.back()->RaLightsSet(
+            -1,
+            ( Scratchpad.trainset.driver != nullptr ?
+                light::redmarker_left | light::redmarker_right | light::rearendsignals :
+                light::rearendsignals ) );
     }
     // all done
     Scratchpad.trainset.is_open = false;
@@ -1012,7 +1033,7 @@ state_serializer::transform( glm::dvec3 Location, scene::scratch_data const &Scr
     return Location;
 }
 
-
+/*
 // stores class data in specified file, in legacy (text) format
 void
 state_serializer::export_as_text(std::string const &Scenariofile) const {
@@ -1059,6 +1080,89 @@ state_serializer::export_as_text(std::string const &Scenariofile) const {
 	Events.export_as_text( ctrfile );
 
     WriteLog( "Scenery data export done." );
+}
+*/
+void
+state_serializer::export_as_text(std::string const &Scenariofile) const {
+
+    if( Scenariofile == "$.scn" ) {
+        ErrorLog( "Bad file: scenery export not supported for file \"$.scn\"" );
+    }
+    else {
+        WriteLog( "Scenery data export in progress..." );
+    }
+
+	auto filename { Scenariofile };
+	while( filename[ 0 ] == '$' ) {
+        // trim leading $ char rainsted utility may add to the base name for modified .scn files
+		filename.erase( 0, 1 );
+    }
+	erase_extension( filename );
+	auto absfilename = Global.asCurrentSceneryPath + filename + "_export";
+
+	std::ofstream scmdirtyfile { absfilename + "_dirty.scm" };
+	export_nodes_to_stream(scmdirtyfile, true);
+
+	std::ofstream scmfile { absfilename + ".scm" };
+	export_nodes_to_stream(scmfile, false);
+
+	// sounds
+	// NOTE: sounds currently aren't included in groups
+	scmfile << "// sounds\n";
+	Region->export_as_text( scmfile );
+
+	scmfile << "// modified objects\ninclude " << filename << "_export_dirty.scm\n";
+
+	std::ofstream ctrfile { absfilename + ".ctr" };
+	// mem cells
+	ctrfile << "// memory cells\n";
+	for( auto const *memorycell : Memory.sequence() ) {
+		if( ( true == memorycell->is_exportable )
+		 && ( memorycell->group() == null_handle ) ) {
+			memorycell->export_as_text( ctrfile );
+		}
+	}
+
+	// events
+	Events.export_as_text( ctrfile );
+
+    WriteLog( "Scenery data export done." );
+}
+
+void
+state_serializer::export_nodes_to_stream(std::ostream &scmfile, bool Dirty) const {
+	// groups
+	scmfile << "// groups\n";
+	scene::Groups.export_as_text( scmfile, Dirty );
+
+	// tracks
+	scmfile << "// paths\n";
+	for( auto const *path : Paths.sequence() ) {
+		if( path->dirty() == Dirty && path->group() == null_handle ) {
+			path->export_as_text( scmfile );
+		}
+	}
+	// traction
+	scmfile << "// traction\n";
+	for( auto const *traction : Traction.sequence() ) {
+		if( traction->dirty() == Dirty && traction->group() == null_handle ) {
+			traction->export_as_text( scmfile );
+		}
+	}
+	// power grid
+	scmfile << "// traction power sources\n";
+	for( auto const *powersource : Powergrid.sequence() ) {
+		if( powersource->dirty() == Dirty && powersource->group() == null_handle ) {
+			powersource->export_as_text( scmfile );
+		}
+	}
+	// models
+	scmfile << "// instanced models\n";
+	for( auto const *instance : Instances.sequence() ) {
+		if( instance && instance->dirty() == Dirty && instance->group() == null_handle ) {
+			instance->export_as_text( scmfile );
+		}
+	}
 }
 
 TAnimModel *state_serializer::create_model(const std::string &src, const std::string &name, const glm::dvec3 &position) {
@@ -1113,42 +1217,6 @@ TEventLauncher *state_serializer::create_eventlauncher(const std::string &src, c
 	simulation::Region->insert(launcher);
 
 	return launcher;
-}
-
-void
-state_serializer::export_nodes_to_stream(std::ostream &scmfile, bool Dirty) const {
-	// groups
-	scmfile << "// groups\n";
-	scene::Groups.export_as_text( scmfile, Dirty );
-
-	// tracks
-	scmfile << "// paths\n";
-	for( auto const *path : Paths.sequence() ) {
-		if( path->dirty() == Dirty && path->group() == null_handle ) {
-			path->export_as_text( scmfile );
-		}
-	}
-	// traction
-	scmfile << "// traction\n";
-	for( auto const *traction : Traction.sequence() ) {
-		if( traction->dirty() == Dirty && traction->group() == null_handle ) {
-			traction->export_as_text( scmfile );
-		}
-	}
-	// power grid
-	scmfile << "// traction power sources\n";
-	for( auto const *powersource : Powergrid.sequence() ) {
-		if( powersource->dirty() == Dirty && powersource->group() == null_handle ) {
-			powersource->export_as_text( scmfile );
-		}
-	}
-	// models
-	scmfile << "// instanced models\n";
-	for( auto const *instance : Instances.sequence() ) {
-		if( instance && instance->dirty() == Dirty && instance->group() == null_handle ) {
-			instance->export_as_text( scmfile );
-		}
-	}
 }
 
 } // simulation

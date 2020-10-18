@@ -135,7 +135,7 @@ void motiontelemetry::update()
 	last_pos = pos;
 	last_vel = vel;
 
-	if (t->Occupied()->ActiveCab < 0)
+    if (t->Occupied()->CabActive < 0)
 	{
 		velocity *= -1;
 		local_acc.x *= -1;

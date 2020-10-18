@@ -38,6 +38,8 @@ if (APPLE)
 endif()
 
 option(USE_IMGUI_GL3 "Use OpenGL3+ imgui implementation" ON)
+option(WITH_OPENGL_MODERN "Compile with OpenGL modern renderer" ON)
+option(WITH_OPENGL_LEGACY "Compile with OpenGL legacy renderer" ON)
 option(WITH_UART "Compile with libserialport" ON)
 option(WITH_OPENVR "Compile with OpenVR" ON)
 option(WITH_ZMQ "Compile with cppzmq" ON)
@@ -74,7 +76,7 @@ set(SOURCES
 "Model3d.cpp"
 "mtable.cpp"
 "parser.cpp"
-"opengl33renderer.cpp"
+"renderer.cpp"
 "PyInt.cpp"
 "ResourceManager.cpp"
 "sn_utils.cpp"
@@ -83,7 +85,7 @@ set(SOURCES
 "sun.cpp"
 "stars.cpp"
 "lightarray.cpp"
-"opengl33skydome.cpp"
+"skydome.cpp"
 "sound.cpp"
 "Spring.cpp"
 "frustum.cpp"
@@ -93,7 +95,6 @@ set(SOURCES
 "command.cpp"
 "keyboardinput.cpp"
 "gamepadinput.cpp"
-"opengl33geometrybank.cpp"
 "drivermouseinput.cpp"
 "translation.cpp"
 "material.cpp"
@@ -127,12 +128,17 @@ set(SOURCES
 "scenenodegroups.cpp"
 "simulationenvironment.cpp"
 "simulationstateserializer.cpp"
-"opengl33precipitation.cpp"
+"precipitation.cpp"
 "pythonscreenviewer.cpp"
 "dictionary.cpp"
-"opengl33particles.cpp"
+"particles.cpp"
 "headtrack.cpp"
 "headtrack.h"
+"ladderlogic.cpp"
+"geometrybank.cpp"
+"openglcolor.cpp"
+"simulationsounds.cpp"
+"openglcamera.cpp"
 
 "network/network.cpp"
 "network/message.cpp"
@@ -202,6 +208,27 @@ if (WITH_OPENVR)
         set(SOURCES ${SOURCES} "vr/openvr_imp.cpp" "vr/vr_interface.cpp")
 endif()
 
+if (WITH_OPENGL_MODERN)
+        set(SOURCES ${SOURCES}
+            "opengl33geometrybank.cpp"
+            "opengl33light.cpp"
+            "opengl33skydome.cpp"
+            "opengl33precipitation.cpp"
+            "opengl33particles.cpp"
+            "opengl33renderer.cpp")
+        add_definitions(-DWITH_OPENGL_MODERN)
+endif()
+
+if (WITH_OPENGL_LEGACY)
+        set(SOURCES ${SOURCES}
+            "openglgeometrybank.cpp"
+            "opengllight.cpp"
+            "openglskydome.cpp"
+            "openglprecipitation.cpp"
+            "openglparticles.cpp"
+            "openglrenderer.cpp")
+        add_definitions(-DWITH_OPENGL_LEGACY)
+endif()
 
 if (USE_VSDEV_CAMERA)
 	add_definitions(-DUSE_VSDEV_CAMERA)
@@ -334,6 +361,6 @@ endif()
 #target_compile_options(${PROJECT_NAME} PRIVATE -flto)
 #target_link_libraries(${PROJECT_NAME} -flto)
 
-set_target_properties(${PROJECT_NAME} PROPERTIES COTIRE_CXX_PREFIX_HEADER_INIT "stdafx.h")
-set_target_properties(${PROJECT_NAME} PROPERTIES COTIRE_ADD_UNITY_BUILD FALSE)
-cotire(${PROJECT_NAME})
+#set_target_properties(${PROJECT_NAME} PROPERTIES COTIRE_CXX_PREFIX_HEADER_INIT "stdafx.h")
+#set_target_properties(${PROJECT_NAME} PROPERTIES COTIRE_ADD_UNITY_BUILD FALSE)
+#cotire(${PROJECT_NAME})

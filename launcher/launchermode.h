@@ -41,5 +41,5 @@ public:
 	void
 	    on_event_poll() override { ; }
 	bool
-	    is_command_processor() override { return false; }
+        is_command_processor() const override { return false; }
 };

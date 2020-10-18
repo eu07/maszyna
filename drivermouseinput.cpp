@@ -18,7 +18,7 @@ http://mozilla.org/MPL/2.0/.
 #include "simulation.h"
 #include "Train.h"
 #include "AnimModel.h"
-#include "opengl33renderer.h"
+#include "renderer.h"
 #include "uilayer.h"
 #include "Logs.h"
 
@@ -195,7 +195,7 @@ drivermouse_input::recall_bindings() {
     }
 
     // NOTE: to simplify things we expect one entry per line, and whole entry in one line
-    while( true == bindingparser.getTokens( 1, true, "\n" ) ) {
+    while( true == bindingparser.getTokens( 1, true, "\n\r" ) ) {
 
         std::string bindingentry;
         bindingparser >> bindingentry;
@@ -319,13 +319,12 @@ drivermouse_input::button( int const Button, int const Action ) {
         // left mouse button launches on_click event associated with to the node
         if( Button == GLFW_MOUSE_BUTTON_LEFT ) {
             if( Action == GLFW_PRESS ) {
-                GfxRenderer.pick_node([this](scene::basic_node *node)
-                {
-                    if( ( node == nullptr )
-                        || ( typeid( *node ) != typeid( TAnimModel ) ) )
-                        return;
-                    simulation::Region->on_click( static_cast<TAnimModel const *>( node ) );
-                });
+                GfxRenderer->Pick_Node_Callback(
+                    [this](scene::basic_node *node) {
+                        if( ( node == nullptr )
+                         || ( typeid( *node ) != typeid( TAnimModel ) ) )
+                            return;
+                        simulation::Region->on_click( static_cast<TAnimModel const *>( node ) ); } );
             }
         }
         // right button controls panning
@@ -368,28 +367,35 @@ drivermouse_input::button( int const Button, int const Action ) {
         else {
             // if not release then it's press
             m_pickwaiting = true;
-            GfxRenderer.pick_control([this, Button, Action, &mousecommand](TSubModel const *control, const glm::vec2 pos)
-            {
-                bool pickwaiting = m_pickwaiting;
-                m_pickwaiting = false;
+            GfxRenderer->Pick_Control_Callback(
+                [this, Button, Action, &mousecommand](TSubModel const *control, const glm::vec2 pos) {
 
-                // click on python screen
-                if (Button == GLFW_MOUSE_BUTTON_LEFT
-                        && control && control->screen_touch_list) {
+                    bool pickwaiting = m_pickwaiting;
+                    m_pickwaiting = false;
 
-                    control->screen_touch_list->emplace_back(pos);
-                    return;
-                }
+                    // click on python screen
+                    if (Button == GLFW_MOUSE_BUTTON_LEFT
+                            && control && control->screen_touch_list) {
 
-                auto const lookup = m_buttonbindings.find( simulation::Train->GetLabel( control ) );
-                if( lookup != m_buttonbindings.end() ) {
+                        control->screen_touch_list->emplace_back(pos);
+                        return;
+                    }
+
+                    auto const controlbindings { bindings( simulation::Train->GetLabel( control ) ) };
                     // if the recognized element under the cursor has a command associated with the pressed button, notify the recipient
                     mousecommand = (
                         Button == GLFW_MOUSE_BUTTON_LEFT ?
-                            lookup->second.left :
-                            lookup->second.right
+                            controlbindings.first :
+                            controlbindings.second
                         );
-                    if( mousecommand == user_command::none ) { return; }
+
+                    if( mousecommand == user_command::none ) {
+                        // if we don't have any recognized element under the cursor and the right button was pressed, enter view panning mode
+                        if( Button == GLFW_MOUSE_BUTTON_RIGHT ) {
+                            m_pickmodepanning = true;
+                        }
+                        return;
+                    }
                     // check manually for commands which have 'fast' variants launched with shift modifier
                     if( Global.shiftState ) {
                         switch( mousecommand ) {
@@ -431,7 +437,6 @@ drivermouse_input::button( int const Button, int const Action ) {
 						    break;
 					    }
 					}
-
 					// NOTE: basic keyboard controls don't have any parameters
 					// NOTE: as we haven't yet implemented either item id system or multiplayer, the 'local' controlled vehicle and entity have temporary ids of 0
 					// TODO: pass correct entity id once the missing systems are in place
@@ -439,14 +444,7 @@ drivermouse_input::button( int const Button, int const Action ) {
 					if (!pickwaiting) // already depressed
 						m_relay.post( mousecommand, 0, 0, GLFW_RELEASE, 0 );
 					m_updateaccumulator = -0.25; // prevent potential command repeat right after issuing one
-				}
-				else {
-					// if we don't have any recognized element under the cursor and the right button was pressed, enter view panning mode
-					if( Button == GLFW_MOUSE_BUTTON_RIGHT ) {
-						m_pickmodepanning = true;
-					}
-				}
-            });
+				} );
         }
     }
 }
@@ -494,6 +492,19 @@ drivermouse_input::command() const {
         m_mousecommandright );
 }
 
+// returns pair of bindings associated with specified cab control
+std::pair<user_command, user_command>
+drivermouse_input::bindings( std::string const &Control ) const {
+
+    auto const lookup{ m_buttonbindings.find( Control ) };
+
+    if( lookup != m_buttonbindings.end() )
+        return { lookup->second.left, lookup->second.right };
+    else {
+        return { user_command::none, user_command::none };
+    }
+}
+
 void
 drivermouse_input::default_bindings() {
 
@@ -516,6 +527,15 @@ drivermouse_input::default_bindings() {
         { "dirkey:", {
             user_command::reverserincrease,
             user_command::reverserdecrease } },
+        { "dirforward_bt:", {
+            user_command::reverserforward,
+            user_command::none } },
+        { "dirneutral_bt:", {
+            user_command::reverserneutral,
+            user_command::none } },
+        { "dirbackward_bt:", {
+            user_command::reverserbackward,
+            user_command::none } },
         { "brakectrl:", {
             user_command::trainbrakeset,
             user_command::none } },
@@ -604,6 +624,9 @@ drivermouse_input::default_bindings() {
 		{ "universalbrake3_bt:",{
 			user_command::universalbrakebutton3,
 			user_command::none } },
+		{ "epbrake_bt:",{
+			user_command::epbrakecontroltoggle,
+			user_command::none } },
         { "sand_bt:", {
             user_command::sandboxactivate,
             user_command::none } },
@@ -627,6 +650,15 @@ drivermouse_input::default_bindings() {
             user_command::none } },
         { "converterfuse_bt:", {
             user_command::converteroverloadrelayreset,
+            user_command::none } },
+        { "relayreset1_bt:", {
+            user_command::universalrelayreset1,
+            user_command::none } },
+        { "relayreset2_bt:", {
+            user_command::universalrelayreset2,
+            user_command::none } },
+        { "relayreset3_bt:", {
+            user_command::universalrelayreset3,
             user_command::none } },
         { "stlinoff_bt:", {
             user_command::motorconnectorsopen,
@@ -751,6 +783,15 @@ drivermouse_input::default_bindings() {
         { "radiocall3_sw:", {
             user_command::radiocall3send,
             user_command::none } },
+		{ "radiovolume_sw:",{
+			user_command::radiovolumeincrease,
+			user_command::radiovolumedecrease } },
+		{ "radiovolumeprev_sw:",{
+			user_command::radiovolumedecrease,
+			user_command::none } },
+		{ "radiovolumenext_sw:",{
+			user_command::radiovolumeincrease,
+			user_command::none } },
         { "pantfront_sw:", {
             user_command::pantographtogglefront,
             user_command::none } },
@@ -759,19 +800,22 @@ drivermouse_input::default_bindings() {
             user_command::none } },
         { "pantfrontoff_sw:", {
             user_command::pantographlowerfront,
-            user_command::none } }, // TODO: dedicated lower pantograph commands
+            user_command::none } },
         { "pantrearoff_sw:", {
             user_command::pantographlowerrear,
-            user_command::none } }, // TODO: dedicated lower pantograph commands
+            user_command::none } },
         { "pantalloff_sw:", {
             user_command::pantographlowerall,
             user_command::none } },
         { "pantselected_sw:", {
-            user_command::none,
-            user_command::none } }, // TODO: selected pantograph(s) operation command
+            user_command::pantographtoggleselected,
+            user_command::none } }, // TBD: bind lowerselected in case of toggle switch
         { "pantselectedoff_sw:", {
-            user_command::none,
-            user_command::none } }, // TODO: lower selected pantograp(s) command
+            user_command::pantographlowerselected,
+            user_command::none } },
+        { "pantselect_sw:", {
+            user_command::pantographselectnext,
+            user_command::pantographselectprevious } },
         { "pantcompressor_sw:", {
             user_command::pantographcompressoractivate,
             user_command::none } },
@@ -790,6 +834,9 @@ drivermouse_input::default_bindings() {
         { "nextcurrent_sw:", {
             user_command::mucurrentindicatorothersourceactivate,
             user_command::none } },
+        { "distancecounter_sw:", {
+            user_command::distancecounteractivate,
+            user_command::none } },
         { "instrumentlight_sw:", {
             user_command::instrumentlighttoggle,
             user_command::none } },
@@ -805,9 +852,27 @@ drivermouse_input::default_bindings() {
         { "cablightdim_sw:", {
             user_command::interiorlightdimtoggle,
             user_command::none } },
+        { "compartmentlights_sw:", {
+            user_command::compartmentlightstoggle,
+            user_command::none } },
+        { "compartmentlightson_sw:", {
+            user_command::compartmentlightsenable,
+            user_command::none } },
+        { "compartmentlightsoff_sw:", {
+            user_command::compartmentlightsdisable,
+            user_command::none } },
         { "battery_sw:", {
             user_command::batterytoggle,
             user_command::none } },
+        { "batteryon_sw:", {
+            user_command::batteryenable,
+            user_command::none } },
+        { "batteryoff_sw:", {
+            user_command::batterydisable,
+            user_command::none } },
+        { "couplingdisconnect_sw:",{
+			user_command::occupiedcarcouplingdisconnect,
+			user_command::none } },
         { "universal0:", {
             user_command::generictoggle0,
             user_command::none } },
@@ -837,7 +902,49 @@ drivermouse_input::default_bindings() {
             user_command::none } },
         { "universal9:", {
             user_command::generictoggle9,
-            user_command::none } }
+            user_command::none } },
+		{ "speedinc_bt:",{
+			user_command::speedcontrolincrease,
+			user_command::none } },
+		{ "speeddec_bt:",{
+			user_command::speedcontroldecrease,
+			user_command::none } },
+		{ "speedctrlpowerinc_bt:",{
+			user_command::speedcontrolpowerincrease,
+			user_command::none } },
+		{ "speedctrlpowerdec_bt:",{
+			user_command::speedcontrolpowerdecrease,
+			user_command::none } },
+		{ "speedbutton0:",{
+			user_command::speedcontrolbutton0,
+			user_command::none } },
+		{ "speedbutton1:",{
+			user_command::speedcontrolbutton1,
+			user_command::none } },
+		{ "speedbutton2:",{
+			user_command::speedcontrolbutton2,
+			user_command::none } },
+		{ "speedbutton3:",{
+			user_command::speedcontrolbutton3,
+			user_command::none } },
+		{ "speedbutton4:",{
+			user_command::speedcontrolbutton4,
+			user_command::none } },
+		{ "speedbutton5:",{
+			user_command::speedcontrolbutton5,
+			user_command::none } },
+		{ "speedbutton6:",{
+			user_command::speedcontrolbutton6,
+			user_command::none } },
+		{ "speedbutton7:",{
+			user_command::speedcontrolbutton7,
+			user_command::none } },
+		{ "speedbutton8:",{
+			user_command::speedcontrolbutton8,
+			user_command::none } },
+		{ "speedbutton9:",{
+			user_command::speedcontrolbutton9,
+			user_command::none } },
     };
 }
 

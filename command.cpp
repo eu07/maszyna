@@ -15,6 +15,7 @@ http://mozilla.org/MPL/2.0/.
 #include "Timer.h"
 #include "utilities.h"
 #include "simulation.h"
+#include "Train.h"
 
 namespace simulation {
 
@@ -112,6 +113,9 @@ commanddescription_sequence Commands_descriptions = {
     { "motoroverloadrelaythresholdsetlow", command_target::vehicle, command_mode::oneoff },
     { "motoroverloadrelaythresholdsethigh", command_target::vehicle, command_mode::oneoff },
     { "motoroverloadrelayreset", command_target::vehicle, command_mode::oneoff },
+    { "universalrelayreset1", command_target::vehicle, command_mode::oneoff },
+    { "universalrelayreset2", command_target::vehicle, command_mode::oneoff },
+    { "universalrelayreset3", command_target::vehicle, command_mode::oneoff },
     { "notchingrelaytoggle", command_target::vehicle, command_mode::oneoff },
     { "epbrakecontroltoggle", command_target::vehicle, command_mode::oneoff },
 	{ "trainbrakeoperationmodeincrease", command_target::vehicle, command_mode::oneoff },
@@ -135,10 +139,10 @@ commanddescription_sequence Commands_descriptions = {
     { "radiostopsend", command_target::vehicle, command_mode::oneoff },
     { "radiostoptest", command_target::vehicle, command_mode::oneoff },
     { "radiocall3send", command_target::vehicle, command_mode::oneoff },
-    // TBD, TODO: make cab change controls entity-centric
+	{ "radiovolumeincrease", command_target::vehicle, command_mode::oneoff },
+	{ "radiovolumedecrease", command_target::vehicle, command_mode::oneoff },
     { "cabchangeforward", command_target::vehicle, command_mode::oneoff },
     { "cabchangebackward", command_target::vehicle, command_mode::oneoff },
-
     { "viewturn", command_target::entity, command_mode::oneoff },
     { "movehorizontal", command_target::entity, command_mode::oneoff },
     { "movehorizontalfast", command_target::entity, command_mode::oneoff },
@@ -150,9 +154,11 @@ commanddescription_sequence Commands_descriptions = {
     { "moveback", command_target::entity, command_mode::oneoff },
     { "moveup", command_target::entity, command_mode::oneoff },
     { "movedown", command_target::entity, command_mode::oneoff },
-    // TBD, TODO: make coupling controls entity-centric
-    { "carcouplingincrease", command_target::vehicle, command_mode::oneoff },
-    { "carcouplingdisconnect", command_target::vehicle, command_mode::oneoff },
+    { "nearestcarcouplingincrease", command_target::vehicle, command_mode::oneoff },
+    { "nearestcarcouplingdisconnect", command_target::vehicle, command_mode::oneoff },
+    { "nearestcarcoupleradapterattach", command_target::vehicle, command_mode::oneoff  },
+    { "nearestcarcoupleradapterremove", command_target::vehicle, command_mode::oneoff  },
+    { "occupiedcarcouplingdisconnect", command_target::vehicle, command_mode::oneoff  },
     { "doortoggleleft", command_target::vehicle, command_mode::oneoff },
     { "doortoggleright", command_target::vehicle, command_mode::oneoff },
     { "doorpermitleft", command_target::vehicle, command_mode::oneoff },
@@ -170,6 +176,8 @@ commanddescription_sequence Commands_descriptions = {
     { "departureannounce", command_target::vehicle, command_mode::oneoff },
     { "doorlocktoggle", command_target::vehicle, command_mode::oneoff },
     { "pantographcompressorvalvetoggle", command_target::vehicle, command_mode::oneoff },
+    { "pantographcompressorvalveenable", command_target::vehicle, command_mode::oneoff },
+    { "pantographcompressorvalvedisable", command_target::vehicle, command_mode::oneoff },
     { "pantographcompressoractivate", command_target::vehicle, command_mode::oneoff },
     { "pantographtogglefront", command_target::vehicle, command_mode::oneoff },
     { "pantographtogglerear", command_target::vehicle, command_mode::oneoff },
@@ -178,6 +186,11 @@ commanddescription_sequence Commands_descriptions = {
     { "pantographlowerfront", command_target::vehicle, command_mode::oneoff },
     { "pantographlowerrear", command_target::vehicle, command_mode::oneoff },
     { "pantographlowerall", command_target::vehicle, command_mode::oneoff },
+    { "pantographselectnext", command_target::vehicle, command_mode::oneoff },
+    { "pantographselectprevious", command_target::vehicle, command_mode::oneoff },
+    { "pantographtoggleselected", command_target::vehicle, command_mode::oneoff },
+    { "pantographraiseselected", command_target::vehicle, command_mode::oneoff },
+    { "pantographlowerselected", command_target::vehicle, command_mode::oneoff },
     { "heatingtoggle", command_target::vehicle, command_mode::oneoff },
     { "heatingenable", command_target::vehicle, command_mode::oneoff },
     { "heatingdisable", command_target::vehicle, command_mode::oneoff },
@@ -217,6 +230,9 @@ commanddescription_sequence Commands_descriptions = {
     { "interiorlightdimtoggle", command_target::vehicle, command_mode::oneoff },
     { "interiorlightdimenable", command_target::vehicle, command_mode::oneoff },
     { "interiorlightdimdisable", command_target::vehicle, command_mode::oneoff },
+    { "compartmentlightstoggle", command_target::vehicle, command_mode::oneoff },
+    { "compartmentlightsenable", command_target::vehicle, command_mode::oneoff },
+    { "compartmentlightsdisable", command_target::vehicle, command_mode::oneoff },
     { "instrumentlighttoggle", command_target::vehicle, command_mode::oneoff },
     { "instrumentlightenable", command_target::vehicle, command_mode::oneoff },
     { "instrumentlightdisable", command_target::vehicle, command_mode::oneoff },
@@ -247,6 +263,21 @@ commanddescription_sequence Commands_descriptions = {
     { "springbrakeshutoffenable", command_target::vehicle, command_mode::oneoff },
     { "springbrakeshutoffdisable", command_target::vehicle, command_mode::oneoff },
     { "springbrakerelease", command_target::vehicle },
+    { "distancecounteractivate", command_target::vehicle, command_mode::oneoff },
+    { "speedcontrolincrease", command_target::vehicle, command_mode::oneoff },
+	{ "speedcontroldecrease", command_target::vehicle, command_mode::oneoff },
+	{ "speedcontrolpowerincrease", command_target::vehicle, command_mode::oneoff },
+	{ "speedcontrolpowerdecrease", command_target::vehicle, command_mode::oneoff },
+	{ "speedcontrolbutton0", command_target::vehicle, command_mode::oneoff },
+	{ "speedcontrolbutton1", command_target::vehicle, command_mode::oneoff },
+	{ "speedcontrolbutton2", command_target::vehicle, command_mode::oneoff },
+	{ "speedcontrolbutton3", command_target::vehicle, command_mode::oneoff },
+	{ "speedcontrolbutton4", command_target::vehicle, command_mode::oneoff },
+	{ "speedcontrolbutton5", command_target::vehicle, command_mode::oneoff },
+	{ "speedcontrolbutton6", command_target::vehicle, command_mode::oneoff },
+	{ "speedcontrolbutton7", command_target::vehicle, command_mode::oneoff },
+	{ "speedcontrolbutton8", command_target::vehicle, command_mode::oneoff },
+	{ "speedcontrolbutton9", command_target::vehicle, command_mode::oneoff },
     { "globalradiostop", command_target::simulation, command_mode::oneoff },
     { "timejump", command_target::simulation, command_mode::oneoff },
     { "timejumplarge", command_target::simulation, command_mode::oneoff },
@@ -335,7 +366,7 @@ command_queue::pop( command_data &Command, uint32_t const Recipient ) {
     }
     // we have command stack with command(s) on it, retrieve and pop the first one
     Command = commands.front();
-	commands.pop_front();
+    commands.pop_front();
 
     return true;
 }

@@ -28,6 +28,12 @@ global_settings Global;
 void
 global_settings::LoadIniFile(std::string asFileName) {
 
+    // initialize season data in case the main config file doesn't
+    std::time_t timenow = std::time( 0 );
+    std::tm *localtime = std::localtime( &timenow );
+    fMoveLight = localtime->tm_yday + 1; // numer bieżącego dnia w roku
+    simulation::Environment.compute_season( fMoveLight );
+
     cParser parser(asFileName, cParser::buffer_FILE);
     ConfigParse(parser);
 };
@@ -154,6 +160,21 @@ global_settings::ConfigParse(cParser &Parser) {
 			Parser.getTokens();
 			Parser >> audio_max_sources;
 		}
+        else if( token == "sound.volume.vehicle" ) {
+            Parser.getTokens();
+            Parser >> VehicleVolume;
+            VehicleVolume = clamp( VehicleVolume, 0.f, 1.f );
+        }
+        else if( token == "sound.volume.positional" ) {
+            Parser.getTokens();
+            Parser >> EnvironmentPositionalVolume;
+            EnvironmentPositionalVolume = clamp( EnvironmentPositionalVolume, 0.f, 1.f );
+        }
+        else if( token == "sound.volume.ambient" ) {
+            Parser.getTokens();
+            Parser >> EnvironmentAmbientVolume;
+            EnvironmentAmbientVolume = clamp( EnvironmentAmbientVolume, 0.f, 1.f );
+        }
         // else if (str==AnsiString("renderalpha")) //McZapkie-1312302 - dwuprzebiegowe renderowanie
         // bRenderAlpha=(GetNextSymbol().LowerCase()==AnsiString("yes"));
         else if (token == "physicslog")
@@ -267,6 +288,11 @@ global_settings::ConfigParse(cParser &Parser) {
 			if (AnisotropicFiltering < 1.0f)
 				AnisotropicFiltering = 1.0f;
         }
+        else if( token == "usevbo" ) {
+
+            Parser.getTokens( 1 );
+            Parser >> bUseVBO;
+        }
         else if (token == "feedbackmode")
         {
 
@@ -291,15 +317,15 @@ global_settings::ConfigParse(cParser &Parser) {
             Parser.getTokens(1, false);
             int size;
             Parser >> size;
-                 if (size <= 64)   { iMaxTextureSize = 64; }
-            else if (size <= 128)  { iMaxTextureSize = 128; }
-            else if (size <= 256)  { iMaxTextureSize = 256; }
-            else if (size <= 512)  { iMaxTextureSize = 512; }
-            else if (size <= 1024) { iMaxTextureSize = 1024; }
-            else if (size <= 2048) { iMaxTextureSize = 2048; }
-            else if (size <= 4096) { iMaxTextureSize = 4096; }
-            else if (size <= 8192) { iMaxTextureSize = 8192; }
-            else                   { iMaxTextureSize = 16384; }
+            iMaxTextureSize = clamp_power_of_two( size, 512, 8192 );
+        }
+        else if (token == "maxcabtexturesize")
+        {
+            // wymuszenie przeskalowania tekstur
+            Parser.getTokens( 1, false );
+            int size;
+            Parser >> size;
+            iMaxCabTextureSize = clamp_power_of_two( size, 512, 8192 );
         }
         else if (token == "movelight")
         {
@@ -361,15 +387,44 @@ global_settings::ConfigParse(cParser &Parser) {
             Parser.getTokens();
             Parser >> ScaleSpecularValues;
         }
-        else if( token == "shadowtune" ) {
+        else if( token == "gfxrenderer" ) {
+            // shadow render toggle
+            Parser.getTokens();
+            Parser >> GfxRenderer;
+            if( GfxRenderer == "full" ) {
+                GfxRenderer = "default";
+            }
+            BasicRenderer = ( GfxRenderer == "simple" );
+            LegacyRenderer = ( GfxRenderer != "default" );
+        }
+        else if( token == "shadows" ) {
+            // shadow render toggle
+            Parser.getTokens();
+            Parser >> RenderShadows;
+       }
+       else if( token == "shadowtune" ) {
             Parser.getTokens( 4, false );
+            float discard;
             Parser
                 >> shadowtune.map_size
-                >> shadowtune.width
-                >> shadowtune.depth
-                >> shadowtune.distance;
+                >> discard
+                >> shadowtune.range
+                >> discard;
+            shadowtune.map_size = clamp_power_of_two<unsigned int>( shadowtune.map_size, 512, 8192 );
+            // make sure we actually make effective use of all csm stages
+            shadowtune.range =
+                std::max(
+                    ( shadowtune.map_size <= 2048 ?
+                        75.f :
+                        75.f * shadowtune.map_size / 2048 ),
+                    shadowtune.range );
+       }
+       else if( token == "gfx.shadows.cab.range" ) {
+            // shadow render toggle
+            Parser.getTokens();
+            Parser >> RenderCabShadowsRange;
         }
-        else if( token == "gfx.smoke" ) {
+         else if( token == "gfx.smoke" ) {
             // smoke visualization toggle
             Parser.getTokens();
             Parser >> Smoke;
@@ -381,7 +436,12 @@ global_settings::ConfigParse(cParser &Parser) {
             Parser >> smokefidelity;
             SmokeFidelity = clamp( smokefidelity, 1.f, 4.f );
         }
-        if( token == "splinefidelity" ) {
+        else if( token == "smoothtraction" ) {
+            // podwójna jasność ambient
+            Parser.getTokens();
+            Parser >> bSmoothTraction;
+        }
+        else if( token == "splinefidelity" ) {
             // segment size during spline->geometry conversion
             float splinefidelity;
             Parser.getTokens();
@@ -392,10 +452,6 @@ global_settings::ConfigParse(cParser &Parser) {
 			Parser.getTokens();
 			Parser >> render_cab;
 		}
-        else if (token == "skipmainrender") {
-            Parser.getTokens();
-            Parser >> skip_main_render;
-        }
         else if( token == "createswitchtrackbeds" ) {
             // podwójna jasność ambient
             Parser.getTokens();
@@ -414,7 +470,12 @@ global_settings::ConfigParse(cParser &Parser) {
         else if( token == "gfx.reflections.framerate" ) {
 
             auto const updatespersecond { std::abs( Parser.getToken<double>() ) };
-			ReflectionUpdateInterval = 1.0 / updatespersecond;
+			reflectiontune.update_interval = 1.0 / updatespersecond;
+        }
+        else if( token == "gfx.reflections.fidelity" ) {
+            Parser.getTokens( 1, false );
+            Parser >> reflectiontune.fidelity;
+            reflectiontune.fidelity = clamp( reflectiontune.fidelity, 0, 2 );
         }
         else if (token == "timespeed")
         {
@@ -453,6 +514,11 @@ global_settings::ConfigParse(cParser &Parser) {
                 ( iConvertModels > 128 ?
                     iConvertModels - 128 :
                     0 );
+        }
+        else if( token == "file.binary.terrain" ) {
+            // binary terrain (de)serialization
+            Parser.getTokens( 1, false );
+            Parser >> file_binary_terrain;
         }
         else if (token == "inactivepause")
         {
@@ -860,6 +926,16 @@ global_settings::ConfigParse(cParser &Parser) {
             Parser.getTokens(1);
             Parser >> gfx_shadergamma;
         }
+        else if (token == "ui.fontsize")
+        {
+            Parser.getTokens(1);
+            Parser >> ui_fontsize;
+        }
+        else if (token == "ui.scale")
+        {
+            Parser.getTokens(1);
+            Parser >> ui_scale;
+        }
 		else if (token == "python.displaywindows")
 		{
 			Parser.getTokens(1);
@@ -976,6 +1052,118 @@ global_settings::ConfigParse(cParser &Parser) {
             Parser.getTokens(1);
             Parser >> vr_backend;
         }
+        else if (token == "gfx.postfx.motionblur.shutter")
+        {
+            Parser.getTokens(1);
+            Parser >> gfx_postfx_motionblur_shutter;
+        }
+        else if (token == "gfx.postfx.motionblur.format")
+        {
+            Parser.getTokens(1);
+            std::string token;
+            Parser >> token;
+            if (token == "rg16f")
+                gfx_postfx_motionblur_format = GL_RG16F;
+            else if (token == "rg32f")
+                gfx_postfx_motionblur_format = GL_RG32F;
+        }
+        else if (token == "gfx.postfx.chromaticaberration.enabled")
+        {
+            Parser.getTokens(1);
+            Parser >> gfx_postfx_chromaticaberration_enabled;
+        }
+        else if (token == "gfx.format.color")
+        {
+            Parser.getTokens(1);
+            std::string token;
+            Parser >> token;
+            if (token == "rgb8")
+                gfx_format_color = GL_RGB8;
+            else if (token == "rgb16f")
+                gfx_format_color = GL_RGB16F;
+            else if (token == "rgb32f")
+                gfx_format_color = GL_RGB32F;
+            else if (token == "r11f_g11f_b10f")
+                gfx_format_color = GL_R11F_G11F_B10F;
+        }
+        else if (token == "gfx.format.depth")
+        {
+            Parser.getTokens(1);
+            std::string token;
+            Parser >> token;
+            if (token == "z16")
+                gfx_format_depth = GL_DEPTH_COMPONENT16;
+            else if (token == "z24")
+                gfx_format_depth = GL_DEPTH_COMPONENT24;
+            else if (token == "z32")
+                gfx_format_depth = GL_DEPTH_COMPONENT32;
+            else if (token == "z32f")
+                gfx_format_depth = GL_DEPTH_COMPONENT32F;
+        }
+        else if (token == "gfx.skiprendering")
+        {
+            Parser.getTokens(1);
+            Parser >> gfx_skiprendering;
+        }
+        else if (token == "gfx.skippipeline")
+        {
+            Parser.getTokens(1);
+            Parser >> gfx_skippipeline;
+        }
+        else if (token == "gfx.extraeffects")
+        {
+            Parser.getTokens(1);
+            Parser >> gfx_extraeffects;
+        }
+		else if (token == "python.enabled")
+		{
+			Parser.getTokens(1);
+			Parser >> python_enabled;
+		}
+		else if (token == "python.threadedupload")
+		{
+			Parser.getTokens(1);
+			Parser >> python_threadedupload;
+		}
+		else if (token == "python.uploadmain")
+		{
+			Parser.getTokens(1);
+			Parser >> python_uploadmain;
+		}
+        else if (token == "python.mipmaps")
+		{
+			Parser.getTokens(1);
+			Parser >> python_mipmaps;
+		}
+		else if (token == "network.server")
+		{
+			Parser.getTokens(2);
+
+			std::string backend;
+			std::string conf;
+			Parser >> backend >> conf;
+
+			network_servers.push_back(std::make_pair(backend, conf));
+		}
+		else if (token == "network.client")
+		{
+			Parser.getTokens(2);
+
+			network_client.emplace();
+			Parser >> network_client->first;
+			Parser >> network_client->second;
+		}
+		else if (token == "execonexit") {
+			Parser.getTokens(1);
+			Parser >> exec_on_exit;
+			std::replace(std::begin(exec_on_exit), std::end(exec_on_exit), '_', ' ');
+		}
+/*
+		else if (token == "crashdamage") {
+			Parser.getTokens(1);
+			Parser >> crash_damage;
+		}
+*/
     } while ((token != "") && (token != "endconfig")); //(!Parser->EndOfFile)
     // na koniec trochę zależności
     if (!bLoadTraction) // wczytywanie drutów i słupów
@@ -995,26 +1183,252 @@ global_settings::ConfigParse(cParser &Parser) {
 */
     if (iPause)
         iTextMode = GLFW_KEY_F1; // jak pauza, to pokazać zegar
-    /*  this won't execute anymore with the old parser removed
-            // TBD: remove, or launch depending on passed flag?
-        if (qp)
-    { // to poniżej wykonywane tylko raz, jedynie po wczytaniu eu07.ini*/
+
 #ifdef _WIN32
 		    Console::ModeSet(iFeedbackMode, iFeedbackPort); // tryb pracy konsoli sterowniczej
 #endif
-            /*iFpsRadiusMax = 0.000025 * fFpsRadiusMax *
-                        fFpsRadiusMax; // maksymalny promień renderowania 3000.0 -> 225
-            if (iFpsRadiusMax > 400)
-                iFpsRadiusMax = 400;
-            if (fDistanceFactor > 1.0)
-            { // dla 1.0 specjalny tryb bez przeliczania
-                fDistanceFactor =
-                    iWindowHeight /
-                fDistanceFactor; // fDistanceFactor>1.0 dla rozdzielczości większych niż bazowa
-                fDistanceFactor *=
-                    (iMultisampling + 1.0) *
-                fDistanceFactor; // do kwadratu, bo większość odległości to ich kwadraty
-            }
-        }
-    */
+}
+
+void
+global_settings::export_as_text( std::ostream &Output ) const {
+
+    export_as_text( Output, "sceneryfile", SceneryFile );
+    export_as_text( Output, "humanctrlvehicle", local_start_vehicle );
+    export_as_text( Output, "fieldofview", FieldOfView );
+    export_as_text( Output, "width", iWindowWidth );
+    export_as_text( Output, "height", iWindowHeight );
+    export_as_text( Output, "targetfps", targetfps );
+    export_as_text( Output, "basedrawrange", BaseDrawRange );
+    export_as_text( Output, "fullscreen", bFullScreen );
+    export_as_text( Output, "fullscreenmonitor", fullscreen_monitor );
+    export_as_text( Output, "vsync", VSync );
+    // NOTE: values are changed dynamically during simulation. cache initial settings and export instead
+    if( FreeFlyModeFlag ) {
+        Output
+            << "freefly yes "
+            << FreeCameraInit[ 0 ].x << " "
+            << FreeCameraInit[ 0 ].y << " "
+            << FreeCameraInit[ 0 ].z << "\n";
+    }
+    else {
+        export_as_text( Output, "freefly", FreeFlyModeFlag );
+    }
+    export_as_text( Output, "wireframe", bWireFrame );
+    export_as_text( Output, "debugmode", DebugModeFlag );
+    export_as_text( Output, "soundenabled", bSoundEnabled );
+    export_as_text( Output, "sound.openal.renderer", AudioRenderer );
+    export_as_text( Output, "sound.volume", AudioVolume );
+    export_as_text( Output, "sound.volume.radio", RadioVolume );
+    export_as_text( Output, "sound.volume.vehicle", VehicleVolume );
+    export_as_text( Output, "sound.volume.positional", EnvironmentPositionalVolume );
+    export_as_text( Output, "sound.volume.ambient", EnvironmentAmbientVolume );
+    export_as_text( Output, "physicslog", WriteLogFlag );
+    export_as_text( Output, "fullphysics", FullPhysics );
+    export_as_text( Output, "debuglog", iWriteLogEnabled );
+    export_as_text( Output, "multiplelogs", MultipleLogs );
+    export_as_text( Output, "logs.filter", DisabledLogTypes );
+    Output
+        << "mousescale "
+        << fMouseXScale << " "
+        << fMouseYScale << "\n";
+    export_as_text( Output, "mousecontrol", InputMouse );
+    export_as_text( Output, "enabletraction", bEnableTraction );
+    export_as_text( Output, "loadtraction", bLoadTraction );
+    export_as_text( Output, "friction", fFriction );
+    export_as_text( Output, "livetraction", bLiveTraction );
+    export_as_text( Output, "skyenabled", asSky );
+    export_as_text( Output, "defaultext", szDefaultExt );
+    export_as_text( Output, "newaircouplers", bnewAirCouplers );
+    export_as_text( Output, "anisotropicfiltering", AnisotropicFiltering );
+    export_as_text( Output, "usevbo", bUseVBO );
+    export_as_text( Output, "feedbackmode", iFeedbackMode );
+    export_as_text( Output, "feedbackport", iFeedbackPort );
+    export_as_text( Output, "multiplayer", iMultiplayer );
+    export_as_text( Output, "maxtexturesize", iMaxTextureSize );
+    export_as_text( Output, "maxcabtexturesize", iMaxCabTextureSize );
+    export_as_text( Output, "movelight", fMoveLight );
+    export_as_text( Output, "dynamiclights", DynamicLightCount );
+    if( std::isnormal( ScenarioTimeOverride ) ) {
+        export_as_text( Output, "scenario.time.override", ScenarioTimeOverride );
+    }
+    export_as_text( Output, "scenario.time.offset", ScenarioTimeOffset );
+    export_as_text( Output, "scenario.time.current", ScenarioTimeCurrent );
+    export_as_text( Output, "scenario.weather.temperature", AirTemperature );
+    export_as_text( Output, "scalespeculars", ScaleSpecularValues );
+    export_as_text( Output, "gfxrenderer", GfxRenderer );
+    export_as_text( Output, "shadows", RenderShadows );
+    Output
+        << "shadowtune "
+        << shadowtune.map_size << " "
+        << 0 << " "
+        << shadowtune.range << " "
+        << 0 << "\n";
+    export_as_text( Output, "gfx.shadows.cab.range", RenderCabShadowsRange );
+    export_as_text( Output, "gfx.smoke", Smoke );
+    export_as_text( Output, "gfx.smoke.fidelity", SmokeFidelity );
+    export_as_text( Output, "smoothtraction", bSmoothTraction );
+    export_as_text( Output, "splinefidelity", SplineFidelity );
+    export_as_text( Output, "rendercab", render_cab );
+    export_as_text( Output, "createswitchtrackbeds", CreateSwitchTrackbeds );
+    export_as_text( Output, "gfx.resource.sweep", ResourceSweep );
+    export_as_text( Output, "gfx.resource.move", ResourceMove );
+    export_as_text( Output, "gfx.reflections.framerate", 1.0 / reflectiontune.update_interval );
+    export_as_text( Output, "gfx.reflections.fidelity", reflectiontune.fidelity );
+    export_as_text( Output, "timespeed", fTimeSpeed );
+    export_as_text( Output, "multisampling", iMultisampling );
+    export_as_text( Output, "latitude", fLatitudeDeg );
+    export_as_text( Output, "convertmodels", iConvertModels + ( iConvertModels > 0 ? 128 : 0 ) );
+    export_as_text( Output, "file.binary.terrain", file_binary_terrain );
+    export_as_text( Output, "inactivepause", bInactivePause );
+    export_as_text( Output, "slowmotion", iSlowMotionMask );
+    export_as_text( Output, "hideconsole", bHideConsole );
+    export_as_text( Output, "rollfix", bRollFix );
+    export_as_text( Output, "fpsaverage", fFpsAverage );
+    export_as_text( Output, "fpsdeviation", fFpsDeviation );
+    for( auto idx = 0; idx < 6; ++idx ) {
+        Output
+            << "calibrate5din "
+            << idx << " "
+            << fCalibrateIn[ idx ][ 0 ] << " "
+            << fCalibrateIn[ idx ][ 1 ] << " "
+            << fCalibrateIn[ idx ][ 2 ] << " "
+            << fCalibrateIn[ idx ][ 3 ] << " "
+            << fCalibrateIn[ idx ][ 4 ] << " "
+            << fCalibrateIn[ idx ][ 5 ] << "\n";
+    }
+    for( auto idx = 0; idx < 6; ++idx ) {
+        Output
+            << "calibrate5dout "
+            << idx << " "
+            << fCalibrateOut[ idx ][ 0 ] << " "
+            << fCalibrateOut[ idx ][ 1 ] << " "
+            << fCalibrateOut[ idx ][ 2 ] << " "
+            << fCalibrateOut[ idx ][ 3 ] << " "
+            << fCalibrateOut[ idx ][ 4 ] << " "
+            << fCalibrateOut[ idx ][ 5 ] << "\n";
+    }
+    Output
+        << "calibrateoutmaxvalues "
+        << fCalibrateOutMax[ 0 ] << " "
+        << fCalibrateOutMax[ 1 ] << " "
+        << fCalibrateOutMax[ 2 ] << " "
+        << fCalibrateOutMax[ 3 ] << " "
+        << fCalibrateOutMax[ 4 ] << " "
+        << fCalibrateOutMax[ 5 ] << " "
+        << fCalibrateOutMax[ 6 ] << "\n";
+    export_as_text( Output, "calibrateoutdebuginfo", iCalibrateOutDebugInfo );
+    for( auto idx = 0; idx < 7; ++idx ) {
+        Output
+            << "pwm "
+            << idx << " "
+            << iPoKeysPWM[ idx ] << "\n";
+    }
+    export_as_text( Output, "brakestep", fBrakeStep );
+    export_as_text( Output, "joinduplicatedevents", bJoinEvents );
+    export_as_text( Output, "hiddenevents", iHiddenEvents );
+    export_as_text( Output, "pause", ( iPause & 1 ) != 0 );
+    export_as_text( Output, "lang", asLang );
+    export_as_text( Output, "python.updatetime", PythonScreenUpdateRate );
+    Output
+        << "uitextcolor "
+        << UITextColor.r * 255 << " "
+        << UITextColor.g * 255 << " "
+        << UITextColor.b * 255 << "\n";
+    export_as_text( Output, "ui.bg.opacity", UIBgOpacity );
+    export_as_text( Output, "input.gamepad", InputGamepad );
+#ifdef WITH_UART
+    if( uart_conf.enable ) {
+        Output
+            << "uart "
+            << uart_conf.port << " "
+            << uart_conf.baud << " "
+            << uart_conf.updatetime << "\n";
+    }
+    Output
+        << "uarttune "
+        << uart_conf.mainbrakemin << " "
+        << uart_conf.mainbrakemax << " "
+        << uart_conf.localbrakemin << " "
+        << uart_conf.localbrakemax << " "
+        << uart_conf.tankmax << " "
+        << uart_conf.tankuart << " "
+        << uart_conf.pipemax << " "
+        << uart_conf.pipeuart << " "
+        << uart_conf.brakemax << " "
+        << uart_conf.brakeuart << " "
+        << uart_conf.hvmax << " "
+        << uart_conf.hvuart << " "
+        << uart_conf.currentmax << " "
+        << uart_conf.currentuart << " "
+        << uart_conf.lvmax << " "
+        << uart_conf.lvuart << "\n";
+    export_as_text( Output, "uarttachoscale", uart_conf.tachoscale );
+    Output
+        << "uartfeature "
+        << uart_conf.mainenable << " "
+        << uart_conf.scndenable << " "
+        << uart_conf.trainenable << " "
+        << uart_conf.localenable << "\n";
+    export_as_text( Output, "uartdebug", uart_conf.debug );
+#endif
+#ifdef USE_EXTCAM_CAMERA
+    export_as_text( Output, "extcam.cmd", extcam_cmd );
+    export_as_text( Output, "extcam.rec", extcam_rec );
+    Output
+        << "extcam.res "
+        << extcam_res.x << " "
+        << extcam_res.y << "\n";
+#endif
+    export_as_text( Output, "compresstex", compress_tex );
+    export_as_text( Output, "gfx.framebuffer.width", gfx_framebuffer_width );
+    export_as_text( Output, "gfx.framebuffer.height", gfx_framebuffer_height );
+    export_as_text( Output, "gfx.shadowmap.enabled", gfx_shadowmap_enabled );
+    // TODO: export fpslimit
+    export_as_text( Output, "randomseed", Global.random_seed );
+    export_as_text( Output, "gfx.envmap.enabled", gfx_envmap_enabled );
+    export_as_text( Output, "gfx.postfx.motionblur.enabled", gfx_postfx_motionblur_enabled );
+    export_as_text( Output, "gfx.postfx.motionblur.shutter", gfx_postfx_motionblur_shutter );
+    // TODO: export gfx_postfx_motionblur_format
+    export_as_text( Output, "gfx.postfx.chromaticaberration.enabled", gfx_postfx_chromaticaberration_enabled );
+    // TODO: export gfx_format_color
+    // TODO: export gfx_format_depth
+    export_as_text( Output, "gfx.skiprendering", gfx_skiprendering );
+    export_as_text( Output, "gfx.skippipeline", gfx_skippipeline );
+    export_as_text( Output, "gfx.extraeffects", gfx_extraeffects );
+    export_as_text( Output, "python.enabled", python_enabled );
+    export_as_text( Output, "python.threadedupload", python_threadedupload );
+    export_as_text( Output, "python.uploadmain", python_uploadmain );
+    export_as_text( Output, "python.mipmaps", python_mipmaps );
+    for( auto const &server : network_servers ) {
+        Output
+            << "network.server "
+            << server.first << " " << server.second << "\n";
+    }
+    if( false == network_client->first.empty() ) {
+        Output
+            << "network.client "
+            << network_client->first << " " << network_client->second << "\n";
+    }
+    export_as_text( Output, "execonexit", exec_on_exit );
+}
+
+template <>
+void
+global_settings::export_as_text( std::ostream &Output, std::string const Key, std::string const &Value ) const {
+
+    if( Value.empty() ) { return; }
+
+    if( Value.find( ' ' ) != std::string::npos ) {
+        Output << Key << " \"" << Value << "\"\n";
+    }
+    else {
+        Output << Key << " " << Value << "\n";
+    }
+}
+
+template <>
+void
+global_settings::export_as_text( std::ostream &Output, std::string const Key, bool const &Value ) const {
+
+    Output << Key << " " << ( Value ? "yes" : "no" ) << "\n";
 }
