@@ -727,7 +727,7 @@ global_settings::ConfigParse(cParser &Parser) {
 			Parser >> Global.motiontelemetry_conf.latposbased;
 			Parser >> Global.motiontelemetry_conf.axlebumpscale;
 		}
-		else if (token == "screenshotsdir")
+        if (token == "screenshotsdir")
 		{
 			Parser.getTokens(1);
 			Parser >> Global.screenshot_dir;

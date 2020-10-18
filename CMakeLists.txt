@@ -184,6 +184,8 @@ set(SOURCES
 "launcher/keymapper.cpp"
 "launcher/textures_scanner.cpp"
 "launcher/scenery_scanner.cpp"
+
+"vr/vr_interface.cpp"
 )
 
 if (USE_IMGUI_GL3)
@@ -205,7 +207,7 @@ endif()
 
 if (WITH_OPENVR)
         add_definitions(-DWITH_OPENVR)
-        set(SOURCES ${SOURCES} "vr/openvr_imp.cpp" "vr/vr_interface.cpp")
+        set(SOURCES ${SOURCES} "vr/openvr_imp.cpp")
 endif()
 
 if (WITH_OPENGL_MODERN)
