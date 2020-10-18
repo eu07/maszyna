@@ -537,7 +537,7 @@ std::pair<int, int> TSubModel::Load( cParser &parser, bool dynamic )
                     auto vertices { std::begin( Vertices ) };
                     for( auto idx = 0; idx < m_geometry.vertex_count; ++idx ) {
                         auto vertex { vertices + idx };
-                        parser.getTokens( 3 + 3 + 2 + 3, false );
+                        parser.getTokens( 3 + 3 + 2 + 4, false );
                         parser
                             >> vertex->position.x
                             >> vertex->position.y
@@ -549,7 +549,8 @@ std::pair<int, int> TSubModel::Load( cParser &parser, bool dynamic )
                             >> vertex->texture.t
                             >> vertex->tangent.x
                             >> vertex->tangent.y
-                            >> vertex->tangent.z;
+                            >> vertex->tangent.z
+                            >> vertex->tangent.w;
                     }
                 }
                 else {
