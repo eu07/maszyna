@@ -58,6 +58,7 @@
 #include <random>
 #include <algorithm>
 #include <functional>
+#include <numeric>
 #include <regex>
 #include <limits>
 #include <memory>
@@ -92,6 +93,7 @@
 #include <glm/gtc/matrix_access.hpp>
 #include <glm/gtc/type_ptr.hpp>
 #include <glm/gtc/epsilon.hpp>
+#include <glm/gtc/packing.hpp>
 #include <glm/gtx/rotate_vector.hpp>
 #include <glm/gtx/norm.hpp>
 #include <glm/gtx/string_cast.hpp>

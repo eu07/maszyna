@@ -350,12 +350,12 @@ shape_node::convert( TSubModel const *Submodel ) {
     // NOTE: we set unlimited view range typical for terrain, because we don't expect to convert any other 3d models
     m_data.rangesquared_max = std::numeric_limits<double>::max();
 
-    if( Submodel->m_geometry == null_handle ) { return *this; }
+    if( Submodel->m_geometry.handle == null_handle ) { return *this; }
 
     int vertexcount { 0 };
     std::vector<world_vertex> importedvertices;
     world_vertex vertex, vertex1, vertex2;
-    for( auto const &sourcevertex : GfxRenderer->Vertices( Submodel->m_geometry ) ) {
+    for( auto const &sourcevertex : GfxRenderer->Vertices( Submodel->m_geometry.handle ) ) {
         vertex.position = sourcevertex.position;
         vertex.normal   = sourcevertex.normal;
         vertex.texture  = sourcevertex.texture;

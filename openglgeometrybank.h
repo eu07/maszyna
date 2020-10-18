@@ -27,14 +27,16 @@ public:
     static
     void
         reset() {
-            m_activebuffer = 0;
+            m_activevertexbuffer = 0;
             m_activestreams = gfx::stream::none; }
 
 private:
 // types:
-    struct chunk_record{
-        std::size_t offset{ 0 }; // beginning of the chunk data as offset from the beginning of the last established buffer
-        std::size_t size{ 0 }; // size of the chunk in the last established buffer
+    struct chunk_record {
+        std::size_t vertex_offset{ 0 }; // beginning of the chunk vertex data as offset from the beginning of the last established buffer
+        std::size_t vertex_count{ 0 }; // size of the chunk in the last established buffer
+        std::size_t index_offset{ 0 };
+        std::size_t index_count{ 0 };
         bool is_good{ false }; // true if local content of the chunk matches the data on the opengl end
     };
 
@@ -67,11 +69,11 @@ private:
         release_streams();
 
 // members:
-    static GLuint m_activebuffer; // buffer bound currently on the opengl end, if any
+    static GLuint m_activevertexbuffer; // buffer bound currently on the opengl end, if any
     static unsigned int m_activestreams;
     static std::vector<GLint> m_activetexturearrays;
-    GLuint m_buffer { 0 }; // id of the buffer holding data on the opengl end
-    std::size_t m_buffercapacity{ 0 }; // total capacity of the last established buffer
+    GLuint m_vertexbuffer { 0 }; // id of the buffer holding vertex data on the opengl end
+    GLuint m_indexbuffer { 0 }; // id of the buffer holding index data on the opengl end
     chunkrecord_sequence m_chunkrecords; // helper data for all stored geometry chunks, in matching order
 
 };

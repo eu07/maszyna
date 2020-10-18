@@ -43,6 +43,8 @@ public:
     // main draw call. returns false on error
     bool
         Render() override;
+    void
+        SwapBuffers() override;
     inline
     float
         Framerate() override { return m_framerate; }
@@ -51,7 +53,10 @@ public:
     // creates a new geometry bank. returns: handle to the bank or NULL
     gfx::geometrybank_handle
         Create_Bank() override;
-    // creates a new geometry chunk of specified type from supplied vertex data, in specified bank. returns: handle to the chunk or NULL
+    // creates a new indexed geometry chunk of specified type from supplied data, in specified bank. returns: handle to the chunk or NULL
+    gfx::geometry_handle
+        Insert( gfx::index_array &Indices, gfx::vertex_array &Vertices, gfx::geometrybank_handle const &Geometry, int const Type ) override;
+    // creates a new geometry chunk of specified type from supplied data, in specified bank. returns: handle to the chunk or NULL
     gfx::geometry_handle
         Insert( gfx::vertex_array &Vertices, gfx::geometrybank_handle const &Geometry, int const Type ) override;
     // replaces data of specified chunk with the supplied vertex data, starting from specified offset
@@ -60,6 +65,9 @@ public:
     // adds supplied vertex data at the end of specified chunk
     bool
         Append( gfx::vertex_array &Vertices, gfx::geometry_handle const &Geometry, int const Type ) override;
+    // provides direct access to index data of specfied chunk
+    gfx::index_array const &
+        Indices( gfx::geometry_handle const &Geometry ) const override;
     // provides direct access to vertex data of specfied chunk
     gfx::vertex_array const &
         Vertices( gfx::geometry_handle const &Geometry ) const override;
@@ -111,7 +119,6 @@ public:
 
 // members
     GLenum static const sunlight { GL_LIGHT0 };
-    std::size_t m_drawcount { 0 };
 
 private:
 // types

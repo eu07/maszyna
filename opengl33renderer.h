@@ -49,6 +49,8 @@ class opengl33_renderer : public gfx_renderer {
     // main draw call. returns false on error
     bool
         Render() override;
+    void
+        SwapBuffers() override;
     inline
     float
         Framerate() override { return m_framerate; }
@@ -57,7 +59,10 @@ class opengl33_renderer : public gfx_renderer {
     // creates a new geometry bank. returns: handle to the bank or NULL
     gfx::geometrybank_handle
         Create_Bank() override;
-    // creates a new geometry chunk of specified type from supplied vertex data, in specified bank. returns: handle to the chunk or NULL
+    // creates a new indexed geometry chunk of specified type from supplied data, in specified bank. returns: handle to the chunk or NULL
+    gfx::geometry_handle
+        Insert( gfx::index_array &Indices, gfx::vertex_array &Vertices, gfx::geometrybank_handle const &Geometry, int const Type ) override;
+    // creates a new geometry chunk of specified type from supplied data, in specified bank. returns: handle to the chunk or NULL
     gfx::geometry_handle
         Insert( gfx::vertex_array &Vertices, gfx::geometrybank_handle const &Geometry, int const Type ) override;
     // replaces data of specified chunk with the supplied vertex data, starting from specified offset
@@ -66,6 +71,9 @@ class opengl33_renderer : public gfx_renderer {
     // adds supplied vertex data at the end of specified chunk
     bool
         Append( gfx::vertex_array &Vertices, gfx::geometry_handle const &Geometry, int const Type ) override;
+    // provides direct access to index data of specfied chunk
+    gfx::index_array const &
+        Indices( gfx::geometry_handle const &Geometry ) const override;
     // provides direct access to vertex data of specfied chunk
     gfx::vertex_array const &
         Vertices( gfx::geometry_handle const &Geometry ) const override;
@@ -118,7 +126,6 @@ class opengl33_renderer : public gfx_renderer {
 
 
     opengl_material & Material( material_handle const Material );
-    void SwapBuffers();
     // draws supplied geometry handles
     void Draw_Geometry(std::vector<gfx::geometrybank_handle>::iterator begin, std::vector<gfx::geometrybank_handle>::iterator end);
 	void Draw_Geometry(const gfx::geometrybank_handle &handle);
@@ -128,7 +135,6 @@ class opengl33_renderer : public gfx_renderer {
 
 	// members
     GLenum static const sunlight{0};
-	std::size_t m_drawcount{0};
 
 	bool debug_ui_active = false;
 

@@ -24,8 +24,10 @@ struct basic_vertex {
     basic_vertex( glm::vec3 Position,  glm::vec3 Normal,  glm::vec2 Texture ) :
                   position( Position ),  normal( Normal ), texture( Texture )
     {}
-    void serialize( std::ostream& ) const;
-    void deserialize( std::istream& );
+    void serialize( std::ostream&, bool const Tangent = false ) const;
+    void deserialize( std::istream&, bool const Tangent = false );
+    void serialize_packed( std::ostream&, bool const Tangent = false ) const;
+    void deserialize_packed( std::istream&, bool const Tangent = false );
 };
 
 // data streams carried in a vertex
@@ -45,9 +47,13 @@ struct stream_units {
     std::vector<GLint> texture { GL_TEXTURE0 }; // unit associated with main texture data stream. TODO: allow multiple units per stream
 };
 
-using vertex_array = std::vector<basic_vertex>;
+using basic_index = std::uint32_t;
 
-void calculate_tangent( vertex_array &vertices, int type );
+using vertex_array = std::vector<basic_vertex>;
+using index_array = std::vector<basic_index>;
+
+void calculate_tangents( vertex_array &vertices, int type );
+void calculate_indices( index_array &Indices, vertex_array &Vertices );
 
 // generic geometry bank class, allows storage, update and drawing of geometry chunks
 
@@ -90,9 +96,11 @@ public:
         ~geometry_bank() {}
 
 // methods:
-    // creates a new geometry chunk of specified type from supplied vertex data. returns: handle to the chunk or NULL
+    // creates a new geometry chunk of specified type from supplied data. returns: handle to the chunk or NULL
     auto create( gfx::vertex_array &Vertices, unsigned int const Type ) -> gfx::geometry_handle;
-    // replaces data of specified chunk with the supplied vertex data, starting from specified offset
+    // creates a new indexed geometry chunk of specified type from supplied data. returns: handle to the chunk or NULL
+    auto create( gfx::index_array &Indices, gfx::vertex_array &Vertices, unsigned int const Type ) -> gfx::geometry_handle;
+    // replaces vertex data of specified chunk with the supplied data, starting from specified offset
     auto replace( gfx::vertex_array &Vertices, gfx::geometry_handle const &Geometry, std::size_t const Offset = 0 ) -> bool;
     // adds supplied vertex data at the end of specified chunk
     auto append( gfx::vertex_array &Vertices, gfx::geometry_handle const &Geometry ) -> bool;
@@ -107,6 +115,8 @@ public:
             return count; }
     // frees subclass-specific resources associated with the bank, typically called when the bank wasn't in use for a period of time
     void release();
+    // provides direct access to index data of specfied chunk
+    auto indices( gfx::geometry_handle const &Geometry ) const -> gfx::index_array const &;
     // provides direct access to vertex data of specfied chunk
     auto vertices( gfx::geometry_handle const &Geometry ) const -> gfx::vertex_array const &;
 
@@ -115,11 +125,19 @@ protected:
     struct geometry_chunk {
         unsigned int type; // kind of geometry used by the chunk
         gfx::vertex_array vertices; // geometry data
-        // NOTE: constructor doesn't copy provided vertex data, but moves it
+        gfx::index_array indices; // index data
+        // NOTE: constructor doesn't copy provided geometry data, but moves it
         geometry_chunk( gfx::vertex_array &Vertices, unsigned int Type ) :
                                                             type( Type )
         {
             vertices.swap( Vertices );
+        }
+        // NOTE: constructor doesn't copy provided geometry data, but moves it
+        geometry_chunk( gfx::index_array &Indices, gfx::vertex_array &Vertices, unsigned int Type ) :
+                                                                                       type( Type )
+        {
+            vertices.swap( Vertices );
+            indices.swap( Indices );
         }
     };
 
@@ -162,8 +180,10 @@ public:
     void update();
     // creates a new geometry bank. returns: handle to the bank or NULL
     auto create_bank() -> gfx::geometrybank_handle;
-    // creates a new geometry chunk of specified type from supplied vertex data, in specified bank. returns: handle to the chunk or NULL
+    // creates a new geometry chunk of specified type from supplied data, in specified bank. returns: handle to the chunk or NULL
     auto create_chunk( gfx::vertex_array &Vertices, gfx::geometrybank_handle const &Geometry, int const Type ) -> gfx::geometry_handle;
+    // creates a new indexed geometry chunk of specified type from supplied data, in specified bank. returns: handle to the chunk or NULL
+    auto create_chunk( gfx::index_array &Indices, gfx::vertex_array &Vertices, gfx::geometrybank_handle const &Geometry, unsigned int const Type ) -> gfx::geometry_handle;
     // replaces data of specified chunk with the supplied vertex data, starting from specified offset
     auto replace( gfx::vertex_array &Vertices, gfx::geometry_handle const &Geometry, std::size_t const Offset = 0 ) -> bool;
     // adds supplied vertex data at the end of specified chunk
@@ -175,6 +195,8 @@ public:
             while( First != Last ) { 
                 draw( *First, Streams );
                 ++First; } }
+    // provides direct access to index data of specfied chunk
+    auto indices( gfx::geometry_handle const &Geometry ) const -> gfx::index_array const &;
     // provides direct access to vertex data of specfied chunk
     auto vertices( gfx::geometry_handle const &Geometry ) const -> gfx::vertex_array const &;
     // sets target texture unit for the texture data stream

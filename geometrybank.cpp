@@ -19,39 +19,57 @@ http://mozilla.org/MPL/2.0/.
 namespace gfx {
 
 void
-basic_vertex::serialize( std::ostream &s ) const {
+basic_vertex::serialize( std::ostream &s, bool const Tangent ) const {
 
-    sn_utils::ls_float32( s, position.x );
-    sn_utils::ls_float32( s, position.y );
-    sn_utils::ls_float32( s, position.z );
-
-    sn_utils::ls_float32( s, normal.x );
-    sn_utils::ls_float32( s, normal.y );
-    sn_utils::ls_float32( s, normal.z );
-
+    sn_utils::s_vec3( s, position );
+    sn_utils::s_vec3( s, normal );
     sn_utils::ls_float32( s, texture.x );
     sn_utils::ls_float32( s, texture.y );
+    if( Tangent ) {
+        sn_utils::s_vec4( s, tangent );
+    }
 }
 
 void
-basic_vertex::deserialize( std::istream &s ) {
+basic_vertex::deserialize( std::istream &s, bool const Tangent ) {
 
-    position.x = sn_utils::ld_float32( s );
-    position.y = sn_utils::ld_float32( s );
-    position.z = sn_utils::ld_float32( s );
-
-    normal.x = sn_utils::ld_float32( s );
-    normal.y = sn_utils::ld_float32( s );
-    normal.z = sn_utils::ld_float32( s );
-
+    position = sn_utils::d_vec3( s );
+    normal = sn_utils::d_vec3( s );
     texture.x = sn_utils::ld_float32( s );
     texture.y = sn_utils::ld_float32( s );
+    if( Tangent ) {
+        tangent = sn_utils::d_vec4( s );
+    }
+}
+
+void
+basic_vertex::serialize_packed( std::ostream &s, bool const Tangent ) const {
+
+    sn_utils::ls_uint64( s, glm::packHalf4x16( { position, 0.f } ) );
+    sn_utils::ls_uint32( s, glm::packSnorm3x10_1x2( { normal, 0.f } ) );
+    sn_utils::ls_uint16( s, glm::packHalf1x16( texture.x ) );
+    sn_utils::ls_uint16( s, glm::packHalf1x16( texture.y ) );
+    if( Tangent ) {
+        sn_utils::ls_uint32( s, glm::packSnorm3x10_1x2( tangent ) );
+    }
+}
+
+void
+basic_vertex::deserialize_packed( std::istream &s, bool const Tangent ) {
+
+    position = glm::unpackHalf4x16( sn_utils::ld_uint64( s ) );
+    normal = glm::unpackSnorm3x10_1x2( sn_utils::ld_uint32( s ) );
+    texture.x = glm::unpackHalf1x16( sn_utils::ld_uint16( s ) );
+    texture.y = glm::unpackHalf1x16( sn_utils::ld_uint16( s ) );
+    if( Tangent ) {
+        tangent = glm::unpackSnorm3x10_1x2( sn_utils::ld_uint32( s ) );
+    }
 }
 
 // based on
 // Lengyel, Eric. “Computing Tangent Space Basis Vectors for an Arbitrary Mesh”.
 // Terathon Software, 2001. http://terathon.com/code/tangent.html
-void calculate_tangent(vertex_array &vertices, int type)
+void calculate_tangents(vertex_array &vertices, int type)
 {
     size_t vertex_count = vertices.size();
 
@@ -159,15 +177,67 @@ void calculate_tangent(vertex_array &vertices, int type)
     }
 }
 
+void calculate_indices( index_array &Indices, vertex_array &Vertices ) {
+
+    Indices.resize( Vertices.size() );
+    std::iota( std::begin( Indices ), std::end( Indices ), 0 );
+    // gather instances of used verices, replace the original vertex bank with it after you're done
+    vertex_array indexedvertices;
+    indexedvertices.reserve( std::max<size_t>( 100, Vertices.size() / 3 ) ); // optimistic guesstimate, but should reduce re-allocation somewhat
+    auto const matchtolerance { 1e-5f };
+    for( auto idx = 0; idx < Indices.size(); ++idx ) {
+        if( Indices[ idx ] < idx ) {
+            // this index is pointing to a vertex out of linear order, i.e. it's an already processed duplicate we can skip
+            continue;
+        }
+        // due to duplicate removal our vertex will likely have different index in the processed set
+        Indices[ idx ] = indexedvertices.size();
+        // see if there's any pointers in the remaining index subrange to similar enough vertices
+        // if found, remap these to use our current vertex instead
+        auto vertex { Vertices[ idx ] };
+        auto matchiter { std::cbegin( Vertices ) + idx };
+        for( auto matchidx = idx + 1; matchidx < Indices.size(); ++matchidx ) {
+            ++matchiter;
+            if( ( glm::all( glm::epsilonEqual( vertex.position, matchiter->position, matchtolerance ) ) )
+             && ( glm::all( glm::epsilonEqual( vertex.normal,   matchiter->normal, matchtolerance ) ) )
+             && ( glm::all( glm::epsilonEqual( vertex.texture,  matchiter->texture, matchtolerance ) ) )
+             && ( vertex.tangent.w == matchiter->tangent.w ) ) {
+                Indices[ matchidx ] = Indices[ idx ];
+                // HACK, TODO: tangent math winged/adapted from opengl-tutorial.org 13, check if it makes any sense
+                vertex.tangent += glm::vec4{ glm::vec3( matchiter->tangent ), 0.f };
+            }
+        }
+        vertex.tangent = { glm::normalize( glm::vec3{ vertex.tangent } ), vertex.tangent.w };
+        indexedvertices.emplace_back( vertex );
+    }
+    // done indexing, swap the source vertex bank with the processed one
+    Vertices.swap( indexedvertices );
+}
+
 // generic geometry bank class, allows storage, update and drawing of geometry chunks
 
-// creates a new geometry chunk of specified type from supplied vertex data. returns: handle to the chunk
+// creates a new geometry chunk of specified type from supplied data. returns: handle to the chunk or NULL
 gfx::geometry_handle
 geometry_bank::create( gfx::vertex_array &Vertices, unsigned int const Type ) {
 
     if( true == Vertices.empty() ) { return { 0, 0 }; }
 
     m_chunks.emplace_back( Vertices, Type );
+    // NOTE: handle is effectively (index into chunk array + 1) this leaves value of 0 to serve as error/empty handle indication
+    gfx::geometry_handle chunkhandle { 0, static_cast<std::uint32_t>(m_chunks.size()) };
+    // template method implementation
+    create_( chunkhandle );
+    // all done
+    return chunkhandle;
+}
+
+// creates a new indexed geometry chunk of specified type from supplied data. returns: handle to the chunk or NULL
+gfx::geometry_handle
+geometry_bank::create( gfx::index_array &Indices, gfx::vertex_array &Vertices, unsigned int const Type ) {
+
+    if( true == Vertices.empty() ) { return { 0, 0 }; }
+
+    m_chunks.emplace_back( Indices, Vertices, Type );
     // NOTE: handle is effectively (index into chunk array + 1) this leaves value of 0 to serve as error/empty handle indication
     gfx::geometry_handle chunkhandle { 0, static_cast<std::uint32_t>(m_chunks.size()) };
     // template method implementation
@@ -225,6 +295,14 @@ geometry_bank::release() {
     release_();
 }
 
+// provides direct access to indexdata of specfied chunk
+index_array const &
+geometry_bank::indices( gfx::geometry_handle const &Geometry ) const {
+
+    return geometry_bank::chunk( Geometry ).indices;
+}
+
+// provides direct access to vertex data of specfied chunk
 vertex_array const &
 geometry_bank::vertices( gfx::geometry_handle const &Geometry ) const {
 
@@ -251,11 +329,21 @@ geometrybank_manager::create_bank() {
     return { static_cast<std::uint32_t>( m_geometrybanks.size() ), 0 };
 }
 
-// creates a new geometry chunk of specified type from supplied vertex data, in specified bank. returns: handle to the chunk or NULL
+// creates a new geometry chunk of specified type from supplied data, in specified bank. returns: handle to the chunk or NULL
 gfx::geometry_handle
 geometrybank_manager::create_chunk( gfx::vertex_array &Vertices, gfx::geometrybank_handle const &Geometry, int const Type ) {
 
     auto const newchunkhandle = bank( Geometry ).first->create( Vertices, Type );
+
+    if( newchunkhandle.chunk != 0 ) { return { Geometry.bank, newchunkhandle.chunk }; }
+    else                            { return { 0, 0 }; }
+}
+
+// creates a new indexed geometry chunk of specified type from supplied data, in specified bank. returns: handle to the chunk or NULL
+gfx::geometry_handle
+geometrybank_manager::create_chunk( gfx::index_array &Indices, gfx::vertex_array &Vertices, gfx::geometrybank_handle const &Geometry, unsigned int const Type ) {
+
+    auto const newchunkhandle = bank( Geometry ).first->create( Indices, Vertices, Type );
 
     if( newchunkhandle.chunk != 0 ) { return { Geometry.bank, newchunkhandle.chunk }; }
     else                            { return { 0, 0 }; }
@@ -284,6 +372,13 @@ geometrybank_manager::draw( gfx::geometry_handle const &Geometry, unsigned int c
 
     bankrecord.second = m_garbagecollector.timestamp();
     m_primitivecount += bankrecord.first->draw( Geometry, m_units, Streams );
+}
+
+// provides direct access to index data of specfied chunk
+gfx::index_array const &
+geometrybank_manager::indices( gfx::geometry_handle const &Geometry ) const {
+
+    return bank( Geometry ).first->indices( Geometry );
 }
 
 // provides direct access to vertex data of specfied chunk
