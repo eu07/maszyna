@@ -487,6 +487,7 @@ std::pair<int, int> TSubModel::Load( cParser &parser, bool dynamic )
     // transformation matrix
 	fMatrix = new float4x4();
 	readMatrix(parser, *fMatrix); // wczytanie transform
+    float transformscale = 1.0f;
     if( !fMatrix->IdentityIs() ) {
         iFlags |= 0x8000; // transform niejedynkowy - trzeba go przechować
         // check the scaling
@@ -504,6 +505,7 @@ std::pair<int, int> TSubModel::Load( cParser &parser, bool dynamic )
                     rescale :
                     normalize );
         }
+        transformscale = (scale.x + scale.y + scale.z) / 3.0f;
     }
 	if (eType < TP_ROTATOR)
 	{ // wczytywanie wierzchołków
@@ -685,7 +687,7 @@ std::pair<int, int> TSubModel::Load( cParser &parser, bool dynamic )
 					    }
                     }
                     Vertices.resize( m_geometry.vertex_count ); // in case we had some degenerate triangles along the way
-                    gfx::calculate_indices( Indices, Vertices );
+                    gfx::calculate_indices( Indices, Vertices, transformscale );
                     gfx::calculate_tangents( Vertices, Indices, GL_TRIANGLES );
                     // update values potentially changed by indexing
                     m_geometry.index_count = Indices.size();
@@ -1706,9 +1708,17 @@ void TModel3d::SaveToBinFile(std::string const &FileName)
         sn_utils::ls_uint32( s, MAKE_ID4( 'I', 'D', 'X', '0' + indexsize ) );
         sn_utils::ls_uint32( s, 8 + m_indexcount * indexsize );
         Root->serialize_indices( s, indexsize );
-        sn_utils::ls_uint32( s, MAKE_ID4( 'V', 'N', 'T', '1' ) );
-        sn_utils::ls_uint32( s, 8 + m_vertexcount * 20 );
-        Root->serialize_geometry( s, true, true );
+
+        if (!(Global.iConvertModels & 8)) {
+            sn_utils::ls_uint32( s, MAKE_ID4( 'V', 'N', 'T', '1' ) );
+            sn_utils::ls_uint32( s, 8 + m_vertexcount * 20 );
+            Root->serialize_geometry( s, true, true );
+        }
+        else {
+            sn_utils::ls_uint32( s, MAKE_ID4( 'V', 'N', 'T', '2' ) );
+            sn_utils::ls_uint32( s, 8 + m_vertexcount * 48 );
+            Root->serialize_geometry( s, false, true );
+        }
     }
     else {
         sn_utils::ls_uint32( s, MAKE_ID4( 'V', 'N', 'T', '0' ) );
@@ -1850,16 +1860,22 @@ void TModel3d::deserialize(std::istream &s, size_t size, bool dynamic)
                 auto const &submodelgeometry { submodel.m_geometry };
                 submodel.Vertices.resize( submodelgeometry.vertex_count );
                 m_vertexcount += submodelgeometry.vertex_count;
-                if( vertextype > 0 ) {
+                if (vertextype == 1) {
                     // expanded chunk formats
                     for( auto &vertex : submodel.Vertices ) {
-                        vertex.deserialize_packed( s, vertextype > 0 );
+                        vertex.deserialize_packed( s, true );
                     }
                 }
-                else {
+                else if (vertextype == 2) {
+                    // expanded chunk formats
+                    for( auto &vertex : submodel.Vertices ) {
+                        vertex.deserialize( s, true );
+                    }
+                }
+                else if (vertextype == 0) {
                     // legacy vnt0 format
                     for( auto &vertex : submodel.Vertices ) {
-                        vertex.deserialize( s, vertextype > 0 );
+                        vertex.deserialize( s, false );
                         if( submodel.eType < TP_ROTATOR ) {
                             // normal vectors debug routine
                             if( ( false == submodel.m_normalizenormals )

@@ -183,14 +183,14 @@ void calculate_tangents(vertex_array &vertices, const index_array &indices, int 
     }
 }
 
-void calculate_indices( index_array &Indices, vertex_array &Vertices ) {
+void calculate_indices( index_array &Indices, vertex_array &Vertices, float tolerancescale ) {
 
     Indices.resize( Vertices.size() );
     std::iota( std::begin( Indices ), std::end( Indices ), 0 );
     // gather instances of used verices, replace the original vertex bank with it after you're done
     vertex_array indexedvertices;
     indexedvertices.reserve( std::max<size_t>( 100, Vertices.size() / 3 ) ); // optimistic guesstimate, but should reduce re-allocation somewhat
-    auto const matchtolerance { 1e-5f };
+    auto const matchtolerance { 1e-5f * tolerancescale };
     for( auto idx = 0; idx < Indices.size(); ++idx ) {
         if( Indices[ idx ] < idx ) {
             // this index is pointing to a vertex out of linear order, i.e. it's an already processed duplicate we can skip
