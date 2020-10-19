@@ -685,8 +685,8 @@ std::pair<int, int> TSubModel::Load( cParser &parser, bool dynamic )
 					    }
                     }
                     Vertices.resize( m_geometry.vertex_count ); // in case we had some degenerate triangles along the way
-                    gfx::calculate_tangents( Vertices, GL_TRIANGLES );
                     gfx::calculate_indices( Indices, Vertices );
+                    gfx::calculate_tangents( Vertices, Indices, GL_TRIANGLES );
                     // update values potentially changed by indexing
                     m_geometry.index_count = Indices.size();
                     m_geometry.vertex_count = Vertices.size();

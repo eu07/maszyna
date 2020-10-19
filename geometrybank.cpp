@@ -67,7 +67,7 @@ basic_vertex::deserialize_packed( std::istream &s, bool const Tangent ) {
 // based on
 // Lengyel, Eric. “Computing Tangent Space Basis Vectors for an Arbitrary Mesh”.
 // Terathon Software, 2001. http://terathon.com/code/tangent.html
-void calculate_tangents(vertex_array &vertices, int type)
+void calculate_tangents(vertex_array &vertices, const index_array &indices, int type)
 {
     size_t vertex_count = vertices.size();
 
@@ -75,12 +75,14 @@ void calculate_tangents(vertex_array &vertices, int type)
         return;
 
     size_t triangle_count;
+    size_t tri_count_base = indices.empty() ? vertex_count : indices.size();
+
     if (type == GL_TRIANGLES)
-        triangle_count = vertex_count / 3;
+        triangle_count = tri_count_base / 3;
     else if (type == GL_TRIANGLE_STRIP)
-        triangle_count = vertex_count - 2;
+        triangle_count = tri_count_base - 2;
     else if (type == GL_TRIANGLE_FAN)
-        triangle_count = vertex_count - 2;
+        triangle_count = tri_count_base - 2;
     else
         return;
 
@@ -114,6 +116,12 @@ void calculate_tangents(vertex_array &vertices, int type)
             i1 = 0;
             i2 = a + 1;
             i3 = a + 2;
+        }
+
+        if (!indices.empty()) {
+            i1 = indices[i1];
+            i2 = indices[i2];
+            i3 = indices[i3];
         }
 
         const glm::vec3 &v1 = vertices[i1].position;
@@ -198,14 +206,10 @@ void calculate_indices( index_array &Indices, vertex_array &Vertices ) {
             ++matchiter;
             if( ( glm::all( glm::epsilonEqual( vertex.position, matchiter->position, matchtolerance ) ) )
              && ( glm::all( glm::epsilonEqual( vertex.normal,   matchiter->normal, matchtolerance ) ) )
-             && ( glm::all( glm::epsilonEqual( vertex.texture,  matchiter->texture, matchtolerance ) ) )
-             && ( vertex.tangent.w == matchiter->tangent.w ) ) {
+             && ( glm::all( glm::epsilonEqual( vertex.texture,  matchiter->texture, matchtolerance ) ) ) ) {
                 Indices[ matchidx ] = Indices[ idx ];
-                // HACK, TODO: tangent math winged/adapted from opengl-tutorial.org 13, check if it makes any sense
-                vertex.tangent += glm::vec4{ glm::vec3( matchiter->tangent ), 0.f };
             }
         }
-        vertex.tangent = { glm::normalize( glm::vec3{ vertex.tangent } ), vertex.tangent.w };
         indexedvertices.emplace_back( vertex );
     }
     // done indexing, swap the source vertex bank with the processed one

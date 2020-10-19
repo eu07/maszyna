@@ -52,7 +52,7 @@ using basic_index = std::uint32_t;
 using vertex_array = std::vector<basic_vertex>;
 using index_array = std::vector<basic_index>;
 
-void calculate_tangents( vertex_array &vertices, int type );
+void calculate_tangents(vertex_array &vertices, const index_array &indices, int type );
 void calculate_indices( index_array &Indices, vertex_array &Vertices );
 
 // generic geometry bank class, allows storage, update and drawing of geometry chunks

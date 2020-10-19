@@ -154,7 +154,7 @@ void vr_openvr::begin_frame()
                                            glm::vec2(vertex->rfTextureCoord[0], vertex->rfTextureCoord[1])));
                 }
 
-                gfx::calculate_tangents(vertices, GL_TRIANGLES);
+                gfx::calculate_tangents(vertices, indices, GL_TRIANGLES);
 
                 submodel_name = std::string(component == -1 ? rendermodel_name : component_name);
                 sm = controllers[i]->model->AppendChildFromGeometry(submodel_name, "__root", vertices, indices);
