@@ -258,7 +258,7 @@ execute_process(
   OUTPUT_STRIP_TRAILING_WHITESPACE
 )
 
-configure_file("${CMAKE_SOURCE_DIR}/version.h.in" "${CMAKE_SOURCE_DIR}/version.h")
+configure_file("${CMAKE_SOURCE_DIR}/version_info.h.in" "${CMAKE_SOURCE_DIR}/version_info.h")
 
 set (PREFIX "")
 

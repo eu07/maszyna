@@ -28,6 +28,7 @@ http://mozilla.org/MPL/2.0/.
 #include "Train.h"
 #include "Timer.h"
 #include "dictionary.h"
+#include "version_info.h"
 
 #pragma comment (lib, "dsound.lib")
 #pragma comment (lib, "winmm.lib")
@@ -654,6 +655,7 @@ eu07_application::init_files() {
 
 int
 eu07_application::init_settings( int Argc, char *Argv[] ) {
+    Global.asVersion = VERSION_INFO;
 
     Global.LoadIniFile( "eu07.ini" );
 #ifdef _WIN32
@@ -662,8 +664,6 @@ eu07_application::init_settings( int Argc, char *Argv[] ) {
         AllocConsole();
     }
 #endif
-
-	Global.asVersion = VERSION_INFO;
 
     // process command line arguments
     for( int i = 1; i < Argc; ++i ) {

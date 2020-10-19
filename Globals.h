@@ -16,7 +16,6 @@ http://mozilla.org/MPL/2.0/.
 #include "light.h"
 #include "utilities.h"
 #include "motiontelemetry.h"
-#include "version.h"
 #ifdef WITH_UART
 #include "uart.h"
 #endif
@@ -204,7 +203,7 @@ struct global_settings {
     int iMultiplayer{ 0 }; // blokada działania niektórych eventów na rzecz kominikacji
     // other
     std::string AppName{ "EU07" };
-    std::string asVersion{ VERSION_INFO }; // z opisem
+    std::string asVersion; // z opisem
 	motiontelemetry::conf_t motiontelemetry_conf;
 	std::string screenshot_dir;
 	bool loading_log = true;
