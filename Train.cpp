@@ -1315,7 +1315,7 @@ void TTrain::OnCommand_independentbrakeset( TTrain *Train, command_data const &C
 
 void TTrain::OnCommand_independentbrakebailoff( TTrain *Train, command_data const &Command ) {
 
-    if( false == FreeFlyModeFlag ) {
+    if( false == Command.freefly ) {
         // TODO: check if this set of conditions can be simplified.
         // it'd be more flexible to have an attribute indicating whether bail off position is supported
         if( ( Train->mvControlled->TrainType != dt_EZT )
@@ -1865,7 +1865,7 @@ void TTrain::OnCommand_brakeactingspeedsetrapid( TTrain *Train, command_data con
 
 void TTrain::OnCommand_brakeloadcompensationincrease( TTrain *Train, command_data const &Command ) {
 
-    if( ( true == FreeFlyModeFlag )
+    if( ( true == Command.freefly )
      && ( Command.action == GLFW_PRESS ) ) {
 		auto *vehicle { Train->find_nearest_consist_vehicle(Command.freefly, Command.location) };
         if( vehicle != nullptr ) {
@@ -1876,7 +1876,7 @@ void TTrain::OnCommand_brakeloadcompensationincrease( TTrain *Train, command_dat
 
 void TTrain::OnCommand_brakeloadcompensationdecrease( TTrain *Train, command_data const &Command ) {
 
-    if( ( true == FreeFlyModeFlag )
+    if( ( true == Command.freefly )
      && ( Command.action == GLFW_PRESS ) ) {
 		auto *vehicle { Train->find_nearest_consist_vehicle(Command.freefly, Command.location) };
         if( vehicle != nullptr ) {
@@ -4260,17 +4260,17 @@ void TTrain::OnCommand_redmarkertogglerearright( TTrain *Train, command_data con
 
 void TTrain::OnCommand_redmarkerstoggle( TTrain *Train, command_data const &Command ) {
 
-    if( ( true == FreeFlyModeFlag )
+    if( ( true == Command.freefly )
      && ( Command.action == GLFW_PRESS ) ) {
 
-        auto *vehicle { std::get<TDynamicObject *>( simulation::Region->find_vehicle( Global.pCamera.Pos, 10, false, true ) ) };
+        auto *vehicle { std::get<TDynamicObject *>( simulation::Region->find_vehicle( Command.location, 10, false, true ) ) };
 
         if( vehicle == nullptr ) { return; }
 
         int const CouplNr {
             clamp(
                 vehicle->DirectionGet()
-                * ( Math3D::LengthSquared3( vehicle->HeadPosition() - Global.pCamera.Pos ) > Math3D::LengthSquared3( vehicle->RearPosition() - Global.pCamera.Pos ) ?
+                * ( Math3D::LengthSquared3( vehicle->HeadPosition() - Command.location ) > Math3D::LengthSquared3( vehicle->RearPosition() - Command.location ) ?
                      1 :
                     -1 ),
                 0, 1 ) }; // z [-1,1] zrobić [0,1]
@@ -4286,17 +4286,17 @@ void TTrain::OnCommand_redmarkerstoggle( TTrain *Train, command_data const &Comm
 
 void TTrain::OnCommand_endsignalstoggle( TTrain *Train, command_data const &Command ) {
 
-    if( ( true == FreeFlyModeFlag )
+    if( ( true == Command.freefly )
      && ( Command.action == GLFW_PRESS ) ) {
 
-        auto *vehicle { std::get<TDynamicObject *>( simulation::Region->find_vehicle( Global.pCamera.Pos, 10, false, true ) ) };
+        auto *vehicle { std::get<TDynamicObject *>( simulation::Region->find_vehicle( Command.location, 10, false, true ) ) };
 
         if( vehicle == nullptr ) { return; }
 
         int const CouplNr {
             clamp(
                 vehicle->DirectionGet()
-                * ( Math3D::LengthSquared3( vehicle->HeadPosition() - Global.pCamera.Pos ) > Math3D::LengthSquared3( vehicle->RearPosition() - Global.pCamera.Pos ) ?
+                * ( Math3D::LengthSquared3( vehicle->HeadPosition() - Command.location ) > Math3D::LengthSquared3( vehicle->RearPosition() - Command.location ) ?
                      1 :
                     -1 ),
                 0, 1 ) }; // z [-1,1] zrobić [0,1]
@@ -5520,7 +5520,7 @@ void TTrain::OnCommand_nearestcarcouplingdisconnect( TTrain *Train, command_data
 
 void TTrain::OnCommand_nearestcarcoupleradapterattach( TTrain *Train, command_data const &Command ) {
 
-    if( ( true == FreeFlyModeFlag )
+    if( ( true == Command.freefly )
      && ( Command.action == GLFW_PRESS ) ) {
         // tryb freefly, press only
         auto *vehicle { std::get<TDynamicObject *>( simulation::Region->find_vehicle( Command.location, 50, false, true ) ) };
@@ -5537,7 +5537,7 @@ void TTrain::OnCommand_nearestcarcoupleradapterattach( TTrain *Train, command_da
 
 void TTrain::OnCommand_nearestcarcoupleradapterremove( TTrain *Train, command_data const &Command ) {
 
-    if( ( true == FreeFlyModeFlag )
+    if( ( true == Command.freefly )
      && ( Command.action == GLFW_PRESS ) ) {
         // tryb freefly, press only
         auto *vehicle { std::get<TDynamicObject *>( simulation::Region->find_vehicle( Command.location, 50, false, true ) ) };

@@ -38,8 +38,8 @@ void launcher_ui::render_()
 			m_vehiclepicker_panel.is_open = !m_vehiclepicker_panel.is_open;
 		if (ImGui::Button(STR_C("Keymapper"), ImVec2(-1, 0)))
 			m_keymapper_panel.is_open = !m_keymapper_panel.is_open;
-		if (ImGui::Button(STR_C("Quit"), ImVec2(-1, 0)))
-			Application.queue_quit();
+        if (ImGui::Button(STR_C("Quit"), ImVec2(-1, 0)))
+            Application.queue_quit(false);
 	}
 	ImGui::End();
 }

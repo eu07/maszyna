@@ -444,7 +444,7 @@ void state_manager::process_commands() {
 
 		if (commanddata.command == user_command::quitsimulation) {
             // TBD: allow clients to go into offline mode?
-			Application.queue_quit();
+            Application.queue_quit(true);
 		}
 
 		if (DebugModeFlag) {

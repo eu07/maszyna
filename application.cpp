@@ -165,8 +165,14 @@ double eu07_application::generate_sync() {
 	return sync;
 }
 
-void eu07_application::queue_quit() {
-	glfwSetWindowShouldClose(m_windows[0], GLFW_TRUE);
+void eu07_application::queue_quit(bool direct) {
+    if (direct || !m_modes[m_modestack.top()]->is_command_processor()) {
+        glfwSetWindowShouldClose(m_windows[0], GLFW_TRUE);
+        return;
+    }
+
+    command_relay relay;
+    relay.post(user_command::quitsimulation, 0.0, 0.0, GLFW_PRESS, 0);
 }
 
 bool
@@ -885,9 +891,7 @@ eu07_application::init_modes() {
 	if ((!Global.network_servers.empty() || Global.network_client) && Global.SceneryFile.empty()) {
 		ErrorLog("launcher mode is currently not supported in network mode");
 		return -1;
-	}
-    // NOTE: we could delay creation/initialization until transition to specific mode is requested,
-    // but doing it in one go at the start saves us some error checking headache down the road
+    }
 
     // activate the default mode
 	if (Global.SceneryFile.empty())

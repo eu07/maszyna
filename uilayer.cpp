@@ -288,8 +288,7 @@ bool ui_layer::on_key(int const Key, int const Action)
         if (m_quit_active)
         {
             if (Key == GLFW_KEY_Y) {
-				command_relay relay;
-				relay.post(user_command::quitsimulation, 0.0, 0.0, GLFW_PRESS, 0);
+                Application.queue_quit(false);
                 return true;
             } else if (Key == GLFW_KEY_N) {
                 m_quit_active = false;
@@ -364,10 +363,9 @@ void ui_layer::render_quit_widget()
     ImGui::SetNextWindowSize(ImVec2(0, 0));
     ImGui::Begin(STR_C("Quit"), &m_quit_active, ImGuiWindowFlags_NoResize);
     ImGui::TextUnformatted(STR_C("Quit simulation?"));
-	if (ImGui::Button(STR_C("Yes"))) {
-		command_relay relay;
-		relay.post(user_command::quitsimulation, 0.0, 0.0, GLFW_PRESS, 0);
-	}
+    if (ImGui::Button(STR_C("Yes")))
+        Application.queue_quit(false);
+
     ImGui::SameLine();
     if (ImGui::Button(STR_C("No")))
         m_quit_active = false;

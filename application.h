@@ -90,7 +90,7 @@ public:
 	double
 	    generate_sync();
 	void
-	    queue_quit();
+        queue_quit(bool direct);
     bool
         is_server() const;
     bool

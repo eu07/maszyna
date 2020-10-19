@@ -285,8 +285,6 @@ driver_mode::update() {
     auto const deltarealtime = Timer::GetDeltaRenderTime(); // nie uwzględnia pauzowania ani mnożenia czasu
 	simulation::State.process_commands();
 
-    simulation::State.process_commands();
-
     // fixed step render time routines
 
     fTime50Hz += deltarealtime; // w pauzie też trzeba zliczać czas, bo przy dużym FPS będzie problem z odczytem ramek
