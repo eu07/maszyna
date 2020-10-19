@@ -1044,7 +1044,7 @@ public:
     start_t BatteryStart = start_t::manual;
 	bool EpFuse = true; /*Czy sa zalavzone baterie*/
 	bool Signalling = false;         /*Czy jest zalaczona sygnalizacja hamowania ostatniego wagonu*/
-	bool Radio = true;         /*Czy jest zalaczony radiotelefon*/
+	bool Radio = false;         /*Czy jest zalaczony radiotelefon*/
 	float NominalBatteryVoltage = 0.f;        /*Winger - baterie w elektrykach*/
 	TDimension Dim;          /*wymiary*/
 	double Cx = 0.0;                 /*wsp. op. aerodyn.*/
@@ -1130,6 +1130,7 @@ public:
 	double LockPipeOn = -1.0;
 	double LockPipeOff = -1.0;
 	double HandleUnlock = -3.0;
+	bool EmergencyCutsOffHandle = false;
 	int CompressorListPosNo = 0;
 	int CompressorListDefPos = 1;
 	bool CompressorListWrap = false;
@@ -1321,6 +1322,7 @@ public:
     int PlatformOpenMethod { 2 }; /*sposob animacji stopnia*/
 #endif
     double MirrorMaxShift { 90.0 };
+	double MirrorVelClose { 5.0 };
 	bool ScndS = false; /*Czy jest bocznikowanie na szeregowej*/
 	bool SpeedCtrl = false; /*czy jest tempomat*/
 	speed_control SpeedCtrlUnit; /*parametry tempomatu*/
@@ -1559,6 +1561,7 @@ public:
 	bool SpeedCtrlTypeTime = false; /*czy tempomat sterowany czasowo*/
 	int SpeedCtrlAutoTurnOffFlag = 0; /*czy tempomat sam się wyłącza*/
 	bool EIMCtrlAdditionalZeros = false; /*czy ma dodatkowe zero jazdy i zero hamowania */
+	bool EIMCtrlEmergency = false; /*czy ma dodatkowe zero jazdy i zero hamowania */
 	double eimv_pr = 0; /*realizowany procent dostepnej sily rozruchu/hamowania*/
 	double eimv[21];
     static std::vector<std::string> const eimv_labels;

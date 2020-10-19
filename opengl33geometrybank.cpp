@@ -33,7 +33,7 @@ opengl33_vaogeometrybank::replace_( gfx::geometry_handle const &Geometry ) {
     auto &chunkrecord = m_chunkrecords[ Geometry.chunk - 1 ];
     chunkrecord.is_good = false;
     // if the overall length of the chunk didn't change we can get away with reusing the old buffer...
-    if( geometry_bank::chunk( Geometry ).vertices.size() != chunkrecord.size ) {
+    if( geometry_bank::chunk( Geometry ).vertices.size() != chunkrecord.vertex_count ) {
         // ...but otherwise we'll need to allocate a new one
         // TBD: we could keep and reuse the old buffer also if the new chunk is smaller than the old one,
         // but it'd require some extra tracking and work to keep all chunks up to date; also wasting vram; may be not worth it?
@@ -43,51 +43,62 @@ opengl33_vaogeometrybank::replace_( gfx::geometry_handle const &Geometry ) {
 
 void opengl33_vaogeometrybank::setup_buffer()
 {
-	if( !m_buffer ) {
-        // if there's no buffer, we'll have to make one
-        // NOTE: this isn't exactly optimal in terms of ensuring the gfx card doesn't stall waiting for the data
-        // may be better to initiate upload earlier (during update phase) and trust this effort won't go to waste
-        if( true == m_chunks.empty() ) { return; }
+    if( m_vertexbuffer ) { return; }
+    // if there's no buffer, we'll have to make one
+    // NOTE: this isn't exactly optimal in terms of ensuring the gfx card doesn't stall waiting for the data
+    // may be better to initiate upload earlier (during update phase) and trust this effort won't go to waste
+    if( true == m_chunks.empty() ) { return; }
 
-        std::size_t datasize{ 0 };
-        auto chunkiterator = m_chunks.cbegin();
-        for( auto &chunkrecord : m_chunkrecords ) {
-            // fill records for all chunks, based on the chunk data
-            chunkrecord.is_good = false; // if we're re-creating buffer, chunks might've been uploaded in the old one
-            chunkrecord.offset = datasize;
-            chunkrecord.size = chunkiterator->vertices.size();
-            datasize += chunkrecord.size;
-            ++chunkiterator;
-        }
-        // the odds for all created chunks to get replaced with empty ones are quite low, but the possibility does exist
-        if( datasize == 0 ) { return; }
-        // try to set up the buffer we need
-		m_buffer.emplace();
+    std::size_t
+        vertexcount{ 0 },
+        indexcount{ 0 };
+    auto chunkiterator = m_chunks.cbegin();
+    for( auto &chunkrecord : m_chunkrecords ) {
+        // fill records for all chunks, based on the chunk data
+        chunkrecord.is_good = false; // if we're re-creating buffer, chunks might've been uploaded in the old one
+        chunkrecord.vertex_offset = vertexcount;
+        chunkrecord.vertex_count = chunkiterator->vertices.size();
+        vertexcount += chunkrecord.vertex_count;
+        chunkrecord.index_offset = indexcount;
+        chunkrecord.index_count = chunkiterator->indices.size();
+        indexcount += chunkrecord.index_count;
+        ++chunkiterator;
+    }
+    // the odds for all created chunks to get replaced with empty ones are quite low, but the possibility does exist
+    if( vertexcount == 0 ) { return; }
 
-        // NOTE: we're using static_draw since it's generally true for all we have implemented at the moment
-        // TODO: allow to specify usage hint at the object creation, and pass it here
-		m_buffer->allocate(gl::buffer::ARRAY_BUFFER, datasize * sizeof(gfx::basic_vertex), GL_STATIC_DRAW);
-
+    if( !m_vao ) {
+        m_vao.emplace();
+    }
+    m_vao->bind();
+    // try to set up the buffers we need:
+    // optional index buffer...
+    if( indexcount > 0 ) {
+        m_indexbuffer.emplace();
+        m_indexbuffer->allocate( gl::buffer::ELEMENT_ARRAY_BUFFER, indexcount * sizeof( gfx::basic_index ), GL_STATIC_DRAW );
         if( ::glGetError() == GL_OUT_OF_MEMORY ) {
-            ErrorLog( "openGL error: out of memory; failed to create a geometry buffer" );
+            ErrorLog( "openGL error: out of memory; failed to create a geometry index buffer" );
             throw std::bad_alloc();
         }
-        m_buffercapacity = datasize;
+        m_vao->setup_ebo( *m_indexbuffer );
     }
-
-    if (!m_vao)
-    {
-		m_vao.emplace();
-
-		m_vao->setup_attrib(*m_buffer, 0, 3, GL_FLOAT, sizeof(basic_vertex), 0 * sizeof(float));
-        // NOTE: normal and color streams share the data
-		m_vao->setup_attrib(*m_buffer, 1, 3, GL_FLOAT, sizeof(basic_vertex), 3 * sizeof(float));
-		m_vao->setup_attrib(*m_buffer, 2, 2, GL_FLOAT, sizeof(basic_vertex), 6 * sizeof(float));
-		m_vao->setup_attrib(*m_buffer, 3, 4, GL_FLOAT, sizeof(basic_vertex), 8 * sizeof(float));
-
-		m_buffer->unbind(gl::buffer::ARRAY_BUFFER);
-        m_vao->unbind();
+    else {
+        gl::buffer::unbind( gl::buffer::ELEMENT_ARRAY_BUFFER );
     }
+    // ...and geometry buffer
+	m_vertexbuffer.emplace();
+    // NOTE: we're using static_draw since it's generally true for all we have implemented at the moment
+    // TODO: allow to specify usage hint at the object creation, and pass it here
+    m_vertexbuffer->allocate( gl::buffer::ARRAY_BUFFER, vertexcount * sizeof( gfx::basic_vertex ), GL_STATIC_DRAW );
+    if( ::glGetError() == GL_OUT_OF_MEMORY ) {
+        ErrorLog( "openGL error: out of memory; failed to create a geometry buffer" );
+        throw std::bad_alloc();
+    }
+    m_vao->setup_attrib( *m_vertexbuffer, 0, 3, GL_FLOAT, sizeof( basic_vertex ), 0 * sizeof( float ) );
+    // NOTE: normal and color streams share the data
+    m_vao->setup_attrib( *m_vertexbuffer, 1, 3, GL_FLOAT, sizeof( basic_vertex ), 3 * sizeof( float ) );
+    m_vao->setup_attrib( *m_vertexbuffer, 2, 2, GL_FLOAT, sizeof( basic_vertex ), 6 * sizeof( float ) );
+    m_vao->setup_attrib( *m_vertexbuffer, 3, 4, GL_FLOAT, sizeof( basic_vertex ), 8 * sizeof( float ) );
 }
 
 // draw() subclass details
@@ -100,23 +111,44 @@ opengl33_vaogeometrybank::draw_( gfx::geometry_handle const &Geometry, gfx::stre
 
     auto &chunkrecord = m_chunkrecords.at(Geometry.chunk - 1);
 	// sanity check; shouldn't be needed but, eh
-	if( chunkrecord.size == 0 )
+	if( chunkrecord.vertex_count == 0 )
 		return 0;
+
+    m_vao->bind();
+
     auto const &chunk = gfx::geometry_bank::chunk( Geometry );
     if( false == chunkrecord.is_good ) {
         // we may potentially need to upload new buffer data before we can draw it
-		m_buffer->upload(gl::buffer::ARRAY_BUFFER, chunk.vertices.data(),
-		                 chunkrecord.offset * sizeof( gfx::basic_vertex ),
-		                 chunkrecord.size * sizeof( gfx::basic_vertex ));
+        if( chunkrecord.index_count > 0 ) {
+            m_indexbuffer->upload( gl::buffer::ELEMENT_ARRAY_BUFFER, chunk.indices.data(), chunkrecord.index_offset * sizeof( gfx::basic_index ), chunkrecord.index_count * sizeof( gfx::basic_index ) );
+        }
+        m_vertexbuffer->upload( gl::buffer::ARRAY_BUFFER, chunk.vertices.data(), chunkrecord.vertex_offset * sizeof( gfx::basic_vertex ), chunkrecord.vertex_count * sizeof( gfx::basic_vertex ) );
         chunkrecord.is_good = true;
     }
     // render
-    m_vao->bind();
-    ::glDrawArrays( chunk.type, chunkrecord.offset, chunkrecord.size );
-
+    if( chunkrecord.index_count > 0 ) {
+/*
+        ::glDrawElementsBaseVertex(
+            chunk.type,
+            chunkrecord.index_count, GL_UNSIGNED_INT, reinterpret_cast<void const *>( chunkrecord.index_offset * sizeof( gfx::basic_index ) ),
+            chunkrecord.vertex_offset );
+*/
+        ::glDrawRangeElementsBaseVertex(
+            chunk.type,
+            0, chunkrecord.vertex_count,
+            chunkrecord.index_count, GL_UNSIGNED_INT, reinterpret_cast<void const *>( chunkrecord.index_offset * sizeof( gfx::basic_index ) ),
+            chunkrecord.vertex_offset );
+    }
+    else {
+        ::glDrawArrays( chunk.type, chunkrecord.vertex_offset, chunkrecord.vertex_count );
+    }
+/*
+    m_vao->unbind();
+*/
+    auto const vertexcount { ( chunkrecord.index_count > 0 ? chunkrecord.index_count : chunkrecord.vertex_count ) };
     switch( chunk.type ) {
-        case GL_TRIANGLES:      { return chunkrecord.size / 3; }
-        case GL_TRIANGLE_STRIP: { return chunkrecord.size - 2; }
+        case GL_TRIANGLES:      { return vertexcount / 3; }
+        case GL_TRIANGLE_STRIP: { return vertexcount - 2; }
         default:                { return 0; }
     }
 }
@@ -131,14 +163,11 @@ opengl33_vaogeometrybank::release_() {
 void
 opengl33_vaogeometrybank::delete_buffer() {
 
-	if( m_buffer ) {
-        
-		m_vao.reset();
-		m_buffer.reset();
-        m_buffercapacity = 0;
-        // NOTE: since we've deleted the buffer all chunks it held were rendered invalid as well
-        // instead of clearing their state here we're delaying it until new buffer is created to avoid looping through chunk records twice
-    }
+	m_vao.reset();
+	m_vertexbuffer.reset();
+    m_indexbuffer.reset();
+    // NOTE: since we've deleted the buffer all chunks it held were rendered invalid as well
+    // instead of clearing their state here we're delaying it until new buffer is created to avoid looping through chunk records twice
 }
 
 } // namespace gfx

@@ -1890,6 +1890,9 @@ TDynamicObject::Init(std::string Name, // nazwa pojazdu, np. "EU07-424"
             if( MoverParameters->LocalBrake != TLocalBrake::ManualBrake ) {
                 if( fVel < 1.0 ) {
                     MoverParameters->IncLocalBrakeLevel( LocalBrakePosNo );
+					if ( MoverParameters->EIMCtrlEmergency ) {
+						MoverParameters->DecLocalBrakeLevel(1);
+					}
                 }
             }
         }
@@ -3172,8 +3175,9 @@ bool TDynamicObject::Update(double dt, double dt1)
                                                   (LBR < 0.01);
             }
             auto Fzad = amax * LBR * masa;
-			if ((MoverParameters->BrakeCtrlPos == MoverParameters->Handle->GetPos(bh_EB))
-				&& (MoverParameters->eimc[eimc_p_abed] < 0.001))
+			if (((MoverParameters->BrakeCtrlPos == MoverParameters->Handle->GetPos(bh_EB))
+				&& (MoverParameters->eimc[eimc_p_abed] < 0.001)) ||
+                (MoverParameters->EmergencyValveFlow > 0))
 				Fzad = amax * masa; //pętla bezpieczeństwa - pełne służbowe
             if ((MoverParameters->ScndS) &&
                 (MoverParameters->Vel > MoverParameters->eimc[eimc_p_Vh1]) && (FmaxED > 0))
@@ -3904,7 +3908,7 @@ bool TDynamicObject::Update(double dt, double dt1)
 	}
 
     // mirrors
-    if( MoverParameters->Vel > 5.0 ) {
+    if( MoverParameters->Vel > MoverParameters->MirrorVelClose ) {
         // automatically fold mirrors when above velocity threshold
         if( dMirrorMoveL > 0.0 ) {
             dMirrorMoveL = std::max(

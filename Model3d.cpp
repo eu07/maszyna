@@ -171,7 +171,7 @@ void TSubModel::SetSelfIllum( float const Threshold, bool const Includechildren,
 
 int TSubModel::SeekFaceNormal(std::vector<unsigned int> const &Masks, int const Startface, unsigned int const Mask, glm::vec3 const &Position, gfx::vertex_array const &Vertices)
 { // szukanie punktu stycznego do (pt), zwraca numer wierzchołka, a nie trójkąta
-	int facecount = iNumVerts / 3; // bo maska powierzchni jest jedna na trójkąt
+    int facecount = m_geometry.vertex_count / 3;
     for( int faceidx = Startface; faceidx < facecount; ++faceidx ) {
         // pętla po trójkątach, od trójkąta (f)
         if( Masks[ faceidx ] & Mask ) {
@@ -209,16 +209,12 @@ inline void readMatrix(cParser &parser, float4x4 &matrix)
 			parser >> matrix(x)[y];
 };
 
-int TSubModel::Load( cParser &parser, TModel3d *Model, /*int Pos,*/ bool dynamic)
+std::pair<int, int> TSubModel::Load( cParser &parser, bool dynamic )
 { // Ra: VBO tworzone na poziomie modelu, a nie submodeli
-    iNumVerts = 0;
-/*
-    iVboPtr = Pos; // pozycja w VBO
-*/
     auto token { parser.getToken<std::string>() };
     if( token != "type:" ) {
         std::string errormessage {
-            "Bad model: expected submodel type definition not found while loading model \"" + Model->NameGet() + "\""
+            "Bad model: expected submodel type definition not found while loading model \"" + parser.Name() + "\""
             + "\ncurrent model data stream content: \"" };
         auto count { 10 };
         while( ( true == parser.getTokens() )
@@ -231,7 +227,7 @@ int TSubModel::Load( cParser &parser, TModel3d *Model, /*int Pos,*/ bool dynamic
         }
         errormessage += "(...)\"";
         ErrorLog( errormessage );
-        return 0;
+        return { 0, 0 };
     }
     {
         auto const type { parser.getToken<std::string>() };
@@ -345,10 +341,7 @@ int TSubModel::Load( cParser &parser, TModel3d *Model, /*int Pos,*/ bool dynamic
         if( fCosHotspotAngle > 1.0 ) {
             fCosHotspotAngle = std::cos( DegToRad( 0.5f * fCosHotspotAngle ) );
         }
-        iNumVerts = 1;
-/*
-        iFlags |= 0x4010; // rysowane w cyklu nieprzezroczystych, macierz musi zostać bez zmiany
-*/
+        m_geometry.vertex_count = 1;
         iFlags |= 0x4030; // drawn both in solid (light point) and transparent (light glare) phases
     }
     else if (eType < TP_ROTATOR)
@@ -479,7 +472,10 @@ int TSubModel::Load( cParser &parser, TModel3d *Model, /*int Pos,*/ bool dynamic
     // visibility range
 	std::string discard;
 	parser.getTokens(5, false);
-	parser >> discard >> fSquareMaxDist >> discard >> fSquareMinDist >> discard;
+	parser
+        >> discard >> fSquareMaxDist
+        >> discard >> fSquareMinDist
+        >> discard;
 
     if( fSquareMaxDist <= 0.0 ) {
         // 15km to więcej, niż się obecnie wyświetla
@@ -511,168 +507,197 @@ int TSubModel::Load( cParser &parser, TModel3d *Model, /*int Pos,*/ bool dynamic
     }
 	if (eType < TP_ROTATOR)
 	{ // wczytywanie wierzchołków
-		parser.getTokens(2, false);
-		parser >> discard >> token;
-		// Ra 15-01: to wczytać jako tekst - jeśli pierwszy znak zawiera "*", to
-		// dalej będzie nazwa wcześniejszego submodelu, z którego należy wziąć
-		// wierzchołki
-		// zapewni to jakąś zgodność wstecz, bo zamiast liczby będzie ciąg, którego
-		// wartość powinna być uznana jako zerowa
-		// parser.getToken(iNumVerts);
-		if (token.front() == '*')
-		{ // jeśli pierwszy znak jest gwiazdką, poszukać
-		  // submodelu o nazwie bez tej gwiazdki i wziąć z
-		  // niego wierzchołki
-			Error("Vertices reference not yet supported!");
-		}
-		else
+        token = parser.getToken<std::string>();
+        if( token == "numindices:" ) // optional block, potentially preceeding vertex list
+        {
+            m_geometry.index_count = parser.getToken<int>( false );
+            Indices.resize( m_geometry.index_count );
+            for( auto idx = 0; idx < m_geometry.index_count; ++idx ) {
+                Indices[ idx ] = parser.getToken<unsigned int>( false );
+            }
+            token = parser.getToken<std::string>();
+        }
+		if( ( token == "numverts:" ) || ( token == "numverts" ) )
 		{ // normalna lista wierzchołków
-			iNumVerts = std::atoi(token.c_str());
-			if (iNumVerts % 3)
+/*
+            // Ra 15-01: to wczytać jako tekst - jeśli pierwszy znak zawiera "*", to
+            // dalej będzie nazwa wcześniejszego submodelu, z którego należy wziąć wierzchołki
+            // zapewni to jakąś zgodność wstecz, bo zamiast liczby będzie ciąg, którego
+            // wartość powinna być uznana jako zerowa
+            token = parser.getToken<std::string>();
+            if( token.front() == '*' ) {
+            // jeśli pierwszy znak jest gwiazdką, poszukać submodelu o nazwie bez tej gwiazdki i wziąć z niego wierzchołki
+                Error( "Vertices reference not yet supported!" );
+            }
+*/
+			m_geometry.vertex_count = parser.getToken<int>(false);
+			if( ( m_geometry.index_count <= 0 )
+             && ( m_geometry.vertex_count % 3 != 0 ) )
 			{
-				iNumVerts = 0;
-				Error("Mesh error, (iNumVertices=" + std::to_string(iNumVerts) + ")%3<>0");
-				return 0;
+				m_geometry.vertex_count = 0;
+				Error("Bad model: incomplete triangle encountered in submodel \"" + pName + "\"");
+                return  { 0, 0 };
 			}
-			// Vertices=new GLVERTEX[iNumVerts];
-			if (iNumVerts) {
-/*
-				Vertices = new basic_vertex[iNumVerts];
-*/
-                Vertices.resize( iNumVerts );
-                int facecount = iNumVerts / 3;
-/*
-                unsigned int *sg; // maski przynależności trójkątów do powierzchni
-                sg = new unsigned int[iNumFaces]; // maski powierzchni: 0 oznacza brak użredniania wektorów normalnych
-				int *wsp = new int[iNumVerts]; // z którego wierzchołka kopiować wektor normalny
-*/
-                std::vector<unsigned int> sg; sg.resize( facecount ); // maski przynależności trójkątów do powierzchni
-                std::vector<int> wsp; wsp.resize( iNumVerts );// z którego wierzchołka kopiować wektor normalny
-				int maska = 0;
-                int rawvertexcount = 0; // used to keep track of vertex indices in source file
-				for (int i = 0; i < iNumVerts; ++i) {
-                    ++rawvertexcount;
-                    // Ra: z konwersją na układ scenerii - będzie wydajniejsze wyświetlanie
-					wsp[i] = -1; // wektory normalne nie są policzone dla tego wierzchołka
-					if ((i % 3) == 0) {
-                        // jeśli będzie maska -1, to dalej będą wierzchołki z wektorami normalnymi, podanymi jawnie
-						maska = parser.getToken<int>(false); // maska powierzchni trójkąta
-                        // dla maski -1 będzie 0, czyli nie ma wspólnych wektorów normalnych
-						sg[i / 3] = (
-                            ( maska == -1 ) ?
-                                0 :
-                                maska );
-					}
-					parser.getTokens(3, false);
-					parser
-                        >> Vertices[i].position.x
-                        >> Vertices[i].position.y
-                        >> Vertices[i].position.z;
-					if (maska == -1)
-					{ // jeśli wektory normalne podane jawnie
-						parser.getTokens(3, false);
-						parser
-                            >> Vertices[i].normal.x
-                            >> Vertices[i].normal.y
-                            >> Vertices[i].normal.z;
-                        if( glm::length2( Vertices[ i ].normal ) > 0.0f ) {
-                            glm::normalize( Vertices[ i ].normal );
-                        }
-                        else {
-                            WriteLog( "Bad model: zero length normal vector specified in: \"" + pName + "\", vertex " + std::to_string(i), logtype::model );
-                        }
-						wsp[i] = i; // wektory normalne "są już policzone"
-					}
-					parser.getTokens(2, false);
-					parser
-                        >> Vertices[i].texture.s
-                        >> Vertices[i].texture.t;
-					if (i % 3 == 2) { 
-                        // jeżeli wczytano 3 punkty
-                        if( true == degenerate( Vertices[ i ].position, Vertices[ i - 1 ].position, Vertices[ i - 2 ].position ) ) {
-                            // jeżeli punkty się nakładają na siebie
-							--facecount; // o jeden trójkąt mniej
-							iNumVerts -= 3; // czyli o 3 wierzchołki
-							i -= 3; // wczytanie kolejnego w to miejsce
-							WriteLog("Bad model: degenerated triangle ignored in: \"" + pName + "\", vertices " + std::to_string(rawvertexcount-2) + "-" + std::to_string(rawvertexcount), logtype::model );
-						}
-						if (i > 0) {
-                            // jeśli pierwszy trójkąt będzie zdegenerowany, to zostanie usunięty i nie ma co sprawdzać
-							if ((glm::length(Vertices[i    ].position - Vertices[i - 1].position) > 1000.0)
-                             || (glm::length(Vertices[i - 1].position - Vertices[i - 2].position) > 1000.0)
-                             || (glm::length(Vertices[i - 2].position - Vertices[i    ].position) > 1000.0)) {
-                                // jeżeli są dalej niż 2km od siebie //Ra 15-01:
-                                // obiekt wstawiany nie powinien być większy niż 300m (trójkąty terenu w E3D mogą mieć 1.5km)
-								--facecount; // o jeden trójkąt mniej
-								iNumVerts -= 3; // czyli o 3 wierzchołki
-								i -= 3; // wczytanie kolejnego w to miejsce
-								WriteLog( "Bad model: too large triangle ignored in: \"" + pName + "\"", logtype::model );
-							}
-                        }
-					}
-				}
-/*
-				glm::vec3 *n = new glm::vec3[iNumFaces]; // tablica wektorów normalnych dla trójkątów
-*/
-                std::vector<glm::vec3> facenormals; facenormals.reserve( facecount );
-                for( int i = 0; i < facecount; ++i ) {
-                    // pętla po trójkątach - będzie szybciej, jak wstępnie przeliczymy normalne trójkątów
-                    auto facenormal = 
-                        glm::cross(
-                            Vertices[ i * 3 ].position - Vertices[ i * 3 + 1 ].position,
-                            Vertices[ i * 3 ].position - Vertices[ i * 3 + 2 ].position );
-                    facenormals.emplace_back(
-                        glm::length2( facenormal ) > 0.0f ?
-                            glm::normalize( facenormal ) :
-                            glm::vec3() );
-                }
-				glm::vec3 vertexnormal; // roboczy wektor normalny
-				for (int vertexidx = 0; vertexidx < iNumVerts; ++vertexidx) { 
-                    // pętla po wierzchołkach trójkątów
-                    if( wsp[ vertexidx ] >= 0 ) {
-                        // jeśli już był liczony wektor normalny z użyciem tego wierzchołka to wystarczy skopiować policzony wcześniej
-                        Vertices[ vertexidx ].normal = Vertices[ wsp[ vertexidx ] ].normal;
+			if ( m_geometry.vertex_count ) {
+                Vertices.resize( m_geometry.vertex_count );
+                if( m_geometry.index_count ) {
+                    // indexed geometry chunks are expected to come with pre-generated normals and tangents, to avoid hassle required to generate them manually
+                    auto vertices { std::begin( Vertices ) };
+                    for( auto idx = 0; idx < m_geometry.vertex_count; ++idx ) {
+                        auto vertex { vertices + idx };
+                        parser.getTokens( 3 + 3 + 2 + 4, false );
+                        parser
+                            >> vertex->position.x
+                            >> vertex->position.y
+                            >> vertex->position.z
+                            >> vertex->normal.x
+                            >> vertex->normal.y
+                            >> vertex->normal.z
+                            >> vertex->texture.s
+                            >> vertex->texture.t
+                            >> vertex->tangent.x
+                            >> vertex->tangent.y
+                            >> vertex->tangent.z
+                            >> vertex->tangent.w;
                     }
-					else {
-                        // inaczej musimy dopiero policzyć
-						auto const faceidx = vertexidx / 3; // numer trójkąta
-						vertexnormal = glm::vec3(); // liczenie zaczynamy od zera
-						auto adjacenvertextidx = vertexidx; // zaczynamy dodawanie wektorów normalnych od własnego
-						while (adjacenvertextidx >= 0) {
-                            // sumowanie z wektorem normalnym sąsiada (włącznie ze sobą)
-                            if( glm::dot( vertexnormal, facenormals[ adjacenvertextidx / 3 ] ) > -0.99f ) {
-                                wsp[ adjacenvertextidx ] = vertexidx; // informacja, że w tym wierzchołku jest już policzony wektor normalny
-                                vertexnormal += facenormals[ adjacenvertextidx / 3 ];
+                }
+                else {
+                    // legacy geometry, more or less incomplete
+                    // to stay on the safe side we'll potentially need to convert indexed geometry to raw triangle form, cal
+                    auto vertices { std::begin( Vertices ) };
+                    int facecount = m_geometry.vertex_count / 3;
+                    std::vector<unsigned int> sg; sg.resize( facecount ); // maski przynależności trójkątów do powierzchni
+                    std::vector<int> wsp; wsp.resize( m_geometry.vertex_count );// z którego wierzchołka kopiować wektor normalny
+				    int maska = 0;
+                    int vertexidx = 0; // used to keep track of vertex indices in source file
+				    for (auto idx = 0; idx < m_geometry.vertex_count; ++idx) {
+                        ++vertexidx;
+                        // Ra: z konwersją na układ scenerii - będzie wydajniejsze wyświetlanie
+					    wsp[idx] = -1; // wektory normalne nie są policzone dla tego wierzchołka
+					    if ((idx % 3) == 0) {
+                            // jeśli będzie maska -1, to dalej będą wierzchołki z wektorami normalnymi, podanymi jawnie
+						    maska = parser.getToken<int>(false); // maska powierzchni trójkąta
+                            // dla maski -1 będzie 0, czyli nie ma wspólnych wektorów normalnych
+						    sg[idx / 3] = (
+                                ( maska == -1 ) ?
+                                    0 :
+                                    maska );
+					    }
+                        auto vertex { vertices + idx };
+					    parser.getTokens(3, false);
+					    parser
+                            >> vertex->position.x
+                            >> vertex->position.y
+                            >> vertex->position.z;
+					    if (maska == -1)
+					    { // jeśli wektory normalne podane jawnie
+						    parser.getTokens(3, false);
+						    parser
+                                >> vertex->normal.x
+                                >> vertex->normal.y
+                                >> vertex->normal.z;
+                            if( glm::length2( vertex->normal ) > 0.0f ) {
+                                glm::normalize( vertex->normal );
                             }
-                            /*
                             else {
-                                ErrorLog( "Bad model: opposite normals in the same smoothing group, check sub-model \"" + pName + "\" for two-sided faces and/or scaling", logtype::model );
+                                WriteLog( "Bad model: zero length normal vector specified in submodel \"" + pName + "\", vertex " + std::to_string(idx), logtype::model );
                             }
-                            */
-                            // i szukanie od kolejnego trójkąta
-							adjacenvertextidx = SeekFaceNormal(sg, adjacenvertextidx / 3 + 1, sg[faceidx], Vertices[vertexidx].position, Vertices);
+						    wsp[idx] = idx; // wektory normalne "są już policzone"
+					    }
+					    parser.getTokens(2, false);
+					    parser
+                            >> vertex->texture.s
+                            >> vertex->texture.t;
+
+					    if (idx % 3 == 2) { 
+                            // jeżeli wczytano 3 punkty
+                            if( true == degenerate( vertex->position, (vertex - 1)->position, (vertex - 2)->position ) ) {
+                                // jeżeli punkty się nakładają na siebie
+							    --facecount; // o jeden trójkąt mniej
+							    m_geometry.vertex_count -= 3; // czyli o 3 wierzchołki
+							    idx -= 3; // wczytanie kolejnego w to miejsce
+							    WriteLog("Bad model: degenerated triangle ignored in: \"" + pName + "\", vertices " + std::to_string(vertexidx-2) + "-" + std::to_string(vertexidx), logtype::model );
+						    }
+						    if (idx > 0) {
+                                // jeśli pierwszy trójkąt będzie zdegenerowany, to zostanie usunięty i nie ma co sprawdzać
+							    if ((glm::length((vertex  )->position - (vertex-1)->position) > 1000.0)
+                                 || (glm::length((vertex-1)->position - (vertex-2)->position) > 1000.0)
+                                 || (glm::length((vertex-2)->position - (vertex  )->position) > 1000.0)) {
+                                    // jeżeli są dalej niż 2km od siebie //Ra 15-01:
+                                    // obiekt wstawiany nie powinien być większy niż 300m (trójkąty terenu w E3D mogą mieć 1.5km)
+								    --facecount; // o jeden trójkąt mniej
+								    m_geometry.vertex_count -= 3; // czyli o 3 wierzchołki
+								    idx -= 3; // wczytanie kolejnego w to miejsce
+								    WriteLog( "Bad model: too large triangle ignored in: \"" + pName + "\"", logtype::model );
+							    }
+                            }
+					    }
+                    }
+
+                    std::vector<glm::vec3> facenormals; facenormals.reserve( facecount );
+                    for( int i = 0; i < facecount; ++i ) {
+                        // pętla po trójkątach - będzie szybciej, jak wstępnie przeliczymy normalne trójkątów
+                        auto const vertex { vertices + ( i * 3 ) };
+                        auto facenormal =
+                            glm::cross(
+                                vertex->position - (vertex + 1)->position,
+                                vertex->position - (vertex + 2)->position );
+                        facenormals.emplace_back(
+                            glm::length2( facenormal ) > 0.0f ?
+                                glm::normalize( facenormal ) :
+                                glm::vec3() );
+                    }
+				    glm::vec3 vertexnormal; // roboczy wektor normalny
+				    for (int vertexidx = 0; vertexidx < m_geometry.vertex_count; ++vertexidx) { 
+                        // pętla po wierzchołkach trójkątów
+                        auto vertex { vertices + vertexidx };
+                        if( wsp[ vertexidx ] >= 0 ) {
+                            // jeśli już był liczony wektor normalny z użyciem tego wierzchołka to wystarczy skopiować policzony wcześniej
+                            vertex->normal = ( vertices + wsp[ vertexidx ] )->normal;
                         }
-						// Ra 15-01: należało by jeszcze uwzględnić skalowanie wprowadzane przez transformy, aby normalne po przeskalowaniu były jednostkowe
-                        if( glm::length2( vertexnormal ) == 0.0f ) {
-                            WriteLog( "Bad model: zero length normal vector generated for sub-model \"" + pName + "\"", logtype::model );
-                        }
-                        Vertices[ vertexidx ].normal = (
-                            glm::length2( vertexnormal ) > 0.0f ?
-                                glm::normalize( vertexnormal ) :
-                                facenormals[ vertexidx / 3 ] ); // przepisanie do wierzchołka trójkąta
-					}
-				}
-                Vertices.resize( iNumVerts ); // in case we had some degenerate triangles along the way
-/*
-				delete[] wsp;
-				delete[] n;
-				delete[] sg;
-*/
-			}
+					    else {
+                            // inaczej musimy dopiero policzyć
+						    auto const faceidx = vertexidx / 3; // numer trójkąta
+						    vertexnormal = glm::vec3(); // liczenie zaczynamy od zera
+						    auto adjacenvertextidx = vertexidx; // zaczynamy dodawanie wektorów normalnych od własnego
+						    while (adjacenvertextidx >= 0) {
+                                // sumowanie z wektorem normalnym sąsiada (włącznie ze sobą)
+                                if( glm::dot( vertexnormal, facenormals[ adjacenvertextidx / 3 ] ) > -0.99f ) {
+                                    wsp[ adjacenvertextidx ] = vertexidx; // informacja, że w tym wierzchołku jest już policzony wektor normalny
+                                    vertexnormal += facenormals[ adjacenvertextidx / 3 ];
+                                }
+                                /*
+                                else {
+                                    ErrorLog( "Bad model: opposite normals in the same smoothing group, check sub-model \"" + pName + "\" for two-sided faces and/or scaling", logtype::model );
+                                }
+                                */
+                                // i szukanie od kolejnego trójkąta
+							    adjacenvertextidx = SeekFaceNormal(sg, adjacenvertextidx / 3 + 1, sg[faceidx], vertex->position, Vertices);
+                            }
+						    // Ra 15-01: należało by jeszcze uwzględnić skalowanie wprowadzane przez transformy, aby normalne po przeskalowaniu były jednostkowe
+                            if( glm::length2( vertexnormal ) == 0.0f ) {
+                                WriteLog( "Bad model: zero length normal vector generated for sub-model \"" + pName + "\"", logtype::model );
+                            }
+                            vertex->normal = (
+                                glm::length2( vertexnormal ) > 0.0f ?
+                                    glm::normalize( vertexnormal ) :
+                                    facenormals[ vertexidx / 3 ] ); // przepisanie do wierzchołka trójkąta
+					    }
+                    }
+                    Vertices.resize( m_geometry.vertex_count ); // in case we had some degenerate triangles along the way
+                    gfx::calculate_tangents( Vertices, GL_TRIANGLES );
+                    gfx::calculate_indices( Indices, Vertices );
+                    // update values potentially changed by indexing
+                    m_geometry.index_count = Indices.size();
+                    m_geometry.vertex_count = Vertices.size();
+                }
+            }
 			else // gdy brak wierzchołków
 			{
 				eType = TP_ROTATOR; // submodel pomocniczy, ma tylko macierz przekształcenia
-				/*iVboPtr =*/ iNumVerts = 0; // dla formalności
+                // dla formalności
+                m_geometry.vertex_offset = 0;
+                m_geometry.vertex_count = 0;
 			}
 		} // obsługa submodelu z własną listą wierzchołków
 	}
@@ -681,44 +706,46 @@ int TSubModel::Load( cParser &parser, TModel3d *Model, /*int Pos,*/ bool dynamic
 	  // dla smt_Mesh
 		std::string discard;
 		parser.getTokens(2, false);
-		parser >> discard >> iNumVerts;
-/*
-		// Vertices=new GLVERTEX[iNumVerts];
-		Vertices = new basic_vertex[iNumVerts];
-*/
-        Vertices.resize( iNumVerts );
-        int i;
+		parser >> discard >> m_geometry.vertex_count;
+        Vertices.resize( m_geometry.vertex_count );
+        int idx;
         unsigned int color;
-		for (i = 0; i < iNumVerts; ++i)
+        auto vertices { std::begin( Vertices ) };
+        for (idx = 0; idx < m_geometry.vertex_count; ++idx)
 		{
-			if (i % 3 == 0)
+			if (idx % 3 == 0)
 			{
 				parser.ignoreToken(); // maska powierzchni trójkąta
 			}
-			parser.getTokens(5, false);
+            auto vertex { vertices + idx };
+            parser.getTokens(5, false);
 			parser
-                >> Vertices[i].position.x
-                >> Vertices[i].position.y
-                >> Vertices[i].position.z
+                >> vertex->position.x
+                >> vertex->position.y
+                >> vertex->position.z
                 >> color // zakodowany kolor
 				>> discard;
-			Vertices[i].normal.x = ((color) & 0xff) / 255.0f; // R
-			Vertices[i].normal.y = ((color >> 8) & 0xff) / 255.0f; // G
-			Vertices[i].normal.z = ((color >> 16) & 0xff) / 255.0f; // B
+            vertex->normal = {  ( ( color       ) & 0xff ) / 255.0f, // R
+                                ( ( color >> 8  ) & 0xff ) / 255.0f, // G
+                                ( ( color >> 16 ) & 0xff ) / 255.0f }; // B
 		}
 	}
     else if( eType == TP_FREESPOTLIGHT ) {
         // single light points only have single data point, duh
         Vertices.emplace_back();
-        iNumVerts = 1;
+        m_geometry.vertex_count = 1;
     }
 	// Visible=true; //się potem wyłączy w razie potrzeby
 	// iFlags|=0x0200; //wczytano z pliku tekstowego (jest właścicielem tablic)
-	if (iNumVerts < 1)
+	if (m_geometry.vertex_count < 1)
 		iFlags &= ~0x3F; // cykl renderowania uzależniony od potomnych
-	return iNumVerts; // do określenia wielkości VBO
+
+    return {
+        m_geometry.index_count,
+        m_geometry.vertex_count }; // do określenia wielkości VBO
 };
 
+/*
 int TSubModel::TriangleAdd(TModel3d *m, material_handle tex, int tri)
 { // dodanie trójkątów do submodelu, używane przy tworzeniu E3D terenu
     TSubModel *s = this;
@@ -748,6 +775,7 @@ int TSubModel::TriangleAdd(TModel3d *m, material_handle tex, int tri)
         s->iNumVerts += tri; // aktualizacja ilości wierzchołków
     return s->iNumVerts - tri; // zwraca pozycję tych trójkątów w submodelu
 };
+*/
 /*
 basic_vertex *TSubModel::TrianglePtr(int tex, int pos, glm::vec3 const &Ambient, glm::vec3 const &Diffuse, glm::vec3 const &Specular )
 { // zwraca wskaźnik do wypełnienia tabeli wierzchołków, używane przy tworzeniu E3D terenu
@@ -1164,49 +1192,111 @@ void TSubModel::RaAnimation(glm::mat4 &m, TAnimType a)
 
 //---------------------------------------------------------------------------
 
-void TSubModel::serialize_geometry( std::ostream &Output ) const {
+void TSubModel::serialize_geometry( std::ostream &Output, bool const Packed, bool const Indexed ) const {
 
     if( Child ) {
-        Child->serialize_geometry( Output );
+        Child->serialize_geometry( Output, Packed, Indexed );
     }
-    if( m_geometry != null_handle ) {
-        for( auto const &vertex : GfxRenderer->Vertices( m_geometry ) ) {
-            vertex.serialize( Output );
+    if( m_geometry.handle != null_handle ) {
+        if( Packed ) {
+            for( auto const &vertex : GfxRenderer->Vertices( m_geometry.handle ) ) {
+                vertex.serialize_packed( Output, Indexed );
+            }
+        }
+        else {
+            for( auto const &vertex : GfxRenderer->Vertices( m_geometry.handle ) ) {
+                vertex.serialize( Output, Indexed );
+            }
         }
     }
     if( Next ) {
-        Next->serialize_geometry( Output );
+        Next->serialize_geometry( Output, Packed, Indexed );
+    }
+};
+
+int TSubModel::index_size() const {
+
+    int size { 1 };
+    if( Child ) {
+        size = std::max( size, Child->index_size() );
+    }
+    if( ( size < 4 ) && ( m_geometry.handle != null_handle ) ) {
+        auto const indexcount { GfxRenderer->Indices( m_geometry.handle ).size() };
+        size = (
+            indexcount >= ( 1 << 16 ) ? 4 :
+            indexcount >= ( 1 <<  8 ) ? 2 :
+                                        1 );
+    }
+    if( ( size < 4 ) && ( Next ) ) {
+        size = std::max( size, Next->index_size() );
+    }
+    return size;
+}
+
+void TSubModel::serialize_indices( std::ostream &Output, int const Size ) const {
+
+    if( Child ) {
+        Child->serialize_indices( Output, Size );
+    }
+    if( m_geometry.handle != null_handle ) {
+        switch( Size ) {
+            case 1: {
+                for( auto const &index : GfxRenderer->Indices( m_geometry.handle ) ) {
+                    sn_utils::s_uint8( Output, index );
+                }
+                break;
+            }
+            case 2: {
+                for( auto const &index : GfxRenderer->Indices( m_geometry.handle ) ) {
+                    sn_utils::ls_uint16( Output, index );
+                }
+                break;
+            }
+            case 4: {
+                for( auto const &index : GfxRenderer->Indices( m_geometry.handle ) ) {
+                    sn_utils::ls_uint32( Output, index );
+                }
+                break;
+            }
+            default: { break; }
+        }
+    }
+    if( Next ) {
+        Next->serialize_indices( Output, Size );
     }
 };
 
 void
-TSubModel::create_geometry( std::size_t &Dataoffset, gfx::geometrybank_handle const &Bank ) {
+TSubModel::create_geometry( std::size_t &Indexoffset, std::size_t &Vertexoffset, gfx::geometrybank_handle const &Bank ) {
 
     // data offset is used to determine data offset of each submodel into single shared geometry bank
     // (the offsets are part of legacy system which we now need to work around for backward compatibility)
-    if( Child )
-        Child->create_geometry( Dataoffset, Bank );
+    if( Child ) {
+        Child->create_geometry( Indexoffset, Vertexoffset, Bank );
+    }
 
     if( false == Vertices.empty() ) {
 
-        tVboPtr = static_cast<int>( Dataoffset );
-        Dataoffset += Vertices.size();
+        m_geometry.index_offset = static_cast<int>( Indexoffset );
+        Indexoffset += Indices.size();
+        m_geometry.vertex_offset = static_cast<int>( Vertexoffset );
+        Vertexoffset += Vertices.size();
         // conveniently all relevant custom node types use GL_POINTS, or we'd have to determine the type on individual basis
         auto type = (
             eType < TP_ROTATOR ?
                 eType :
                 GL_POINTS );
-        m_geometry = GfxRenderer->Insert( Vertices, Bank, type );
+        m_geometry.handle = GfxRenderer->Insert( Indices, Vertices, Bank, type );
     }
 
-    if( m_geometry != 0 ) {
+    if( m_geometry.handle != 0 ) {
         // calculate bounding radius while we're at it
         float squaredradius {};
         // if this happens to be root node it may already have non-squared radius of the largest child
         // since we're comparing squared radii, we need to square it back for correct results
         m_boundingradius *= m_boundingradius;
         auto const submodeloffset { offset( std::numeric_limits<float>::max() ) };
-        for( auto const &vertex : GfxRenderer->Vertices( m_geometry ) ) {
+        for( auto const &vertex : GfxRenderer->Vertices( m_geometry.handle ) ) {
             squaredradius = glm::length2( submodeloffset + vertex.position );
             if( squaredradius > m_boundingradius ) {
                 m_boundingradius = squaredradius;
@@ -1224,8 +1314,9 @@ TSubModel::create_geometry( std::size_t &Dataoffset, gfx::geometrybank_handle co
             m_boundingradius );
     }
 
-    if( Next )
-        Next->create_geometry( Dataoffset, Bank );
+    if( Next ) {
+        Next->create_geometry( Indexoffset, Vertexoffset, Bank );
+    }
 }
 
 void TSubModel::ColorsSet( glm::vec3 const &Ambient, glm::vec3 const &Diffuse, glm::vec3 const &Specular )
@@ -1312,13 +1403,13 @@ void TSubModel::ReplaceMaterial(const std::string &name)
 // obliczenie maksymalnej wysokości, na początek ślizgu w pantografie
 float TSubModel::MaxY( float4x4 const &m ) {
     // tylko dla trójkątów liczymy
-    if( eType != 4 ) { return 0; }
+    if( eType != GL_TRIANGLES ) { return 0; }
 
     auto maxy { 0.0f };
     // binary and text models invoke this function at different stages, either after or before geometry data was sent to the geometry manager
-    if( m_geometry != null_handle ) {
+    if( m_geometry.handle != null_handle ) {
 
-        for( auto const &vertex : GfxRenderer->Vertices( m_geometry ) ) {
+        for( auto const &vertex : GfxRenderer->Vertices( m_geometry.handle ) ) {
             maxy = std::max(
                 maxy,
                   m[ 0 ][ 1 ] * vertex.position.x
@@ -1342,14 +1433,6 @@ float TSubModel::MaxY( float4x4 const &m ) {
     return maxy;
 };
 //---------------------------------------------------------------------------
-
-TModel3d::TModel3d()
-{
-	Root = NULL;
-	iFlags = 0;
-	iSubModelsCount = 0;
-	iNumVerts = 0; // nie ma jeszcze wierzchołków
-};
 
 TModel3d::~TModel3d() {
 
@@ -1430,8 +1513,8 @@ TSubModel::offset( float const Geometrytestoffsetthreshold ) const {
         // for such cases we resort to an estimate from submodel geometry
         // TODO: do proper bounding area calculation for submodel when loading mesh and grab the centre point from it here
         auto const &vertices { (
-            m_geometry != null_handle ?
-                GfxRenderer->Vertices( m_geometry ) :
+            m_geometry.handle != null_handle ?
+                GfxRenderer->Vertices( m_geometry.handle ) :
                 Vertices ) };
         if( false == vertices.empty() ) {
             // transformation matrix for the submodel can still contain rotation and/or scaling,
@@ -1541,16 +1624,15 @@ void TSubModel::serialize(std::ostream &s,
 	sn_utils::ls_uint32(s, iFlags);
 	sn_utils::ls_int32(s, (int32_t)get_container_pos(transforms, *fMatrix));
 
-	sn_utils::ls_int32(s, iNumVerts);
-	sn_utils::ls_int32(s, tVboPtr);
+    sn_utils::ls_int32( s, m_geometry.vertex_count );
+    sn_utils::ls_int32( s, m_geometry.vertex_offset );
 
 	if (m_material <= 0)
 		sn_utils::ls_int32(s, m_material);
 	else
 		sn_utils::ls_int32(s, (int32_t)get_container_pos(textures, m_materialname));
 
-//	sn_utils::ls_float32(s, fVisible);
-    sn_utils::ls_float32(s, 1.f);
+    sn_utils::ls_float32(s, 1.f); // fVisible
 	sn_utils::ls_float32(s, fLight);
 
 	sn_utils::s_vec4(s, f4Ambient);
@@ -1571,6 +1653,9 @@ void TSubModel::serialize(std::ostream &s,
 	sn_utils::ls_float32(s, fCosFalloffAngle);
 	sn_utils::ls_float32(s, fCosHotspotAngle);
 	sn_utils::ls_float32(s, fCosViewAngle);
+
+    sn_utils::ls_int32( s, m_geometry.index_count );
+    sn_utils::ls_int32( s, m_geometry.index_offset );
 
 	size_t fill = end - s.tellp();
 	for (size_t i = 0; i < fill; i++)
@@ -1615,9 +1700,21 @@ void TModel3d::SaveToBinFile(std::string const &FileName)
 	for (size_t i = 0; i < transforms.size(); i++)
 		transforms[i].serialize_float32(s);
 
-    sn_utils::ls_uint32(s, MAKE_ID4('V', 'N', 'T', '0'));
-	sn_utils::ls_uint32(s, 8 + iNumVerts * 32);
-    Root->serialize_geometry( s );
+    auto const isindexed { m_indexcount > 0 };
+    if( isindexed ) {
+        auto const indexsize { Root->index_size() };
+        sn_utils::ls_uint32( s, MAKE_ID4( 'I', 'D', 'X', '0' + indexsize ) );
+        sn_utils::ls_uint32( s, 8 + m_indexcount * indexsize );
+        Root->serialize_indices( s, indexsize );
+        sn_utils::ls_uint32( s, MAKE_ID4( 'V', 'N', 'T', '1' ) );
+        sn_utils::ls_uint32( s, 8 + m_vertexcount * 20 );
+        Root->serialize_geometry( s, true, true );
+    }
+    else {
+        sn_utils::ls_uint32( s, MAKE_ID4( 'V', 'N', 'T', '0' ) );
+        sn_utils::ls_uint32( s, 8 + m_vertexcount * 32 );
+        Root->serialize_geometry( s, false, false );
+    }
 
 	if (textures.size())
 	{
@@ -1666,12 +1763,11 @@ void TSubModel::deserialize(std::istream &s)
 	iFlags = sn_utils::ld_uint32(s);
 	iMatrix = sn_utils::ld_int32(s);
 
-	iNumVerts = sn_utils::ld_int32(s);
-	tVboPtr = sn_utils::ld_int32(s);
+    m_geometry.vertex_count = sn_utils::ld_int32( s );
+    m_geometry.vertex_offset = sn_utils::ld_int32( s );
 	iTexture = sn_utils::ld_int32(s);
 
-//	fVisible = sn_utils::ld_float32(s);
-    auto discard = sn_utils::ld_float32(s);
+    auto discard = sn_utils::ld_float32(s); // fVisible
 	fLight = sn_utils::ld_float32(s);
 
 	f4Ambient = sn_utils::d_vec4(s);
@@ -1691,7 +1787,9 @@ void TSubModel::deserialize(std::istream &s)
 	fCosFalloffAngle = sn_utils::ld_float32(s);
 	fCosHotspotAngle = sn_utils::ld_float32(s);
 	fCosViewAngle = sn_utils::ld_float32(s);
-
+    // HACK: the values will be 0 also when reading legacy chunk
+    m_geometry.index_count = sn_utils::ld_int32( s );
+    m_geometry.index_offset = sn_utils::ld_int32( s );
 	// necessary rotations were already done during t3d->e3d conversion
 	m_rotation_init_done = true;
 }
@@ -1711,7 +1809,7 @@ void TModel3d::deserialize(std::istream &s, size_t size, bool dynamic)
 		uint32_t size = sn_utils::ld_uint32(s) - 8;
 		std::streampos end = s.tellg() + (std::streampos)size;
 
-		if ((type & 0x00FFFFFF) == MAKE_ID4('S', 'U', 'B', 0))
+		if ((type & 0x00FFFFFF) == MAKE_ID4('S', 'U', 'B', 0)) // submodels
 		{
 			if (Root != nullptr)
 				throw std::runtime_error("e3d: duplicated SUB chunk");
@@ -1727,68 +1825,104 @@ void TModel3d::deserialize(std::istream &s, size_t size, bool dynamic)
 				Root[i].deserialize(s);
 			}
 		}
-		else if (type == MAKE_ID4('V', 'N', 'T', '0'))
+		else if ((type & 0x00FFFFFF) == MAKE_ID4('V', 'N', 'T', 0)) // geometry vertices
 		{
-/*
-            if (m_pVNT != nullptr)
-				throw std::runtime_error("e3d: duplicated VNT chunk");
-
-            size_t vt_cnt = size / 32;
-			iNumVerts = (int)vt_cnt;
-			m_nVertexCount = (int)vt_cnt;
-            m_pVNT.resize( vt_cnt );
-			for (size_t i = 0; i < vt_cnt; i++)
-				m_pVNT[i].deserialize(s);
-*/
             // we rely on the SUB chunk coming before the vertex data, and on the overall vertex count matching the size of data in the chunk.
             // geometry associated with chunks isn't stored in the same order as the chunks themselves, so we need to sort that out first
             if( Root == nullptr )
                 throw std::runtime_error( "e3d: VNT chunk encountered before SUB chunk" );
             std::vector< std::pair<int, int> > submodeloffsets; // vertex data offset, submodel index
             submodeloffsets.reserve( iSubModelsCount );
-            for( int submodelindex = 0; submodelindex < iSubModelsCount; ++submodelindex ) {
-                auto const &submodel = Root[ submodelindex ];
-                if( submodel.iNumVerts <= 0 ) { continue; }
-                submodeloffsets.emplace_back( submodel.tVboPtr, submodelindex );
+            for( auto submodelindex = 0; submodelindex < iSubModelsCount; ++submodelindex ) {
+                auto const &submodelgeometry { Root[ submodelindex ].m_geometry };
+                if( submodelgeometry.vertex_count <= 0 ) { continue; }
+                submodeloffsets.emplace_back( submodelgeometry.vertex_offset, submodelindex );
             }
             std::sort(
-                submodeloffsets.begin(),
-                submodeloffsets.end(),
+                std::begin( submodeloffsets ),
+                std::end( submodeloffsets ),
                 []( std::pair<int, int> const &Left, std::pair<int, int> const &Right ) {
                     return (Left.first) < (Right.first); } );
             // once sorted we can grab geometry as it comes, and assign it to the chunks it belongs to
+            size_t const vertextype { ( ( ( type & 0xFF000000 ) >> 24 ) - '0' ) };
             for( auto const &submodeloffset : submodeloffsets ) {
-                auto &submodel = Root[ submodeloffset.second ];
-                gfx::vertex_array vertices; vertices.resize( submodel.iNumVerts );
-                iNumVerts += submodel.iNumVerts;
-                for( auto &vertex : vertices ) {
-                    vertex.deserialize( s );
-                    if( submodel.eType < TP_ROTATOR ) {
-                        // normal vectors debug routine
-                        auto normallength = glm::length2( vertex.normal );
-                        if( ( false == submodel.m_normalizenormals )
-                         && ( std::abs( normallength - 1.0f ) > 0.01f ) ) {
-                            submodel.m_normalizenormals = TSubModel::normalize; // we don't know if uniform scaling would suffice
-                            WriteLog( "Bad model: non-unit normal vector(s) encountered during sub-model geometry deserialization", logtype::model );
+                auto &submodel { Root[ submodeloffset.second ] };
+                auto const &submodelgeometry { submodel.m_geometry };
+                submodel.Vertices.resize( submodelgeometry.vertex_count );
+                m_vertexcount += submodelgeometry.vertex_count;
+                if( vertextype > 0 ) {
+                    // expanded chunk formats
+                    for( auto &vertex : submodel.Vertices ) {
+                        vertex.deserialize_packed( s, vertextype > 0 );
+                    }
+                }
+                else {
+                    // legacy vnt0 format
+                    for( auto &vertex : submodel.Vertices ) {
+                        vertex.deserialize( s, vertextype > 0 );
+                        if( submodel.eType < TP_ROTATOR ) {
+                            // normal vectors debug routine
+                            if( ( false == submodel.m_normalizenormals )
+                             && ( std::abs( glm::length2( vertex.normal ) - 1.0f ) > 0.01f ) ) {
+                                submodel.m_normalizenormals = TSubModel::normalize; // we don't know if uniform scaling would suffice
+                                WriteLog( "Bad model: non-unit normal vector(s) encountered during sub-model geometry deserialization", logtype::model );
+                            }
                         }
                     }
                 }
-                // remap geometry type for custom type submodels
-                int type;
-                switch( submodel.eType ) {
-                    case TP_FREESPOTLIGHT:
-                    case TP_STARS: {
-                        type = GL_POINTS;
-                        break; }
+            }
+		}
+        else if( ( type & 0x00FFFFFF ) == MAKE_ID4( 'I', 'D', 'X', 0 ) ) // geometry indices
+        {
+            // handled similarly to vertex data chunk
+            // we rely on the SUB chunk coming before the vertex data, and on the overall vertex count matching the size of data in the chunk.
+            // geometry associated with chunks isn't stored in the same order as the chunks themselves, so we need to sort that out first
+            if( Root == nullptr )
+                throw std::runtime_error( "e3d: IDX chunk encountered before SUB chunk" );
+            std::vector< std::pair<int, int> > submodeloffsets; // index data offset, submodel index
+            submodeloffsets.reserve( iSubModelsCount );
+            for( auto submodelindex = 0; submodelindex < iSubModelsCount; ++submodelindex ) {
+                auto const &submodelgeometry { Root[ submodelindex ].m_geometry };
+                if( submodelgeometry.index_count <= 0 ) { continue; }
+                submodeloffsets.emplace_back( submodelgeometry.index_offset, submodelindex );
+            }
+            std::sort(
+                std::begin( submodeloffsets ),
+                std::end( submodeloffsets ),
+                []( std::pair<int, int> const &Left, std::pair<int, int> const &Right ) {
+                    return (Left.first) < (Right.first); } );
+            // once sorted we can grab indices in a continuous read, and assign them to the chunks they belong to
+            size_t const indexsize { ( ( ( type & 0xFF000000 ) >> 24 ) - '0' ) };
+            for( auto const &submodeloffset : submodeloffsets ) {
+                auto &submodel { Root[ submodeloffset.second ] };
+                auto const &submodelgeometry { submodel.m_geometry };
+                submodel.Indices.resize( submodelgeometry.index_count );
+                m_indexcount += submodelgeometry.index_count;
+                switch( indexsize ) {
+                    case 1: {
+                        for( auto &index : submodel.Indices ) {
+                            index = sn_utils::d_uint8( s );
+                        }
+                        break;
+                    }
+                    case 2: {
+                        for( auto &index : submodel.Indices ) {
+                            index = sn_utils::ld_uint16( s );
+                        }
+                        break;
+                    }
+                    case 4: {
+                        for( auto &index : submodel.Indices ) {
+                            index = sn_utils::ld_uint32( s );
+                        }
+                        break;
+                    }
                     default: {
-                        type = submodel.eType;
                         break;
                     }
                 }
-                submodel.m_geometry = GfxRenderer->Insert( vertices, m_geometrybank, type );
             }
-
-		}
+        }
 		else if (type == MAKE_ID4('T', 'R', 'A', '0'))
 		{
             if( false == Matrices.empty() )
@@ -1842,6 +1976,20 @@ void TModel3d::deserialize(std::istream &s, size_t size, bool dynamic)
 			Root[i].ChildGet()->Parent = &Root[i];
 		if (Root[i].NextGet())
 			Root[i].NextGet()->Parent = Root[i].Parent;
+
+        // remap geometry type for custom type submodels
+        int type;
+        switch( Root[i].eType ) {
+            case TP_FREESPOTLIGHT:
+            case TP_STARS: {
+                type = GL_POINTS;
+                break; }
+            default: {
+                type = Root[i].eType;
+                break;
+            }
+        }
+        Root[i].m_geometry.handle = GfxRenderer->Insert( Root[i].Indices, Root[i].Vertices, m_geometrybank, type );
 	}
 }
 
@@ -1996,11 +2144,13 @@ void TModel3d::LoadFromBinFile(std::string const &FileName, bool dynamic)
 
 TSubModel* TModel3d::AppendChildFromGeometry(const std::string &name, const std::string &parent, const gfx::vertex_array &data)
 {
+    // todo: indexed geometry
+
     iFlags |= 0x0200;
 
     TSubModel *sm = new TSubModel();
     sm->Parent = AddToNamed(parent.c_str(), sm);
-    sm->iNumVerts = data.size();
+    sm->m_geometry.vertex_count = data.size();
     sm->eType = GL_TRIANGLES;
     sm->pName = name;
     sm->m_material = GfxRenderer->Fetch_Material("colored");
@@ -2012,7 +2162,7 @@ TSubModel* TModel3d::AppendChildFromGeometry(const std::string &name, const std:
     if (data.empty())
         sm->iFlags &= ~0x3F;
     sm->Vertices = data;
-    iNumVerts += data.size();
+    m_vertexcount += data.size();
 
     if (!Root)
         Root = sm;
@@ -2027,7 +2177,6 @@ void TModel3d::LoadFromTextFile(std::string const &FileName, bool dynamic)
 	cParser parser(FileName, cParser::buffer_FILE); // Ra: tu powinno być "models/"...
 	TSubModel *SubModel;
 	std::string token = parser.getToken<std::string>();
-	iNumVerts = 0; // w konstruktorze to jest
 	while (token != "" || parser.eof())
 	{
 		std::string parent;
@@ -2038,8 +2187,11 @@ void TModel3d::LoadFromTextFile(std::string const &FileName, bool dynamic)
             break;
         }
 		SubModel = new TSubModel();
-		iNumVerts += SubModel->Load(parser, this, /*iNumVerts,*/ dynamic);
-
+        {
+            auto const result { SubModel->Load( parser, dynamic ) };
+            m_indexcount += result.first;
+            m_vertexcount += result.second;
+        }
         // będzie potrzebne do wyliczenia pozycji, np. pantografu
 		SubModel->Parent = AddToNamed(parent.c_str(), SubModel); 
 
@@ -2078,12 +2230,13 @@ void TModel3d::Init()
 			Root->InitialRotate(true);
 		}
 		iFlags |= Root->FlagsCheck() | 0x8000; // flagi całego modelu
-        if (iNumVerts) {
+        if (m_vertexcount) {
             if( m_geometrybank == null_handle ) {
                 m_geometrybank = GfxRenderer->Create_Bank();
             }
-            std::size_t dataoffset = 0;
-            Root->create_geometry( dataoffset, m_geometrybank );
+            std::size_t indexoffset = 0;
+            std::size_t vertexoffset = 0;
+            Root->create_geometry( indexoffset, vertexoffset, m_geometrybank );
         }
         // determine final bounding radius from the root-level siblings
         auto const *root { Root };

@@ -594,15 +594,13 @@ dictionary_source *TTrain::GetTrainState() {
     dict->insert( "manual_brake", ( mvOccupied->ManualBrakePos > 0 ) );
     bool const bEP = ( mvControlled->LocHandle->GetCP() > 0.2 ) || ( fEIMParams[ 0 ][ 5 ] > 0.01 );
     dict->insert( "dir_brake", bEP );
-    bool bPN;
+    bool bPN { false };
     if( ( typeid( *mvOccupied->Hamulec ) == typeid( TLSt ) )
      || ( typeid( *mvOccupied->Hamulec ) == typeid( TEStED ) ) ) {
 
         TBrake* temp_ham = mvOccupied->Hamulec.get();
         bPN = ( static_cast<TLSt*>( temp_ham )->GetEDBCP() > 0.2 );
     }
-    else
-        bPN = false;
     dict->insert( "indir_brake", bPN );
 	dict->insert( "brake_delay_flag", mvOccupied->BrakeDelayFlag );
 	dict->insert( "brake_op_mode_flag", mvOccupied->BrakeOpModeFlag );

@@ -16,6 +16,8 @@ http://mozilla.org/MPL/2.0/.
 #include "material.h"
 #include "gl/query.h"
 
+#define EU07_USE_GEOMETRYINDEXING
+
 // Ra: specjalne typy submodeli, poza tym GL_TRIANGLES itp.
 const int TP_ROTATOR = 256;
 const int TP_FREESPOTLIGHT = 257;
@@ -67,6 +69,13 @@ public:
         rescale,
         normalize
     };
+    struct geometry_data {
+        gfx::geometry_handle handle;
+        int vertex_offset;
+        int vertex_count;
+        int index_offset;
+        int index_count;
+    };
 
 private:
     int iNext{ 0 };
@@ -96,8 +105,6 @@ private:
 		float4x4 *fMatrix = nullptr; // pojedyncza precyzja wystarcza
 		int iMatrix; // w pliku binarnym jest numer matrycy
 	};
-    int iNumVerts { -1 }; // ilość wierzchołków (1 dla FreeSpotLight)
-	int tVboPtr; // początek na liście wierzchołków albo indeksów
     int iTexture { 0 }; // numer nazwy tekstury, -1 wymienna, 0 brak
     float fLight { -1.0f }; // próg jasności światła do zadziałania selfillum
 	glm::vec4
@@ -124,8 +131,6 @@ private:
 
     TSubModel *Next { nullptr };
     TSubModel *Child { nullptr };
-public: // temporary access, clean this up during refactoring
-    gfx::geometry_handle m_geometry { 0, 0 }; // geometry of the submodel
 private:
     material_handle m_material { null_handle }; // numer tekstury, -1 wymienna, 0 brak
     bool bWire { false }; // nie używane, ale wczytywane
@@ -136,7 +141,9 @@ private:
 
 public: // chwilowo
     float3 v_TransVector { 0.0f, 0.0f, 0.0f };
+    geometry_data m_geometry { /*this,*/ { 0, 0 }, 0, 0, 0, 0 };
     gfx::vertex_array Vertices;
+    gfx::index_array Indices;
     float m_boundingradius { 0 };
     std::uintptr_t iAnimOwner{ 0 }; // roboczy numer egzemplarza, który ustawił animację
     TAnimType b_aAnim{ TAnimType::at_None }; // kody animacji oddzielnie, bo zerowane
@@ -163,7 +170,7 @@ public:
 	static std::string *pasText; // tekst dla wyświetlacza (!!!! do przemyślenia)
     TSubModel() = default;
 	~TSubModel();
-    int Load(cParser &Parser, TModel3d *Model, /*int Pos,*/ bool dynamic);
+	std::pair<int, int> Load(cParser &Parser, /*TModel3d *Model, int Pos,*/ bool dynamic);
 	void ChildAdd(TSubModel *SubModel);
 	void NextAdd(TSubModel *SubModel);
 	TSubModel * NextGet() { return Next; };
@@ -174,7 +181,9 @@ public:
     std::tuple<TSubModel *, bool> find_replacable4();
     // locates particle emitter submodels and adds them to provided list
     void find_smoke_sources( nameoffset_sequence &Sourcelist ) const;
+#ifndef EU07_USE_GEOMETRYINDEXING
 	int TriangleAdd(TModel3d *m, material_handle tex, int tri);
+#endif
 	void SetRotate(float3 vNewRotateAxis, float fNewAngle);
 	void SetRotateXYZ( Math3D::vector3 vNewAngles);
 	void SetRotateXYZ(float3 vNewAngles);
@@ -188,8 +197,8 @@ public:
     glm::vec3 offset( float const Geometrytestoffsetthreshold = 0.f ) const;
     inline void Hide() { iVisible = 0; };
 
-    void create_geometry( std::size_t &Dataoffset, gfx::geometrybank_handle const &Bank );
-    uint32_t FlagsCheck();
+    void create_geometry( std::size_t &Indexoffset, std::size_t &Vertexoffset, gfx::geometrybank_handle const &Bank );
+	uint32_t FlagsCheck();
 	void WillBeAnimated() {
         iFlags |= 0x4000; };
 	void InitialRotate(bool doit);
@@ -233,7 +242,9 @@ public:
 		std::vector<std::string>&,
 		std::vector<std::string>&,
 		std::vector<float4x4>&);
-    void serialize_geometry( std::ostream &Output ) const;
+    void serialize_geometry( std::ostream &Output, bool const Packed, bool const Indexed ) const;
+    int index_size() const;
+    void serialize_indices( std::ostream &Output, int const Size ) const;
     // places contained geometry in provided ground node
 };
 
@@ -243,23 +254,23 @@ class TModel3d
     friend opengl33_renderer;
 
 private:
-	TSubModel *Root; // drzewo submodeli
-	uint32_t iFlags; // Ra: czy submodele mają przezroczyste tekstury
+    TSubModel *Root { nullptr }; // drzewo submodeli
+    uint32_t iFlags { 0 }; // Ra: czy submodele mają przezroczyste tekstury
 public: // Ra: tymczasowo
-    int iNumVerts; // ilość wierzchołków (gdy nie ma VBO, to m_nVertexCount=0)
     gfx::geometrybank_handle m_geometrybank;
-    bool m_geometrycreated { false };
+    int m_indexcount { 0 };
+    int m_vertexcount { 0 }; // ilość wierzchołków
 private:
 	std::vector<std::string> Textures; // nazwy tekstur
 	std::vector<std::string> Names; // nazwy submodeli
     std::vector<float4x4> Matrices; // submodel matrices
-	int iSubModelsCount; // Ra: używane do tworzenia binarnych
+    int iSubModelsCount { 0 }; // Ra: używane do tworzenia binarnych
 	std::string asBinary; // nazwa pod którą zapisać model binarny
     std::string m_filename;
     nameoffset_sequence m_smokesources; // list of particle sources defined in the model
 
 public:
-    TModel3d();
+    TModel3d() = default;
     ~TModel3d();
     float bounding_radius() const {
         return (

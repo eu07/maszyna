@@ -2279,7 +2279,7 @@ bool TMoverParameters::IncMainCtrl(int CtrlSpeed)
 				else {
 					++MainCtrlPos;
                         OK = true;
-						if ((EIMCtrlType == 0) && (SpeedCtrlAutoTurnOffFlag == 1) && (MainCtrlActualPos != MainCtrlPos))
+						if ((EIMCtrlType == 0) && (SpeedCtrlAutoTurnOffFlag & 1 == 1) && (MainCtrlActualPos != MainCtrlPos))
 						{
 							DecScndCtrl(2);
 							SpeedCtrlUnit.IsActive = false;
@@ -2448,7 +2448,7 @@ bool TMoverParameters::DecMainCtrl(int CtrlSpeed)
                         {
                             MainCtrlPos--;
                             OK = true;
-							if ((EIMCtrlType == 0) && (SpeedCtrlAutoTurnOffFlag == 1) && (MainCtrlActualPos != MainCtrlPos)) {
+							if ((EIMCtrlType == 0) && (SpeedCtrlAutoTurnOffFlag & 1 == 1) && (MainCtrlActualPos != MainCtrlPos)) {
 								DecScndCtrl(2);
 								SpeedCtrlUnit.IsActive = false;
 							}
@@ -2612,7 +2612,7 @@ bool TMoverParameters::IncScndCtrl(int CtrlSpeed)
 	if ((OK) && (EngineType == TEngineType::ElectricInductionMotor) && (ScndCtrlPosNo == 1) && (MainCtrlPos>0))
 	{
         SpeedCtrlValue = Vel;
-		if ((EIMCtrlType == 0)&&(SpeedCtrlAutoTurnOffFlag == 1))
+		if ((EIMCtrlType == 0)&&(SpeedCtrlAutoTurnOffFlag & 1 == 1))
 		{
 			MainCtrlActualPos = MainCtrlPos;
 		}
@@ -2841,7 +2841,7 @@ bool TMoverParameters::Sandbox( bool const State, range_t const Notify )
     if( SandDose != State ) {
         if( SandDose == false ) {
             // switch on
-            if( Sand > 0 ) {
+            if(( Sand > 0 ) && ( DirActive != 0 )) {
                 SandDose = true;
                 result = true;
             }
@@ -4214,7 +4214,8 @@ void TMoverParameters::UpdatePipePressure(double dt)
 			dpLocalValve = LocHandle->GetPF(LocalBrakePosAEIM, Hamulec->GetBCP(), ScndPipePress, dt, 0);
 
 		LockPipe = PipePress < (LockPipe ? LockPipeOff : LockPipeOn);
-		bool lock_new = (LockPipe && !UnlockPipe && (BrakeCtrlPosR > HandleUnlock)); //new simple codition based on .fiz
+		bool lock_new = (LockPipe && !UnlockPipe && (BrakeCtrlPosR > HandleUnlock))
+						|| ((EmergencyCutsOffHandle) && (EmergencyValveFlow > 0)); //new simple codition based on .fiz
 		bool lock_old = ((BrakeHandle == TBrakeHandle::FV4a) //old complex condition based on assumptions
 			&& ((PipePress < 2.75)
 				&& ((Hamulec->GetStatus() & b_rls) == 0))
@@ -4252,6 +4253,10 @@ void TMoverParameters::UpdatePipePressure(double dt)
                 dpMainValve = Handle->GetPF( 0, PipePress, temp, dt, EqvtPipePress );
             }
         }
+        else if (BrakeCtrlPos == Handle->GetPos(bh_EB))
+		{
+            dpMainValve = Handle->GetPF(BrakeCtrlPosR, PipePress, temp, dt, EqvtPipePress);
+		}
 		
 		if (dpMainValve < 0) // && (PipePressureVal > 0.01)           //50
             if (Compressor > ScndPipePress)
@@ -4270,6 +4275,8 @@ void TMoverParameters::UpdatePipePressure(double dt)
 
     if( ( true == RadioStopFlag )
      || ( true == AlarmChainFlag )
+	 || (( true == EIMCtrlEmergency)
+	   && (LocalBrakePosA >= 1.0))
      || SecuritySystem.is_braking() )
 /*
     // NOTE: disabled because 32 is 'load destroyed' flag, what does this have to do with emergency brake?
@@ -6915,17 +6922,21 @@ bool TMoverParameters::DropAllPantographs( bool const State, range_t const Notif
 
 void TMoverParameters::CheckEIMIC(double dt)
 {
+    double offset = EIMCtrlAdditionalZeros ? 1.0 : 0.0;
+    double multiplier = (EIMCtrlEmergency ? 1.0 : 0.0) + offset;
 	switch (EIMCtrlType)
 	{
 	case 0:
 		eimic = (LocalBrakeRatio() > 0.01 ? -LocalBrakeRatio() : (double)MainCtrlPos / (double)MainCtrlPosNo);
-		if (EIMCtrlAdditionalZeros)
+            if (EIMCtrlAdditionalZeros || EIMCtrlEmergency)
 		{
 			if (eimic > 0.001)
-				eimic = std::max(0.002, eimic * (double)MainCtrlPosNo / ((double)MainCtrlPosNo - 1.0) - 1.0 / ((double)MainCtrlPosNo - 1.0));
+				eimic = std::max(0.002, eimic * (double)MainCtrlPosNo / ((double)MainCtrlPosNo - offset) - offset / ((double)MainCtrlPosNo - offset));
 			if ((eimic < -0.001) && (BrakeHandle != TBrakeHandle::MHZ_EN57))
-				eimic = std::min(-0.002, eimic * (double)LocalBrakePosNo / ((double)LocalBrakePosNo - 1.0) + 1.0 / ((double)LocalBrakePosNo - 1.0));
+				eimic = std::min(-0.002, eimic * (double)LocalBrakePosNo / ((double)LocalBrakePosNo - multiplier) + offset / ((double)LocalBrakePosNo - multiplier));
 		}
+        if ((eimic > 0.001) && (SpeedCtrlUnit.IsActive))
+            eimic = std::max(eimic, SpeedCtrlUnit.MinPower);
 		break;
 	case 1:
 		switch (MainCtrlPos)
@@ -7054,6 +7065,10 @@ void TMoverParameters::CheckEIMIC(double dt)
 
 void TMoverParameters::CheckSpeedCtrl(double dt)
 {
+    if (EIMCtrlType == 0)
+    {
+        SpeedCtrlUnit.DesiredPower = std::max(eimic, 0.0);
+    }
 	double accfactor = SpeedCtrlUnit.DesiredPower;
 	if (EIMCtrlType >= 2) {
 		if (MainCtrlPos < MainCtrlPosNo - 2) {
@@ -7075,7 +7090,7 @@ void TMoverParameters::CheckSpeedCtrl(double dt)
 		if (true) {
 			if ((!SpeedCtrlUnit.Standby)) {
 				if (SpeedCtrlUnit.ManualStateOverride) {
-					if (eimic > 0.009) eimic = 1.0;
+					if (eimic > 0.0009) eimic = 1.0;
 				}
 				double error = (std::max(SpeedCtrlValue + SpeedCtrlUnit.Offset, 0.0) - Vel);
 				double factorP = error > 0 ? SpeedCtrlUnit.FactorPpos : SpeedCtrlUnit.FactorPneg;
@@ -7122,6 +7137,11 @@ void TMoverParameters::CheckSpeedCtrl(double dt)
 				eimicSpeedCtrl = clamp(0.5 * (SpeedCtrlValue - Vel), -1.0, 1.0);
 			else
 				eimicSpeedCtrl = clamp(0.5 * (SpeedCtrlValue * 2 - Vel), -1.0, 1.0);
+		}
+		if (((SpeedCtrlAutoTurnOffFlag & 2) == 2) && (Hamulec->GetEDBCP() > 0.25))
+		{
+			DecScndCtrl(2);
+			SpeedCtrlUnit.IsActive = false;
 		}
 	}
 	else {
@@ -9726,6 +9746,7 @@ void TMoverParameters::LoadFIZ_Brake( std::string const &line ) {
 	extract_value( LockPipeOn, "LPOn", line, "-1");
 	extract_value( LockPipeOff, "LPOff", line, "-1");
 	extract_value( HandleUnlock, "HandlePipeUnlockPos", line, "-3");
+	extract_value( EmergencyCutsOffHandle, "EmergencyCutsOffHandle", line, "");
     {
         std::map<std::string, int> compressorpowers{
             { "Main", 0 },
@@ -9841,6 +9862,8 @@ void TMoverParameters::LoadFIZ_Doors( std::string const &line ) {
     if( platformopenmethod == "Shift" ) { Doors.step_type = 1; } // przesuw
 
     extract_value( MirrorMaxShift, "MirrorMaxShift", line, "" );
+	extract_value( MirrorVelClose, "MirrorVelClose", line, "");
+
 }
 
 void TMoverParameters::LoadFIZ_BuffCoupl( std::string const &line, int const Index ) {
@@ -10099,6 +10122,7 @@ void TMoverParameters::LoadFIZ_Cntrl( std::string const &line ) {
     EIMCtrlType = clamp( EIMCtrlType, 0, 3 );
 	extract_value( LocHandleTimeTraxx, "LocalBrakeTraxx", line, "" );
 	extract_value( EIMCtrlAdditionalZeros, "EIMCtrlAddZeros", line, "" );
+    extract_value( EIMCtrlEmergency, "EIMCtrlEmergency", line, "");
 
     extract_value( ScndS, "ScndS", line, "" ); // brak pozycji rownoleglej przy niskiej nastawie PSR
 

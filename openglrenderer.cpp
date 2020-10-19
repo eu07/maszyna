@@ -333,7 +333,6 @@ opengl_renderer::Render() {
     m_renderpass.draw_mode = rendermode::none; // force setup anew
     m_renderpass.draw_stats = debug_stats();
     m_geometry.primitives_count() = 0;
-    m_debugtimestext.clear();
     Render_pass( rendermode::color );
     Timer::subsystem.gfx_color.stop();
     // add user interface
@@ -343,9 +342,24 @@ opengl_renderer::Render() {
     ::glBindBuffer( GL_ARRAY_BUFFER, 0 );
     Application.render_ui();
     ::glPopClientAttrib();
+    if( Global.bUseVBO ) {
+        // swapbuffers() will unbind current buffers so we prepare for it on our end
+        gfx::opengl_vbogeometrybank::reset();
+    }
+    ++m_framestamp;
 
-    m_drawcount = m_cellqueue.size();
-    m_debugtimestext +=
+    return true; // for now always succeed
+}
+
+void
+opengl_renderer::SwapBuffers() {
+
+    Timer::subsystem.gfx_swap.start();
+    glfwSwapBuffers( m_window );
+    Timer::subsystem.gfx_swap.stop();
+
+    m_debugtimestext.clear();
+    m_debugtimestext =
         "cpu frame total: " + to_string( Timer::subsystem.gfx_color.average() + Timer::subsystem.gfx_shadows.average() + Timer::subsystem.gfx_swap.average(), 2 ) + " ms\n"
         + " color: " + to_string( Timer::subsystem.gfx_color.average(), 2 ) + " ms (" + std::to_string( m_cellqueue.size() ) + " sectors)\n";
     if( Global.RenderShadows ) {
@@ -372,22 +386,6 @@ opengl_renderer::Render() {
         + " traction: " + to_string( m_colorpass.draw_stats.traction, 7 ) + "\n"
         + " lines:    " + to_string( m_colorpass.draw_stats.lines, 7 ) + "\n"
         + "particles: " + to_string( m_colorpass.draw_stats.particles, 7 );
-
-    ++m_framestamp;
-
-    return true; // for now always succeed
-}
-
-void
-opengl_renderer::SwapBuffers()
-{
-    if( Global.bUseVBO ) {
-        // swapbuffers() will unbind current buffers so we prepare for it on our end
-        gfx::opengl_vbogeometrybank::reset();
-    }
-    Timer::subsystem.gfx_swap.start();
-    glfwSwapBuffers( m_window );
-    Timer::subsystem.gfx_swap.stop();
 }
 
 // runs jobs needed to generate graphics for specified render pass
@@ -1675,7 +1673,14 @@ opengl_renderer::Create_Bank() {
         return m_geometry.register_bank(std::make_unique<gfx::opengl_dlgeometrybank>());
 }
 
-// creates a new geometry chunk of specified type from supplied vertex data, in specified bank. returns: handle to the chunk or NULL
+// creates a new indexed geometry chunk of specified type from supplied data, in specified bank. returns: handle to the chunk or NULL
+gfx::geometry_handle
+opengl_renderer::Insert( gfx::index_array &Indices, gfx::vertex_array &Vertices, gfx::geometrybank_handle const &Geometry, int const Type ) {
+
+    return m_geometry.create_chunk( Indices, Vertices, Geometry, Type );
+}
+
+// creates a new geometry chunk of specified type from supplied data, in specified bank. returns: handle to the chunk or NULL
 gfx::geometry_handle
 opengl_renderer::Insert( gfx::vertex_array &Vertices, gfx::geometrybank_handle const &Geometry, int const Type ) {
 
@@ -1694,6 +1699,13 @@ bool
 opengl_renderer::Append( gfx::vertex_array &Vertices, gfx::geometry_handle const &Geometry, int const Type ) {
 
     return m_geometry.append( Vertices, Geometry );
+}
+
+// provides direct access to vertex data of specfied chunk
+gfx::index_array const &
+opengl_renderer::Indices( gfx::geometry_handle const &Geometry ) const {
+
+    return m_geometry.indices( Geometry );
 }
 
 // provides direct access to vertex data of specfied chunk
@@ -2755,7 +2767,7 @@ opengl_renderer::Render( TSubModel *Submodel ) {
                         }
 
                         // main draw call
-                        m_geometry.draw( Submodel->m_geometry );
+                        m_geometry.draw( Submodel->m_geometry.handle );
 /*
                         if( DebugModeFlag ) {
                             auto const & vertices { m_geometry.vertices( Submodel->m_geometry ) };
@@ -2817,7 +2829,7 @@ opengl_renderer::Render( TSubModel *Submodel ) {
                             Bind_Material( Submodel->m_material );
                         }
                         // main draw call
-                        m_geometry.draw( Submodel->m_geometry );
+                        m_geometry.draw( Submodel->m_geometry.handle );
                         // post-draw reset
                         break;
                     }
@@ -2835,7 +2847,7 @@ opengl_renderer::Render( TSubModel *Submodel ) {
                             Bind_Material( Submodel->m_material );
                         }
                         // main draw call
-                        m_geometry.draw( Submodel->m_geometry );
+                        m_geometry.draw( Submodel->m_geometry.handle );
                         // post-draw reset
                         break;
                     }
@@ -2923,7 +2935,7 @@ opengl_renderer::Render( TSubModel *Submodel ) {
                                     lightcolor[ 2 ],
                                     Submodel->fVisible * std::min( 1.f, lightlevel ) * 0.5f );
                                 ::glDepthMask( GL_FALSE );
-                                m_geometry.draw( Submodel->m_geometry );
+                                m_geometry.draw( Submodel->m_geometry.handle );
                                 ::glDepthMask( GL_TRUE );
                             }
                             ::glPointSize( pointsize * resolutionratio );
@@ -2932,7 +2944,7 @@ opengl_renderer::Render( TSubModel *Submodel ) {
                                 lightcolor[ 1 ],
                                 lightcolor[ 2 ],
                                 Submodel->fVisible * std::min( 1.f, lightlevel ) );
-                            m_geometry.draw( Submodel->m_geometry );
+                            m_geometry.draw( Submodel->m_geometry.handle );
 
                             // post-draw reset
                             switch_units( unitstate.diffuse, unitstate.shadows, unitstate.reflections );
@@ -2964,7 +2976,7 @@ opengl_renderer::Render( TSubModel *Submodel ) {
                         ::glDisable( GL_LIGHTING );
 
                         // main draw call
-                        m_geometry.draw( Submodel->m_geometry, gfx::color_streams );
+                        m_geometry.draw( Submodel->m_geometry.handle, gfx::color_streams );
 
                         // post-draw reset
                         ::glPopAttrib();
@@ -3799,7 +3811,7 @@ opengl_renderer::Render_Alpha( TSubModel *Submodel ) {
                         }
 
                         // main draw call
-                        m_geometry.draw( Submodel->m_geometry );
+                        m_geometry.draw( Submodel->m_geometry.handle );
 
                         // post-draw reset
                         if( opacity != 0.f ) {
@@ -3845,7 +3857,7 @@ opengl_renderer::Render_Alpha( TSubModel *Submodel ) {
                             Bind_Material( Submodel->m_material );
                         }
                         // main draw call
-                        m_geometry.draw( Submodel->m_geometry );
+                        m_geometry.draw( Submodel->m_geometry.handle );
                         // post-draw reset
                         break;
                     }

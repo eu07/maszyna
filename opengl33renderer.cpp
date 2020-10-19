@@ -22,6 +22,8 @@ http://mozilla.org/MPL/2.0/.
 #include "AnimModel.h"
 #include "opengl33geometrybank.h"
 
+//#define EU07_DEBUG_OPENGL
+
 int const EU07_PICKBUFFERSIZE{ 1024 }; // size of (square) textures bound with the pick framebuffer
 int const EU07_REFLECTIONFIDELITYOFFSET { 250 }; // artificial increase of range for reflection pass detail reduction
 
@@ -518,9 +520,6 @@ bool opengl33_renderer::Render()
 	glfwMakeContextCurrent(m_window);
 	gl::buffer::unbind();
 	m_current_viewport = &(*m_viewports.front());
-
-	m_drawcount = m_cellqueue.size();
-	m_debugtimestext.clear();
 /*
 	m_debugtimestext += "cpu: " + to_string(Timer::subsystem.gfx_color.average(), 2) + " ms (" + std::to_string(m_cellqueue.size()) + " sectors)\n" +=
 	    "cpu swap: " + to_string(Timer::subsystem.gfx_swap.average(), 2) + " ms\n" += "uilayer: " + to_string(Timer::subsystem.gfx_gui.average(), 2) + "ms\n" +=
@@ -536,11 +535,52 @@ bool opengl33_renderer::Render()
 			m_debugtimestext += "gpu: " + to_string((double)(m_gllasttime / 1000ULL) / 1000.0, 3) + "ms";
 */
 	}
-    
+
+    ++m_framestamp;
+    Timer::subsystem.gfx_total.stop();
+
+    // swapbuffers() could unbind current buffers so we prepare for it on our end
+    gfx::opengl33_vaogeometrybank::reset();
+
+    return true; // for now always succeed
+}
+
+void opengl33_renderer::SwapBuffers()
+{
+	Timer::subsystem.gfx_swap.start();
+
+	for (auto &viewport : m_viewports) {
+        if (viewport->window && viewport->real_window)
+			glfwSwapBuffers(viewport->window);
+	}
+
+    if (vr)
+        vr->finish_frame();
+
+	Timer::subsystem.gfx_swap.stop();
+
+    m_debugtimestext.clear();
+    m_debugtimestext =
+        "cpu frame total: " + to_string( Timer::subsystem.gfx_color.average() + Timer::subsystem.gfx_shadows.average() + Timer::subsystem.gfx_swap.average(), 2 ) + " ms\n"
+        + " color: " + to_string( Timer::subsystem.gfx_color.average(), 2 ) + " ms (" + std::to_string( m_cellqueue.size() ) + " sectors)\n";
+    if( Global.gfx_shadowmap_enabled ) {
+        m_debugtimestext +=
+            " shadows: " + to_string( Timer::subsystem.gfx_shadows.average(), 2 ) + " ms\n";
+    }
+    m_debugtimestext += " swap: " + to_string( Timer::subsystem.gfx_swap.average(), 2 ) + " ms\n";
+    if( !Global.gfx_usegles ) {
+        if (m_gllasttime)
+            m_debugtimestext += "gpu frame total: " + to_string((double)(m_gllasttime / 1000ULL) / 1000.0, 3) + " ms\n";
+    }
+    m_debugtimestext += "uilayer: " + to_string( Timer::subsystem.gfx_gui.average(), 2 ) + " ms\n";
+    if( DebugModeFlag )
+        m_debugtimestext += m_textures.info();
+
     debug_stats shadowstats;
     for( auto const &shadowpass : m_shadowpass ) {
         shadowstats += shadowpass.draw_stats;
     }
+
     m_debugstatstext =
         "triangles: " + to_string( static_cast<int>(m_geometry.primitives_count()), 7 ) + "\n"
         + "vehicles:  " + to_string( m_colorpass.draw_stats.dynamics, 7 ) + " +" + to_string( shadowstats.dynamics, 7 )
@@ -558,45 +598,6 @@ bool opengl33_renderer::Render()
         + " traction: " + to_string( m_colorpass.draw_stats.traction, 7 ) + "\n"
         + " lines:    " + to_string( m_colorpass.draw_stats.lines, 7 ) + "\n"
         + "particles: " + to_string( m_colorpass.draw_stats.particles, 7 );
-
-	++m_framestamp;
-
-	Timer::subsystem.gfx_total.stop();
-
-    m_debugtimestext +=
-        "cpu frame total: " + to_string( Timer::subsystem.gfx_color.average() + Timer::subsystem.gfx_shadows.average() + Timer::subsystem.gfx_swap.average(), 2 ) + " ms\n"
-        + " color: " + to_string( Timer::subsystem.gfx_color.average(), 2 ) + " ms (" + std::to_string( m_cellqueue.size() ) + " sectors)\n";
-    if( Global.gfx_shadowmap_enabled ) {
-        m_debugtimestext +=
-            " shadows: " + to_string( Timer::subsystem.gfx_shadows.average(), 2 ) + " ms\n";
-    }
-    m_debugtimestext += " swap: " + to_string( Timer::subsystem.gfx_swap.average(), 2 ) + " ms\n";
-    if( !Global.gfx_usegles ) {
-        if (m_gllasttime)
-            m_debugtimestext += "gpu frame total: " + to_string((double)(m_gllasttime / 1000ULL) / 1000.0, 3) + " ms\n";
-    }
-    m_debugtimestext += "uilayer: " + to_string( Timer::subsystem.gfx_gui.average(), 2 ) + " ms\n";
-    if( DebugModeFlag )
-        m_debugtimestext += m_textures.info();
-
-	return true; // for now always succeed
-}
-
-void opengl33_renderer::SwapBuffers()
-{
-	Timer::subsystem.gfx_swap.start();
-
-	for (auto &viewport : m_viewports) {
-        if (viewport->window && viewport->real_window)
-			glfwSwapBuffers(viewport->window);
-	}
-
-    if (vr)
-        vr->finish_frame();
-
-	// swapbuffers() could unbind current buffers so we prepare for it on our end
-    gfx::opengl33_vaogeometrybank::reset();
-	Timer::subsystem.gfx_swap.stop();
 }
 
 void opengl33_renderer::draw_debug_ui()
@@ -1849,10 +1850,17 @@ gfx::geometrybank_handle opengl33_renderer::Create_Bank()
         return m_geometry.register_bank(std::make_unique<gfx::opengl33_vaogeometrybank>());
 }
 
-// creates a new geometry chunk of specified type from supplied vertex data, in specified bank. returns: handle to the chunk or NULL
+// creates a new indexed geometry chunk of specified type from supplied data, in specified bank. returns: handle to the chunk or NULL
+gfx::geometry_handle opengl33_renderer::Insert( gfx::index_array &Indices, gfx::vertex_array &Vertices, gfx::geometrybank_handle const &Geometry, int const Type )
+{
+    // NOTE: we expect indexed geometry to come with calculated tangents
+    return m_geometry.create_chunk( Indices, Vertices, Geometry, Type );
+}
+
+// creates a new geometry chunk of specified type from supplied data, in specified bank. returns: handle to the chunk or NULL
 gfx::geometry_handle opengl33_renderer::Insert(gfx::vertex_array &Vertices, gfx::geometrybank_handle const &Geometry, int const Type)
 {
-	gfx::calculate_tangent(Vertices, Type);
+	gfx::calculate_tangents(Vertices, Type);
 
 	return m_geometry.create_chunk(Vertices, Geometry, Type);
 }
@@ -1860,7 +1868,7 @@ gfx::geometry_handle opengl33_renderer::Insert(gfx::vertex_array &Vertices, gfx:
 // replaces data of specified chunk with the supplied vertex data, starting from specified offset
 bool opengl33_renderer::Replace(gfx::vertex_array &Vertices, gfx::geometry_handle const &Geometry, int const Type, std::size_t const Offset)
 {
-	gfx::calculate_tangent(Vertices, Type);
+	gfx::calculate_tangents(Vertices, Type);
 
 	return m_geometry.replace(Vertices, Geometry, Offset);
 }
@@ -1868,15 +1876,20 @@ bool opengl33_renderer::Replace(gfx::vertex_array &Vertices, gfx::geometry_handl
 // adds supplied vertex data at the end of specified chunk
 bool opengl33_renderer::Append(gfx::vertex_array &Vertices, gfx::geometry_handle const &Geometry, int const Type)
 {
-	gfx::calculate_tangent(Vertices, Type);
+	gfx::calculate_tangents(Vertices, Type);
 
 	return m_geometry.append(Vertices, Geometry);
+}
+
+// provides direct access to index data of specfied chunk
+gfx::index_array const & opengl33_renderer::Indices(gfx::geometry_handle const &Geometry) const 
+{
+    return m_geometry.indices(Geometry);
 }
 
 // provides direct access to vertex data of specfied chunk
 gfx::vertex_array const &opengl33_renderer::Vertices(gfx::geometry_handle const &Geometry) const
 {
-
 	return m_geometry.vertices(Geometry);
 }
 
@@ -1916,10 +1929,8 @@ void opengl33_renderer::Bind_Material( material_handle const Material, TSubModel
 
 		memcpy(&model_ubs.param[0], &material.params[0], sizeof(model_ubs.param));
 
-		for (size_t i = 0; i < material.params_state.size(); i++)
+		for( auto const &entry : material.params_state )
 		{
-			gl::shader::param_entry entry = material.params_state[i];
-
 			glm::vec4 src(1.0f);
 
             // submodel-based parameters
@@ -3017,7 +3028,7 @@ void opengl33_renderer::Render(TSubModel *Submodel)
 						model_ubs.emission = Submodel->f4Emision.a;
 
 					// main draw call
-					draw(Submodel->m_geometry);
+					draw(Submodel->m_geometry.handle);
 
 					// post-draw reset
 					model_ubs.emission = 0.0f;
@@ -3037,13 +3048,13 @@ void opengl33_renderer::Render(TSubModel *Submodel)
 						// również 0
 						Bind_Material_Shadow(Submodel->m_material);
 					}
-                    draw(Submodel->m_geometry);
+                    draw(Submodel->m_geometry.handle);
                     break;
 				}
 				case rendermode::pickscenery:
 				{
 					m_pick_shader->bind();
-					draw(Submodel->m_geometry);
+					draw(Submodel->m_geometry.handle);
 					break;
 				}
 				case rendermode::pickcontrols:
@@ -3061,7 +3072,7 @@ void opengl33_renderer::Render(TSubModel *Submodel)
                         model_ubs.param[0] = glm::vec4(pick_color(m_pickcontrolsitems.size()), 1.0f);
                     }
 
-					draw(Submodel->m_geometry);
+					draw(Submodel->m_geometry.handle);
 					break;
 				}
 				default:
@@ -3087,7 +3098,7 @@ void opengl33_renderer::Render(TSubModel *Submodel)
 					// main draw call
                     model_ubs.param[1].x = 8.0f;
 
-					draw(Submodel->m_geometry);
+					draw(Submodel->m_geometry.handle);
 				}
 				break;
 			}
@@ -3864,7 +3875,7 @@ void opengl33_renderer::Render_Alpha(TSubModel *Submodel)
 						model_ubs.emission = Submodel->f4Emision.a;
 
 					// main draw call
-					draw(Submodel->m_geometry);
+					draw(Submodel->m_geometry.handle);
 
 					model_ubs.emission = 0.0f;
 					break;
@@ -3879,7 +3890,7 @@ void opengl33_renderer::Render_Alpha(TSubModel *Submodel)
 					{
 						Bind_Material_Shadow(Submodel->m_material);
 					}
-					draw(Submodel->m_geometry);
+					draw(Submodel->m_geometry.handle);
 					break;
 				}
 				default:
@@ -4000,7 +4011,7 @@ void opengl33_renderer::Render_Alpha(TSubModel *Submodel)
                         model_ubs.param[1].x = pointsize * fogfactor * 4.0f;
 						model_ubs.param[0] = glm::vec4(glm::vec3(lightcolor), Submodel->fVisible * std::min(1.f, lightlevel) * 0.5f);
 
-						draw(Submodel->m_geometry);
+						draw(Submodel->m_geometry.handle);
 					}
                     model_ubs.param[1].x = pointsize * 4.0f;
 					model_ubs.param[0] = glm::vec4(glm::vec3(lightcolor), Submodel->fVisible * std::min(1.f, lightlevel));
@@ -4011,7 +4022,7 @@ void opengl33_renderer::Render_Alpha(TSubModel *Submodel)
                         Submodel->occlusion_query->begin();
                     }
 
-					draw(Submodel->m_geometry);
+					draw(Submodel->m_geometry.handle);
 
                     if (gl::vao::use_vao)
                         Submodel->occlusion_query->end();
