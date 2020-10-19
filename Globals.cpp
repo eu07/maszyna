@@ -1162,6 +1162,10 @@ global_settings::ConfigParse(cParser &Parser) {
 			Parser >> exec_on_exit;
 			std::replace(std::begin(exec_on_exit), std::end(exec_on_exit), '_', ' ');
 		}
+        else if (token == "map.manualswitchcontrol") {
+            Parser.getTokens(1);
+            Parser >> map_manualswitchcontrol;
+        }
 /*
 		else if (token == "crashdamage") {
 			Parser.getTokens(1);

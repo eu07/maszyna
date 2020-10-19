@@ -296,6 +296,8 @@ struct global_settings {
     glm::vec3 viewport_move;
     glm::mat3 viewport_rotate;
 
+    bool map_manualswitchcontrol = false;;
+
 	std::vector<std::pair<std::string, std::string>> network_servers;
 	std::optional<std::pair<std::string, std::string>> network_client;
 	float desync = 0.0f;

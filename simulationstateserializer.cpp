@@ -53,6 +53,8 @@ state_serializer::deserialize_begin( std::string const &Scenariofile ) {
 		state->scratchpad.binary.terrain = Region->is_scene( Scenariofile ) ;
     }
 
+    scene::Groups.create();
+
 	if( false == state->input.ok() )
 		throw invalid_scenery_exception();
 
@@ -124,6 +126,9 @@ state_serializer::deserialize_continue(std::shared_ptr<deserializer_state> state
         // manually perform scenario initialization
         deserialize_firstinit( Input, Scratchpad );
     }
+
+    scene::Groups.close();
+
 	scene::Groups.update_map();
 	Region->create_map_geometry();
 

@@ -86,25 +86,50 @@ node_groups::update_map()
 						if (string_starts_with(model->name(), sem_name))
 							sem_info->models.push_back(model);
 			}
-			if (TEventLauncher *launcher = dynamic_cast<TEventLauncher*>(node)) {
-				if (!launcher || !launcher->Event1 || !launcher->Event2)
-					continue;
 
-				auto map_launcher = std::make_shared<map::launcher>();
-				map::Objects.entries.push_back(map_launcher);
+            if (Global.map_manualswitchcontrol) {
+                if (TTrack *track = dynamic_cast<TTrack*>(node)) {
+                    if (track->eType != tt_Switch)
+                        continue;
 
-				map_launcher->location = node->location();
-				map_launcher->name = node->name();
-				map_launcher->first_event = launcher->Event1;
-				map_launcher->second_event = launcher->Event2;
-				if (map_launcher->name.empty())
-					map_launcher->name = launcher->Event1->name();
+                    basic_event *sw_straight = simulation::Events.FindEvent(track->name() + "+");
+                    basic_event *sw_divert = simulation::Events.FindEvent(track->name() + "-");
 
-				if (launcher->Event1->name().find_first_of("-+:") != std::string::npos)
-					map_launcher->type = map::launcher::track_switch;
-				else
-					map_launcher->type = map::launcher::level_crossing;
-			}
+                    if (sw_straight && sw_divert) {
+                        auto map_launcher = std::make_shared<map::launcher>();
+                        map::Objects.entries.push_back(map_launcher);
+
+                        map_launcher->location = node->location();
+                        map_launcher->name = node->name();
+                        map_launcher->first_event = sw_straight;
+                        map_launcher->second_event = sw_divert;
+                        if (map_launcher->name.empty())
+                            map_launcher->name = sw_straight->name();
+
+                        map_launcher->type = map::launcher::track_switch;
+                    }
+                }
+            } else {
+                if (TEventLauncher *launcher = dynamic_cast<TEventLauncher*>(node)) {
+                    if (!launcher || !launcher->Event1 || !launcher->Event2)
+                        continue;
+
+                    auto map_launcher = std::make_shared<map::launcher>();
+                    map::Objects.entries.push_back(map_launcher);
+
+                    map_launcher->location = node->location();
+                    map_launcher->name = node->name();
+                    map_launcher->first_event = launcher->Event1;
+                    map_launcher->second_event = launcher->Event2;
+                    if (map_launcher->name.empty())
+                        map_launcher->name = launcher->Event1->name();
+
+                    if (launcher->Event1->name().find_first_of("-+:") != std::string::npos)
+                        map_launcher->type = map::launcher::track_switch;
+                    else
+                        map_launcher->type = map::launcher::level_crossing;
+                }
+            }
 		}
 	}
 }
