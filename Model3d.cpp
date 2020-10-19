@@ -2142,15 +2142,14 @@ void TModel3d::LoadFromBinFile(std::string const &FileName, bool dynamic)
     WriteLog( "Finished loading 3d model data from \"" + FileName + "\"", logtype::model );
 };
 
-TSubModel* TModel3d::AppendChildFromGeometry(const std::string &name, const std::string &parent, const gfx::vertex_array &data)
+TSubModel* TModel3d::AppendChildFromGeometry(const std::string &name, const std::string &parent, const gfx::vertex_array &vertices, const gfx::index_array &indices)
 {
-    // todo: indexed geometry
-
     iFlags |= 0x0200;
 
     TSubModel *sm = new TSubModel();
     sm->Parent = AddToNamed(parent.c_str(), sm);
-    sm->m_geometry.vertex_count = data.size();
+    sm->m_geometry.vertex_count = vertices.size();
+    sm->m_geometry.index_count = indices.size();
     sm->eType = GL_TRIANGLES;
     sm->pName = name;
     sm->m_material = GfxRenderer->Fetch_Material("colored");
@@ -2158,11 +2157,13 @@ TSubModel* TModel3d::AppendChildFromGeometry(const std::string &name, const std:
     sm->fMatrix->Identity();
     sm->iFlags |= 0x10;
     sm->iFlags |= 0x8000;
-        sm->WillBeAnimated();
-    if (data.empty())
+    sm->WillBeAnimated();
+    if (vertices.empty())
         sm->iFlags &= ~0x3F;
-    sm->Vertices = data;
-    m_vertexcount += data.size();
+    sm->Vertices = vertices;
+    sm->Indices = indices;
+    m_vertexcount += vertices.size();
+    m_indexcount += indices.size();
 
     if (!Root)
         Root = sm;

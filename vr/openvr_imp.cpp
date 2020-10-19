@@ -104,7 +104,7 @@ void vr_openvr::begin_frame()
                     }
 
                     controllers[i]->model = std::make_unique<TModel3d>();
-                    controllers[i]->model->AppendChildFromGeometry("__root", "none", gfx::vertex_array());
+                    controllers[i]->model->AppendChildFromGeometry("__root", "none", gfx::vertex_array(), gfx::index_array());
                 }
             }
 
@@ -115,7 +115,9 @@ void vr_openvr::begin_frame()
                 char rendermodel_name[256];
                 char component_name[128];
 
-                gfx::vertex_array data;
+                gfx::vertex_array vertices;
+                gfx::index_array indices;
+
                 std::string submodel_name;
                 vr::RenderModel_t *model;
                 vr::EVRRenderModelError ret;
@@ -139,18 +141,23 @@ void vr_openvr::begin_frame()
                 else if (ret != vr::VRRenderModelError_None)
                     goto component_done;
 
-                data.resize(model->unTriangleCount * 3);
+                indices.resize(model->unTriangleCount * 3);
+                for (size_t v = 0; v < model->unTriangleCount * 3; v++)
+                    indices.push_back(model->rIndexData[v]);
 
-                for (size_t v = 0; v < model->unTriangleCount * 3; v++) {
-                    const vr::RenderModel_Vertex_t *vertex = &model->rVertexData[model->rIndexData[v]];
-                    data[v] = gfx::basic_vertex(
-                                glm::vec3(vertex->vPosition.v[0], vertex->vPosition.v[1], vertex->vPosition.v[2]),
-                                glm::vec3(vertex->vNormal.v[0], vertex->vNormal.v[1], vertex->vNormal.v[2]),
-                                glm::vec2(vertex->rfTextureCoord[0], vertex->rfTextureCoord[1]));
+                vertices.resize(model->unVertexCount);
+                for (size_t v = 0; v < model->unVertexCount; v++) {
+                    const vr::RenderModel_Vertex_t *vertex = &model->rVertexData[v];
+                    vertices.push_back(gfx::basic_vertex(
+                                           glm::vec3(vertex->vPosition.v[0], vertex->vPosition.v[1], vertex->vPosition.v[2]),
+                                           glm::vec3(vertex->vNormal.v[0], vertex->vNormal.v[1], vertex->vNormal.v[2]),
+                                           glm::vec2(vertex->rfTextureCoord[0], vertex->rfTextureCoord[1])));
                 }
 
+                gfx::calculate_tangents(vertices, GL_TRIANGLES);
+
                 submodel_name = std::string(component == -1 ? rendermodel_name : component_name);
-                sm = controllers[i]->model->AppendChildFromGeometry(submodel_name, "__root", data);
+                sm = controllers[i]->model->AppendChildFromGeometry(submodel_name, "__root", vertices, indices);
 
                 if (model->diffuseTextureId >= 0)
                     controllers[i]->pending_textures.push_back(std::make_pair(sm, model->diffuseTextureId));
