@@ -1171,7 +1171,7 @@ debug_panel::update_section_powergrid( std::vector<text_line> &Output ) {
 	auto const lowpowercolor { glm::vec4( 164.0f / 255.0f, 132.0f / 255.0f, 84.0f / 255.0f, 1.f ) };
 	auto const nopowercolor { glm::vec4( 164.0f / 255.0f, 84.0f / 255.0f, 84.0f / 255.0f, 1.f ) };
 
-	Output.emplace_back( "Name:               Output:   Timeout:", Global.UITextColor );
+    Output.emplace_back( "Name:               Output: Current: Timeout:", Global.UITextColor );
 
 	std::string textline;
 
@@ -1185,13 +1185,14 @@ debug_panel::update_section_powergrid( std::vector<text_line> &Output ) {
 			    powerstation->m_name )
 			+ "                              " };
 
-		textline =
-		    name.substr( 0, 20 )
-		    + " " + to_string( powerstation->OutputVoltage, 0, 5 )
-		    + " " + to_string( powerstation->FuseTimer, 1, 12 )
-		    + ( powerstation->FuseCounter == 0 ?
-		        "" :
-		        " (x" + to_string( powerstation->FuseCounter ) + ")" );
+        textline =
+            name.substr( 0, 20 )
+            + " " + to_string( powerstation->OutputVoltage, 0, 5 )
+            + " " + to_string( powerstation->TotalCurrent, 1, 8 )
+            + " " + to_string( powerstation->FuseTimer, 1, 8 )
+            + ( powerstation->FuseCounter == 0 ?
+                "" :
+                " (x" + to_string( powerstation->FuseCounter ) + ")" );
 
 		Output.emplace_back(
 		    textline,
@@ -1240,7 +1241,8 @@ debug_panel::update_section_renderer( std::vector<text_line> &Output ) {
                 + ", Draw range: " + to_string( Global.BaseDrawRange * Global.fDistanceFactor, 0 ) + "m"
 //                + "; sectors: " + std::to_string( GfxRenderer->m_drawcount )
 //                + ", FPS: " + to_string( Timer::GetFPS(), 2 );
-                + ", FPS: " + std::to_string( static_cast<int>(std::round(GfxRenderer->Framerate())) );
+                + ", FPS: " + std::to_string( static_cast<int>(std::round(GfxRenderer->Framerate())) )
+                + ( Global.VSync ? " (vsync on)" : "" );
             if( Global.iSlowMotion ) {
                 textline += " (slowmotion " + to_string( Global.iSlowMotion ) + ")";
             }

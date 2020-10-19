@@ -524,7 +524,6 @@ updatevalues_event::run_() {
         + ( ( m_input.flags & flags::text ) ? m_input.data_text : "X" ) + "] ["
         + ( ( m_input.flags & flags::value1 ) ? to_string( m_input.data_value_1, 2 ) : "X" ) + "] ["
         + ( ( m_input.flags & flags::value2 ) ? to_string( m_input.data_value_2, 2 ) : "X" ) + "]" );
-    // TODO: dump status of target cells after the operation
     for( auto &target : m_targets ) {
         auto *targetcell { static_cast<TMemCell *>( std::get<scene::basic_node *>( target ) ) };
         if( targetcell == nullptr ) { continue; }
@@ -533,13 +532,18 @@ updatevalues_event::run_() {
             m_input.data_value_1,
             m_input.data_value_2,
             m_input.flags );
+        WriteLog( " Memcell: " + targetcell->name() + " - " + targetcell->Values() );
+//        targetcell->LogValues();
         if( targetcell->Track == nullptr ) { continue; }
         // McZapkie-100302 - updatevalues oprocz zmiany wartosci robi putcommand dla wszystkich 'dynamic' na danym torze
         auto const location { targetcell->location() };
-        for( auto dynamic : targetcell->Track->Dynamics ) {
-            targetcell->PutCommand(
-                dynamic->Mechanik,
-                &location );
+        for( auto vehicle : targetcell->Track->Dynamics ) {
+            if( vehicle->Mechanik ) {
+                targetcell->PutCommand(
+                    vehicle->Mechanik,
+                    &location );
+                WriteLog( " Vehicle: [" + vehicle->name() + "]" );
+            }
         }
     }
 
@@ -774,8 +778,10 @@ putvalues_event::run_() {
          m_input.location.z,
          m_input.location.y };
 
+    std::string vehiclename;
     if( m_activator->Mechanik ) {
         // przekazanie rozkazu do AI
+        vehiclename = m_activator->Mechanik->Vehicle()->name();
         m_activator->Mechanik->PutCommand(
             m_input.data_text,
             m_input.data_value_1,
@@ -787,6 +793,7 @@ putvalues_event::run_() {
         // send the command to consist owner,
         // we're acting on presumption there's hardly ever need to issue command to unmanned vehicle
         // and the intended recipient moved between vehicles after the event was queued
+        vehiclename = m_activator->ctOwner->Vehicle()->name();
         m_activator->ctOwner->PutCommand(
             m_input.data_text,
             m_input.data_value_1,
@@ -795,12 +802,15 @@ putvalues_event::run_() {
     }
     else {
         // przekazanie do pojazdu
+        vehiclename = m_activator->name();
         m_activator->MoverParameters->PutCommand(
             m_input.data_text,
             m_input.data_value_1,
             m_input.data_value_2,
             loc );
     }
+
+    WriteLog( " Vehicle: [" + vehiclename + "]" );
 }
 
 // export_as_text() subclass details
@@ -930,13 +940,18 @@ copyvalues_event::run_() {
             m_input.data_value_1,
             m_input.data_value_2,
             m_input.flags );
+        WriteLog( " Memcell: " + targetcell->name() + " - " + targetcell->Values() );
+//        targetcell->LogValues();
         if( targetcell->Track == nullptr ) { continue; }
         // McZapkie-100302 - updatevalues oprocz zmiany wartosci robi putcommand dla wszystkich 'dynamic' na danym torze
         auto const location { targetcell->location() };
-        for( auto dynamic : targetcell->Track->Dynamics ) {
-            targetcell->PutCommand(
-                dynamic->Mechanik,
-                &location );
+        for( auto vehicle : targetcell->Track->Dynamics ) {
+            if( vehicle->Mechanik ) {
+                targetcell->PutCommand(
+                    vehicle->Mechanik,
+                    &location );
+                WriteLog( " Vehicle: [" + vehicle->name() + "]" );
+            }
         }
     }
 }
@@ -1145,11 +1160,7 @@ logvalues_event::run_() {
         for( auto &target : m_targets ) {
             auto *targetcell { static_cast<TMemCell *>( std::get<scene::basic_node *>( target ) ) };
             if( targetcell == nullptr ) { continue; }
-            WriteLog(
-                "Memcell \"" + targetcell->name() + "\": ["
-                + targetcell->Text() + "] ["
-                + to_string( targetcell->Value1(), 2 ) + "] ["
-                + to_string( targetcell->Value2(), 2 ) + "]" );
+            targetcell->LogValues();
         }
     }
 }

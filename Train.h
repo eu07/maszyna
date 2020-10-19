@@ -726,7 +726,7 @@ public: // reszta może by?publiczna
     sound_source rsFadeSound { sound_placement::internal, EU07_SOUND_CABCONTROLSCUTOFFRANGE };
     sound_source rsRunningNoise{ sound_placement::internal, EU07_SOUND_GLOBALRANGE };
     sound_source rsHuntingNoise{ sound_placement::internal, EU07_SOUND_GLOBALRANGE };
-    sound_source m_precipitationsound { sound_placement::internal, -1 };
+    sound_source m_rainsound { sound_placement::internal, -1 };
 
     sound_source dsbHasler { sound_placement::internal, EU07_SOUND_CABCONTROLSCUTOFFRANGE };
     sound_source dsbBuzzer { sound_placement::internal, EU07_SOUND_CABCONTROLSCUTOFFRANGE };

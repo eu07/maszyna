@@ -105,6 +105,10 @@ global_settings::ConfigParse(cParser &Parser) {
 			Parser.getTokens(1, false);
 			Parser >> fullscreen_monitor;
 		}
+        else if( token == "fullscreenwindowed" ) {
+            Parser.getTokens();
+            Parser >> fullscreen_windowed;
+        }
         else if( token == "vsync" ) {
 
             Parser.getTokens();
@@ -1201,6 +1205,7 @@ global_settings::export_as_text( std::ostream &Output ) const {
     export_as_text( Output, "basedrawrange", BaseDrawRange );
     export_as_text( Output, "fullscreen", bFullScreen );
     export_as_text( Output, "fullscreenmonitor", fullscreen_monitor );
+    export_as_text( Output, "fullscreenwindowed", fullscreen_windowed );
     export_as_text( Output, "vsync", VSync );
     // NOTE: values are changed dynamically during simulation. cache initial settings and export instead
     if( FreeFlyModeFlag ) {

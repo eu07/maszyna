@@ -5564,10 +5564,10 @@ void TTrain::OnCommand_occupiedcarcouplingdisconnect( TTrain *Train, command_dat
 
         if( Train->DynamicObject ) {
             Train->DynamicObject->uncouple( Train->cab_to_end() );
-        }
-        if( Train->DynamicObject->Mechanik ) {
-            // aktualizacja flag kierunku w składzie
-            Train->DynamicObject->Mechanik->CheckVehicles( Disconnect );
+            if( Train->DynamicObject->Mechanik ) {
+                // aktualizacja flag kierunku w składzie
+                Train->DynamicObject->Mechanik->CheckVehicles( Disconnect );
+            }
         }
     }
     else if( Command.action == GLFW_RELEASE ) {
@@ -5928,15 +5928,17 @@ void TTrain::OnCommand_vehicleboost(TTrain *Train, const command_data &Command) 
 
 	double boost = Command.param1 != 0.0 ? Command.param1 : 2.78;
 
-	TDynamicObject *d = Train->DynamicObject;
-	while( d ) {
-		d->MoverParameters->V += d->DirectionGet() * boost;
-		d = d->Next(); // pozostałe też
+    if( Train->DynamicObject == nullptr ) { return; }
+
+    auto *vehicle { Train->DynamicObject };
+	while( vehicle ) {
+		vehicle->MoverParameters->V += vehicle->DirectionGet() * boost;
+		vehicle = vehicle->Next(); // pozostałe też
 	}
-	d = Train->DynamicObject->Prev();
-	while( d ) {
-		d->MoverParameters->V += d->DirectionGet() * boost;
-		d = d->Prev(); // w drugą stronę też
+	vehicle = Train->DynamicObject->Prev();
+	while( vehicle ) {
+		vehicle->MoverParameters->V += vehicle->DirectionGet() * boost;
+		vehicle = vehicle->Prev(); // w drugą stronę też
 	}
 }
 
@@ -6480,16 +6482,7 @@ bool TTrain::Update( double const Deltatime )
         btLampkaPoslizg.Turn( false );
     }
 
-    if ((mvControlled->Mains) || (mvControlled->TrainType == dt_EZT))
-    {
-        btLampkaNadmSil.Turn(mvControlled->FuseFlagCheck());
-    }
-    else
-    {
-        btLampkaNadmSil.Turn( false );
-    }
-
-    if (mvControlled->Battery || mvControlled->ConverterFlag) {
+    if( true == lowvoltagepower ) {
         // McZapkie-141102: SHP i czuwak, TODO: sygnalizacja kabinowa
         if( mvOccupied->SecuritySystem.is_vigilance_blinking() ) {
             if( fBlinkTimer >  fCzuwakBlink )
@@ -6551,6 +6544,11 @@ bool TTrain::Update( double const Deltatime )
 
         btLampkaPrzekRozn.Turn(
             ( ( mvControlled->GroundRelay ) || ( mvControlled->ControlPressureSwitch ) ) ?
+                false :
+                ( mvControlled->BrakePress < 1.0 ) ); // relay is off and needs a reset
+
+        btLampkaNadmSil.Turn(
+            ( ( false == mvControlled->FuseFlagCheck() ) || ( mvControlled->ControlPressureSwitch ) ) ?
                 false :
                 ( mvControlled->BrakePress < 1.0 ) ); // relay is off and needs a reset
 
@@ -7363,10 +7361,15 @@ TTrain::update_sounds( double const Deltatime ) {
     if( ( false == FreeFlyModeFlag )
      && ( false == Global.CabWindowOpen )
      && ( Global.Weather == "rain:" ) ) {
-        m_precipitationsound.play( sound_flags::exclusive | sound_flags::looping );
+        if( m_rainsound.is_combined() ) {
+            m_rainsound.pitch( Global.Overcast - 1.0 );
+        }
+        m_rainsound
+            .gain( m_rainsound.m_amplitudeoffset + m_rainsound.m_amplitudefactor * 1.f )
+            .play( sound_flags::exclusive | sound_flags::looping );
     }
     else {
-        m_precipitationsound.stop();
+        m_rainsound.stop();
     }
 
     if( fTachoCount >= 3.f ) {
@@ -7733,8 +7736,8 @@ bool TTrain::LoadMMediaFile(std::string const &asFileName)
             }
             else if( token == "rainsound:" ) {
                 // precipitation sound:
-                m_precipitationsound.deserialize( parser, sound_type::single );
-                m_precipitationsound.owner( DynamicObject );
+                m_rainsound.deserialize( parser, sound_type::single );
+                m_rainsound.owner( DynamicObject );
             }
 
         } while (token != "");
@@ -8046,9 +8049,9 @@ bool TTrain::InitializeCab(int NewCabNo, std::string const &asFileName)
     {
 */
         // assign default samples to sound emitters which weren't included in the config file
-        if( m_precipitationsound.empty() ) {
-            m_precipitationsound.deserialize( "rainsound_default", sound_type::single );
-            m_precipitationsound.owner( DynamicObject );
+        if( m_rainsound.empty() ) {
+            m_rainsound.deserialize( "rainsound_default", sound_type::single );
+            m_rainsound.owner( DynamicObject );
         }
         // configure placement of sound emitters which aren't bound with any device model, and weren't placed manually
         // try first to bind sounds to location of possible devices

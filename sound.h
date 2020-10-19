@@ -41,8 +41,15 @@ enum class sound_placement {
     general, // source is equally audible in potential carrier and outside of it
     internal, // source is located inside of the carrier, and less audible when the listener is outside
     engine, // source is located in the engine compartment, less audible when the listener is outside and even less in the cabs
-    external // source is located on the outside of the carrier, and less audible when the listener is inside
+    external, // source is located on the outside of the carrier, and less audible when the listener is inside
+    external_ambient, // source is located on the outside of the carrier, with fixed volume
+    custom, // source doesn't fit in any standard location or requires custom soundproofing
 };
+
+auto const EU07_SOUNDPROOFING_NONE{ 1.f };
+auto const EU07_SOUNDPROOFING_SOME{ std::sqrt( 0.65f ) };
+auto const EU07_SOUNDPROOFING_STRONG{ std::sqrt( 0.20f ) };
+auto const EU07_SOUNDPROOFING_VERYSTRONG{ std::sqrt( 0.01f ) };
 
 // mini controller and audio dispatcher; issues play commands for the audio renderer,
 // updates parameters of created audio emitters for the playback duration

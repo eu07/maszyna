@@ -755,8 +755,15 @@ eu07_application::init_glfw() {
 
     glfwWindowHint(GLFW_SRGB_CAPABLE, !Global.gfx_shadergamma);
 
+    if( Global.fullscreen_windowed ) {
+        auto const mode = glfwGetVideoMode( monitor );
+        Global.iWindowWidth = mode->width;
+        Global.iWindowHeight = mode->height;
+        Global.bFullScreen = true;
+    }
+
     auto *mainwindow = window(
-        -1, true, Global.iWindowWidth, Global.iWindowHeight, Global.bFullScreen ? monitor : nullptr, true, false );
+        -1, true, Global.iWindowWidth, Global.iWindowHeight, ( Global.bFullScreen ? monitor : nullptr ), true, false );
 
     if( mainwindow == nullptr ) {
         ErrorLog( "Bad init: failed to create glfw window" );

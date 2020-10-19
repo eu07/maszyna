@@ -223,8 +223,8 @@ struct global_settings {
 #endif
 
 	std::chrono::duration<float> minframetime {0.0f};
-
-	std::string fullscreen_monitor;
+    std::string fullscreen_monitor;
+    bool fullscreen_windowed{ false };
 
     bool python_enabled = true;
 	bool python_mipmaps = true;
