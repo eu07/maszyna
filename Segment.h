@@ -18,6 +18,7 @@ struct map_colored_paths {
 	std::vector<gfx::geometrybank_handle> switches;
 	std::vector<gfx::geometrybank_handle> occupied;
 	std::vector<gfx::geometrybank_handle> future;
+    std::vector<gfx::geometrybank_handle> highlighted;
 };
 
 struct segment_data {

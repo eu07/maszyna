@@ -46,6 +46,17 @@ class launcher_window : public popup
 	virtual void render_content() override;
 };
 
+class track_switch_window : public popup
+{
+    std::shared_ptr<map::track_switch> m_switch;
+    command_relay m_relay;
+
+  public:
+    track_switch_window(ui_panel &panel, std::shared_ptr<map::track_switch> &&sw);
+
+    virtual void render_content() override;
+};
+
 class obstacle_insert_window : public popup
 {
 	glm::dvec3 m_position;
@@ -86,6 +97,8 @@ class vehicle_click_window : public popup
 
 class map_panel : public ui_panel
 {
+    friend class track_switch_window;
+
 	std::unique_ptr<gl::program> m_track_shader;
 	std::unique_ptr<gl::program> m_poi_shader;
 	std::unique_ptr<gl::framebuffer> m_msaa_fb;
@@ -101,7 +114,7 @@ class map_panel : public ui_panel
 	std::vector<gfx::geometrybank_handle> m_section_handles;
 	map_colored_paths m_colored_paths;
 
-	const int fb_size = 1024;
+    const int fb_size = 1024;
 
 	glm::vec2 translate;
 	float zoom = 1.0f / 1000.0f;
@@ -113,7 +126,7 @@ class map_panel : public ui_panel
 
 	bool init_done = false;
 
-	std::optional<map::semaphore> active;
+    std::vector<std::pair<TTrack*, int>> highlighted_switches;
 
   public:
 	map_panel();

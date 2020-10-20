@@ -53,6 +53,18 @@ struct launcher : public map_object
 	}
 };
 
+// switch description (only for minimap purposes)
+struct track_switch : public map_object
+{
+    std::array<basic_event*, 4> action = { nullptr };
+    std::array<char[4], 4> preview;
+    std::array<TTrack*, 4> track = { nullptr };
+
+    virtual gfx::basic_vertex vertex() {
+        return gfx::basic_vertex(location, glm::vec3(), glm::vec2(0.4f, 0.6f));
+    }
+};
+
 // training obstacle description
 struct obstacle : public map_object
 {

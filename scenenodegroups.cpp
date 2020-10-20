@@ -53,10 +53,54 @@ node_groups::close()
     return handle();
 }
 
+bool node_groups::assign_cross_switch(map::track_switch& sw, TTrack* track, std::string const &id, size_t idx)
+{
+    std::string sw_name = track->name();
+    sw_name.pop_back();
+
+    sw.action[idx] = simulation::Events.FindEvent(sw_name + ":" + id);
+
+    if (!sw.action[idx])
+        return false;
+
+    multi_event *multi = dynamic_cast<multi_event*>(sw.action[idx]);
+
+    if (!multi)
+        return false;
+
+    auto names = multi->dump_children_names();
+    for (auto it = names.begin(); it != names.end(); it++) {
+        int pos_a = it->find_last_of('a');
+        int pos_b = it->find_last_of('b');
+        int pos_c = it->find_last_of('c');
+        int pos_d = it->find_last_of('d');
+
+        int pos_0 = it->find_last_of('0');
+        int pos_1 = it->find_last_of('1');
+
+        int pos;
+
+        if (pos_a > pos_b && pos_a > pos_c && pos_a > pos_d)
+            pos = 0;
+        else if (pos_b > pos_a && pos_b > pos_c && pos_b > pos_d)
+            pos = 1;
+        else if (pos_c > pos_a && pos_c > pos_b && pos_c > pos_d)
+            pos = 2;
+        else
+            pos = 3;
+
+        sw.preview[idx][pos] = ((pos_0 > pos_1) ? '0' : '1');
+    }
+
+    return true;
+}
+
 void
 node_groups::update_map()
 {
 	map::Objects.entries.clear();
+
+    std::shared_ptr<map::track_switch> last_switch;
 
 	for (auto const &pair : m_groupmap) {
 		auto const &group = pair.second;
@@ -92,22 +136,60 @@ node_groups::update_map()
                     if (track->eType != tt_Switch)
                         continue;
 
-                    basic_event *sw_straight = simulation::Events.FindEvent(track->name() + "+");
-                    basic_event *sw_divert = simulation::Events.FindEvent(track->name() + "-");
+                    basic_event *sw_p = simulation::Events.FindEvent(track->name() + "+");
+                    basic_event *sw_m = simulation::Events.FindEvent(track->name() + "-");
 
-                    if (sw_straight && sw_divert) {
-                        auto map_launcher = std::make_shared<map::launcher>();
+                    if (sw_p && sw_m) {
+                        auto map_launcher = std::make_shared<map::track_switch>();
                         map::Objects.entries.push_back(map_launcher);
 
                         map_launcher->location = node->location();
                         map_launcher->name = node->name();
-                        map_launcher->first_event = sw_straight;
-                        map_launcher->second_event = sw_divert;
-                        if (map_launcher->name.empty())
-                            map_launcher->name = sw_straight->name();
+                        map_launcher->action[0] = sw_p;
+                        map_launcher->action[1] = sw_m;
+                        map_launcher->track[0] = track;
+                        map_launcher->preview[0][0] = '0';
+                        map_launcher->preview[1][0] = '1';
 
-                        map_launcher->type = map::launcher::track_switch;
+                        continue;
                     }
+
+                    std::string sw_name = track->name();
+                    if (sw_name.size() <= 2)
+                        continue;
+
+                    char lastc = sw_name.back();
+                    sw_name.pop_back();
+
+                    if (!simulation::Events.FindEvent(sw_name + ":ac"))
+                        continue;
+
+                    if (!last_switch || last_switch->name != sw_name) {
+                        last_switch = std::make_shared<map::track_switch>();
+                        last_switch->name = sw_name;
+                    }
+
+                    if (lastc < 'a' || lastc > 'd')
+                        continue;
+
+                    last_switch->track[lastc - 'a'] = track;
+                    for (auto trk : last_switch->track)
+                        if (!trk)
+                            goto skip_e;
+
+                    if (!assign_cross_switch(*last_switch, track, "ac", 0))
+                        skip_e: continue;
+                    if (!assign_cross_switch(*last_switch, track, "ad", 1))
+                        continue;
+                    if (!assign_cross_switch(*last_switch, track, "bc", 2))
+                        continue;
+                    if (!assign_cross_switch(*last_switch, track, "bd", 3))
+                        continue;
+
+                    last_switch->location = (last_switch->track[0]->location() + last_switch->track[1]->location() + last_switch->track[2]->location() + last_switch->track[3]->location()) / 4.0;
+                    map::Objects.entries.push_back(last_switch);
+
+                    last_switch.reset();
                 }
             } else {
                 if (TEventLauncher *launcher = dynamic_cast<TEventLauncher*>(node)) {

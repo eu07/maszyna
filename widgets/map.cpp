@@ -89,6 +89,7 @@ void ui::map_panel::render_map_texture(glm::mat4 transform, glm::vec2 surface_si
 	m_colored_paths.switches.clear();
 	m_colored_paths.occupied.clear();
 	m_colored_paths.future.clear();
+    m_colored_paths.highlighted.clear();
 	m_section_handles.clear();
 
 	for (int row = 0; row < scene::EU07_REGIONSIDESECTIONCOUNT; row++)
@@ -111,6 +112,11 @@ void ui::map_panel::render_map_texture(glm::mat4 transform, glm::vec2 surface_si
 	for (TTrack *track : simulation::Paths.sequence()) {
 		track->get_map_future_paths(m_colored_paths);
 	}
+
+    for (std::pair<TTrack*, int> &entry : highlighted_switches) {
+        if (entry.first)
+            entry.first->get_map_paths_for_state(m_colored_paths, entry.second);
+    }
 
 	glDisable(GL_DEPTH_TEST);
 	if (Global.iMultisampling)
@@ -138,6 +144,12 @@ void ui::map_panel::render_map_texture(glm::mat4 transform, glm::vec2 surface_si
 
     gl33->Draw_Geometry(m_section_handles.begin(), m_section_handles.end());
 
+    glLineWidth(4.0f);
+    scene_ubs.cascade_end = glm::vec4(0.3f, 0.3f, 1.0f, 0.0f);
+    scene_ubo->update(scene_ubs);
+    gl33->Draw_Geometry(m_colored_paths.highlighted.begin(), m_colored_paths.highlighted.end());
+
+    glLineWidth(1.5f);
     scene_ubs.cascade_end = glm::vec4(0.7f, 0.7f, 0.0f, 0.0f);
 	scene_ubo->update(scene_ubs);
     gl33->Draw_Geometry(m_colored_paths.future.begin(), m_colored_paths.future.end());
@@ -349,6 +361,10 @@ void ui::handle_map_object_click(ui_panel &parent, std::shared_ptr<map::map_obje
 	{
 		parent.register_popup(std::make_unique<launcher_window>(parent, std::move(track)));
 	}
+    else if (auto track_switch = std::dynamic_pointer_cast<map::track_switch>(obj))
+    {
+        parent.register_popup(std::make_unique<track_switch_window>(parent, std::move(track_switch)));
+    }
 	else if (auto obstacle = std::dynamic_pointer_cast<map::obstacle>(obj))
 	{
 		parent.register_popup(std::make_unique<obstacle_remove_window>(parent, std::move(obstacle)));
@@ -504,6 +520,34 @@ void ui::launcher_window::render_content()
 		m_relay.post(user_command::queueevent, 0.0, 0.0, GLFW_PRESS, 0, glm::vec3(0.0f), &m_switch->second_event->name());
 		ImGui::CloseCurrentPopup();
 	}
+}
+
+ui::track_switch_window::track_switch_window(ui_panel &panel, std::shared_ptr<map::track_switch> &&sw) : popup(panel), m_switch(sw) {}
+
+void ui::track_switch_window::render_content()
+{
+    auto &highlight = dynamic_cast<map_panel&>(m_parent).highlighted_switches;
+
+    ImGui::TextUnformatted(m_switch->name.c_str());
+
+    highlight.clear();
+
+    std::array<std::string, 4> names = { "ac", "ad", "bc", "bd" };
+
+    for (size_t i = 0; i < 4; i++) {
+        if (m_switch->action[i]) {
+            if (ImGui::Button(names[i].c_str()))
+                m_relay.post(user_command::queueevent, 0.0, 0.0, GLFW_PRESS, 0, glm::vec3(0.0f), &m_switch->action[i]->name());
+            if (ImGui::IsItemHovered()) {
+                for (size_t j = 0; j < 4; j++) {
+                    if ((names[i][0] - 'a') != j && (names[i][1] - 'a') != j)
+                        continue;
+                    highlight.push_back(std::make_pair(m_switch->track[j], m_switch->preview[i][j] == '1' ? 1 : 0));
+                }
+            }
+            ImGui::SameLine();
+        }
+    }
 }
 
 ui::obstacle_insert_window::obstacle_insert_window(ui_panel &panel, glm::dvec3 const &pos) : popup(panel), m_position(pos)

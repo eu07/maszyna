@@ -1197,6 +1197,14 @@ multi_event::init() {
     }
 }
 
+std::vector<std::string> multi_event::dump_children_names() const {
+    std::vector<std::string> result;
+    for (auto const &childevent : m_children) {
+        result.push_back(std::get<std::string>(childevent));
+    }
+    return result;
+}
+
 // event type string
 std::string
 multi_event::type() const {

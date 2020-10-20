@@ -330,6 +330,8 @@ public:
     // prepares event for use
     void init() override;
 
+	std::vector<std::string> dump_children_names() const;
+
 private:
 // types
     // wrapper for binding between editor-supplied name, event, and execution conditional flag

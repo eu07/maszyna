@@ -1209,6 +1209,14 @@ void TTrack::get_map_active_paths(map_colored_paths &handles)
 	}
 }
 
+void TTrack::get_map_paths_for_state(map_colored_paths &handles, int state)
+{
+    if (iCategoryFlag != 1 || eType != tt_Switch)
+        return;
+
+    handles.highlighted.push_back(SwitchExtension->map_geometry[state]);
+}
+
 void TTrack::get_map_future_paths(map_colored_paths &handles) {
 	if (iCategoryFlag != 1)
 		return;
