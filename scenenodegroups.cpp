@@ -53,11 +53,8 @@ node_groups::close()
     return handle();
 }
 
-bool node_groups::assign_cross_switch(map::track_switch& sw, TTrack* track, std::string const &id, size_t idx)
+bool node_groups::assign_cross_switch(map::track_switch& sw, std::string &sw_name, std::string const &id, size_t idx)
 {
-    std::string sw_name = track->name();
-    sw_name.pop_back();
-
     sw.action[idx] = simulation::Events.FindEvent(sw_name + ":" + id);
     if (!sw.action[idx])
         sw.action[idx] = simulation::Events.FindEvent(sw_name + id);
@@ -72,6 +69,10 @@ bool node_groups::assign_cross_switch(map::track_switch& sw, TTrack* track, std:
 
     auto names = multi->dump_children_names();
     for (auto it = names.begin(); it != names.end(); it++) {
+        *it = it->substr(sw_name.size());
+        if (it->size() > 4)
+            continue;
+
         int pos_a = it->find_last_of('a');
         int pos_b = it->find_last_of('b');
         int pos_c = it->find_last_of('c');
@@ -162,6 +163,8 @@ node_groups::update_map()
 
                     char lastc = sw_name.back();
                     sw_name.pop_back();
+                    if (sw_name.back() == '_')
+                        sw_name.pop_back();
 
                     if (!(simulation::Events.FindEvent(sw_name + ":ac") || simulation::Events.FindEvent(sw_name + "ac")))
                         continue;
@@ -179,13 +182,13 @@ node_groups::update_map()
                         if (!trk)
                             goto skip_e;
 
-                    if (!assign_cross_switch(*last_switch, track, "ac", 0))
+                    if (!assign_cross_switch(*last_switch, sw_name, "ac", 0))
                         skip_e: continue;
-                    if (!assign_cross_switch(*last_switch, track, "ad", 1))
+                    if (!assign_cross_switch(*last_switch, sw_name, "ad", 1))
                         continue;
-                    if (!assign_cross_switch(*last_switch, track, "bc", 2))
+                    if (!assign_cross_switch(*last_switch, sw_name, "bc", 2))
                         continue;
-                    if (!assign_cross_switch(*last_switch, track, "bd", 3))
+                    if (!assign_cross_switch(*last_switch, sw_name, "bd", 3))
                         continue;
 
                     last_switch->location = (last_switch->track[0]->location() + last_switch->track[1]->location() + last_switch->track[2]->location() + last_switch->track[3]->location()) / 4.0;
