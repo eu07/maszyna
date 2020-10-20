@@ -199,6 +199,9 @@ bool opengl33_renderer::Init(GLFWwindow *Window)
 	if (!init_viewport(default_viewport))
 		return false;
 	glfwMakeContextCurrent(m_window);
+
+    // after potential context switch, reset vao and buffer because we can have invalid bindings cache
+    gl::vao::unbind();
 	gl::buffer::unbind();
 
 	if (Global.gfx_shadowmap_enabled)
@@ -351,6 +354,9 @@ bool opengl33_renderer::AddViewport(const global_settings::extraviewport_config 
 
     bool ret = init_viewport(*vp);
 	glfwMakeContextCurrent(m_window);
+
+    // after potential context switch, reset vao and buffer because we can have invalid bindings cache
+    gl::vao::unbind();
 	gl::buffer::unbind();
 
 	return ret;
@@ -518,7 +524,11 @@ bool opengl33_renderer::Render()
 	}
 
 	glfwMakeContextCurrent(m_window);
+
+    // after potential context switch, reset vao and buffer because we can have invalid bindings cache
+    gl::vao::unbind();
 	gl::buffer::unbind();
+
 	m_current_viewport = &(*m_viewports.front());
 /*
 	m_debugtimestext += "cpu: " + to_string(Timer::subsystem.gfx_color.average(), 2) + " ms (" + std::to_string(m_cellqueue.size()) + " sectors)\n" +=
@@ -635,7 +645,11 @@ void opengl33_renderer::Render_pass(viewport_config &vp, rendermode const Mode)
 
 		glDebug("context switch");
 		glfwMakeContextCurrent(vp.window);
+
+        // after potential context switch, reset vao and buffer because we can have invalid bindings cache
+        gl::vao::unbind();
 		gl::buffer::unbind();
+
 		m_current_viewport = &vp;
 
 		if ((!simulation::is_ready) || (Global.gfx_skiprendering))
@@ -4095,9 +4109,6 @@ bool opengl33_renderer::Debug_Ui_State(std::optional<bool> param)
 // utility methods
 void opengl33_renderer::Update_Pick_Control()
 {
-	// context-switch workaround
-	gl::buffer::unbind();
-
 	if (!m_picking_pbo->is_busy())
 	{
 		unsigned char pickreadout[4];
@@ -4284,6 +4295,11 @@ glm::dvec3 opengl33_renderer::Update_Mouse_Position()
 
 void opengl33_renderer::Update(double const Deltatime)
 {
+    // workaround: we might be after context switch
+    // reset vao and buffer because we can have invalid bindings cache
+    gl::vao::unbind();
+    gl::buffer::unbind();
+
 	Update_Pick_Control();
 	Update_Pick_Node();
 

@@ -18,7 +18,7 @@ namespace gl
             COPY_WRITE_BUFFER,
             DISPATCH_INDIRECT_BUFFER,
             DRAW_INDIRECT_BUFFER,
-            ELEMENT_ARRAY_BUFFER,
+            ELEMENT_ARRAY_BUFFER, // ELEMENT_ARRAY_BUFFER is part of VAO and therefore shouldn't be managed by global tracker!
             PIXEL_PACK_BUFFER,
             PIXEL_UNPACK_BUFFER,
             SHADER_STORAGE_BUFFER,

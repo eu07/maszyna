@@ -38,6 +38,8 @@ void gl::vao::setup_ebo(buffer &e)
 {
 	if (use_vao) {
 		bind();
+        // ELEMENT_ARRAY_BUFFER is part of VAO and therefore shouldn't be managed by gl::buffer global tracker!
+        // but it is needed by it for buffer data management, so eh
 		e.bind(buffer::ELEMENT_ARRAY_BUFFER);
 	}
 	else {

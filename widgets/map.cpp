@@ -640,11 +640,6 @@ ui::vehicle_click_window::vehicle_click_window(ui_panel &panel, std::shared_ptr<
 
 void ui::vehicle_click_window::render_content()
 {
-	if (!m_vehicle->dynobj->MoverParameters->Battery) {
-		std::string name_enable = m_vehicle->name + "%Prepare_engine";
-		m_relay.post(user_command::sendaicommand, 1.0, 1.0, GLFW_PRESS, 0, glm::vec3(), &name_enable);
-	}
-
 	ImGui::TextUnformatted(STR_C("Light signal:"));
 
 	if (ImGui::Button(STR_C("none"))) {
