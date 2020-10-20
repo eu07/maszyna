@@ -524,6 +524,14 @@ void ui::launcher_window::render_content()
 
 ui::track_switch_window::track_switch_window(ui_panel &panel, std::shared_ptr<map::track_switch> &&sw) : popup(panel), m_switch(sw) {}
 
+bool ui::track_switch_window::render()
+{
+    ImGui::PushStyleVar(ImGuiStyleVar_Alpha, 0.5f);
+    bool ret = popup::render();
+    ImGui::PopStyleVar();
+    return ret;
+}
+
 void ui::track_switch_window::render_content()
 {
     auto &highlight = dynamic_cast<map_panel&>(m_parent).highlighted_switches;

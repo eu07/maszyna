@@ -14,7 +14,7 @@ class popup
 	popup(ui_panel &panel);
 	virtual ~popup();
 
-	bool render();
+    virtual bool render();
 
   protected:
 	ui_panel &m_parent;

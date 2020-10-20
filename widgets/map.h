@@ -54,6 +54,7 @@ class track_switch_window : public popup
   public:
     track_switch_window(ui_panel &panel, std::shared_ptr<map::track_switch> &&sw);
 
+	virtual bool render() override;
     virtual void render_content() override;
 };
 
