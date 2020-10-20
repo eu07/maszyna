@@ -59,6 +59,8 @@ bool node_groups::assign_cross_switch(map::track_switch& sw, TTrack* track, std:
     sw_name.pop_back();
 
     sw.action[idx] = simulation::Events.FindEvent(sw_name + ":" + id);
+    if (!sw.action[idx])
+        sw.action[idx] = simulation::Events.FindEvent(sw_name + id);
 
     if (!sw.action[idx])
         return false;
@@ -161,7 +163,7 @@ node_groups::update_map()
                     char lastc = sw_name.back();
                     sw_name.pop_back();
 
-                    if (!simulation::Events.FindEvent(sw_name + ":ac"))
+                    if (!(simulation::Events.FindEvent(sw_name + ":ac") || simulation::Events.FindEvent(sw_name + "ac")))
                         continue;
 
                     if (!last_switch || last_switch->name != sw_name) {

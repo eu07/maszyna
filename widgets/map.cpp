@@ -144,11 +144,6 @@ void ui::map_panel::render_map_texture(glm::mat4 transform, glm::vec2 surface_si
 
     gl33->Draw_Geometry(m_section_handles.begin(), m_section_handles.end());
 
-    glLineWidth(4.0f);
-    scene_ubs.cascade_end = glm::vec4(0.3f, 0.3f, 1.0f, 0.0f);
-    scene_ubo->update(scene_ubs);
-    gl33->Draw_Geometry(m_colored_paths.highlighted.begin(), m_colored_paths.highlighted.end());
-
     glLineWidth(1.5f);
     scene_ubs.cascade_end = glm::vec4(0.7f, 0.7f, 0.0f, 0.0f);
 	scene_ubo->update(scene_ubs);
@@ -163,6 +158,11 @@ void ui::map_panel::render_map_texture(glm::mat4 transform, glm::vec2 surface_si
     scene_ubs.cascade_end = glm::vec4(1.0f, 0.0f, 0.0f, 0.0f);
 	scene_ubo->update(scene_ubs);
     gl33->Draw_Geometry(m_colored_paths.occupied.begin(), m_colored_paths.occupied.end());
+
+    glLineWidth(4.0f);
+    scene_ubs.cascade_end = glm::vec4(0.3f, 0.3f, 1.0f, 0.0f);
+    scene_ubo->update(scene_ubs);
+    gl33->Draw_Geometry(m_colored_paths.highlighted.begin(), m_colored_paths.highlighted.end());
 
 	if (!Global.gfx_usegles || GLAD_GL_EXT_geometry_shader) {
         gl33->Bind_Texture(0, m_icon_atlas);
