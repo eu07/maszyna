@@ -457,8 +457,9 @@ std::pair<int, int> TSubModel::Load( cParser &parser, bool dynamic )
                     0x10 ); // 0x10-nieprzezroczysta, 0x20-przezroczysta
         }
         // and same thing with selfillum
-        if (!std::isnan(mat.selfillum))
-            fLight = mat.selfillum;
+        if( mat.selfillum ) {
+            fLight = mat.selfillum.value();
+        }
     }
 
     // visibility range
@@ -677,8 +678,8 @@ std::pair<int, int> TSubModel::Load( cParser &parser, bool dynamic )
 					    }
                     }
                     Vertices.resize( m_geometry.vertex_count ); // in case we had some degenerate triangles along the way
-                    gfx::calculate_tangents( Vertices, GL_TRIANGLES );
                     gfx::calculate_indices( Indices, Vertices );
+                    gfx::calculate_tangents( Vertices, Indices, GL_TRIANGLES );
                     // update values potentially changed by indexing
                     m_geometry.index_count = Indices.size();
                     m_geometry.vertex_count = Vertices.size();
@@ -2040,8 +2041,9 @@ void TSubModel::BinInit(TSubModel *s, float4x4 *m, std::vector<std::string> *t, 
                 opengl_material const &mat = GfxRenderer->Material(m_material);
 
                 // replace submodel selfillum with material one
-                if (!std::isnan(mat.selfillum))
-                    fLight = mat.selfillum;
+                if( mat.selfillum ) {
+                    fLight = mat.selfillum.value();
+                }
             }
         }
         else {

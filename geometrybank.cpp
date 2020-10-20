@@ -69,7 +69,7 @@ basic_vertex::deserialize_packed( std::istream &s, bool const Tangent ) {
 // based on
 // Lengyel, Eric. “Computing Tangent Space Basis Vectors for an Arbitrary Mesh”.
 // Terathon Software, 2001. http://terathon.com/code/tangent.html
-void calculate_tangents(vertex_array &vertices, int type)
+void calculate_tangents(vertex_array &vertices, index_array const &indices, int const type)
 {
     size_t vertex_count = vertices.size();
 
@@ -77,12 +77,14 @@ void calculate_tangents(vertex_array &vertices, int type)
         return;
 
     size_t triangle_count;
+    size_t tri_count_base = indices.empty() ? vertex_count : indices.size();
+
     if (type == GL_TRIANGLES)
-        triangle_count = vertex_count / 3;
+        triangle_count = tri_count_base / 3;
     else if (type == GL_TRIANGLE_STRIP)
-        triangle_count = vertex_count - 2;
+        triangle_count = tri_count_base - 2;
     else if (type == GL_TRIANGLE_FAN)
-        triangle_count = vertex_count - 2;
+        triangle_count = tri_count_base - 2;
     else
         return;
 
@@ -116,6 +118,12 @@ void calculate_tangents(vertex_array &vertices, int type)
             i1 = 0;
             i2 = a + 1;
             i3 = a + 2;
+        }
+
+        if (!indices.empty()) {
+            i1 = indices[i1];
+            i2 = indices[i2];
+            i3 = indices[i3];
         }
 
         const glm::vec3 &v1 = vertices[i1].position;
@@ -181,7 +189,7 @@ void calculate_indices( index_array &Indices, vertex_array &Vertices ) {
 
     Indices.resize( Vertices.size() );
     std::iota( std::begin( Indices ), std::end( Indices ), 0 );
-    // gather instances of used verices, replace the original vertex bank with it after you're done
+    // gather instances of used vertices, replace the original vertex bank with it after you're done
     vertex_array indexedvertices;
     indexedvertices.reserve( std::max<size_t>( 100, Vertices.size() / 3 ) ); // optimistic guesstimate, but should reduce re-allocation somewhat
     auto const matchtolerance { 1e-5f };
