@@ -312,6 +312,13 @@ void ui::map_panel::render_contents()
 			Application.set_cursor_pos(surface_screen_center.x, surface_screen_center.y);
 		}
 
+        if (FreeFlyModeFlag && ImGui::IsMouseClicked(2)) {
+            glm::vec3 world_pos = glm::inverse(transform) * glm::vec4(ndc_pos.x, 0.0f, -ndc_pos.y, 1.0f);
+
+            Global.FreeCameraInit[0].x = world_pos.x;
+            Global.FreeCameraInit[0].y = Global.pCamera.Pos.y;
+            Global.FreeCameraInit[0].z = world_pos.z;
+        }
 		if (mode == 0 && ImGui::IsMouseDragging(0))
 		{
 			ImVec2 delta_im = ImGui::GetMouseDragDelta();
