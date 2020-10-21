@@ -179,6 +179,7 @@ bool opengl33_renderer::Init(GLFWwindow *Window)
         return false;
     }
 	glfwMakeContextCurrent(m_window);
+    gl::vao::unbind();
 	gl::buffer::unbind();
 
 	if (Global.gfx_shadowmap_enabled)
@@ -470,6 +471,7 @@ bool opengl33_renderer::Render()
 	}
 
 	glfwMakeContextCurrent(m_window);
+    gl::vao::unbind();
 	gl::buffer::unbind();
 	m_current_viewport = &(*m_viewports.front());
 /*
@@ -581,6 +583,7 @@ void opengl33_renderer::Render_pass(viewport_config &vp, rendermode const Mode)
 
 		glDebug("context switch");
 		glfwMakeContextCurrent(vp.window);
+        gl::vao::unbind();
 		gl::buffer::unbind();
 		m_current_viewport = &vp;
 
@@ -3925,6 +3928,7 @@ void opengl33_renderer::Render_Alpha(TSubModel *Submodel)
 void opengl33_renderer::Update_Pick_Control()
 {
 	// context-switch workaround
+    gl::vao::unbind();
 	gl::buffer::unbind();
 
 	if (!m_picking_pbo->is_busy())
