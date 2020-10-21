@@ -135,7 +135,7 @@ void ui::map_panel::render_map_texture(glm::mat4 transform, glm::vec2 surface_si
 	glViewport(0, 0, surface_size.x, surface_size.y);
 
 	scene_ubs.projection = transform;
-    scene_ubs.cascade_end = glm::vec4(0.5f, 0.5f, 0.5f, 0.0f);
+    scene_ubs.cascade_end = glm::vec3(0.5f, 0.5f, 0.5f);
 	scene_ubo->update(scene_ubs);
 	scene_ubo->bind_uniform();
 
@@ -145,22 +145,22 @@ void ui::map_panel::render_map_texture(glm::mat4 transform, glm::vec2 surface_si
     gl33->Draw_Geometry(m_section_handles.begin(), m_section_handles.end());
 
     glLineWidth(1.5f);
-    scene_ubs.cascade_end = glm::vec4(0.7f, 0.7f, 0.0f, 0.0f);
+    scene_ubs.cascade_end = glm::vec3(0.7f, 0.7f, 0.0f);
 	scene_ubo->update(scene_ubs);
     gl33->Draw_Geometry(m_colored_paths.future.begin(), m_colored_paths.future.end());
 
 	glLineWidth(3.0f);
-    scene_ubs.cascade_end = glm::vec4(0.0f, 1.0f, 0.0f, 0.0f);
+    scene_ubs.cascade_end = glm::vec3(0.0f, 1.0f, 0.0f);
 	scene_ubo->update(scene_ubs);
     gl33->Draw_Geometry(m_colored_paths.switches.begin(), m_colored_paths.switches.end());
 
 	glLineWidth(1.5f);
-    scene_ubs.cascade_end = glm::vec4(1.0f, 0.0f, 0.0f, 0.0f);
+    scene_ubs.cascade_end = glm::vec3(1.0f, 0.0f, 0.0f);
 	scene_ubo->update(scene_ubs);
     gl33->Draw_Geometry(m_colored_paths.occupied.begin(), m_colored_paths.occupied.end());
 
     glLineWidth(4.0f);
-    scene_ubs.cascade_end = glm::vec4(0.3f, 0.3f, 1.0f, 0.0f);
+    scene_ubs.cascade_end = glm::vec3(0.3f, 0.3f, 1.0f);
     scene_ubo->update(scene_ubs);
     gl33->Draw_Geometry(m_colored_paths.highlighted.begin(), m_colored_paths.highlighted.end());
 

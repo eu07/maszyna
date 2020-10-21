@@ -71,7 +71,7 @@ void gl::glsl_common_setup()
         mat4 projection;
         mat4 inv_view;
         mat4 lightview[MAX_CASCADES];
-        vec4 cascade_end;
+        vec3 cascade_end;
         float time;
     };
 
