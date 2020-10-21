@@ -18,7 +18,7 @@ void ui::time_panel::render_contents()
 
 	if (ImGui::Button(STR_C("Apply")))
 	{
-		m_relay.post(user_command::setdatetime, (double)yearday, time, 1, 0);
+        m_relay.post(user_command::setdatetime, (double)yearday, time * 60.0, 1, 0);
 		m_relay.post(user_command::setweather, fog, overcast, 1, 0);
 		m_relay.post(user_command::settemperature, temperature, 0.0, 1, 0);
 	}
