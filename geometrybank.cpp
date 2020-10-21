@@ -67,7 +67,7 @@ basic_vertex::deserialize_packed( std::istream &s, bool const Tangent ) {
 // based on
 // Lengyel, Eric. “Computing Tangent Space Basis Vectors for an Arbitrary Mesh”.
 // Terathon Software, 2001. http://terathon.com/code/tangent.html
-void calculate_tangents(vertex_array &vertices, const index_array &indices, int type)
+void calculate_tangents(vertex_array &vertices, index_array const &indices, int const type)
 {
     size_t vertex_count = vertices.size();
 
@@ -187,7 +187,7 @@ void calculate_indices( index_array &Indices, vertex_array &Vertices, float tole
 
     Indices.resize( Vertices.size() );
     std::iota( std::begin( Indices ), std::end( Indices ), 0 );
-    // gather instances of used verices, replace the original vertex bank with it after you're done
+    // gather instances of used vertices, replace the original vertex bank with it after you're done
     vertex_array indexedvertices;
     indexedvertices.reserve( std::max<size_t>( 100, Vertices.size() / 3 ) ); // optimistic guesstimate, but should reduce re-allocation somewhat
     auto const matchtolerance { 1e-5f * tolerancescale };

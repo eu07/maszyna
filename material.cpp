@@ -426,9 +426,9 @@ opengl_material::deserialize_mapping( cParser &Input, int const Priority, bool c
 
 float opengl_material::get_or_guess_opacity() const {
 
-    if (!std::isnan(opacity))
-        return opacity;
-
+    if( opacity ) {
+        return opacity.value();
+    }
     if (textures[0] != null_handle)
     {
         auto const &tex = GfxRenderer->Texture(textures[0]);

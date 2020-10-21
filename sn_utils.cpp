@@ -132,7 +132,7 @@ glm::vec4 sn_utils::d_vec4( std::istream& s )
 uint8_t sn_utils::d_uint8( std::istream& s ) {
 
 	uint8_t buf;
-    s.read((char*)&buf, 1);
+	s.read((char*)&buf, 1);
 	return buf;
 }
 

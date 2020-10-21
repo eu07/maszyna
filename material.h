@@ -24,8 +24,8 @@ struct opengl_material {
     std::vector<gl::shader::param_entry> params_state;
 
     std::shared_ptr<gl::program> shader;
-    float opacity = std::numeric_limits<float>::quiet_NaN();
-    float selfillum = std::numeric_limits<float>::quiet_NaN();
+    std::optional<float> opacity;
+    std::optional<float> selfillum;
     float glossiness { 10.f };
 
     std::string name;

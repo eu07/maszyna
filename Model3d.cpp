@@ -446,8 +446,9 @@ std::pair<int, int> TSubModel::Load( cParser &parser, bool dynamic )
                     0x10 ); // 0x10-nieprzezroczysta, 0x20-przezroczysta
         }
         // and same thing with selfillum
-        if (!std::isnan(mat.selfillum))
-            fLight = mat.selfillum;
+        if( mat.selfillum ) {
+            fLight = mat.selfillum.value();
+        }
     }
 
     if (m_material > 0)
@@ -455,18 +456,18 @@ std::pair<int, int> TSubModel::Load( cParser &parser, bool dynamic )
         const opengl_material &mat = GfxRenderer->Material(m_material);
 
         // if material have opacity set, replace submodel opacity with it
-        if (!std::isnan(mat.opacity))
+        if (mat.opacity)
         {
             iFlags &= ~0x30;
-            if (mat.opacity == 0.0f)
+            if (*mat.opacity == 0.0f)
                 iFlags |= 0x20; // translucent
             else
                 iFlags |= 0x10; // opaque
         }
 
         // and same thing with selfillum
-        if (!std::isnan(mat.selfillum))
-            fLight = mat.selfillum;
+        if (mat.selfillum)
+            fLight = *mat.selfillum;
     }
 
     // visibility range
@@ -2059,11 +2060,12 @@ void TSubModel::BinInit(TSubModel *s, float4x4 *m, std::vector<std::string> *t, 
             if (!(iFlags & 0x30) && m_material != null_handle)
             {
                 const opengl_material &mat = GfxRenderer->Material(m_material);
-                float opacity = mat.opacity;
-
+                float opacity;
+                if (mat.opacity)
+                    opacity = *mat.opacity;
                 // if material don't have opacity set, try to guess it
-                if (std::isnan(opacity))
-                        opacity = mat.get_or_guess_opacity();
+                else
+                    opacity = mat.get_or_guess_opacity();
 
                 // set phase flag based on material opacity
                 if (opacity == 0.0f)
@@ -2077,8 +2079,9 @@ void TSubModel::BinInit(TSubModel *s, float4x4 *m, std::vector<std::string> *t, 
                 opengl_material const &mat = GfxRenderer->Material(m_material);
 
                 // replace submodel selfillum with material one
-                if (!std::isnan(mat.selfillum))
-                    fLight = mat.selfillum;
+                if( mat.selfillum ) {
+                    fLight = mat.selfillum.value();
+                }
             }
         }
         else {

@@ -7534,16 +7534,18 @@ void TController::TakeControl( bool const Aidriver, bool const Forcevehiclecheck
             }
             else {
                 // jeśli nic nie robi
+                OrderNext( Prepare_engine );
                 if( pVehicle->MoverParameters->iLights[ ( mvOccupied->CabActive < 0 ?
                         end::rear :
                         end::front ) ]
                     & ( light::headlight_left | light::headlight_right | light::headlight_upper ) ) // któreś ze świateł zapalone?
                 { // od wersji 357 oczekujemy podania komend dla AI przez scenerię
-                    OrderNext( Prepare_engine );
+/*
                     if( pVehicle->MoverParameters->iLights[ mvOccupied->CabActive < 0 ? end::rear : end::front ] & light::headlight_upper ) // górne światło zapalone
                         OrderNext( Obey_train ); // jazda pociągowa
                     else
                         OrderNext( Shunt ); // jazda manewrowa
+*/
                     if( mvOccupied->Vel >= 1.0 ) // jeśli jedzie (dla 0.1 ma stać)
                         iDrivigFlags &= ~moveStopHere; // to ma nie czekać na sygnał, tylko jechać
                     else

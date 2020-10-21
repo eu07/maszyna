@@ -1874,7 +1874,7 @@ gfx::geometry_handle opengl33_renderer::Insert( gfx::index_array &Indices, gfx::
 // creates a new geometry chunk of specified type from supplied data, in specified bank. returns: handle to the chunk or NULL
 gfx::geometry_handle opengl33_renderer::Insert(gfx::vertex_array &Vertices, gfx::geometrybank_handle const &Geometry, int const Type)
 {
-    gfx::calculate_tangents(Vertices, gfx::index_array(), Type);
+	gfx::calculate_tangents(Vertices, gfx::index_array(), Type);
 
 	return m_geometry.create_chunk(Vertices, Geometry, Type);
 }
@@ -1882,7 +1882,7 @@ gfx::geometry_handle opengl33_renderer::Insert(gfx::vertex_array &Vertices, gfx:
 // replaces data of specified chunk with the supplied vertex data, starting from specified offset
 bool opengl33_renderer::Replace(gfx::vertex_array &Vertices, gfx::geometry_handle const &Geometry, int const Type, std::size_t const Offset)
 {
-    gfx::calculate_tangents(Vertices, gfx::index_array(), Type);
+	gfx::calculate_tangents(Vertices, gfx::index_array(), Type);
 
 	return m_geometry.replace(Vertices, Geometry, Offset);
 }
@@ -1890,7 +1890,7 @@ bool opengl33_renderer::Replace(gfx::vertex_array &Vertices, gfx::geometry_handl
 // adds supplied vertex data at the end of specified chunk
 bool opengl33_renderer::Append(gfx::vertex_array &Vertices, gfx::geometry_handle const &Geometry, int const Type)
 {
-    gfx::calculate_tangents(Vertices, gfx::index_array(), Type);
+	gfx::calculate_tangents(Vertices, gfx::index_array(), Type);
 
 	return m_geometry.append(Vertices, Geometry);
 }
@@ -2019,11 +2019,11 @@ void opengl33_renderer::Bind_Material( material_handle const Material, TSubModel
 		}
 */
 
-        if( !std::isnan( material.opacity ) ) {
+        if( material.opacity ) {
             model_ubs.opacity = (
                 m_blendingenabled ?
-                    -material.opacity :
-                     material.opacity );
+                    -material.opacity.value() :
+                     material.opacity.value() );
         }
         else {
             model_ubs.opacity = (
