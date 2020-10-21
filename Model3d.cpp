@@ -1795,6 +1795,7 @@ void TModel3d::deserialize(std::istream &s, size_t size, bool dynamic)
     }
 
 	std::streampos end = s.tellg() + (std::streampos)size;
+    bool hastangents { false };
 
 	while (s.tellg() < end)
 	{
@@ -1838,35 +1839,44 @@ void TModel3d::deserialize(std::istream &s, size_t size, bool dynamic)
                     return (Left.first) < (Right.first); } );
             // once sorted we can grab geometry as it comes, and assign it to the chunks it belongs to
             size_t const vertextype { ( ( ( type & 0xFF000000 ) >> 24 ) - '0' ) };
+            hastangents = ( vertextype > 0 );
             for( auto const &submodeloffset : submodeloffsets ) {
                 auto &submodel { Root[ submodeloffset.second ] };
                 auto const &submodelgeometry { submodel.m_geometry };
                 submodel.Vertices.resize( submodelgeometry.vertex_count );
                 m_vertexcount += submodelgeometry.vertex_count;
-                if (vertextype == 1) {
-                    // expanded chunk formats
-                    for( auto &vertex : submodel.Vertices ) {
-                        vertex.deserialize_packed( s, true );
-                    }
-                }
-                else if (vertextype == 2) {
-                    // expanded chunk formats
-                    for( auto &vertex : submodel.Vertices ) {
-                        vertex.deserialize( s, true );
-                    }
-                }
-                else if (vertextype == 0) {
+                switch( vertextype ) {
+                    case 0: {
                     // legacy vnt0 format
-                    for( auto &vertex : submodel.Vertices ) {
-                        vertex.deserialize( s, false );
-                        if( submodel.eType < TP_ROTATOR ) {
-                            // normal vectors debug routine
-                            if( ( false == submodel.m_normalizenormals )
-                             && ( std::abs( glm::length2( vertex.normal ) - 1.0f ) > 0.01f ) ) {
-                                submodel.m_normalizenormals = TSubModel::normalize; // we don't know if uniform scaling would suffice
-                                WriteLog( "Bad model: non-unit normal vector(s) encountered during sub-model geometry deserialization", logtype::model );
+                        for( auto &vertex : submodel.Vertices ) {
+                            vertex.deserialize( s, hastangents );
+                            if( submodel.eType < TP_ROTATOR ) {
+                                // normal vectors debug routine
+                                if( ( false == submodel.m_normalizenormals )
+                                 && ( std::abs( glm::length2( vertex.normal ) - 1.0f ) > 0.01f ) ) {
+                                    submodel.m_normalizenormals = TSubModel::normalize; // we don't know if uniform scaling would suffice
+                                    WriteLog( "Bad model: non-unit normal vector(s) encountered during sub-model geometry deserialization", logtype::model );
+                                }
                             }
                         }
+                        break;
+                    }
+                    case 1: {
+                        // expanded chunk formats
+                        for( auto &vertex : submodel.Vertices ) {
+                            vertex.deserialize_packed( s, hastangents );
+                        }
+                        break;
+                    }
+                    case 2: {
+                        // expanded chunk formats
+                        for( auto &vertex : submodel.Vertices ) {
+                            vertex.deserialize( s, hastangents );
+                        }
+                        break;
+                    }
+                    default: {
+                        break;
                     }
                 }
             }
@@ -1983,6 +1993,9 @@ void TModel3d::deserialize(std::istream &s, size_t size, bool dynamic)
                 type = Root[i].eType;
                 break;
             }
+        }
+        if( ( false == hastangents ) && ( type >= GL_TRIANGLES ) && ( type <= GL_TRIANGLE_FAN ) ) {
+            gfx::calculate_tangents( Root[i].Vertices, Root[i].Indices, type );
         }
         Root[i].m_geometry.handle = GfxRenderer->Insert( Root[i].Indices, Root[i].Vertices, m_geometrybank, type );
 	}
