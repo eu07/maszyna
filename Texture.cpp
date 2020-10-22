@@ -348,7 +348,7 @@ void opengl_texture::load_STBI()
 
 	data.resize(x * y * 4);
 	memcpy(&data[0], image, data.size());
-	delete image;
+    free(image);
 
 	data_format = GL_RGBA;
 	data_components = (n == 4 ? GL_RGBA : GL_RGB);

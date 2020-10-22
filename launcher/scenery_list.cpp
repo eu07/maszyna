@@ -235,11 +235,9 @@ void ui::scenerylist_panel::draw_summary_tooltip(const dynamic_desc &dyn_desc)
 
 	ImGui::TextUnformatted(STR_C("Coupling:"));
 
-	for (int i = 1; i <= 0x100; i <<= 1) {
-		bool dummy = true;
-
+    for (int i = 1; i <= 0x100; i <<= 1) {
 		if (dyn_desc.coupling & i)
-			ImGui::Text("+ %s", Translations.coupling_name(i).c_str(), &dummy);
+            ImGui::Text("+ %s", Translations.coupling_name(i).c_str());
 	}
 }
 
