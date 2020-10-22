@@ -2910,7 +2910,7 @@ void TMoverParameters::SecuritySystemReset(void) // zbijanie czuwaka/SHP
 // *************************************************************************************************
 void TMoverParameters::SecuritySystemCheck(double dt)
 {
-	SecuritySystem.update(dt, Vel, Battery || ConverterFlag);
+    SecuritySystem.update(dt, Vel, Power24vIsAvailable || Power110vIsAvailable);
 
 	if (!Battery || !Radio)
     { // wyłączenie baterii deaktywuje sprzęt
@@ -4273,11 +4273,11 @@ void TMoverParameters::UpdatePipePressure(double dt)
 
     auto const lowvoltagepower { Power24vIsAvailable || Power110vIsAvailable };
 
-    if( ( true == RadioStopFlag )
+    if( (( true == RadioStopFlag )
      || ( true == AlarmChainFlag )
 	 || (( true == EIMCtrlEmergency)
 	   && (LocalBrakePosA >= 1.0))
-     || SecuritySystem.is_braking() )
+     || SecuritySystem.is_braking()) && CabOccupied )
 /*
     // NOTE: disabled because 32 is 'load destroyed' flag, what does this have to do with emergency brake?
     // (if it's supposed to be broken coupler, such event sets alarmchainflag instead when appropriate)
