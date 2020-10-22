@@ -103,7 +103,7 @@ node_groups::update_map()
 {
 	map::Objects.entries.clear();
 
-    std::shared_ptr<map::track_switch> last_switch;
+    std::unordered_map<std::string, std::shared_ptr<map::track_switch>> last_switch_map;
 
 	for (auto const &pair : m_groupmap) {
 		auto const &group = pair.second;
@@ -169,9 +169,15 @@ node_groups::update_map()
                     if (!(simulation::Events.FindEvent(sw_name + ":ac") || simulation::Events.FindEvent(sw_name + "ac")))
                         continue;
 
-                    if (!last_switch || last_switch->name != sw_name) {
+                    std::shared_ptr<map::track_switch> last_switch;
+
+                    auto it = last_switch_map.find(sw_name);
+                    if (it != last_switch_map.end()) {
+                        last_switch = it->second;
+                    } else {
                         last_switch = std::make_shared<map::track_switch>();
                         last_switch->name = sw_name;
+                        last_switch_map.insert(std::make_pair(sw_name, last_switch));
                     }
 
                     if (lastc < 'a' || lastc > 'd')
@@ -194,7 +200,7 @@ node_groups::update_map()
                     last_switch->location = (last_switch->track[0]->location() + last_switch->track[1]->location() + last_switch->track[2]->location() + last_switch->track[3]->location()) / 4.0;
                     map::Objects.entries.push_back(last_switch);
 
-                    last_switch.reset();
+                    last_switch_map.erase(sw_name);
                 }
             } else {
                 if (TEventLauncher *launcher = dynamic_cast<TEventLauncher*>(node)) {
