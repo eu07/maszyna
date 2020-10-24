@@ -2282,6 +2282,11 @@ double TDriverHandle::GetCP()
     return 0;
 }
 
+double TDriverHandle::GetEP()
+{
+	return 0;
+}
+
 double TDriverHandle::GetSound(int i)
 {
     return 0;
@@ -3133,6 +3138,8 @@ double TSt113::GetPF(double i_bcp, double PP, double HP, double dt, double ep)
     double ActFlowSpeed;
     int BCP;
 
+	CP = PP;
+
     BCP = lround(i_bcp);
 
     EPS = BEP_K[BCP];
@@ -3169,7 +3176,12 @@ double TSt113::GetPF(double i_bcp, double PP, double HP, double dt, double ep)
 
 double TSt113::GetCP()
 {
-    return EPS;
+    return CP;
+}
+
+double TSt113::GetEP()
+{
+	return EPS;
 }
 
 double TSt113::GetPos(int i)
@@ -3301,6 +3313,8 @@ double TFVel6::GetPF(double i_bcp, double PP, double HP, double dt, double ep)
     double dpMainValve;
     double ActFlowSpeed;
 
+	CP = PP;
+
     LimPP = Min0R(5 * int(i_bcp < 3.5), HP);
     if ((i_bcp >= 3.5) && ((i_bcp < 4.3) || (i_bcp > 5.5)))
         ActFlowSpeed = 0;
@@ -3334,7 +3348,12 @@ double TFVel6::GetPF(double i_bcp, double PP, double HP, double dt, double ep)
 
 double TFVel6::GetCP()
 {
-    return EPS;
+    return CP;
+}
+
+double TFVel6::GetEP()
+{
+	return EPS;
 }
 
 double TFVel6::GetPos(int i)
@@ -3365,6 +3384,8 @@ double TFVE408::GetPF(double i_bcp, double PP, double HP, double dt, double ep)
 	double LimPP;
 	double dpMainValve;
 	double ActFlowSpeed;
+
+	CP = PP;
 
 	LimPP = Min0R(5 * int(i_bcp < 6.5), HP);
 	if ((i_bcp >= 6.5) && ((i_bcp < 7.5) || (i_bcp > 9.5)))
@@ -3398,6 +3419,11 @@ double TFVE408::GetPF(double i_bcp, double PP, double HP, double dt, double ep)
 }
 
 double TFVE408::GetCP()
+{
+	return CP;
+}
+
+double TFVE408::GetEP()
 {
 	return EPS;
 }

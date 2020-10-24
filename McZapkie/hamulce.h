@@ -541,6 +541,7 @@ class TDriverHandle {
     virtual double GetPF(double i_bcp, double PP, double HP, double dt, double ep);
     virtual void Init(double Press);
     virtual double GetCP();
+	virtual double GetEP();
     virtual void SetReductor(double nAdj); //korekcja pozycji reduktora cisnienia
     virtual double GetSound(int i); //pobranie glosnosci wybranego dzwieku
     virtual double GetPos(int i); //pobranie numeru pozycji o zadanym kodzie (funkcji)
@@ -617,7 +618,7 @@ class TMHZ_EN57 : public TDriverHandle {
 		double GetSound(int i)/*override*/;
 		double GetPos(int i)/*override*/;
 		double GetCP()/*override*/;
-    double GetEP(double pos);
+		double GetEP(double pos);
 		void SetParams(bool AO, bool MO, double OverP, double, double OMP, double OPD);
 		inline TMHZ_EN57(void) :
 			TDriverHandle()
@@ -762,10 +763,11 @@ class TSt113 : public TH14K1 {
 		static double const BPT_K[/*?*/ /*-1..4*/ (4) - (-1) + 1][2];
 		static double const BEP_K[/*?*/ /*-1..5*/ (5) - (-1) + 1];
 		static double const pos_table[11]; // = {-1, 5, -1, 0, 2, 3, 4, 5, 0, 0, 1};
-
+		double CP = 0;
   public:
 		double GetPF(double i_bcp, double PP, double HP, double dt, double ep)/*override*/;
 		double GetCP()/*override*/;
+		double GetEP()/*override*/;
 		double GetPos(int i)/*override*/;
 		void Init(double Press)/*override*/;
 
@@ -830,10 +832,12 @@ class TFVel6 : public TDriverHandle {
   private:
 		double EPS = 0.0;
 		static double const pos_table[ 11 ]; // = {-1, 6, -1, 0, 6, 4, 4.7, 5, -1, 0, 1};
+		double CP = 0.0;
 
   public:
 		double GetPF(double i_bcp, double PP, double HP, double dt, double ep)/*override*/;
 		double GetCP()/*override*/;
+		double GetEP()/*override*/;
 		double GetPos(int i)/*override*/;
 		double GetSound(int i)/*override*/;
 		void Init(double Press)/*override*/;
@@ -848,10 +852,12 @@ class TFVE408 : public TDriverHandle {
 private:
 	double EPS = 0.0;
 	static double const pos_table[11]; // = {-1, 6, -1, 0, 6, 4, 4.7, 5, -1, 0, 1};
+	double CP = 0.0;
 
 public:
 	double GetPF(double i_bcp, double PP, double HP, double dt, double ep)/*override*/;
 	double GetCP()/*override*/;
+	double GetEP()/*override*/;
 	double GetPos(int i)/*override*/;
 	double GetSound(int i)/*override*/;
 	void Init(double Press)/*override*/;

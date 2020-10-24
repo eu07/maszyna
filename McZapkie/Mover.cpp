@@ -3877,7 +3877,7 @@ bool TMoverParameters::SwitchEPBrake(int state)
     if ((BrakeHandle == TBrakeHandle::St113) && (CabOccupied != 0))
     {
         if (state > 0)
-            temp = Handle->GetCP(); // TODO: przetlumaczyc
+            temp = Handle->GetEP(); // TODO: przetlumaczyc
         else
             temp = 0;
         Hamulec->SetEPS(temp);
@@ -4422,7 +4422,7 @@ void TMoverParameters::UpdatePipePressure(double dt)
          && (DirActive != 0)
          && (EpFuse)) // tu powinien byc jeszcze bezpiecznik EP i baterie -
             // temp = (Handle as TFVel6).GetCP
-            temp = Handle->GetCP();
+            temp = Handle->GetEP();
         else
             temp = 0.0;
 

@@ -347,6 +347,10 @@ private:
     double ReactionTime = 0.0; // czas reakcji Ra: czego i na co? świadomości AI
     double fBrakeTime = 0.0; // wpisana wartość jest zmniejszana do 0, gdy ujemna należy zmienić nastawę hamulca
     double BrakeChargingCooldown{}; // prevents the ai from trying to charge the train brake too frequently
+	TBrakeSystem BrakeSystem = TBrakeSystem::Individual; //type of main brake
+	bool ForcePNBrake = false; //is it necessary to use PN brake instead of EP brake
+	int DynamicBrakeTest = 0; //is it necessary to make brake test while driving
+	int StaticBrakeTest = 0; //is it necessary to make brake test while standing
     double LastReactionTime = 0.0;
     double fActionTime = 0.0; // czas używany przy regulacji prędkości i zamykaniu drzwi
     double m_radiocontroltime{ 0.0 }; // timer used to control speed of radio operations
