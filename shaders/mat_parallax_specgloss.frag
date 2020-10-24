@@ -59,9 +59,9 @@ void main()
 	normal.z = sqrt(1.0 - clamp((dot(normal.xy, normal.xy)), 0.0, 1.0));
 	vec3 fragnormal = normalize(f_tbn * normalize(normal.xyz));
 	float reflectivity = param[1].z * texture(normalmap, f_coord_p).a;
-	float specularity = texture(specgloss, f_coord).r;
-	glossiness = texture(specgloss, f_coord).g * abs(param[1].w);
-	metalic = (texture(specgloss, f_coord).b > 0.5) ? true : false;
+	float specularity = texture(specgloss, f_coord_p).r;
+	glossiness = texture(specgloss, f_coord_p).g * abs(param[1].w);
+	float metalic = texture(specgloss, f_coord_p).b;
 	
 	fragcolor = apply_lights(fragcolor, fragnormal, tex_color.rgb, reflectivity, specularity, shadow_tone);
 
