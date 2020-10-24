@@ -16,6 +16,7 @@ public:
     virtual void begin_frame() = 0;
     virtual void submit(eye_e, opengl_texture*) = 0;
     virtual std::vector<TModel3d*> get_render_models() = 0;
+    virtual glm::mat4 get_pick_transform() = 0;
     virtual void finish_frame() = 0;
     virtual ~vr_interface() = 0;
 };

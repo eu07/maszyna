@@ -1,0 +1,18 @@
+{
+	"default_bindings": [
+		{
+			"binding_url" : "bindings_knuckles.json",
+			"controller_type" : "knuckles"
+		 }   
+	],
+	"actions": [
+			{ "name": "/actions/main/in/PrimaryAction", "requirement": "mandatory", "type": "boolean" },
+			{ "name": "/actions/main/in/SecondaryAction", "requirement": "mandatory", "type": "boolean" }
+		],
+	"action_sets": [
+			{ "name": "/actions/main", "usage": "leftright" }
+		],
+	"localization": [
+		{ "language_tag": "en_us", "/actions/main": "Main", "/actions/main/in/PrimaryAction": "Primary action", "/actions/main/in/SecondaryAction": "Secondary action" }
+	]
+}

@@ -8,7 +8,7 @@ private:
     struct controller_info {
         std::unique_ptr<TModel3d> model;
         std::string rendermodel;
-        std::vector<uint32_t> pending_components;
+        std::vector<int32_t> pending_components;
         std::vector<TSubModel*> active_components;
         std::vector<std::pair<TSubModel*, vr::TextureID_t>> pending_textures;
         vr::VRInputValueHandle_t inputhandle = 0;
@@ -22,14 +22,27 @@ private:
     vr::VRInputValueHandle_t inputhandle_left = 0;
     vr::VRInputValueHandle_t inputhandle_right = 0;
 
+    uint32_t primary_controller;
+    glm::mat4 primary_controller_transform;
+
+    user_command command_active = user_command::none;
+
     bool update_component(const std::string &rendermodel, vr::VRInputValueHandle_t handle, TSubModel *component);
-    glm::mat4 get_matrix(vr::HmdMatrix34_t &src);
+    glm::mat4 get_matrix(const vr::HmdMatrix34_t &src);
 
     vr::VRActionSetHandle_t actionset = 0;
     vr::VRActionHandle_t primary_action = 0;
+    vr::VRActionHandle_t secondary_action = 0;
+
     bool should_pause = false;
     bool draw_controllers = true;
 
+    struct button_bindings {
+        user_command primary;
+        user_command secondary;
+    };
+
+    static std::unordered_map<std::string, button_bindings> m_buttonbindings;
     command_relay relay;
 
 public:
@@ -39,6 +52,7 @@ public:
     void begin_frame() override;
     void submit(eye_e, opengl_texture*) override;
     std::vector<TModel3d*> get_render_models() override;
+    glm::mat4 get_pick_transform() override;
     void finish_frame() override;
     ~vr_openvr() override;
 

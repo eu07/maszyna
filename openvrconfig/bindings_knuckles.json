@@ -1,0 +1,34 @@
+{
+   "action_manifest_version" : 0,
+   "alias_info" : {},
+   "bindings" : {
+      "/actions/main" : {
+         "sources": [
+            {
+               "inputs" : {
+                  "click" : {
+                     "output" : "/actions/main/in/PrimaryAction"
+                  }
+               },
+               "mode" : "button",
+               "path" : "/user/hand/right/input/a"
+            },
+            {
+               "inputs" : {
+                  "click" : {
+                     "output" : "/actions/main/in/SecondaryAction"
+                  }
+               },
+               "mode" : "button",
+               "path" : "/user/hand/right/input/b"
+            }
+         ]
+      }
+   },
+   "category" : "steamvr_input",
+   "controller_type" : "knuckles",
+   "description" : "Default two handed bindings with movement on the off hand",
+   "name" : "Dual Controllers (Movement on Off Hand)",
+   "options" : {},
+   "simulated_actions" : []
+}

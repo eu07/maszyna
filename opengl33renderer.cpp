@@ -615,7 +615,7 @@ void opengl33_renderer::draw_debug_ui()
 	if (!debug_ui_active)
 		return;
 
-	if (ImGui::Begin("headlight config", &debug_ui_active))
+    if (ImGui::Begin("Headlight config", &debug_ui_active))
 	{
 		ImGui::SetWindowSize(ImVec2(0, 0));
 
@@ -630,6 +630,12 @@ void opengl33_renderer::draw_debug_ui()
 		ImGui::SliderFloat("intensity", &conf.intensity, 0.0f, 10.0f);
 	}
 	ImGui::End();
+
+    ImGui::SetNextWindowSize(ImVec2(400, 400));
+    if (ImGui::Begin("Pickbuffer") && m_pick_tex) {
+        ImGui::Image(reinterpret_cast<void *>(m_pick_tex->id), ImGui::GetContentRegionAvail(), ImVec2(0, 1.0), ImVec2(1.0, 0));
+    }
+    ImGui::End();
 }
 
 // runs jobs needed to generate graphics for specified render pass
@@ -1358,9 +1364,6 @@ void opengl33_renderer::setup_pass(viewport_config &Viewport, renderpass_config 
 	if (Viewport.main) // TODO: update window sizes also for extra viewports
 		target_size = glm::ivec2(Global.iWindowWidth, Global.iWindowHeight);
 
-	float const fovy = glm::radians(Global.FieldOfView / Global.ZoomFactor);
-	float const aspect = (float)target_size.x / std::max(1.f, (float)target_size.y);
-
 	Config.viewport_camera.position() = Global.pCamera.Pos;
 
 	switch (Mode)
@@ -1466,10 +1469,31 @@ void opengl33_renderer::setup_pass(viewport_config &Viewport, renderpass_config 
 		camera.position() = Global.pCamera.Pos;
 		Global.pCamera.SetMatrix(viewmatrix);
 
-		// projection
-		float znear = 0.1f * Global.ZoomFactor;
-		float zfar = Config.draw_range * Global.fDistanceFactor;
-		camera.projection() = perspective_projection(Viewport.projection, znear, zfar, frustumtest_proj);
+        viewport_proj_config proj = Viewport.projection;
+
+        // projection
+        float znear = 0.1f * Global.ZoomFactor;
+        float zfar = Config.draw_range * Global.fDistanceFactor;
+
+        if (vr) {
+            glm::mat4 transform = vr->get_pick_transform();
+            camera.position() += glm::vec3(transform[3]) * glm::mat3(viewmatrix);
+            viewmatrix = glm::dmat4(glm::inverse(glm::mat3(transform))) * viewmatrix;
+
+            znear = 0.01f;
+            zfar = 10.0f;
+            float const fovy = glm::radians(3.0f);
+
+            glm::vec2 screen_h = glm::vec2(1000.0f, 1000.0f) / 2.0f;
+            float const dist = screen_h.y / glm::tan(fovy / 2.0f);
+
+            proj.pa = glm::vec3(-screen_h.x, -screen_h.y, -dist);
+            proj.pb = glm::vec3( screen_h.x, -screen_h.y, -dist);
+            proj.pc = glm::vec3(-screen_h.x,  screen_h.y, -dist);
+            proj.pe = glm::vec3(0.0f, 0.0f, 0.0f);
+        }
+
+        camera.projection() = perspective_projection(proj, znear, zfar, frustumtest_proj);
 		break;
 	}
 	case rendermode::reflections:
@@ -4134,12 +4158,14 @@ void opengl33_renderer::Update_Pick_Control()
 
 		if (!m_control_pick_requests.empty())
 		{
-			// determine point to examine
-			glm::dvec2 mousepos = Application.get_cursor_pos();
-			mousepos.y = Global.iWindowHeight - mousepos.y; // cursor coordinates are flipped compared to opengl
+            glm::dvec2 mousepos = Application.get_cursor_pos();
+            mousepos.y = Global.iWindowHeight - mousepos.y; // cursor coordinates are flipped compared to opengl
 
 			glm::ivec2 pickbufferpos;
 			pickbufferpos = glm::ivec2{mousepos.x * EU07_PICKBUFFERSIZE / std::max(1, Global.iWindowWidth), mousepos.y * EU07_PICKBUFFERSIZE / std::max(1, Global.iWindowHeight)};
+
+            if (vr)
+                pickbufferpos = glm::ivec2(EU07_PICKBUFFERSIZE / 2 + 1, EU07_PICKBUFFERSIZE / 2 + 1);
 			pickbufferpos = glm::clamp(pickbufferpos, glm::ivec2(0, 0), glm::ivec2(EU07_PICKBUFFERSIZE - 1, EU07_PICKBUFFERSIZE - 1));
 
 			Render_pass(*m_viewports.front().get(), rendermode::pickcontrols);
