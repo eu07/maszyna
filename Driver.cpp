@@ -2409,7 +2409,10 @@ bool TController::CheckVehicles(TOrders user)
         if( mvOccupied->LightsPosNo > 0 ) {
             pVehicle->SetLights();
         }
-
+		if (OrderCurrentGet() & (Shunt | Loose_shunt | Disconnect | Connect | Change_direction)) {
+			// kasowanie pamieci hamowania kontrolnego
+			DynamicBrakeTest = 0;
+		}
         if (AIControllFlag)
         { // jeśli prowadzi komputer
             if( true == TestFlag( OrderCurrentGet(), Obey_train ) ) {
@@ -2992,7 +2995,7 @@ bool TController::ReleaseEngine() {
 bool TController::IncBrake()
 { // zwiększenie hamowania
     bool OK = false;
-	TBrakeSystem bs = BrakeSystem == TBrakeSystem::ElectroPneumatic && ForcePNBrake ?
+	TBrakeSystem bs = ((BrakeSystem == TBrakeSystem::ElectroPneumatic) && (ForcePNBrake)) ?
 						TBrakeSystem::Pneumatic : BrakeSystem;
     switch( bs ) {
         case TBrakeSystem::Individual: {
@@ -3969,7 +3972,7 @@ void TController::SpeedCntrl(double DesiredSpeed)
 void TController::SetTimeControllers()
 {
 	//1. Check the type of Main Brake Handle
-	if (BrakeSystem == TBrakeSystem::Pneumatic)
+	if (BrakeSystem == TBrakeSystem::Pneumatic || ForcePNBrake)
 	{
 		if (mvOccupied->Handle->Time)
 		{
@@ -4171,11 +4174,11 @@ void TController::SetTimeControllers()
 void TController::CheckTimeControllers()
 {
 	//1. Check the type of Main Brake Handle
-	if (BrakeSystem == TBrakeSystem::ElectroPneumatic && mvOccupied->Handle->TimeEP)
+	if (BrakeSystem == TBrakeSystem::ElectroPneumatic && mvOccupied->Handle->TimeEP && !ForcePNBrake)
 	{
 		mvOccupied->BrakeLevelSet(mvOccupied->Handle->GetPos(bh_EPN));
 	}
-	if (BrakeSystem == TBrakeSystem::Pneumatic && mvOccupied->Handle->Time)
+	if ((BrakeSystem == TBrakeSystem::Pneumatic || ForcePNBrake) && mvOccupied->Handle->Time)
 	{
 		if (BrakeCtrlPosition > 0)
 			mvOccupied->BrakeLevelSet(mvOccupied->Handle->GetPos(bh_MB));
@@ -6493,6 +6496,44 @@ TController::UpdateSituation(double dt) {
                 }
             }
             // koniec predkosci aktualnej
+			if (Global.DynamicBrakeTest)
+			{
+				// hamowanie kontrolne
+				if ((OrderCurrentGet() & Obey_train) && (DynamicBrakeTest == 0) && (vel < VelDesired)
+					&& (AccDesired > 0) && (TrainParams.TTVmax >= 10.0) && (primary())
+					&& (vel > std::min(TrainParams.TTVmax - 2.0, 58.0)))
+				{
+					DynamicBrakeTest = 1;
+					DBT_VelocityBrake = vel;
+					DBT_VelocityRelease = vel - 8.0;
+					DBT_BrakingTime = ElapsedTime;
+				}
+				switch (DynamicBrakeTest)
+				{
+				case 1:
+					AccDesired = fAccThreshold * 1.01;
+					ForcePNBrake = true;
+					mvOccupied->EpFuseSwitch(false);
+					if (vel <= DBT_VelocityRelease)
+					{
+						DynamicBrakeTest = 2;
+						DBT_BrakingTime = ElapsedTime - DBT_BrakingTime;
+						DBT_MidPointAcc = AbsAccS;
+						DBT_ReleasingTime = ElapsedTime;
+					}
+					break;
+				case 2:
+					if (fReady < 0.5)
+					{
+						mvOccupied->EpFuseSwitch(true);
+						ForcePNBrake = false;
+						DynamicBrakeTest = 3;
+						DBT_ReleasingTime = ElapsedTime - DBT_ReleasingTime;
+						DBT_VelocityFinish = vel;
+					}
+					break;
+				}
+			}
 
             // last step sanity check, until the whole calculation is straightened out
             AccDesired = std::min( AccDesired, AccPreferred );
@@ -6759,7 +6800,7 @@ TController::UpdateSituation(double dt) {
                             DecSpeed();
                     }
                 }
-                if( mvOccupied->TrainType == dt_EZT ) {
+                if( (mvOccupied->TrainType == dt_EZT) && (!ForcePNBrake) ) {
                     // właściwie, to warunek powinien być na działający EP
                     // Ra: to dobrze hamuje EP w EZT
                     // HACK: when going downhill be more responsive to desired deceleration

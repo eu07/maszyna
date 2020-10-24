@@ -100,6 +100,7 @@ struct global_settings {
     bool bRollFix{ true }; // czy wykonać przeliczanie przechyłki
     bool bJoinEvents{ false }; // czy grupować eventy o tych samych nazwach
     int iHiddenEvents{ 1 }; // czy łączyć eventy z torami poprzez nazwę toru
+	bool DynamicBrakeTest { false }; //enable dynamic brake tests made by AI drivers
     // ui
     int PythonScreenUpdateRate{ 200 }; // delay between python-based screen updates, in milliseconds
     int iTextMode{ 0 }; // tryb pracy wyświetlacza tekstowego
