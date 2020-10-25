@@ -6496,7 +6496,7 @@ TController::UpdateSituation(double dt) {
                 }
             }
             // koniec predkosci aktualnej
-			if (Global.DynamicBrakeTest)
+			if (Global.DynamicBrakeTest && AIControllFlag)
 			{
 				// hamowanie kontrolne
 				if ((OrderCurrentGet() & Obey_train) && (DynamicBrakeTest == 0) && (vel < VelDesired)
