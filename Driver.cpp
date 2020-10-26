@@ -2161,6 +2161,32 @@ void TController::AutoRewident()
         fNominalAccThreshold = fAccThreshold;
     }
 
+	bool fullep = false;
+	BrakeSystem = mvOccupied->BrakeSystem;
+	if (BrakeSystem == TBrakeSystem::ElectroPneumatic)
+	{
+		fullep = true;
+		if (pVehicles[end::front] != pVehicles[end::rear]) {
+			// more detailed version, will use manual braking also for coupled sets of controlled vehicles
+			auto *vehicle = pVehicles[end::front]; // start from first
+			while ((true == fullep)
+				&& (vehicle != nullptr)) {
+				// NOTE: we could simplify this by doing only check of the rear coupler, but this can be quite tricky in itself
+				// TODO: add easier ways to access front/rear coupler taking into account vehicle's direction
+				fullep =
+					(((vehicle->MoverParameters->Couplers[end::front].Connected == nullptr)
+						|| ((vehicle->MoverParameters->Couplers[end::front].CouplingFlag & coupling::control)
+							&& (vehicle->MoverParameters->Couplers[end::front].Connected->Power > -1)))
+						&& ((vehicle->MoverParameters->Couplers[end::rear].Connected == nullptr)
+							|| ((vehicle->MoverParameters->Couplers[end::rear].CouplingFlag & coupling::control)
+								&& (vehicle->MoverParameters->Couplers[end::rear].Connected->Power > -1))));
+				vehicle = vehicle->Next(); // kolejny pojazd, podłączony od tyłu (licząc od czoła)
+			}
+		}
+		if (!fullep) BrakeSystem = TBrakeSystem::Pneumatic;
+		mvOccupied->EpFuseSwitch(fullep);
+	}
+
     if( OrderCurrentGet() & ( Obey_train | Bank ) ) {
         // 4. Przeliczanie siły hamowania
         double const velstep = ( mvOccupied->Vmax*0.5 ) / BrakeAccTableSize;
@@ -2195,12 +2221,13 @@ void TController::AutoRewident()
                                 0.25 );
 
         if( mvOccupied->TrainType == dt_EZT ) {
+			int ep_factor = fullep ? 8 : 4;
             if( mvControlling->EngineType == TEngineType::ElectricInductionMotor ) {
                 // HACK: emu with induction motors need to start their braking a bit sooner than the ones with series motors
-                fNominalAccThreshold = std::max( -0.60, -fBrake_a0[ BrakeAccTableSize ] - 8 * fBrake_a1[ BrakeAccTableSize ] );
+                fNominalAccThreshold = std::max( -0.60, -fBrake_a0[ BrakeAccTableSize ] - ep_factor * fBrake_a1[ BrakeAccTableSize ] );
             }
             else {
-                fNominalAccThreshold = std::max( -0.75, -fBrake_a0[ BrakeAccTableSize ] - 8 * fBrake_a1[ BrakeAccTableSize ] );
+                fNominalAccThreshold = std::max( -0.75, -fBrake_a0[ BrakeAccTableSize ] - ep_factor * fBrake_a1[ BrakeAccTableSize ] );
             }       
 		    fBrakeReaction = 0.25;
 	    }
@@ -2219,30 +2246,6 @@ void TController::AutoRewident()
 	    fAccThreshold = fNominalAccThreshold;
     }
 
-	BrakeSystem = mvOccupied->BrakeSystem;
-	if (BrakeSystem == TBrakeSystem::ElectroPneumatic)
-	{
-		bool fullep = true;
-		if (pVehicles[end::front] != pVehicles[end::rear]) {
-			// more detailed version, will use manual braking also for coupled sets of controlled vehicles
-			auto *vehicle = pVehicles[end::front]; // start from first
-			while ((true == fullep)
-				&& (vehicle != nullptr)) {
-				// NOTE: we could simplify this by doing only check of the rear coupler, but this can be quite tricky in itself
-				// TODO: add easier ways to access front/rear coupler taking into account vehicle's direction
-				fullep =
-					(((vehicle->MoverParameters->Couplers[end::front].Connected == nullptr)
-						|| ((vehicle->MoverParameters->Couplers[end::front].CouplingFlag & coupling::control)
-							&& (vehicle->MoverParameters->Couplers[end::front].Connected->Power > -1)))
-						&& ((vehicle->MoverParameters->Couplers[end::rear].Connected == nullptr)
-							|| ((vehicle->MoverParameters->Couplers[end::rear].CouplingFlag & coupling::control)
-								&& (vehicle->MoverParameters->Couplers[end::rear].Connected->Power > -1))));
-				vehicle = vehicle->Next(); // kolejny pojazd, podłączony od tyłu (licząc od czoła)
-			}
-		}
-		if (!fullep) BrakeSystem = TBrakeSystem::Pneumatic;
-		mvOccupied->EpFuseSwitch( fullep );
-	}
 }
 
 double TController::ESMVelocity(bool Main)
@@ -6525,7 +6528,9 @@ TController::UpdateSituation(double dt) {
 				case 2:
 					if (fReady < 0.5)
 					{
-						mvOccupied->EpFuseSwitch(true);
+						if (BrakeSystem == TBrakeSystem::ElectroPneumatic) {
+							mvOccupied->EpFuseSwitch(true);
+						}
 						ForcePNBrake = false;
 						DynamicBrakeTest = 3;
 						DBT_ReleasingTime = ElapsedTime - DBT_ReleasingTime;
