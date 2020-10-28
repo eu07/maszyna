@@ -42,7 +42,7 @@ basic_editor::translate( scene::basic_node *Node, glm::dvec3 const &Location, bo
     auto const translation { targetlocation - initiallocation };
 
 	Node->mark_dirty();
-    if( Node->group() == null_handle ) {
+    if( Node->group() <= 1 ) {
         translate_node( Node, Node->location() + translation );
     }
     else {
@@ -65,7 +65,7 @@ basic_editor::translate( scene::basic_node *Node, float const Offset ) {
     auto const distance { glm::length( location - glm::dvec3{ Global.pCamera.Pos } ) };
     auto const offset { static_cast<float>( Offset * std::max( 1.0, distance * 0.01 ) ) };
 
-    if( Node->group() == null_handle ) {
+    if( Node->group() <= 1 ) {
         translate_node( Node, offset );
     }
     else {
@@ -153,7 +153,7 @@ basic_editor::rotate( scene::basic_node *Node, glm::vec3 const &Angle, float con
         rotation -= initialangle;
     }
 
-    if( Node->group() == null_handle ) {
+    if( Node->group() <= 1 ) {
         rotate_node( Node, rotation );
     }
     else {
