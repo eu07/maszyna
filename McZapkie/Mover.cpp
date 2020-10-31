@@ -4798,6 +4798,11 @@ void TMoverParameters::ComputeTotalForce(double dt) {
         Power > 0 ?
             TractionForce( dt ) :
             0 );
+	double FT_factor = 1.0;
+	if (EngineType == TEngineType::ElectricInductionMotor && InvertersRatio > 0.0) {
+		FT_factor = 1.0 / InvertersRatio;
+		FTrain *= FT_factor;
+	}
 
     Fb = BrakeForce(RunningTrack);
     // poslizg
@@ -4852,6 +4857,7 @@ void TMoverParameters::ComputeTotalForce(double dt) {
 
     FStand += Fb;
     // doliczenie składowej stycznej grawitacji
+	FTrain /= FT_factor;
     FTrain += TotalMassxg * RunningShape.dHtrack;
     //!niejawne przypisanie zmiennej!
     FTotal = FTrain - Sign(V) * FStand;
