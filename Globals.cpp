@@ -1166,6 +1166,10 @@ global_settings::ConfigParse(cParser &Parser) {
             Parser.getTokens(1);
             Parser >> map_manualswitchcontrol;
         }
+        else if (token == "prepend_scn") {
+            Parser.getTokens(1);
+            Parser >> prepend_scn;
+        }
 /*
 		else if (token == "crashdamage") {
 			Parser.getTokens(1);

@@ -258,6 +258,7 @@ struct global_settings {
 	float map_highlight_distance = 3000.0f;
 
 	std::string exec_on_exit;
+    std::string prepend_scn;
 
 	struct extraviewport_config {
 		std::string monitor;

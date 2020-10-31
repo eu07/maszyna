@@ -91,6 +91,10 @@ state_serializer::deserialize_begin( std::string const &Scenariofile ) {
 		state->functionmap.emplace( function.first, std::bind( function.second, this, std::ref( state->input ), std::ref( state->scratchpad ) ) );
 	}
 
+    if (!Global.prepend_scn.empty()) {
+        state->input.injectString(Global.prepend_scn);
+    }
+
 	return state;
 }
 
