@@ -5932,6 +5932,12 @@ double TMoverParameters::TractionForce( double dt ) {
         case TEngineType::ElectricInductionMotor:
         {
             if( true == Mains ) {
+				double ActiveInverters = 0.0;
+				for (auto &inv : Inverters) {
+					if (inv.IsActive)
+						ActiveInverters += 1.0;
+				}
+				InvertersRatio = ActiveInverters / (double)InvertersNo;
 				//tempomat
 				if (ScndCtrlPosNo == 4 && SpeedCtrlTypeTime)
 				{
@@ -6027,7 +6033,7 @@ double TMoverParameters::TractionForce( double dt ) {
                         PosRatio *= 0.9; 
                     Hamulec->SetED(Max0R(0.0, std::min(PosRatio, 1.0))); //ustalenie stopnia zmniejszenia ciśnienia
 					// ustalanie siły hamowania ED
-					if ((Hamulec->GetEDBCP() > 0.25) && (eimc[eimc_p_abed] < 0.001)) //jeśli PN wyłącza ED
+					if ((Hamulec->GetEDBCP() > 0.25) && (eimc[eimc_p_abed] < 0.001) || (ActiveInverters < InvertersNo)) //jeśli PN wyłącza ED
 					{
 						PosRatio = 0;
 						eimv[eimv_Fzad] = 0;
@@ -6073,6 +6079,11 @@ double TMoverParameters::TractionForce( double dt ) {
                     // switch sandbox off
                     SandboxAuto( false, range_t::unit );
                 }
+				if (ActiveInverters == 0.0)
+				{
+					PosRatio = 0;
+					eimv_pr = 0;
+				}
 
 				eimv_pr += Max0R(Min0R(PosRatio - eimv_pr, 0.02), -0.02) * 12 *
                                  (tmp /*2{+4*byte(PosRatio<eimv_pr)*/) *
@@ -6123,6 +6134,8 @@ double TMoverParameters::TractionForce( double dt ) {
 						-Sign(V) * (DirAbsolute)*std::min(
 							eimc[eimc_p_Ph] * 3.6 / (Vel != 0.0 ? Vel : 0.001),
 							std::min(-eimc[eimc_p_Fh] * pr, eimv[eimv_FMAXMAX]));
+					if (InvertersRatio < 1.0)
+						eimv[eimv_Fful] = 0;
                     //*Min0R(1,(Vel-eimc[eimc_p_Vh0])/(eimc[eimc_p_Vh1]-eimc[eimc_p_Vh0]))
                 }
                 else
@@ -6139,7 +6152,11 @@ double TMoverParameters::TractionForce( double dt ) {
 						pr = log(1 + 4 * pr) / log(5);
 					eimv[eimv_Fr] = eimv[eimv_Fful] * pr;
                 }
-
+				for (auto &inv : Inverters) {
+					inv.Request = inv.IsActive ? eimv_pr : 0.0;
+					inv.Error = inv.Failure_Const || (inv.Failure_Drive && inv.Request != 0);
+					inv.IsActive = inv.Activate && !inv.Error;
+				}
                 eimv[eimv_ks] = eimv[eimv_Fr] / eimv[eimv_FMAXMAX];
                 eimv[eimv_df] = eimv[eimv_ks] * eimc[eimc_s_dfmax];
                 eimv[eimv_fp] = DirAbsolute * enrot * eimc[eimc_s_p] + eimv[eimv_df]; // do przemyslenia dzialanie pp z tmpV
@@ -6153,8 +6170,8 @@ double TMoverParameters::TractionForce( double dt ) {
                 eimv[eimv_Ic] = (eimv[eimv_fp] - DirAbsolute * enrot * eimc[eimc_s_p]) * eimc[eimc_s_dfic] * eimv[eimv_pole];
                 eimv[eimv_If] = eimv[eimv_Ic] * eimc[eimc_s_icif];
                 eimv[eimv_M] = eimv[eimv_pole] * eimv[eimv_Ic] * eimc[eimc_s_cim];
-                eimv[eimv_Ipoj] = (eimv[eimv_Ic] * NPoweredAxles * eimv[eimv_U]) / (EngineVoltage - eimc[eimc_f_DU]) + eimc[eimc_f_I0];
-                eimv[eimv_Pm] = DirActive * eimv[eimv_M] * NPoweredAxles * enrot * Pirazy2 / 1000;
+                eimv[eimv_Ipoj] = (eimv[eimv_Ic] * NPoweredAxles * InvertersRatio * eimv[eimv_U]) / (EngineVoltage - eimc[eimc_f_DU]) + eimc[eimc_f_I0];
+                eimv[eimv_Pm] = DirActive * eimv[eimv_M] * NPoweredAxles * InvertersRatio * enrot * Pirazy2 / 1000;
                 eimv[eimv_Pe] = eimv[eimv_Ipoj] * EngineVoltage / 1000;
                 eimv[eimv_eta] = eimv[eimv_Pm] / eimv[eimv_Pe];
 
@@ -6195,11 +6212,15 @@ double TMoverParameters::TractionForce( double dt ) {
                 Mm = eimv[eimv_M] * DirAbsolute;
                 Mw = Mm * Transmision.Ratio * Transmision.Efficiency;
                 Fw = Mw * 2.0 / WheelDiameter;
-                Ft = Fw * NPoweredAxles;
+                Ft = Fw * NPoweredAxles * InvertersRatio;
                 eimv[eimv_Fr] = DirAbsolute * Ft / 1000;
             } // mains
             else
             {
+				for (auto &inv : Inverters) {
+					inv.Freal = 0.0;
+					inv.IsActive = false;
+				}
                 Im = 0.0;
                 Mm = 0.0;
                 Mw = 0.0;
@@ -10607,8 +10628,19 @@ void TMoverParameters::LoadFIZ_Engine( std::string const &Input ) {
             extract_value( eimc[ eimc_p_abed ], "abed", Input, "" );
             extract_value( eimc[ eimc_p_eped ], "edep", Input, "" );
 			extract_value( EIMCLogForce, "eimclf", Input, "" );
+			extract_value( InvertersNo, "InvNo", Input, "");
 
 			extract_value( Flat, "Flat", Input, "");
+
+			if (eimc[eimc_p_Pmax] > 0 && Power > 0 && InvertersNo == 0) {
+				InvertersNo = 1;
+			}
+			Inverters.resize(InvertersNo);
+			/*for (int i = 0; i > InvertersNo; i++)
+			{
+				inverter x;
+				Inverters.emplace_back(x);
+			}*/
             break;
         }
         default: {

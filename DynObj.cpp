@@ -3089,6 +3089,7 @@ bool TDynamicObject::Update(double dt, double dt1)
                               p->MoverParameters->MED_Vref) *
                           1000; // sila hamowania pn
                 FmaxED += ((p->MoverParameters->Mains) && (p->MoverParameters->DirActive != 0) &&
+					(p->MoverParameters->InvertersRatio == 1.0) &&
 					(p->MoverParameters->eimc[eimc_p_Fh] * p->MoverParameters->NPoweredAxles >
                                                            0) ?
                                p->MoverParameters->eimc[eimc_p_Fh] * 1000 :

@@ -645,8 +645,24 @@ dictionary_source *TTrain::GetTrainState() {
         dict->insert( ( "eimp_u" + std::to_string( i + 1 ) + "_comp_a" ), bComp[ i ][ 0 ] );
         dict->insert( ( "eimp_u" + std::to_string( i + 1 ) + "_comp_w" ), bComp[ i ][ 1 ] );
         dict->insert( ( "eimp_c" + std::to_string( i + 1 ) + "_heat" ), bHeat[ i ] );
-
     }
+
+	bool kier = (DynamicObject->DirectionGet() * mvOccupied->CabOccupied > 0);
+	TDynamicObject *p = DynamicObject->GetFirstDynamic(mvOccupied->CabOccupied < 0 ? end::rear : end::front, 4);
+	int in = 0;
+	while (p && in < 8)
+	{
+		if (p->MoverParameters->eimc[eimc_p_Pmax] > 1)
+		{
+			in++;
+			for (int j = 0; j < p->MoverParameters->InvertersNo; j++) {
+				dict->insert(("eimp_c" + std::to_string(in) + "_inv" + std::to_string(j + 1) + "_act"), p->MoverParameters->Inverters[j].IsActive);
+				dict->insert(("eimp_c" + std::to_string(in) + "_inv" + std::to_string(j + 1) + "_error"), p->MoverParameters->Inverters[j].Error);
+				dict->insert(("eimp_c" + std::to_string(in) + "_inv" + std::to_string(j + 1) + "_allow"), p->MoverParameters->Inverters[j].Activate);
+			}
+		}
+		p = (kier ? p->NextC(4) : p->PrevC(4));
+	}
     for( int i = 0; i < 20; ++i ) {
         for( int j = 0; j < 4; ++j ) {
             dict->insert( ( "eimp_pn" + std::to_string( i + 1 ) + "_" + TXTP[ j ] ), fPress[ i ][ j ] );

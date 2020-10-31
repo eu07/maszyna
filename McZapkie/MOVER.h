@@ -769,6 +769,16 @@ struct speed_control {
     double PowerDownSpeed = 1000;
 };
 
+struct inverter {
+	double Freal = 0.0;
+	double Request = 0.0;
+	bool IsActive = true;
+	bool Activate = true;
+	bool Error = false;
+	bool Failure_Drive = false;
+	bool Failure_Const = false;
+};
+
 class TMoverParameters
 { // Ra: wrapper na kod pascalowy, przejmujący jego funkcje  Q: 20160824 - juz nie wrapper a klasa bazowa :)
 private:
@@ -1270,6 +1280,9 @@ public:
 	bool EIMCLogForce = false; // 
     static std::vector<std::string> const eimc_labels;
     double InverterFrequency { 0.0 }; // current frequency of power inverters
+	int InvertersNo = 0; // number of inverters
+	double InvertersRatio = 0.0;
+	std::vector<inverter> Inverters; //all inverters
 	/* -dla pojazdów z blendingiem EP/ED (MED) */
 	double MED_Vmax = 0; // predkosc maksymalna dla obliczen chwilowej sily hamowania EP w MED
 	double MED_Vmin = 0; // predkosc minimalna dla obliczen chwilowej sily hamowania EP w MED
