@@ -117,9 +117,11 @@ void TSecuritySystem::cabsignal_reset() {
 }
 
 void TSecuritySystem::update(double dt, double vel, bool pwr) {
+    if (!pwr)
+        power = false;
+
 	if (!enabled || !pwr) {
 		cabsignal_active = false;
-		power = false;
 		vigilance_timer = 0.0;
 		alert_timer = 0.0;
 		press_timer = 0.0;
