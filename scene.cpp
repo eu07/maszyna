@@ -124,9 +124,16 @@ basic_cell::update_events() {
 
     // event launchers
     for( auto *launcher : m_eventlaunchers ) {
+        glm::dvec3 campos = Global.pCamera.Pos;
+        double radius = launcher->dRadius;
+        if (launcher->train_triggered && simulation::Train) {
+            campos = simulation::Train->Dynamic()->HeadPosition();
+            radius *= Timer::GetDeltaTime() * simulation::Train->Dynamic()->GetVelocity() * 0.277;
+        }
+
         if( launcher->check_conditions()
-            && ( launcher->dRadius < 0.0
-                || SquareMagnitude( launcher->location() - Global.pCamera.Pos ) < launcher->dRadius ) ) {
+            && ( radius < 0.0
+                || glm::distance2( launcher->location(), campos ) < launcher->dRadius ) ) {
             if( launcher->check_activation() )
                 launch_event( launcher, true );
             if( launcher->check_activation_key() )

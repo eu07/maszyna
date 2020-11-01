@@ -48,6 +48,7 @@ public:
     TMemCell *MemCell { nullptr };
     int iCheckMask { 0 };
     double dRadius { 0.0 };
+    bool train_triggered { false };
 
 private:
 // methods
