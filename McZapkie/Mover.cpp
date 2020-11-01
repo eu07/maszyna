@@ -120,6 +120,9 @@ void TSecuritySystem::update(double dt, double vel, bool pwr) {
     if (!pwr)
         power = false;
 
+    if (!enabled)
+        power = pwr;
+
 	if (!enabled || !pwr) {
 		cabsignal_active = false;
 		vigilance_timer = 0.0;
