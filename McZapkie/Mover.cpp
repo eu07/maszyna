@@ -147,27 +147,42 @@ void TSecuritySystem::update(double dt, double vel, bool pwr) {
 }
 
 void TSecuritySystem::set_cabsignal() {
-	if (cabsignal_enabled)
+    if (cabsignal_enabled && power)
 		cabsignal_active = true;
 }
 
 bool TSecuritySystem::is_blinking() const {
+    if (!power)
+        return false;
+
 	return alert_timer > 0.0;
 }
 
 bool TSecuritySystem::is_vigilance_blinking() const {
+    if (!power)
+        return false;
+
 	return press_timer > MaxHoldTime || vigilance_timer > AwareDelay;
 }
 
 bool TSecuritySystem::is_cabsignal_blinking() const {
+    if (!power)
+        return false;
+
 	return cabsignal_active;
 }
 
 bool TSecuritySystem::is_beeping() const {
+    if (!power)
+        return false;
+
 	return alert_timer > SoundSignalDelay && (!separate_acknowledge || is_vigilance_blinking());
 }
 
 bool TSecuritySystem::is_cabsignal_beeping() const {
+    if (!power)
+        return false;
+
 	return alert_timer > SoundSignalDelay && is_cabsignal_blinking();
 }
 
