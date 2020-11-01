@@ -192,6 +192,9 @@ bool TSecuritySystem::is_cabsignal_beeping() const {
 }
 
 bool TSecuritySystem::is_braking() const {
+    if (!enabled)
+        return false;
+
     if (!power && (vigilance_enabled || cabsignal_enabled))
         return true;
 
@@ -4297,7 +4300,7 @@ void TMoverParameters::UpdatePipePressure(double dt)
      || ( true == AlarmChainFlag )
 	 || (( true == EIMCtrlEmergency)
 	   && (LocalBrakePosA >= 1.0))
-     || SecuritySystem.is_braking()) && CabOccupied )
+     || SecuritySystem.is_braking()))
 /*
     // NOTE: disabled because 32 is 'load destroyed' flag, what does this have to do with emergency brake?
     // (if it's supposed to be broken coupler, such event sets alarmchainflag instead when appropriate)
