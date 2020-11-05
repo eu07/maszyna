@@ -1149,6 +1149,8 @@ public:
 	bool MBrake = false;     /*Czy jest hamulec reczny*/
 	double StopBrakeDecc = 0.0;
     bool ReleaseParkingBySpringBrake { false };
+	bool SpringBrakeCutsOffDrive { true };
+	double SpringBrakeDriveEmergencyVel { -1 };
 	TSecuritySystem SecuritySystem;
     int EmergencyBrakeWarningSignal{ 0 }; // combined with basic WarningSignal when manual emergency brake is active
 	TUniversalCtrlTable UniCtrlList;     /*lista pozycji uniwersalnego nastawnika*/

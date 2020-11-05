@@ -4310,6 +4310,9 @@ void TMoverParameters::UpdatePipePressure(double dt)
      || ( true == TestFlag( EngDmgFlag, 32 ) )
 */
      || ( true == s_CAtestebrake )
+	 || ( ( SpringBrakeDriveEmergencyVel >= 0 )
+	   && ( Vel > SpringBrakeDriveEmergencyVel ) 
+	   && ( SpringBrake.IsActive ) )
      || ( ( true == securitysystempresent )
        && ( false == lowvoltagepower ) ) ) {
         EmergencyValveFlow = PF( 0, PipePress, 0.15 ) * dt;
@@ -7114,7 +7117,7 @@ void TMoverParameters::CheckEIMIC(double dt)
         ( ( true == Mains ) || ( Power == 0.0 ) )
      && ( ( Doors.instances[ side::left  ].open_permit == false )
        && ( Doors.instances[ side::right ].open_permit == false ) )
-	   && ( !SpringBrake.IsActive ) 
+	   && ( !SpringBrake.IsActive || !SpringBrakeCutsOffDrive )
 	   && ( !LockPipe ) };
 	eimic = clamp(eimic, -1.0, eimicpowerenabled ? 1.0 : 0.0);
 }
@@ -10190,6 +10193,8 @@ void TMoverParameters::LoadFIZ_Cntrl( std::string const &line ) {
 
     extract_value( StopBrakeDecc, "SBD", line, "" );
     extract_value( ReleaseParkingBySpringBrake, "ReleaseParkingBySpringBrake", line, "" );
+	extract_value( SpringBrakeCutsOffDrive, "SpringBrakeCutsOffDrive", line, "");
+	extract_value( SpringBrakeDriveEmergencyVel, "SpringBrakeDriveEmergencyVel", line, "");
 
     std::map<std::string, start_t> starts {
         { "Disabled", start_t::disabled },
