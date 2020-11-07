@@ -784,6 +784,7 @@ private:
     bool bBatt[8]; // baterie
     bool bConv[8]; // przetwornice
     bool bComp[8][2]; // sprezarki
+	std::vector<std::tuple<bool, bool, int>> bCompressors;
     bool bHeat[8]; // grzanie
     // McZapkie: do syczenia
     float fPPress, fNPress;
