@@ -10044,6 +10044,7 @@ void TMoverParameters::LoadFIZ_Cntrl( std::string const &line ) {
         {
             std::map<std::string, int> brakeopmodes{
                 { "PN", bom_PS + bom_PN },
+				{ "PNEP", bom_PS + bom_PN + bom_EP },
                 { "PNEPMED", bom_PS + bom_PN + bom_EP + bom_MED }
             };
             auto lookup = brakeopmodes.find( extract_value( "BrakeOpModes", line ) );
