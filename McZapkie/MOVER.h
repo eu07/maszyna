@@ -1121,6 +1121,11 @@ public:
 	double Spg = 0.0;
 	double MinCompressor = 0.0;
     double MaxCompressor = 0.0;
+	double MinCompressor_cabA = 0.0;
+	double MaxCompressor_cabA = 0.0;
+	double MinCompressor_cabB = 0.0;
+	double MaxCompressor_cabB = 0.0;
+	bool CabDependentCompressor = false;
     double CompressorSpeed = 0.0;
 	int CompressorList[4][9]; // pozycje świateł, przód - tył, 1 .. 16
 	double EmergencyValveOn = 0.0;

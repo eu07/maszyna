@@ -4061,6 +4061,20 @@ void TMoverParameters::CompressorCheck(double dt) {
         return;
     }
 
+	if (CabDependentCompressor)
+	{
+		if (CabActive > 0)
+		{
+			MinCompressor = MinCompressor_cabA;
+			MaxCompressor = MaxCompressor_cabA;
+		}
+		if (CabActive < 0)
+		{
+			MinCompressor = MinCompressor_cabB;
+			MaxCompressor = MaxCompressor_cabB;
+		}
+	}
+
 	//EmergencyValve
 	EmergencyValveOpen = (Compressor > (EmergencyValveOpen ? EmergencyValveOff : EmergencyValveOn));
 	if (EmergencyValveOpen) {
@@ -9789,6 +9803,8 @@ void TMoverParameters::LoadFIZ_Brake( std::string const &line ) {
 */
     extract_value( MinCompressor, "MinCP", line, "" );
     extract_value( MaxCompressor, "MaxCP", line, "" );
+	extract_value( MinCompressor, "MinCP_B", line, "" );
+	extract_value( MaxCompressor, "MaxCP_B", line, "" );
     extract_value( CompressorTankValve, "CompressorTankValve", line, "" );
     extract_value( CompressorSpeed, "CompressorSpeed", line, "" );
 	extract_value( EmergencyValveOff, "MinEVP", line, "" );
@@ -9825,6 +9841,22 @@ void TMoverParameters::LoadFIZ_Brake( std::string const &line ) {
     extract_value(
         ReleaserEnabledOnlyAtNoPowerPos, "ReleaserPowerPosLock", line,
         ( ( EngineType == TEngineType::DieselEngine ) || ( EngineType == TEngineType::DieselElectric ) ) ? "yes" : "no" );
+
+	if (MinCompressor_cabB > 0.0) {
+		MinCompressor_cabA = MinCompressor;
+		CabDependentCompressor = true;
+	}
+	else {
+		MinCompressor_cabB = MinCompressor;
+	}
+	if (MaxCompressor_cabB > 0.0)
+	{
+		MaxCompressor_cabA = MaxCompressor;
+		CabDependentCompressor = true;
+	}
+	else {
+		MaxCompressor_cabB = MaxCompressor;
+	}
 }
 
 void TMoverParameters::LoadFIZ_Doors( std::string const &line ) {
