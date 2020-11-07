@@ -452,8 +452,11 @@ TTrain::TTrain() {
         bConv[ i ] = false;
         bComp[ i ][ 0 ] = false;
         bComp[ i ][ 1 ] = false;
+		//bComp[ i ][ 2 ] = false;
+		//bComp[ i ][ 3 ] = false;
         bHeat[ i ] = false;
     }
+	bCompressors.clear();
     for( int i = 0; i < 9; ++i )
 		for (int j = 0; j < 10; ++j)
 		{
@@ -463,7 +466,7 @@ TTrain::TTrain() {
 
 	for ( int i = 0; i < 20; ++i )
 	{
-		for ( int j = 0; j < 3; ++j )
+		for ( int j = 0; j < 4; ++j )
 			fPress[i][j] = 0.0;
 		bBrakes[i][0] = bBrakes[i][1] = false;
 	}
@@ -600,6 +603,7 @@ dictionary_source *TTrain::GetTrainState() {
     else
         bPN = false;
     dict->insert( "indir_brake", bPN );
+	dict->insert( "emergency_brake", mvOccupied->AlarmChainFlag );
 	dict->insert( "brake_delay_flag", mvOccupied->BrakeDelayFlag );
 	dict->insert( "brake_op_mode_flag", mvOccupied->BrakeOpModeFlag );
     // other controls
@@ -611,6 +615,7 @@ dictionary_source *TTrain::GetTrainState() {
     dict->insert( "radio_channel", RadioChannel() );
 	dict->insert( "radio_volume", Global.RadioVolume );
     dict->insert( "door_lock", mvOccupied->Doors.lock_enabled );
+	dict->insert( "door_step", mvOccupied->Doors.step_enabled );
     // movement data
     dict->insert( "velocity", std::abs( mvOccupied->Vel ) );
     dict->insert( "tractionforce", std::abs( mvOccupied->Ft ) );
@@ -626,7 +631,7 @@ dictionary_source *TTrain::GetTrainState() {
     char const *TXTT[ 10 ] = { "fd", "fdt", "fdb", "pd", "pdt", "pdb", "itothv", "1", "2", "3" };
     char const *TXTC[ 10 ] = { "fr", "frt", "frb", "pr", "prt", "prb", "im", "vm", "ihv", "uhv" };
 	char const *TXTD[ 10 ] = { "enrot", "nrot", "fill_des", "fill_real", "clutch_des", "clutch_real", "water_temp", "oil_press", "engine_temp", "retarder_fill" };
-    char const *TXTP[ 3 ] = { "bc", "bp", "sp" };
+    char const *TXTP[ 4 ] = { "bc", "bp", "sp", "cp" };
 	char const *TXTB[ 2 ] = { "spring_active", "spring_shutoff" };
     for( int j = 0; j < 10; ++j )
         dict->insert( ( "eimp_t_" + std::string( TXTT[ j ] ) ), fEIMParams[ 0 ][ j ] );
@@ -646,8 +651,19 @@ dictionary_source *TTrain::GetTrainState() {
         dict->insert( ( "eimp_c" + std::to_string( i + 1 ) + "_conv" ), bConv[ i ] );
         dict->insert( ( "eimp_u" + std::to_string( i + 1 ) + "_comp_a" ), bComp[ i ][ 0 ] );
         dict->insert( ( "eimp_u" + std::to_string( i + 1 ) + "_comp_w" ), bComp[ i ][ 1 ] );
+		//dict->insert( ( "eimp_c" + std::to_string( i + 1 ) + "_comp_a" ), bComp[ i ][ 2 ]);
+		//dict->insert( ( "eimp_c" + std::to_string( i + 1 ) + "_comp_w" ), bComp[ i ][ 3 ]);
         dict->insert( ( "eimp_c" + std::to_string( i + 1 ) + "_heat" ), bHeat[ i ] );
     }
+
+	dict->insert( "compressors_no", (int)bCompressors.size() );
+	for (int i = 0; i < bCompressors.size(); i++)
+	{
+		dict->insert("compressors_" + std::to_string(i + 1) + "_allow", std::get<0>(bCompressors[i]));
+		dict->insert("compressors_" + std::to_string(i + 1) + "_work", std::get<1>(bCompressors[i]));
+		dict->insert("compressors_" + std::to_string(i + 1) + "_car_no", std::get<2>(bCompressors[i]));
+	}
+
 
 	bool kier = (DynamicObject->DirectionGet() * mvOccupied->CabOccupied > 0);
 	TDynamicObject *p = DynamicObject->GetFirstDynamic(mvOccupied->CabOccupied < 0 ? end::rear : end::front, 4);
@@ -657,6 +673,7 @@ dictionary_source *TTrain::GetTrainState() {
 		if (p->MoverParameters->eimc[eimc_p_Pmax] > 1)
 		{
 			in++;
+			dict->insert(("eimp_c" + std::to_string(in) + "_invno"), p->MoverParameters->InvertersNo);
 			for (int j = 0; j < p->MoverParameters->InvertersNo; j++) {
 				dict->insert(("eimp_c" + std::to_string(in) + "_inv" + std::to_string(j + 1) + "_act"), p->MoverParameters->Inverters[j].IsActive);
 				dict->insert(("eimp_c" + std::to_string(in) + "_inv" + std::to_string(j + 1) + "_error"), p->MoverParameters->Inverters[j].Error);
@@ -666,7 +683,7 @@ dictionary_source *TTrain::GetTrainState() {
 		p = (kier ? p->NextC(4) : p->PrevC(4));
 	}
     for( int i = 0; i < 20; ++i ) {
-        for( int j = 0; j < 3; ++j ) {
+        for( int j = 0; j < 4; ++j ) {
             dict->insert( ( "eimp_pn" + std::to_string( i + 1 ) + "_" + TXTP[ j ] ), fPress[ i ][ j ] );
         }
 		for ( int j = 0; j < 2; ++j)  {
@@ -6179,8 +6196,11 @@ bool TTrain::Update( double const Deltatime )
         bConv[i] = false;
         bComp[i][0] = false;
         bComp[i][1] = false;
+		//bComp[i][2] = false;
+		//bComp[i][3] = false;
         bHeat[i] = false;
     }
+	bCompressors.clear();
     for (int i = 0; i < 20; i++)
     {
         if (p)
@@ -6188,6 +6208,7 @@ bool TTrain::Update( double const Deltatime )
             fPress[i][0] = p->MoverParameters->BrakePress;
             fPress[i][1] = p->MoverParameters->PipePress;
             fPress[i][2] = p->MoverParameters->ScndPipePress;
+			fPress[i][3] = p->MoverParameters->CntrlPipePress;
 			bBrakes[i][0] = p->MoverParameters->SpringBrake.IsActive;
 			bBrakes[i][1] = p->MoverParameters->SpringBrake.ShuttOff;
             bDoors[i][1] = ( p->MoverParameters->Doors.instances[ side::left ].position > 0.f );
@@ -6208,6 +6229,10 @@ bool TTrain::Update( double const Deltatime )
             if (p->MoverParameters->CompressorSpeed > 0.00001)
             {
 				bComp[iUnitNo - 1][1] = (bComp[iUnitNo - 1][1] || p->MoverParameters->CompressorFlag);
+				bCompressors.emplace_back(
+					p->MoverParameters->CompressorAllow || (p->MoverParameters->CompressorStart == start_t::automatic),
+					p->MoverParameters->CompressorFlag,
+					i);
             }
             if ((in < 8) && (p->MoverParameters->eimc[eimc_p_Pmax] > 1))
             {
@@ -6229,6 +6254,8 @@ bool TTrain::Update( double const Deltatime )
                 bBatt[in] = p->MoverParameters->Battery;
                 bConv[in] = p->MoverParameters->ConverterFlag;
                 bHeat[in] = p->MoverParameters->Heating;
+				//bComp[in][2] = (p->MoverParameters->CompressorAllow || (p->MoverParameters->CompressorStart == start_t::automatic));
+				//bComp[in][3] = (p->MoverParameters->CompressorFlag);
                 in++;
                 iPowerNo = in;
             }
@@ -6266,6 +6293,7 @@ bool TTrain::Update( double const Deltatime )
             fPress[i][0]
             = fPress[i][1]
             = fPress[i][2]
+			= fPress[i][3]
             = 0;
             bDoors[i][0]
             = bDoors[i][1]
