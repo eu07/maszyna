@@ -584,6 +584,8 @@ dictionary_source *TTrain::GetTrainState() {
     dict->insert( "main_ctrl_actual_pos", mvControlled->MainCtrlActualPos );
     dict->insert( "scndctrl_pos", mvControlled->ScndCtrlPos );
     dict->insert( "scnd_ctrl_actual_pos", mvControlled->ScndCtrlActualPos );
+	dict->insert( "brakectrl_pos", mvControlled->fBrakeCtrlPos );
+	dict->insert( "localbrake_pos", mvControlled->LocalBrakePosA );
 	dict->insert( "new_speed", mvOccupied->NewSpeed);
  	dict->insert( "speedctrl", mvOccupied->SpeedCtrlValue);
 	dict->insert( "speedctrlpower", mvOccupied->SpeedCtrlUnit.DesiredPower );
