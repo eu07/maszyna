@@ -3111,12 +3111,13 @@ bool TDynamicObject::Update(double dt, double dt1)
 				RapidMult = MoverParameters->RapidMult;
 
 			auto const amax = RapidMult * std::min(FmaxPN / masamax, MoverParameters->MED_amax);
-            auto const doorisopen {
+            auto doorisopen {
                 ( false == MoverParameters->Doors.instances[ side::left ].is_closed )
              || ( false == MoverParameters->Doors.instances[ side::right ].is_closed )
              || ( MoverParameters->Doors.permit_needed
                && ( MoverParameters->Doors.instances[ side::left ].open_permit
                  || MoverParameters->Doors.instances[ side::right ].open_permit ) ) };
+			//doorisopen &= !(MoverParameters->ReleaseParkingBySpringBrakeWhenDoorIsOpen && MoverParameters->SpringBrake.IsActive);
 
             if ((MoverParameters->Vel < 0.5) && (eimic < 0 || doorisopen || MoverParameters->Hamulec->GetEDBCP()))
             {

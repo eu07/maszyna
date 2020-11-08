@@ -10226,6 +10226,7 @@ void TMoverParameters::LoadFIZ_Cntrl( std::string const &line ) {
 
     extract_value( StopBrakeDecc, "SBD", line, "" );
     extract_value( ReleaseParkingBySpringBrake, "ReleaseParkingBySpringBrake", line, "" );
+	extract_value(ReleaseParkingBySpringBrakeWhenDoorIsOpen, "ReleaseParkingBySpringBrakeWhenDoorIsOpen", line, "");
 	extract_value( SpringBrakeCutsOffDrive, "SpringBrakeCutsOffDrive", line, "");
 	extract_value( SpringBrakeDriveEmergencyVel, "SpringBrakeDriveEmergencyVel", line, "");
 

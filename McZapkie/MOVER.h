@@ -1154,6 +1154,7 @@ public:
 	bool MBrake = false;     /*Czy jest hamulec reczny*/
 	double StopBrakeDecc = 0.0;
     bool ReleaseParkingBySpringBrake { false };
+	bool ReleaseParkingBySpringBrakeWhenDoorIsOpen{ false };
 	bool SpringBrakeCutsOffDrive { true };
 	double SpringBrakeDriveEmergencyVel { -1 };
 	TSecuritySystem SecuritySystem;
