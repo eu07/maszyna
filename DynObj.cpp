@@ -3157,7 +3157,7 @@ bool TDynamicObject::Update(double dt, double dt1)
              || ( MoverParameters->Doors.permit_needed
                && ( MoverParameters->Doors.instances[ side::left ].open_permit
                  || MoverParameters->Doors.instances[ side::right ].open_permit ) ) };
-			//doorisopen &= !(MoverParameters->ReleaseParkingBySpringBrakeWhenDoorIsOpen && MoverParameters->SpringBrake.IsActive);
+			doorisopen &= !(MoverParameters->ReleaseParkingBySpringBrakeWhenDoorIsOpen && MoverParameters->SpringBrake.IsActive);
 
             if ((MoverParameters->Vel < 0.5) && (eimic < 0 || doorisopen || MoverParameters->Hamulec->GetEDBCP()))
             {
@@ -3184,7 +3184,7 @@ bool TDynamicObject::Update(double dt, double dt1)
             {
                 Fzad = std::min(LBR * FmaxED, FfulED);
             }
-            if (((MoverParameters->ShuntMode) && (eimic <= 0)) /*||
+            if (((MoverParameters->ShuntMode) && (eimic <= 0) || (doorisopen)) /*||
                 (MoverParameters->V * MoverParameters->DirAbsolute < -0.2)*/)
             {
                 auto const sbd { ( ( MoverParameters->SpringBrake.IsActive && MoverParameters->ReleaseParkingBySpringBrake ) ? 0.0 : MoverParameters->StopBrakeDecc ) };

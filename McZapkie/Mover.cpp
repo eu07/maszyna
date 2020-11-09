@@ -7115,11 +7115,27 @@ void TMoverParameters::CheckEIMIC(double dt)
 
     auto const eimicpowerenabled {
         ( ( true == Mains ) || ( Power == 0.0 ) )
-     && ( ( Doors.instances[ side::left  ].open_permit == false )
-       && ( Doors.instances[ side::right ].open_permit == false ) )
 	   && ( !SpringBrake.IsActive || !SpringBrakeCutsOffDrive )
 	   && ( !LockPipe ) };
-	eimic = clamp(eimic, -1.0, eimicpowerenabled ? 1.0 : 0.0);
+	auto const eimicdoorenabled {
+		(SpringBrake.IsActive && ReleaseParkingBySpringBrakeWhenDoorIsOpen) 
+	};
+	double eimic_max = 0.0;
+	if ((Doors.instances[side::left].open_permit == false)
+		&& (Doors.instances[side::right].open_permit == false)) {
+		if (eimicpowerenabled) {
+			eimic_max = 1.0;
+		}
+		else {
+			eimic_max = 0.001;
+		}
+	}
+	else {
+		if (eimicdoorenabled) {
+			eimic_max = 0.001;
+		}
+	}
+	eimic = clamp(eimic, -1.0, eimicpowerenabled ? eimic_max : 0.0);
 }
 
 void TMoverParameters::CheckSpeedCtrl(double dt)
@@ -10212,7 +10228,7 @@ void TMoverParameters::LoadFIZ_Cntrl( std::string const &line ) {
 
     extract_value( StopBrakeDecc, "SBD", line, "" );
     extract_value( ReleaseParkingBySpringBrake, "ReleaseParkingBySpringBrake", line, "" );
-	extract_value(ReleaseParkingBySpringBrakeWhenDoorIsOpen, "ReleaseParkingBySpringBrakeWhenDoorIsOpen", line, "");
+	extract_value( ReleaseParkingBySpringBrakeWhenDoorIsOpen, "ReleaseParkingBySpringBrakeWhenDoorIsOpen", line, "" );
 	extract_value( SpringBrakeCutsOffDrive, "SpringBrakeCutsOffDrive", line, "");
 	extract_value( SpringBrakeDriveEmergencyVel, "SpringBrakeDriveEmergencyVel", line, "");
 
