@@ -6210,7 +6210,7 @@ bool TTrain::Update( double const Deltatime )
             fPress[i][0] = p->MoverParameters->BrakePress;
             fPress[i][1] = p->MoverParameters->PipePress;
             fPress[i][2] = p->MoverParameters->ScndPipePress;
-			fPress[i][3] = p->MoverParameters->CntrlPipePress;
+			fPress[i][3] = p->MoverParameters->PantPress;
 			bBrakes[i][0] = p->MoverParameters->SpringBrake.IsActive;
 			bBrakes[i][1] = p->MoverParameters->SpringBrake.ShuttOff;
             bDoors[i][1] = ( p->MoverParameters->Doors.instances[ side::left ].position > 0.f );

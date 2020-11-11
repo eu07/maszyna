@@ -6507,32 +6507,47 @@ TController::UpdateSituation(double dt) {
 					&& (vel > std::min(TrainParams.TTVmax - 2.0, 58.0)))
 				{
 					DynamicBrakeTest = 1;
-					DBT_VelocityBrake = vel;
-					DBT_VelocityRelease = vel - 8.0;
 					DBT_BrakingTime = ElapsedTime;
 				}
 				switch (DynamicBrakeTest)
 				{
 				case 1:
-					AccDesired = fAccThreshold * 1.01;
-					ForcePNBrake = true;
-					mvOccupied->EpFuseSwitch(false);
+					AccDesired = -0.06;
+					if (ElapsedTime - DBT_BrakingTime > 1)
+					{
+						ForcePNBrake = true;
+						mvOccupied->EpFuseSwitch(false);
+						DynamicBrakeTest = 2;
+					}
+					break;
+				case 2:
+					if (ElapsedTime - DBT_BrakingTime > 2)
+					{
+						DBT_BrakingTime = ElapsedTime;
+						DBT_VelocityBrake = vel;
+						DBT_VelocityRelease = vel - 8.0;
+						DynamicBrakeTest = 3;
+					}
+					AccDesired = -0.06;
+					break;
+				case 3:
+					AccDesired = clamp(-AbsAccS, fAccThreshold * 1.01, fAccThreshold * 1.21);
 					if (vel <= DBT_VelocityRelease)
 					{
-						DynamicBrakeTest = 2;
+						DynamicBrakeTest = 4;
 						DBT_BrakingTime = ElapsedTime - DBT_BrakingTime;
 						DBT_MidPointAcc = AbsAccS;
 						DBT_ReleasingTime = ElapsedTime;
 					}
 					break;
-				case 2:
+				case 4:
 					if (fReady < 0.5)
 					{
 						if (BrakeSystem == TBrakeSystem::ElectroPneumatic) {
 							mvOccupied->EpFuseSwitch(true);
 						}
 						ForcePNBrake = false;
-						DynamicBrakeTest = 3;
+						DynamicBrakeTest = 5;
 						DBT_ReleasingTime = ElapsedTime - DBT_ReleasingTime;
 						DBT_VelocityFinish = vel;
 					}
