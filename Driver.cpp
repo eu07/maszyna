@@ -3893,17 +3893,17 @@ void TController::SpeedSet()
 void TController::SpeedCntrl(double DesiredSpeed)
 {
     if (mvControlling->SpeedCtrlUnit.PowerStep > 0) {
-		while (mvControlling->SpeedCtrlUnit.DesiredPower < mvControlling->SpeedCtrlUnit.MaxPower)
-		{
-			mvControlling->SpeedCtrlPowerInc();
-		}
+        if (!mvControlling->ScndCtrlPos)
+            mvControlling->IncScndCtrl(1);
+        while (mvControlling->SpeedCtrlUnit.DesiredPower < mvControlling->SpeedCtrlUnit.MaxPower
+               && mvControlling->SpeedCtrlPowerInc());
 	}
 	if (mvControlling->EngineType == TEngineType::DieselEngine)
 	{
 		if (DesiredSpeed < 0.1) {
 			mvControlling->DecScndCtrl(2);
 			DesiredSpeed = 0;
-		}
+        }
 		else if (mvControlling->ScndCtrlPos < 1) {
 			mvControlling->IncScndCtrl(1);
 		}

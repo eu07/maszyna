@@ -1824,8 +1824,8 @@ public:
 	void SpeedCtrlButton(int button);
 	void SpeedCtrlInc();
 	void SpeedCtrlDec();
-	void SpeedCtrlPowerInc();
-	void SpeedCtrlPowerDec();
+    bool SpeedCtrlPowerInc();
+    bool SpeedCtrlPowerDec();
 
 							   /*-funkcje typowe dla lokomotywy spalinowej z przekladnia mechaniczna*/
 	bool dizel_EngageSwitch(double state);

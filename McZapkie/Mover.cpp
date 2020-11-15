@@ -7199,18 +7199,28 @@ void TMoverParameters::SpeedCtrlDec()
 	}
 }
 
-void TMoverParameters::SpeedCtrlPowerInc()
+bool TMoverParameters::SpeedCtrlPowerInc()
 {
-	if ((SpeedCtrl) && (ScndCtrlPos > 0)) {
-		SpeedCtrlUnit.DesiredPower = std::min(SpeedCtrlUnit.DesiredPower + SpeedCtrlUnit.PowerStep, SpeedCtrlUnit.MaxPower);
-	}
+    if (!(SpeedCtrl && ScndCtrlPos > 0))
+        return false;
+
+    if (SpeedCtrlUnit.DesiredPower == SpeedCtrlUnit.MaxPower)
+        return false;
+
+    SpeedCtrlUnit.DesiredPower = std::min(SpeedCtrlUnit.DesiredPower + SpeedCtrlUnit.PowerStep, SpeedCtrlUnit.MaxPower);
+    return true;
 }
 
-void TMoverParameters::SpeedCtrlPowerDec()
+bool TMoverParameters::SpeedCtrlPowerDec()
 {
-	if ((SpeedCtrl) && (ScndCtrlPos > 0)) {
-		SpeedCtrlUnit.DesiredPower = std::max(SpeedCtrlUnit.DesiredPower - SpeedCtrlUnit.PowerStep, SpeedCtrlUnit.MinPower);
-	}
+    if (!(SpeedCtrl && ScndCtrlPos > 0))
+        return false;
+
+    if (SpeedCtrlUnit.DesiredPower == SpeedCtrlUnit.MinPower)
+        return false;
+
+    SpeedCtrlUnit.DesiredPower = std::max(SpeedCtrlUnit.DesiredPower - SpeedCtrlUnit.PowerStep, SpeedCtrlUnit.MinPower);
+    return true;
 }
 
 // *************************************************************************************************
