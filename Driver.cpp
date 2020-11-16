@@ -1992,8 +1992,8 @@ void TController::Activation()
             }
             ControllingSet(); // utworzenie połączenia do sterowanego pojazdu (może się zmienić) - silnikowy dla EZT
             if( ( mvOccupied->BrakeCtrlPosNo > 0 )
-             && ( ( mvOccupied->BrakeSystem == TBrakeSystem::Pneumatic )
-               || ( mvOccupied->BrakeSystem == TBrakeSystem::ElectroPneumatic ) ) ) {
+             && ( ( BrakeSystem == TBrakeSystem::Pneumatic )
+               || ( BrakeSystem == TBrakeSystem::ElectroPneumatic ) ) ) {
                 mvOccupied->LimPipePress = mvOccupied->PipePress;
                 mvOccupied->ActFlowSpeed = 0;
             }
@@ -2122,6 +2122,7 @@ void TController::AutoRewident()
             }
             // potentially release manual brake
             d->MoverParameters->DecManualBrakeLevel( ManualBrakePosNo );
+			d->MoverParameters->SpringBrake.Activate = false;
         }
         d = d->Next(); // kolejny pojazd, podłączony od tyłu (licząc od czoła)
     }
@@ -2155,6 +2156,32 @@ void TController::AutoRewident()
         }
         fNominalAccThreshold = fAccThreshold;
     }
+
+	bool fullep = false;
+	BrakeSystem = mvOccupied->BrakeSystem;
+	if (BrakeSystem == TBrakeSystem::ElectroPneumatic)
+	{
+		fullep = true;
+		if (pVehicles[end::front] != pVehicles[end::rear]) {
+			// more detailed version, will use manual braking also for coupled sets of controlled vehicles
+			auto *vehicle = pVehicles[end::front]; // start from first
+			while ((true == fullep)
+				&& (vehicle != nullptr)) {
+				// NOTE: we could simplify this by doing only check of the rear coupler, but this can be quite tricky in itself
+				// TODO: add easier ways to access front/rear coupler taking into account vehicle's direction
+				fullep =
+					(((vehicle->MoverParameters->Couplers[end::front].Connected == nullptr)
+						|| ((vehicle->MoverParameters->Couplers[end::front].CouplingFlag & coupling::control)
+							&& (vehicle->MoverParameters->Couplers[end::front].Connected->Power > -1)))
+						&& ((vehicle->MoverParameters->Couplers[end::rear].Connected == nullptr)
+							|| ((vehicle->MoverParameters->Couplers[end::rear].CouplingFlag & coupling::control)
+								&& (vehicle->MoverParameters->Couplers[end::rear].Connected->Power > -1))));
+				vehicle = vehicle->Next(); // kolejny pojazd, podłączony od tyłu (licząc od czoła)
+			}
+		}
+		if (!fullep) BrakeSystem = TBrakeSystem::Pneumatic;
+		mvOccupied->EpFuseSwitch(fullep);
+	}
 
     if( OrderCurrentGet() & ( Obey_train | Bank ) ) {
         // 4. Przeliczanie siły hamowania
@@ -2190,12 +2217,13 @@ void TController::AutoRewident()
                                 0.25 );
 
         if( mvOccupied->TrainType == dt_EZT ) {
+			int ep_factor = fullep ? 8 : 4;
             if( mvControlling->EngineType == TEngineType::ElectricInductionMotor ) {
                 // HACK: emu with induction motors need to start their braking a bit sooner than the ones with series motors
-                fNominalAccThreshold = std::max( -0.60, -fBrake_a0[ BrakeAccTableSize ] - 8 * fBrake_a1[ BrakeAccTableSize ] );
+                fNominalAccThreshold = std::max( -0.60, -fBrake_a0[ BrakeAccTableSize ] - ep_factor * fBrake_a1[ BrakeAccTableSize ] );
             }
             else {
-                fNominalAccThreshold = std::max( -0.75, -fBrake_a0[ BrakeAccTableSize ] - 8 * fBrake_a1[ BrakeAccTableSize ] );
+                fNominalAccThreshold = std::max( -0.75, -fBrake_a0[ BrakeAccTableSize ] - ep_factor * fBrake_a1[ BrakeAccTableSize ] );
             }       
 		    fBrakeReaction = 0.25;
 	    }
@@ -2213,6 +2241,7 @@ void TController::AutoRewident()
 	    }
 	    fAccThreshold = fNominalAccThreshold;
     }
+
 }
 
 double TController::ESMVelocity(bool Main)
@@ -2379,7 +2408,10 @@ bool TController::CheckVehicles(TOrders user)
         if( mvOccupied->LightsPosNo > 0 ) {
             pVehicle->SetLights();
         }
-
+		if (OrderCurrentGet() & (Shunt | Loose_shunt | Disconnect | Connect | Change_direction)) {
+			// kasowanie pamieci hamowania kontrolnego
+			DynamicBrakeTest = 0;
+		}
         if (AIControllFlag)
         { // jeśli prowadzi komputer
             if( true == TestFlag( OrderCurrentGet(), Obey_train ) ) {
@@ -2964,7 +2996,9 @@ bool TController::ReleaseEngine() {
 bool TController::IncBrake()
 { // zwiększenie hamowania
     bool OK = false;
-    switch( mvOccupied->BrakeSystem ) {
+	TBrakeSystem bs = ((BrakeSystem == TBrakeSystem::ElectroPneumatic) && (ForcePNBrake)) ?
+						TBrakeSystem::Pneumatic : BrakeSystem;
+    switch( bs ) {
         case TBrakeSystem::Individual: {
             if( mvOccupied->LocalBrake == TLocalBrake::ManualBrake ) {
                 OK = mvOccupied->IncManualBrakeLevel( 1 + static_cast<int>( std::floor( 0.5 + std::fabs( AccDesired ) ) ) );
@@ -2975,6 +3009,13 @@ bool TController::IncBrake()
             break;
         }
         case TBrakeSystem::Pneumatic: {
+			if (bs != mvOccupied->BrakeSystem)
+			{
+				while (mvOccupied->BrakeOpModeFlag > bom_PN)
+				{
+					mvOccupied->BrakeOpModeFlag >>= 1;
+				}
+			}
             // NOTE: can't perform just test whether connected vehicle == nullptr, due to virtual couplers formed with nearby vehicles
             bool standalone { true };
             if( ( mvOccupied->TrainType == dt_ET41 )
@@ -3026,7 +3067,7 @@ bool TController::IncBrake()
 
             //standalone = standalone && ( mvControlling->EIMCtrlType == 0 );
 
-            if( true == standalone ) {
+            if( true == standalone && false == ForcePNBrake ) {
                 if( mvControlling->EIMCtrlType > 0 ) {
                     OK = IncBrakeEIM();
                 }
@@ -3104,6 +3145,10 @@ bool TController::IncBrake()
             break;
         }
         case TBrakeSystem::ElectroPneumatic: {
+			while ((mvOccupied->BrakeOpModeFlag << 1) <= mvOccupied->BrakeOpModes)
+			{
+				mvOccupied->BrakeOpModeFlag <<= 1;
+			}
             if( mvOccupied->EngineType == TEngineType::ElectricInductionMotor ) {
 				if (mvOccupied->BrakeHandle == TBrakeHandle::MHZ_EN57) {
 					if (mvOccupied->BrakeCtrlPos < mvOccupied->Handle->GetPos(bh_FB))
@@ -3192,7 +3237,9 @@ bool TController::DecBrake()
     bool OK = false;
 	double deltaAcc = -1.0;
     double pos_diff = 1.0;
-    switch (mvOccupied->BrakeSystem)
+	TBrakeSystem bs = BrakeSystem == TBrakeSystem::ElectroPneumatic && ForcePNBrake ?
+		TBrakeSystem::Pneumatic : BrakeSystem;
+    switch (bs)
     {
     case TBrakeSystem::Individual:
         if (mvOccupied->LocalBrake == TLocalBrake::ManualBrake)
@@ -3926,7 +3973,7 @@ void TController::SpeedCntrl(double DesiredSpeed)
 void TController::SetTimeControllers()
 {
 	//1. Check the type of Main Brake Handle
-	if (mvOccupied->BrakeSystem == TBrakeSystem::Pneumatic)
+	if (BrakeSystem == TBrakeSystem::Pneumatic || ForcePNBrake)
 	{
 		if (mvOccupied->Handle->Time)
 		{
@@ -3942,7 +3989,8 @@ void TController::SetTimeControllers()
 				mvOccupied->BrakeLevelSet(mvOccupied->Handle->GetPos(bh_NP));
 		}
 		if (mvOccupied->BrakeHandle == TBrakeHandle::FV4a) mvOccupied->BrakeLevelSet(BrakeCtrlPosition);
-		if (mvOccupied->BrakeHandle == TBrakeHandle::MHZ_K8P)
+		if ((mvOccupied->BrakeHandle == TBrakeHandle::MHZ_K8P)
+			|| (mvOccupied->BrakeHandle == TBrakeHandle::MHZ_EN57))
 		{
 			if (BrakeCtrlPosition == 0)
 				mvOccupied->BrakeLevelSet(mvOccupied->Handle->GetPos(bh_RP));
@@ -4127,11 +4175,11 @@ void TController::SetTimeControllers()
 void TController::CheckTimeControllers()
 {
 	//1. Check the type of Main Brake Handle
-	if (mvOccupied->BrakeSystem == TBrakeSystem::ElectroPneumatic && mvOccupied->Handle->TimeEP)
+	if (BrakeSystem == TBrakeSystem::ElectroPneumatic && mvOccupied->Handle->TimeEP && !ForcePNBrake)
 	{
 		mvOccupied->BrakeLevelSet(mvOccupied->Handle->GetPos(bh_EPN));
 	}
-	if (mvOccupied->BrakeSystem == TBrakeSystem::Pneumatic && mvOccupied->Handle->Time)
+	if ((BrakeSystem == TBrakeSystem::Pneumatic || ForcePNBrake) && mvOccupied->Handle->Time)
 	{
 		if (BrakeCtrlPosition > 0)
 			mvOccupied->BrakeLevelSet(mvOccupied->Handle->GetPos(bh_MB));
@@ -5907,7 +5955,7 @@ TController::UpdateSituation(double dt) {
                         // powino zostać wyłączone)
                         // WriteLog("Zahamowanie składu");
                         AccDesired = std::min( AccDesired, -0.9 ); // HACK: make sure the ai doesn't try to release the brakes to accelerate
-                        if( mvOccupied->BrakeSystem == TBrakeSystem::ElectroPneumatic ) {
+                        if( BrakeSystem == TBrakeSystem::ElectroPneumatic ) {
                             mvOccupied->BrakeLevelSet( mvOccupied->Handle->GetPos( bh_EPB ) );
                         }
                         else {
@@ -5919,11 +5967,11 @@ TController::UpdateSituation(double dt) {
                             // TODO: zabezpieczenie przed dziwnymi CHK do czasu wyjaśnienia sensu 0 oraz -1 w tym miejscu
                             p = 3.9;
                         }
-                        if (mvOccupied->BrakeSystem == TBrakeSystem::ElectroPneumatic ?
+                        if (BrakeSystem == TBrakeSystem::ElectroPneumatic ?
                                 mvOccupied->BrakePress > 2 :
                                 mvOccupied->PipePress < p + 0.1)
                         { // jeśli w miarę został zahamowany (ciśnienie mniejsze niż podane na pozycji 3, zwyle 0.37)
-                            if( mvOccupied->BrakeSystem == TBrakeSystem::ElectroPneumatic ) {
+                            if( BrakeSystem == TBrakeSystem::ElectroPneumatic ) {
                                 // wyłączenie EP, gdy wystarczy (może nie być potrzebne, bo na początku jest)
                                 mvOccupied->BrakeLevelSet( 0 );
                             }
@@ -6497,6 +6545,61 @@ TController::UpdateSituation(double dt) {
                 }
             }
             // koniec predkosci aktualnej
+			if (Global.DynamicBrakeTest && AIControllFlag)
+			{
+				// hamowanie kontrolne
+				if ((OrderCurrentGet() & Obey_train) && (DynamicBrakeTest == 0) && (vel < VelDesired)
+					&& (AccDesired > 0) && (TrainParams.TTVmax >= 10.0) && (primary())
+					&& (vel > std::min(TrainParams.TTVmax - 2.0, 58.0)))
+				{
+					DynamicBrakeTest = 1;
+					DBT_BrakingTime = ElapsedTime;
+				}
+				switch (DynamicBrakeTest)
+				{
+				case 1:
+					AccDesired = -0.06;
+					if (ElapsedTime - DBT_BrakingTime > 1)
+					{
+						ForcePNBrake = true;
+						mvOccupied->EpFuseSwitch(false);
+						DynamicBrakeTest = 2;
+					}
+					break;
+				case 2:
+					if (ElapsedTime - DBT_BrakingTime > 2)
+					{
+						DBT_BrakingTime = ElapsedTime;
+						DBT_VelocityBrake = vel;
+						DBT_VelocityRelease = vel - 8.0;
+						DynamicBrakeTest = 3;
+					}
+					AccDesired = -0.06;
+					break;
+				case 3:
+					AccDesired = clamp(-AbsAccS, fAccThreshold * 1.01, fAccThreshold * 1.21);
+					if (vel <= DBT_VelocityRelease)
+					{
+						DynamicBrakeTest = 4;
+						DBT_BrakingTime = ElapsedTime - DBT_BrakingTime;
+						DBT_MidPointAcc = AbsAccS;
+						DBT_ReleasingTime = ElapsedTime;
+					}
+					break;
+				case 4:
+					if (fReady < 0.5)
+					{
+						if (BrakeSystem == TBrakeSystem::ElectroPneumatic) {
+							mvOccupied->EpFuseSwitch(true);
+						}
+						ForcePNBrake = false;
+						DynamicBrakeTest = 5;
+						DBT_ReleasingTime = ElapsedTime - DBT_ReleasingTime;
+						DBT_VelocityFinish = vel;
+					}
+					break;
+				}
+			}
 
             // last step sanity check, until the whole calculation is straightened out
             AccDesired = std::min( AccDesired, AccPreferred );
@@ -6594,7 +6697,7 @@ TController::UpdateSituation(double dt) {
                         ReactionTime = 0.25;
                     }
                 }
-                if (mvOccupied->BrakeSystem == TBrakeSystem::Pneumatic) {
+                if (BrakeSystem == TBrakeSystem::Pneumatic) {
                     // napełnianie uderzeniowe
                     if( ( mvOccupied->BrakeHandle == TBrakeHandle::FV4a )
                      || ( mvOccupied->BrakeHandle == TBrakeHandle::MHZ_6P )
@@ -6763,7 +6866,7 @@ TController::UpdateSituation(double dt) {
                             DecSpeed();
                     }
                 }
-                if( mvOccupied->TrainType == dt_EZT ) {
+                if( (mvOccupied->TrainType == dt_EZT) && (!ForcePNBrake) ) {
                     // właściwie, to warunek powinien być na działający EP
                     // Ra: to dobrze hamuje EP w EZT
                     // HACK: when going downhill be more responsive to desired deceleration
@@ -7710,6 +7813,7 @@ void TController::ControllingSet()
     // dzięki temu będzie wirtualna kabina w silnikowym, działająca w rozrządczym
     // w plikach FIZ zostały zgubione ujemne maski sprzęgów, stąd problemy z EZT
     mvOccupied = pVehicle->MoverParameters; // domyślny skrót do obiektu parametrów
+	BrakeSystem = mvOccupied->BrakeSystem; // domyślny sposób hamowania
     mvControlling = pVehicle->FindPowered()->MoverParameters; // poszukiwanie członu sterowanego
     {
         auto *lookup { pVehicle->FindPantographCarrier() };

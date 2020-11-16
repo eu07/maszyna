@@ -3131,6 +3131,7 @@ bool TDynamicObject::Update(double dt, double dt1)
                               p->MoverParameters->MED_Vref) *
                           1000; // sila hamowania pn
                 FmaxED += ((p->MoverParameters->Mains) && (p->MoverParameters->DirActive != 0) &&
+					(p->MoverParameters->InvertersRatio == 1.0) &&
 					(p->MoverParameters->eimc[eimc_p_Fh] * p->MoverParameters->NPoweredAxles >
                                                            0) ?
                                p->MoverParameters->eimc[eimc_p_Fh] * 1000 :
@@ -3152,12 +3153,13 @@ bool TDynamicObject::Update(double dt, double dt1)
 				RapidMult = MoverParameters->RapidMult;
 
 			auto const amax = RapidMult * std::min(FmaxPN / masamax, MoverParameters->MED_amax);
-            auto const doorisopen {
+            auto doorisopen {
                 ( false == MoverParameters->Doors.instances[ side::left ].is_closed )
              || ( false == MoverParameters->Doors.instances[ side::right ].is_closed )
              || ( MoverParameters->Doors.permit_needed
                && ( MoverParameters->Doors.instances[ side::left ].open_permit
                  || MoverParameters->Doors.instances[ side::right ].open_permit ) ) };
+			doorisopen &= !(MoverParameters->ReleaseParkingBySpringBrakeWhenDoorIsOpen && MoverParameters->SpringBrake.IsActive);
 
             if ((MoverParameters->Vel < 0.5) && (eimic < 0 || doorisopen || MoverParameters->Hamulec->GetEDBCP()))
             {
@@ -3184,7 +3186,7 @@ bool TDynamicObject::Update(double dt, double dt1)
             {
                 Fzad = std::min(LBR * FmaxED, FfulED);
             }
-            if (((MoverParameters->ShuntMode) && (eimic <= 0)) /*||
+            if (((MoverParameters->ShuntMode) && (eimic <= 0) || (doorisopen)) /*||
                 (MoverParameters->V * MoverParameters->DirAbsolute < -0.2)*/)
             {
                 auto const sbd { ( ( MoverParameters->SpringBrake.IsActive && MoverParameters->ReleaseParkingBySpringBrake ) ? 0.0 : MoverParameters->StopBrakeDecc ) };
@@ -7242,6 +7244,9 @@ TDynamicObject::update_shake( double const Timedelta ) {
                 * huntingamount;
             IsHunting = ( huntingamount > 0.025 );
         }
+
+		if (FreeFlyModeFlag)
+            shakevector *= 0;
 
         auto const iVel { std::min( GetVelocity(), 150.0 ) };
         if( iVel > 0.5 ) {

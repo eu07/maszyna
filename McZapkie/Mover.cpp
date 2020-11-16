@@ -3891,7 +3891,7 @@ bool TMoverParameters::SwitchEPBrake(int state)
     if ((BrakeHandle == TBrakeHandle::St113) && (CabOccupied != 0))
     {
         if (state > 0)
-            temp = Handle->GetCP(); // TODO: przetlumaczyc
+            temp = Handle->GetEP(); // TODO: przetlumaczyc
         else
             temp = 0;
         Hamulec->SetEPS(temp);
@@ -4059,6 +4059,20 @@ void TMoverParameters::CompressorCheck(double dt) {
         CompressorAllow = false;
         return;
     }
+
+	if (CabDependentCompressor)
+	{
+		if (CabActive > 0)
+		{
+			MinCompressor = MinCompressor_cabA;
+			MaxCompressor = MaxCompressor_cabA;
+		}
+		if (CabActive < 0)
+		{
+			MinCompressor = MinCompressor_cabB;
+			MaxCompressor = MaxCompressor_cabB;
+		}
+	}
 
 	//EmergencyValve
 	EmergencyValveOpen = (Compressor > (EmergencyValveOpen ? EmergencyValveOff : EmergencyValveOn));
@@ -4300,7 +4314,10 @@ void TMoverParameters::UpdatePipePressure(double dt)
      || ( true == AlarmChainFlag )
 	 || (( true == EIMCtrlEmergency)
 	   && (LocalBrakePosA >= 1.0))
-     || SecuritySystem.is_braking()))
+     || SecuritySystem.is_braking())
+     || ( ( SpringBrakeDriveEmergencyVel >= 0 )
+       && ( Vel > SpringBrakeDriveEmergencyVel ) 
+       && ( SpringBrake.IsActive ) ) )
 /*
     // NOTE: disabled because 32 is 'load destroyed' flag, what does this have to do with emergency brake?
     // (if it's supposed to be broken coupler, such event sets alarmchainflag instead when appropriate)
@@ -4431,7 +4448,7 @@ void TMoverParameters::UpdatePipePressure(double dt)
          && (DirActive != 0)
          && (EpFuse)) // tu powinien byc jeszcze bezpiecznik EP i baterie -
             // temp = (Handle as TFVel6).GetCP
-            temp = Handle->GetCP();
+            temp = Handle->GetEP();
         else
             temp = 0.0;
 
@@ -4756,7 +4773,7 @@ void TMoverParameters::ComputeTotalForce(double dt) {
     if( false == PhysicActivation ) { return; }
 
     // juz zoptymalizowane:
-	FStand = FrictionForce(); // siła oporów ruchu
+    FStand = FrictionForce(); // siła oporów ruchu
     if( true == TestFlag( DamageFlag, dtrain_out ) ) {
         // HACK: crude way to reduce speed after derailment
         // TBD, TODO: more accurate approach?
@@ -4807,6 +4824,11 @@ void TMoverParameters::ComputeTotalForce(double dt) {
         Power > 0 ?
             TractionForce( dt ) :
             0 );
+	double FT_factor = 1.0;
+	if (EngineType == TEngineType::ElectricInductionMotor && InvertersRatio > 0.0) {
+		FT_factor = 1.0 / InvertersRatio;
+		FTrain *= FT_factor;
+	}
 
     Fb = BrakeForce(RunningTrack);
     // poslizg
@@ -4861,6 +4883,7 @@ void TMoverParameters::ComputeTotalForce(double dt) {
 
     FStand += Fb;
     // doliczenie składowej stycznej grawitacji
+	FTrain /= FT_factor;
     FTrain += TotalMassxg * RunningShape.dHtrack;
     //!niejawne przypisanie zmiennej!
     FTotal = FTrain - Sign(V) * FStand;
@@ -5924,7 +5947,13 @@ double TMoverParameters::TractionForce( double dt ) {
 
         case TEngineType::ElectricInductionMotor:
         {
-			if( true == Mains && !SecuritySystem.is_engine_blocked() ) {
+            if( true == Mains && !SecuritySystem.is_engine_blocked() ) {
+				double ActiveInverters = 0.0;
+				for (auto &inv : Inverters) {
+					if (inv.IsActive)
+						ActiveInverters += 1.0;
+				}
+				InvertersRatio = ActiveInverters / (double)InvertersNo;
 				//tempomat
 				if (ScndCtrlPosNo == 4 && SpeedCtrlTypeTime)
 				{
@@ -6020,7 +6049,7 @@ double TMoverParameters::TractionForce( double dt ) {
                         PosRatio *= 0.9; 
                     Hamulec->SetED(Max0R(0.0, std::min(PosRatio, 1.0))); //ustalenie stopnia zmniejszenia ciśnienia
 					// ustalanie siły hamowania ED
-					if ((Hamulec->GetEDBCP() > 0.25) && (eimc[eimc_p_abed] < 0.001)) //jeśli PN wyłącza ED
+					if ((Hamulec->GetEDBCP() > 0.25) && (eimc[eimc_p_abed] < 0.001) || (ActiveInverters < InvertersNo)) //jeśli PN wyłącza ED
 					{
 						PosRatio = 0;
 						eimv[eimv_Fzad] = 0;
@@ -6066,6 +6095,11 @@ double TMoverParameters::TractionForce( double dt ) {
                     // switch sandbox off
                     SandboxAuto( false, range_t::unit );
                 }
+				if (ActiveInverters == 0.0)
+				{
+					PosRatio = 0;
+					eimv_pr = 0;
+				}
 
 				eimv_pr += Max0R(Min0R(PosRatio - eimv_pr, 0.02), -0.02) * 12 *
                                  (tmp /*2{+4*byte(PosRatio<eimv_pr)*/) *
@@ -6116,6 +6150,8 @@ double TMoverParameters::TractionForce( double dt ) {
 						-Sign(V) * (DirAbsolute)*std::min(
 							eimc[eimc_p_Ph] * 3.6 / (Vel != 0.0 ? Vel : 0.001),
 							std::min(-eimc[eimc_p_Fh] * pr, eimv[eimv_FMAXMAX]));
+					if (InvertersRatio < 1.0)
+						eimv[eimv_Fful] = 0;
                     //*Min0R(1,(Vel-eimc[eimc_p_Vh0])/(eimc[eimc_p_Vh1]-eimc[eimc_p_Vh0]))
                 }
                 else
@@ -6132,7 +6168,11 @@ double TMoverParameters::TractionForce( double dt ) {
 						pr = log(1 + 4 * pr) / log(5);
 					eimv[eimv_Fr] = eimv[eimv_Fful] * pr;
                 }
-
+				for (auto &inv : Inverters) {
+					inv.Request = inv.IsActive ? eimv_pr : 0.0;
+					inv.Error = inv.Failure_Const || (inv.Failure_Drive && inv.Request != 0);
+					inv.IsActive = inv.Activate && !inv.Error;
+				}
                 eimv[eimv_ks] = eimv[eimv_Fr] / eimv[eimv_FMAXMAX];
                 eimv[eimv_df] = eimv[eimv_ks] * eimc[eimc_s_dfmax];
                 eimv[eimv_fp] = DirAbsolute * enrot * eimc[eimc_s_p] + eimv[eimv_df]; // do przemyslenia dzialanie pp z tmpV
@@ -6146,8 +6186,8 @@ double TMoverParameters::TractionForce( double dt ) {
                 eimv[eimv_Ic] = (eimv[eimv_fp] - DirAbsolute * enrot * eimc[eimc_s_p]) * eimc[eimc_s_dfic] * eimv[eimv_pole];
                 eimv[eimv_If] = eimv[eimv_Ic] * eimc[eimc_s_icif];
                 eimv[eimv_M] = eimv[eimv_pole] * eimv[eimv_Ic] * eimc[eimc_s_cim];
-                eimv[eimv_Ipoj] = (eimv[eimv_Ic] * NPoweredAxles * eimv[eimv_U]) / (EngineVoltage - eimc[eimc_f_DU]) + eimc[eimc_f_I0];
-                eimv[eimv_Pm] = DirActive * eimv[eimv_M] * NPoweredAxles * enrot * Pirazy2 / 1000;
+                eimv[eimv_Ipoj] = (eimv[eimv_Ic] * NPoweredAxles * InvertersRatio * eimv[eimv_U]) / (EngineVoltage - eimc[eimc_f_DU]) + eimc[eimc_f_I0];
+                eimv[eimv_Pm] = DirActive * eimv[eimv_M] * NPoweredAxles * InvertersRatio * enrot * Pirazy2 / 1000;
                 eimv[eimv_Pe] = eimv[eimv_Ipoj] * EngineVoltage / 1000;
                 eimv[eimv_eta] = eimv[eimv_Pm] / eimv[eimv_Pe];
 
@@ -6188,11 +6228,15 @@ double TMoverParameters::TractionForce( double dt ) {
                 Mm = eimv[eimv_M] * DirAbsolute;
                 Mw = Mm * Transmision.Ratio * Transmision.Efficiency;
                 Fw = Mw * 2.0 / WheelDiameter;
-                Ft = Fw * NPoweredAxles;
+                Ft = Fw * NPoweredAxles * InvertersRatio;
                 eimv[eimv_Fr] = DirAbsolute * Ft / 1000;
             } // mains
             else
             {
+				for (auto &inv : Inverters) {
+					inv.Freal = 0.0;
+					inv.IsActive = false;
+				}
                 Im = 0.0;
                 Mm = 0.0;
                 Mw = 0.0;
@@ -7080,11 +7124,27 @@ void TMoverParameters::CheckEIMIC(double dt)
 
     auto const eimicpowerenabled {
         ( ( true == Mains ) || ( Power == 0.0 ) )
-     && ( ( Doors.instances[ side::left  ].open_permit == false )
-       && ( Doors.instances[ side::right ].open_permit == false ) )
-	   && ( !SpringBrake.IsActive ) 
+	   && ( !SpringBrake.IsActive || !SpringBrakeCutsOffDrive )
 	   && ( !LockPipe ) };
-	eimic = clamp(eimic, -1.0, eimicpowerenabled ? 1.0 : 0.0);
+	auto const eimicdoorenabled {
+		(SpringBrake.IsActive && ReleaseParkingBySpringBrakeWhenDoorIsOpen) 
+	};
+	double eimic_max = 0.0;
+	if ((Doors.instances[side::left].open_permit == false)
+		&& (Doors.instances[side::right].open_permit == false)) {
+		if (eimicpowerenabled) {
+			eimic_max = 1.0;
+		}
+		else {
+			eimic_max = 0.001;
+		}
+	}
+	else {
+		if (eimicdoorenabled) {
+			eimic_max = 0.001;
+		}
+	}
+	eimic = clamp(eimic, -1.0, eimicpowerenabled ? eimic_max : 0.0);
 }
 
 void TMoverParameters::CheckSpeedCtrl(double dt)
@@ -9769,6 +9829,8 @@ void TMoverParameters::LoadFIZ_Brake( std::string const &line ) {
 */
     extract_value( MinCompressor, "MinCP", line, "" );
     extract_value( MaxCompressor, "MaxCP", line, "" );
+	extract_value( MinCompressor, "MinCP_B", line, "" );
+	extract_value( MaxCompressor, "MaxCP_B", line, "" );
     extract_value( CompressorTankValve, "CompressorTankValve", line, "" );
     extract_value( CompressorSpeed, "CompressorSpeed", line, "" );
 	extract_value( EmergencyValveOff, "MinEVP", line, "" );
@@ -9805,6 +9867,22 @@ void TMoverParameters::LoadFIZ_Brake( std::string const &line ) {
     extract_value(
         ReleaserEnabledOnlyAtNoPowerPos, "ReleaserPowerPosLock", line,
         ( ( EngineType == TEngineType::DieselEngine ) || ( EngineType == TEngineType::DieselElectric ) ) ? "yes" : "no" );
+
+	if (MinCompressor_cabB > 0.0) {
+		MinCompressor_cabA = MinCompressor;
+		CabDependentCompressor = true;
+	}
+	else {
+		MinCompressor_cabB = MinCompressor;
+	}
+	if (MaxCompressor_cabB > 0.0)
+	{
+		MaxCompressor_cabA = MaxCompressor;
+		CabDependentCompressor = true;
+	}
+	else {
+		MaxCompressor_cabB = MaxCompressor;
+	}
 }
 
 void TMoverParameters::LoadFIZ_Doors( std::string const &line ) {
@@ -10038,6 +10116,7 @@ void TMoverParameters::LoadFIZ_Cntrl( std::string const &line ) {
         {
             std::map<std::string, int> brakeopmodes{
                 { "PN", bom_PS + bom_PN },
+				{ "PNEP", bom_PS + bom_PN + bom_EP },
                 { "PNEPMED", bom_PS + bom_PN + bom_EP + bom_MED }
             };
             auto lookup = brakeopmodes.find( extract_value( "BrakeOpModes", line ) );
@@ -10173,6 +10252,9 @@ void TMoverParameters::LoadFIZ_Cntrl( std::string const &line ) {
 
     extract_value( StopBrakeDecc, "SBD", line, "" );
     extract_value( ReleaseParkingBySpringBrake, "ReleaseParkingBySpringBrake", line, "" );
+	extract_value( ReleaseParkingBySpringBrakeWhenDoorIsOpen, "ReleaseParkingBySpringBrakeWhenDoorIsOpen", line, "" );
+	extract_value( SpringBrakeCutsOffDrive, "SpringBrakeCutsOffDrive", line, "");
+	extract_value( SpringBrakeDriveEmergencyVel, "SpringBrakeDriveEmergencyVel", line, "");
 
     std::map<std::string, start_t> starts {
         { "Disabled", start_t::disabled },
@@ -10595,8 +10677,19 @@ void TMoverParameters::LoadFIZ_Engine( std::string const &Input ) {
             extract_value( eimc[ eimc_p_abed ], "abed", Input, "" );
             extract_value( eimc[ eimc_p_eped ], "edep", Input, "" );
 			extract_value( EIMCLogForce, "eimclf", Input, "" );
+			extract_value( InvertersNo, "InvNo", Input, "");
 
 			extract_value( Flat, "Flat", Input, "");
+
+			if (eimc[eimc_p_Pmax] > 0 && Power > 0 && InvertersNo == 0) {
+				InvertersNo = 1;
+			}
+			Inverters.resize(InvertersNo);
+			/*for (int i = 0; i > InvertersNo; i++)
+			{
+				inverter x;
+				Inverters.emplace_back(x);
+			}*/
             break;
         }
         default: {

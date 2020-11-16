@@ -678,6 +678,12 @@ global_settings::ConfigParse(cParser &Parser) {
             Parser.getTokens(1, false);
             Parser >> iHiddenEvents;
         }
+		else if (token == "dynamicbraketest")
+		{
+			// enable dynamic brake tests made by AI drivers
+		Parser.getTokens();
+		Parser >> DynamicBrakeTest;
+		}
         else if (token == "pause")
         {
             // czy po wczytaniu ma być pauza?

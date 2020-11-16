@@ -780,6 +780,7 @@ private:
     bool bBatt[8]; // baterie
     bool bConv[8]; // przetwornice
     bool bComp[8][2]; // sprezarki
+	std::vector<std::tuple<bool, bool, int>> bCompressors;
     bool bHeat[8]; // grzanie
     // McZapkie: do syczenia
     float fPPress, fNPress;
@@ -798,7 +799,7 @@ private:
     bool m_couplingdisconnect { false };
 
   public:
-    float fPress[20][3]; // cisnienia dla wszystkich czlonow
+    float fPress[20][4]; // cisnienia dla wszystkich czlonow
 	bool bBrakes[20][2]; // zalaczenie i dzialanie hamulcow
     static std::vector<std::string> const fPress_labels;
     float fEIMParams[9][10]; // parametry dla silnikow asynchronicznych
