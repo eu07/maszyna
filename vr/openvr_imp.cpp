@@ -72,23 +72,14 @@ viewport_proj_config vr_openvr::get_proj_config(eye_e e)
     float left, right, top, bottom; // tangents of half-angles from center view axis
     vr_system->GetProjectionRaw(eye, &left, &right, &top, &bottom);
 
-    float ipd = vr_system->GetEyeToHeadTransform(eye).m[0][3];
-    //glm::mat4 eye_mat = glm::inverse(glm::transpose(get_matrix(vr_system->GetEyeToHeadTransform(eye))));
+    glm::mat4 eye_mat = get_matrix(vr_system->GetEyeToHeadTransform(eye));
 
     viewport_proj_config proj;
 
-    proj.pe = glm::vec3(ipd, 0.0f, 0.0f);
-
-    //glm::vec3 zz = glm::vec4(ipd + left, top, -1.0f, 1.0f) * (eye_mat);
-    proj.pa = glm::vec3(ipd + left, top, -1.0f);
-
-    //WriteLog("pa: " + glm::to_string(zz));
-    //WriteLog("should be: " + glm::to_string(proj.pa));
-    //WriteLog("---");
-
-    proj.pc = glm::vec3(ipd + left, bottom, -1.0f);
-
-    proj.pb = glm::vec3(ipd + right, top, -1.0f);
+    proj.pe = eye_mat * glm::vec4(0.0f, 0.0f, 0.0f, 1.0f);
+    proj.pa = eye_mat * glm::vec4(left, top, -1.0f, 1.0f);
+    proj.pc = eye_mat * glm::vec4(left, bottom, -1.0f, 1.0f);
+    proj.pb = eye_mat * glm::vec4(right, top, -1.0f, 1.0f);
 
     return proj;
 }
