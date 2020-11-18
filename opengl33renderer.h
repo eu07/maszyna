@@ -383,6 +383,7 @@ class opengl33_renderer : public gfx_renderer {
     std::unique_ptr<gl::program> m_billboard_shader;
     std::unique_ptr<gl::program> m_celestial_shader;
     std::unique_ptr<gl::program> m_hiddenarea_shader;
+    std::unique_ptr<gl::program> m_copy_shader;
 
     std::unique_ptr<gl::vao> m_empty_vao;
 

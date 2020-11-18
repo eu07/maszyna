@@ -126,6 +126,8 @@ bool opengl33_renderer::Init(GLFWwindow *Window)
         m_pick_surface_shader = make_shader("simpleuv.vert", "pick_surface.frag");
 		m_billboard_shader = make_shader("simpleuv.vert", "billboard.frag");
         m_celestial_shader = make_shader("celestial.vert", "celestial.frag");
+        m_hiddenarea_shader = make_shader("hiddenarea.vert", "hiddenarea.frag");
+        m_copy_shader = make_shader("quad.vert", "copy.frag");
 		if (Global.gfx_usegles)
 			m_depth_pointer_shader = make_shader("quad.vert", "gles_depthpointer.frag");
 		m_invalid_material = Fetch_Material("invalid");
@@ -173,8 +175,6 @@ bool opengl33_renderer::Init(GLFWwindow *Window)
         vr = vr_interface_factory::get_instance()->create(Global.vr_backend);
 
     if (vr) {
-        m_hiddenarea_shader = make_shader("hiddenarea.vert", "hiddenarea.frag");
-
         glm::ivec2 target_size = vr->get_target_size();
         WriteLog("using vr rendertarget: " + glm::to_string(target_size));
 
@@ -908,7 +908,18 @@ void opengl33_renderer::Render_pass(viewport_config &vp, rendermode const Mode)
             }
 
             if (vp.custom_backbuffer && vp.real_window) {
-                vp.backbuffer_fb->blit_to(nullptr, vp.width, vp.height, GL_COLOR_BUFFER_BIT, GL_COLOR_ATTACHMENT0);
+                if (vp.main)
+                    target_size = glm::ivec2(Global.iWindowWidth, Global.iWindowHeight);
+                glViewport(0, 0, target_size.x, target_size.y);
+
+                vp.backbuffer_tex->bind(0);
+                m_copy_shader->bind();
+                m_empty_vao->bind();
+                glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+                glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+
+                vp.backbuffer_tex->unbind(0);
             }
 
             opengl_texture::reset_unit_cache();
