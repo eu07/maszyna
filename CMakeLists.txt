@@ -41,7 +41,7 @@ option(USE_IMGUI_GL3 "Use OpenGL3+ imgui implementation" ON)
 option(WITH_OPENGL_MODERN "Compile with OpenGL modern renderer" ON)
 option(WITH_OPENGL_LEGACY "Compile with OpenGL legacy renderer" ON)
 option(WITH_UART "Compile with libserialport" ON)
-option(WITH_OPENVR "Compile with OpenVR" OFF)
+option(WITH_OPENVR "Compile with OpenVR" ON)
 option(WITH_ZMQ "Compile with cppzmq" OFF)
 option(USE_VSDEV_CAMERA "Use VS_Dev camera preview implementation" OFF)
 
@@ -262,6 +262,9 @@ configure_file("${CMAKE_SOURCE_DIR}/version_info.h.in" "${CMAKE_SOURCE_DIR}/vers
 
 set (PREFIX "")
 
+set(OPENVR_LIBRARY "openvr_api")
+set(OPENVR_INCLUDE_DIR "")
+
 if (WIN32)
 	add_definitions(-DHAVE_ROUND) # to make pymath to not redefine round
 	add_definitions(-DGLFW_DLL)
@@ -275,6 +278,7 @@ if (WIN32)
 	set(LUAJIT_INCLUDE_DIR ${LUAJIT_INCLUDE_DIR} "${DEPS_DIR}/luajit/include")
 	set(PYTHON_INCLUDE_DIR ${PYTHON_INCLUDE_DIR} "${DEPS_DIR}/python/include")
 	set(libserialport_INCLUDE_DIR ${LIBSERIALPORT_INCLUDE_DIR} "${DEPS_DIR}/libserialport/include")
+	set(OPENVR_INCLUDE_DIR "${DEPS_DIR}/openvr/include")
 	
 	if(${CMAKE_EXE_LINKER_FLAGS} STREQUAL "/machine:x64")
 		set (ARCH "x64")
@@ -292,6 +296,7 @@ if (WIN32)
 	set(PYTHON_LIBRARY ${PYTHON_LIBRARY} "${DEPS_DIR}/python/lib/${ARCH}/python27.lib")
 	set(libserialport_LIBRARY ${LIBSERIALPORT_LIBRARY} "${DEPS_DIR}/libserialport/lib/${ARCH}/libserialport-0.lib")
 	set(cppzmq_LIBRARY ${cppzmq_LIBRARY} "${DEPS_DIR}/cppzmq/lib/${ARCH}/libzmq.lib")
+	set(OPENVR_LIBRARY "${DEPS_DIR}/openvr/lib/${ARCH}/openvr_api.lib")
 endif()
 
 set(cppzmq_INCLUDE_DIR ${cppzmq_INCLUDE_DIR} "${DEPS_DIR}/cppzmq/include")
@@ -323,7 +328,8 @@ set_target_properties( ${PROJECT_NAME}
 )
 
 if (WITH_OPENVR)
-        target_link_libraries(${PROJECT_NAME} openvr_api)
+	    include_directories(${OPENVR_INCLUDE_DIR})
+		target_link_libraries(${PROJECT_NAME} ${OPENVR_LIBRARY})
 endif()
 
 find_package(GLFW3 REQUIRED)
