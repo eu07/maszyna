@@ -17,7 +17,7 @@ jobs:
     - script: |
         mkdir build
         cd build
-        cmake .. -DCMAKE_BUILD_TYPE=Release -DWITH_ZMQ=OFF
+        cmake .. -DCMAKE_BUILD_TYPE=Release -DWITH_ZMQ=OFF -DWITH_OPENVR=OFF
         cmake --build .
       displayName: 'Build'
     - task: PublishBuildArtifacts@1

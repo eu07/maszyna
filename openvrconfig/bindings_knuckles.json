@@ -27,8 +27,8 @@
    },
    "category" : "steamvr_input",
    "controller_type" : "knuckles",
-   "description" : "Default two handed bindings with movement on the off hand",
-   "name" : "Dual Controllers (Movement on Off Hand)",
+   "description" : "Basic config with actions on triggers",
+   "name" : "Basic config",
    "options" : {},
    "simulated_actions" : []
 }
