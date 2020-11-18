@@ -22,6 +22,8 @@ private:
     vr::VRInputValueHandle_t inputhandle_left = 0;
     vr::VRInputValueHandle_t inputhandle_right = 0;
 
+    std::array<std::unique_ptr<TModel3d>, 2> hiddenarea_mesh;
+
     uint32_t primary_controller;
     glm::mat4 primary_controller_transform;
 
@@ -29,6 +31,7 @@ private:
 
     bool update_component(const std::string &rendermodel, vr::VRInputValueHandle_t handle, TSubModel *component);
     glm::mat4 get_matrix(const vr::HmdMatrix34_t &src);
+    std::unique_ptr<TModel3d> create_hiddenarea_model(eye_e e);
 
     vr::VRActionSetHandle_t actionset = 0;
     vr::VRActionHandle_t primary_action = 0;
@@ -52,6 +55,7 @@ public:
     void begin_frame() override;
     void submit(eye_e, opengl_texture*) override;
     std::vector<TModel3d*> get_render_models() override;
+    TModel3d* get_hiddenarea_mesh(eye_e) override;
     glm::mat4 get_pick_transform() override;
     void finish_frame() override;
     ~vr_openvr() override;

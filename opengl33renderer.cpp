@@ -125,7 +125,7 @@ bool opengl33_renderer::Init(GLFWwindow *Window)
         m_pick_shader = make_shader("vertexonly.vert", "pick.frag");
         m_pick_surface_shader = make_shader("simpleuv.vert", "pick_surface.frag");
 		m_billboard_shader = make_shader("simpleuv.vert", "billboard.frag");
-		m_celestial_shader = make_shader("celestial.vert", "celestial.frag");
+        m_celestial_shader = make_shader("celestial.vert", "celestial.frag");
 		if (Global.gfx_usegles)
 			m_depth_pointer_shader = make_shader("quad.vert", "gles_depthpointer.frag");
 		m_invalid_material = Fetch_Material("invalid");
@@ -173,6 +173,8 @@ bool opengl33_renderer::Init(GLFWwindow *Window)
         vr = vr_interface_factory::get_instance()->create(Global.vr_backend);
 
     if (vr) {
+        m_hiddenarea_shader = make_shader("hiddenarea.vert", "hiddenarea.frag");
+
         glm::ivec2 target_size = vr->get_target_size();
         WriteLog("using vr rendertarget: " + glm::to_string(target_size));
 
@@ -740,11 +742,28 @@ void opengl33_renderer::Render_pass(viewport_config &vp, rendermode const Mode)
 			glBindFramebuffer(GL_FRAMEBUFFER, 0);
 			glViewport(0, 0, target_size.x, target_size.y);
 			glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-		}
+        }
 
-		glEnable(GL_DEPTH_TEST);
+        glEnable(GL_DEPTH_TEST);
 
 		Timer::subsystem.gfx_color.start();
+
+        if (vr && (vp.proj_type == viewport_config::vr_left || vp.proj_type == viewport_config::vr_right)) {
+            glDebug("vr hiddenarea");
+            TModel3d *mask = vr->get_hiddenarea_mesh((vp.proj_type == viewport_config::vr_left) ? vr_interface::eye_left : vr_interface::eye_right);
+
+            if (mask) {
+                glDisable(GL_CULL_FACE);
+                glDisable(GL_BLEND);
+                glDepthMask(GL_TRUE);
+
+                m_hiddenarea_shader->bind();
+                draw(mask->Root->m_geometry.handle);
+
+                glEnable(GL_CULL_FACE);
+            }
+        }
+
 		setup_matrices();
 		setup_drawing(true);
         m_renderpass.draw_stats = {};
@@ -1694,8 +1713,7 @@ bool opengl33_renderer::Render(world_environment *Environment)
 		return false;
 	}
 
-	Bind_Material(null_handle);
-	::glDisable(GL_DEPTH_TEST);
+    Bind_Material(null_handle);
 	::glPushMatrix();
 
 	// skydome
@@ -1860,8 +1878,7 @@ bool opengl33_renderer::Render(world_environment *Environment)
 
 	gl::program::unbind();
 	gl::vao::unbind();
-	::glPopMatrix();
-	::glEnable(GL_DEPTH_TEST);
+    ::glPopMatrix();
 
 	m_sunlight.apply_angle();
 	m_sunlight.apply_intensity();

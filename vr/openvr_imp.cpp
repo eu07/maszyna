@@ -25,7 +25,38 @@ vr_openvr::vr_openvr()
     vr::VRInput()->GetActionSetHandle("/actions/main", &actionset);
     vr::VRInput()->GetActionHandle("/actions/main/in/PrimaryAction", &primary_action);
     vr::VRInput()->GetActionHandle("/actions/main/in/SecondaryAction", &secondary_action);
+
+    hiddenarea_mesh[(size_t)vr_interface::eye_left] = create_hiddenarea_model(vr_interface::eye_left);
+    hiddenarea_mesh[(size_t)vr_interface::eye_right] = create_hiddenarea_model(vr_interface::eye_right);
 }
+
+std::unique_ptr<TModel3d> vr_openvr::create_hiddenarea_model(vr_interface::eye_e e)
+{
+    vr::HiddenAreaMesh_t mesh = vr_system->GetHiddenAreaMesh((e == vr_interface::eye_left) ? vr::Eye_Left : vr::Eye_Right, vr::k_eHiddenAreaMesh_Standard);
+    if (!mesh.unTriangleCount)
+        return nullptr;
+
+    gfx::vertex_array vertices;
+    for (size_t v = 0; v < mesh.unTriangleCount * 3; v++) {
+        const vr::HmdVector2_t vertex = mesh.pVertexData[v];
+        vertices.push_back(gfx::basic_vertex(
+                               glm::vec3(vertex.v[0], vertex.v[1], 0.0f),
+                               glm::vec3(0.0f),
+                               glm::vec2(0.0f)));
+    }
+
+
+    std::unique_ptr<TModel3d> model = std::make_unique<TModel3d>();
+    model->AppendChildFromGeometry("__root", "none", vertices, gfx::index_array());
+    model->Init();
+
+    return model;
+}
+
+TModel3d* vr_openvr::get_hiddenarea_mesh(eye_e eye)
+{
+    return hiddenarea_mesh[(size_t)eye].get();
+};
 
 glm::ivec2 vr_openvr::get_target_size()
 {

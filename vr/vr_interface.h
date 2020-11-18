@@ -12,6 +12,7 @@ public:
     };
 
     virtual viewport_proj_config get_proj_config(eye_e) = 0;
+    virtual TModel3d* get_hiddenarea_mesh(eye_e) = 0;
     virtual glm::ivec2 get_target_size() = 0;
     virtual void begin_frame() = 0;
     virtual void submit(eye_e, opengl_texture*) = 0;
