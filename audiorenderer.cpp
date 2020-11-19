@@ -127,12 +127,8 @@ openal_source::sync_with( sound_properties const &State ) {
     // NOTE: velocity at this point can be either listener velocity for global sounds, actual sound velocity, or 0 if sound position is yet unknown
     ::alSourcefv( id, AL_VELOCITY, glm::value_ptr( sound_velocity ) );
 
-    glm::dmat4 cameramatrix;
-    Global.pCamera.SetMatrix( cameramatrix );
-    auto cameraposition = Global.pCamera.Pos + (Global.viewport_move * glm::mat3(cameramatrix));
-
     // location
-    sound_distance = State.location - glm::dvec3 { cameraposition };
+    sound_distance = State.location - renderer.cached_camerapos;
     if( sound_range != -1 ) {
         // range cutoff check for songs other than 'unlimited'
         // NOTE: since we're comparing squared distances we can ignore that sound range can be negative
@@ -377,8 +373,8 @@ openal_renderer::update( double const Deltatime ) {
     ::alListenerfv( AL_ORIENTATION, reinterpret_cast<ALfloat const *>( orientation ) );
     // velocity
     if( Deltatime > 0 ) {
-        auto cameramove { glm::dvec3{ cameraposition - m_camerapos} };
-        m_camerapos = cameraposition;
+        auto cameramove { glm::dvec3{ cameraposition - cached_camerapos} };
+        cached_camerapos = cameraposition;
         // intercept sudden user-induced camera jumps...
         // ...from free fly mode change
         if( m_freeflymode != FreeFlyModeFlag ) {

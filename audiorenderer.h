@@ -143,6 +143,8 @@ public:
     void
         update( double const Deltatime );
 
+    glm::dvec3 cached_camerapos;
+
 private:
 // types
     using source_list = std::list<audio::openal_source>;
@@ -161,7 +163,6 @@ private:
     glm::dvec3 m_listenerposition;
 */
     glm::vec3 m_listenervelocity;
-    glm::dvec3 m_camerapos{ 0.0 };
     bool m_freeflymode{ true };
     bool m_windowopen{ true };
     int m_activecab{ 0 };
