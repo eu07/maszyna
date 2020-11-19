@@ -168,6 +168,7 @@ bool opengl33_renderer::Init(GLFWwindow *Window)
 	default_viewport.width = Global.gfx_framebuffer_width;
 	default_viewport.height = Global.gfx_framebuffer_height;
 	default_viewport.main = true;
+    default_viewport.shadow = true;
 	default_viewport.window = m_window;
 	default_viewport.draw_range = 1.0f;
 
@@ -193,6 +194,7 @@ bool opengl33_renderer::Init(GLFWwindow *Window)
         m_viewports.back()->custom_backbuffer = true;
         m_viewports.back()->proj_type = viewport_config::vr_right;
         m_viewports.back()->draw_range = 1.0f;
+        m_viewports.back()->shadow = true;
 
         if (!init_viewport(*m_viewports.back()))
             return false;
@@ -1446,14 +1448,31 @@ void opengl33_renderer::setup_pass(viewport_config &Viewport, renderpass_config 
 	}
 	case rendermode::shadows:
 	{
-		// calculate lightview boundaries based on relevant area of the world camera frustum:
+        // calculate lightview boundaries based on relevant area of the world camera frustum:
 		// ...setup chunk of frustum we're interested in...
 //        auto const zfar = std::min(1.f, Global.shadowtune.range / (Global.BaseDrawRange * Global.fDistanceFactor) * std::max(1.f, Global.ZoomFactor * 0.5f));
 //        auto const zfar = ( Zfar > 1.f ? Zfar * std::max( 1.f, Global.ZoomFactor * 0.5f ) : Zfar );
         auto const zfar = ( Zfar > 1.f ? Zfar : Zfar * Global.shadowtune.range * std::max( Zfar, Global.ZoomFactor * 0.5f ) );
-		renderpass_config worldview;
-		setup_pass(Viewport, worldview, rendermode::color, Znear, zfar, true);
-		auto &frustumchunkshapepoints = worldview.pass_camera.frustum_points();
+
+        size_t bounding_viewports_count = 0;
+        std::vector<glm::vec4> frustumchunkshapepoints;
+        glm::dvec3 pass_camera;
+
+        for (std::unique_ptr<viewport_config> &conf : m_viewports) {
+            if (!conf->shadow)
+                continue;
+
+            renderpass_config worldview;
+            setup_pass(*conf, worldview, rendermode::color, Znear, zfar, true);
+
+            auto &points = worldview.pass_camera.frustum_points();
+            frustumchunkshapepoints.insert(frustumchunkshapepoints.end(), points.begin(), points.end());
+
+            pass_camera += worldview.pass_camera.position();
+            bounding_viewports_count++;
+        }
+        pass_camera /= bounding_viewports_count;
+
 		// ...modelview matrix: determine the centre of frustum chunk in world space...
 		glm::vec3 frustumchunkmin, frustumchunkmax;
 		bounding_box(frustumchunkmin, frustumchunkmax, std::begin(frustumchunkshapepoints), std::end(frustumchunkshapepoints));
@@ -1461,7 +1480,7 @@ void opengl33_renderer::setup_pass(viewport_config &Viewport, renderpass_config 
 		// ...cap the vertical angle to keep shadows from getting too long...
 		auto const lightvector = glm::normalize(glm::vec3{m_sunlight.direction.x, std::min(m_sunlight.direction.y, -0.2f), m_sunlight.direction.z});
 		// ...place the light source at the calculated centre and setup world space light view matrix...
-		camera.position() = worldview.pass_camera.position() + glm::dvec3{frustumchunkcentre};
+        camera.position() = pass_camera + glm::dvec3{frustumchunkcentre};
 		viewmatrix *= glm::lookAt(camera.position(), camera.position() + glm::dvec3{lightvector}, glm::dvec3{0.f, 1.f, 0.f});
 		// ...projection matrix: calculate boundaries of the frustum chunk in light space...
 		auto const lightviewmatrix = glm::translate(glm::mat4{glm::mat3{viewmatrix}}, -frustumchunkcentre);

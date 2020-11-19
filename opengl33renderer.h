@@ -200,6 +200,7 @@ class opengl33_renderer : public gfx_renderer {
         GLFWwindow *window = nullptr; // ogl window context
         bool real_window = true; // whether we need to blit onto GLFWwindow surface
         bool custom_backbuffer = false; // whether we want to render to our offscreen LDR backbuffer (pipeline required)
+        bool shadow = false; // include this viewport area in shadowmap
 
         enum vp_type {
             normal,
