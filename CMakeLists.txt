@@ -34,6 +34,7 @@ file(GLOB HEADERS "*.h"
 "extras/*.h")
 
 if (APPLE)
+	set (CMAKE_FIND_FRAMEWORK LAST)
 	set (CMAKE_EXE_LINKER_FLAGS "-pagezero_size 10000 -image_base 100000000")
 endif()
 
