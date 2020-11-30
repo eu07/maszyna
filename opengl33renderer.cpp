@@ -2816,6 +2816,8 @@ bool opengl33_renderer::Render(TDynamicObject *Dynamic)
 
 	glm::mat4 mv = OpenGLMatrices.data(GL_MODELVIEW);
 	model_ubs.future *= glm::translate(mv, glm::vec3(Dynamic->get_future_movement())) * glm::inverse(mv);
+	if (Global.pCamera.m_owner == Dynamic && !FreeFlyModeFlag)
+		model_ubs.future = glm::mat4();
 
 	::glPushMatrix();
 	::glTranslated(originoffset.x, originoffset.y, originoffset.z);
@@ -3812,6 +3814,8 @@ bool opengl33_renderer::Render_Alpha(TDynamicObject *Dynamic)
 
 	glm::mat4 mv = OpenGLMatrices.data(GL_MODELVIEW);
 	model_ubs.future *= glm::translate(mv, glm::vec3(Dynamic->get_future_movement())) * glm::inverse(mv);
+	if (Global.pCamera.m_owner == Dynamic && !FreeFlyModeFlag)
+		model_ubs.future = glm::mat4();
 
 	::glPushMatrix();
 
