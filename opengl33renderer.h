@@ -219,6 +219,7 @@ class opengl33_renderer : public gfx_renderer {
         // msaa resolve buffer (when using motion blur)
 		std::unique_ptr<gl::framebuffer> main_fb;
 		std::unique_ptr<opengl_texture> main_texv;
+        std::unique_ptr<opengl_texture> main_texd;
 		std::unique_ptr<opengl_texture> main_tex;
 
         // final HDR buffer (also serving as msaa resolve buffer when not using motion blur)

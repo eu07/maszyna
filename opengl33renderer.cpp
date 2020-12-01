@@ -424,7 +424,7 @@ bool opengl33_renderer::init_viewport(viewport_config &vp)
 		vp.msaa_rbc->alloc(Global.gfx_format_color, vp.width, vp.height, samples);
 
 		vp.msaa_rbd = std::make_unique<gl::renderbuffer>();
-		vp.msaa_rbd->alloc(Global.gfx_format_depth, vp.width, vp.height, samples);
+        vp.msaa_rbd->alloc(Global.gfx_format_depth, vp.width, vp.height, samples);
 
 		vp.msaa_fb = std::make_unique<gl::framebuffer>();
 		vp.msaa_fb->attach(*vp.msaa_rbc, GL_COLOR_ATTACHMENT0);
@@ -437,14 +437,18 @@ bool opengl33_renderer::init_viewport(viewport_config &vp)
 			vp.msaa_fb->attach(*vp.msaa_rbv, GL_COLOR_ATTACHMENT1);
 
 			vp.main_tex = std::make_unique<opengl_texture>();
-			vp.main_tex->alloc_rendertarget(Global.gfx_format_color, GL_RGB, vp.width, vp.height, 1, 1, GL_CLAMP_TO_EDGE);
+            vp.main_tex->alloc_rendertarget(Global.gfx_format_color, GL_RGB, vp.width, vp.height, 1, 1, GL_CLAMP_TO_EDGE);
+
+            vp.main_texd = std::make_unique<opengl_texture>();
+            vp.main_texd->alloc_rendertarget(Global.gfx_format_depth, GL_DEPTH_COMPONENT, vp.width, vp.height, 1, 1, GL_CLAMP_TO_EDGE);
 
 			vp.main_fb = std::make_unique<gl::framebuffer>();
 			vp.main_fb->attach(*vp.main_tex, GL_COLOR_ATTACHMENT0);
 
 			vp.main_texv = std::make_unique<opengl_texture>();
-			vp.main_texv->alloc_rendertarget(Global.gfx_postfx_motionblur_format, GL_RG, vp.width, vp.height);
+            vp.main_texv->alloc_rendertarget(Global.gfx_postfx_motionblur_format, GL_RG, vp.width, vp.height);
 			vp.main_fb->attach(*vp.main_texv, GL_COLOR_ATTACHMENT1);
+            vp.main_fb->attach(*vp.main_texd, GL_DEPTH_ATTACHMENT);
 			vp.main_fb->setup_drawing(2);
 
             if( !vp.main_fb->is_complete() ) {
@@ -874,10 +878,11 @@ void opengl33_renderer::Render_pass(viewport_config &vp, rendermode const Mode)
 				vp.main_fb->clear(GL_COLOR_BUFFER_BIT);
 				vp.msaa_fb->blit_to(vp.main_fb.get(), vp.width, vp.height, GL_COLOR_BUFFER_BIT, GL_COLOR_ATTACHMENT0);
 				vp.msaa_fb->blit_to(vp.main_fb.get(), vp.width, vp.height, GL_COLOR_BUFFER_BIT, GL_COLOR_ATTACHMENT1);
+                vp.msaa_fb->blit_to(vp.main_fb.get(), vp.width, vp.height, GL_DEPTH_BUFFER_BIT, GL_DEPTH_ATTACHMENT);
 
 				model_ubs.param[0].x = m_framerate / (1.0 / Global.gfx_postfx_motionblur_shutter);
 				model_ubo->update(model_ubs);
-				m_pfx_motionblur->apply({vp.main_tex.get(), vp.main_texv.get()}, vp.main2_fb.get());
+                m_pfx_motionblur->apply({vp.main_tex.get(), vp.main_texv.get(), vp.main_texd.get()}, vp.main2_fb.get());
 			}
 			else
 			{

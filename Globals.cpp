@@ -873,59 +873,6 @@ global_settings::ConfigParse(cParser &Parser) {
             Parser.getTokens(1);
             Parser >> gfx_postfx_motionblur_enabled;
         }
-        else if (token == "gfx.postfx.motionblur.shutter")
-        {
-            Parser.getTokens(1);
-            Parser >> gfx_postfx_motionblur_shutter;
-        }
-        else if (token == "gfx.postfx.motionblur.format")
-        {
-            Parser.getTokens(1);
-            std::string token;
-            Parser >> token;
-            if (token == "rg16f")
-                gfx_postfx_motionblur_format = GL_RG16F;
-            else if (token == "rg32f")
-                gfx_postfx_motionblur_format = GL_RG32F;
-        }
-        else if (token == "gfx.format.color")
-        {
-            Parser.getTokens(1);
-            std::string token;
-            Parser >> token;
-            if (token == "rgb8")
-                gfx_format_color = GL_RGB8;
-            else if (token == "rgb16f")
-                gfx_format_color = GL_RGB16F;
-            else if (token == "rgb32f")
-                gfx_format_color = GL_RGB32F;
-            else if (token == "r11f_g11f_b10f")
-                gfx_format_color = GL_R11F_G11F_B10F;
-        }
-        else if (token == "gfx.format.depth")
-        {
-            Parser.getTokens(1);
-            std::string token;
-            Parser >> token;
-            if (token == "z16")
-                gfx_format_depth = GL_DEPTH_COMPONENT16;
-            else if (token == "z24")
-                gfx_format_depth = GL_DEPTH_COMPONENT24;
-            else if (token == "z32")
-                gfx_format_depth = GL_DEPTH_COMPONENT32;
-            else if (token == "z32f")
-                gfx_format_depth = GL_DEPTH_COMPONENT32F;
-        }
-        else if (token == "gfx.skippipeline")
-        {
-            Parser.getTokens(1);
-            Parser >> gfx_skippipeline;
-        }
-        else if (token == "gfx.extraeffects")
-        {
-            Parser.getTokens(1);
-            Parser >> gfx_extraeffects;
-        }
         else if (token == "gfx.usegles")
         {
             Parser.getTokens(1);
