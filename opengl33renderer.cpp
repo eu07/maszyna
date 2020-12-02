@@ -639,7 +639,7 @@ void opengl33_renderer::draw_debug_ui()
 	}
 	ImGui::End();
 
-    ImGui::SetNextWindowSize(ImVec2(400, 400));
+    ImGui::SetNextWindowSize(ImVec2S(400, 400));
     if (ImGui::Begin("Pickbuffer") && m_pick_tex) {
         ImGui::Image(reinterpret_cast<void *>(m_pick_tex->id), ImGui::GetContentRegionAvail(), ImVec2(0, 1.0), ImVec2(1.0, 0));
     }

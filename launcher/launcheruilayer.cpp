@@ -29,7 +29,7 @@ void launcher_ui::render_()
 	ImGuiWindowFlags flags = ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoCollapse;
 	ImVec2 display_size = ImGui::GetIO().DisplaySize;
 	ImGui::SetNextWindowPos(ImVec2(display_size.x * 0.66f, display_size.y / 2.0f));
-	ImGui::SetNextWindowSize(ImVec2(200, -1));
+    ImGui::SetNextWindowSize(ImVec2(200 * Global.ui_scale, -1));
 
 	if (ImGui::Begin(STR_C("Main menu"), nullptr, flags)) {
 		if (ImGui::Button(STR_C("Scenario list"), ImVec2(-1, 0)))

@@ -45,12 +45,12 @@ void ui_panel::render()
 		        ((size.x > 0) ? ImGuiWindowFlags_NoResize : 0);
 
     if (size.x > 0)
-        ImGui::SetNextWindowSize(ImVec2(size.x, size.y));
+        ImGui::SetNextWindowSize(ImVec2S(size.x, size.y));
 	else if (size_min.x == -1)
-		ImGui::SetNextWindowSize(ImVec2(0, 0), ImGuiCond_FirstUseEver);
+        ImGui::SetNextWindowSize(ImVec2(0, 0), ImGuiCond_FirstUseEver);
 
     if (size_min.x > 0)
-        ImGui::SetNextWindowSizeConstraints(ImVec2(size_min.x, size_min.y), ImVec2(size_max.x, size_max.y));
+        ImGui::SetNextWindowSizeConstraints(ImVec2S(size_min.x, size_min.y), ImVec2S(size_max.x, size_max.y));
 
 	auto const panelname{(title.empty() ? m_name : title) + "###" + m_name};
 	if (ImGui::Begin(panelname.c_str(), &is_open, flags)) {
