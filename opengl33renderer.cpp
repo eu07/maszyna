@@ -1799,12 +1799,12 @@ bool opengl33_renderer::Render(world_environment *Environment)
 		glm::vec4 color(suncolor.x, suncolor.y, suncolor.z, clamp(1.5f - Global.Overcast, 0.f, 1.f) * fogfactor);
 		auto const sunvector = Environment->m_sun.getDirection();
 
-        float const size = interpolate( // TODO: expose distance/scale factor from the moon object
+        /*float const size = interpolate( // TODO: expose distance/scale factor from the moon object
             0.0325f,
             0.0275f,
-            clamp( Environment->m_sun.getAngle(), 0.f, 90.f ) / 90.f );
+            clamp( Environment->m_sun.getAngle(), 0.f, 90.f ) / 90.f );*/
 		model_ubs.param[0] = color;
-		model_ubs.param[1] = glm::vec4(glm::vec3(modelview * glm::vec4(sunvector, 1.0f)), /*0.00463f*/ size);
+        model_ubs.param[1] = glm::vec4(glm::vec3(modelview * glm::vec4(sunvector, 1.0f)), 0.00463f /* size */);
 		model_ubs.param[2] = glm::vec4(0.0f, 1.0f, 1.0f, 0.0f);
 		model_ubo->update(model_ubs);
 		glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
@@ -1875,13 +1875,14 @@ bool opengl33_renderer::Render(world_environment *Environment)
 			moonu = 0.0f;
 		}
 
+        /*
         float const size = interpolate( // TODO: expose distance/scale factor from the moon object
             0.0160f,
             0.0135f,
-            clamp( Environment->m_moon.getAngle(), 0.f, 90.f ) / 90.f );
+            clamp( Environment->m_moon.getAngle(), 0.f, 90.f ) / 90.f );*/
 
 		model_ubs.param[0] = color;
-		model_ubs.param[1] = glm::vec4(glm::vec3(modelview * glm::vec4(moonvector, 1.0f)), /*0.00451f*/ size);
+        model_ubs.param[1] = glm::vec4(glm::vec3(modelview * glm::vec4(moonvector, 1.0f)), 0.00451f /* size */);
 		model_ubs.param[2] = glm::vec4(moonu, moonv, 0.333f, 0.0f);
 		model_ubo->update(model_ubs);
 		glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
