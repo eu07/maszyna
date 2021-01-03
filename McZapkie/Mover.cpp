@@ -1997,7 +1997,26 @@ void TMoverParameters::OilPumpCheck( double const Timestep ) {
 void TMoverParameters::MotorBlowersCheck( double const Timestep ) {
     // activation check
     for( auto &blower : MotorBlowers ) {
-
+		auto disable = blower.is_disabled;
+		if (blower.min_start_velocity >= 0)
+		{
+			if ( Vel < 0.5 && Im < 0.5 )
+			{
+				blower.stop_timer += Timestep;
+				if (blower.stop_timer > blower.sustain_time)
+				{
+					disable = true;
+				}
+			}
+			else if (Vel >= blower.min_start_velocity && Im > 0.5)
+			{
+				blower.stop_timer = 0;
+			}
+			else
+			{
+				disable |= !blower.is_active;
+			}
+		}
         blower.is_active = (
             // TODO: bind properly power source when ld is in place
             ( blower.start_type == start_t::battery ? Power24vIsAvailable :
@@ -2005,7 +2024,7 @@ void TMoverParameters::MotorBlowersCheck( double const Timestep ) {
               Mains ) // power source
             // breaker condition disabled until it's implemented in the class data
 //         && ( true == blower.breaker )
-         && ( false == blower.is_disabled )
+         && ( false == disable)
          && ( ( true == blower.is_active )
            || ( blower.start_type == start_t::manual ?
                     blower.is_enabled :
@@ -10743,6 +10762,8 @@ void TMoverParameters::LoadFIZ_Engine( std::string const &Input ) {
 
     // traction motors
     extract_value( MotorBlowers[ end::front ].speed, "MotorBlowersSpeed", Input, "" );
+	extract_value( MotorBlowers[ end::front ].sustain_time, "MotorBlowersSustainTime", Input, "" );
+	extract_value( MotorBlowers[ end::front ].min_start_velocity, "MotorBlowersStartVelocity", Input, "" );
     MotorBlowers[ end::rear ] = MotorBlowers[ end::front ];
     // pressure switch
     extract_value( HasControlPressureSwitch, "PressureSwitch", Input, ( TrainType != dt_EZT ? "yes" : "no" ) );
