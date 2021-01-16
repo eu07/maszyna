@@ -1364,6 +1364,7 @@ public:
 	int SoundFlag = 0;                    /*!o patrz stale sound_ */
     int AIFlag{ 0 }; // HACK: events of interest for consist owner
 	double DistCounter = 0.0;                  /*! licznik kilometrow */
+    double EnergyConsumed = 0.0; // energy consumed from pantographs [kWh]
 	double V = 0.0;    //predkosc w [m/s] względem sprzęgów (dodania gdy jedzie w stronę 0)
 	double Vel = 0.0;  //moduł prędkości w [km/h], używany przez AI
 	double AccS = 0.0; //efektywne przyspieszenie styczne w [m/s^2] (wszystkie siły)

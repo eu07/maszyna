@@ -821,6 +821,9 @@ debug_panel::update_section_vehicle( std::vector<text_line> &Output ) {
 
     Output.emplace_back( m_buffer.data(), Global.UITextColor );
 
+    std::snprintf(m_buffer.data(), m_buffer.size(), STR_C("Energy consumed from pantographs: %.1f kWh"), mover.EnergyConsumed);
+    Output.emplace_back( m_buffer.data(), Global.UITextColor );
+
 	if (!std::isnan(last_time)) {
 		double dt = Timer::GetTime() - last_time;
 		AccN_jerk_graph.update((mover.AccN - last_AccN) / dt);

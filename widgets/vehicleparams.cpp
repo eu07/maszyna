@@ -257,7 +257,7 @@ void ui::vehicleparams_panel::render_contents()
 
 	std::snprintf(
 	    buffer.data(), buffer.size(),
-	    STR_C("Forces:\n tractive: %.1f, brake: %.1f, friction: %.2f%s\nAcceleration:\n tangential: %.2f, normal: %.2f (path radius: %s)\nVelocity: %.2f, distance traveled: %.2f\nPosition: [%.2f, %.2f, %.2f]"),
+        STR_C("Forces:\n tractive: %.1f, brake: %.1f, friction: %.2f%s\nAcceleration:\n tangential: %.2f, normal: %.2f (path radius: %s)\nVelocity: %.2f, distance traveled: %.2f\nPosition: [%.2f, %.2f, %.2f]"),
 	    // forces
         mover.Ft * 0.001f * ( mover.CabActive ? mover.CabActive : vehicle.ctOwner ? vehicle.ctOwner->Controlling()->CabActive : 1 ) + 0.001f,
 	    mover.Fb * 0.001f,
@@ -276,6 +276,9 @@ void ui::vehicleparams_panel::render_contents()
 	    vehicle.GetPosition().z );
 
 	ImGui::TextUnformatted(buffer.data());
+
+    std::snprintf(buffer.data(), buffer.size(), STR_C("Energy consumed from pantographs: %.1f kWh"), mover.EnergyConsumed);
+    ImGui::TextUnformatted(buffer.data());
 
 	draw_mini(mover);
 
