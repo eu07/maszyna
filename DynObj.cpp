@@ -3680,7 +3680,8 @@ bool TDynamicObject::Update(double dt, double dt1)
                 else
                     MoverParameters->PantFrontVolt = 0.0;
 
-                MoverParameters->EnergyConsumed += MoverParameters->PantFrontVolt * fPantCurrent * dt1 / 3600000.0;
+                ((fPantCurrent > 0.0) ? MoverParameters->EnergyMeter.first : MoverParameters->EnergyMeter.second) += MoverParameters->PantFrontVolt * fPantCurrent * dt1 / 3600000.0;
+
                 break;
             case 1:
                 if( ( false == Global.bLiveTraction )
@@ -3726,7 +3727,8 @@ bool TDynamicObject::Update(double dt, double dt1)
                     MoverParameters->PantRearVolt = 0.0;
                 }
 
-                MoverParameters->EnergyConsumed += MoverParameters->PantRearVolt * fPantCurrent * dt1 / 3600000.0;
+                ((fPantCurrent > 0.0) ? MoverParameters->EnergyMeter.first : MoverParameters->EnergyMeter.second) += MoverParameters->PantRearVolt * fPantCurrent * dt1 / 3600000.0;
+
                 break;
             } // pozostałe na razie nie obsługiwane
             if( MoverParameters->PantPress > (

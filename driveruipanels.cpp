@@ -822,7 +822,8 @@ debug_panel::update_section_vehicle( std::vector<text_line> &Output ) {
     Output.emplace_back( m_buffer.data(), Global.UITextColor );
 
     if( mover.EnginePowerSource.SourceType == TPowerSource::CurrentCollector ) {
-        std::snprintf(m_buffer.data(), m_buffer.size(), STR_C("Energy consumed from pantographs: %.1f kWh"), mover.EnergyConsumed);
+        std::snprintf(m_buffer.data(), m_buffer.size(), STR_C("Electricity usage:\n drawn:    %.1f kWh\n returned: %.1f kWh\n balance:  %.1f kWh"),
+                      mover.EnergyMeter.first, -mover.EnergyMeter.second, mover.EnergyMeter.first + mover.EnergyMeter.second);
         Output.emplace_back( m_buffer.data(), Global.UITextColor );
     }
 

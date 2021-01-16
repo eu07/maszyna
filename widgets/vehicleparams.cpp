@@ -265,7 +265,7 @@ void ui::vehicleparams_panel::render_contents()
 	    ( mover.SlippingWheels ? " (!)" : "" ),
 	    // acceleration
 	    mover.AccSVBased,
-	    mover.AccN + 0.001f,
+        mover.AccN + 0.001f,
 	    std::string( std::abs( mover.RunningShape.R ) > 10000.0 ? "~0" : to_string( mover.RunningShape.R, 0 ) ).c_str(),
 	    // velocity
 	    vehicle.GetVelocity(),
@@ -277,8 +277,26 @@ void ui::vehicleparams_panel::render_contents()
 
 	ImGui::TextUnformatted(buffer.data());
 
-    if( mover.EnginePowerSource.SourceType == TPowerSource::CurrentCollector ) {
-        std::snprintf(buffer.data(), buffer.size(), STR_C("Energy consumed from pantographs: %.1f kWh"), mover.EnergyConsumed);
+    std::pair<double, double> TrainsetPowerMeter;
+
+    TDynamicObject *vehicle_iter = vehicle_ptr;
+    while (vehicle_iter) {
+        if (vehicle_iter->Next())
+            vehicle_iter = vehicle_iter->Next();
+        else
+            break;
+    }
+
+    while (vehicle_iter) {
+        TrainsetPowerMeter.first += vehicle_iter->MoverParameters->EnergyMeter.first;
+        TrainsetPowerMeter.second += vehicle_iter->MoverParameters->EnergyMeter.second;
+        vehicle_iter = vehicle_iter->Prev();
+    }
+
+    if (TrainsetPowerMeter.first != 0.0 || TrainsetPowerMeter.second != 0.0) {
+        std::snprintf(buffer.data(), buffer.size(), STR_C("Electricity usage:\n drawn: %.1f kWh\n returned: %.1f kWh\n balance: %.1f kWh"),
+                      TrainsetPowerMeter.first, -TrainsetPowerMeter.second, TrainsetPowerMeter.first + TrainsetPowerMeter.second);
+
         ImGui::TextUnformatted(buffer.data());
     }
 
