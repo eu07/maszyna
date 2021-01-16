@@ -277,8 +277,10 @@ void ui::vehicleparams_panel::render_contents()
 
 	ImGui::TextUnformatted(buffer.data());
 
-    std::snprintf(buffer.data(), buffer.size(), STR_C("Energy consumed from pantographs: %.1f kWh"), mover.EnergyConsumed);
-    ImGui::TextUnformatted(buffer.data());
+    if( mover.EnginePowerSource.SourceType == TPowerSource::CurrentCollector ) {
+        std::snprintf(buffer.data(), buffer.size(), STR_C("Energy consumed from pantographs: %.1f kWh"), mover.EnergyConsumed);
+        ImGui::TextUnformatted(buffer.data());
+    }
 
 	draw_mini(mover);
 
