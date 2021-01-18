@@ -463,7 +463,8 @@ struct TCurrentCollector {
     double InsetV;    //minimalne napięcie wymagane do załączenia
     double MinPress;  //minimalne ciśnienie do załączenia WS
     double MaxPress;  //maksymalne ciśnienie za reduktorem
-	bool FakePower;
+    bool FakePower;
+    int PhysicalLayout;
     //inline TCurrentCollector() {
     //    CollectorsNo = 0;
     //    MinH, MaxH, CSW, MinV, MaxV = 0.0;

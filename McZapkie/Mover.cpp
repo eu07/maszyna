@@ -2190,6 +2190,7 @@ void TMoverParameters::PantographsCheck( double const Timestep ) {
                 false ) ) ); // shouldn't ever get this far but, eh
     }
 
+    size_t pant_id = 0;
     for( auto &pantograph : Pantographs ) {
 
         auto &valve { pantograph.valve };
@@ -2205,11 +2206,17 @@ void TMoverParameters::PantographsCheck( double const Timestep ) {
            || ( manualcontrol && lowvoltagepower && valve.is_enabled )
            || ( autostart && lowvoltagepower ) ) ); // shouldn't ever get this far but, eh
 
+        auto const pantographexists { (EnginePowerSource.SourceType == TPowerSource::CurrentCollector)
+            && (EnginePowerSource.CollectorParameters.PhysicalLayout & (1 << pant_id)) };
+
         pantograph.is_active = (
             ( valve.is_active )
          && ( PantsValve.is_active )
+         && ( pantographexists )
 //         && ( ) // TODO: add other checks
             );
+
+        pant_id++;
     }
 }
 
@@ -10926,7 +10933,7 @@ void TMoverParameters::LoadFIZ_PowerParamsDecode( TPowerParameters &Powerparamet
 
             auto &collectorparameters = Powerparameters.CollectorParameters;
 
-			collectorparameters = TCurrentCollector { 0, 0, 0, 0, 0, 0, false, 0, 0, 0, false };
+            collectorparameters = TCurrentCollector { 0, 0, 0, 0, 0, 0, false, 0, 0, 0, false, 0 };
 
             extract_value( collectorparameters.CollectorsNo, "CollectorsNo", Line, "" );
             extract_value( collectorparameters.MinH, "MinH", Line, "" );
@@ -10946,6 +10953,8 @@ void TMoverParameters::LoadFIZ_PowerParamsDecode( TPowerParameters &Powerparamet
 //            collectorparameters.MaxPress = 5.0 + 0.001 * ( Random( 50 ) - Random( 50 ) );
             extract_value( collectorparameters.MaxPress, "MaxPress", Line, "5.0" );
 			extract_value( collectorparameters.FakePower, "FakePower", Line, "" );
+            if (extract_value( collectorparameters.PhysicalLayout, "PhysicalLayout", Line, "3" ))
+                collectorparameters.CollectorsNo = std::min(collectorparameters.PhysicalLayout, 2);
             break;
         }
         case TPowerSource::PowerCable: {
