@@ -6,8 +6,10 @@ if(POLICY CMP0074)
 	cmake_policy(SET CMP0074 NEW) 
 endif()
 
+set(CMAKE_FIND_PACKAGE_PREFER_CONFIG TRUE)
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/CMake_modules/")
-include(cotire)
+
+#include(cotire)
 set(DEPS_DIR ${DEPS_DIR} "${CMAKE_SOURCE_DIR}/ref")
 project("eu07")
 
@@ -333,9 +335,8 @@ if (WITH_OPENVR)
 		target_link_libraries(${PROJECT_NAME} ${OPENVR_LIBRARY})
 endif()
 
-find_package(GLFW3 REQUIRED)
-include_directories(${GLFW3_INCLUDE_DIR})
-target_link_libraries(${PROJECT_NAME} ${GLFW3_LIBRARIES})
+find_package(glfw3 REQUIRED)
+target_link_libraries(${PROJECT_NAME} glfw)
 
 find_package(PythonLibs 2 REQUIRED)
 include_directories(${PYTHON_INCLUDE_DIRS})
@@ -356,12 +357,15 @@ find_package(GLM REQUIRED)
 include_directories(${GLM_INCLUDE_DIR})
 
 find_package(OpenAL REQUIRED)
-include_directories(${OPENAL_INCLUDE_DIR})
-target_link_libraries(${PROJECT_NAME} ${OPENAL_LIBRARY})
+if (TARGET OpenAL::OpenAL)
+	target_link_libraries(${PROJECT_NAME} OpenAL::OpenAL)
+else()
+	include_directories(${OPENAL_INCLUDE_DIR})
+	target_link_libraries(${PROJECT_NAME} ${OPENAL_LIBRARY})
+endif()
 
-find_package(libsndfile REQUIRED)
-include_directories(${LIBSNDFILE_INCLUDE_DIR})
-target_link_libraries(${PROJECT_NAME} ${LIBSNDFILE_LIBRARY})
+find_package(SndFile REQUIRED)
+target_link_libraries(${PROJECT_NAME} SndFile::sndfile)
 
 find_package(LuaJIT REQUIRED)
 include_directories(${LUAJIT_INCLUDE_DIR})
@@ -374,7 +378,7 @@ if (WITH_UART)
 endif()
 
 find_package(ASIO REQUIRED)
-target_link_libraries(${PROJECT_NAME} ASIO::ASIO)
+target_link_libraries(${PROJECT_NAME} asio::asio)
 
 if (WIN32)
 	target_link_libraries(${PROJECT_NAME} ws2_32)

@@ -12,7 +12,7 @@
 
 set(ASIO_FOUND FALSE)
 
-if(TARGET ASIO::ASIO)
+if(TARGET asio::asio)
   set(ASIO_FOUND TRUE)
 else()
   find_package(Threads QUIET)
@@ -38,12 +38,12 @@ else()
         endif()
       endif()
     else()
-      add_library(ASIO::ASIO INTERFACE IMPORTED GLOBAL)
-      set_target_properties(ASIO::ASIO PROPERTIES
+      add_library(asio::asio INTERFACE IMPORTED GLOBAL)
+      set_target_properties(asio::asio PROPERTIES
         INTERFACE_COMPILE_DEFINITIONS "ASIO_STANDALONE"
         INTERFACE_INCLUDE_DIRECTORIES "${ASIO_ROOT}/include"
       )
-      target_link_libraries(ASIO::ASIO INTERFACE Threads::Threads)
+      target_link_libraries(asio::asio INTERFACE Threads::Threads)
       set(ASIO_FOUND TRUE)
     endif()
   endif()

@@ -29,7 +29,7 @@ jobs:
   - job: macos1015
     pool:
       vmImage: 'macOS-10.15'
-    displayName: 'MacOS 10.15'
+    displayName: 'MacOS 10.15 x86-64'
     steps:
     - script: |
         sudo xcode-select -s /Applications/Xcode_12.3.app
@@ -47,6 +47,38 @@ jobs:
       inputs:
         pathtoPublish: 'build/bin'
         artifactName: binaries_macos
+      displayName: 'Publish binaries'
+
+  - job: macos1015_arm64
+    pool:
+      vmImage: 'macOS-10.15'
+    displayName: 'MacOS 10.15 ARM64'
+    steps:
+    - script: |
+        sudo xcode-select -s /Applications/Xcode_12.3.app
+      displayName: 'Setup Xcode'
+    - script: |
+        cd /tmp
+        git clone https://github.com/microsoft/vcpkg
+        cd vcpkg
+        git remote add milek https://github.com/Milek7/vcpkg
+        git fetch milek
+        git checkout c0020eb4
+        ./bootstrap-vcpkg.sh
+        ./vcpkg install glfw3:arm64-osx libpng:arm64-osx libsndfile:arm64-osx asio:arm64-osx
+        git cherry-pick 9b7f342
+        ./vcpkg install luajit:arm64-osx
+      displayName: 'Install dependencies'
+    - script: |
+        mkdir build
+        cd build
+        cmake .. -DCMAKE_BUILD_TYPE=Release -DCMAKE_OSX_ARCHITECTURES=arm64 -DCMAKE_TOOLCHAIN_FILE=/tmp/vcpkg/scripts/buildsystems/vcpkg.cmake -DVCPKG_TARGET_TRIPLET=arm64-osx -DWITH_ZMQ=OFF -DWITH_OPENVR=OFF -DWITH_UART=OFF
+        cmake --build .
+      displayName: 'Build'
+    - task: PublishBuildArtifacts@1
+      inputs:
+        pathtoPublish: 'build/bin'
+        artifactName: binaries_macos_arm64
       displayName: 'Publish binaries'
 
   - job: windows_x64
