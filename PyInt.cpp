@@ -163,10 +163,9 @@ auto python_taskqueue::init() -> bool {
 	else
 		Py_SetPythonHome("macpython");
 #endif
-    Py_Initialize();
-    PyEval_InitThreads();
+    Py_InitializeEx(0);
 
-    m_initialized = true;
+    PyEval_InitThreads();
 
 	PyObject *stringiomodule { nullptr };
 	PyObject *stringioclassname { nullptr };
@@ -213,6 +212,8 @@ auto python_taskqueue::init() -> bool {
         if( false == worker.joinable() ) { return false; }
     }
 
+    m_initialized = true;
+
     return true;
 
 release_and_exit:
@@ -246,7 +247,8 @@ void python_taskqueue::exit() {
 // adds specified task along with provided collection of data to the work queue. returns true on success
 auto python_taskqueue::insert( task_request const &Task ) -> bool {
 
-    if( ( false == Global.python_enabled )
+    if( !m_initialized
+     || ( false == Global.python_enabled )
      || ( Task.renderer.empty() )
      || ( Task.input == nullptr )
      || ( Task.target == 0 ) ) { return false; }

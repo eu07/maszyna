@@ -143,7 +143,9 @@ eu07_application::init( int Argc, char *Argv[] ) {
     if( ( result = init_data() ) != 0 ) {
         return result;
     }
-    m_taskqueue.init();
+    if( Global.python_enabled ) {
+        m_taskqueue.init();
+    }
     if( ( result = init_modes() ) != 0 ) {
         return result;
     }
@@ -735,6 +737,7 @@ eu07_application::init_glfw() {
         // activate core profile for opengl 3.3 renderer
         if( !Global.gfx_usegles ) {
             glfwWindowHint( GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE );
+            glfwWindowHint( GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE );
             glfwWindowHint( GLFW_CONTEXT_VERSION_MAJOR, 3 );
             glfwWindowHint( GLFW_CONTEXT_VERSION_MINOR, 3 );
         }

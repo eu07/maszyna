@@ -35,12 +35,22 @@ jobs:
         sudo xcode-select -s /Applications/Xcode_12.3.app
       displayName: 'Setup Xcode'
     - script: |
-        HOMEBREW_NO_AUTO_UPDATE=1 brew install glew glfw libpng glm luajit libserialport libsndfile asio pkg-config
+        cd /tmp
+        git clone https://github.com/microsoft/vcpkg
+        cd vcpkg
+        git remote add milek https://github.com/Milek7/vcpkg
+        git fetch milek
+        git checkout c0020eb4
+        ./bootstrap-vcpkg.sh
+        ./vcpkg install glfw3:x64-osx libpng:x64-osx libsndfile:x64-osx asio:x64-osx
+        git cherry-pick 9b7f342
+        git cherry-pick f1b4a0e
+        MACOSX_DEPLOYMENT_TARGET="10.12" ./vcpkg install luajit:x64-osx
       displayName: 'Install dependencies'
     - script: |
         mkdir build
         cd build
-        cmake .. -DCMAKE_BUILD_TYPE=Release -DWITH_ZMQ=OFF -DWITH_OPENVR=OFF
+        cmake .. -DCMAKE_BUILD_TYPE=Release -DCMAKE_OSX_ARCHITECTURES=x86_64 -DCMAKE_TOOLCHAIN_FILE=/tmp/vcpkg/scripts/buildsystems/vcpkg.cmake -DVCPKG_TARGET_TRIPLET=x64-osx -DWITH_ZMQ=OFF -DWITH_OPENVR=OFF -DWITH_UART=OFF
         cmake --build .
       displayName: 'Build'
     - task: PublishBuildArtifacts@1
@@ -49,10 +59,10 @@ jobs:
         artifactName: binaries_macos
       displayName: 'Publish binaries'
 
-  - job: macos1015_arm64
+  - job: macos11_arm64
     pool:
       vmImage: 'macOS-10.15'
-    displayName: 'MacOS 10.15 ARM64'
+    displayName: 'MacOS 11.1 ARM64'
     steps:
     - script: |
         sudo xcode-select -s /Applications/Xcode_12.3.app
@@ -67,6 +77,7 @@ jobs:
         ./bootstrap-vcpkg.sh
         ./vcpkg install glfw3:arm64-osx libpng:arm64-osx libsndfile:arm64-osx asio:arm64-osx
         git cherry-pick 9b7f342
+        git cherry-pick ea5d2d7
         ./vcpkg install luajit:arm64-osx
       displayName: 'Install dependencies'
     - script: |
