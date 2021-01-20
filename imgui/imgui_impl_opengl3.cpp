@@ -122,20 +122,14 @@
 #endif
 #endif
 
-// Desktop GL has glDrawElementsBaseVertex() which GL ES and WebGL don't have.
-#if defined(IMGUI_IMPL_OPENGL_ES2) || defined(IMGUI_IMPL_OPENGL_ES3)
-#define IMGUI_IMPL_OPENGL_HAS_DRAW_WITH_BASE_VERTEX     0
-#else
-#define IMGUI_IMPL_OPENGL_HAS_DRAW_WITH_BASE_VERTEX     1
-#endif
-
 // OpenGL Data
-static char         g_GlslVersionString[32] = "";
+static char         g_GlslVersionString[128] = "";
 static GLuint       g_FontTexture = 0;
 static GLuint       g_ShaderHandle = 0, g_VertHandle = 0, g_FragHandle = 0;
 static int          g_AttribLocationTex = 0, g_AttribLocationProjMtx = 0;                                // Uniforms location
 static int          g_AttribLocationVtxPos = 0, g_AttribLocationVtxUV = 0, g_AttribLocationVtxColor = 0; // Vertex attributes location
 static unsigned int g_VboHandle = 0, g_ElementsHandle = 0;
+static int IMGUI_IMPL_OPENGL_HAS_DRAW_WITH_BASE_VERTEX = 0;
 
 // Functions
 bool    ImGui_ImplOpenGL3_Init(const char* glsl_version)
@@ -143,6 +137,10 @@ bool    ImGui_ImplOpenGL3_Init(const char* glsl_version)
     // Setup back-end capabilities flags
     ImGuiIO& io = ImGui::GetIO();
     io.BackendRendererName = "imgui_impl_opengl3";
+
+    if (GLAD_GL_VERSION_3_3 || GLAD_GL_ES_VERSION_3_2)
+        IMGUI_IMPL_OPENGL_HAS_DRAW_WITH_BASE_VERTEX = 1;
+
 #if IMGUI_IMPL_OPENGL_HAS_DRAW_WITH_BASE_VERTEX
     io.BackendFlags |= ImGuiBackendFlags_RendererHasVtxOffset;  // We can honor the ImDrawCmd::VtxOffset field, allowing for large meshes.
 #endif
@@ -191,9 +189,6 @@ static void ImGui_ImplOpenGL3_SetupRenderState(ImDrawData* draw_data, int fb_wid
     glDisable(GL_CULL_FACE);
     glDisable(GL_DEPTH_TEST);
     glEnable(GL_SCISSOR_TEST);
-#ifdef GL_POLYGON_MODE
-    glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
-#endif
 
     // Setup viewport, orthographic projection matrix
     // Our visible imgui space lies from draw_data->DisplayPos (top left) to draw_data->DisplayPos+data_data->DisplaySize (bottom right). DisplayPos is (0,0) for single viewport apps.
@@ -255,15 +250,9 @@ void    ImGui_ImplOpenGL3_RenderDrawData(ImDrawData* draw_data)
 #ifndef IMGUI_IMPL_OPENGL_ES2
     GLint last_vertex_array_object; glGetIntegerv(GL_VERTEX_ARRAY_BINDING, &last_vertex_array_object);
 #endif
-#ifdef GL_POLYGON_MODE
-    GLint last_polygon_mode[2];
-#endif
     GLboolean last_enable_srgb;
     if (!Global.gfx_usegles)
     {
-        glGetIntegerv(GL_POLYGON_MODE, last_polygon_mode);
-        glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
-
         if (!Global.gfx_shadergamma)
         {
             last_enable_srgb = glIsEnabled(GL_FRAMEBUFFER_SRGB);
@@ -380,9 +369,6 @@ void    ImGui_ImplOpenGL3_RenderDrawData(ImDrawData* draw_data)
 
     if (!Global.gfx_usegles)
     {
-#ifdef GL_POLYGON_MODE
-    glPolygonMode(GL_FRONT_AND_BACK, (GLenum)last_polygon_mode[0]);
-#endif
         if (!Global.gfx_shadergamma)
         {
             if (last_enable_srgb)

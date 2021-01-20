@@ -94,11 +94,18 @@ void opengl33_vaogeometrybank::setup_buffer()
         ErrorLog( "openGL error: out of memory; failed to create a geometry buffer" );
         throw std::bad_alloc();
     }
-    m_vao->setup_attrib( *m_vertexbuffer, 0, 3, GL_FLOAT, sizeof( basic_vertex ), 0 * sizeof( float ) );
+
+    setup_attrib();
+}
+
+void
+opengl33_vaogeometrybank::setup_attrib(size_t offset)
+{
+    m_vao->setup_attrib( *m_vertexbuffer, 0, 3, GL_FLOAT, sizeof( basic_vertex ), 0 * sizeof( float ) + offset * sizeof( basic_vertex ) );
     // NOTE: normal and color streams share the data
-    m_vao->setup_attrib( *m_vertexbuffer, 1, 3, GL_FLOAT, sizeof( basic_vertex ), 3 * sizeof( float ) );
-    m_vao->setup_attrib( *m_vertexbuffer, 2, 2, GL_FLOAT, sizeof( basic_vertex ), 6 * sizeof( float ) );
-    m_vao->setup_attrib( *m_vertexbuffer, 3, 4, GL_FLOAT, sizeof( basic_vertex ), 8 * sizeof( float ) );
+    m_vao->setup_attrib( *m_vertexbuffer, 1, 3, GL_FLOAT, sizeof( basic_vertex ), 3 * sizeof( float ) + offset * sizeof( basic_vertex ) );
+    m_vao->setup_attrib( *m_vertexbuffer, 2, 2, GL_FLOAT, sizeof( basic_vertex ), 6 * sizeof( float ) + offset * sizeof( basic_vertex ) );
+    m_vao->setup_attrib( *m_vertexbuffer, 3, 4, GL_FLOAT, sizeof( basic_vertex ), 8 * sizeof( float ) + offset * sizeof( basic_vertex ) );
 }
 
 // draw() subclass details
@@ -114,10 +121,9 @@ opengl33_vaogeometrybank::draw_( gfx::geometry_handle const &Geometry, gfx::stre
 	if( chunkrecord.vertex_count == 0 )
 		return 0;
 
-    m_vao->bind();
-
     auto const &chunk = gfx::geometry_bank::chunk( Geometry );
     if( false == chunkrecord.is_good ) {
+        m_vao->bind();
         // we may potentially need to upload new buffer data before we can draw it
         if( chunkrecord.index_count > 0 ) {
             m_indexbuffer->upload( gl::buffer::ELEMENT_ARRAY_BUFFER, chunk.indices.data(), chunkrecord.index_offset * sizeof( gfx::basic_index ), chunkrecord.index_count * sizeof( gfx::basic_index ) );
@@ -133,13 +139,25 @@ opengl33_vaogeometrybank::draw_( gfx::geometry_handle const &Geometry, gfx::stre
             chunkrecord.index_count, GL_UNSIGNED_INT, reinterpret_cast<void const *>( chunkrecord.index_offset * sizeof( gfx::basic_index ) ),
             chunkrecord.vertex_offset );
 */
-        ::glDrawRangeElementsBaseVertex(
-            chunk.type,
-            0, chunkrecord.vertex_count,
-            chunkrecord.index_count, GL_UNSIGNED_INT, reinterpret_cast<void const *>( chunkrecord.index_offset * sizeof( gfx::basic_index ) ),
-            chunkrecord.vertex_offset );
+        if (GLAD_GL_VERSION_3_3 || GLAD_GL_ES_VERSION_3_2) {
+            m_vao->bind();
+            ::glDrawRangeElementsBaseVertex(
+                chunk.type,
+                0, chunkrecord.vertex_count,
+                chunkrecord.index_count, GL_UNSIGNED_INT, reinterpret_cast<void const *>( chunkrecord.index_offset * sizeof( gfx::basic_index ) ),
+                chunkrecord.vertex_offset );
+        }
+        else {
+            setup_attrib(chunkrecord.vertex_offset);
+            m_vao->bind();
+            ::glDrawRangeElements(
+                chunk.type,
+                0, chunkrecord.vertex_count,
+                chunkrecord.index_count, GL_UNSIGNED_INT, reinterpret_cast<void const *>( chunkrecord.index_offset * sizeof( gfx::basic_index ) ) );
+        }
     }
     else {
+        m_vao->bind();
         ::glDrawArrays( chunk.type, chunkrecord.vertex_offset, chunkrecord.vertex_count );
     }
 /*

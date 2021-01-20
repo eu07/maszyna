@@ -58,6 +58,8 @@ private:
     void
         setup_buffer();
     void
+        setup_attrib(size_t offset = 0);
+    void
         delete_buffer();
 
 // members:
