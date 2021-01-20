@@ -22,7 +22,8 @@ include_directories("."
 "Console"
 "McZapkie"
 "gl"
-"ref/glad/include")
+"ref/glad/include"
+"ref/dds-ktx/include")
 
 file(GLOB HEADERS "*.h"
 "Console/*.h"
@@ -158,6 +159,7 @@ set(SOURCES
 "widgets/perfgraphs.cpp"
 
 "ref/glad/src/glad.c"
+"ref/dds-ktx/src/dds-ktx.c"
 
 "gl/shader.cpp"
 "gl/vao.cpp"

@@ -26,6 +26,7 @@ http://mozilla.org/MPL/2.0/.
 #include "flip-s3tc.h"
 #include "stb/stb_image.h"
 #include <png.h>
+#include "dds-ktx/dds-ktx.h"
 
 #define EU07_DEFERRED_TEXTURE_UPLOAD
 
@@ -34,6 +35,8 @@ GLint opengl_texture::m_activeunit = -1;
 
 std::unordered_map<GLint, int> opengl_texture::precompressed_formats =
 {
+    { GL_COMPRESSED_RGBA8_ETC2_EAC, 16 },
+    { GL_COMPRESSED_SRGB8_ALPHA8_ETC2_EAC, 16 },
     { GL_COMPRESSED_SRGB_ALPHA_S3TC_DXT1_EXT, 8 },
     { GL_COMPRESSED_SRGB_ALPHA_S3TC_DXT3_EXT, 16 },
     { GL_COMPRESSED_SRGB_ALPHA_S3TC_DXT5_EXT, 16 },
@@ -55,6 +58,12 @@ std::unordered_map<GLint, GLint> opengl_texture::drivercompressed_formats =
 std::unordered_map<GLint, std::unordered_map<GLint, GLint>> opengl_texture::mapping =
 {
     // image have,                         material wants, gl internalformat
+    { GL_COMPRESSED_RGBA8_ETC2_EAC    , { { GL_SRGB_ALPHA, GL_COMPRESSED_SRGB8_ALPHA8_ETC2_EAC },
+                                          { GL_SRGB,       GL_COMPRESSED_SRGB8_ALPHA8_ETC2_EAC },
+                                          { GL_RGBA,       GL_COMPRESSED_RGBA8_ETC2_EAC },
+                                          { GL_RGB,        GL_COMPRESSED_RGBA8_ETC2_EAC },
+                                          { GL_RG,         GL_COMPRESSED_RGBA8_ETC2_EAC },
+                                          { GL_RED,        GL_COMPRESSED_RGBA8_ETC2_EAC } } },
     { GL_COMPRESSED_RGBA_S3TC_DXT1_EXT, { { GL_SRGB_ALPHA, GL_COMPRESSED_SRGB_ALPHA_S3TC_DXT1_EXT },
                                           { GL_SRGB,       GL_COMPRESSED_SRGB_ALPHA_S3TC_DXT1_EXT },
                                           { GL_RGBA,       GL_COMPRESSED_RGBA_S3TC_DXT1_EXT },
@@ -109,21 +118,15 @@ texture_manager::texture_manager() {
 // required for GLES, on desktop GL it will be done by driver
 void opengl_texture::gles_match_internalformat(GLuint internalformat)
 {
+    // ignore compressed formats (and hope that GLES driver will support it)
+    if (precompressed_formats.find(internalformat) != precompressed_formats.end())
+        return;
+
     // don't care about sRGB here
     if (internalformat == GL_SRGB8)
         internalformat = GL_RGB8;
     if (internalformat == GL_SRGB8_ALPHA8)
         internalformat = GL_RGBA8;
-    if (internalformat == GL_COMPRESSED_SRGB_ALPHA_S3TC_DXT1_EXT)
-        internalformat = GL_COMPRESSED_RGBA_S3TC_DXT1_EXT;
-    if (internalformat == GL_COMPRESSED_SRGB_ALPHA_S3TC_DXT3_EXT)
-        internalformat = GL_COMPRESSED_RGBA_S3TC_DXT3_EXT;
-    if (internalformat == GL_COMPRESSED_SRGB_ALPHA_S3TC_DXT5_EXT)
-        internalformat = GL_COMPRESSED_RGBA_S3TC_DXT5_EXT;
-
-    // ignore compressed formats (and hope that GLES driver will support it)
-    if (precompressed_formats.find(internalformat) != precompressed_formats.end())
-        return;
 
     // we don't want BGR(A), reverse it
     if (data_format == GL_BGR)
@@ -250,6 +253,7 @@ opengl_texture::load() {
              if( type == ".dds" ) { load_DDS(); }
         else if( type == ".tga" ) { load_TGA(); }
         else if( type == ".png" ) { load_PNG(); }
+        else if( type == ".ktx" ) { load_KTX(); }
 		else if( type == ".bmp" ) { load_STBI(); }
 		else if( type == ".jpg" ) { load_STBI(); }
         else if( type == ".tex" ) { load_TEX(); }
@@ -590,6 +594,66 @@ opengl_texture::load_DDS() {
     data_state = resource_state::good;
 
     return;
+}
+
+void
+opengl_texture::load_KTX() {
+    std::ifstream file( name + type, std::ios::binary | std::ios::ate ); file.unsetf( std::ios::skipws );
+    std::size_t filesize = static_cast<size_t>(file.tellg());   // ios::ate already positioned us at the end of the file
+    file.seekg( 0, std::ios::beg ); // rewind the caret afterwards
+
+    std::vector<char> filecontent;
+    filecontent.resize(filesize);
+    file.read(filecontent.data(), filecontent.size());
+
+    ddsktx_texture_info info;
+    if (!ddsktx_parse(&info, filecontent.data(), filecontent.size(), nullptr)) {
+        ErrorLog("Bad texture: KTX parsing failed", logtype::texture);
+        data_state = resource_state::failed;
+        return;
+    }
+
+    if (info.format != DDSKTX_FORMAT_ETC2A) {
+        ErrorLog("Bad texture: currently unsupported KTX type", logtype::texture);
+        data_state = resource_state::failed;
+        return;
+    }
+
+    data_format = GL_COMPRESSED_RGBA8_ETC2_EAC;
+    data_components = GL_RGBA;
+    data_mapcount = info.num_mips;
+
+    bool started = false;
+
+    for (int level = 0; level < info.num_mips; level++) {
+        ddsktx_sub_data sub_data;
+        ddsktx_get_sub(&info, &sub_data, filecontent.data(), filecontent.size(), 0, 0, level);
+
+        if (!started) {
+            data_width = sub_data.width;
+            data_height = sub_data.height;
+
+            if( ( data_width > Global.CurrentMaxTextureSize ) || ( data_height > Global.CurrentMaxTextureSize ) ) {
+                data_mapcount--;
+                continue;
+            }
+
+            started = true;
+        }
+
+        size_t data_offset = data.size();
+        data.resize(data.size() + sub_data.size_bytes);
+        memcpy(data.data() + data_offset, sub_data.buff, sub_data.size_bytes);
+    }
+
+    if (!data_mapcount) {
+        // there's a chance we've discarded the provided mipmap(s) as too large
+        WriteLog( "Texture \"" + name + "\" has no mipmaps which can fit currently set texture pixelcount limits." );
+        data_state = resource_state::failed;
+        return;
+    }
+
+    data_state = resource_state::good;
 }
 
 void
@@ -1403,7 +1467,7 @@ texture_manager::find_on_disk( std::string const &Texturename ) const {
     return (
         FileExists(
             filenames,
-	        { ".dds", ".tga", ".png", ".bmp", ".jpg", ".tex" } ) );
+            { ".dds", ".tga", ".ktx", ".png", ".bmp", ".jpg", ".tex" } ) );
 }
 
 //---------------------------------------------------------------------------

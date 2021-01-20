@@ -16,10 +16,10 @@ http://mozilla.org/MPL/2.0/.
 #include "gl/ubo.h"
 
 struct opengl_texture {
-	static DDSURFACEDESC2 deserialize_ddsd(std::istream&);
-	static DDCOLORKEY deserialize_ddck(std::istream&);
-	static DDPIXELFORMAT deserialize_ddpf(std::istream&);
-	static DDSCAPS2 deserialize_ddscaps(std::istream&);
+    static DDSURFACEDESC2 deserialize_ddsd(std::istream&);
+    static DDCOLORKEY deserialize_ddck(std::istream&);
+    static DDPIXELFORMAT deserialize_ddpf(std::istream&);
+    static DDSCAPS2 deserialize_ddscaps(std::istream&);
 
 // constructors
     opengl_texture() = default;
@@ -68,17 +68,18 @@ struct opengl_texture {
     std::size_t size{ 0 }; // size of the texture data, in kb
     GLint components_hint = 0; // components that material wants
 
-	GLenum target = GL_TEXTURE_2D;
+    GLenum target = GL_TEXTURE_2D;
     static std::array<GLuint, gl::MAX_TEXTURES + gl::HELPER_TEXTURES> units;
     static GLint m_activeunit;
 
 private:
 // methods
-	void make_request();
-	void load_PNG();
+    void make_request();
+    void load_PNG();
     void load_DDS();
+    void load_KTX();
     void load_TEX();
-	void load_STBI();
+    void load_STBI();
     void load_TGA();
     void set_filtering() const;
     void downsize( GLuint const Format );
@@ -99,8 +100,8 @@ private:
     GLint data_format{ 0 },
         data_components{ 0 };
     GLint data_type = GL_UNSIGNED_BYTE;
-	GLint wrap_mode_s = GL_REPEAT;
-	GLint wrap_mode_t = GL_REPEAT;
+    GLint wrap_mode_s = GL_REPEAT;
+    GLint wrap_mode_t = GL_REPEAT;
 /*
     std::atomic<bool> is_loaded{ false }; // indicates the texture data was loaded and can be processed
     std::atomic<bool> is_good{ false }; // indicates the texture data was retrieved without errors
