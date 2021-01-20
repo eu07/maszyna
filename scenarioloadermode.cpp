@@ -42,6 +42,7 @@ scenarioloader_mode::update() {
 
 	if (!state) {
 		WriteLog("using simulation seed: " + std::to_string(Global.random_seed), logtype::generic);
+        WriteLog("using simulation starting timestamp: " + std::to_string(Global.starting_timestamp), logtype::generic);
 
         Application.set_title( Global.AppName + " (" + Global.SceneryFile + ")" );
         WriteLog( "\nLoading scenario \"" + Global.SceneryFile + "\"..." );

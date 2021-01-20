@@ -229,6 +229,7 @@ gl::shader::shader(const std::string &filename)
 			str += "#version 300 es\n";
 		}
         str += "precision highp float;\n";
+        str += "precision highp int;\n";
         str += "precision highp sampler2DShadow;\n";
     }
     str += "vec4 FBOUT(vec4 x) { return " + (Global.gfx_shadergamma ? std::string("vec4(pow(x.rgb, vec3(1.0 / 2.2)), x.a)") : std::string("x")) + "; }\n";
