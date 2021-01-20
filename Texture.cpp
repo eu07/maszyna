@@ -1059,7 +1059,7 @@ opengl_texture::alloc_rendertarget( GLint format, GLint components, int width, i
     wrap_mode_s = wrap;
     wrap_mode_t = wrap;
     samples = s;
-    if( Global.gfx_usegles && !glTexStorage2DMultisample ) {
+    if( Global.gfx_usegles && !GLAD_GL_ES_VERSION_3_1 ) {
         samples = 1;
     }
     layers = l;
