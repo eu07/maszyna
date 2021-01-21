@@ -17,18 +17,19 @@ std::string gl::shader::read_file(const std::string &filename)
 {
     std::stringstream stream;
     std::ifstream f;
-    f.exceptions(std::ifstream::badbit);
 
-    f.open("shaders/" + filename);
+    f.open(filename);
     stream << f.rdbuf();
     f.close();
 
     std::string str = stream.str();
+    if (str.empty())
+        throw shader_exception("cannot read shader: " + filename);
 
     return str;
 }
 
-void gl::shader::expand_includes(std::string &str)
+void gl::shader::expand_includes(std::string &str, const std::string &basedir)
 {
     size_t start_pos = 0;
 
@@ -43,7 +44,7 @@ void gl::shader::expand_includes(std::string &str)
         std::string filename = str.substr(fp + 1, fe - fp - 1);
         std::string content;
         if (filename != "common")
-            content = read_file(filename);
+            content = read_file(basedir + filename);
         else
             content = glsl_common;
 
@@ -73,11 +74,47 @@ std::unordered_map<std::string, gl::shader::defaultparam_e> gl::shader::defaultp
     { "glossiness", defaultparam_e::glossiness }
 };
 
-void gl::shader::process_source(std::string &str)
+std::pair<GLuint, std::string> gl::shader::process_source(const std::string &filename, const std::string &basedir)
 {
-    expand_includes(str);
+    std::string str;
+
+    GLuint type;
+    if (strcend(filename, ".vert"))
+        type = GL_VERTEX_SHADER;
+    else if (strcend(filename, ".frag"))
+        type = GL_FRAGMENT_SHADER;
+    else if (strcend(filename, ".geom"))
+        type = GL_GEOMETRY_SHADER;
+    else
+        throw shader_exception("unknown shader " + filename);
+
+    if (!Global.gfx_usegles)
+    {
+        str += "#version 330 core\n";
+    }
+    else
+    {
+        if (GLAD_GL_ES_VERSION_3_1) {
+            str += "#version 310 es\n";
+            if (type == GL_GEOMETRY_SHADER)
+                str += "#extension GL_EXT_geometry_shader : require\n";
+        } else {
+            str += "#version 300 es\n";
+        }
+        str += "precision highp float;\n";
+        str += "precision highp int;\n";
+        str += "precision highp sampler2DShadow;\n";
+        str += "precision highp sampler2DArrayShadow;\n";
+    }
+    str += "vec4 FBOUT(vec4 x) { return " + (Global.gfx_shadergamma ? std::string("vec4(pow(x.rgb, vec3(1.0 / 2.2)), x.a)") : std::string("x")) + "; }\n";
+
+    str += read_file(basedir + filename);
+
+    expand_includes(str, basedir);
     parse_texture_entries(str);
     parse_param_entries(str);
+
+    return std::make_pair(type, str);
 }
 
 void gl::shader::parse_texture_entries(std::string &str)
@@ -204,46 +241,11 @@ gl::shader::shader(const std::string &filename)
 {
     name = filename;
 
-	GLuint type;
-	if (strcend(filename, ".vert"))
-		type = GL_VERTEX_SHADER;
-	else if (strcend(filename, ".frag"))
-		type = GL_FRAGMENT_SHADER;
-	else if (strcend(filename, ".geom"))
-		type = GL_GEOMETRY_SHADER;
-	else
-		throw shader_exception("unknown shader " + filename);
+    std::pair<GLuint, std::string> source = process_source(filename, "shaders/");
 
-    std::string str;
-    if (!Global.gfx_usegles)
-    {
-        str += "#version 330 core\n";
-    }
-    else
-    {
-		if (GLAD_GL_ES_VERSION_3_1) {
-			str += "#version 310 es\n";
-			if (type == GL_GEOMETRY_SHADER)
-				str += "#extension GL_EXT_geometry_shader : require\n";
-		} else {
-			str += "#version 300 es\n";
-		}
-        str += "precision highp float;\n";
-        str += "precision highp int;\n";
-        str += "precision highp sampler2DShadow;\n";
-        str += "precision highp sampler2DArrayShadow;\n";
-    }
-    str += "vec4 FBOUT(vec4 x) { return " + (Global.gfx_shadergamma ? std::string("vec4(pow(x.rgb, vec3(1.0 / 2.2)), x.a)") : std::string("x")) + "; }\n";
+    const GLchar *cstr = source.second.c_str();
 
-    str += read_file(filename);
-    process_source(str);
-
-    const GLchar *cstr = str.c_str();
-
-    if (!cstr[0])
-        throw shader_exception("cannot read shader: " + filename);
-
-    **this = glCreateShader(type);
+    **this = glCreateShader(source.first);
     glShaderSource(*this, 1, &cstr, 0);
     glCompileShader(*this);
 
@@ -253,7 +255,7 @@ gl::shader::shader(const std::string &filename)
     {
         GLchar info[512];
         glGetShaderInfoLog(*this, 512, 0, info);
-        std::cerr << std::string(info) << std::endl;
+        log_error(std::string(info));
 
         throw shader_exception("failed to compile " + filename + ": " + std::string(info));
     }
@@ -261,7 +263,9 @@ gl::shader::shader(const std::string &filename)
 
 gl::shader::~shader()
 {
+#ifndef SHADERVALIDATOR_STANDALONE
     glDeleteShader(*this);
+#endif
 }
 
 void gl::program::init()

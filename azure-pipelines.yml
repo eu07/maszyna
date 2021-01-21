@@ -1,4 +1,25 @@
 jobs:
+  - job: validateshaders
+    pool:
+      vmImage: 'ubuntu-20.04'
+    displayName: 'Validate shaders'
+    steps:
+    - script: |
+        sudo apt-get update -y
+        sudo apt-get install -y glslang-tools
+        cd ci_shadervalidator
+        ./build.sh
+      displayName: 'Install dependencies'
+    - script: |
+        cd ci_shadervalidator
+        ./validateshaders
+      displayName: 'Validate shaders'
+    - task: PublishBuildArtifacts@1
+      inputs:
+        pathtoPublish: 'shaders'
+        artifactName: shaders
+      displayName: 'Publish shaders'
+
   - job: ubuntu1604
     pool:
       vmImage: 'Ubuntu-16.04'
@@ -12,7 +33,7 @@ jobs:
         sudo update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-8 100
         sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-8 100
         cd ref
-        git clone "https://github.com/chriskohlhoff/asio" --depth 1 --branch asio-1-16-1 -q
+        git clone "https://github.com/chriskohlhoff/asio" --depth 1 --branch asio-1-12-2 -q
       displayName: 'Install dependencies'
     - script: |
         mkdir build
@@ -123,11 +144,6 @@ jobs:
       vmImage: 'vs2017-win2016'
     displayName: 'Windows VS2017 Debug'
     steps:
-    - task: PublishBuildArtifacts@1
-      inputs:
-        pathtoPublish: 'shaders'
-        artifactName: shaders
-      displayName: 'Publish shaders'
     - script: |
         cd ref
         git clone "https://github.com/chriskohlhoff/asio" --depth 1 --branch asio-1-12-2 -q

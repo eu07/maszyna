@@ -74,3 +74,5 @@ builds/
 
 CMakeLists.txt.user
 version_info.h
+
+ci_shadervalidator/validateshaders

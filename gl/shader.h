@@ -3,6 +3,7 @@
 #include <string>
 #include <vector>
 #include <functional>
+#include <unordered_map>
 
 #include "object.h"
 #include "bindable.h"
@@ -17,6 +18,9 @@ namespace gl
     class shader : public object
     {
     public:
+#ifdef SHADERVALIDATOR_STANDALONE
+        shader() = default;
+#endif
         shader(const std::string &filename);
         ~shader();
 
@@ -60,10 +64,12 @@ namespace gl
         std::unordered_map<std::string, param_entry> param_conf;
         std::string name;
 
+#ifndef SHADERVALIDATOR_STANDALONE
     private:
-        void process_source(std::string &str);
+#endif
+        std::pair<GLuint, std::string> process_source(const std::string &filename, const std::string &basedir);
 
-        void expand_includes(std::string &str);
+        void expand_includes(std::string &str, const std::string &basedir);
         void parse_texture_entries(std::string &str);
         void parse_param_entries(std::string &str);
 
