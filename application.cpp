@@ -1,4 +1,4 @@
-﻿/*
+/*
 This Source Code Form is subject to the
 terms of the Mozilla Public License, v.
 2.0. If a copy of the MPL was not
@@ -69,13 +69,16 @@ void focus_callback( GLFWwindow *window, int focus ) {
 void window_resize_callback( GLFWwindow *window, int w, int h ) {
     // NOTE: we have two variables which basically do the same thing as we don't have dynamic fullscreen toggle
     // TBD, TODO: merge them?
+#if GLFW_VERSION_MAJOR > 3 || (GLFW_VERSION_MAJOR == 3 && GLFW_VERSION_MINOR >= 3)
+    glfwGetWindowContentScale(window, &Global.fWindowXScale, &Global.fWindowYScale);
+#endif
     Global.iWindowWidth = w;
 	Global.iWindowHeight = h;
     glViewport( 0, 0, w, h );
 }
 
 void cursor_pos_callback( GLFWwindow *window, double x, double y ) {
-    Application.on_cursor_pos( x, y );
+    Application.on_cursor_pos( x * Global.fWindowXScale, y * Global.fWindowXScale);
 }
 
 void mouse_button_callback( GLFWwindow* window, int button, int action, int mods )
@@ -483,7 +486,7 @@ eu07_application::set_cursor( int const Mode ) {
 void
 eu07_application::set_cursor_pos( double const Horizontal, double const Vertical ) {
 
-    glfwSetCursorPos( m_windows.front(), Horizontal, Vertical );
+    glfwSetCursorPos( m_windows.front(), Horizontal / Global.fWindowXScale, Vertical / Global.fWindowYScale);
 }
 
 glm::dvec2
@@ -493,6 +496,9 @@ eu07_application::get_cursor_pos() const {
     if( !m_windows.empty() ) {
         glfwGetCursorPos( m_windows.front(), &pos.x, &pos.y );
     }
+
+    pos.x *= Global.fWindowXScale;
+    pos.y *= Global.fWindowYScale;
     return pos;
 }
 
@@ -500,6 +506,9 @@ void
 eu07_application::get_cursor_pos( double &Horizontal, double &Vertical ) const {
 
     glfwGetCursorPos( m_windows.front(), &Horizontal, &Vertical );
+
+    Horizontal *= Global.fWindowXScale;
+    Vertical   *= Global.fWindowYScale;
 }
 
 /*

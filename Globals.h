@@ -113,6 +113,8 @@ struct global_settings {
     // gfx
     int iWindowWidth{ 800 };
     int iWindowHeight{ 600 };
+    float fWindowXScale { 1.0f };
+    float fWindowYScale { 1.0f };
     float fDistanceFactor{ 1.f }; // baza do przeliczania odległości dla LoD
     float targetfps{ 0.0f };
     bool bFullScreen{ false };
