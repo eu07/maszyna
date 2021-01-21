@@ -772,8 +772,12 @@ eu07_application::init_glfw() {
         Global.bUseVBO = true;
         // activate core profile for opengl 3.3 renderer
         if( !Global.gfx_usegles ) {
+#ifndef EU07_USEIMGUIIMPLOPENGL2
             glfwWindowHint( GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE );
-            glfwWindowHint( GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE );
+            glfwWindowHint( GLFW_OPENGL_FORWARD_COMPAT, GLFW_TRUE );
+#else
+            glfwWindowHint( GLFW_OPENGL_PROFILE, GLFW_OPENGL_COMPAT_PROFILE );
+#endif
             glfwWindowHint( GLFW_CONTEXT_VERSION_MAJOR, 3 );
             glfwWindowHint( GLFW_CONTEXT_VERSION_MINOR, 3 );
         }
@@ -796,6 +800,9 @@ eu07_application::init_glfw() {
         glfwWindowHint( GLFW_CONTEXT_VERSION_MAJOR, 2 );
 #endif
     }
+
+    if (Global.gfx_gldebug)
+        glfwWindowHint( GLFW_OPENGL_DEBUG_CONTEXT, GLFW_TRUE );
 
     glfwWindowHint(GLFW_SRGB_CAPABLE, !Global.gfx_shadergamma);
 

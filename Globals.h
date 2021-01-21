@@ -253,6 +253,7 @@ struct global_settings {
     bool gfx_shadergamma = false;
     bool gfx_usegles = false;
     std::string gfx_angleplatform;
+    bool gfx_gldebug = false;
     bool vr = false;
     std::string vr_backend;
 

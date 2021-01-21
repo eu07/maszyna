@@ -55,15 +55,14 @@ ErrorCallback( GLenum source, GLenum type, GLuint id, GLenum severity, GLsizei l
 
 bool opengl33_renderer::Init(GLFWwindow *Window)
 {
-#ifdef EU07_DEBUG_OPENGL
-    if( GLAD_GL_KHR_debug ) {
+    if (Global.gfx_gldebug && GLAD_GL_KHR_debug) {
         glEnable( GL_DEBUG_OUTPUT );
         glEnable( GL_DEBUG_OUTPUT_SYNCHRONOUS );
         glDebugMessageControl( GL_DONT_CARE, GL_DONT_CARE, GL_DEBUG_SEVERITY_NOTIFICATION, 0, nullptr, GL_FALSE );
         glDebugMessageControl( GL_DONT_CARE, GL_DEBUG_TYPE_PERFORMANCE, GL_DONT_CARE, 0, nullptr, GL_FALSE );
         glDebugMessageCallback( ErrorCallback, 0 );
     }
-#endif
+
 	if (!Init_caps())
 		return false;
 
@@ -4432,8 +4431,8 @@ void opengl33_renderer::Update(double const Deltatime)
         Pick_Node_Callback([](scene::basic_node *) {});
 
 	// dump last opengl error, if any
-	auto const glerror = ::glGetError();
-	if (glerror != GL_NO_ERROR)
+    int glerror;
+    while ((glerror = glGetError()) != GL_NO_ERROR)
 	{
 		std::string glerrorstring;
 		if (glerror == GL_INVALID_ENUM)
