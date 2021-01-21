@@ -120,6 +120,7 @@ private:
     mode_stack m_modestack; // current behaviour mode
     python_taskqueue m_taskqueue;
     std::vector<GLFWwindow *> m_windows;
+    int m_glfwversion;
 
 	std::optional<network::manager> m_network;
     std::optional<headtrack> m_headtrack;

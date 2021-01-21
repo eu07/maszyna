@@ -878,6 +878,11 @@ global_settings::ConfigParse(cParser &Parser) {
             Parser.getTokens(1);
             Parser >> gfx_usegles;
         }
+        else if (token == "gfx.angleplatform")
+        {
+            Parser.getTokens(1);
+            Parser >> gfx_angleplatform;
+        }
         else if (token == "gfx.shadergamma")
         {
             Parser.getTokens(1);
