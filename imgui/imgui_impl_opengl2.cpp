@@ -31,25 +31,8 @@
 
 #include "imgui.h"
 #include "imgui_impl_opengl2.h"
-#if defined(_MSC_VER) && _MSC_VER <= 1500 // MSVC 2008 or earlier
-#include <stddef.h>     // intptr_t
-#else
-#include <stdint.h>     // intptr_t
-#endif
 
-// Include OpenGL header (without an OpenGL loader) requires a bit of fiddling
-#if defined(_WIN32) && !defined(APIENTRY)
-#define APIENTRY __stdcall                  // It is customary to use APIENTRY for OpenGL function pointer declarations on all platforms.  Additionally, the Windows OpenGL header needs APIENTRY.
-#endif
-#if defined(_WIN32) && !defined(WINGDIAPI)
-#define WINGDIAPI __declspec(dllimport)     // Some Windows OpenGL headers need this
-#endif
-#if defined(__APPLE__)
-#define GL_SILENCE_DEPRECATION
-#include <OpenGL/gl.h>
-#else
-#include <GL/gl.h>
-#endif
+#include <glad/glad.h>  // Needs to be initialized with gladLoadGL() in user's code
 
 // OpenGL Data
 static GLuint       g_FontTexture = 0;
