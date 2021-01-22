@@ -133,7 +133,7 @@ opengl33_vaogeometrybank::draw_( gfx::geometry_handle const &Geometry, gfx::stre
     }
     // render
     if( chunkrecord.index_count > 0 ) {
-        if (GLAD_GL_VERSION_3_3 || GLAD_GL_ES_VERSION_3_2) {
+        if (glDrawRangeElementsBaseVertex) {
             m_vao->bind();
             ::glDrawRangeElementsBaseVertex(
                 chunk.type,
@@ -141,7 +141,7 @@ opengl33_vaogeometrybank::draw_( gfx::geometry_handle const &Geometry, gfx::stre
                 chunkrecord.index_count, GL_UNSIGNED_INT, reinterpret_cast<void const *>( chunkrecord.index_offset * sizeof( gfx::basic_index ) ),
                 chunkrecord.vertex_offset );
         }
-        else if (GLAD_GL_OES_draw_elements_base_vertex) {
+        else if (glDrawElementsBaseVertexOES) {
             m_vao->bind();
             ::glDrawElementsBaseVertexOES(
                 chunk.type,

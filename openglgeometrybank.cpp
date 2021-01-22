@@ -83,7 +83,7 @@ opengl_vbogeometrybank::draw_( gfx::geometry_handle const &Geometry, gfx::stream
             chunkrecord.index_count, GL_UNSIGNED_INT, reinterpret_cast<void const *>( chunkrecord.index_offset * sizeof( gfx::basic_index ) ),
             chunkrecord.vertex_offset );
 */
-        if (GLAD_GL_VERSION_3_2 || GLAD_GL_ARB_draw_elements_base_vertex) {
+        if (glDrawRangeElementsBaseVertex) {
             if( m_activestreams != Streams ) {
                 bind_streams( Units, Streams );
             }
