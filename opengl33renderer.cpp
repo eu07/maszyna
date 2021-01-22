@@ -670,8 +670,13 @@ void opengl33_renderer::Render_pass(viewport_config &vp, rendermode const Mode)
 			gl::framebuffer::unbind();
             glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
 			glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-			if (vp.main)
+            if (vp.main) {
+                // clear state for ui
+                gl::vao::unbind();
+                gl::buffer::unbind();
+                gl::program::unbind();
 				Application.render_ui();
+            }
 			break;
 		}
 
@@ -938,6 +943,10 @@ void opengl33_renderer::Render_pass(viewport_config &vp, rendermode const Mode)
 		Timer::subsystem.gfx_gui.start();
 
         if (vp.main) {
+            // clear state for ui
+            gl::vao::unbind();
+            gl::buffer::unbind();
+            gl::program::unbind();
 			draw_debug_ui();
 			Application.render_ui();
 		}

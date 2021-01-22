@@ -339,6 +339,9 @@ opengl_renderer::Render() {
     setup_units( true, false, false );
     ::glPushClientAttrib( GL_CLIENT_VERTEX_ARRAY_BIT );
     ::glClientActiveTexture( GL_TEXTURE0 + m_diffusetextureunit );
+
+    // clear state for ui
+    ::glBindBuffer( GL_ELEMENT_ARRAY_BUFFER, 0 );
     ::glBindBuffer( GL_ARRAY_BUFFER, 0 );
     Application.render_ui();
     ::glPopClientAttrib();

@@ -782,6 +782,10 @@ eu07_application::init_glfw() {
             glfwWindowHint( GLFW_CONTEXT_VERSION_MINOR, 3 );
         }
         else {
+#ifdef EU07_USEIMGUIIMPLOPENGL2
+            ErrorLog("gles not supported in imgui gl2 build");
+            return -1;
+#endif
 #ifdef GLFW_CONTEXT_CREATION_API
             if (m_glfwversion >= 30200)
                 glfwWindowHint( GLFW_CONTEXT_CREATION_API, GLFW_EGL_CONTEXT_API );
@@ -791,6 +795,10 @@ eu07_application::init_glfw() {
             glfwWindowHint( GLFW_CONTEXT_VERSION_MINOR, 0 );
         }
     } else {
+        if (Global.gfx_usegles) {
+            ErrorLog("legacy renderer not supported in gles mode");
+            return -1;
+        }
         Global.gfx_shadergamma = false;
         glfwWindowHint( GLFW_OPENGL_PROFILE, GLFW_OPENGL_ANY_PROFILE );
         glfwWindowHint( GLFW_CONTEXT_VERSION_MINOR, 0 );
