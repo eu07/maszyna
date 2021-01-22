@@ -1004,6 +1004,10 @@ opengl_texture::create( bool const Static ) {
 
             auto blocksize_it = precompressed_formats.find(internal_format);
 
+            if ( data_mapcount == 1 && !glGenerateMipmap ) {
+                glTexParameteri(target, GL_GENERATE_MIPMAP, GL_TRUE);
+            }
+
             for( int maplevel = 0; maplevel < data_mapcount; ++maplevel ) {
 
                 if (blocksize_it != precompressed_formats.end())
@@ -1034,8 +1038,7 @@ opengl_texture::create( bool const Static ) {
                 }
             }
 
-            if( data_mapcount == 1 ) {
-                // fill missing mipmaps if needed
+            if ( data_mapcount == 1 && glGenerateMipmap ) {
                 glGenerateMipmap(target);
             }
 
