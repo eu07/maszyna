@@ -286,13 +286,13 @@ void gl::program::init()
 	GLuint index;
 
 	if ((index = glGetUniformBlockIndex(*this, "scene_ubo")) != GL_INVALID_INDEX)
-		glUniformBlockBinding(*this, 0, index);
+		glUniformBlockBinding(*this, index, 0);
 
 	if ((index = glGetUniformBlockIndex(*this, "model_ubo")) != GL_INVALID_INDEX)
-		glUniformBlockBinding(*this, 1, index);
+		glUniformBlockBinding(*this, index, 1);
 
 	if ((index = glGetUniformBlockIndex(*this, "light_ubo")) != GL_INVALID_INDEX)
-		glUniformBlockBinding(*this, 2, index);
+		glUniformBlockBinding(*this, index, 2);
 }
 
 gl::program::program()
