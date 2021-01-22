@@ -75,9 +75,6 @@ opengl_vbogeometrybank::draw_( gfx::geometry_handle const &Geometry, gfx::stream
             chunk.vertices.data() );
         chunkrecord.is_good = true;
     }
-    if( m_activestreams != Streams ) {
-        bind_streams( Units, Streams );
-    }
     // ...render...
     if( chunkrecord.index_count > 0 ) {
 /*
@@ -86,13 +83,28 @@ opengl_vbogeometrybank::draw_( gfx::geometry_handle const &Geometry, gfx::stream
             chunkrecord.index_count, GL_UNSIGNED_INT, reinterpret_cast<void const *>( chunkrecord.index_offset * sizeof( gfx::basic_index ) ),
             chunkrecord.vertex_offset );
 */
-        ::glDrawRangeElementsBaseVertex(
-            chunk.type,
-            0, chunkrecord.vertex_count,
-            chunkrecord.index_count, GL_UNSIGNED_INT, reinterpret_cast<void const *>( chunkrecord.index_offset * sizeof( gfx::basic_index ) ),
-            chunkrecord.vertex_offset );
+        if (GLAD_GL_VERSION_3_2 || GLAD_GL_ARB_draw_elements_base_vertex) {
+            if( m_activestreams != Streams ) {
+                bind_streams( Units, Streams );
+            }
+            ::glDrawRangeElementsBaseVertex(
+                chunk.type,
+                0, chunkrecord.vertex_count,
+                chunkrecord.index_count, GL_UNSIGNED_INT, reinterpret_cast<void const *>( chunkrecord.index_offset * sizeof( gfx::basic_index ) ),
+                chunkrecord.vertex_offset );
+        }
+        else {
+            bind_streams( Units, Streams, chunkrecord.vertex_offset );
+            ::glDrawRangeElements(
+                chunk.type,
+                0, chunkrecord.vertex_count,
+                chunkrecord.index_count, GL_UNSIGNED_INT, reinterpret_cast<void const *>( chunkrecord.index_offset * sizeof( gfx::basic_index ) ) );
+        }
     }
     else {
+        if( m_activestreams != Streams ) {
+            bind_streams( Units, Streams );
+        }
         ::glDrawArrays( chunk.type, chunkrecord.vertex_offset, chunkrecord.vertex_count );
     }
     // ...post-render cleanup
@@ -211,10 +223,10 @@ opengl_vbogeometrybank::delete_buffer() {
 }
 
 void
-opengl_vbogeometrybank::bind_streams( gfx::stream_units const &Units, unsigned int const Streams ) {
+opengl_vbogeometrybank::bind_streams( gfx::stream_units const &Units, unsigned int const Streams, size_t offset ) {
 
     if( Streams & gfx::stream::position ) {
-        ::glVertexPointer( 3, GL_FLOAT, sizeof( gfx::basic_vertex ), reinterpret_cast<void const *>( 0 ) );
+        ::glVertexPointer( 3, GL_FLOAT, sizeof( gfx::basic_vertex ), reinterpret_cast<void const *>( sizeof( gfx::basic_vertex ) * offset ) );
         ::glEnableClientState( GL_VERTEX_ARRAY );
     }
     else {
@@ -222,14 +234,14 @@ opengl_vbogeometrybank::bind_streams( gfx::stream_units const &Units, unsigned i
     }
     // NOTE: normal and color streams share the data, making them effectively mutually exclusive
     if( Streams & gfx::stream::normal ) {
-        ::glNormalPointer( GL_FLOAT, sizeof( gfx::basic_vertex ), reinterpret_cast<void const *>( 12 ) );
+        ::glNormalPointer( GL_FLOAT, sizeof( gfx::basic_vertex ), reinterpret_cast<void const *>( 12 + sizeof( gfx::basic_vertex ) * offset ) );
         ::glEnableClientState( GL_NORMAL_ARRAY );
     }
     else {
         ::glDisableClientState( GL_NORMAL_ARRAY );
     }
     if( Streams & gfx::stream::color ) {
-        ::glColorPointer( 3, GL_FLOAT, sizeof( gfx::basic_vertex ), reinterpret_cast<void const *>( 12 ) );
+        ::glColorPointer( 3, GL_FLOAT, sizeof( gfx::basic_vertex ), reinterpret_cast<void const *>( 12 + sizeof( gfx::basic_vertex ) * offset ) );
         ::glEnableClientState( GL_COLOR_ARRAY );
     }
     else {
@@ -238,7 +250,7 @@ opengl_vbogeometrybank::bind_streams( gfx::stream_units const &Units, unsigned i
     if( Streams & gfx::stream::texture ) {
         for( auto unit : Units.texture ) {
             ::glClientActiveTexture( GL_TEXTURE0 + unit );
-            ::glTexCoordPointer( 2, GL_FLOAT, sizeof( gfx::basic_vertex ), reinterpret_cast<void const *>( 24 ) );
+            ::glTexCoordPointer( 2, GL_FLOAT, sizeof( gfx::basic_vertex ), reinterpret_cast<void const *>( 24 + sizeof( gfx::basic_vertex ) * offset ) );
             ::glEnableClientState( GL_TEXTURE_COORD_ARRAY );
         }
         m_activetexturearrays = Units.texture;

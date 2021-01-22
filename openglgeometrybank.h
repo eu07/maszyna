@@ -63,7 +63,7 @@ private:
         delete_buffer();
     static
     void
-        bind_streams( gfx::stream_units const &Units, unsigned int const Streams );
+        bind_streams(gfx::stream_units const &Units, unsigned int const Streams , size_t offset = 0);
     static
     void
         release_streams();
