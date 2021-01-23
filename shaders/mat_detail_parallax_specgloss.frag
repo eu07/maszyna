@@ -67,13 +67,13 @@ void main()
 	normaldetail.xy = detailnormal_map.rg* 2.0 - 1.0;
 	normaldetail.z = sqrt(1.0 - clamp((dot(normaldetail.xy, normaldetail.xy)), 0.0, 1.0));
 	normaldetail.xyz = normaldetail.xyz * param[2].y;
-	normal.xy =       normal_map.rg* 2.0 - 1.0;
+	normal.xy = normal_map.rg* 2.0 - 1.0;
 	normal.z = sqrt(1.0 - clamp((dot(normal.xy, normal.xy)), 0.0, 1.0));
 	
 	vec3 fragnormal = normalize(f_tbn * normalize(vec3(normal.xy + normaldetail.xy, normal.z)));
 	float reflectivity = param[1].z * normal_map.a;
 	float specularity = specgloss_map.r;
-	glossiness = specgloss_map.g * abs(param[1].w);
+	float glossiness = specgloss_map.g * abs(param[1].w);
 	float metalic = specgloss_map.b;
 	
 	fragcolor = apply_lights(fragcolor, fragnormal, tex_color.rgb, reflectivity, specularity, shadow_tone);
@@ -127,7 +127,7 @@ vec2 ParallaxMapping(vec2 f_coord, vec3 viewDir)
 	vec2 prevTexCoords = currentTexCoords + deltaTexCoords; // get texture coordinates before collision (reverse operations)
 
 	float afterDepth  = currentDepthMapValue - currentLayerDepth; // get depth after and before collision for linear interpolation
-	float beforeDepth = texture(normalmap, currentTexCoords).b; - currentLayerDepth + layerDepth;
+	float beforeDepth = texture(normalmap, prevTexCoords).b - currentLayerDepth + layerDepth;
 	 
 	float weight = afterDepth / (afterDepth - beforeDepth); // interpolation of texture coordinates
 	vec2 finalTexCoords = prevTexCoords * weight + currentTexCoords * (1.0 - weight);
