@@ -4974,9 +4974,8 @@ void TDynamicObject::LoadMMediaFile( std::string const &TypeName, std::string co
                         { //++iAnimatedAxles;
                             pAnimations[i].smAnimated->WillBeAnimated(); // wyłączenie optymalizacji transformu
 							pAnimations[i].yUpdate = std::bind( &TDynamicObject::UpdateAxle, this, std::placeholders::_1 );
-                            pAnimations[i].fMaxDist = 50 * MoverParameters->WheelDiameter; // nie kręcić w większej odległości
-                            pAnimations[i].fMaxDist *= pAnimations[i].fMaxDist * MoverParameters->WheelDiameter; // 50m do kwadratu, a średnica do trzeciej
-                            pAnimations[i].fMaxDist *= Global.fDistanceFactor; // współczynnik przeliczeniowy jakości ekranu
+							pAnimations[i].fMaxDist = Global.fDistanceFactor * MoverParameters->WheelDiameter * 200;
+							pAnimations[i].fMaxDist *= pAnimations[i].fMaxDist;
                         }
                     }
                     // Ra: ustawianie indeksów osi
