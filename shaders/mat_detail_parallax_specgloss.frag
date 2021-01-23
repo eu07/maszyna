@@ -134,7 +134,7 @@ vec2 ParallaxMapping(vec2 f_coord, vec3 viewDir)
 
 	return finalTexCoords;
 #else
-	float height = normal_map.b;
+	float height = texture(normalmap, f_coord).b;
 	vec2 p = viewDir.xy / viewDir.z * (height * (param[2].z - param[2].w) * 0.2);
 	return f_coord - p;
 #endif
