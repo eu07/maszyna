@@ -32,7 +32,7 @@ float calc_shadow()
 	//basic
 //	shadow = texture(shadowmap, coords.xyz + vec3(0.0, 0.0, bias));
 	//PCF
-	float bias = 0.00005f * (cascade + 1U);
+	float bias = 0.00005f * float(cascade + 1U);
 	vec2 texel = vec2(1.0) / vec2(textureSize(shadowmap, 0));
 	float radius = 1.0;
 	for (float y = -1.5; y <= 1.5; y += 1.0)
