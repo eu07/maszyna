@@ -266,7 +266,7 @@ basic_event::event_conditions::export_as_text( std::ostream &Output ) const {
         }
         if( ( flags & flags::probability ) != 0 ) {
             Output
-                << "propability "
+                << "probability "
                 << probability << ' ';
         }
         if( ( flags & ( flags::text | flags::value1 | flags::value2 ) ) != 0 ) {
