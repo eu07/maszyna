@@ -4199,12 +4199,7 @@ void opengl33_renderer::Update_Pick_Control()
 		unsigned char pickreadout[4];
 		if (m_picking_pbo->read_data(1, 1, pickreadout))
 		{
-			glm::ivec3 readout{pickreadout[0], pickreadout[1], pickreadout[2]};
-
-			if (DebugModeFlag)
-				WriteLog("cab pick pixel: " + glm::to_string(readout));
-
-			auto const controlindex = pick_index(readout);
+			auto const controlindex = pick_index(glm::ivec3{pickreadout[0], pickreadout[1], pickreadout[2]});
 			TSubModel const *control{nullptr};
             glm::vec2 position(0.0f);
             if ((controlindex > 0) && (controlindex <= m_pickcontrolsitems.size())) {
@@ -4249,12 +4244,7 @@ void opengl33_renderer::Update_Pick_Node()
 		unsigned char pickreadout[4];
 		if (m_picking_node_pbo->read_data(1, 1, pickreadout))
 		{
-			glm::ivec3 readout{pickreadout[0], pickreadout[1], pickreadout[2]};
-
-			if (DebugModeFlag)
-				WriteLog("node pick pixel: " + glm::to_string(readout));
-
-			auto const nodeindex = pick_index(readout);
+			auto const nodeindex = pick_index(glm::ivec3{pickreadout[0], pickreadout[1], pickreadout[2]});
 			scene::basic_node *node{nullptr};
 			if ((nodeindex > 0) && (nodeindex <= m_picksceneryitems.size()))
 			{
