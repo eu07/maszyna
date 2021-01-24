@@ -1,15 +1,17 @@
 cmake_minimum_required(VERSION 3.0)
-if(POLICY CMP0058) 
-	cmake_policy(SET CMP0058 NEW) 
+if(POLICY CMP0058)
+	cmake_policy(SET CMP0058 NEW)
 endif()
-if(POLICY CMP0074) 
-	cmake_policy(SET CMP0074 NEW) 
+if(POLICY CMP0074)
+	cmake_policy(SET CMP0074 NEW)
+endif()
+if(POLICY CMP0069)
+	cmake_policy(SET CMP0069 NEW)
 endif()
 
 set(CMAKE_FIND_PACKAGE_PREFER_CONFIG TRUE)
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/CMake_modules/")
 
-#include(cotire)
 set(DEPS_DIR ${DEPS_DIR} "${CMAKE_SOURCE_DIR}/ref")
 project("eu07")
 
@@ -48,6 +50,7 @@ option(WITH_UART "Compile with libserialport" ON)
 option(WITH_OPENVR "Compile with OpenVR" ON)
 option(WITH_ZMQ "Compile with cppzmq" OFF)
 option(USE_VSDEV_CAMERA "Use VS_Dev camera preview implementation" OFF)
+option(USE_LTO "Use link-time optimization" OFF)
 
 set(SOURCES
 "Texture.cpp"
@@ -318,7 +321,8 @@ add_executable(${PROJECT_NAME} ${SOURCES} ${HEADERS})
 if (${CMAKE_CXX_COMPILER_ID} STREQUAL MSVC)
 	# /wd4996: disable "deprecation" warnings
 	# /wd4244: disable warnings for conversion with possible loss of data
-	set_target_properties(${PROJECT_NAME} PROPERTIES COMPILE_FLAGS "/wd4996 /wd4244")
+	# /wd5033: disable because it is all over Python headers
+	set_target_properties(${PROJECT_NAME} PROPERTIES COMPILE_FLAGS "/wd4996 /wd4244 /wd5033")
 	set_target_properties(${PROJECT_NAME} PROPERTIES LINK_FLAGS "/LARGEADDRESSAWARE")
 endif()
 
@@ -331,6 +335,18 @@ set_target_properties( ${PROJECT_NAME}
         OUTPUT_NAME "${PROJECT_NAME}${PREFIX}_${BUILD_DATE}"
 	DEBUG_POSTFIX "_d"
 )
+
+if(NOT ${CMAKE_VERSION} VERSION_LESS "3.16.0")
+	option(USE_PCH "Use precompiled header" ON)
+
+	if (USE_PCH)
+		target_precompile_headers(${PROJECT_NAME} PRIVATE "$<$<COMPILE_LANGUAGE:CXX>:${CMAKE_CURRENT_SOURCE_DIR}/stdafx.h>")
+	endif()
+endif()
+
+if (USE_LTO)
+	set_property(TARGET ${PROJECT_NAME} PROPERTY INTERPROCEDURAL_OPTIMIZATION TRUE)
+endif()
 
 if (WITH_OPENVR)
 	    include_directories(${OPENVR_INCLUDE_DIR})
@@ -391,10 +407,3 @@ if (WITH_ZMQ)
 	include_directories(${cppzmq_INCLUDE_DIR})
 	target_link_libraries(${PROJECT_NAME} ${cppzmq_LIBRARY})
 endif()
-
-#target_compile_options(${PROJECT_NAME} PRIVATE -flto)
-#target_link_libraries(${PROJECT_NAME} -flto)
-
-#set_target_properties(${PROJECT_NAME} PROPERTIES COTIRE_CXX_PREFIX_HEADER_INIT "stdafx.h")
-#set_target_properties(${PROJECT_NAME} PROPERTIES COTIRE_ADD_UNITY_BUILD FALSE)
-#cotire(${PROJECT_NAME})

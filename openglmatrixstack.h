@@ -11,9 +11,6 @@ http://mozilla.org/MPL/2.0/.
 
 #include <stack>
 #include <vector>
-#include <glm/glm.hpp>
-#include <glm/gtc/matrix_transform.hpp>
-#include <glm/gtc/type_ptr.hpp>
 
 // encapsulation of the fixed pipeline opengl matrix stack
 class opengl_matrices {

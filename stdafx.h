@@ -112,6 +112,4 @@ int const null_handle = 0;
 #include "imgui/imgui.h"
 #define ImVec2S(a, b) ImVec2(a * Global.ui_scale, b * Global.ui_scale)
 
-#pragma warning( disable : 5033 ) // "register is no longer a supported storage class" but it's all over python headers
-
 #endif
