@@ -24,6 +24,7 @@ http://mozilla.org/MPL/2.0/.
 #include "Logs.h"
 #include "utilities.h"
 #include "openglgeometrybank.h"
+#include "openglcolor.h"
 
 int const EU07_PICKBUFFERSIZE { 1024 }; // size of (square) textures bound with the pick framebuffer
 int const EU07_ENVIRONMENTBUFFERSIZE { 256 }; // size of (square) environmental cube map texture

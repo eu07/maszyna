@@ -17,7 +17,6 @@ http://mozilla.org/MPL/2.0/.
 #include <vector>
 #include <sstream>
 #include "parser.h"
-#include "dumb3d.h"
 
 /*rozne takie duperele do operacji na stringach w paszczalu, pewnie w delfi sa lepsze*/
 /*konwersja zmiennych na stringi, funkcje matematyczne, logiczne, lancuchowe, I/O etc*/
