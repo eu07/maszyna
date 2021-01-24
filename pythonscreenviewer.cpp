@@ -5,10 +5,16 @@
 #include "gl/vao.h"
 #include "Logs.h"
 
+void texture_window_resize(GLFWwindow *win, int w, int h)
+{
+    python_screen_viewer *texwindow = (python_screen_viewer*)glfwGetWindowUserPointer(win);
+    texwindow->notify_window_size(win, w, h);
+}
+
 void texture_window_fb_resize(GLFWwindow *win, int w, int h)
 {
 	python_screen_viewer *texwindow = (python_screen_viewer*)glfwGetWindowUserPointer(win);
-	texwindow->notify_window_size(win, w, h);
+    texwindow->notify_window_fb_size(win, w, h);
 }
 
 void texture_window_mouse_button(GLFWwindow *win, int button, int action, int mods)
@@ -31,7 +37,7 @@ python_screen_viewer::python_screen_viewer(std::shared_ptr<python_rt> rt, std::s
 	for (const auto &viewport : Global.python_viewports) {
 		if (viewport.surface == surfacename) {
 			auto conf = std::make_unique<window_state>();
-			conf->size = viewport.size;
+            conf->window_size = viewport.size;
 			conf->offset = viewport.offset;
             conf->scale = viewport.scale;
 
@@ -39,10 +45,17 @@ python_screen_viewer::python_screen_viewer(std::shared_ptr<python_rt> rt, std::s
 			if (!monitor && viewport.monitor != "window")
 				continue;
 
-			conf->window = Application.window(-1, true, conf->size.x, conf->size.y,
+            conf->window = Application.window(-1, true, conf->window_size.x, conf->window_size.y,
 			                                 monitor, false, Global.python_sharectx);
 
+            {
+                int w, h;
+                glfwGetWindowSize(conf->window, &w, &h);
+                conf->window_size = glm::ivec2(w, h);
+            }
+
 			glfwSetWindowUserPointer(conf->window, this);
+            glfwSetWindowSizeCallback(conf->window, texture_window_resize);
 			glfwSetFramebufferSizeCallback(conf->window, texture_window_fb_resize);
             glfwSetMouseButtonCallback(conf->window, texture_window_mouse_button);
             glfwSetCursorPosCallback(conf->window, texture_window_cursor_pos);
@@ -155,7 +168,7 @@ void python_screen_viewer::threadfunc()
 				}
 			}
 
-			glViewport(0, 0, window->size.x, window->size.y);
+            glViewport(0, 0, window->fb_size.x, window->fb_size.y);
 
 			glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 			glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
@@ -170,12 +183,23 @@ void python_screen_viewer::threadfunc()
 	}
 }
 
+void python_screen_viewer::notify_window_fb_size(GLFWwindow *window, int w, int h)
+{
+    for (auto &conf : m_windows) {
+        if (conf->window == window) {
+            conf->fb_size.x = w;
+            conf->fb_size.y = h;
+            return;
+        }
+    }
+}
+
 void python_screen_viewer::notify_window_size(GLFWwindow *window, int w, int h)
 {
 	for (auto &conf : m_windows) {
 		if (conf->window == window) {
-			conf->size.x = w;
-			conf->size.y = h;
+            conf->window_size.x = w;
+            conf->window_size.y = h;
 			return;
 		}
 	}
@@ -199,7 +223,7 @@ void python_screen_viewer::notify_click(GLFWwindow *window, int button, int acti
 
     for (auto &conf : m_windows) {
         if (conf->window == window) {
-            auto pos = glm::vec2(conf->cursor_pos) / glm::vec2(conf->size);
+            auto pos = glm::vec2(conf->cursor_pos) / glm::vec2(conf->window_size);
             pos.y = 1.0f - pos.y;
             pos = (pos + conf->offset) / conf->scale;
 

@@ -1123,7 +1123,7 @@ driver_mode::set_picking( bool const Picking ) {
     }
     else {
         // switch off
-        Application.get_cursor_pos( m_input.mouse_pickmodepos.x, m_input.mouse_pickmodepos.y );
+        m_input.mouse_pickmodepos = glm::dvec2(Global.cursor_pos);
         Application.set_cursor( GLFW_CURSOR_DISABLED );
         Application.set_cursor_pos( 0, 0 );
     }

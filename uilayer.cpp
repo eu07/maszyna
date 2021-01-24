@@ -492,7 +492,7 @@ void ui_layer::render_menu_contents()
 
 void ui_layer::render_menu()
 {
-    glm::dvec2 mousepos = Application.get_cursor_pos();
+    glm::dvec2 mousepos = Global.cursor_pos;
 
     if (!((Global.ControlPicking && mousepos.y < 50.0f) || m_imguiio->WantCaptureMouse) || m_progress != 0.0f)
         return;

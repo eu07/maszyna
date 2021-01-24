@@ -463,7 +463,7 @@ opengl_renderer::Render_pass( rendermode const Mode ) {
                 }
             }
 
-            ::glViewport( 0, 0, Global.iWindowWidth, Global.iWindowHeight );
+            ::glViewport( 0, 0, Global.fb_size.x, Global.fb_size.y );
 
             auto const skydomecolour = simulation::Environment.m_skydome.GetAverageColor();
             ::glClearColor( skydomecolour.x, skydomecolour.y, skydomecolour.z, 0.f ); // kolor nieba
@@ -945,7 +945,7 @@ opengl_renderer::setup_pass( renderpass_config &Config, rendermode const Mode, f
             camera.projection() *=
                 glm::perspective(
                     glm::radians( Global.FieldOfView / Global.ZoomFactor ),
-                    std::max( 1.f, (float)Global.iWindowWidth ) / std::max( 1.f, (float)Global.iWindowHeight ),
+                    std::max( 1.f, (float)Global.window_size.x ) / std::max( 1.f, (float)Global.window_size.y ),
                     znear,
                     zfar );
 /*
@@ -1083,7 +1083,7 @@ opengl_renderer::setup_pass( renderpass_config &Config, rendermode const Mode, f
             camera.projection() *=
                 glm::perspective(
                     glm::radians( Global.FieldOfView / Global.ZoomFactor ),
-                    std::max( 1.f, (float)Global.iWindowWidth ) / std::max( 1.f, (float)Global.iWindowHeight ),
+                    std::max( 1.f, (float)Global.window_size.x ) / std::max( 1.f, (float)Global.window_size.y ),
                     0.1f * Global.ZoomFactor,
                     Config.draw_range * Global.fDistanceFactor );
             break;
@@ -2887,7 +2887,7 @@ opengl_renderer::Render( TSubModel *Submodel ) {
                         // we're capping how much effect the distance attenuation can have, otherwise the lights get too tiny at regular distances
                         float const distancefactor { std::max( 0.5f, ( Submodel->fSquareMaxDist - TSubModel::fSquareDist ) / Submodel->fSquareMaxDist ) };
                         auto const pointsize { std::max( 3.f, 5.f * distancefactor * anglefactor ) };
-                        auto const resolutionratio { Global.iWindowHeight / 1080.f };
+
                         // additionally reduce light strength for farther sources in rain or snow
                         if( Global.Overcast > 0.75f ) {
                             float const precipitationfactor{
@@ -2931,7 +2931,7 @@ opengl_renderer::Render( TSubModel *Submodel ) {
                                         clamp( Global.fFogEnd / 2000, 0.f, 1.f ) )
                                     * std::max( 1.f, Global.Overcast ) };
 
-                                ::glPointSize( pointsize * resolutionratio * fogfactor );
+                                ::glPointSize( pointsize * fogfactor );
                                 ::glColor4f(
                                     lightcolor[ 0 ],
                                     lightcolor[ 1 ],
@@ -2941,7 +2941,7 @@ opengl_renderer::Render( TSubModel *Submodel ) {
                                 m_geometry.draw( Submodel->m_geometry.handle );
                                 ::glDepthMask( GL_TRUE );
                             }
-                            ::glPointSize( pointsize * resolutionratio );
+                            ::glPointSize( pointsize );
                             ::glColor4f(
                                 lightcolor[ 0 ],
                                 lightcolor[ 1 ],
@@ -3997,21 +3997,18 @@ opengl_renderer::Update_Pick_Control() {
 #endif
     Render_pass( rendermode::pickcontrols );
     // determine point to examine
-    glm::dvec2 mousepos;
-    glfwGetCursorPos( m_window, &mousepos.x, &mousepos.y );
-    mousepos.y = Global.iWindowHeight - mousepos.y; // cursor coordinates are flipped compared to opengl
+    glm::vec2 mousepos = Global.cursor_pos;
+    mousepos.y = Global.window_size.y - mousepos.y; // cursor coordinates are flipped compared to opengl
 
 #ifdef EU07_USE_PICKING_FRAMEBUFFER
     glm::ivec2 pickbufferpos;
     if( true == m_framebuffersupport ) {
 //        ::glReadBuffer( GL_COLOR_ATTACHMENT0_EXT );
-        pickbufferpos = glm::ivec2{
-            mousepos.x * EU07_PICKBUFFERSIZE / std::max( 1, Global.iWindowWidth ),
-            mousepos.y * EU07_PICKBUFFERSIZE / std::max( 1, Global.iWindowHeight ) };
+        pickbufferpos = mousepos * glm::vec2(EU07_PICKBUFFERSIZE) / glm::vec2(Global.window_size);
     }
     else {
 //        ::glReadBuffer( GL_BACK );
-        pickbufferpos = glm::ivec2{ mousepos };
+        pickbufferpos = mousepos * glm::vec2(Global.fb_size) / glm::vec2(Global.window_size);
     }
 #else
 //    ::glReadBuffer( GL_BACK );
@@ -4048,22 +4045,18 @@ opengl_renderer::Update_Pick_Node() {
 #endif
     Render_pass( rendermode::pickscenery );
     // determine point to examine
-    glm::dvec2 mousepos;
-    glfwGetCursorPos( m_window, &mousepos.x, &mousepos.y );
-    mousepos.y = Global.iWindowHeight - mousepos.y; // cursor coordinates are flipped compared to opengl
+    glm::vec2 mousepos = Global.cursor_pos;
+    mousepos.y = Global.window_size.y - mousepos.y; // cursor coordinates are flipped compared to opengl
 
 #ifdef EU07_USE_PICKING_FRAMEBUFFER
     glm::ivec2 pickbufferpos;
     if( true == m_framebuffersupport ) {
 //        ::glReadBuffer( GL_COLOR_ATTACHMENT0_EXT );
-        pickbufferpos = glm::ivec2{
-            mousepos.x * EU07_PICKBUFFERSIZE / Global.iWindowWidth,
-            mousepos.y * EU07_PICKBUFFERSIZE / Global.iWindowHeight
-        };
+        pickbufferpos = mousepos * glm::vec2(EU07_PICKBUFFERSIZE) / glm::vec2(Global.window_size);
     }
     else {
 //        ::glReadBuffer( GL_BACK );
-        pickbufferpos = glm::ivec2{ mousepos };
+        pickbufferpos = mousepos * glm::vec2(Global.fb_size) / glm::vec2(Global.window_size);
     }
 #else
 //    ::glReadBuffer( GL_BACK );
@@ -4095,11 +4088,9 @@ opengl_renderer::Update_Pick_Node() {
 glm::dvec3
 opengl_renderer::Update_Mouse_Position() {
 
-    glm::dvec2 mousepos;
-    Application.get_cursor_pos( mousepos.x, mousepos.y );
-//    glfwGetCursorPos( m_window, &mousepos.x, &mousepos.y );
-    mousepos.x = clamp<int>( mousepos.x, 0, Global.iWindowWidth - 1 );
-    mousepos.y = clamp<int>( Global.iWindowHeight - clamp<int>( mousepos.y, 0, Global.iWindowHeight ), 0, Global.iWindowHeight - 1 ) ;
+    glm::ivec2 mousepos = Global.cursor_pos * Global.fb_size / Global.window_size;
+    mousepos.x = clamp<int>( mousepos.x, 0, Global.fb_size.x - 1 );
+    mousepos.y = clamp<int>( Global.fb_size.y - mousepos.y, 0, Global.fb_size.y - 1 ) ;
     GLfloat pointdepth;
     ::glReadPixels( mousepos.x, mousepos.y, 1, 1, GL_DEPTH_COMPONENT, GL_FLOAT, &pointdepth );
 
@@ -4109,7 +4100,7 @@ opengl_renderer::Update_Mouse_Position() {
                 glm::vec3{ mousepos, pointdepth },
                 glm::mat4{ glm::mat3{ m_colorpass.camera.modelview() } },
                 m_colorpass.camera.projection(),
-                glm::vec4{ 0, 0, Global.iWindowWidth, Global.iWindowHeight } );
+                glm::vec4{ 0, 0, Global.fb_size.x, Global.fb_size.y } );
     }
 
     return m_colorpass.camera.position() + glm::dvec3{ m_worldmousecoordinates };
@@ -4363,8 +4354,9 @@ opengl_renderer::Init_caps() {
     }
 #endif
 
-    WriteLog( "Supported extensions: \n"
-        + std::string((char *)glGetString( GL_EXTENSIONS )) );
+    char* extensions = (char*)glGetString( GL_EXTENSIONS );
+    if (extensions)
+        WriteLog( "Supported extensions: \n" + std::string(extensions));
 
     WriteLog( std::string("render path: ") + ( Global.bUseVBO ? "VBO" : "Display lists" ) );
     if( GL_EXT_framebuffer_object ) {
@@ -4420,7 +4412,7 @@ opengl_renderer::Init_caps() {
         WriteLog( "using multisampling x" + std::to_string( 1 << Global.iMultisampling ) );
     }
 
-    WriteLog( "main window size: " + std::to_string( Global.iWindowWidth ) + "x" + std::to_string( Global.iWindowHeight ) );
+    WriteLog( "main window size: " + std::to_string( Global.fb_size.x ) + "x" + std::to_string( Global.fb_size.y ) );
 
     return true;
 }

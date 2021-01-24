@@ -114,11 +114,11 @@ mouse_slider::bind( user_command const &Command ) {
         }
     }
     // hide the cursor and place it in accordance with current slider value
-    Application.get_cursor_pos( m_cursorposition.x, m_cursorposition.y );
+    m_cursorposition = glm::dvec2(Global.cursor_pos);
     Application.set_cursor( GLFW_CURSOR_DISABLED );
 
-    auto const controlsize { Global.iWindowHeight * EU07_CONTROLLER_MOUSESLIDERSIZE };
-    auto const controledge { Global.iWindowHeight * 0.5 + controlsize * 0.5 };
+    auto const controlsize { Global.window_size.y * EU07_CONTROLLER_MOUSESLIDERSIZE };
+    auto const controledge { Global.window_size.y * 0.5 + controlsize * 0.5 };
     auto const stepsize { controlsize / m_valuerange };
 
     if( m_invertrange ) {
@@ -126,7 +126,7 @@ mouse_slider::bind( user_command const &Command ) {
     }
 
     Application.set_cursor_pos(
-        Global.iWindowWidth * 0.5,
+        Global.window_size.y,
         ( m_analogue ?
             controledge - m_value * controlsize :
             controledge - m_value * stepsize - 0.5 * stepsize ) );
@@ -143,8 +143,8 @@ mouse_slider::release() {
 void
 mouse_slider::on_move( double const Mousex, double const Mousey ) {
 
-    auto const controlsize { Global.iWindowHeight * EU07_CONTROLLER_MOUSESLIDERSIZE };
-    auto const controledge { Global.iWindowHeight * 0.5 + controlsize * 0.5 };
+    auto const controlsize { Global.window_size.y * EU07_CONTROLLER_MOUSESLIDERSIZE };
+    auto const controledge { Global.window_size.y * 0.5 + controlsize * 0.5 };
     auto const stepsize { controlsize / m_valuerange };
 
     auto mousey = clamp( Mousey, controledge - controlsize, controledge );
@@ -462,7 +462,7 @@ drivermouse_input::poll() {
 
     auto updaterate { m_updaterate };
     if( m_varyingpollrate ) {
-        updaterate /= std::max( 0.15, 2.0 * glm::length( m_cursorposition - m_varyingpollrateorigin ) / std::max( 1, Global.iWindowHeight ) );
+        updaterate /= std::max( 0.15, 2.0 * glm::length( m_cursorposition - m_varyingpollrateorigin ) / std::max( 1, Global.window_size.y ) );
     }
 
     while( m_updateaccumulator > updaterate ) {

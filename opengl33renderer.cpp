@@ -730,7 +730,7 @@ void opengl33_renderer::Render_pass(viewport_config &vp, rendermode const Mode)
 
 		glm::ivec2 target_size(vp.width, vp.height);
         if (vp.main && !vp.custom_backbuffer) // TODO: update window sizes also for extra viewports
-			target_size = glm::ivec2(Global.iWindowWidth, Global.iWindowHeight);
+            target_size = Global.fb_size;
 
 		if (!Global.gfx_skippipeline)
 		{
@@ -920,7 +920,7 @@ void opengl33_renderer::Render_pass(viewport_config &vp, rendermode const Mode)
 
             if (vp.custom_backbuffer && vp.real_window) {
                 if (vp.main)
-                    target_size = glm::ivec2(Global.iWindowWidth, Global.iWindowHeight);
+                    target_size = Global.fb_size;
                 glViewport(0, 0, target_size.x, target_size.y);
 
                 vp.backbuffer_tex->bind(0);
@@ -1407,7 +1407,7 @@ void opengl33_renderer::setup_pass(viewport_config &Viewport, renderpass_config 
 
 	glm::ivec2 target_size(Viewport.width, Viewport.height);
 	if (Viewport.main) // TODO: update window sizes also for extra viewports
-		target_size = glm::ivec2(Global.iWindowWidth, Global.iWindowHeight);
+        target_size = Global.fb_size;
 
 	Config.viewport_camera.position() = Global.pCamera.Pos;
 
@@ -1420,7 +1420,7 @@ void opengl33_renderer::setup_pass(viewport_config &Viewport, renderpass_config 
             float const fovy = glm::radians(Global.FieldOfView / Global.ZoomFactor);
 
             // setup virtual screen
-            glm::vec2 screen_h = glm::vec2(Global.iWindowWidth, Global.iWindowHeight) / 2.0f;
+            glm::vec2 screen_h = glm::vec2(Global.window_size) / 2.0f;
             float const dist = screen_h.y / glm::tan(fovy / 2.0f);
 
             Viewport.projection.pa = glm::vec3(-screen_h.x, -screen_h.y, -dist);
@@ -4219,11 +4219,11 @@ void opengl33_renderer::Update_Pick_Control()
 
 		if (!m_control_pick_requests.empty())
 		{
-            glm::dvec2 mousepos = Application.get_cursor_pos();
-            mousepos.y = Global.iWindowHeight - mousepos.y; // cursor coordinates are flipped compared to opengl
+            glm::vec2 mousepos = Global.cursor_pos;
+            mousepos.y = Global.window_size.y - mousepos.y; // cursor coordinates are flipped compared to opengl
 
 			glm::ivec2 pickbufferpos;
-			pickbufferpos = glm::ivec2{mousepos.x * EU07_PICKBUFFERSIZE / std::max(1, Global.iWindowWidth), mousepos.y * EU07_PICKBUFFERSIZE / std::max(1, Global.iWindowHeight)};
+            pickbufferpos = glm::ivec2(mousepos * glm::vec2(EU07_PICKBUFFERSIZE) / glm::vec2(Global.window_size));
 
             if (vr)
                 pickbufferpos = glm::ivec2(EU07_PICKBUFFERSIZE / 2 + 1, EU07_PICKBUFFERSIZE / 2 + 1);
@@ -4261,11 +4261,11 @@ void opengl33_renderer::Update_Pick_Node()
 		if (!m_node_pick_requests.empty())
 		{
 			// determine point to examine
-			glm::dvec2 mousepos = Application.get_cursor_pos();
-			mousepos.y = Global.iWindowHeight - mousepos.y; // cursor coordinates are flipped compared to opengl
+            glm::vec2 mousepos = Global.cursor_pos;
+            mousepos.y = Global.window_size.y - mousepos.y; // cursor coordinates are flipped compared to opengl
 
-			glm::ivec2 pickbufferpos;
-			pickbufferpos = glm::ivec2{mousepos.x * EU07_PICKBUFFERSIZE / std::max(1, Global.iWindowWidth), mousepos.y * EU07_PICKBUFFERSIZE / std::max(1, Global.iWindowHeight)};
+            glm::ivec2 pickbufferpos;
+            pickbufferpos = glm::ivec2(mousepos * glm::vec2(EU07_PICKBUFFERSIZE) / glm::vec2(Global.window_size));
 			pickbufferpos = glm::clamp(pickbufferpos, glm::ivec2(0, 0), glm::ivec2(EU07_PICKBUFFERSIZE - 1, EU07_PICKBUFFERSIZE - 1));
 
 			Render_pass(*m_viewports.front().get(), rendermode::pickscenery);
@@ -4295,11 +4295,11 @@ glm::dvec3 opengl33_renderer::Update_Mouse_Position()
 	if (!m_depth_pointer_pbo->is_busy())
 	{
 		// determine point to examine
-		glm::dvec2 mousepos = Application.get_cursor_pos();
-		mousepos.y = Global.iWindowHeight - mousepos.y; // cursor coordinates are flipped compared to opengl
+        glm::vec2 mousepos = Global.cursor_pos;
+        mousepos.y = Global.window_size.y - mousepos.y; // cursor coordinates are flipped compared to opengl
 
-		glm::ivec2 bufferpos;
-		bufferpos = glm::ivec2{mousepos.x * Global.gfx_framebuffer_width / std::max(1, Global.iWindowWidth), mousepos.y * Global.gfx_framebuffer_height / std::max(1, Global.iWindowHeight)};
+        glm::ivec2 bufferpos;
+        bufferpos = glm::ivec2(mousepos * glm::vec2(Global.gfx_framebuffer_width, Global.gfx_framebuffer_height) / glm::vec2(Global.window_size));
 		bufferpos = glm::clamp(bufferpos, glm::ivec2(0, 0), glm::ivec2(Global.gfx_framebuffer_width - 1, Global.gfx_framebuffer_height - 1));
 
 		float pointdepth = std::numeric_limits<float>::max();
@@ -4731,9 +4731,9 @@ bool opengl33_renderer::Init_caps()
 	}
 
 	if (Global.gfx_framebuffer_width == -1)
-		Global.gfx_framebuffer_width = Global.iWindowWidth;
+        Global.gfx_framebuffer_width = Global.fb_size.x;
 	if (Global.gfx_framebuffer_height == -1)
-		Global.gfx_framebuffer_height = Global.iWindowHeight;
+        Global.gfx_framebuffer_height = Global.fb_size.y;
 
 	WriteLog("main window size: " + std::to_string(Global.gfx_framebuffer_width) + "x" + std::to_string(Global.gfx_framebuffer_height));
 

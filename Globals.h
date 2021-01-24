@@ -111,8 +111,10 @@ struct global_settings {
     float UIBgOpacity{ 0.65f }; // opacity of ui windows
     std::string asLang{ "pl" }; // domyślny język - http://tools.ietf.org/html/bcp47
     // gfx
-    int iWindowWidth{ 800 };
-    int iWindowHeight{ 600 };
+    glm::ivec2 window_size; // main window size in platform-specific virtual pixels
+    glm::ivec2 cursor_pos; // cursor position in platform-specific virtual pixels
+    glm::ivec2 fb_size; // main window framebuffer size
+
     float fDistanceFactor{ 1.f }; // baza do przeliczania odległości dla LoD
     float targetfps{ 0.0f };
     bool bFullScreen{ false };

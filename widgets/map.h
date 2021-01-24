@@ -115,6 +115,8 @@ class map_panel : public ui_panel
 	std::vector<gfx::geometrybank_handle> m_section_handles;
 	map_colored_paths m_colored_paths;
 
+	bool m_widelines_supported;
+
     const int fb_size = 1024;
 
 	glm::vec2 translate;

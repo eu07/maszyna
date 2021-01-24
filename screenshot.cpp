@@ -57,11 +57,11 @@ void screenshot_manager::screenshot_save_thread( char *img, int w, int h )
 
 void screenshot_manager::make_screenshot()
 {
-    char *img = new char[Global.iWindowWidth * Global.iWindowHeight * 4];
-    glReadPixels(0, 0, Global.iWindowWidth, Global.iWindowHeight, Global.gfx_usegles ? GL_RGBA : GL_RGB, GL_UNSIGNED_BYTE, (GLvoid*)img);
+    char *img = new char[Global.fb_size.x * Global.fb_size.y * 4];
+    glReadPixels(0, 0, Global.fb_size.x, Global.fb_size.y, Global.gfx_usegles ? GL_RGBA : GL_RGB, GL_UNSIGNED_BYTE, (GLvoid*)img);
 	//m7t: use pbo
 
-    std::thread t(screenshot_save_thread, img, Global.iWindowWidth, Global.iWindowHeight);
+    std::thread t(screenshot_save_thread, img, Global.fb_size.x, Global.fb_size.y);
 	t.detach();
 }
 

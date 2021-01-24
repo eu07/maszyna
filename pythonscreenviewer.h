@@ -7,7 +7,8 @@ class python_screen_viewer
 	struct window_state {
 		GLFWwindow *window = nullptr;
 
-		glm::ivec2 size;
+        glm::ivec2 window_size;
+        glm::ivec2 fb_size;
         glm::ivec2 cursor_pos;
 
 		glm::vec2 offset;
@@ -38,6 +39,7 @@ public:
 	~python_screen_viewer();
 
 	void notify_window_size(GLFWwindow *window, int w, int h);
+    void notify_window_fb_size(GLFWwindow *window, int w, int h);
     void notify_cursor_pos(GLFWwindow *window, double x, double y);
     void notify_click(GLFWwindow *window, int button, int action);
 };

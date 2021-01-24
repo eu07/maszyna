@@ -70,15 +70,13 @@ global_settings::ConfigParse(cParser &Parser) {
         }
         else if (token == "width")
         {
-
             Parser.getTokens(1, false);
-            Parser >> iWindowWidth;
+            Parser >> window_size.x;
         }
         else if (token == "height")
         {
-
             Parser.getTokens(1, false);
-            Parser >> iWindowHeight;
+            Parser >> window_size.y;
         }
         else if (token == "heightbase")
         {
@@ -1170,8 +1168,8 @@ global_settings::export_as_text( std::ostream &Output ) const {
     export_as_text( Output, "sceneryfile", SceneryFile );
     export_as_text( Output, "humanctrlvehicle", local_start_vehicle );
     export_as_text( Output, "fieldofview", FieldOfView );
-    export_as_text( Output, "width", iWindowWidth );
-    export_as_text( Output, "height", iWindowHeight );
+    export_as_text( Output, "width", window_size.x );
+    export_as_text( Output, "height", window_size.y );
     export_as_text( Output, "targetfps", targetfps );
     export_as_text( Output, "basedrawrange", BaseDrawRange );
     export_as_text( Output, "fullscreen", bFullScreen );

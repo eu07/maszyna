@@ -66,15 +66,16 @@ void focus_callback( GLFWwindow *window, int focus ) {
 	Application.on_focus_change(focus != 0);
 }
 
-void window_resize_callback( GLFWwindow *window, int w, int h ) {
-    // NOTE: we have two variables which basically do the same thing as we don't have dynamic fullscreen toggle
-    // TBD, TODO: merge them?
-    Global.iWindowWidth = w;
-	Global.iWindowHeight = h;
-    glViewport( 0, 0, w, h );
+void framebuffer_resize_callback( GLFWwindow *, int w, int h ) {
+    Global.fb_size = glm::ivec2(w, h);
+}
+
+void window_resize_callback( GLFWwindow *, int w, int h ) {
+    Global.window_size = glm::ivec2(w, h);
 }
 
 void cursor_pos_callback( GLFWwindow *window, double x, double y ) {
+    Global.cursor_pos = glm::ivec2(x, y);
     Application.on_cursor_pos( x, y );
 }
 
@@ -486,22 +487,6 @@ eu07_application::set_cursor_pos( double const Horizontal, double const Vertical
     glfwSetCursorPos( m_windows.front(), Horizontal, Vertical );
 }
 
-glm::dvec2
-eu07_application::get_cursor_pos() const {
-
-    glm::dvec2 pos;
-    if( !m_windows.empty() ) {
-        glfwGetCursorPos( m_windows.front(), &pos.x, &pos.y );
-    }
-    return pos;
-}
-
-void
-eu07_application::get_cursor_pos( double &Horizontal, double &Vertical ) const {
-
-    glfwGetCursorPos( m_windows.front(), &Horizontal, &Vertical );
-}
-
 /*
 // provides keyboard mapping associated with specified control item
 std::string
@@ -579,6 +564,8 @@ eu07_application::window(int const Windowindex, bool visible, int width, int hei
 
 	auto const *vmode { glfwGetVideoMode( monitor ? monitor : glfwGetPrimaryMonitor() ) };
 
+    // match requested video mode to current to allow for
+    // fullwindow creation when resolution is the same
 	glfwWindowHint( GLFW_RED_BITS, vmode->redBits );
 	glfwWindowHint( GLFW_GREEN_BITS, vmode->greenBits );
 	glfwWindowHint( GLFW_BLUE_BITS, vmode->blueBits );
@@ -738,8 +725,6 @@ eu07_application::init_glfw() {
         return -1;
     }
 
-    // match requested video mode to current to allow for
-    // fullwindow creation when resolution is the same
 	{
 		int monitor_count;
 		GLFWmonitor **monitors = glfwGetMonitors(&monitor_count);
@@ -807,13 +792,13 @@ eu07_application::init_glfw() {
 
     if( Global.fullscreen_windowed ) {
         auto const mode = glfwGetVideoMode( monitor );
-        Global.iWindowWidth = mode->width;
-        Global.iWindowHeight = mode->height;
+        Global.window_size.x = mode->width;
+        Global.window_size.y = mode->height;
         Global.bFullScreen = true;
     }
 
     auto *mainwindow = window(
-        -1, true, Global.iWindowWidth, Global.iWindowHeight, ( Global.bFullScreen ? monitor : nullptr ), true, false );
+        -1, true, Global.window_size.x, Global.window_size.y, ( Global.bFullScreen ? monitor : nullptr ), true, false );
 
     if( mainwindow == nullptr ) {
         ErrorLog( "Bad init: failed to create glfw window" );
@@ -822,6 +807,16 @@ eu07_application::init_glfw() {
 
     glfwMakeContextCurrent( mainwindow );
     glfwSwapInterval( Global.VSync ? 1 : 0 ); //vsync
+
+    {
+        int width, height;
+
+        glfwGetFramebufferSize( mainwindow, &width, &height );
+        framebuffer_resize_callback( mainwindow, width, height );
+
+        glfwGetWindowSize( mainwindow, &width, &height );
+        window_resize_callback( mainwindow, width, height );
+    }
 
 #ifdef _WIN32
 // setup wrapper for base glfw window proc, to handle copydata messages
@@ -846,18 +841,14 @@ void
 eu07_application::init_callbacks() {
 
     auto *window { m_windows.front() };
-    glfwSetFramebufferSizeCallback( window, window_resize_callback );
+    glfwSetWindowSizeCallback( window, window_resize_callback );
+    glfwSetFramebufferSizeCallback( window, framebuffer_resize_callback );
     glfwSetCursorPosCallback( window, cursor_pos_callback );
     glfwSetMouseButtonCallback( window, mouse_button_callback );
     glfwSetKeyCallback( window, key_callback );
     glfwSetScrollCallback( window, scroll_callback );
     glfwSetCharCallback(window, char_callback);
     glfwSetWindowFocusCallback( window, focus_callback );
-    {
-        int width, height;
-        glfwGetFramebufferSize( window, &width, &height );
-        window_resize_callback( window, width, height );
-    }
 }
 
 int

@@ -42,15 +42,15 @@ driver_ui::driver_ui() {
 
     m_scenariopanel.title = STR("Scenario");
     m_scenariopanel.size_min = { 435, 85 };
-    m_scenariopanel.size_max = { Global.iWindowWidth * 0.95, Global.iWindowHeight * 0.95 };
+    m_scenariopanel.size_max = { Global.fb_size.x * 0.95f, Global.fb_size.y * 0.95 };
 
     m_timetablepanel.title = STR("%-*.*s    Time: %d:%02d:%02d");
     m_timetablepanel.size_min = { 435, 70};
-    m_timetablepanel.size_max = { 435, Global.iWindowHeight * 0.95 };
+    m_timetablepanel.size_max = { 435, Global.fb_size.y * 0.95 };
 
     m_transcriptspanel.title = STR("Transcripts");
     m_transcriptspanel.size_min = { 435, 85 };
-    m_transcriptspanel.size_max = { Global.iWindowWidth * 0.95, Global.iWindowHeight * 0.95 };
+    m_transcriptspanel.size_max = { Global.fb_size.x * 0.95, Global.fb_size.y * 0.95 };
 
 	if (Global.gui_defaultwindows) {
 		m_aidpanel.is_open = true;
@@ -205,7 +205,7 @@ driver_ui::set_cursor( bool const Visible ) {
 
     if( Visible ) {
         Application.set_cursor( GLFW_CURSOR_NORMAL );
-        Application.set_cursor_pos( Global.iWindowWidth / 2, Global.iWindowHeight / 2 );
+        Application.set_cursor_pos( Global.window_size.x / 2, Global.window_size.y / 2 );
     }
     else {
         Application.set_cursor( GLFW_CURSOR_DISABLED );
