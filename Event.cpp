@@ -191,7 +191,7 @@ basic_event::event_conditions::deserialize( cParser &Input ) {
         else if( token == "trackfree" ) {
             flags |= flags::track_free;
         }
-        else if( token == "propability" || "probability") { //remove propability in few years after changing old scenery scripts 01.2021
+        else if( ( token == "propability" ) || ( token == "probability" )) { //remove propability in few years after changing old scenery scripts 01.2021
             flags |= flags::probability;
             Input.getTokens();
             Input >> probability;
