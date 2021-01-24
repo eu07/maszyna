@@ -1,4 +1,4 @@
-/*
+﻿/*
 This Source Code Form is subject to the
 terms of the Mozilla Public License, v.
 2.0. If a copy of the MPL was not
@@ -3999,8 +3999,6 @@ opengl_renderer::Update_Pick_Control() {
     // determine point to examine
     glm::dvec2 mousepos;
     glfwGetCursorPos( m_window, &mousepos.x, &mousepos.y );
-    mousepos.x *= Global.fWindowXScale;
-    mousepos.y *= Global.fWindowYScale;
     mousepos.y = Global.iWindowHeight - mousepos.y; // cursor coordinates are flipped compared to opengl
 
 #ifdef EU07_USE_PICKING_FRAMEBUFFER
@@ -4008,8 +4006,8 @@ opengl_renderer::Update_Pick_Control() {
     if( true == m_framebuffersupport ) {
 //        ::glReadBuffer( GL_COLOR_ATTACHMENT0_EXT );
         pickbufferpos = glm::ivec2{
-            mousepos.x * EU07_PICKBUFFERSIZE / std::max( 1, Global.iWindowWidth),
-            mousepos.y * EU07_PICKBUFFERSIZE / std::max( 1, Global.iWindowHeight) };
+            mousepos.x * EU07_PICKBUFFERSIZE / std::max( 1, Global.iWindowWidth ),
+            mousepos.y * EU07_PICKBUFFERSIZE / std::max( 1, Global.iWindowHeight ) };
     }
     else {
 //        ::glReadBuffer( GL_BACK );
@@ -4365,10 +4363,8 @@ opengl_renderer::Init_caps() {
     }
 #endif
 
-    char* extensions = (char*)glGetString( GL_EXTENSIONS );
-
     WriteLog( "Supported extensions: \n"
-        + std::string(extensions ? extensions : "") );
+        + std::string((char *)glGetString( GL_EXTENSIONS )) );
 
     WriteLog( std::string("render path: ") + ( Global.bUseVBO ? "VBO" : "Display lists" ) );
     if( GL_EXT_framebuffer_object ) {
