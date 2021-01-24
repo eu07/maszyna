@@ -218,11 +218,9 @@ struct global_settings {
 	bool gui_showtranscripts = true;
     bool gui_trainingdefault = false;
 
-#ifdef USE_EXTCAM_CAMERA
 	std::string extcam_cmd;
 	std::string extcam_rec;
 	glm::ivec2 extcam_res{800, 600};
-#endif
 
 	std::chrono::duration<float> minframetime {0.0f};
     std::string fullscreen_monitor;

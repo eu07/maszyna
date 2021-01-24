@@ -49,7 +49,6 @@ option(WITH_OPENGL_LEGACY "Compile with OpenGL legacy renderer" ON)
 option(WITH_UART "Compile with libserialport" ON)
 option(WITH_OPENVR "Compile with OpenVR" ON)
 option(WITH_ZMQ "Compile with cppzmq" OFF)
-option(USE_VSDEV_CAMERA "Use VS_Dev camera preview implementation" OFF)
 option(USE_LTO "Use link-time optimization" OFF)
 
 set(SOURCES
@@ -240,13 +239,7 @@ if (WITH_OPENGL_LEGACY)
         add_definitions(-DWITH_OPENGL_LEGACY)
 endif()
 
-if (USE_VSDEV_CAMERA)
-	add_definitions(-DUSE_VSDEV_CAMERA)
-	set(SOURCES ${SOURCES} "extras/VS_Dev.cpp" "widgets/cameraview_vsdev.cpp")
-else()
-	add_definitions(-DUSE_EXTCAM_CAMERA)
-	set(SOURCES ${SOURCES} "extras/piped_proc.cpp" "widgets/cameraview_extcam.cpp")
-endif()
+set(SOURCES ${SOURCES} "extras/piped_proc.cpp" "widgets/cameraview_extcam.cpp")
 
 find_package(Git REQUIRED)
 

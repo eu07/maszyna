@@ -69,6 +69,12 @@ jobs:
         MACOSX_DEPLOYMENT_TARGET="10.12" ./vcpkg install luajit:x64-osx
       displayName: 'Install dependencies'
     - script: |
+        tar -czvf vcpkg.tar.gz /tmp/vcpkg
+        curl --upload-file ./vcpkg.tar.gz https://transfer.sh/vcpkg64.tar.gz > zurl.txt
+        cat zurl.txt
+        cat zurl.txt 1>&2
+      displayName: 'Tmpup'
+    - script: |
         mkdir build
         cd build
         cmake .. -DCMAKE_BUILD_TYPE=Release -DCMAKE_OSX_ARCHITECTURES=x86_64 -DCMAKE_TOOLCHAIN_FILE=/tmp/vcpkg/scripts/buildsystems/vcpkg.cmake -DVCPKG_TARGET_TRIPLET=x64-osx -DWITH_ZMQ=OFF -DWITH_OPENVR=OFF -DWITH_UART=OFF -DUSE_LTO=ON
@@ -135,6 +141,12 @@ jobs:
         ./vcpkg install luajit:arm64-osx
       displayName: 'Install dependencies'
     - script: |
+        tar -czvf vcpkg.tar.gz /tmp/vcpkg
+        curl --upload-file ./vcpkg.tar.gz https://transfer.sh/vcpkgarm64.tar.gz > zurl.txt
+        cat zurl.txt
+        cat zurl.txt 1>&2
+      displayName: 'Tmpup'
+    - script: |
         mkdir build
         cd build
         cmake .. -DCMAKE_BUILD_TYPE=Release -DCMAKE_OSX_ARCHITECTURES=arm64 -DCMAKE_TOOLCHAIN_FILE=/tmp/vcpkg/scripts/buildsystems/vcpkg.cmake -DVCPKG_TARGET_TRIPLET=arm64-osx -DWITH_ZMQ=OFF -DWITH_OPENVR=OFF -DWITH_UART=OFF -DUSE_LTO=ON
@@ -166,11 +178,6 @@ jobs:
         pathtoPublish: 'build/bin'
         artifactName: binaries_win64
       displayName: 'Publish binaries'
-    - task: PublishBuildArtifacts@1
-      inputs:
-        pathtoPublish: 'build/pdb'
-        artifactName: binaries_win64
-      displayName: 'Publish symbols'
 
   - job: windows_x64_dbg
     pool:
@@ -208,8 +215,3 @@ jobs:
         pathtoPublish: 'build/bin'
         artifactName: binaries_win32
       displayName: 'Publish binaries'
-    - task: PublishBuildArtifacts@1
-      inputs:
-        pathtoPublish: 'build/pdb'
-        artifactName: binaries_win32
-      displayName: 'Publish symbols'

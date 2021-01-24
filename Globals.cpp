@@ -792,7 +792,6 @@ global_settings::ConfigParse(cParser &Parser) {
             Parser >> zmq_address;
         }
 #endif
-#ifdef USE_EXTCAM_CAMERA
 		else if( token == "extcam.cmd" ) {
 			Parser.getTokens( 1 );
 			Parser >> extcam_cmd;
@@ -805,7 +804,6 @@ global_settings::ConfigParse(cParser &Parser) {
 			Parser.getTokens( 2 );
 			Parser >> extcam_res.x >> extcam_res.y;
 		}
-#endif
 		else if (token == "loadinglog") {
             Parser.getTokens( 1 );
             Parser >> loading_log;
@@ -1345,14 +1343,14 @@ global_settings::export_as_text( std::ostream &Output ) const {
         << uart_conf.localenable << "\n";
     export_as_text( Output, "uartdebug", uart_conf.debug );
 #endif
-#ifdef USE_EXTCAM_CAMERA
+
     export_as_text( Output, "extcam.cmd", extcam_cmd );
     export_as_text( Output, "extcam.rec", extcam_rec );
     Output
         << "extcam.res "
         << extcam_res.x << " "
         << extcam_res.y << "\n";
-#endif
+
     export_as_text( Output, "compresstex", compress_tex );
     export_as_text( Output, "gfx.framebuffer.width", gfx_framebuffer_width );
     export_as_text( Output, "gfx.framebuffer.height", gfx_framebuffer_height );

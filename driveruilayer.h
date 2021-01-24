@@ -19,11 +19,7 @@ http://mozilla.org/MPL/2.0/.
 #include "widgets/time.h"
 #include "widgets/trainingcard.h"
 #include "widgets/perfgraphs.h"
-#ifdef USE_EXTCAM_CAMERA
 #include "widgets/cameraview_extcam.h"
-#elif USE_VSDEV_CAMERA
-#include "widgets/cameraview_vsdev.h"
-#endif
 
 class driver_ui : public ui_layer {
 
