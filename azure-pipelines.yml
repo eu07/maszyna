@@ -70,9 +70,6 @@ jobs:
       displayName: 'Install dependencies'
     - script: |
         tar -czvf vcpkg.tar.gz /tmp/vcpkg
-        curl --upload-file ./vcpkg.tar.gz https://transfer.sh/vcpkg64.tar.gz > zurl.txt
-        cat zurl.txt
-        cat zurl.txt 1>&2
       displayName: 'Tmpup'
     - script: |
         mkdir build
@@ -85,6 +82,11 @@ jobs:
         pathtoPublish: 'build/bin'
         artifactName: binaries_macos
       displayName: 'Publish binaries'
+    - task: PublishBuildArtifacts@1
+      inputs:
+        pathtoPublish: 'vcpkg.tar.gz'
+        artifactName: macx64_tmp
+      displayName: 'Publish tmp'
 
   - job: macos1015_imgui_gl2
     pool:
@@ -142,9 +144,6 @@ jobs:
       displayName: 'Install dependencies'
     - script: |
         tar -czvf vcpkg.tar.gz /tmp/vcpkg
-        curl --upload-file ./vcpkg.tar.gz https://transfer.sh/vcpkgarm64.tar.gz > zurl.txt
-        cat zurl.txt
-        cat zurl.txt 1>&2
       displayName: 'Tmpup'
     - script: |
         mkdir build
@@ -157,6 +156,11 @@ jobs:
         pathtoPublish: 'build/bin'
         artifactName: binaries_macos_arm64
       displayName: 'Publish binaries'
+    - task: PublishBuildArtifacts@1
+      inputs:
+        pathtoPublish: 'vcpkg.tar.gz'
+        artifactName: macarm64_tmp
+      displayName: 'Publish tmp'
 
   - job: windows_x64
     pool:
