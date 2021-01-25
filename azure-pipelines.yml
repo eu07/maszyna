@@ -7,9 +7,11 @@ jobs:
     - script: |
         sudo apt-get update -y
         sudo apt-get install -y glslang-tools
+      displayName: 'Install dependencies'
+    - script: |
         cd ci_shadervalidator
         ./build.sh
-      displayName: 'Install dependencies'
+      displayName: 'Build validator'
     - script: |
         cd ci_shadervalidator
         ./validateshaders
@@ -57,20 +59,12 @@ jobs:
       displayName: 'Setup Xcode'
     - script: |
         cd /tmp
-        git clone https://github.com/microsoft/vcpkg
-        cd vcpkg
-        git remote add milek https://github.com/Milek7/vcpkg
-        git fetch milek
-        git checkout c0020eb4
-        ./bootstrap-vcpkg.sh
-        ./vcpkg install glfw3:x64-osx libpng:x64-osx libsndfile:x64-osx asio:x64-osx
-        git cherry-pick 9b7f342
-        git cherry-pick f1b4a0e
-        MACOSX_DEPLOYMENT_TARGET="10.12" ./vcpkg install luajit:x64-osx
+        wget https://s2.milek7.pl/macos_vcpkg_cache_x64.tar.gz
+        tar -xf macos_vcpkg_cache_x64.tar.gz
+        mv tmp/vcpkg vcpkg
+        rmdir tmp
+        rm macos_vcpkg_cache_x64.tar.gz
       displayName: 'Install dependencies'
-    - script: |
-        tar -czvf vcpkg.tar.gz /tmp/vcpkg
-      displayName: 'Tmpup'
     - script: |
         mkdir build
         cd build
@@ -82,11 +76,6 @@ jobs:
         pathtoPublish: 'build/bin'
         artifactName: binaries_macos
       displayName: 'Publish binaries'
-    - task: PublishBuildArtifacts@1
-      inputs:
-        pathtoPublish: 'vcpkg.tar.gz'
-        artifactName: macx64_tmp
-      displayName: 'Publish tmp'
 
   - job: macos1015_imgui_gl2
     pool:
@@ -98,16 +87,11 @@ jobs:
       displayName: 'Setup Xcode'
     - script: |
         cd /tmp
-        git clone https://github.com/microsoft/vcpkg
-        cd vcpkg
-        git remote add milek https://github.com/Milek7/vcpkg
-        git fetch milek
-        git checkout c0020eb4
-        ./bootstrap-vcpkg.sh
-        ./vcpkg install glfw3:x64-osx libpng:x64-osx libsndfile:x64-osx asio:x64-osx
-        git cherry-pick 9b7f342
-        git cherry-pick f1b4a0e
-        MACOSX_DEPLOYMENT_TARGET="10.12" ./vcpkg install luajit:x64-osx
+        wget https://s2.milek7.pl/macos_vcpkg_cache_x64.tar.gz
+        tar -xf macos_vcpkg_cache_x64.tar.gz
+        mv tmp/vcpkg vcpkg
+        rmdir tmp
+        rm macos_vcpkg_cache_x64.tar.gz
       displayName: 'Install dependencies'
     - script: |
         mkdir build
@@ -131,20 +115,12 @@ jobs:
       displayName: 'Setup Xcode'
     - script: |
         cd /tmp
-        git clone https://github.com/microsoft/vcpkg
-        cd vcpkg
-        git remote add milek https://github.com/Milek7/vcpkg
-        git fetch milek
-        git checkout c0020eb4
-        ./bootstrap-vcpkg.sh
-        ./vcpkg install glfw3:arm64-osx libpng:arm64-osx libsndfile:arm64-osx asio:arm64-osx
-        git cherry-pick 9b7f342
-        git cherry-pick ea5d2d7
-        ./vcpkg install luajit:arm64-osx
+        wget https://s2.milek7.pl/macos_vcpkg_cache_arm64.tar.gz
+        tar -xf macos_vcpkg_cache_arm64.tar.gz
+        mv tmp/vcpkg vcpkg
+        rmdir tmp
+        rm macos_vcpkg_cache_arm64.tar.gz
       displayName: 'Install dependencies'
-    - script: |
-        tar -czvf vcpkg.tar.gz /tmp/vcpkg
-      displayName: 'Tmpup'
     - script: |
         mkdir build
         cd build
@@ -156,11 +132,6 @@ jobs:
         pathtoPublish: 'build/bin'
         artifactName: binaries_macos_arm64
       displayName: 'Publish binaries'
-    - task: PublishBuildArtifacts@1
-      inputs:
-        pathtoPublish: 'vcpkg.tar.gz'
-        artifactName: macarm64_tmp
-      displayName: 'Publish tmp'
 
   - job: windows_x64
     pool:
