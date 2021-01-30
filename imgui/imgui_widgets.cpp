@@ -49,6 +49,8 @@ Index of this file:
 #include <stdint.h>     // intptr_t
 #endif
 
+#include <algorithm>
+
 // Visual Studio warnings
 #ifdef _MSC_VER
 #pragma warning (disable: 4127) // condition expression is constant
