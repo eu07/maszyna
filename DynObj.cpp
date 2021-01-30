@@ -3002,25 +3002,16 @@ bool TDynamicObject::Update(double dt, double dt1)
         // if (Global.bLiveTraction)
         { // Ra 2013-12: to niżej jest chyba trochę bez sensu
             tmpTraction.TractionVoltage = std::max( std::abs( MoverParameters->PantRearVolt ), std::abs( MoverParameters->PantFrontVolt ) );
-            /*
-            if (v == 0.0) {
-                v = MoverParameters->PantFrontVolt;
-                if( v == 0.0 ) {
-//                    if( MoverParameters->TrainType & ( dt_EZT | dt_ET40 | dt_ET41 | dt_ET42 ) ) {
-                        // dwuczłony mogą mieć sprzęg WN
-                        // NOTE: condition disabled, other vehicles types can have power cables as well
-                        v = MoverParameters->GetTrainsetVoltage(); // ostatnia szansa
-//                    }
-                }
-            }
-            */
             if ( tmpTraction.TractionVoltage > 0.0)
             { // jeśli jest zasilanie
                 NoVoltTime = 0;
             }
             else {
                 NoVoltTime += dt1;
-                if( NoVoltTime > 0.2 ) {
+                if( NoVoltTime <= 0.2 ) {
+					tmpTraction.TractionVoltage = MoverParameters->PantographVoltage;
+				}
+				else {
                     // jeśli brak zasilania dłużej niż 0.2 sekundy (25km/h pod izolatorem daje 0.15s)
                     // Ra 2F1H: prowizorka, trzeba przechować napięcie, żeby nie wywalało WS pod izolatorem
                     if( MoverParameters->Vel > 0.5 ) {
