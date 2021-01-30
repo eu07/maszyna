@@ -28,7 +28,6 @@ Index of this file:
 
 */
 
-#include "stdafx.h"
 #ifdef DBG_NEW
 #undef new
 #endif
