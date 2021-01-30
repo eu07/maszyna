@@ -9,9 +9,9 @@ build_script:
     
     cd ..
     
-    mkdir builds
+    mkdir build
     
-    cd builds
+    cd build
     
     mkdir x86
     
@@ -43,14 +43,14 @@ build_script:
 test: off
 deploy: off
 artifacts:
-- path: builds/eu07_x86_bin.zip
+- path: build/eu07_x86_bin.zip
   name: binaries_x86
-- path: builds/eu07_x64_bin.zip
+- path: build/eu07_x64_bin.zip
   name: binaries_x64
 - path: shaders
   name: shaders
   type: zip
-- path: builds/eu07_x86_pdb.zip
+- path: build/eu07_x86_pdb.zip
   name: symbols_x86
-- path: builds/eu07_x64_pdb.zip
+- path: build/eu07_x64_pdb.zip
   name: symbols_x64
