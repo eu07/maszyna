@@ -3038,7 +3038,7 @@ bool TDynamicObject::Update(double dt, double dt1)
                                 ErrorLog(
                                     "Bad traction: " + MoverParameters->Name
                                     + " lost power for " + to_string( NoVoltTime, 2 ) + " sec. at "
-                                    + to_string( glm::dvec3{ vPosition } ) );
+                                    + to_string( glm::dvec3{ vPosition } ), logtype::traction );
                             }
                         }
                     }

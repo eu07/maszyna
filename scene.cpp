@@ -88,9 +88,8 @@ basic_cell::update_traction( TDynamicObject *Vehicle, int const Pantographindex 
                         // liczba pantografów teraz będzie mniejsza
                         --Vehicle->MoverParameters->EnginePowerSource.CollectorParameters.CollectorsNo;
                     }
-                    if( DebugModeFlag ) {
-                        ErrorLog( "Bad traction: " + Vehicle->name() + " broke pantograph at " + to_string( pantographposition ) );
-                    }
+                    ErrorLog( "Bad traction: " + Vehicle->name() + " broke pantograph at " + to_string( pantographposition ), logtype::traction );
+
                 }
             }
             else if( fVertical < pantograph->PantTraction ) {
