@@ -9,6 +9,8 @@ if(POLICY CMP0069)
 	cmake_policy(SET CMP0069 NEW)
 endif()
 
+include(CheckCXXSymbolExists)
+
 set(CMAKE_FIND_PACKAGE_PREFER_CONFIG TRUE)
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/CMake_modules/")
 
@@ -328,6 +330,11 @@ set_target_properties( ${PROJECT_NAME}
         OUTPUT_NAME "${PROJECT_NAME}${PREFIX}_${BUILD_DATE}"
 	DEBUG_POSTFIX "_d"
 )
+
+check_cxx_symbol_exists(__GNUC__ "" COMPILER_HAVE_GNUC)
+if (COMPILER_HAVE_GNUC)
+	set_target_properties(${PROJECT_NAME} PROPERTIES COMPILE_FLAGS "-fvisibility=hidden")
+endif()
 
 if(NOT ${CMAKE_VERSION} VERSION_LESS "3.16.0")
 	option(USE_PCH "Use precompiled header" ON)

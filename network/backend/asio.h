@@ -2,6 +2,7 @@
 #undef new
 #endif
 
+#define ASIO_DISABLE_VISIBILITY
 #include <asio.hpp>
 
 #include "network/network.h"

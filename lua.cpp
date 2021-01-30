@@ -62,10 +62,16 @@ int lua::openffi(lua_State *s)
     return 1;
 }
 
-#ifdef _WIN32
-#define EXPORT __declspec(dllexport)
+#if defined _WIN32
+#   if defined __GNUC__
+#      define EXPORT __attribute__ ((dllexport))
+#   else
+#      define EXPORT __declspec(dllexport)
+#   endif
+#elif defined __GNUC__
+#   define EXPORT __attribute__ ((visibility ("default")))
 #else
-#define EXPORT
+#   define EXPORT
 #endif
 
 extern "C"
