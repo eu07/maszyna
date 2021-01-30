@@ -12,10 +12,11 @@ layout(location = 1) out vec4 out_motion;
 
 void main()
 {
+	vec3 col = pow(f_color.rgb, vec3(2.2));
 #if POSTFX_ENABLED
-	out_color = vec4(apply_fog(f_color), 1.0f);
+	out_color = vec4(apply_fog(col), 1.0f);
 #else
-    out_color = tonemap(vec4(apply_fog(f_color), 1.0f));
+    out_color = tonemap(vec4(apply_fog(col), 1.0f));
 #endif
 #if MOTIONBLUR_ENABLED
 	out_motion = vec4(0.0f);
