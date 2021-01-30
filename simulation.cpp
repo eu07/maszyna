@@ -369,12 +369,27 @@ void state_manager::process_commands() {
 			while (vehicle) {
 				vehicle->MoverParameters->DamageFlag = 0;
 				vehicle->MoverParameters->EngDmgFlag = 0;
-				vehicle->MoverParameters->V = 0.0;
+				vehicle->MoverParameters->V = 0.000001; // HACK: force vehicle position re-calculation
 				vehicle->MoverParameters->DistCounter = 0.0;
 				vehicle->MoverParameters->WheelFlat = 0.0;
 				vehicle->MoverParameters->AlarmChainFlag = false;
 				vehicle->MoverParameters->OffsetTrackH = 0.0;
 				vehicle->MoverParameters->OffsetTrackV = 0.0;
+
+				// pantographs
+				for( auto idx = 0; idx < vehicle->iAnimType[ ANIM_PANTS ]; ++idx ) {
+					auto &pantograph { *( vehicle->pants[ idx ].fParamPants ) };
+					if( pantograph.PantWys >= 0.0 )  // negative value means pantograph is broken
+						continue;
+					pantograph.fAngleL = pantograph.fAngleL0;
+					pantograph.fAngleU = pantograph.fAngleU0;
+					pantograph.PantWys =
+					pantograph.fLenL1 * std::sin( pantograph.fAngleL )
+						+ pantograph.fLenU1 * std::sin( pantograph.fAngleU )
+						+ pantograph.fHeight; 
+					vehicle->MoverParameters->EnginePowerSource.CollectorParameters.CollectorsNo;
+				}
+
 				vehicle = vehicle->Prev();
 			}
 		}

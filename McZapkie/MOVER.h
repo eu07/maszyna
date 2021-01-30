@@ -121,6 +121,7 @@ static int const dtrain_engine = 32;       /*dla lokomotyw*/
 static int const dtrain_loaddestroyed = 32;/*dla wagonow*/
 static int const dtrain_axle = 64;
 static int const dtrain_out = 128;         /*wykolejenie*/
+static int const dtrain_pantograph = 256;	/*polamanie pantografu*/
 
 										   /*wagi prawdopodobienstwa dla funkcji FuzzyLogic*/
 #define p_elengproblem  (1e-02)
