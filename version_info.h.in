@@ -1,1 +1,1 @@
-#define VERSION_INFO "EU07 (cmake), @GIT_BRANCH@/@GIT_HASH@, built on @BUILD_DATE@"
+#define VERSION_INFO "EU07 (cmake), @GIT_HASH@ (committed at @SRC_DATE@)"
