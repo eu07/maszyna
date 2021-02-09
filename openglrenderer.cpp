@@ -4336,12 +4336,19 @@ opengl_renderer::Disable_Lights() {
 bool
 opengl_renderer::Init_caps() {
 
-    std::string oglversion = ( (char *)glGetString( GL_VERSION ) );
+    std::string gl_renderer((char *)glGetString(GL_RENDERER));
+    std::string gl_vendor((char *)glGetString(GL_VENDOR));
+    std::string gl_version((char *)glGetString(GL_VERSION));
+
+    crashreport_add_info("gl_renderer", gl_renderer);
+    crashreport_add_info("gl_vendor", gl_vendor);
+    crashreport_add_info("gl_version", gl_version);
+    crashreport_add_info("gl_mode", Global.bUseVBO ? "vbo" : "dl");
 
     WriteLog(
-        "Gfx Renderer: " + std::string( (char *)glGetString( GL_RENDERER ) )
-        + " Vendor: " + std::string( (char *)glGetString( GL_VENDOR ) )
-        + " OpenGL Version: " + oglversion );
+        "Gfx Renderer: " + gl_renderer
+        + " Vendor: " + gl_vendor
+        + " OpenGL Version: " + gl_version );
 
 #ifdef EU07_USEIMGUIIMPLOPENGL2
     if( !GLAD_GL_VERSION_1_5 ) {

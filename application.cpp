@@ -54,7 +54,6 @@ extern "C"
     GLFWAPI HWND glfwGetWin32Window( GLFWwindow* window );
 }
 
-LONG CALLBACK unhandled_handler( ::EXCEPTION_POINTERS* e );
 LRESULT APIENTRY WndProc( HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam );
 extern HWND Hwnd;
 extern WNDPROC BaseWindowProc;
@@ -105,6 +104,77 @@ void eu07_application::queue_screenshot()
     m_screenshot_queued = true;
 }
 
+int eu07_application::run_crashgui()
+{
+    bool autoup = false;
+
+    while (!glfwWindowShouldClose(m_windows.front()))
+    {
+        glfwPollEvents();
+
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+        ui_layer::begin_ui_frame_internal();
+
+        bool y, n;
+
+        if (Global.asLang == "pl") {
+            ImGui::Begin(u8"Raportowanie błędów", nullptr, ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoResize);
+            ImGui::TextUnformatted(u8"Podczas ostatniego uruchomienia symulatora wystąpił błąd.\nWysłać raport o błędzie do deweloperów?\n");
+            ImGui::TextUnformatted((u8"Usługa udostępniana przez " + crashreport_get_provider() + "\n").c_str());
+            y = ImGui::Button(u8"Tak", ImVec2S(60, 0)); ImGui::SameLine();
+            ImGui::Checkbox(u8"W przyszłości przesyłaj raporty o błędach automatycznie", &autoup);
+
+            ImGui::SameLine();
+            ImGui::TextDisabled("(?)");
+            if (ImGui::IsItemHovered())
+            {
+                ImGui::BeginTooltip();
+                ImGui::TextUnformatted(u8"W celu wyłączenia tej funkcji będzie trzeba skasować plik crashdumps/autoupload_enabled.conf");
+                ImGui::EndTooltip();
+            }
+
+            ImGui::NewLine();
+            n = ImGui::Button(u8"Nie", ImVec2S(60, 0));
+            ImGui::End();
+        } else {
+            ImGui::Begin("Crash reporting", nullptr, ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoResize);
+            ImGui::TextUnformatted("Crash occurred during last launch of the simulator.\nSend crash report to developers?\n");
+            ImGui::TextUnformatted(("Service provided by " + crashreport_get_provider() + "\n").c_str());
+            y = ImGui::Button("Yes", ImVec2S(60, 0)); ImGui::SameLine();
+            ImGui::Checkbox("In future send crash reports automatically", &autoup);
+
+            ImGui::SameLine();
+            ImGui::TextDisabled("(?)");
+            if (ImGui::IsItemHovered())
+            {
+                ImGui::BeginTooltip();
+                ImGui::TextUnformatted("To disable this feature remove file crashdumps/autoupload_enabled.conf");
+                ImGui::EndTooltip();
+            }
+
+            ImGui::NewLine();
+            n = ImGui::Button("No", ImVec2S(60, 0));
+            ImGui::End();
+        }
+
+        ui_layer::render_internal();
+        glfwSwapBuffers(m_windows.front());
+
+        if (y) {
+            crashreport_upload_accept();
+            if (autoup)
+                crashreport_set_autoupload();
+            return 0;
+        }
+
+        if (n) {
+            crashreport_upload_reject();
+            return 0;
+        }
+    }
+    return -1;
+}
+
 int
 eu07_application::init( int Argc, char *Argv[] ) {
 
@@ -119,7 +189,10 @@ eu07_application::init( int Argc, char *Argv[] ) {
 	WriteLog( "Starting MaSzyna rail vehicle simulator (release: " + Global.asVersion + ")" );
 	WriteLog( "For online documentation and additional files refer to: http://eu07.pl" );
 	WriteLog( "Authors: Marcin_EU, McZapkie, ABu, Winger, Tolaris, nbmx, OLO_EU, Bart, Quark-t, "
-	    "ShaXbee, Oli_EU, youBy, KURS90, Ra, hunter, szociu, Stele, Q, firleju and others\n" );
+        "ShaXbee, Oli_EU, youBy, KURS90, Ra, hunter, szociu, Stele, Q, firleju and others" );
+
+    if (!crashreport_get_provider().empty())
+        WriteLog("Crashdump analysis provided by " + crashreport_get_provider() + "\n");
 
     {
         WriteLog( "// settings" );
@@ -130,22 +203,32 @@ eu07_application::init( int Argc, char *Argv[] ) {
 
     WriteLog( "// startup" );
 
-    if( ( result = init_locale() ) != 0 ) {
+    if( ( result = init_glfw() ) != 0 ) {
         return result;
     }
-    if( ( result = init_glfw() ) != 0 ) {
+    if( ( result = init_ogl() ) != 0 ) {
+        return result;
+    }
+    if( ( result = init_ui() ) != 0 ) {
+        return result;
+    }
+    if (crashreport_is_pending()) { // run crashgui as early as possible
+        if ( ( result = run_crashgui() ) != 0 )
+            return result;
+    }
+    if( ( result = init_locale() ) != 0 ) {
         return result;
     }
     if( ( result = init_gfx() ) != 0 ) {
         return result;
     }
-    init_callbacks();
     if( ( result = init_audio() ) != 0 ) {
         return result;
     }
     if( ( result = init_data() ) != 0 ) {
         return result;
     }
+    crashreport_add_info("python_enabled", Global.python_enabled ? "yes" : "no");
     if( Global.python_enabled ) {
         m_taskqueue.init();
     }
@@ -625,9 +708,6 @@ eu07_application::init_debug() {
     state = _control87( state & ~( _EM_ZERODIVIDE | _EM_INVALID ), _MCW_EM );
     */
 #endif
-#ifdef _WIN32
-    ::SetUnhandledExceptionFilter( unhandled_handler );
-#endif
 }
 
 void
@@ -744,6 +824,8 @@ eu07_application::init_glfw() {
         glfwWindowHint( GLFW_SAMPLES, 1 << Global.iMultisampling );
     }
 
+    crashreport_add_info("gfxrenderer", Global.GfxRenderer);
+
     if( Global.GfxRenderer == "default" ) {
         Global.bUseVBO = true;
         // activate core profile for opengl 3.3 renderer
@@ -853,8 +935,7 @@ eu07_application::init_callbacks() {
 }
 
 int
-eu07_application::init_gfx() {
-
+eu07_application::init_ogl() {
     if (!Global.gfx_usegles)
     {
         if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress))
@@ -872,6 +953,21 @@ eu07_application::init_gfx() {
         }
     }
 
+    return 0;
+}
+
+int
+eu07_application::init_ui() {
+    if( false == ui_layer::init( m_windows.front() ) ) {
+        return -1;
+    }
+    init_callbacks();
+    return 0;
+}
+
+int
+eu07_application::init_gfx() {
+
     if( Global.GfxRenderer == "default" ) {
         // default render path
         GfxRenderer = gfx_renderer_factory::get_instance()->create("modern");
@@ -888,9 +984,6 @@ eu07_application::init_gfx() {
     }
 
     if( false == GfxRenderer->Init( m_windows.front() ) ) {
-        return -1;
-    }
-    if( false == ui_layer::init( m_windows.front() ) ) {
         return -1;
     }
 

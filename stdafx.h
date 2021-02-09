@@ -112,4 +112,6 @@ int const null_handle = 0;
 #include "imgui/imgui.h"
 #define ImVec2S(a, b) ImVec2(a * Global.ui_scale, b * Global.ui_scale)
 
+#include "crashreporter.h"
+
 #endif

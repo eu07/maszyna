@@ -7,6 +7,12 @@ build_script:
     
     git clone "https://github.com/chriskohlhoff/asio" --depth 1 --branch asio-1-16-1 -q
     
+    curl -o crashpad86.zip "http://get.backtrace.io/crashpad/builds/release/x86/crashpad-2020-07-01-release-x86-558c9614e3819179f30b92541450f5ac643afce5.zip"
+    
+    7z x crashpad86.zip
+    
+    move crashpad-2020-07-01-release-x86-558c9614e3819179f30b92541450f5ac643afce5 crashpad
+    
     cd ..
     
     mkdir build
@@ -17,11 +23,27 @@ build_script:
     
     cd x86
     
-    cmake ../.. -T v141_xp
+    cmake ../.. -T v141_xp -DWITH_CRASHPAD=ON
     
     cmake --build . --config RelWithDebInfo
     
     cd ..
+    
+    cd ..
+    
+    cd ref
+    
+    move crashpad crashpad_
+    
+    curl -o crashpad64.zip "http://get.backtrace.io/crashpad/builds/release/x86-64/crashpad-2020-07-01-release-x64-558c9614e3819179f30b92541450f5ac643afce5.zip"
+    
+    7z x crashpad64.zip
+    
+    move crashpad-2020-07-01-release-x64-558c9614e3819179f30b92541450f5ac643afce5 crashpad
+    
+    cd ..
+    
+    cd build
     
     mkdir x64
     
@@ -35,11 +57,15 @@ build_script:
     
     7z a eu07_x86_bin.zip ./x86/bin/RelWithDebInfo/*.exe
     
-    7z a eu07_x86_pdb.zip ./x86/pdb/RelWithDebInfo/*.pdb
-    
     7z a eu07_x64_bin.zip ./x64/bin/RelWithDebInfo/*.exe
     
-    7z a eu07_x64_pdb.zip ./x64/pdb/RelWithDebInfo/*.pdb
+    7z a package86.zip ./x86/pdb/RelWithDebInfo/*.pdb
+    
+    7z a package64.zip ./x64/bin/RelWithDebInfo/*.exe ./x64/pdb/RelWithDebInfo/*.pdb
+    
+    curl -Infile "package86.zip" -ContentType "application/octet-stream" -Method Post -uri "https://eu07.sp.backtrace.io:6098/post?format=symbols&token=4eeba9395fae661927e23679fc36f2237416ec056ef75399e894d597ad518c6c"
+    
+    curl -Infile "package64.zip" -ContentType "application/octet-stream" -Method Post -uri "https://eu07.sp.backtrace.io:6098/post?format=symbols&token=4eeba9395fae661927e23679fc36f2237416ec056ef75399e894d597ad518c6c"
 test: off
 deploy: off
 artifacts:
@@ -50,7 +76,3 @@ artifacts:
 - path: shaders
   name: shaders
   type: zip
-- path: build/eu07_x86_pdb.zip
-  name: symbols_x86
-- path: build/eu07_x64_pdb.zip
-  name: symbols_x64

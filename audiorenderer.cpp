@@ -524,8 +524,12 @@ openal_renderer::init_caps() {
     ::alcGetIntegerv( m_device, ALC_MINOR_VERSION, 1, &versionminor );
     auto const oalversion { std::to_string( versionmajor ) + "." + std::to_string( versionminor ) };
 
+    std::string al_renderer((char *)::alcGetString( m_device, ALC_DEVICE_SPECIFIER ));
+    crashreport_add_info("openal_renderer", al_renderer);
+    crashreport_add_info("openal_version", oalversion);
+
     WriteLog(
-        "Audio Renderer: " + std::string { (char *)::alcGetString( m_device, ALC_DEVICE_SPECIFIER ) }
+        "Audio Renderer: " + al_renderer
         + " OpenAL Version: " + oalversion );
 
     WriteLog( "Supported extensions: " + std::string{ (char *)::alcGetString( m_device, ALC_EXTENSIONS ) } );

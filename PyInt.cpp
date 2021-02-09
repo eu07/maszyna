@@ -147,6 +147,9 @@ void render_task::cancel() {
 // initializes the module. returns true on success
 auto python_taskqueue::init() -> bool {
 
+	crashreport_add_info("python.threadedupload", Global.python_threadedupload ? "yes" : "no");
+	crashreport_add_info("python.uploadmain", Global.python_uploadmain ? "yes" : "no");
+
 #ifdef _WIN32
 	if (sizeof(void*) == 8)
 		Py_SetPythonHome("python64");

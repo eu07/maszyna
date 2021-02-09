@@ -103,11 +103,14 @@ private:
     int  init_locale();
     int  init_glfw();
     void init_callbacks();
+    int  init_ogl();
+    int  init_ui();
     int  init_gfx();
     int  init_audio();
     int  init_data();
     int  init_modes();
 	bool init_network();
+    int run_crashgui();
 // members
 
     bool m_screenshot_queued = false;

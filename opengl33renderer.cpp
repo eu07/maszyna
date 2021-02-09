@@ -171,8 +171,10 @@ bool opengl33_renderer::Init(GLFWwindow *Window)
 	default_viewport.window = m_window;
 	default_viewport.draw_range = 1.0f;
 
-    if (Global.vr)
+    if (Global.vr) {
         vr = vr_interface_factory::get_instance()->create(Global.vr_backend);
+        crashreport_add_info("vr_backend", Global.vr_backend);
+    }
 
     if (vr) {
         glm::ivec2 target_size = vr->get_target_size();
@@ -4637,10 +4639,20 @@ void opengl33_renderer::Update_Lights(light_array &Lights)
 
 bool opengl33_renderer::Init_caps()
 {
+	std::string gl_renderer((char *)glGetString(GL_RENDERER));
+	std::string gl_vendor((char *)glGetString(GL_VENDOR));
+	std::string gl_version((char *)glGetString(GL_VERSION));
+
+	crashreport_add_info("gl_renderer", gl_renderer);
+	crashreport_add_info("gl_vendor", gl_vendor);
+	crashreport_add_info("gl_version", gl_version);
+	crashreport_add_info("gl_use_vao", gl::vao::use_vao ? "yes" : "no");
+	crashreport_add_info("gfx.skippipeline", Global.gfx_skippipeline ? "yes" : "no");
+
 	WriteLog("MaSzyna OpenGL Renderer");
-	WriteLog("Renderer: " + std::string((char *)glGetString(GL_RENDERER)));
-	WriteLog("Vendor: " + std::string((char *)glGetString(GL_VENDOR)));
-	WriteLog("GL version: " + std::string((char *)glGetString(GL_VERSION)));
+	WriteLog("Renderer: " + gl_renderer);
+	WriteLog("Vendor: " + gl_vendor);
+	WriteLog("GL version: " + gl_version);
 
 	WriteLog("--------");
 
@@ -4657,6 +4669,8 @@ bool opengl33_renderer::Init_caps()
 
 	if (!Global.gfx_usegles)
 	{
+		crashreport_add_info("gl_family", "desktop");
+
 		if (!GLAD_GL_VERSION_3_3)
 		{
 			ErrorLog("requires OpenGL >= 3.3!");
@@ -4683,6 +4697,8 @@ bool opengl33_renderer::Init_caps()
 	}
 	else
 	{
+		crashreport_add_info("gl_family", "gles");
+
 		if (!GLAD_GL_ES_VERSION_3_0)
 		{
 			ErrorLog("requires OpenGL ES >= 3.0!");

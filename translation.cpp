@@ -26,6 +26,8 @@ void locale::init()
 		return;
 	}
 
+	crashreport_add_info("translation", Global.asLang);
+
 	while (parse_translation(stream));
 
 	WriteLog("translation: " + std::to_string(lang_mapping.size()) + " strings loaded");

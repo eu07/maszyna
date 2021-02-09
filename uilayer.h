@@ -115,10 +115,14 @@ public:
 	// draws requested UI elements
 	void
 	    render();
+    static void
+        render_internal();
 	// begins new UI frame
 	// (this is separate from render() to allow for debug GUI outside of proper UI framework)
 	void
 	    begin_ui_frame();
+    static void
+        begin_ui_frame_internal();
     //
     static
     void

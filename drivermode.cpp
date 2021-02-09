@@ -801,7 +801,6 @@ driver_mode::OnKeyDown(int cKey) {
     switch (cKey) {
 
         case GLFW_KEY_F4: {
-            
             if( Global.shiftState ) { ExternalView(); } // with Shift, cycle through external views 
             else                    { InOutKey(); } // without, step out of the cab or return to it
             break;

@@ -33,6 +33,8 @@ namespace simulation {
 std::shared_ptr<deserializer_state>
 state_serializer::deserialize_begin( std::string const &Scenariofile ) {
 
+    crashreport_add_info("scenario", Scenariofile);
+
     // TODO: move initialization to separate routine so we can reuse it
     SafeDelete( Region );
     Region = new scene::basic_region();

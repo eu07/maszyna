@@ -141,13 +141,23 @@ jobs:
     - script: |
         cd ref
         git clone "https://github.com/chriskohlhoff/asio" --depth 1 --branch asio-1-12-2 -q
+        curl -o crashpad.zip "http://get.backtrace.io/crashpad/builds/release/x86-64/crashpad-2020-07-01-release-x64-558c9614e3819179f30b92541450f5ac643afce5.zip"
+        unzip crashpad.zip
+        move crashpad-2020-07-01-release-x64-558c9614e3819179f30b92541450f5ac643afce5 crashpad
       displayName: 'Download extra dependencies'
     - script: |
         mkdir build
         cd build
-        cmake .. -A x64 -DUSE_LTO=ON
+        cmake .. -A x64 -DUSE_LTO=ON -DWITH_CRASHPAD=ON
         cmake --build . --config RelWithDebInfo
       displayName: 'Build'
+    - script: |
+        cd build
+        7z a package.zip .\bin\RelWithDebInfo\*.exe .\pdb\RelWithDebInfo\*.pdb
+        curl --data-binary @package.zip -H "Expect:" "https://eu07.sp.backtrace.io:6098/post?format=symbols&token=4eeba9395fae661927e23679fc36f2237416ec056ef75399e894d597ad518c6c"
+        del .\bin\RelWithDebInfo\*.iobj
+        del .\bin\RelWithDebInfo\*.ipdb
+      displayName: 'Upload symbols'
     - task: PublishBuildArtifacts@1
       inputs:
         pathtoPublish: 'build/bin'
@@ -178,13 +188,23 @@ jobs:
     - script: |
         cd ref
         git clone "https://github.com/chriskohlhoff/asio" --depth 1 --branch asio-1-12-2 -q
+        curl -o crashpad.zip "http://get.backtrace.io/crashpad/builds/release/x86/crashpad-2020-07-01-release-x86-558c9614e3819179f30b92541450f5ac643afce5.zip"
+        unzip crashpad.zip
+        move crashpad-2020-07-01-release-x86-558c9614e3819179f30b92541450f5ac643afce5 crashpad
       displayName: 'Download extra dependencies'
     - script: |
         mkdir build
         cd build
-        cmake .. -A Win32 -T v141_xp -DUSE_LTO=ON
+        cmake .. -A Win32 -T v141_xp -DUSE_LTO=ON -DWITH_CRASHPAD=ON
         cmake --build . --config RelWithDebInfo
       displayName: 'Build'
+    - script: |
+        cd build
+        7z a package.zip .\pdb\RelWithDebInfo\*.pdb
+        curl --data-binary @package.zip -H "Expect:" "https://eu07.sp.backtrace.io:6098/post?format=symbols&token=4eeba9395fae661927e23679fc36f2237416ec056ef75399e894d597ad518c6c"
+        del .\bin\RelWithDebInfo\*.iobj
+        del .\bin\RelWithDebInfo\*.ipdb
+      displayName: 'Upload symbols'
     - task: PublishBuildArtifacts@1
       inputs:
         pathtoPublish: 'build/bin'
