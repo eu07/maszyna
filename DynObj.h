@@ -404,6 +404,7 @@ private:
         sound_source radiator_fan_aux { sound_placement::engine };
         sound_source transmission { sound_placement::engine };
         sound_source rsEngageSlippery { sound_placement::engine }; // moved from cab
+		sound_source retarder { sound_placement::engine };
 
         void position( glm::vec3 const Location );
 		void render( TMoverParameters const &Vehicle, double const Deltatime );
