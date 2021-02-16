@@ -418,6 +418,11 @@ opengl_renderer::Render_pass( rendermode const Mode ) {
                 break;
             }
 
+            if (Global.bWireFrame)
+                glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+            else
+                glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+
             if( ( true == Global.RenderShadows )
              && ( false == Global.bWireFrame )
              && ( m_shadowcolor != colors::white ) ) {
@@ -566,6 +571,8 @@ opengl_renderer::Render_pass( rendermode const Mode ) {
             }
             // store draw stats
             m_colorpass.draw_stats = m_renderpass.draw_stats;
+
+            glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 
             break;
         }
