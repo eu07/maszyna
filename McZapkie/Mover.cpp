@@ -9402,6 +9402,7 @@ bool TMoverParameters::LoadFIZ(std::string chkpath)
 			startBPT = false;
             fizlines.emplace( "Security", inputline );
 			SecuritySystem.load(inputline, Vmax);
+            extract_value( EmergencyBrakeWarningSignal, "EmergencyBrakeWarningSignal", inputline, "" );
             continue;
         }
 
