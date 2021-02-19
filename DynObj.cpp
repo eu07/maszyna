@@ -7618,13 +7618,13 @@ TDynamicObject::powertrain_sounds::render( TMoverParameters const &Vehicle, doub
     }
 
 	if (Vehicle.hydro_R) {
-		float speed = std::abs(Vehicle.hydro_R_Fill * Vehicle.hydro_R_n);
+		float speed = std::abs(Vehicle.hydro_R_n);
 
 		retarder
 			.pitch(retarder.m_frequencyoffset + speed * retarder.m_frequencyfactor)
 			.gain(retarder.m_amplitudeoffset + Vehicle.hydro_R_Fill * retarder.m_amplitudefactor);
 	
-		if (retarder.gain() > 0.01) {
+		if ((retarder.gain() > 0.01)&&(speed > 1)&&(Vehicle.hydro_R_ClutchActive)) {
 			retarder.play(sound_flags::exclusive | sound_flags::looping);
 		}
 		else {
