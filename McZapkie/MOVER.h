@@ -1277,6 +1277,9 @@ public:
 	double hydro_R_FillRateDec = 1.0; /*szybkosc oprozniania sprzegla*/
 	double hydro_R_MinVel = 1.0; /*minimalna predkosc, przy ktorej retarder dziala*/
 	double hydro_R_EngageVel = 1.0; /*minimalna predkosc hamowania, przy ktorej sprzeglo jest wciaz wlaczone*/
+	bool hydro_R_Clutch = false; /*czy retarder ma rozłączalne sprzęgło*/
+	double hydro_R_ClutchSpeed = 10.0; /*szybkość narastania obrotów po włączeniu sprzęgła retardera*/
+	bool hydro_R_WithIndividual = false; /*czy dla autobusów jest to łączone*/
     /*- dla lokomotyw spalinowo-elektrycznych -*/
 	double AnPos = 0.0; // pozycja sterowania dokladnego (analogowego)
 	bool AnalogCtrl = false; //
@@ -1576,6 +1579,7 @@ public:
 	double hydro_R_Torque = 0.0; /*moment*/
 	double hydro_R_Request = 0.0; /*zadanie sily hamowania*/
 	double hydro_R_n = 0.0; /*predkosc obrotowa retardera*/
+	bool hydro_R_ClutchActive = false; /*czy retarder jest napędzany*/
 
     /*- zmienne dla lokomotyw z silnikami indukcyjnymi -*/
 	double eimic = 0; /*aktualna pozycja zintegrowanego sterowania jazda i hamowaniem*/

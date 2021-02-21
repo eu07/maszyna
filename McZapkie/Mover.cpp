@@ -7822,6 +7822,7 @@ double TMoverParameters::dizel_Momentum(double dizel_fill, double n, double dt)
 double TMoverParameters::dizel_MomentumRetarder(double n, double dt)
 {
 	double RetarderRequest = (Mains ? std::max(0.0, -eimic_real) : 0);
+	if (hydro_R_WithIndividual) RetarderRequest = LocalBrakeRatio();
 	if (Vel < hydro_R_MinVel)
 		RetarderRequest = 0;
 	if ((hydro_R_Placement == 2) && (enrot < dizel_nmin))
@@ -7829,7 +7830,21 @@ double TMoverParameters::dizel_MomentumRetarder(double n, double dt)
 		RetarderRequest = 0;
 	}
 
-	hydro_R_n = n * 60;
+	hydro_R_ClutchActive = (!hydro_R_Clutch) || (RetarderRequest > 0);
+	if ((!hydro_R_Clutch)
+		|| ((hydro_R_ClutchActive) && (hydro_R_ClutchSpeed == 0)))
+	{
+		hydro_R_n = n * 60;
+	}
+	else if (hydro_R_ClutchActive)
+	{
+		hydro_R_n = sign(n)*std::min(std::abs(hydro_R_n + hydro_R_ClutchSpeed * dt), std::abs(n * 60));
+	}
+	else
+	{
+		hydro_R_n = 0;
+	}
+	n = hydro_R_n / 60.f;
 
 	if (hydro_R_Fill < RetarderRequest) //gdy zadane hamowanie
 	{
@@ -7841,7 +7856,7 @@ double TMoverParameters::dizel_MomentumRetarder(double n, double dt)
 	}
 	
 	double Moment = hydro_R_MaxTorque;
-	double pwr = Moment * n * M_PI * 2 * 0.001;
+	double pwr = Moment * std::abs(n) * M_PI * 2 * 0.001;
 	if (pwr > hydro_R_MaxPower)
 		Moment = Moment * hydro_R_MaxPower / pwr;
 	double moment_in = n*n*hydro_R_TorqueInIn;
@@ -10631,6 +10646,9 @@ void TMoverParameters::LoadFIZ_Engine( std::string const &Input ) {
 					extract_value(hydro_R_FillRateDec, "R_FRD", Input, "");
 					extract_value(hydro_R_MinVel, "R_MinVel", Input, "");
 					extract_value(hydro_R_EngageVel, "R_EngageVel", Input, "");
+					extract_value(hydro_R_Clutch, "R_IsClutch", Input, "");
+					extract_value(hydro_R_ClutchSpeed, "R_ClutchSpeed", Input, "");
+					extract_value(hydro_R_WithIndividual, "R_WithIndividual", Input, "");
 				}
 			}
             break;

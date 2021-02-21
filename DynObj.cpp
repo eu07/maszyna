@@ -6064,7 +6064,11 @@ void TDynamicObject::LoadMMediaFile( std::string const &TypeName, std::string co
 
                     m_powertrainsounds.rsEngageSlippery.m_frequencyfactor /= ( 1 + MoverParameters->nmax );
                 }
-                else if( token == "linebreakerclose:" ) {
+				else if (token == "retarder:") {
+					m_powertrainsounds.retarder.deserialize(parser, sound_type::single, sound_parameters::amplitude | sound_parameters::frequency);
+					m_powertrainsounds.retarder.owner(this);
+				}
+				else if( token == "linebreakerclose:" ) {
                     m_powertrainsounds.linebreaker_close.deserialize( parser, sound_type::single );
                     m_powertrainsounds.linebreaker_close.owner( this );
                 }
@@ -7297,7 +7301,7 @@ TDynamicObject::powertrain_sounds::position( glm::vec3 const Location ) {
         &inverter,
         &motor_relay, &dsbWejscie_na_bezoporow, &motor_parallel, &motor_shuntfield, &rsWentylator,
         &engine, &engine_ignition, &engine_shutdown, &engine_revving, &engine_turbo, &oil_pump, &fuel_pump, &water_pump, &water_heater, &radiator_fan, &radiator_fan_aux,
-        &transmission, &rsEngageSlippery
+        &transmission, &rsEngageSlippery, &retarder
     };
     for( auto sound : enginesounds ) {
         if( sound->offset() == nullvector ) {
@@ -7563,6 +7567,21 @@ TDynamicObject::powertrain_sounds::render( TMoverParameters const &Vehicle, doub
     else {
         rsEngageSlippery.stop();
     }
+
+	if (Vehicle.hydro_R) {
+		float speed = std::abs(Vehicle.hydro_R_n);
+
+		retarder
+			.pitch(retarder.m_frequencyoffset + speed * retarder.m_frequencyfactor)
+			.gain(retarder.m_amplitudeoffset + Vehicle.hydro_R_Fill * retarder.m_amplitudefactor);
+	
+		if ((retarder.gain() > 0.01)&&(speed > 1)&&(Vehicle.hydro_R_ClutchActive)) {
+			retarder.play(sound_flags::exclusive | sound_flags::looping);
+		}
+		else {
+			retarder.stop();
+		}
+	}
 
     // motor sounds
     volume = 0.0;
