@@ -829,8 +829,8 @@ putvalues_event::export_as_text_( std::ostream &Output ) const {
 bool
 putvalues_event::is_command_for_owner( input_data const &Input ) const {
 
-    if( Input.data_text.rfind( "Load=", 0 ) == std::string::npos ) { return false; }
-    if( Input.data_text.rfind( "UnLoad=", 0 ) == std::string::npos ) { return false; }
+    if( starts_with( Input.data_text, "Load=" ) )   { return false; }
+    if( starts_with( Input.data_text, "UnLoad=" ) ) { return false; }
     // TBD, TODO: add other exceptions
 
     return true;

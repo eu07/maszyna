@@ -373,8 +373,9 @@ private:
     struct powertrain_sounds {
         sound_source inverter { sound_placement::engine };
         std::vector<sound_source> motorblowers;
-        std::vector<sound_source> motors; // generally traction motor(s)
-        bool dcmotors { true }; // traction dc motor(s)
+        std::vector<sound_source> motors; // generic traction motor sounds
+        std::vector<sound_source> acmotors; // inverter-specific traction motor sounds
+//        bool dcmotors { true }; // traction dc motor(s)
         double motor_volume { 0.0 }; // MC: pomocnicze zeby gladziej silnik buczal
         float motor_momentum { 0.f }; // recent change in motor revolutions
         sound_source motor_relay { sound_placement::engine };

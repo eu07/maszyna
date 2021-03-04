@@ -550,7 +550,8 @@ TController::cue_action( locale::string const Action, float const Actionparamete
             hint(
                 Action,
                 [this](float const Parameter) -> bool {
-                    return ( ( AccDesired <= -0.06 )
+                    return ( ( AccDesired <= EU07_AI_NOACCELERATION )
+                          || ( ( false == Ready ) && ( false == mvOccupied->ShuntMode ) )
                           || ( AccDesired - AbsAccS <= 0.05 )
                           || ( mvOccupied->EIMCtrlType > 0 ?
                                ( mvControlling->eimic_real >= 1.0 ) :
@@ -1250,7 +1251,8 @@ TController::cue_action( locale::string const Action, float const Actionparamete
             break;
         }
         case locale::string::driver_hint_headcodepc5: {
-            if( AIControllFlag || Global.AITrainman ) {
+            if( ( AIControllFlag )
+             || ( Global.AITrainman && ( false == pVehicles[ end::rear ]->is_connected( pVehicle, coupling::control ) ) ) ) {
                 pVehicles[ end::rear ]->RaLightsSet( -1, light::redmarker_left | light::redmarker_right | light::rearendsignals );
             }
             remove_hint( locale::string::driver_hint_headcodetb1 );

@@ -37,8 +37,6 @@ http://mozilla.org/MPL/2.0/.
 #define LOGBACKSCAN 0
 #define LOGPRESS 0
 
-auto const EU07_AI_NOACCELERATION = -0.05;
-
 // finds point of specified track nearest to specified event. returns: distance to that point from the specified end of the track
 // TODO: move this to file with all generic routines, too easy to forget it's here and it may come useful
 double
@@ -1660,7 +1658,7 @@ TController::braking_distance_multiplier( float const Targetvelocity ) const {
     if( Targetvelocity > 65.f ) { return 1.f * frictionmultiplier; }
     if( Targetvelocity < 5.f ) {
         // HACK: engaged automatic transmission means extra/earlier braking effort is needed for the last leg before full stop
-        if( ( mvOccupied->TrainType == dt_DMU )
+        if( ( is_dmu() )
          && ( mvOccupied->Vel < 40.0 )
          && ( Targetvelocity == 0.f ) ) {
             auto const multiplier { clamp( 1.f + iVehicles * 0.5f, 2.f, 4.f ) };
@@ -1814,8 +1812,8 @@ TController::TController(bool AI, TDynamicObject *NewControll, bool InitPsyche, 
         // fAccThreshold może podlegać uczeniu się - hamowanie powinno być rejestrowane, a potem analizowane
         // próg opóźnienia dla zadziałania hamulca
         fAccThreshold = (
-            mvOccupied->TrainType == dt_EZT ? -0.55 :
-            mvOccupied->TrainType == dt_DMU ? -0.45 :
+            is_emu() ? -0.55 :
+            is_dmu() ? -0.45 :
             -0.2 );
 /*
         // HACK: emu with induction motors need to start their braking a bit sooner than the ones with series motors
@@ -2181,11 +2179,11 @@ void TController::AutoRewident()
     if( OrderCurrentGet() & ( Shunt | Loose_shunt ) ) {
         // for uniform behaviour and compatibility with older scenarios set default acceleration table values for shunting
         fAccThreshold = (
-            mvOccupied->TrainType == dt_EZT ? -0.55 :
-            mvOccupied->TrainType == dt_DMU ? -0.45 :
+            is_emu() ? -0.55 :
+            is_dmu() ? -0.45 :
             -0.2 );
         // HACK: emu with induction motors need to start their braking a bit sooner than the ones with series motors
-        if( ( mvOccupied->TrainType == dt_EZT )
+        if( ( is_emu() )
          && ( mvControlling->EngineType == TEngineType::ElectricInductionMotor ) ) {
             fAccThreshold += 0.10;
         }
@@ -2211,8 +2209,8 @@ void TController::AutoRewident()
 		    fBrake_a1[i+1] /= (12*fMass);
 	    }
 
-        IsPassengerTrain = ( mvOccupied->CategoryFlag == 1 ) && ( mvOccupied->TrainType != dt_EZT ) && ( mvOccupied->TrainType != dt_DMU ) && ( ( mvOccupied->BrakeDelayFlag & bdelay_G ) == 0 );
-        IsCargoTrain = ( mvOccupied->CategoryFlag == 1 ) && ( ( mvOccupied->BrakeDelayFlag & bdelay_G ) != 0 );
+        IsPassengerTrain = ( is_train() ) && ( false == is_emu() ) && ( false == is_dmu() ) && ( ( mvOccupied->BrakeDelayFlag & bdelay_G ) == 0 );
+        IsCargoTrain = ( is_train() ) && ( ( mvOccupied->BrakeDelayFlag & bdelay_G ) != 0 );
         IsHeavyCargoTrain = ( true == IsCargoTrain ) && ( fBrake_a0[ 1 ] > 0.4 ) && ( iVehicles - ControlledEnginesCount > 0 ) && ( fMass / iVehicles > 50000 );
 
         BrakingInitialLevel = (
@@ -2225,7 +2223,7 @@ void TController::AutoRewident()
             IsCargoTrain      ? 0.25 :
                                 0.25 );
 
-        if( mvOccupied->TrainType == dt_EZT ) {
+        if( is_emu() ) {
             if( mvControlling->EngineType == TEngineType::ElectricInductionMotor ) {
                 // HACK: emu with induction motors need to start their braking a bit sooner than the ones with series motors
                 fNominalAccThreshold = std::max( -0.60, -fBrake_a0[ BrakeAccTableSize ] - 8 * fBrake_a1[ BrakeAccTableSize ] );
@@ -2235,7 +2233,7 @@ void TController::AutoRewident()
             }       
 		    fBrakeReaction = 0.25;
 	    }
-        else if( mvOccupied->TrainType == dt_DMU ) {
+        else if( is_dmu() ) {
             fNominalAccThreshold = std::max( -0.75, -fBrake_a0[ BrakeAccTableSize ] - 8 * fBrake_a1[ BrakeAccTableSize ] );
             fBrakeReaction = 0.25;
         }
@@ -2421,37 +2419,39 @@ bool TController::CheckVehicles(TOrders user)
         if( mvOccupied->LightsPosNo > 0 ) {
             pVehicle->SetLights();
         }
-        // potentially adjust light state
-        control_lights();
-        // custom ai action for disconnect mode: switch off lights on disconnected vehicle(s)
-        if( is_train() ) {
-            if( true == TestFlag( OrderCurrentGet(), Disconnect ) ) {
-                if( AIControllFlag ) {
-                    // światła manewrowe (Tb1) tylko z przodu, aby nie pozostawić odczepionego ze światłem
-                    if( mvOccupied->DirActive >= 0 ) { // jak ma kierunek do przodu
-                        pVehicles[ end::rear ]->RaLightsSet( -1, 0 );
-                    }
-                    else { // jak dociska
-                        pVehicles[ end::front ]->RaLightsSet( 0, -1 );
+        if( iEngineActive ) {
+            // potentially adjust light state
+            control_lights();
+            // custom ai action for disconnect mode: switch off lights on disconnected vehicle(s)
+            if( is_train() ) {
+                if( true == TestFlag( OrderCurrentGet(), Disconnect ) ) {
+                    if( AIControllFlag ) {
+                        // światła manewrowe (Tb1) tylko z przodu, aby nie pozostawić odczepionego ze światłem
+                        if( mvOccupied->DirActive >= 0 ) { // jak ma kierunek do przodu
+                            pVehicles[ end::rear ]->RaLightsSet( -1, 0 );
+                        }
+                        else { // jak dociska
+                            pVehicles[ end::front ]->RaLightsSet( 0, -1 );
+                        }
                     }
                 }
             }
-        }
-        // enable door locks
-        cue_action( locale::string::driver_hint_consistdoorlockson );
-        // potentially enable train heating
-        {
-            // HACK: to account for su-45/46 shortcomings diesel-powered engines only activate heating in cold conditions
-            // TODO: take instead into account presence of converters in attached cars, once said presence is possible to specify
-            auto const isheatingneeded { (
-                IsCargoTrain ? false :
-                has_diesel_engine() ? ( Global.AirTemperature < 10 ) :
-                true ) };
-            if( mvControlling->HeatingAllow != isheatingneeded ) {
-                cue_action(
-                    isheatingneeded ?
-                        locale::string::driver_hint_consistheatingon :
-                        locale::string::driver_hint_consistheatingoff );
+            // enable door locks
+            cue_action( locale::string::driver_hint_consistdoorlockson );
+            // potentially enable train heating
+            {
+                // HACK: to account for su-45/46 shortcomings diesel-powered engines only activate heating in cold conditions
+                // TODO: take instead into account presence of converters in attached cars, once said presence is possible to specify
+                auto const isheatingneeded{ (
+                    IsCargoTrain ? false :
+                    has_diesel_engine() ? ( Global.AirTemperature < 10 ) :
+                    true ) };
+                if( mvControlling->HeatingAllow != isheatingneeded ) {
+                    cue_action(
+                        isheatingneeded ?
+                            locale::string::driver_hint_consistheatingon :
+                            locale::string::driver_hint_consistheatingoff );
+                }
             }
         }
         if( OrderCurrentGet() & ( Shunt | Loose_shunt | Obey_train | Bank ) ) {
@@ -2469,8 +2469,8 @@ bool TController::CheckVehicles(TOrders user)
         }
 
         // Ra 2014-09: tymczasowo prymitywne ustawienie warunku pod kątem SN61
-        if( ( mvOccupied->TrainType == dt_EZT )
-         || ( mvOccupied->TrainType == dt_DMU )
+        if( ( is_emu() )
+         || ( is_dmu() )
          || ( iVehicles == 1 ) ) {
             // zmiana czoła przez zmianę kabiny
             iDrivigFlags |= movePushPull;
@@ -2539,7 +2539,7 @@ int TController::OrderDirectionChange(int newdir, TMoverParameters *Vehicle)
         IncBrake(); // niech hamuje
     if (Vehicle->DirActive == testd * Vehicle->CabActive)
         VelforDriver = -1; // można jechać, bo kierunek jest zgodny z żądanym
-    if (Vehicle->TrainType == dt_EZT)
+    if (is_emu())
         if (Vehicle->DirActive > 0)
             // if () //tylko jeśli jazda pociągowa (tego nie wiemy w momencie odpalania silnika)
             Vehicle->DirectionForward(); // Ra: z przekazaniem do silnikowego
@@ -2642,7 +2642,13 @@ bool TController::PrepareEngine()
     if( ( mvPantographUnit->EnginePowerSource.SourceType == TPowerSource::CurrentCollector )
      && ( mvPantographUnit->EnginePowerSource.CollectorParameters.CollectorsNo > 0 ) ) {
         // if our pantograph unit isn't a pantograph-devoid fallback
-        if (mvPantographUnit->PantPress < 4.2) {
+        auto const sufficientpantographpressure { (
+            is_emu() ?
+                2.5 : // Ra 2013-12: Niebugocław mówi, że w EZT podnoszą się przy 2.5
+                3.5 )
+            + 0.1 }; // leeway margin
+
+        if (mvPantographUnit->PantPress < sufficientpantographpressure) {
             // załączenie małej sprężarki
             if( false == mvPantographUnit->PantAutoValve ) {
                 // odłączenie zbiornika głównego, bo z nim nie da rady napompować
@@ -2715,10 +2721,6 @@ bool TController::PrepareEngine()
                     cue_action( locale::string::driver_hint_rearmotorblowerson );
                 }
             }
-            // set up train brake
-            if( mvOccupied->fBrakeCtrlPos != mvOccupied->Handle->GetPos( bh_RP ) ) {
-                cue_action( locale::string::driver_hint_trainbrakerelease );
-            }
             // sync virtual brake state with the 'real' one
             if( mvOccupied->BrakeHandle != TBrakeHandle::NoHandle ) {
                 std::unordered_map<int, int> const brakepositions{
@@ -2729,6 +2731,10 @@ bool TController::PrepareEngine()
                 if( lookup != brakepositions.end() ) {
                     BrakeLevelSet( lookup->second ); // GBH
                 }
+            }
+            // set up train brake
+            if( mvOccupied->fBrakeCtrlPos != mvOccupied->Handle->GetPos( bh_RP ) ) {
+                cue_action( locale::string::driver_hint_trainbrakerelease );
             }
             // sync spring brake state across consist
             cue_action(
@@ -2885,7 +2891,7 @@ bool TController::IncBrake()
                     standalone = false;
                 }
             }
-            else if( mvOccupied->TrainType == dt_DMU ) {
+            else if( is_dmu() ) {
                 // enforce use of train brake for DMUs
                 standalone = false;
             }
@@ -2964,7 +2970,7 @@ bool TController::IncBrake()
                         if( /*GBH mvOccupied->BrakeCtrlPosR*/BrakeCtrlPosition < 0.1 ) {
                             OK = /*mvOccupied->*/BrakeLevelAdd( BrakingInitialLevel ); //GBH
                             // HACK: stronger braking to overcome SA134 engine behaviour
-                            if( ( mvOccupied->TrainType == dt_DMU )
+                            if( ( is_dmu() )
                              && ( VelNext == 0.0 ) 
                              && ( fBrakeDist < 200.0 ) ) {
                                 BrakeLevelAdd(
@@ -3099,7 +3105,7 @@ bool TController::DecBrake() {
             auto deltaAcc { -1.0 };
             if( ( fBrake_a0[ 0 ] != 0.0 )
              || ( fBrake_a1[ 0 ] != 0.0 ) ) {
-                auto const pos_diff { ( mvOccupied->TrainType == dt_DMU ? 0.25 : 1.0 ) };
+                auto const pos_diff { ( is_dmu() ? 0.25 : 1.0 ) };
                 deltaAcc = -AccDesired * BrakeAccFactor() - ( fBrake_a0[ 0 ] + 4 * (/*GBH mvOccupied->BrakeCtrlPosR*/BrakeCtrlPosition - pos_diff )*fBrake_a1[ 0 ] );
             }
 		    if (deltaAcc < 0) {
@@ -4752,17 +4758,19 @@ TController::Update( double const Timedelta ) {
     scan_route( awarenessrange );
     scan_obstacles( awarenessrange );
     // generic actions
-    control_wheelslip();
     control_security_system( reactiontime );
-    control_horns( reactiontime );
-    control_pantographs();
-    CheckTimeControllers();
-    if( fActionTime > 0.0 ) {
-        // potentially delayed and/or low priority actions
-        control_lights();
-        control_doors();
-        control_compartment_lights();
+    if( iEngineActive ) {
+        control_wheelslip();
+        control_horns( reactiontime );
+        control_pantographs();
+        if( fActionTime > 0.0 ) {
+            // potentially delayed and/or low priority actions
+            control_lights();
+            control_doors();
+            control_compartment_lights();
+        }
     }
+    CheckTimeControllers();
     // external command actions
     UpdateCommand();
     // mode specific actions
@@ -4770,9 +4778,11 @@ TController::Update( double const Timedelta ) {
     handle_orders();
     // situational velocity and acceleration adjustments
     pick_optimal_speed( awarenessrange );
-    control_tractive_and_braking_force();
+    if( iEngineActive ) {
+        control_tractive_and_braking_force();
+    }
     SetTimeControllers();
-    // if the route ahead is blocked we might need to head the other way
+// if the route ahead is blocked we might need to head the other way
     check_route_behind( 1000 ); // NOTE: legacy scan range value
 }
 
@@ -5531,7 +5541,7 @@ void TController::sync_consist_reversers() {
 
     auto const currentdirection { mvOccupied->DirActive };
     auto const fastforward { (
-        ( mvOccupied->TrainType == dt_EZT )
+        ( is_emu() )
      && ( mvOccupied->EngineType != TEngineType::ElectricInductionMotor ) )
      && ( mvOccupied->Imin == mvOccupied->IminHi ) };
 
@@ -5749,7 +5759,7 @@ TController::determine_consist_state() {
 	fBrake_a0[0] = fBrake_a0[index];
 	fBrake_a1[0] = fBrake_a1[index];
 
-	if ((mvOccupied->TrainType == dt_EZT) || (mvOccupied->TrainType == dt_DMU)) {
+	if ((is_emu()) || (is_dmu())) {
 		auto Coeff = clamp( mvOccupied->Vel*0.015 , 0.5 , 1.0);
 		fAccThreshold = fNominalAccThreshold * Coeff - fBrake_a0[BrakeAccTableSize] * (1.0 - Coeff);
 	}
@@ -5895,6 +5905,12 @@ TController::determine_consist_state() {
         }
         p = p->Next(); // pojazd podłączony z tyłu (patrząc od czoła)
     }
+    // test consist state for external events and/or weird things human user could've done
+    iEngineActive &=
+           ( false == IsAnyConverterOverloadRelayOpen )
+        && ( false == IsAnyLineBreakerOpen )
+        && ( true == IsAnyConverterEnabled )
+        && ( true == IsAnyCompressorEnabled );
 }
 
 void
@@ -5939,7 +5955,7 @@ TController::control_pantographs() {
     // raise/lower pantographs as needed
     auto const useregularpantographlayout {
         ( pVehicle->NextC( coupling::control ) == nullptr ) // standalone
-     || ( mvControlling->TrainType == dt_EZT ) // special case
+     || ( is_emu() ) // special case
      || ( mvControlling->TrainType == dt_ET41 ) }; // special case
 
     if( mvOccupied->Vel > 0.05 ) {
@@ -6080,6 +6096,10 @@ TController::control_security_system( double const Timedelta ) {
 
     if( mvOccupied->SecuritySystem.Status >= s_aware ) {
         // jak zadziałało CA/SHP
+        if( ( false == is_emu() )
+         && ( mvOccupied->DirActive == 0 ) ) {
+            cue_action( locale::string::driver_hint_directionforward );
+        }
         cue_action( locale::string::driver_hint_securitysystemreset ); // to skasuj
         if( ( BrakeCtrlPosition == 0 ) // TODO: verify whether it's 0 in all vehicle types
          && ( AccDesired > 0.0 )
@@ -6100,7 +6120,8 @@ TController::control_security_system( double const Timedelta ) {
             m_radiocontroltime += Timedelta;
         }
     }
-    if( ( false == mvOccupied->Radio )
+    if( ( iEngineActive )
+     && ( false == mvOccupied->Radio )
      && ( false == mvOccupied->RadioStopFlag ) ) {
         // otherwise if it's safe to do so, turn the radio back on
         // arbitrary 5 sec delay before switching radio back on
@@ -6249,13 +6270,12 @@ TController::control_doors() {
 
 void
 TController::UpdateCommand() {
-    // TBD, TODO: rework recognizecommand() to use hint system, remove driver type condition?
-    if (AIControllFlag) {
-        if (mvOccupied->CommandIn.Command != "")
-            if( !mvOccupied->RunInternalCommand() ) {
-                // rozpoznaj komende bo lokomotywa jej nie rozpoznaje
-                RecognizeCommand(); // samo czyta komendę wstawioną do pojazdu?
-            }
+
+    if( false == mvOccupied->CommandIn.Command.empty() ) {
+        if( false == mvOccupied->RunInternalCommand() ) {
+            // rozpoznaj komende bo lokomotywa jej nie rozpoznaje
+            RecognizeCommand(); // samo czyta komendę wstawioną do pojazdu?
+        }
     }
 }
 
@@ -6294,7 +6314,7 @@ TController::determine_braking_distance() {
     }
     if( ( mvOccupied->Vel > 15.0 )
      && ( mvControlling->EngineType == TEngineType::ElectricInductionMotor )
-     && ( ( mvControlling->TrainType & dt_EZT ) != 0 ) ) {
+     && ( is_emu() ) ) {
         // HACK: make the induction motor powered EMUs start braking slightly earlier
         fBrakeDist += 10.0;
     }
@@ -6805,9 +6825,7 @@ TController::handle_engine() {
     }
     // engine state can potentially deteriorate in one of usual driving modes
     if( ( OrderCurrentGet() & ( Change_direction | Connect | Disconnect | Shunt | Loose_shunt | Obey_train | Bank ) )
-     && ( ( false == iEngineActive )
-       || ( IsAnyConverterOverloadRelayOpen ) // wywalił bezpiecznik nadmiarowy przetwornicy
-       || ( IsAnyLineBreakerOpen ) ) ) { // WS może wywalić z powodu błędu w drutach
+     && ( false == iEngineActive ) ) {
         // jeśli coś ma robić to niech odpala do skutku
         PrepareEngine();
     }
@@ -6877,7 +6895,7 @@ TController::pick_optimal_speed( double const Range ) {
     if( false == TestFlag( iDrivigFlags, moveActive ) ) {
         VelDesired = 0.0;
         AccDesired = std::min( AccDesired, EU07_AI_NOACCELERATION );
-        return;
+//        return;
     }
 
     // basic velocity and acceleration adjustments
@@ -7462,7 +7480,7 @@ void TController::control_motor_connectors() {
     // ensure motor connectors are active
     if( ( mvControlling->EngineType == TEngineType::ElectricSeriesMotor )
      || ( mvControlling->EngineType == TEngineType::DieselElectric )
-     || ( mvControlling->TrainType == dt_EZT ) ) {
+     || ( is_emu() ) ) {
         if( Need_TryAgain ) {
             // true, jeśli druga pozycja w elektryku nie załapała
             cue_action( locale::string::driver_hint_mastercontrollersetzerospeed );
@@ -7555,7 +7573,7 @@ void TController::control_braking_force() {
         }
     }
 
-    if( mvOccupied->TrainType == dt_EZT ) {
+    if( is_emu() ) {
         // właściwie, to warunek powinien być na działający EP
         // Ra: to dobrze hamuje EP w EZT
         auto const accthreshold { (

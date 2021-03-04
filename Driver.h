@@ -17,6 +17,8 @@ http://mozilla.org/MPL/2.0/.
 #include "mtable.h"
 #include "translation.h"
 
+auto const EU07_AI_NOACCELERATION = -0.05;
+
 enum TOrders
 { // rozkazy dla AI
     Wait_for_orders = 0, // czekanie na dostarczenie następnych rozkazów
@@ -230,6 +232,10 @@ public:
         return TestFlag( mvOccupied->CategoryFlag, 1 ); }
     bool is_car() const {
         return TestFlag( mvOccupied->CategoryFlag, 2 ); }
+    bool is_emu() const {
+        return ( mvControlling->TrainType == dt_EZT ); }
+    bool is_dmu() const {
+        return ( mvControlling->TrainType == dt_DMU ); }
     bool has_diesel_engine() const {
         return ( ( mvControlling->EngineType == TEngineType::DieselElectric )
               || ( mvControlling->EngineType == TEngineType::DieselEngine ) );

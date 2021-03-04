@@ -5476,32 +5476,56 @@ void TDynamicObject::LoadMMediaFile( std::string const &TypeName, std::string co
                     m_powertrainsounds.water_heater.owner( this );
                 }
 
-                else if( ( ( token == "tractionmotor:" ) || ( token == "tractionacmotor:" ) )
-                      && ( MoverParameters->Power > 0 ) ) {
-                    // dc motors are (legacy) default
-                    m_powertrainsounds.dcmotors = ( token == "tractionmotor:" );
+                else if( ( token == "tractionmotor:" ) && ( MoverParameters->Power > 0 ) ) {
                     // plik z dzwiekiem silnika, mnozniki i ofsety amp. i czest.
                     sound_source motortemplate { sound_placement::external };
                     motortemplate.deserialize( parser, sound_type::single, sound_parameters::range | sound_parameters::amplitude | sound_parameters::frequency );
+                    auto const amplitudedivisor { static_cast<float>( MoverParameters->nmax * 60 + MoverParameters->Power * 3 ) };
+                    motortemplate.m_amplitudefactor /= amplitudedivisor;
                     motortemplate.owner( this );
 
-                    if( m_powertrainsounds.dcmotors ) {
-                        auto const amplitudedivisor = static_cast<float>( MoverParameters->nmax * 60 + MoverParameters->Power * 3 );
-                        motortemplate.m_amplitudefactor /= amplitudedivisor;
-                    }
+                    auto &motors { m_powertrainsounds.motors };
 
-                    if( true == m_powertrainsounds.motors.empty() ) {
+                    if( true == motors.empty() ) {
                         // fallback for cases without specified motor locations, convert sound template to a single sound source
-                        m_powertrainsounds.motors.emplace_back( motortemplate );
+                        motors.emplace_back( motortemplate );
                     }
                     else {
                         // apply configuration to all defined motors
-                        for( auto &motor : m_powertrainsounds.motors ) {
+                        for( auto &motor : motors ) {
                             // combine potential x- and y-axis offsets of the sound template with z-axis offsets of individual motors
                             auto motoroffset { motortemplate.offset() };
                             motoroffset.z = motor.offset().z;
                             motor = motortemplate;
                             motor.offset( motoroffset );
+                            // apply randomized playback start offset for each instance, to reduce potential reverb with identical nearby sources
+                            motor.start( LocalRandom( 0.0, 1.0 ) );
+                        }
+                    }
+                }
+
+                else if( ( token == "tractionacmotor:" ) && ( MoverParameters->Power > 0 ) ) {
+                    // plik z dzwiekiem silnika, mnozniki i ofsety amp. i czest.
+                    sound_source motortemplate { sound_placement::external };
+                    motortemplate.deserialize( parser, sound_type::single, sound_parameters::range | sound_parameters::amplitude | sound_parameters::frequency );
+                    motortemplate.owner( this );
+
+                    auto &motors { m_powertrainsounds.acmotors };
+
+                    if( true == motors.empty() ) {
+                        // fallback for cases without specified motor locations, convert sound template to a single sound source
+                        motors.emplace_back( motortemplate );
+                    }
+                    else {
+                        // apply configuration to all defined motors
+                        for( auto &motor : motors ) {
+                            // combine potential x- and y-axis offsets of the sound template with z-axis offsets of individual motors
+                            auto motoroffset { motortemplate.offset() };
+                            motoroffset.z = motor.offset().z;
+                            motor = motortemplate;
+                            motor.offset( motoroffset );
+                            // apply randomized playback start offset for each instance, to reduce potential reverb with identical nearby sources
+                            motor.start( LocalRandom( 0.0, 1.0 ) );
                         }
                     }
                 }
@@ -5531,6 +5555,8 @@ void TDynamicObject::LoadMMediaFile( std::string const &TypeName, std::string co
                             bloweroffset.z = blower.offset().z;
                             blower = blowertemplate;
                             blower.offset( bloweroffset );
+                            // apply randomized playback start offset for each instance, to reduce potential reverb with identical nearby sources
+                            blower.start( LocalRandom( 0.0, 1.0 ) );
                         }
                     }
                 }
@@ -7587,113 +7613,112 @@ TDynamicObject::powertrain_sounds::render( TMoverParameters const &Vehicle, doub
 
     // motor sounds
     volume = 0.0;
+    // generic traction motor sounds
     if( false == motors.empty() ) {
-        // ac and dc motors have significantly different sounds
-        if( dcmotors ) {
 
-            if( std::abs( Vehicle.nrot ) > 0.01 ) {
+        if( std::abs( Vehicle.nrot ) > 0.01 ) {
 
-                auto const &motor { motors.front() };
-                // frequency calculation
-                auto normalizer { 1.f };
-                if( true == motor.is_combined() ) {
-                    // for combined motor sound we calculate sound point in rpm, to make .mmd files setup easier
-                    // NOTE: we supply 1/100th of actual value, as the sound module converts does the opposite, converting received (typically) 0-1 values to 0-100 range
-                    normalizer = 60.f * 0.01f;
+            auto const &motor { motors.front() };
+            // frequency calculation
+            auto normalizer { 1.f };
+            if( true == motor.is_combined() ) {
+                // for combined motor sound we calculate sound point in rpm, to make .mmd files setup easier
+                // NOTE: we supply 1/100th of actual value, as the sound module converts does the opposite, converting received (typically) 0-1 values to 0-100 range
+                normalizer = 60.f * 0.01f;
+            }
+            auto const motorrevolutions { std::abs( Vehicle.nrot ) * Vehicle.Transmision.Ratio };
+            frequency =
+                motor.m_frequencyoffset
+                + motor.m_frequencyfactor * motorrevolutions * normalizer;
+
+            // base volume calculation
+            switch( Vehicle.EngineType ) {
+                case TEngineType::ElectricInductionMotor: {
+                    volume =
+                        motor.m_amplitudeoffset
+                        + motor.m_amplitudefactor * ( Vehicle.EnginePower + motorrevolutions * 2 );
+                    break;
                 }
-                auto const motorrevolutions { std::abs( Vehicle.nrot ) * Vehicle.Transmision.Ratio };
-                frequency =
-                    motor.m_frequencyoffset
-                    + motor.m_frequencyfactor * motorrevolutions * normalizer;
-
-                // base volume calculation
-                switch( Vehicle.EngineType ) {
-                    case TEngineType::ElectricInductionMotor: {
-                        volume =
-                            motor.m_amplitudeoffset
-                            + motor.m_amplitudefactor * ( Vehicle.EnginePower + motorrevolutions * 2 );
-                        break;
-                    }
-                    case TEngineType::ElectricSeriesMotor: {
-                        volume =
-                            motor.m_amplitudeoffset
-                            + motor.m_amplitudefactor * ( Vehicle.EnginePower + motorrevolutions * 60.0 );
-                        break;
-                    }
-                    default: {
-                        volume =
-                            motor.m_amplitudeoffset
-                            + motor.m_amplitudefactor * motorrevolutions * 60.0;
-                        break;
-                    }
+                case TEngineType::ElectricSeriesMotor: {
+                    volume =
+                        motor.m_amplitudeoffset
+                        + motor.m_amplitudefactor * ( Vehicle.EnginePower + motorrevolutions * 60.0 );
+                    break;
                 }
+                default: {
+                    volume =
+                        motor.m_amplitudeoffset
+                        + motor.m_amplitudefactor * motorrevolutions * 60.0;
+                    break;
+                }
+            }
 
-                if( Vehicle.EngineType == TEngineType::ElectricSeriesMotor ) {
-                    // volume variation
-                    if( ( volume < 1.0 )
-                     && ( Vehicle.EnginePower < 100 ) ) {
+            if( Vehicle.EngineType == TEngineType::ElectricSeriesMotor ) {
+                // volume variation
+                if( ( volume < 1.0 )
+                    && ( Vehicle.EnginePower < 100 ) ) {
 
-                        auto const volumevariation { LocalRandom( 100 ) * Vehicle.enrot / ( 1 + Vehicle.nmax ) };
-                        if( volumevariation < 2 ) {
-                            volume += volumevariation / 200;
-                        }
-                    }
-
-                    if( ( Vehicle.DynamicBrakeFlag )
-                     && ( Vehicle.EnginePower > 0.1 ) ) {
-                        // Szociu - 29012012 - jeżeli uruchomiony jest hamulec elektrodynamiczny, odtwarzany jest dźwięk silnika
-                        volume += 0.8;
+                    auto const volumevariation { LocalRandom( 100 ) * Vehicle.enrot / ( 1 + Vehicle.nmax ) };
+                    if( volumevariation < 2 ) {
+                        volume += volumevariation / 200;
                     }
                 }
-                // scale motor volume based on whether they're active
-                motor_momentum =
-                    clamp(
-                        motor_momentum
-                        - 1.0 * Deltatime // smooth out decay
-                        + std::abs( Vehicle.Mm ) / 60.0 * Deltatime,
-                        0.0, 1.25 );
-                volume *= std::max( 0.25f, motor_momentum );
-                motor_volume = interpolate( motor_volume, volume, 0.25 );
-                if( motor_volume >= 0.05 ) {
-                    // apply calculated parameters to all motor instances
-                    for( auto &motor : motors ) {
-                        motor
-                            .pitch( frequency )
-                            .gain( motor_volume )
-                            .play( sound_flags::exclusive | sound_flags::looping );
-                    }
+
+                if( ( Vehicle.DynamicBrakeFlag )
+                    && ( Vehicle.EnginePower > 0.1 ) ) {
+                    // Szociu - 29012012 - jeżeli uruchomiony jest hamulec elektrodynamiczny, odtwarzany jest dźwięk silnika
+                    volume += 0.8;
                 }
-                else {
-                    // stop all motor instances
-                    for( auto &motor : motors ) {
-                        motor.stop();
-                    }
+            }
+            // scale motor volume based on whether they're active
+            motor_momentum =
+                clamp(
+                    motor_momentum
+                    - 1.0 * Deltatime // smooth out decay
+                    + std::abs( Vehicle.Mm ) / 60.0 * Deltatime,
+                    0.0, 1.25 );
+            volume *= std::max( 0.25f, motor_momentum );
+            motor_volume = interpolate( motor_volume, volume, 0.25 );
+            if( motor_volume >= 0.05 ) {
+                // apply calculated parameters to all motor instances
+                for( auto &motor : motors ) {
+                    motor
+                        .pitch( frequency )
+                        .gain( motor_volume )
+                        .play( sound_flags::exclusive | sound_flags::looping );
                 }
             }
             else {
                 // stop all motor instances
-                motor_volume = 0.0;
                 for( auto &motor : motors ) {
                     motor.stop();
                 }
             }
         }
         else {
-            // ac motors
-            if( Vehicle.EngineType == TEngineType::ElectricInductionMotor ) {
-                if( Vehicle.InverterFrequency > 0.001 ) {
+            // stop all motor instances
+            motor_volume = 0.0;
+            for( auto &motor : motors ) {
+                motor.stop();
+            }
+        }
+    }
+    // inverter-specific traction motor sounds
+    if( false == acmotors.empty() ) {
+            
+        if( Vehicle.EngineType == TEngineType::ElectricInductionMotor ) {
+            if( Vehicle.InverterFrequency > 0.001 ) {
 
-                    for( auto &motor : motors ) {
-                        motor
-                            .pitch( motor.m_frequencyoffset + motor.m_frequencyfactor * Vehicle.InverterFrequency )
-                            .gain( motor.m_amplitudeoffset + motor.m_amplitudefactor * std::sqrt( std::abs( Vehicle.eimv_pr ) ) )
-                            .play( sound_flags::exclusive | sound_flags::looping );
-                    }
+                for( auto &motor : acmotors ) {
+                    motor
+                        .pitch( motor.m_frequencyoffset + motor.m_frequencyfactor * Vehicle.InverterFrequency )
+                        .gain( motor.m_amplitudeoffset + motor.m_amplitudefactor * std::sqrt( std::abs( Vehicle.eimv_pr ) ) )
+                        .play( sound_flags::exclusive | sound_flags::looping );
                 }
-                else {
-                    for( auto &motor : motors ) {
-                        motor.stop();
-                    }
+            }
+            else {
+                for( auto &motor : acmotors ) {
+                    motor.stop();
                 }
             }
         }

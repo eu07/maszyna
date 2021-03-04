@@ -28,7 +28,7 @@ enum class sound_type {
 enum sound_parameters {
     range     = 0x1,
     amplitude = 0x2,
-    frequency = 0x4
+    frequency = 0x4,
 };
 
 enum sound_flags {
