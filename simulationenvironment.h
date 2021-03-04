@@ -33,7 +33,7 @@ public:
     void update_precipitation();
     void time( int const Hour = -1, int const Minute = -1, int const Second = -1 );
     // switches between static and dynamic daylight calculation
-    void toggle_daylight();
+    void on_daylight_change();
     // calculates current season of the year based on set simulation date
     void compute_season( int const Yearday ) const;
     // calculates current weather

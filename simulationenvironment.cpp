@@ -21,9 +21,7 @@ world_environment Environment;
 } // simulation
 
 void
-world_environment::toggle_daylight() {
-
-    Global.FakeLight = !Global.FakeLight;
+world_environment::on_daylight_change() {
 
     if( Global.FakeLight ) {
         // for fake daylight enter fixed hour
@@ -64,8 +62,10 @@ void
 world_environment::compute_weather() const {
 
     Global.Weather = (
-        Global.Overcast <= 0.25 ? "clear:" :
-        Global.Overcast <= 1.0 ? "cloudy:" :
+        Global.Overcast <= 0.10 ? "clear:" :
+        Global.Overcast <= 0.50 ? "scattered:" :
+        Global.Overcast <= 0.90 ? "broken:" :
+        Global.Overcast <= 1.00 ? "overcast:" :
         ( Global.Season != "winter:" ?
             "rain:" :
             "snow:" ) );

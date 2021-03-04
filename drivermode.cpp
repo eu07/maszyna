@@ -866,7 +866,8 @@ driver_mode::OnKeyDown(int cKey) {
                 }
                 else if( Global.ctrlState ) {
                     // ctrl + f7 toggles static daylight
-                    simulation::Environment.toggle_daylight();
+                    Global.FakeLight = !Global.FakeLight;
+                    simulation::Environment.on_daylight_change();
                     break;
                 }
                 else if( Global.shiftState ) {

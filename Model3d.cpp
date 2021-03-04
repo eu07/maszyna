@@ -1847,7 +1847,7 @@ void TModel3d::deserialize(std::istream &s, size_t size, bool dynamic)
                 m_vertexcount += submodelgeometry.vertex_count;
                 switch( vertextype ) {
                     case 0: {
-                    // legacy vnt0 format
+                        // legacy vnt0 format
                         for( auto &vertex : submodel.Vertices ) {
                             vertex.deserialize( s, hastangents );
                             if( submodel.eType < TP_ROTATOR ) {
@@ -1876,6 +1876,7 @@ void TModel3d::deserialize(std::istream &s, size_t size, bool dynamic)
                         break;
                     }
                     default: {
+                        // TBD, TODO: throw error here?
                         break;
                     }
                 }

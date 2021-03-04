@@ -2419,6 +2419,11 @@ bool TMoverParameters::IsMainCtrlNoPowerPos() const {
     return MainCtrlPos <= MainCtrlNoPowerPos();
 }
 
+bool TMoverParameters::IsMainCtrlMaxPowerPos() const {
+    // TODO: wrap controller pieces into a class for potential specializations, similar to brake subsystems
+    return MainCtrlPos == MainCtrlPosNo;
+}
+
 int TMoverParameters::MainCtrlNoPowerPos() const {
 
     switch( EIMCtrlType ) {
@@ -2576,6 +2581,16 @@ bool TMoverParameters::DecScndCtrl(int CtrlSpeed)
 	}
 
    return OK;
+}
+
+bool TMoverParameters::IsScndCtrlNoPowerPos() const {
+    // TODO: refine the check on account of potential electric series vehicles with speed control
+    return ( ( ScndCtrlPos == 0 ) || ( true == SpeedCtrl ) );
+}
+
+bool TMoverParameters::IsScndCtrlMaxPowerPos() const {
+    // TODO: refine the check on account of potential electric series vehicles with speed control
+    return ( ( ScndCtrlPos == ScndCtrlPosNo ) || ( true == SpeedCtrl ) );
 }
 
 // *************************************************************************************************
@@ -2833,12 +2848,12 @@ void TMoverParameters::SecuritySystemCheck(double dt)
     if( ( TestFlag( SecuritySystem.SystemType, 2 )
      && ( SecuritySystem.Status == s_waiting )
      && ( false == SecuritySystem.PoweredUp )
-     && ( Power24vIsAvailable ) ) ) {
+     && ( Power24vIsAvailable || Power110vIsAvailable ) ) ) {
         // Ra: znowu w kabinie jest coś, co być nie powinno!
         SetFlag( SecuritySystem.Status, s_active );
         SetFlag( SecuritySystem.Status, s_SHPalarm );
     }
-    SecuritySystem.PoweredUp = Power24vIsAvailable;
+    SecuritySystem.PoweredUp = ( Power24vIsAvailable || Power110vIsAvailable );
 
     if ((SecuritySystem.SystemType > 0)
      && (SecuritySystem.Status != s_off)
@@ -5175,6 +5190,7 @@ double TMoverParameters::CouplerForce( int const End, double dt ) {
                     }
 
                     if( Attach( End, otherend, othervehicle, couplingtype ) ) {
+                        // HACK: we're reusing sound enum to mark whether vehicle was connected to another
                         SetFlag( AIFlag, sound::attachcoupler );
                         coupler.AutomaticCouplingAllowed = false;
                         othercoupler.AutomaticCouplingAllowed = false;
@@ -5241,8 +5257,8 @@ double TMoverParameters::TractionForce( double dt ) {
                 enrot = clamp(
                     enrot + ( dt / dizel_AIM ) * (
                         enrot < tmp ?
-                        1.0 :
-                        -2.0 ), // NOTE: revolutions drop faster than they rise, maybe? TBD: maybe not
+                         1.0 :
+                        -1.0 * dizel_RevolutionsDecreaseRate ), // NOTE: revolutions typically drop faster than they rise
                     0.0, std::max( tmp, enrot ) );
                 if( std::abs( tmp - enrot ) < 0.001 ) {
                     enrot = tmp;
@@ -6851,8 +6867,6 @@ bool TMoverParameters::OperatePantographsValve( operation_t const State, range_t
     if( ( EnginePowerSource.SourceType == TPowerSource::CurrentCollector )
      && ( EnginePowerSource.CollectorParameters.CollectorsNo > 0 ) ) {
 
-        auto const lowvoltagepower { PantsValve.solenoid ? ( Power24vIsAvailable || Power110vIsAvailable ) : true };
-
         auto &valve { PantsValve };
 
         switch( State ) {
@@ -8156,7 +8170,7 @@ bool TMoverParameters::ChangeDoorControlMode( bool const State, range_t const No
         OperateDoors( side::right, true );
     }
 
-    return ( Doors.step_enabled != initialstate );
+    return ( Doors.remote_only != initialstate );
 }
 
 bool TMoverParameters::OperateDoors( side const Door, bool const State, range_t const Notify ) {
@@ -8298,8 +8312,8 @@ TMoverParameters::update_doors( double const Deltatime ) {
 
         door.local_open  = door.local_open  && ( false == door.is_open ) && ( ( false == Doors.permit_needed ) || door.open_permit );
         door.remote_open = ( door.remote_open || Doors.remote_only ) && ( false == door.is_open ) && ( ( false == Doors.permit_needed ) || door.open_permit );
-        door.local_close  = door.local_close  && ( false == door.is_closed );
-        door.remote_close = door.remote_close && ( false == door.is_closed );
+        door.local_close = door.local_close && ( false == door.is_closed ) && ( ( false == remoteopencontrol ) || ( false == door.remote_open ) );
+        door.remote_close = door.remote_close && ( false == door.is_closed ) && ( ( false == localopencontrol ) || ( false == door.local_open ) );
 
         auto const autoopenrequest {
             ( Doors.open_control == control_t::autonomous )
@@ -10497,6 +10511,7 @@ void TMoverParameters::LoadFIZ_Engine( std::string const &Input ) {
             extract_value( dizel_nmax_cutoff, "nmax_cutoff", Input, "0.0" );
             dizel_nmax_cutoff /= 60.0;
             extract_value( dizel_AIM, "AIM", Input, "1.0" );
+            extract_value( dizel_RevolutionsDecreaseRate, "RPMDecRate", Input, "" );
 			
 			extract_value(engageupspeed, "EUS", Input, "0.5");
 			extract_value(engagedownspeed, "EDS", Input, "0.9");
@@ -10561,6 +10576,7 @@ void TMoverParameters::LoadFIZ_Engine( std::string const &Input ) {
             }
             extract_value( EngineHeatingRPM, "HeatingRPM", Input, "" );
             extract_value( dizel_AIM, "AIM", Input, "1.25" );
+            extract_value( dizel_RevolutionsDecreaseRate, "RPMDecRate", Input, "" );
             break;
         }
         case TEngineType::ElectricInductionMotor: {

@@ -486,6 +486,7 @@ global_settings::ConfigParse(cParser &Parser) {
             // tryb antyaliasingu: 0=brak,1=2px,2=4px
             Parser.getTokens(1, false);
             Parser >> iMultisampling;
+            iMultisampling = clamp( iMultisampling, 0, 3 );
         }
         else if (token == "latitude")
         {
@@ -657,6 +658,11 @@ global_settings::ConfigParse(cParser &Parser) {
             // czy łączyć eventy z torami poprzez nazwę toru
             Parser.getTokens(1, false);
             Parser >> iHiddenEvents;
+        }
+        else if( token == "ai.trainman" ) {
+            // czy łączyć eventy z torami poprzez nazwę toru
+            Parser.getTokens( 1, false );
+            Parser >> AITrainman;
         }
         else if (token == "pause")
         {
@@ -1045,6 +1051,7 @@ global_settings::export_as_text( std::ostream &Output ) const {
     export_as_text( Output, "scenario.time.offset", ScenarioTimeOffset );
     export_as_text( Output, "scenario.time.current", ScenarioTimeCurrent );
     export_as_text( Output, "scenario.weather.temperature", AirTemperature );
+    export_as_text( Output, "ai.trainman", AITrainman );
     export_as_text( Output, "scalespeculars", ScaleSpecularValues );
     export_as_text( Output, "gfxrenderer", GfxRenderer );
     export_as_text( Output, "shadows", RenderShadows );

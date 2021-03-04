@@ -184,6 +184,7 @@
     <ClCompile Include="console\PoKeys55.cpp" />
     <ClCompile Include="dictionary.cpp" />
     <ClCompile Include="Driver.cpp" />
+    <ClCompile Include="driverhints.cpp" />
     <ClCompile Include="drivermode.cpp" />
     <ClCompile Include="driveruilayer.cpp" />
     <ClCompile Include="driveruipanels.cpp" />

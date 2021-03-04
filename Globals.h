@@ -100,6 +100,7 @@ struct global_settings {
     bool bRollFix{ true }; // czy wykonać przeliczanie przechyłki
     bool bJoinEvents{ false }; // czy grupować eventy o tych samych nazwach
     int iHiddenEvents{ 1 }; // czy łączyć eventy z torami poprzez nazwę toru
+    bool AITrainman{ true }; // virtual assistant performing consist coupling/decoupling and other maintenance tasks
     // ui
     int PythonScreenUpdateRate{ 200 }; // delay between python-based screen updates, in milliseconds
     int iTextMode{ 0 }; // tryb pracy wyświetlacza tekstowego
@@ -116,7 +117,7 @@ struct global_settings {
     bool bWireFrame{ false };
     bool bAdjustScreenFreq{ true };
     float BaseDrawRange{ 2500.f };
-    int DynamicLightCount{ 3 };
+    int DynamicLightCount{ 7 };
     bool ScaleSpecularValues{ true };
     std::string GfxRenderer{ "default" };
     bool LegacyRenderer{ false };

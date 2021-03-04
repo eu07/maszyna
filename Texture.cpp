@@ -1203,7 +1203,7 @@ texture_manager::create( std::string Filename, bool const Loadnow, GLint Formath
         locator = find_on_disk( Filename );
         if( true == locator.first.empty() ) {
             // there's nothing matching in the databank nor on the disk, report failure
-            ErrorLog( "Bad file: failed do locate texture file \"" + Filename + "\"", logtype::file );
+            ErrorLog( "Bad file: failed to locate texture file \"" + Filename + "\"", logtype::file );
             return npos;
         }
     }

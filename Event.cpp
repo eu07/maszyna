@@ -1050,7 +1050,7 @@ whois_event::run_() {
                         -1.0 ) };
                 auto const collisiondistance { (
                     owner != nullptr ?
-                        owner->TrackBlock() :
+                        owner->TrackObstacle() :
                         -1.0 ) };
 
                 targetcell->UpdateValues(

@@ -81,6 +81,7 @@ basic_cell::update_traction( TDynamicObject *Vehicle, int const Pantographindex 
                 // i do tego jeszcze wejdzie pod ślizg
                 if( fHorizontal <= 0.0 ) {
                     // 0.635 dla AKP-1 AKP-4E
+                    SetFlag( Vehicle->MoverParameters->DamageFlag, dtrain_pantograph );
                     pantograph->PantWys = -1.0; // ujemna liczba oznacza połamanie
                     pantograph->hvPowerWire = nullptr; // bo inaczej się zasila w nieskończoność z połamanego
                     if( Vehicle->MoverParameters->EnginePowerSource.CollectorParameters.CollectorsNo > 0 ) {

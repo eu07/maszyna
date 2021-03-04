@@ -4463,7 +4463,7 @@ bool opengl33_renderer::Init_caps()
 		m_shadowbuffersize = std::min(m_shadowbuffersize, texturesize);
 		WriteLog("shadows map size capped at " + std::to_string(m_shadowbuffersize) + "p");
 	}
-	Global.DynamicLightCount = std::min(Global.DynamicLightCount, 8);
+	Global.DynamicLightCount = std::min(Global.DynamicLightCount, 8 - 1);
 
 	if (Global.iMultisampling)
 	{

@@ -410,12 +410,12 @@ int TDynamicObject::GetPneumatic(bool front, bool red)
         y = btPneumatic2r.GetStatus();
     }
     z = 0; // brak węży?
-    if ((x == 1) && (y == 1))
-        z = 3; // dwa proste
-    if ((x == 2) && (y == 0))
-        z = 1; // lewy skośny, brak prawego
-    if ((x == 0) && (y == 2))
-        z = 2; // brak lewego, prawy skośny
+    if ((x > 0) && (y > 0))
+        z = 3; // dwa
+    if ((x > 0) && (y == 0))
+        z = 1; // lewy, brak prawego
+    if ((x == 0) && (y > 0))
+        z = 2; // brak lewego, prawy
 
     return z;
 }
@@ -975,64 +975,46 @@ void TDynamicObject::ABuLittleUpdate(double ObjSqrDist)
         // else btCPass2.TurnOff();
         if (MoverParameters->Power24vIsAvailable || MoverParameters->Power110vIsAvailable)
         { // sygnaly konca pociagu
-            if (m_endsignals1.Active())
-            {
-                if (TestFlag(MoverParameters->iLights[0], 2) || TestFlag(MoverParameters->iLights[0], 32))
-                {
+            if (m_endsignals1.Active()) {
+                if (TestFlag(MoverParameters->iLights[end::front], ( light::redmarker_left | light::redmarker_right ) ) ) {
                     m_endsignals1.Turn( true );
                     btnOn = true;
                 }
-                // else btEndSignals1.TurnOff();
             }
-            else
-            {
-                if (TestFlag(MoverParameters->iLights[0], 2))
-                {
+            else {
+                if (TestFlag(MoverParameters->iLights[end::front], light::redmarker_left)) {
                     m_endsignal13.Turn( true );
                     btnOn = true;
                 }
-                // else btEndSignals11.TurnOff();
-                if (TestFlag(MoverParameters->iLights[0], 32))
-                {
+                if (TestFlag(MoverParameters->iLights[end::front], light::redmarker_right)) {
                     m_endsignal12.Turn( true );
                     btnOn = true;
                 }
-                // else btEndSignals13.TurnOff();
             }
-            if (m_endsignals2.Active())
-            {
-                if (TestFlag(MoverParameters->iLights[1], 2) || TestFlag(MoverParameters->iLights[1], 32))
-                {
+            if (m_endsignals2.Active()) {
+                if (TestFlag(MoverParameters->iLights[end::rear], ( light::redmarker_left | light::redmarker_right ) ) ) {
                     m_endsignals2.Turn( true );
                     btnOn = true;
                 }
-                // else btEndSignals2.TurnOff();
             }
-            else
-            {
-                if (TestFlag(MoverParameters->iLights[1], 2))
-                {
+            else {
+                if (TestFlag(MoverParameters->iLights[end::rear], light::redmarker_left)) {
                     m_endsignal23.Turn( true );
                     btnOn = true;
                 }
-                // else btEndSignals21.TurnOff();
-                if (TestFlag(MoverParameters->iLights[1], 32))
-                {
+                if (TestFlag(MoverParameters->iLights[end::rear], light::redmarker_right)) {
                     m_endsignal22.Turn( true );
                     btnOn = true;
                 }
-                // else btEndSignals23.TurnOff();
             }
         }
         // tablice blaszane:
-        if (TestFlag(MoverParameters->iLights[end::front], light::rearendsignals))
-        {
+        if (TestFlag(MoverParameters->iLights[end::front], light::rearendsignals)) {
             m_endtab1.Turn( true );
             btnOn = true;
         }
         // else btEndSignalsTab1.TurnOff();
-        if (TestFlag(MoverParameters->iLights[end::rear], light::rearendsignals))
-        {
+        if (TestFlag(MoverParameters->iLights[end::rear], light::rearendsignals)) {
             m_endtab2.Turn( true );
             btnOn = true;
         }
@@ -1851,7 +1833,7 @@ TDynamicObject::Init(std::string Name, // nazwa pojazdu, np. "EU07-424"
     if (!MoverParameters->LoadFIZ(asBaseDir))
     { // jak wczytanie CHK się nie uda, to błąd
         if (ConversionError == 666)
-            ErrorLog( "Bad vehicle: failed do locate definition file \"" + BaseDir + "/" + Type_Name + ".fiz" + "\"" );
+            ErrorLog( "Bad vehicle: failed to locate definition file \"" + BaseDir + "/" + Type_Name + ".fiz" + "\"" );
         else {
             ErrorLog( "Bad vehicle: failed to load definition from file \"" + BaseDir + "/" + Type_Name + ".fiz\" (error " + to_string( ConversionError ) + ")" );
         }
@@ -2980,64 +2962,41 @@ bool TDynamicObject::Update(double dt, double dt1)
     else {
         MoverParameters->InsideConsist = false;
     }
-    // HACK: we're using sound event to detect whether vehicle was connected to another
     if( TestFlag( MoverParameters->AIFlag, sound::attachcoupler ) ) {
         auto *driver{ ctOwner ? ctOwner : Mechanik };
         if( driver != nullptr ) {
             driver->CheckVehicles( Connect );
         }
-        SetFlag( MoverParameters->AIFlag, -sound::attachcoupler );
+        ClearFlag( MoverParameters->AIFlag, sound::attachcoupler );
     }
 
     // napiecie sieci trakcyjnej
-    // Ra 15-01: przeliczenie poboru prądu powinno być robione wcześniej, żeby na
-    // tym etapie były
-    // znane napięcia
-    // TTractionParam tmpTraction;
-    // tmpTraction.TractionVoltage=0;
-    if (MoverParameters->EnginePowerSource.SourceType == TPowerSource::CurrentCollector)
-    { // dla EZT tylko silnikowy
-        // if (Global.bLiveTraction)
-        { // Ra 2013-12: to niżej jest chyba trochę bez sensu
-            tmpTraction.TractionVoltage = std::max( std::abs( MoverParameters->PantRearVolt ), std::abs( MoverParameters->PantFrontVolt ) );
-            /*
-            if (v == 0.0) {
-                v = MoverParameters->PantFrontVolt;
-                if( v == 0.0 ) {
-//                    if( MoverParameters->TrainType & ( dt_EZT | dt_ET40 | dt_ET41 | dt_ET42 ) ) {
-                        // dwuczłony mogą mieć sprzęg WN
-                        // NOTE: condition disabled, other vehicles types can have power cables as well
-                        v = MoverParameters->GetTrainsetVoltage(); // ostatnia szansa
-//                    }
-                }
-            }
-            */
-            if ( tmpTraction.TractionVoltage > 0.0)
-            { // jeśli jest zasilanie
-                NoVoltTime = 0;
+    if (MoverParameters->EnginePowerSource.SourceType == TPowerSource::CurrentCollector) { // dla EZT tylko silnikowy
+
+        tmpTraction.TractionVoltage = std::max( std::abs( MoverParameters->PantRearVolt ), std::abs( MoverParameters->PantFrontVolt ) );
+        // jeśli brak zasilania dłużej niż 0.2 sekundy (25km/h pod izolatorem daje 0.15s)
+        // Ra 2F1H: prowizorka, trzeba przechować napięcie, żeby nie wywalało WS pod izolatorem
+        if( tmpTraction.TractionVoltage > 0.0) {
+            NoVoltTime = 0;
+        }
+        else {
+            NoVoltTime += dt1;
+            if( NoVoltTime <= 0.2 ) {
+                tmpTraction.TractionVoltage = MoverParameters->PantographVoltage;
             }
             else {
-                NoVoltTime += dt1;
-                if( NoVoltTime > 0.2 ) {
-                    // jeśli brak zasilania dłużej niż 0.2 sekundy (25km/h pod izolatorem daje 0.15s)
-                    // Ra 2F1H: prowizorka, trzeba przechować napięcie, żeby nie wywalało WS pod izolatorem
-                    if( MoverParameters->Vel > 0.5 ) {
-                        // jeśli jedzie
-                        // Ra 2014-07: doraźna blokada logowania zimnych lokomotyw - zrobić to trzeba inaczej
-                        if( MoverParameters->Pantographs[end::front].is_active
-                         || MoverParameters->Pantographs[end::rear].is_active ) {
-
-                            if( ( MoverParameters->Mains )
-                             && ( MoverParameters->GetTrainsetHighVoltage() < 0.1f ) ) {
-                                   // Ra 15-01: logować tylko, jeśli WS załączony
-                                   // yB 16-03: i nie jest to asynchron zasilany z daleka 
-                                   // Ra 15-01: bezwzględne współrzędne pantografu nie są dostępne,
-                                   // więc lepiej się tego nie zaloguje
-                                ErrorLog(
-                                    "Bad traction: " + MoverParameters->Name
-                                    + " lost power for " + to_string( NoVoltTime, 2 ) + " sec. at "
-                                    + to_string( glm::dvec3{ vPosition } ) );
-                            }
+                // jeśli jedzie
+                if( MoverParameters->Vel > 0.5 ) {
+                    // Ra 2014-07: doraźna blokada logowania zimnych lokomotyw - zrobić to trzeba inaczej
+                    if( MoverParameters->Pantographs[end::front].is_active
+                     || MoverParameters->Pantographs[end::rear].is_active ) {
+                        if( ( MoverParameters->Mains ) // Ra 15-01: logować tylko, jeśli WS załączony
+                         && ( MoverParameters->GetTrainsetHighVoltage() < 0.1f ) ) { // yB 16-03: i nie jest to asynchron zasilany z daleka 
+                            // Ra 15-01: bezwzględne współrzędne pantografu nie są dostępne więc lepiej się tego nie zaloguje
+                            ErrorLog(
+                                "Bad traction: " + MoverParameters->Name
+                                + " lost power for " + to_string( NoVoltTime, 2 ) + " sec. at "
+                                + to_string( glm::dvec3{ vPosition } ) );
                         }
                     }
                 }
@@ -3053,13 +3012,14 @@ bool TDynamicObject::Update(double dt, double dt1)
 
     MoverParameters->PantographVoltage = tmpTraction.TractionVoltage;
     // McZapkie: predkosc w torze przekazac do TrackParam
-    // McZapkie: Vel ma wymiar [km/h] (absolutny), V ma wymiar [m/s], taka
-    // przyjalem notacje
+    // McZapkie: Vel ma wymiar [km/h] (absolutny), V ma wymiar [m/s], taka przyjalem notacje
     tp.Velmax = MyTrack->VelocityGet();
 
     if (Mechanik)
     { // Ra 2F3F: do Driver.cpp to przenieść?
-        MoverParameters->EqvtPipePress = GetEPP(); // srednie cisnienie w PG
+        if( Mechanik->primary() ) {
+            MoverParameters->EqvtPipePress = GetEPP(); // srednie cisnienie w PG
+        }
 		if ((Mechanik->primary()) &&
             ((MoverParameters->EngineType == TEngineType::DieselEngine) ||
              (MoverParameters->EngineType == TEngineType::DieselElectric))
@@ -3395,7 +3355,7 @@ bool TDynamicObject::Update(double dt, double dt1)
 			MED_oldFED = FzadED;
         }
 
-        Mechanik->UpdateSituation(dt1); // przebłyski świadomości AI
+        Mechanik->Update(dt1); // przebłyski świadomości AI
     }
 
     // fragment "z EXE Kursa"
@@ -4100,19 +4060,36 @@ void TDynamicObject::RenderSounds() {
     if( MoverParameters->CompressorSpeed > 0.0 ) {
         // McZapkie! - dzwiek compressor.wav tylko gdy dziala sprezarka
         if( MoverParameters->CompressorFlag ) {
+            // for compressor coupled with the diesel engine sound pitch is driven by engine revolutions
             if( MoverParameters->CompressorPower == 3 ) {
                 // presume the compressor sound is recorded for idle revolutions
                 // increase the pitch according to increase of engine revolutions
-                auto const enginefactor { ( MoverParameters->EngineMaxRPM() / MoverParameters->EngineIdleRPM() ) * MoverParameters->EngineRPMRatio() };
-                sCompressor.pitch(
+                auto const enginefactor {
                     clamp( // try to keep the sound pitch in semi-reasonable range
-                        enginefactor,
-                        0.5, 2.5 ) );
+                        MoverParameters->EngineMaxRPM() / MoverParameters->EngineIdleRPM() * MoverParameters->EngineRPMRatio(),
+                        0.5, 2.5 ) };
+                sCompressor.pitch( enginefactor );
+                sCompressorIdle.pitch( enginefactor );
             }
-            sCompressor.play( sound_flags::exclusive | sound_flags::looping );
+            if( sCompressorIdle.empty() ) {
+                // legacy sound path, if there's no dedicated idle sound
+                sCompressor.play( sound_flags::exclusive | sound_flags::looping );
+            }
+            else {
+                // enhanced sound path, with dedicated sound for idling compressor
+                if( MoverParameters->CompressorGovernorLock ) {
+                    sCompressor.stop();
+                    sCompressorIdle.play( sound_flags::exclusive | sound_flags::looping );
+                }
+                else {
+                    sCompressor.play( sound_flags::exclusive | sound_flags::looping );
+                    sCompressorIdle.stop();
+                }
+            }
         }
         else {
             sCompressor.stop();
+            sCompressorIdle.stop();
         }
     }
 
@@ -4254,7 +4231,7 @@ void TDynamicObject::RenderSounds() {
     auto brakeforceratio{ 0.0 };
     if( //( false == mvOccupied->SlippingWheels ) &&
         ( MoverParameters->UnitBrakeForce > 10.0 )
-        && ( MoverParameters->Vel > 0.05 ) ) {
+     && ( MoverParameters->Vel > 0.05 ) ) {
 
         brakeforceratio =
             clamp(
@@ -5499,15 +5476,19 @@ void TDynamicObject::LoadMMediaFile( std::string const &TypeName, std::string co
                     m_powertrainsounds.water_heater.owner( this );
                 }
 
-                else if( ( token == "tractionmotor:" )
+                else if( ( ( token == "tractionmotor:" ) || ( token == "tractionacmotor:" ) )
                       && ( MoverParameters->Power > 0 ) ) {
+                    // dc motors are (legacy) default
+                    m_powertrainsounds.dcmotors = ( token == "tractionmotor:" );
                     // plik z dzwiekiem silnika, mnozniki i ofsety amp. i czest.
                     sound_source motortemplate { sound_placement::external };
                     motortemplate.deserialize( parser, sound_type::single, sound_parameters::range | sound_parameters::amplitude | sound_parameters::frequency );
                     motortemplate.owner( this );
 
-                    auto const amplitudedivisor = static_cast<float>( MoverParameters->nmax * 60 + MoverParameters->Power * 3 );
-                    motortemplate.m_amplitudefactor /= amplitudedivisor;
+                    if( m_powertrainsounds.dcmotors ) {
+                        auto const amplitudedivisor = static_cast<float>( MoverParameters->nmax * 60 + MoverParameters->Power * 3 );
+                        motortemplate.m_amplitudefactor /= amplitudedivisor;
+                    }
 
                     if( true == m_powertrainsounds.motors.empty() ) {
                         // fallback for cases without specified motor locations, convert sound template to a single sound source
@@ -5584,13 +5565,22 @@ void TDynamicObject::LoadMMediaFile( std::string const &TypeName, std::string co
 				else if( token == "transmission:" ) {
 					// plik z dzwiekiem, mnozniki i ofsety amp. i czest.
                     // NOTE, fixed default parameters, legacy system leftover
-                    m_powertrainsounds.transmission.m_amplitudefactor = 0.029;
-                    m_powertrainsounds.transmission.m_amplitudeoffset = 0.1;
-                    m_powertrainsounds.transmission.m_frequencyfactor = 0.005;
-                    m_powertrainsounds.transmission.m_frequencyoffset = 1.0;
+                    auto &sound { m_powertrainsounds.transmission };
+                    sound.m_amplitudefactor = 0.029;
+                    sound.m_amplitudeoffset = 0.1;
+                    sound.m_frequencyfactor = 0.005;
+                    sound.m_frequencyoffset = 1.0;
 
-                    m_powertrainsounds.transmission.deserialize( parser, sound_type::single, sound_parameters::range );
-                    m_powertrainsounds.transmission.owner( this );
+                    sound.deserialize( parser, sound_type::single, sound_parameters::range );
+                    sound.owner( this );
+                }
+
+                else if( token == "brakesound:" ) {
+                    // hamowanie zwykle:
+                    rsBrake.deserialize( parser, sound_type::single, sound_parameters::amplitude | sound_parameters::frequency );
+                    rsBrake.owner( this );
+                    // NOTE: can't pre-calculate amplitude normalization based on max brake force, as this varies depending on vehicle speed
+                    rsBrake.m_frequencyfactor /= ( 1 + MoverParameters->Vmax );
                 }
 
 				else if( token == "brake:"  ) {
@@ -5694,6 +5684,12 @@ void TDynamicObject::LoadMMediaFile( std::string const &TypeName, std::string co
 					// pliki ze sprezarka
                     sCompressor.deserialize( parser, sound_type::multipart, sound_parameters::range );
                     sCompressor.owner( this );
+                }
+
+                else if( token == "compressoridle:" ) {
+					// pliki ze sprezarka
+                    sCompressorIdle.deserialize( parser, sound_type::multipart, sound_parameters::range );
+                    sCompressorIdle.owner( this );
                 }
 
 				else if( token == "converter:" ) {
@@ -6066,14 +6062,6 @@ void TDynamicObject::LoadMMediaFile( std::string const &TypeName, std::string co
                     dsbPneumaticRelay.deserialize( parser, sound_type::single );
                     dsbPneumaticRelay.owner( this );
                 }
-                // braking sounds
-                else if( token == "brakesound:" ) {
-                    // hamowanie zwykle:
-                    rsBrake.deserialize( parser, sound_type::single, sound_parameters::amplitude | sound_parameters::frequency );
-                    rsBrake.owner( this );
-                    // NOTE: can't pre-calculate amplitude normalization based on max brake force, as this varies depending on vehicle speed
-                    rsBrake.m_frequencyfactor /= ( 1 + MoverParameters->Vmax );
-                }
                 else if( token == "slipperysound:" ) {
                     // sanie:
                     rsSlippery.deserialize( parser, sound_type::single, sound_parameters::amplitude );
@@ -6415,7 +6403,7 @@ void TDynamicObject::LoadMMediaFile( std::string const &TypeName, std::string co
     // other engine compartment sounds
     auto const nullvector { glm::vec3() };
     std::vector<sound_source *> enginesounds = {
-        &sConverter, &sCompressor, &sSmallCompressor, &sHeater
+        &sConverter, &sCompressor, &sCompressorIdle, &sSmallCompressor, &sHeater
     };
     for( auto sound : enginesounds ) {
         if( sound->offset() == nullvector ) {
@@ -6641,8 +6629,7 @@ void TDynamicObject::RaLightsSet(int head, int rear)
         // EN57 może nie mieć końcówek od środka członu
         if (MoverParameters->Power > 1.0) // jeśli ma moc napędową
             if (!MoverParameters->DirActive) // jeśli nie ma ustawionego kierunku
-            { // jeśli ma zarówno światła jak i końcówki, ustalić, czy jest w stanie
-                // aktywnym
+            { // jeśli ma zarówno światła jak i końcówki, ustalić, czy jest w stanie aktywnym
                 // np. lokomotywa na zimno będzie mieć końcówki a nie światła
                 rear = light::rearendsignals; // tablice blaszane
                 // trzeba to uzależnić od "załączenia baterii" w pojeździe
@@ -6659,21 +6646,65 @@ void TDynamicObject::RaLightsSet(int head, int rear)
                 rear = light::rearendsignals; // tablice blaszane
             }
     }
-    if (iDirection) // w zależności od kierunku pojazdu w składzie
-    { // jesli pojazd stoi sprzęgiem 0 w stronę czoła
-        if (head >= 0)
-            MoverParameters->iLights[0] = head;
-        if (rear >= 0)
-            MoverParameters->iLights[1] = rear;
+    // w zależności od kierunku pojazdu w składzie
+    if( head >= 0 ) {
+        auto const vehicleend { iDirection > 0 ? end::front : end::rear };
+        MoverParameters->iLights[ vehicleend ] = ( head & iInventory[ vehicleend ] );
     }
-    else
-    { // jak jest odwrócony w składzie (-1), to zapalamy odwrotnie
-        if (head >= 0)
-            MoverParameters->iLights[1] = head;
-        if (rear >= 0)
-            MoverParameters->iLights[0] = rear;
+    if( rear >= 0 ) {
+        auto const vehicleend{ iDirection > 0 ? end::rear : end::front };
+        MoverParameters->iLights[ vehicleend ] = ( rear & iInventory[ vehicleend ] );
     }
 };
+
+bool TDynamicObject::has_signal_pc1_on() const {
+
+    auto const vehicleend { iDirection > 0 ? end::front : end::rear };
+    auto const equippedlights { iInventory[ vehicleend ] };
+    auto const pattern { equippedlights & ( light::headlight_left | light::headlight_right | light::headlight_upper ) };
+    auto const patternfallback { equippedlights & ( light::auxiliary_left | light::auxiliary_right | light::headlight_upper ) };
+    auto const hasauxiliarylights { ( equippedlights & ( light::auxiliary_left | light::auxiliary_right ) ) != 0 };
+    auto const activelights { MoverParameters->iLights[ vehicleend ] };
+
+    return ( ( ( pattern != 0 ) && ( activelights == pattern ) )
+          || ( ( hasauxiliarylights ) && ( activelights == patternfallback ) )
+          || ( ( pattern == 0 ) && ( patternfallback == 0 ) && ( activelights == light::rearendsignals ) ) ); // pc4
+}
+
+bool TDynamicObject::has_signal_pc2_on() const {
+
+    auto const vehicleend { iDirection > 0 ? end::front : end::rear };
+    auto const equippedlights { iInventory[ vehicleend ] };
+    auto const pattern { equippedlights & ( light::redmarker_left | light::headlight_right | light::headlight_upper ) };
+    auto const patternfallback { equippedlights & ( light::redmarker_left | light::auxiliary_right | light::headlight_upper ) };
+    auto const hasauxiliarylights { ( equippedlights & ( light::auxiliary_left | light::auxiliary_right ) ) != 0 };
+    auto const activelights { MoverParameters->iLights[ vehicleend ] };
+
+    return ( ( activelights == pattern )
+          || ( hasauxiliarylights && ( activelights == patternfallback ) ) );
+}
+
+bool TDynamicObject::has_signal_pc5_on() const {
+
+    auto const vehicleend { iDirection > 0 ? end::rear : end::front };
+    auto const equippedlights { iInventory[ vehicleend ] };
+    auto const pattern { equippedlights & ( light::redmarker_left | light::redmarker_right ) };
+    auto const patternfallback { equippedlights & ( light::rearendsignals ) };
+    auto const activelights { MoverParameters->iLights[ vehicleend ] };
+
+    return ( ( ( pattern != 0 ) && ( activelights == pattern ) )
+          || ( ( patternfallback != 0 ) && ( activelights == patternfallback ) ) );
+}
+
+bool TDynamicObject::has_signal_on( int const Side, int const Pattern ) const {
+/*
+    auto const vehicleend { iDirection > 0 ? Side : 1 - Side };
+    auto const pattern { iInventory[ vehicleend ] & Pattern };
+
+    return ( MoverParameters->iLights[ vehicleend ] == pattern );
+*/
+    return ( MoverParameters->iLights[ Side ] == ( Pattern & iInventory[ Side ] ) );
+}
 
 int TDynamicObject::DirectionSet(int d)
 { // ustawienie kierunku w składzie (wykonuje AI)
@@ -6723,7 +6754,7 @@ TDynamicObject * TDynamicObject::NextC(int C) const {
         nullptr ); // hide neighbour lacking specified connection type
 }
 
-    // checks whether there's unbroken connection of specified type to specified vehicle
+// checks whether there's unbroken connection of specified type to specified vehicle
 bool
 TDynamicObject::is_connected( TDynamicObject const *Vehicle, coupling const Coupling ) const {
 
@@ -6749,7 +6780,7 @@ TDynamicObject::is_connected( TDynamicObject const *Vehicle, coupling const Coup
             return true;
         }
     }
-    // no lack in either direction, give up
+    // no luck in either direction, give up
     return false;
 }
 
@@ -7062,22 +7093,30 @@ material_handle TDynamicObject::DestinationFind( std::string Destination ) {
 
     if( Destination.empty() ) { return null_handle; }
 
-    Destination = Bezogonkow( Destination ); // do szukania pliku obcinamy ogonki
     // destination textures are kept in the vehicle's directory so we point the current texture path there
     auto const currenttexturepath { Global.asCurrentTexturePath };
     Global.asCurrentTexturePath = asBaseDir;
-    // now see if we can find any version of the texture
-    std::vector<std::string> const destinations {
-        Destination + '@' + MoverParameters->TypeName,
-        Destination };
 
     auto destinationhandle { null_handle };
 
-    for( auto const &destination : destinations ) {
-        auto material = TextureTest( ToLower( destination ) );
-        if( false == material.empty() ) {
-            destinationhandle = GfxRenderer->Fetch_Material( material );
-            break;
+    if( starts_with( Destination, "make:" ) ) {
+        // autogenerated texture
+        destinationhandle = GfxRenderer->Fetch_Material( Destination );
+    }
+    else {
+        // regular texture
+        Destination = Bezogonkow( Destination ); // do szukania pliku obcinamy ogonki
+        // now see if we can find any version of the texture
+        std::vector<std::string> const destinations {
+            Destination + '@' + MoverParameters->TypeName,
+            Destination };
+
+        for( auto const &destination : destinations ) {
+            auto material = TextureTest( ToLower( destination ) );
+            if( false == material.empty() ) {
+                destinationhandle = GfxRenderer->Fetch_Material( material );
+                break;
+            }
         }
     }
     // whether we got anything, restore previous texture path
@@ -7549,91 +7588,113 @@ TDynamicObject::powertrain_sounds::render( TMoverParameters const &Vehicle, doub
     // motor sounds
     volume = 0.0;
     if( false == motors.empty() ) {
+        // ac and dc motors have significantly different sounds
+        if( dcmotors ) {
 
-        if( std::abs( Vehicle.nrot ) > 0.01 ) {
+            if( std::abs( Vehicle.nrot ) > 0.01 ) {
 
-            auto const &motor { motors.front() };
-            // frequency calculation
-            auto normalizer { 1.f };
-            if( true == motor.is_combined() ) {
-                // for combined motor sound we calculate sound point in rpm, to make .mmd files setup easier
-                // NOTE: we supply 1/100th of actual value, as the sound module converts does the opposite, converting received (typically) 0-1 values to 0-100 range
-                normalizer = 60.f * 0.01f;
-            }
-            auto const motorrevolutions { std::abs( Vehicle.nrot ) * Vehicle.Transmision.Ratio };
-            frequency =
-                motor.m_frequencyoffset
-                + motor.m_frequencyfactor * motorrevolutions * normalizer;
-
-            // base volume calculation
-            switch( Vehicle.EngineType ) {
-                case TEngineType::ElectricInductionMotor: {
-                    volume =
-                        motor.m_amplitudeoffset
-                        + motor.m_amplitudefactor * ( Vehicle.EnginePower + motorrevolutions * 2 );
-                    break;
+                auto const &motor { motors.front() };
+                // frequency calculation
+                auto normalizer { 1.f };
+                if( true == motor.is_combined() ) {
+                    // for combined motor sound we calculate sound point in rpm, to make .mmd files setup easier
+                    // NOTE: we supply 1/100th of actual value, as the sound module converts does the opposite, converting received (typically) 0-1 values to 0-100 range
+                    normalizer = 60.f * 0.01f;
                 }
-                case TEngineType::ElectricSeriesMotor: {
-                    volume =
-                        motor.m_amplitudeoffset
-                        + motor.m_amplitudefactor * ( Vehicle.EnginePower + motorrevolutions * 60.0 );
-                    break;
-                }
-                default: {
-                    volume =
-                        motor.m_amplitudeoffset
-                        + motor.m_amplitudefactor * motorrevolutions * 60.0;
-                    break;
-                }
-            }
+                auto const motorrevolutions { std::abs( Vehicle.nrot ) * Vehicle.Transmision.Ratio };
+                frequency =
+                    motor.m_frequencyoffset
+                    + motor.m_frequencyfactor * motorrevolutions * normalizer;
 
-            if( Vehicle.EngineType == TEngineType::ElectricSeriesMotor ) {
-                // volume variation
-                if( ( volume < 1.0 )
-                 && ( Vehicle.EnginePower < 100 ) ) {
-
-                    auto const volumevariation { LocalRandom( 100 ) * Vehicle.enrot / ( 1 + Vehicle.nmax ) };
-                    if( volumevariation < 2 ) {
-                        volume += volumevariation / 200;
+                // base volume calculation
+                switch( Vehicle.EngineType ) {
+                    case TEngineType::ElectricInductionMotor: {
+                        volume =
+                            motor.m_amplitudeoffset
+                            + motor.m_amplitudefactor * ( Vehicle.EnginePower + motorrevolutions * 2 );
+                        break;
+                    }
+                    case TEngineType::ElectricSeriesMotor: {
+                        volume =
+                            motor.m_amplitudeoffset
+                            + motor.m_amplitudefactor * ( Vehicle.EnginePower + motorrevolutions * 60.0 );
+                        break;
+                    }
+                    default: {
+                        volume =
+                            motor.m_amplitudeoffset
+                            + motor.m_amplitudefactor * motorrevolutions * 60.0;
+                        break;
                     }
                 }
 
-                if( ( Vehicle.DynamicBrakeFlag )
-                 && ( Vehicle.EnginePower > 0.1 ) ) {
-                    // Szociu - 29012012 - jeżeli uruchomiony jest hamulec elektrodynamiczny, odtwarzany jest dźwięk silnika
-                    volume += 0.8;
+                if( Vehicle.EngineType == TEngineType::ElectricSeriesMotor ) {
+                    // volume variation
+                    if( ( volume < 1.0 )
+                     && ( Vehicle.EnginePower < 100 ) ) {
+
+                        auto const volumevariation { LocalRandom( 100 ) * Vehicle.enrot / ( 1 + Vehicle.nmax ) };
+                        if( volumevariation < 2 ) {
+                            volume += volumevariation / 200;
+                        }
+                    }
+
+                    if( ( Vehicle.DynamicBrakeFlag )
+                     && ( Vehicle.EnginePower > 0.1 ) ) {
+                        // Szociu - 29012012 - jeżeli uruchomiony jest hamulec elektrodynamiczny, odtwarzany jest dźwięk silnika
+                        volume += 0.8;
+                    }
                 }
-            }
-            // scale motor volume based on whether they're active
-            motor_momentum =
-                clamp(
-                    motor_momentum
-                    - 1.0 * Deltatime // smooth out decay
-                    + std::abs( Vehicle.Mm ) / 60.0 * Deltatime,
-                    0.0, 1.25 );
-            volume *= std::max( 0.25f, motor_momentum );
-            motor_volume = interpolate( motor_volume, volume, 0.25 );
-            if( motor_volume >= 0.05 ) {
-                // apply calculated parameters to all motor instances
-                for( auto &motor : motors ) {
-                    motor
-                        .pitch( frequency )
-                        .gain( motor_volume )
-                        .play( sound_flags::exclusive | sound_flags::looping );
+                // scale motor volume based on whether they're active
+                motor_momentum =
+                    clamp(
+                        motor_momentum
+                        - 1.0 * Deltatime // smooth out decay
+                        + std::abs( Vehicle.Mm ) / 60.0 * Deltatime,
+                        0.0, 1.25 );
+                volume *= std::max( 0.25f, motor_momentum );
+                motor_volume = interpolate( motor_volume, volume, 0.25 );
+                if( motor_volume >= 0.05 ) {
+                    // apply calculated parameters to all motor instances
+                    for( auto &motor : motors ) {
+                        motor
+                            .pitch( frequency )
+                            .gain( motor_volume )
+                            .play( sound_flags::exclusive | sound_flags::looping );
+                    }
+                }
+                else {
+                    // stop all motor instances
+                    for( auto &motor : motors ) {
+                        motor.stop();
+                    }
                 }
             }
             else {
                 // stop all motor instances
+                motor_volume = 0.0;
                 for( auto &motor : motors ) {
                     motor.stop();
                 }
             }
         }
         else {
-            // stop all motor instances
-            motor_volume = 0.0;
-            for( auto &motor : motors ) {
-                motor.stop();
+            // ac motors
+            if( Vehicle.EngineType == TEngineType::ElectricInductionMotor ) {
+                if( Vehicle.InverterFrequency > 0.001 ) {
+
+                    for( auto &motor : motors ) {
+                        motor
+                            .pitch( motor.m_frequencyoffset + motor.m_frequencyfactor * Vehicle.InverterFrequency )
+                            .gain( motor.m_amplitudeoffset + motor.m_amplitudefactor * std::sqrt( std::abs( Vehicle.eimv_pr ) ) )
+                            .play( sound_flags::exclusive | sound_flags::looping );
+                    }
+                }
+                else {
+                    for( auto &motor : motors ) {
+                        motor.stop();
+                    }
+                }
             }
         }
     }

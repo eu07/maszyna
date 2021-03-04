@@ -722,6 +722,7 @@ public: // reszta może by?publiczna
     sound_source rsSBHissU { sound_placement::internal, EU07_SOUND_CABCONTROLSCUTOFFRANGE }; // local, engage brakes
     float m_lastlocalbrakepressure { -1.f }; // helper, cached level of pressure in local brake cylinder
     float m_localbrakepressurechange { 0.f }; // recent change of pressure in local brake cylinder
+    sound_source rsBrake { sound_placement::internal, -1 };
 
     sound_source rsFadeSound { sound_placement::internal, EU07_SOUND_CABCONTROLSCUTOFFRANGE };
     sound_source rsRunningNoise{ sound_placement::internal, EU07_SOUND_GLOBALRANGE };
@@ -757,6 +758,7 @@ private:
     float fMainRelayTimer; // hunter-141211: zalaczanie WSa z opoznieniem
     float fCzuwakTestTimer; // hunter-091012: do testu czuwaka
     float fScreenTimer { 0.f };
+    int fScreenUpdateRate { 0 }; // vehicle specific python screen update rate override
 
     bool CAflag { false }; // hunter-131211: dla osobnego zbijania CA i SHP
 
@@ -800,7 +802,7 @@ private:
     bool m_couplingdisconnect { false };
 
   public:
-    float fPress[20][3]; // cisnienia dla wszystkich czlonow
+    float fPress[20][4]; // cisnienia dla wszystkich czlonow
 	bool bBrakes[20][2]; // zalaczenie i dzialanie hamulcow
     static std::vector<std::string> const fPress_labels;
     float fEIMParams[9][10]; // parametry dla silnikow asynchronicznych

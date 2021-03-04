@@ -11,11 +11,7 @@ http://mozilla.org/MPL/2.0/.
 
 #include "stdafx.h"
 
-#include <string>
-#include <fstream>
 #include <ctime>
-#include <vector>
-#include <sstream>
 
 /*rozne takie duperele do operacji na stringach w paszczalu, pewnie w delfi sa lepsze*/
 /*konwersja zmiennych na stringi, funkcje matematyczne, logiczne, lancuchowe, I/O etc*/
@@ -217,7 +213,9 @@ std::string substr_path( std::string const &Filename );
 std::ptrdiff_t len_common_prefix( std::string const &Left, std::string const &Right );
 
 // returns true if provided string ends with another provided string
-bool ends_with( std::string const &String, std::string const &Suffix );
+bool ends_with( std::string_view String, std::string_view Suffix );
+// returns true if provided string begins with another provided string
+bool starts_with( std::string_view String, std::string_view Suffix );
 
 template <typename Type_>
 void SafeDelete( Type_ &Pointer ) {
@@ -229,6 +227,18 @@ template <typename Type_>
 void SafeDeleteArray( Type_ &Pointer ) {
     delete[] Pointer;
     Pointer = nullptr;
+}
+
+template <typename Type_>
+Type_
+is_equal( Type_ const &Left, Type_ const &Right, Type_ const Epsilon = 1e-5 ) {
+
+    if( Epsilon != 0 ) {
+        return glm::epsilonEqual( Left, Right, Epsilon );
+    }
+    else {
+        return ( Left == Right );
+    }
 }
 
 template <typename Type_>

@@ -138,7 +138,7 @@ public:
     };
     // void _fastcall Update(); //wskaźnik do funkcji aktualizacji animacji
     int iFlags{ 0 }; // flagi animacji
-    float fMaxDist; // do jakiej odległości wykonywana jest animacja
+    float fMaxDist; // do jakiej odległości wykonywana jest animacja NOTE: square of actual distance
     float fSpeed; // parametr szybkości animacji
     int iNumber; // numer kolejny obiektu
 
@@ -374,6 +374,7 @@ private:
         sound_source inverter { sound_placement::engine };
         std::vector<sound_source> motorblowers;
         std::vector<sound_source> motors; // generally traction motor(s)
+        bool dcmotors { true }; // traction dc motor(s)
         double motor_volume { 0.0 }; // MC: pomocnicze zeby gladziej silnik buczal
         float motor_momentum { 0.f }; // recent change in motor revolutions
         sound_source motor_relay { sound_placement::engine };
@@ -473,6 +474,7 @@ private:
     powertrain_sounds m_powertrainsounds;
     sound_source sConverter { sound_placement::engine };
     sound_source sCompressor { sound_placement::engine }; // NBMX wrzesien 2003
+    sound_source sCompressorIdle { sound_placement::engine };
     sound_source sSmallCompressor { sound_placement::engine };
     sound_source sHeater { sound_placement::engine };
     // braking sounds
@@ -710,6 +712,10 @@ private:
     void SetLights();
     void RaLightsSet(int head, int rear);
     int LightList( end const Side ) const { return iInventory[ Side ]; }
+    bool has_signal_pc1_on() const;
+    bool has_signal_pc2_on() const;
+    bool has_signal_pc5_on() const;
+    bool has_signal_on( int const Side, int const Pattern ) const;
     void set_cab_lights( int const Cab, float const Level );
     TDynamicObject * FirstFind(int &coupler_nr, int cf = 1);
     float GetEPP(); // wyliczanie sredniego cisnienia w PG
@@ -729,6 +735,8 @@ private:
     auto find_vehicle( coupling const Coupling, Predicate_ const Predicate ) -> TDynamicObject *;
     TDynamicObject * FindPowered();
     TDynamicObject * FindPantographCarrier();
+    template <typename UnaryFunction_>
+    void for_each( coupling const Coupling, UnaryFunction_ const Function );
     void ParamSet(int what, int into);
     // zapytanie do AI, po którym segmencie skrzyżowania jechać
     int RouteWish(TTrack *tr);
@@ -827,6 +835,21 @@ TDynamicObject::find_vehicle( coupling const Coupling, Predicate_ const Predicat
             return vehicle; } }
     // if we still don't have a match give up
     return nullptr;
+}
+
+template <typename UnaryFunction_>
+void
+TDynamicObject::for_each( coupling const Coupling, UnaryFunction_ const Function ) {
+
+    Function( this );
+    // walk first towards the rear
+    auto *vehicle { this };
+    while( ( vehicle = vehicle->NextC( Coupling ) ) != nullptr ) {
+        Function( vehicle ); }
+    // then towards the front
+    vehicle = this;
+    while( ( vehicle = vehicle->PrevC( Coupling ) ) != nullptr ) {
+        Function( vehicle ); }
 }
 
 //---------------------------------------------------------------------------

@@ -22,6 +22,7 @@ enum class logtype : unsigned int {
 	shader = ( 1 << 6 ),
     net = ( 1 << 7 ),
     sound = ( 1 << 8 ),
+    powergrid = ( 1 << 9 ),
 };
 
 void WriteLog( const char *str, logtype const Type = logtype::generic );

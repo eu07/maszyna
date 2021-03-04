@@ -739,15 +739,17 @@ eu07_application::init_glfw() {
 	if (!monitor)
 		monitor = glfwGetPrimaryMonitor();
 
+    auto const uselegacyrenderer { Global.GfxRenderer != "default" };
     glfwWindowHint( GLFW_AUTO_ICONIFY, GLFW_FALSE );
     glfwWindowHint( GLFW_FLOATING, GLFW_FALSE );
-    if( ( Global.iMultisampling > 0 ) && ( Global.gfx_skippipeline ) ) {
+    if( ( Global.iMultisampling > 0 )
+     && ( Global.gfx_skippipeline || uselegacyrenderer ) ) {
         glfwWindowHint( GLFW_SAMPLES, 1 << Global.iMultisampling );
     }
 
     glfwWindowHint(GLFW_SRGB_CAPABLE, !Global.gfx_shadergamma);
 
-    if( Global.GfxRenderer == "default" ) {
+    if( false == uselegacyrenderer ) {
         // activate core profile for opengl 3.3 renderer
         if( !Global.gfx_usegles ) {
             glfwWindowHint( GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE );

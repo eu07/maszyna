@@ -120,7 +120,7 @@ static int const dtrain_engine = 32;       /*dla lokomotyw*/
 static int const dtrain_loaddestroyed = 32;/*dla wagonow*/
 static int const dtrain_axle = 64;
 static int const dtrain_out = 128;         /*wykolejenie*/
-
+static int const dtrain_pantograph = 256;
 										   /*wagi prawdopodobienstwa dla funkcji FuzzyLogic*/
 #define p_elengproblem  (1e-02)
 #define p_elengdamage  (1e-01)
@@ -837,7 +837,7 @@ private:
     struct water_pump : public basic_device {
         // ld inputs
         // TODO: move to breaker list in the basic device once implemented
-        bool breaker { true }; // device is allowed to operate
+        bool breaker { false }; // device is allowed to operate
     };
 
     // basic approximation of a solenoid valve
@@ -921,7 +921,7 @@ private:
             float temp_max { -1 }; // highest accepted temperature
         } config;
         // ld inputs
-        bool breaker { true }; // device is allowed to operate
+        bool breaker { false }; // device is allowed to operate
         bool is_enabled { false }; // device is requested to operate
         // ld outputs
         bool is_active { false }; // device is working
@@ -1215,6 +1215,7 @@ public:
 	double dizel_minVelfullengage = 0.0; /*najmniejsza predkosc przy jezdzie ze sprzeglem bez poslizgu*/
 	double dizel_maxVelANS = 3.0; /*predkosc progowa rozlaczenia przetwornika momentu*/
 	double dizel_AIM = 1.0; /*moment bezwladnosci walu itp*/
+    double dizel_RevolutionsDecreaseRate{ 2.0 };
 	double dizel_NominalFuelConsumptionRate = 250.0; /*jednostkowe zużycie paliwa przy mocy nominalnej, wczytywane z fiz, g/kWh*/
 	double dizel_FuelConsumption = 0.0; /*współczynnik zużycia paliwa przeliczony do jednostek maszynowych, l/obrót*/
 	double dizel_FuelConsumptionActual = 0.0; /*chwilowe spalanie paliwa w l/h*/
@@ -1273,7 +1274,7 @@ public:
 	double MED_Vmax = 0; // predkosc maksymalna dla obliczen chwilowej sily hamowania EP w MED
 	double MED_Vmin = 0; // predkosc minimalna dla obliczen chwilowej sily hamowania EP w MED
 	double MED_Vref = 0; // predkosc referencyjna dla obliczen dostepnej sily hamowania EP w MED
-	double MED_amax = 9.81; // maksymalne opoznienie hamowania sluzbowego MED
+    double MED_amax { 9.81 }; // maksymalne opoznienie hamowania sluzbowego MED
 	bool MED_EPVC = 0; // czy korekcja sily hamowania EP, gdy nie ma dostepnego ED
 	double MED_EPVC_Time = 7; // czas korekcji sily hamowania EP, gdy nie ma dostepnego ED
 	bool MED_Ncor = 0; // czy korekcja sily hamowania z uwzglednieniem nacisku
@@ -1673,12 +1674,15 @@ public:
 	bool DecMainCtrl(int CtrlSpeed);
     bool IsMainCtrlActualNoPowerPos() const; // whether the master controller is actually set to position which won't generate any extra power
     bool IsMainCtrlNoPowerPos() const; // whether the master controller is set to position which won't generate any extra power
+    bool IsMainCtrlMaxPowerPos() const;
     int MainCtrlNoPowerPos() const; // highest setting of master controller which won't cause engine to generate extra power
     int MainCtrlActualPowerPos() const; // current actual setting of master controller, relative to the highest setting not generating extra power
     int MainCtrlPowerPos() const; // current setting of master controller, relative to the highest setting not generating extra power
 	/*! pomocniczy nastawnik:*/
 	bool IncScndCtrl(int CtrlSpeed);
 	bool DecScndCtrl(int CtrlSpeed);
+    bool IsScndCtrlNoPowerPos() const;
+    bool IsScndCtrlMaxPowerPos() const;
 
 
 	bool AddPulseForce(int Multipler);/*dla drezyny*/

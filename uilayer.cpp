@@ -117,9 +117,14 @@ ui_layer::init_colors() {
     auto *colors = style->Colors;
     auto const background { ImVec4( 38.0f / 255.0f, 38.0f / 255.0f, 38.0f / 255.0f, Global.UIBgOpacity ) };
     auto const accent     { ImVec4( 44.0f / 255.0f, 88.0f / 255.0f, 72.0f / 255.0f, 0.75f ) };
+    auto const darkaccent { ImVec4( 18.0f / 255.0f, 12.0f / 255.0f, 14.0f / 255.0f, 0.75f ) };
     auto const itembase { ImVec4( accent.x, accent.y, accent.z, 0.35f ) };
     auto const itemhover { ImVec4( accent.x, accent.y, accent.z, 0.65f ) };
     auto const itemactive { ImVec4( accent.x, accent.y, accent.z, 0.95f ) };
+    auto const trackbase { ImVec4( darkaccent.x, darkaccent.y, darkaccent.z, 0.10f ) };
+    auto const thumbbase { ImVec4( darkaccent.x, darkaccent.y, darkaccent.z, 0.45f ) };
+    auto const thumbhover { ImVec4( darkaccent.x, darkaccent.y, darkaccent.z, 0.70f ) };
+    auto const thumbactive { ImVec4( darkaccent.x, darkaccent.y, darkaccent.z, 0.95f ) };
     auto const modalbackground { ImVec4( accent.x, accent.y, accent.z, 0.95f ) };
 
     colors[ ImGuiCol_WindowBg ] = background;
@@ -134,6 +139,12 @@ ui_layer::init_colors() {
     colors[ ImGuiCol_Button ] = itembase;
     colors[ ImGuiCol_ButtonHovered ] = itemhover;
     colors[ ImGuiCol_ButtonActive ] = itemactive;
+    colors[ ImGuiCol_SliderGrab ] = thumbhover;
+    colors[ ImGuiCol_SliderGrabActive ] = thumbactive;
+    colors[ ImGuiCol_ScrollbarBg ] = trackbase;
+    colors[ ImGuiCol_ScrollbarGrab ] = thumbbase;
+    colors[ ImGuiCol_ScrollbarGrabHovered ] = thumbhover;
+    colors[ ImGuiCol_ScrollbarGrabActive ] = thumbactive;
     colors[ ImGuiCol_Header ] = itembase;
     colors[ ImGuiCol_HeaderHovered ] = itemhover;
     colors[ ImGuiCol_HeaderActive ] = itemactive;

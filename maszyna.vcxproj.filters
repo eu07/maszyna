@@ -471,6 +471,9 @@
     <ClCompile Include="simulationsounds.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="driverhints.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Globals.h">

@@ -463,7 +463,7 @@ TTrain::TTrain() {
 
 	for ( int i = 0; i < 20; ++i )
 	{
-		for ( int j = 0; j < 3; ++j )
+		for ( int j = 0; j < 4; ++j )
 			fPress[i][j] = 0.0;
 		bBrakes[i][0] = bBrakes[i][1] = false;
 	}
@@ -624,7 +624,7 @@ dictionary_source *TTrain::GetTrainState() {
     char const *TXTT[ 10 ] = { "fd", "fdt", "fdb", "pd", "pdt", "pdb", "itothv", "1", "2", "3" };
     char const *TXTC[ 10 ] = { "fr", "frt", "frb", "pr", "prt", "prb", "im", "vm", "ihv", "uhv" };
 	char const *TXTD[ 10 ] = { "enrot", "nrot", "fill_des", "fill_real", "clutch_des", "clutch_real", "water_temp", "oil_press", "engine_temp", "retarder_fill" };
-    char const *TXTP[ 3 ] = { "bc", "bp", "sp" };
+    char const *TXTP[ 4 ] = { "bc", "bp", "sp", "cp" };
 	char const *TXTB[ 2 ] = { "spring_active", "spring_shutoff" };
     for( int j = 0; j < 10; ++j )
         dict->insert( ( "eimp_t_" + std::string( TXTT[ j ] ) ), fEIMParams[ 0 ][ j ] );
@@ -648,7 +648,7 @@ dictionary_source *TTrain::GetTrainState() {
 
     }
     for( int i = 0; i < 20; ++i ) {
-        for( int j = 0; j < 3; ++j ) {
+        for( int j = 0; j < 4; ++j ) {
             dict->insert( ( "eimp_pn" + std::to_string( i + 1 ) + "_" + TXTP[ j ] ), fPress[ i ][ j ] );
         }
 		for ( int j = 0; j < 2; ++j)  {
@@ -6169,6 +6169,7 @@ bool TTrain::Update( double const Deltatime )
             fPress[i][0] = p->MoverParameters->BrakePress;
             fPress[i][1] = p->MoverParameters->PipePress;
             fPress[i][2] = p->MoverParameters->ScndPipePress;
+            fPress[i][3] = p->MoverParameters->CntrlPipePress;
 			bBrakes[i][0] = p->MoverParameters->SpringBrake.IsActive;
 			bBrakes[i][1] = p->MoverParameters->SpringBrake.ShuttOff;
             bDoors[i][1] = ( p->MoverParameters->Doors.instances[ side::left ].position > 0.f );
@@ -6247,6 +6248,7 @@ bool TTrain::Update( double const Deltatime )
             fPress[i][0]
             = fPress[i][1]
             = fPress[i][2]
+            = fPress[i][3]
             = 0;
             bDoors[i][0]
             = bDoors[i][1]
@@ -7188,7 +7190,7 @@ bool TTrain::Update( double const Deltatime )
     fScreenTimer += Deltatime;
     if( ( this == simulation::Train ) // no point in drawing screens for vehicles other than our own
      && ( Global.PythonScreenUpdateRate > 0 )
-     && ( fScreenTimer > Global.PythonScreenUpdateRate * 0.001f )
+     && ( fScreenTimer > std::max( fScreenUpdateRate, Global.PythonScreenUpdateRate ) * 0.001f )
      && ( false == FreeFlyModeFlag ) ) { // don't bother if we're outside
         fScreenTimer = 0.f;
         for( auto const &screen : m_screens ) {
@@ -7343,6 +7345,29 @@ TTrain::update_sounds( double const Deltatime ) {
             rsHissU.stop();
         }
     } // koniec nie FV4a
+
+    // brakes
+    if( ( mvOccupied->UnitBrakeForce > 10.0 )
+     && ( mvOccupied->Vel > 0.05 ) ) {
+
+        auto const brakeforceratio {
+            clamp(
+                mvOccupied->UnitBrakeForce / std::max( 1.0, mvOccupied->BrakeForceR( 1.0, mvOccupied->Vel ) / ( mvOccupied->NAxles * std::max( 1, mvOccupied->NBpA ) ) ),
+                0.0, 1.0 ) };
+        // HACK: in external view mute the sound rather than stop it, in case there's an opening bookend it'd (re)play on sound restart after returning inside
+        volume = (
+            FreeFlyModeFlag ?
+                0.0 :
+                rsBrake.m_amplitudeoffset
+                + std::sqrt( brakeforceratio * interpolate( 0.4, 1.0, ( mvOccupied->Vel / ( 1 + mvOccupied->Vmax ) ) ) ) * rsBrake.m_amplitudefactor );
+        rsBrake
+            .pitch( rsBrake.m_frequencyoffset + mvOccupied->Vel * rsBrake.m_frequencyfactor )
+            .gain( volume )
+            .play( sound_flags::exclusive | sound_flags::looping );
+    }
+    else {
+        rsBrake.stop();
+    }
 
     // ambient sound
     // since it's typically ticking of the clock we can center it on tachometer or on middle of compartment bounding area
@@ -7612,26 +7637,22 @@ bool TTrain::LoadMMediaFile(std::string const &asFileName)
             parser.getTokens();
             parser >> token;
             // SEKCJA DZWIEKOW
-            if (token == "ctrl:")
-            {
+            if (token == "ctrl:") {
                 // nastawnik:
                 dsbNastawnikJazdy.deserialize( parser, sound_type::single );
                 dsbNastawnikJazdy.owner( DynamicObject );
             }
-            else if (token == "ctrlscnd:")
-            {
+            else if (token == "ctrlscnd:") {
                 // hunter-081211: nastawnik bocznikowania
                 dsbNastawnikBocz.deserialize( parser, sound_type::single );
                 dsbNastawnikBocz.owner( DynamicObject );
             }
-            else if (token == "reverserkey:")
-            {
+            else if (token == "reverserkey:") {
                 // hunter-131211: dzwiek kierunkowego
                 dsbReverserKey.deserialize( parser, sound_type::single );
                 dsbReverserKey.owner( DynamicObject );
             }
-            else if (token == "buzzer:")
-            {
+            else if (token == "buzzer:") {
                 // bzyczek shp:
                 dsbBuzzer.deserialize( parser, sound_type::single );
                 dsbBuzzer.owner( DynamicObject );
@@ -7641,38 +7662,32 @@ bool TTrain::LoadMMediaFile(std::string const &asFileName)
                 m_radiostop.deserialize( parser, sound_type::single );
                 m_radiostop.owner( DynamicObject );
             }
-            else if (token == "slipalarm:")
-            {
+            else if (token == "slipalarm:") {
                 // Bombardier 011010: alarm przy poslizgu:
                 dsbSlipAlarm.deserialize( parser, sound_type::single );
                 dsbSlipAlarm.owner( DynamicObject );
             }
-            else if (token == "distancecounter:")
-            {
+            else if (token == "distancecounter:") {
                 // distance meter 'good to go' sound
                 m_distancecounterclear.deserialize( parser, sound_type::single );
                 m_distancecounterclear.owner( DynamicObject );
             }
-            else if (token == "tachoclock:")
-            {
+            else if (token == "tachoclock:") {
                 // cykanie rejestratora:
                 dsbHasler.deserialize( parser, sound_type::single );
                 dsbHasler.owner( DynamicObject );
             }
-            else if (token == "switch:")
-            {
+            else if (token == "switch:") {
                 // przelaczniki:
                 dsbSwitch.deserialize( parser, sound_type::single );
                 dsbSwitch.owner( DynamicObject );
             }
-            else if (token == "pneumaticswitch:")
-            {
+            else if (token == "pneumaticswitch:") {
                 // stycznik EP:
                 dsbPneumaticSwitch.deserialize( parser, sound_type::single );
                 dsbPneumaticSwitch.owner( DynamicObject );
             }
-            else if (token == "airsound:")
-            {
+            else if (token == "airsound:") {
                 // syk:
                 rsHiss.deserialize( parser, sound_type::single, sound_parameters::amplitude );
                 rsHiss.owner( DynamicObject );
@@ -7681,8 +7696,7 @@ bool TTrain::LoadMMediaFile(std::string const &asFileName)
                     rsSBHiss = rsHiss;
                 }
             }
-            else if (token == "airsound2:")
-            {
+            else if (token == "airsound2:") {
                 // syk:
                 rsHissU.deserialize( parser, sound_type::single, sound_parameters::amplitude );
                 rsHissU.owner( DynamicObject );
@@ -7691,26 +7705,22 @@ bool TTrain::LoadMMediaFile(std::string const &asFileName)
                     rsSBHissU = rsHissU;
                 }
             }
-            else if (token == "airsound3:")
-            {
+            else if (token == "airsound3:") {
                 // syk:
                 rsHissE.deserialize( parser, sound_type::single, sound_parameters::amplitude );
                 rsHissE.owner( DynamicObject );
             }
-            else if (token == "airsound4:")
-            {
+            else if (token == "airsound4:") {
                 // syk:
                 rsHissX.deserialize( parser, sound_type::single, sound_parameters::amplitude );
                 rsHissX.owner( DynamicObject );
             }
-            else if (token == "airsound5:")
-            {
+            else if (token == "airsound5:") {
                 // syk:
                 rsHissT.deserialize( parser, sound_type::single, sound_parameters::amplitude );
                 rsHissT.owner( DynamicObject );
             }
-            else if (token == "localbrakesound:")
-            {
+            else if (token == "localbrakesound:") {
                 // syk:
                 rsSBHiss.deserialize( parser, sound_type::single, sound_parameters::amplitude );
                 rsSBHiss.owner( DynamicObject );
@@ -7720,8 +7730,14 @@ bool TTrain::LoadMMediaFile(std::string const &asFileName)
                 rsSBHissU.deserialize( parser, sound_type::single, sound_parameters::amplitude );
                 rsSBHissU.owner( DynamicObject );
             }
-            else if (token == "fadesound:")
-            {
+            else if( token == "brakesound:" ) {
+                // the sound of vehicle body vibrations etc, when brakes are engaged
+                rsBrake.deserialize( parser, sound_type::single, sound_parameters::amplitude | sound_parameters::frequency );
+                rsBrake.owner( DynamicObject );
+                // NOTE: can't pre-calculate amplitude normalization based on max brake force, as this varies depending on vehicle speed
+                rsBrake.m_frequencyfactor /= ( 1 + mvOccupied->Vmax );
+            }
+            else if (token == "fadesound:") {
                 // ambient sound:
                 rsFadeSound.deserialize( parser, sound_type::single );
                 rsFadeSound.owner( DynamicObject );
@@ -7730,16 +7746,12 @@ bool TTrain::LoadMMediaFile(std::string const &asFileName)
                 // szum podczas jazdy:
                 rsRunningNoise.deserialize( parser, sound_type::single, sound_parameters::amplitude | sound_parameters::frequency, mvOccupied->Vmax );
                 rsRunningNoise.owner( DynamicObject );
-
-//                rsRunningNoise.m_amplitudefactor /= ( 1 + mvOccupied->Vmax );
                 rsRunningNoise.m_frequencyfactor /= ( 1 + mvOccupied->Vmax );
             }
             else if( token == "huntingnoise:" ) {
                 // hunting oscillation sound:
                 rsHuntingNoise.deserialize( parser, sound_type::single, sound_parameters::amplitude | sound_parameters::frequency, mvOccupied->Vmax );
                 rsHuntingNoise.owner( DynamicObject );
-
-//                rsHuntingNoise.m_amplitudefactor /= ( 1 + mvOccupied->Vmax );
                 rsHuntingNoise.m_frequencyfactor /= ( 1 + mvOccupied->Vmax );
             }
             else if( token == "rainsound:" ) {
@@ -8039,6 +8051,10 @@ bool TTrain::InitializeCab(int NewCabNo, std::string const &asFileName)
 				if (Global.python_displaywindows)
                     m_screens.back().viewer = std::make_unique<python_screen_viewer>(rt, touch_list, rendererpath);
 */
+            }
+            else if (token == "pyscreenupdatetime:") {
+                parser.getTokens();
+                parser >> fScreenUpdateRate;
             }
             // btLampkaUnknown.Init("unknown",mdKabina,false);
         } while ( ( token != "" )
@@ -9356,13 +9372,13 @@ bool TTrain::initialize_gauge(cParser &Parser, std::string const &Label, int con
     }
     else if (Label == "brakes:")
     {
-        // amperomierz calkowitego pradu
+        // specified pipe pressure of specified consist vehicle
         int i, j;
         Parser.getTokens(2, false);
         Parser >> i >> j;
         auto &gauge = Cabine[Cabindex].Gauge(-1); // pierwsza wolna gałka
         gauge.Load(Parser, DynamicObject, 0.1);
-        gauge.AssignFloat(&fPress[i - 1][j]);
+        gauge.AssignFloat(&fPress[clamp(i, 1, 20) - 1][clamp(j, 0, 3)]);
     }
     else if ((Label == "brakepress:") || (Label == "brakepressb:"))
     {

@@ -432,7 +432,7 @@ particle_manager::find( std::string const &Template ) {
         return &( m_sourcetemplates.find( templatename )->second );
     }
     else {
-        ErrorLog( "Bad file: failed do locate particle source configuration file \"" + std::string( templatepath + templatename + ".txt" ) + "\"", logtype::file );
+        ErrorLog( "Bad file: failed to locate particle source configuration file \"" + std::string( templatepath + templatename + ".txt" ) + "\"", logtype::file );
     }
     // if fetching data from the file fails too, give up
     return nullptr;
