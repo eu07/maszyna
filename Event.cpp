@@ -191,7 +191,7 @@ basic_event::event_conditions::deserialize( cParser &Input ) {
         else if( token == "trackfree" ) {
             flags |= flags::track_free;
         }
-        else if( token == "propability" ) {
+        else if( ( token == "propability" ) || ( token == "probability" )) { //remove propability in few years after changing old scenery scripts 01.2021
             flags |= flags::probability;
             Input.getTokens();
             Input >> probability;
@@ -266,7 +266,7 @@ basic_event::event_conditions::export_as_text( std::ostream &Output ) const {
         }
         if( ( flags & flags::probability ) != 0 ) {
             Output
-                << "propability "
+                << "probability "
                 << probability << ' ';
         }
         if( ( flags & ( flags::text | flags::value1 | flags::value2 ) ) != 0 ) {

@@ -8,7 +8,7 @@ uniform sampler2D headlightmap;
 #include <conversion.glsl>
 
 float glossiness = 1.0;
-bool metalic = false;
+float metalic = 0.0;
 
 float length2(vec3 v)
 {
@@ -32,7 +32,7 @@ float calc_shadow()
 	//basic
 //	shadow = texture(shadowmap, coords.xyz + vec3(0.0, 0.0, bias));
 	//PCF
-	float bias = 0.00005f * (cascade + 1U);
+	float bias = 0.00005f * float(cascade + 1U);
 	vec2 texel = vec2(1.0) / vec2(textureSize(shadowmap, 0));
 	float radius = 1.0;
 	for (float y = -1.5; y <= 1.5; y += 1.0)
@@ -167,16 +167,11 @@ vec3 apply_lights(vec3 fragcolor, vec3 fragnormal, vec3 texturecolor, float refl
 	fragcolor += emissioncolor;
 	vec3 specularcolor = specularamount * lights[0].color;
 
-	if ((param[1].w < 0.0) || (metalic == true))
-	{
-		fragcolor += specularcolor;
-		fragcolor *= texturecolor;
-	}
-	else
-	{
-		fragcolor *= texturecolor;
-		fragcolor += specularcolor;
-	}
+	if (param[1].w < 0.0)
+		{
+		float metalic = 1.0;
+		}
+	fragcolor = mix(((fragcolor + specularcolor) * texturecolor),(fragcolor * texturecolor + specularcolor),metalic) ;
 
 	return fragcolor;
 }
