@@ -172,6 +172,8 @@ enum string {
     debug_vehicle_brakespressures,
     debug_vehicle_pantograph,
     debug_vehicle_forcesaccelerationvelocityposition,
+    debug_vehicle_poweruse,
+    debug_vehicle_powerwire,
 
     cab_mainctrl,
     cab_jointctrl,

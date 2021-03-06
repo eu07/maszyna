@@ -867,6 +867,34 @@ debug_panel::update_section_vehicle( std::vector<text_line> &Output ) {
 
     Output.emplace_back( m_buffer.data(), Global.UITextColor );
 
+    if( mover.EnginePowerSource.SourceType == TPowerSource::CurrentCollector ) {
+        std::snprintf(
+            m_buffer.data(), m_buffer.size(),
+            locale::strings[ locale::string::debug_vehicle_poweruse ].c_str(),
+            std::abs( mover.EnergyMeter.first ),
+            std::abs( mover.EnergyMeter.second ),
+            mover.EnergyMeter.first + mover.EnergyMeter.second );
+        textline = m_buffer.data();
+        if( DebugTractionFlag ) {
+            for( int i = 0; i < vehicle.iAnimType[ ANIM_PANTS ]; ++i ) { // pętla po wszystkich pantografach
+                auto const *p { vehicle.pants[ i ].fParamPants };
+                if( p && p->hvPowerWire ) {
+                    auto const *powerwire { p->hvPowerWire };
+                    std::snprintf(
+                        m_buffer.data(), m_buffer.size(),
+                        locale::strings[ locale::string::debug_vehicle_powerwire ].c_str(),
+                        i,
+                        powerwire->psPower[ 0 ] ? powerwire->psPower[ 0 ]->name() : "none",
+                        powerwire->psPower[ 1 ] ? powerwire->psPower[ 1 ]->name() : "none",
+                        powerwire->pPoint1[ 0 ],
+                        powerwire->pPoint1[ 1 ],
+                        powerwire->pPoint1[ 2 ] );
+                    textline += m_buffer.data();
+                }
+            }
+        }
+    }
+    Output.emplace_back( textline, Global.UITextColor );
 }
 
 std::string

@@ -183,6 +183,8 @@ init() {
         "Brakes:\n train: %.2f (mode: %d, delay: %s, load flag: %d)\n independent: %.2f (%.2f), manual: %.2f, spring: %.2f\nBrake cylinder pressures:\n train: %.2f, independent: %.2f, status: 0x%.2x\nPipe pressures:\n brake: %.2f (hat: %.2f), main: %.2f, control: %.2f\nTank pressures:\n auxiliary: %.2f, main: %.2f, control: %.2f",
         " pantograph: %.2f%cMT",
         "Forces:\n tractive: %.1f, brake: %.1f, friction: %.2f%s\nAcceleration:\n tangential: %.2f, normal: %.2f (path radius: %s)\nVelocity: %.2f, distance traveled: %.2f\nPosition: [%.2f, %.2f, %.2f]",
+        "Power use:\n drawn: %.1f kWh, returned: %.1f kWh, balance: %.1f kWh",
+        "\n pantograph %d: drawing from: [%s, %s] through: [%.2f, %.2f, %.2f]",
 
         "master controller",
         "master controller",
@@ -492,6 +494,8 @@ init() {
         "Hamulce:\n zespolony: %.2f (tryb: %d, nastawa: %s, ladunek: %d)\n pomocniczy: %.2f (%.2f), postojowy: %.2f, sprezynowy: %.2f\nCisnienie w cylindrach:\n zespolony: %.2f, pomocniczy: %.2f, status: 0x%.2x\nCisnienia w przewodach:\n glowny: %.2f (kapturek: %.2f), zasilajacy: %.2f, kontrolny: %.2f\nCisnienia w zbiornikach:\n pomocniczy: %.2f, glowny: %.2f, sterujacy: %.2f",
         " pantograf: %.2f%cZG",
         "Sily:\n napedna: %.1f, hamowania: %.1f, tarcie: %.2f%s\nPrzyspieszenia:\n styczne: %.2f, normalne: %.2f (promien: %s)\nPredkosc: %.2f, pokonana odleglosc: %.2f\nPozycja: [%.2f, %.2f, %.2f]",
+        "Zuzycie pradu:\n pobrane: %.1f kWh, oddane: %.1f kWh, zuzyte: %.1f kWh",
+        "\n pantograf %d: zrodla: [%s, %s] przeslo: [%.2f, %.2f, %.2f]",
 
         "nastawnik jazdy",
         "nastawnik jazdy",

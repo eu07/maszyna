@@ -228,14 +228,21 @@ public:
     TAction const & action() const {
         return eAction; }
     inline
+    bool is_active() const {
+        return TestFlag( iDrivigFlags, moveActive ); }
+    inline
     bool is_train() const {
         return TestFlag( mvOccupied->CategoryFlag, 1 ); }
+    inline
     bool is_car() const {
         return TestFlag( mvOccupied->CategoryFlag, 2 ); }
+    inline
     bool is_emu() const {
         return ( mvControlling->TrainType == dt_EZT ); }
+    inline
     bool is_dmu() const {
         return ( mvControlling->TrainType == dt_DMU ); }
+    inline
     bool has_diesel_engine() const {
         return ( ( mvControlling->EngineType == TEngineType::DieselElectric )
               || ( mvControlling->EngineType == TEngineType::DieselEngine ) );

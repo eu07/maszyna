@@ -2751,16 +2751,17 @@ bool TController::PrepareEngine()
                && ( ( mvOccupied->fBrakeCtrlPos == mvOccupied->Handle->GetPos( bh_RP ) || ( mvOccupied->BrakeHandle == TBrakeHandle::NoHandle ) ) );
     }
 
-    iEngineActive = isready;
-
-    if( true == iEngineActive ) {
+    if( true == isready ) {
         // jeśli dotychczas spał teraz nie ma powodu do stania
         eAction = TAction::actUnknown;
         if( eStopReason == stopSleep ) {
             eStopReason = stopNone;
         }
-        iDrivigFlags |= moveActive; // może skanować sygnały i reagować na komendy
+        // może skanować sygnały i reagować na komendy
+        iDrivigFlags |= moveActive;
     }
+
+    iEngineActive = isready;
 
     return iEngineActive;
 }
@@ -4755,7 +4756,9 @@ TController::Update( double const Timedelta ) {
             mvOccupied->Vel > 5.0 ?
                 400 + fBrakeDist :
                 30.0 * fDriverDist ) }; // 1500m dla stojących pociągów;
-    scan_route( awarenessrange );
+    if( is_active() ) {
+        scan_route( awarenessrange );
+    }
     scan_obstacles( awarenessrange );
     // generic actions
     control_security_system( reactiontime );
@@ -4782,8 +4785,6 @@ TController::Update( double const Timedelta ) {
         control_tractive_and_braking_force();
     }
     SetTimeControllers();
-// if the route ahead is blocked we might need to head the other way
-    check_route_behind( 1000 ); // NOTE: legacy scan range value
 }
 
 // configures vehicle heating given current situation; returns: true if vehicle can be operated normally, false otherwise
@@ -6330,15 +6331,8 @@ TController::determine_braking_distance() {
 
 void
 TController::scan_route( double const Range ) {
-    // Ra 2015-01: przy dłuższej drodze skanowania AI jeździ spokojniej
-    // 2. Sprawdzić, czy tabelka pokrywa założony odcinek (nie musi, jeśli jest STOP).
-    // 3. Sprawdzić, czy trajektoria ruchu przechodzi przez zwrotnice - jeśli tak, to sprawdzić, czy stan się nie zmienił.
-    // 4. Ewentualnie uzupełnić tabelkę informacjami o sygnałach i ograniczeniach, jeśli się "zużyła".
-    TableCheck( Range ); // wypełnianie tabelki i aktualizacja odległości
-    // 5. Sprawdzić stany sygnalizacji zapisanej w tabelce, wyznaczyć prędkości.
-    // 6. Z tabelki wyznaczyć krytyczną odległość i prędkość (najmniejsze przyspieszenie).
-    // 7. Jeśli jest inny pojazd z przodu, ewentualnie skorygować odległość i prędkość.
-    // 8. Ustalić częstotliwość świadomości AI (zatrzymanie precyzyjne - częściej, brak atrakcji - rzadziej).
+
+    TableCheck( Range );
 }
 
 // check for potential collisions
@@ -6892,10 +6886,11 @@ TController::pick_optimal_speed( double const Range ) {
     SwitchClearDist = -1;
 
     // if we're idling bail out early
-    if( false == TestFlag( iDrivigFlags, moveActive ) ) {
+    if( false == is_active() ) {
         VelDesired = 0.0;
+        VelNext = 0.0;
         AccDesired = std::min( AccDesired, EU07_AI_NOACCELERATION );
-//        return;
+        return;
     }
 
     // basic velocity and acceleration adjustments
@@ -6961,6 +6956,9 @@ TController::pick_optimal_speed( double const Range ) {
         AccDesired,
             ( is_car() ? -2.0 : -0.9 ),
             ( is_car() ?  2.0 :  0.9 ) );
+
+    // if the route ahead is blocked we might need to head the other way
+    check_route_behind( 1000 ); // NOTE: legacy scan range value
 }
 
 void

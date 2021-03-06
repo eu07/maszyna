@@ -9853,8 +9853,8 @@ void TMoverParameters::LoadFIZ_Brake( std::string const &line ) {
 */
     extract_value( MinCompressor, "MinCP", line, "" );
     extract_value( MaxCompressor, "MaxCP", line, "" );
-	extract_value( MinCompressor, "MinCP_B", line, "" );
-	extract_value( MaxCompressor, "MaxCP_B", line, "" );
+	extract_value( MinCompressor_cabB, "MinCP_B", line, "" );
+	extract_value( MaxCompressor_cabB, "MaxCP_B", line, "" );
     extract_value( CompressorTankValve, "CompressorTankValve", line, "" );
     extract_value( CompressorSpeed, "CompressorSpeed", line, "" );
 	extract_value( EmergencyValveOff, "MinEVP", line, "" );
