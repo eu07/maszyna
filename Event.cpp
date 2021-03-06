@@ -2075,6 +2075,7 @@ friction_event::export_as_text_( std::ostream &Output ) const {
     Output << m_friction << ' ';
 }
 
+#ifdef WITH_LUA
 lua_event::lua_event(lua::eventhandler_t func) {
     lua_func = func;
 }
@@ -2118,6 +2119,7 @@ lua_event::export_as_text_( std::ostream &Output ) const {
 bool lua_event::is_instant() const {
 	return m_delay == 0.0 && m_delayrandom == 0.0;
 }
+#endif
 
 // prepares event for use
 void

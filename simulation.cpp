@@ -41,8 +41,11 @@ instance_table Instances;
 vehicle_table Vehicles;
 train_table Trains;
 light_array Lights;
-lua Lua;
 particle_manager Particles;
+
+#ifdef WITH_LUA
+lua Lua;
+#endif
 
 scene::basic_region *Region { nullptr };
 TTrain *Train { nullptr };

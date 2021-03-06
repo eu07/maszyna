@@ -14,9 +14,12 @@ http://mozilla.org/MPL/2.0/.
 #include "Names.h"
 #include "EvLaunch.h"
 #include "Logs.h"
-#include "lua.h"
 #include "command.h"
 #include "comparison.h"
+
+#ifdef WITH_LUA
+#include "lua.h"
+#endif
 
 // common event interface
 class basic_event {
@@ -585,6 +588,7 @@ private:
     float m_friction{ -1.f };
 };
 
+#ifdef WITH_LUA
 class lua_event : public basic_event {
 public:
     lua_event(lua::eventhandler_t func);
@@ -599,6 +603,7 @@ private:
 
     lua::eventhandler_t lua_func = nullptr;
 };
+#endif
 
 class message_event : public basic_event {
 

@@ -50,6 +50,7 @@ option(USE_IMGUI_GL3 "Use OpenGL3+ imgui implementation" ON)
 option(WITH_OPENGL_MODERN "Compile with OpenGL modern renderer" ON)
 option(WITH_OPENGL_LEGACY "Compile with OpenGL legacy renderer" ON)
 option(WITH_UART "Compile with libserialport" ON)
+option(WITH_LUA "Compile with lua scripting support" ON)
 option(WITH_OPENVR "Compile with OpenVR" ON)
 option(WITH_ZMQ "Compile with cppzmq" OFF)
 option(WITH_CRASHPAD "Compile with crashpad" OFF)
@@ -108,7 +109,6 @@ set(SOURCES
 "drivermouseinput.cpp"
 "translation.cpp"
 "material.cpp"
-"lua.cpp"
 "stdafx.cpp"
 "messaging.cpp"
 "scene.cpp"
@@ -230,6 +230,11 @@ endif()
 if (WITH_OPENVR)
         add_definitions(-DWITH_OPENVR)
         set(SOURCES ${SOURCES} "vr/openvr_imp.cpp")
+endif()
+
+if (WITH_LUA)
+	add_definitions(-DWITH_LUA)
+	set(SOURCES ${SOURCES} "lua.cpp")
 endif()
 
 if (WITH_OPENGL_MODERN)
@@ -424,9 +429,11 @@ endif()
 find_package(SndFile REQUIRED)
 target_link_libraries(${PROJECT_NAME} SndFile::sndfile)
 
-find_package(LuaJIT REQUIRED)
-include_directories(${LUAJIT_INCLUDE_DIR})
-target_link_libraries(${PROJECT_NAME} ${LUAJIT_LIBRARIES})
+if (WITH_LUA)
+	find_package(LuaJIT REQUIRED)
+	include_directories(${LUAJIT_INCLUDE_DIR})
+	target_link_libraries(${PROJECT_NAME} ${LUAJIT_LIBRARIES})
+endif()
 
 if (WITH_UART)
 	find_package(libserialport REQUIRED)

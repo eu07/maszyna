@@ -11,10 +11,13 @@ http://mozilla.org/MPL/2.0/.
 
 #include "simulationstateserializer.h"
 #include "Classes.h"
-#include "lua.h"
 #include "Event.h"
 #include "Train.h"
 #include "particles.h"
+
+#ifdef WITH_LUA
+#include "lua.h"
+#endif
 
 namespace simulation {
 
@@ -78,8 +81,10 @@ extern vehicle_table Vehicles;
 extern train_table Trains;
 extern light_array Lights;
 extern sound_table Sounds;
-extern lua Lua;
 extern particle_manager Particles;
+#ifdef WITH_LUA
+extern lua Lua;
+#endif
 
 extern scene::basic_region *Region;
 extern TTrain *Train;
