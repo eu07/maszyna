@@ -13,13 +13,16 @@ layout(location = 0) out vec4 out_color;
 layout(location = 1) out vec4 out_motion;
 #endif
 
+
 #param (color, 0, 0, 4, diffuse)
 #param (diffuse, 1, 0, 1, diffuse)
 #param (specular, 1, 1, 1, specular)
 #param (reflection, 1, 2, 1, one)
 #param (glossiness, 1, 3, 1, glossiness)
-#param (height_scale, 2, 1, 1, zero)
-#param (height_offset, 2, 2, 1, zero)
+#param (detail_scale, 2, 0, 1, one)
+#param (detail_height_scale, 2, 1, 1, one)
+#param (height_scale, 2, 2, 1, zero)
+#param (height_offset, 2, 3, 1, zero)
 
 #texture (diffuse, 0, sRGB_A)
 uniform sampler2D diffuse;
@@ -27,9 +30,8 @@ uniform sampler2D diffuse;
 #texture (normalmap, 1, RGBA)
 uniform sampler2D normalmap;
 
-#texture (specgloss, 2, RGBA)
-uniform sampler2D specgloss;
-
+#texture (detailnormalmap, 2, RGBA)
+uniform sampler2D detailnormalmap;
 
 #define PARALLAX
 #include <light_common.glsl>
@@ -41,9 +43,10 @@ vec2 ParallaxMapping(vec2 f_coord, vec3 viewDir);
 void main()
 {
 	//parallax mapping
-	vec3 viewDir = normalize(vec3(0.0f, 0.0f, 0.0f) - TangentFragPos); //tangent view pos - tangent frag pos
+	vec3 viewDir = normalize(-TangentFragPos); //tangent view pos - tangent frag pos
 	vec2 f_coord_p = ParallaxMapping(f_coord, viewDir);
-
+	vec4 normal_map = texture(normalmap, f_coord_p);
+	vec4 detailnormal_map = texture(detailnormalmap, f_coord_p * param[2].x);
 	vec4 tex_color = texture(diffuse, f_coord_p);
 
 	bool alphatestfail = ( opacity >= 0.0 ? (tex_color.a < opacity) : (tex_color.a >= -opacity) );
@@ -55,13 +58,17 @@ void main()
 	vec3 fragcolor = ambient;
 
 	vec3 normal;
-	normal.xy = (texture(normalmap, f_coord_p).rg * 2.0 - 1.0);
+	vec3 normaldetail;
+	
+	normaldetail.xy = detailnormal_map.rg* 2.0 - 1.0;
+	normaldetail.z = sqrt(1.0 - clamp((dot(normaldetail.xy, normaldetail.xy)), 0.0, 1.0));
+	normaldetail.xyz = normaldetail.xyz * param[2].y;
+	normal.xy =       normal_map.rg* 2.0 - 1.0;
 	normal.z = sqrt(1.0 - clamp((dot(normal.xy, normal.xy)), 0.0, 1.0));
-	vec3 fragnormal = normalize(f_tbn * normalize(normal.xyz));
-	float reflectivity = param[1].z * texture(normalmap, f_coord_p).a;
-	float specularity = texture(specgloss, f_coord_p).r;
-	glossiness = texture(specgloss, f_coord_p).g * abs(param[1].w);
-	float metalic = texture(specgloss, f_coord_p).b;
+	
+	vec3 fragnormal = normalize(f_tbn * normalize(vec3(normal.xy + normaldetail.xy, normal.z)));
+	float reflectivity = param[1].z * normal_map.a;
+	float specularity = (tex_color.r + tex_color.g + tex_color.b) * 0.5;	
 	
 	fragcolor = apply_lights(fragcolor, fragnormal, tex_color.rgb, reflectivity, specularity, shadow_tone);
 
@@ -99,7 +106,7 @@ vec2 ParallaxMapping(vec2 f_coord, vec3 viewDir)
 	float numLayers = mix(maxLayers, minLayers, clamp(LayersWeight, 0.0, 1.0)); // number of depth layers
 	float layerDepth = 1.0 / numLayers; // calculate the size of each layer
 	float currentLayerDepth = 0.0; // depth of current layer
-	vec2 P = viewDir.xy * param[2].y; // the amount to shift the texture coordinates per layer (from vector P)
+	vec2 P = viewDir.xy * param[2].z; // the amount to shift the texture coordinates per layer (from vector P)
 	vec2 deltaTexCoords = P / numLayers;
 
 	  
@@ -121,7 +128,7 @@ vec2 ParallaxMapping(vec2 f_coord, vec3 viewDir)
 	return finalTexCoords;
 #else
 	float height = texture(normalmap, f_coord).b;
-	vec2 p = viewDir.xy / viewDir.z * (height * (param[2].y - param[2].z) * 0.2);
+	vec2 p = viewDir.xy / viewDir.z * (height * (param[2].z - param[2].w) * 0.2);
 	return f_coord - p;
 #endif
 } 
