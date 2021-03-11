@@ -43,86 +43,81 @@ global_settings::ConfigParse(cParser &Parser) {
     std::string token;
     do
     {
-
         token = "";
         Parser.getTokens();
         Parser >> token;
 
-        if (token == "sceneryfile")
+        if( ConfigParse_gfx( Parser, token ) ) {
+            continue;
+        }
+        else if (token == "sceneryfile")
         {
-
             Parser.getTokens();
             Parser >> SceneryFile;
         }
         else if (token == "humanctrlvehicle")
         {
-
             Parser.getTokens();
             Parser >> local_start_vehicle;
         }
-        else if( token == "fieldofview" ) {
-
-            Parser.getTokens( 1, false );
+        else if (token == "fieldofview")
+        {
+            Parser.getTokens(1, false);
             Parser >> FieldOfView;
             // guard against incorrect values
-            FieldOfView = clamp( FieldOfView, 10.0f, 75.0f );
+            FieldOfView = clamp(FieldOfView, 10.0f, 75.0f);
         }
         else if (token == "width")
         {
-
             Parser.getTokens(1, false);
             Parser >> iWindowWidth;
         }
         else if (token == "height")
         {
-
             Parser.getTokens(1, false);
             Parser >> iWindowHeight;
         }
-		else if (token == "targetfps")
-		{
-			Parser.getTokens(1, false);
-			Parser >> targetfps;
-		}
-		else if (token == "basedrawrange")
-		{
-			Parser.getTokens(1);
-			Parser >> BaseDrawRange;
-            BaseDrawRange = clamp( BaseDrawRange, 500.f, 5000.f ); // arbitrary limits to keep users from hurting themselves
-		}
+        else if (token == "targetfps")
+        {
+            Parser.getTokens(1, false);
+            Parser >> targetfps;
+        }
+        else if (token == "basedrawrange")
+        {
+            Parser.getTokens(1);
+            Parser >> BaseDrawRange;
+            BaseDrawRange = clamp(BaseDrawRange, 500.f,
+                                  5000.f); // arbitrary limits to keep users from hurting themselves
+        }
         else if (token == "fullscreen")
         {
             Parser.getTokens();
             Parser >> bFullScreen;
         }
         else if (token == "fullscreenmonitor")
-		{
-			Parser.getTokens(1, false);
-			Parser >> fullscreen_monitor;
-		}
-        else if( token == "fullscreenwindowed" ) {
+        {
+            Parser.getTokens(1, false);
+            Parser >> fullscreen_monitor;
+        }
+        else if (token == "fullscreenwindowed")
+        {
             Parser.getTokens();
             Parser >> fullscreen_windowed;
         }
-        else if( token == "vsync" ) {
-
+        else if (token == "vsync")
+        {
             Parser.getTokens();
             Parser >> VSync;
         }
         else if (token == "freefly")
         { // Mczapkie-130302
-
             Parser.getTokens();
             Parser >> FreeFlyModeFlag;
             Parser.getTokens(3, false);
-            Parser >>
-                FreeCameraInit[0].x,
-                FreeCameraInit[0].y,
-                FreeCameraInit[0].z;
+            Parser >> FreeCameraInit[0].x, FreeCameraInit[0].y, FreeCameraInit[0].z;
         }
         else if (token == "wireframe")
         {
-
             Parser.getTokens();
             Parser >> bWireFrame;
         }
@@ -139,39 +134,45 @@ global_settings::ConfigParse(cParser &Parser) {
             Parser.getTokens();
             Parser >> bSoundEnabled;
         }
-        else if( token == "sound.openal.renderer" ) {
+        else if (token == "sound.openal.renderer")
+        {
             // selected device for audio renderer
-            AudioRenderer = Parser.getToken<std::string>( false ); // case-sensitive
+            AudioRenderer = Parser.getToken<std::string>(false); // case-sensitive
         }
-        else if( token == "sound.volume" ) {
+        else if (token == "sound.volume")
+        {
             // selected device for audio renderer
             Parser.getTokens();
             Parser >> AudioVolume;
-            AudioVolume = clamp( AudioVolume, 0.f, 2.f );
+            AudioVolume = clamp(AudioVolume, 0.f, 2.f);
         }
-        else if( token == "sound.volume.radio" ) {
+        else if (token == "sound.volume.radio")
+        {
             // selected device for audio renderer
             Parser.getTokens();
             Parser >> RadioVolume;
-            RadioVolume = clamp( RadioVolume, 0.f, 1.f );
+            RadioVolume = clamp(RadioVolume, 0.f, 1.f);
         }
-        else if( token == "sound.volume.vehicle" ) {
+        else if (token == "sound.volume.vehicle")
+        {
             // selected device for audio renderer
             Parser.getTokens();
             Parser >> VehicleVolume;
-            VehicleVolume = clamp( VehicleVolume, 0.f, 1.f );
+            VehicleVolume = clamp(VehicleVolume, 0.f, 1.f);
         }
-        else if( token == "sound.volume.positional" ) {
+        else if (token == "sound.volume.positional")
+        {
             // selected device for audio renderer
             Parser.getTokens();
             Parser >> EnvironmentPositionalVolume;
-            EnvironmentPositionalVolume = clamp( EnvironmentPositionalVolume, 0.f, 1.f );
+            EnvironmentPositionalVolume = clamp(EnvironmentPositionalVolume, 0.f, 1.f);
         }
-        else if( token == "sound.volume.ambient" ) {
+        else if (token == "sound.volume.ambient")
+        {
             // selected device for audio renderer
             Parser.getTokens();
             Parser >> EnvironmentAmbientVolume;
-            EnvironmentAmbientVolume = clamp( EnvironmentAmbientVolume, 0.f, 1.f );
+            EnvironmentAmbientVolume = clamp(EnvironmentAmbientVolume, 0.f, 1.f);
         }
         // else if (str==AnsiString("renderalpha")) //McZapkie-1312302 - dwuprzebiegowe renderowanie
         // bRenderAlpha=(GetNextSymbol().LowerCase()==AnsiString("yes"));
@@ -183,7 +184,6 @@ global_settings::ConfigParse(cParser &Parser) {
         }
         else if (token == "fullphysics")
         { // McZapkie-291103 - usypianie fizyki
-
             Parser.getTokens();
             Parser >> FullPhysics;
         }
@@ -202,14 +202,16 @@ global_settings::ConfigParse(cParser &Parser) {
             }
             else
             {
-                iWriteLogEnabled = stol_def(token,3);
+                iWriteLogEnabled = stol_def(token, 3);
             }
         }
-        else if( token == "multiplelogs" ) {
+        else if (token == "multiplelogs")
+        {
             Parser.getTokens();
             Parser >> MultipleLogs;
         }
-        else if( token == "logs.filter" ) {
+        else if (token == "logs.filter")
+        {
             Parser.getTokens();
             Parser >> DisabledLogTypes;
         }
@@ -219,7 +221,8 @@ global_settings::ConfigParse(cParser &Parser) {
             Parser.getTokens(2, false);
             Parser >> fMouseXScale >> fMouseYScale;
         }
-        else if( token == "mousecontrol" ) {
+        else if (token == "mousecontrol")
+        {
             // whether control pick mode can be activated
             Parser.getTokens();
             Parser >> InputMouse;
@@ -238,7 +241,6 @@ global_settings::ConfigParse(cParser &Parser) {
         }
         else if (token == "friction")
         { // mnożnik tarcia - KURS90
-
             Parser.getTokens(1, false);
             Parser >> fFriction;
         }
@@ -266,47 +268,40 @@ global_settings::ConfigParse(cParser &Parser) {
                 // domyślnie od TGA
                 szDefaultExt = szTexturesTGA;
             }
-            else {
-                szDefaultExt =
-                    ( token[ 0 ] == '.' ?
-                        token :
-                        "." + token );
+            else
+            {
+                szDefaultExt = (token[0] == '.' ? token : "." + token);
             }
         }
         else if (token == "newaircouplers")
         {
-
             Parser.getTokens();
             Parser >> bnewAirCouplers;
         }
-        else if( token == "anisotropicfiltering" ) {
-
-            Parser.getTokens( 1, false );
-            Parser >> AnisotropicFiltering;
-			if (AnisotropicFiltering < 1.0f)
-				AnisotropicFiltering = 1.0f;
-        }
-         else if( token == "usevbo" )
+        else if (token == "anisotropicfiltering")
         {
-
+            Parser.getTokens(1, false);
+            Parser >> AnisotropicFiltering;
+            if (AnisotropicFiltering < 1.0f)
+                AnisotropicFiltering = 1.0f;
+        }
+        else if (token == "usevbo")
+        {
             Parser.getTokens();
             Parser >> bUseVBO;
         }
         else if (token == "feedbackmode")
         {
-
             Parser.getTokens(1, false);
             Parser >> iFeedbackMode;
         }
         else if (token == "feedbackport")
         {
-
             Parser.getTokens(1, false);
             Parser >> iFeedbackPort;
         }
         else if (token == "multiplayer")
         {
-
             Parser.getTokens(1, false);
             Parser >> iMultiplayer;
         }
@@ -316,15 +311,15 @@ global_settings::ConfigParse(cParser &Parser) {
             Parser.getTokens(1, false);
             int size;
             Parser >> size;
-            iMaxTextureSize = clamp_power_of_two( size, 512, 8192 );
+            iMaxTextureSize = clamp_power_of_two(size, 512, 8192);
         }
         else if (token == "maxcabtexturesize")
         {
             // wymuszenie przeskalowania tekstur
-            Parser.getTokens( 1, false );
+            Parser.getTokens(1, false);
             int size;
             Parser >> size;
-            iMaxCabTextureSize = clamp_power_of_two( size, 512, 8192 );
+            iMaxCabTextureSize = clamp_power_of_two(size, 512, 8192);
         }
         else if (token == "movelight")
         {
@@ -337,156 +332,131 @@ global_settings::ConfigParse(cParser &Parser) {
                 std::tm *localtime = std::localtime(&timenow);
                 fMoveLight = localtime->tm_yday + 1; // numer bieżącego dnia w roku
             }
-            simulation::Environment.compute_season( fMoveLight );
+            simulation::Environment.compute_season(fMoveLight);
         }
-        else if( token == "dynamiclights" ) {
+        else if (token == "dynamiclights")
+        {
             // number of dynamic lights in the scene
-            Parser.getTokens( 1, false );
+            Parser.getTokens(1, false);
             Parser >> DynamicLightCount;
             // clamp the light number
-            // max 8 lights per opengl specs, minus one used for sun. at least one light for controlled vehicle
-            DynamicLightCount = clamp( DynamicLightCount, 1, 7 ); 
+            // max 8 lights per opengl specs, minus one used for sun. at least one light for
+            // controlled vehicle
+            DynamicLightCount = clamp(DynamicLightCount, 1, 7);
         }
-        else if( token == "scenario.time.override" ) {
+        else if (token == "scenario.time.override")
+        {
             // shift (in hours) applied to train timetables
-            Parser.getTokens( 1, false );
-			std::string token;
-			Parser >> token;
-			std::istringstream stream(token);
-			if (token.find(':') != -1) {
-				float a, b;
-				char s;
-				stream >> a >> s >> b;
-				ScenarioTimeOverride = a + b / 60.0;
-			}
-			else
-				stream >> ScenarioTimeOverride;
-            ScenarioTimeOverride = clamp( ScenarioTimeOverride, 0.f, 24 * 1439 / 1440.f );
+            Parser.getTokens(1, false);
+            std::string token;
+            Parser >> token;
+            std::istringstream stream(token);
+            if (token.find(':') != -1)
+            {
+                float a, b;
+                char s;
+                stream >> a >> s >> b;
+                ScenarioTimeOverride = a + b / 60.0;
+            }
+            else
+                stream >> ScenarioTimeOverride;
+            ScenarioTimeOverride = clamp(ScenarioTimeOverride, 0.f, 24 * 1439 / 1440.f);
         }
-        else if( token == "scenario.time.offset" ) {
+        else if (token == "scenario.time.offset")
+        {
             // shift (in hours) applied to train timetables
-            Parser.getTokens( 1, false );
+            Parser.getTokens(1, false);
             Parser >> ScenarioTimeOffset;
         }
-        else if( token == "scenario.time.current" ) {
+        else if (token == "scenario.time.current")
+        {
             // sync simulation time with local clock
-            Parser.getTokens( 1, false );
+            Parser.getTokens(1, false);
             Parser >> ScenarioTimeCurrent;
         }
-        else if( token == "scenario.weather.temperature" ) {
+        else if (token == "scenario.weather.temperature")
+        {
             // selected device for audio renderer
             Parser.getTokens();
             Parser >> AirTemperature;
-            if( false == DebugModeFlag ) {
-                AirTemperature = clamp( AirTemperature, -15.f, 45.f );
+            if (false == DebugModeFlag)
+            {
+                AirTemperature = clamp(AirTemperature, -15.f, 45.f);
             }
         }
-        else if( token == "scalespeculars" ) {
-            // whether strength of specular highlights should be adjusted (generally needed for legacy 3d models)
+        else if (token == "scalespeculars")
+        {
+            // whether strength of specular highlights should be adjusted (generally needed for
+            // legacy 3d models)
             Parser.getTokens();
             Parser >> ScaleSpecularValues;
         }
-        else if( token == "gfxrenderer" ) {
+        else if (token == "gfxrenderer")
+        {
             // shadow render toggle
             Parser.getTokens();
             Parser >> GfxRenderer;
-            if( GfxRenderer == "full" ) {
+            if (GfxRenderer == "full")
+            {
                 GfxRenderer = "default";
             }
-            BasicRenderer = ( GfxRenderer == "simple" );
-            LegacyRenderer = ( GfxRenderer != "default" );
+            BasicRenderer = (GfxRenderer == "simple");
+            LegacyRenderer = (GfxRenderer != "default");
         }
-        else if( token == "shadows" ) {
+        else if (token == "shadows")
+        {
             // shadow render toggle
             Parser.getTokens();
             Parser >> RenderShadows;
-       }
-       else if( token == "shadowtune" ) {
-            Parser.getTokens( 4, false );
+        }
+        else if (token == "shadowtune")
+        {
+            Parser.getTokens(4, false);
             float discard;
-            Parser
-                >> shadowtune.map_size
-                >> discard
-                >> shadowtune.range
-                >> discard;
-            shadowtune.map_size = clamp_power_of_two<unsigned int>( shadowtune.map_size, 512, 8192 );
+            Parser >> shadowtune.map_size >> discard >> shadowtune.range >> discard;
+            shadowtune.map_size = clamp_power_of_two<unsigned int>(shadowtune.map_size, 512, 8192);
             // make sure we actually make effective use of all csm stages
             shadowtune.range =
-                std::max(
-                    ( shadowtune.map_size <= 2048 ?
-                        75.f :
-                        75.f * shadowtune.map_size / 2048 ),
-                    shadowtune.range );
-       }
-       else if( token == "gfx.shadows.cab.range" ) {
-            // shadow render toggle
-            Parser.getTokens();
-            Parser >> RenderCabShadowsRange;
+                std::max((shadowtune.map_size <= 2048 ? 75.f : 75.f * shadowtune.map_size / 2048),
+                         shadowtune.range);
         }
-         else if( token == "gfx.smoke" ) {
-            // smoke visualization toggle
-            Parser.getTokens();
-            Parser >> Smoke;
-        }
-        else if( token == "gfx.smoke.fidelity" ) {
-            // smoke visualization fidelity
-            float smokefidelity;
-            Parser.getTokens();
-            Parser >> smokefidelity;
-            SmokeFidelity = clamp( smokefidelity, 1.f, 4.f );
-        }
-        else if( token == "smoothtraction" ) {
+        else if (token == "smoothtraction")
+        {
             // podwójna jasność ambient
             Parser.getTokens();
             Parser >> bSmoothTraction;
         }
-        else if( token == "splinefidelity" ) {
+        else if (token == "splinefidelity")
+        {
             // segment size during spline->geometry conversion
             float splinefidelity;
             Parser.getTokens();
             Parser >> splinefidelity;
-            SplineFidelity = clamp( splinefidelity, 1.f, 4.f );
+            SplineFidelity = clamp(splinefidelity, 1.f, 4.f);
         }
-		else if (token == "rendercab") {
-			Parser.getTokens();
-			Parser >> render_cab;
-		}
-        else if( token == "createswitchtrackbeds" ) {
+        else if (token == "rendercab")
+        {
+            Parser.getTokens();
+            Parser >> render_cab;
+        }
+        else if (token == "createswitchtrackbeds")
+        {
             // podwójna jasność ambient
             Parser.getTokens();
             Parser >> CreateSwitchTrackbeds;
         }
-        else if( token == "gfx.resource.sweep" ) {
-
-            Parser.getTokens();
-            Parser >> ResourceSweep;
-        }
-        else if( token == "gfx.resource.move" ) {
-
-            Parser.getTokens();
-            Parser >> ResourceMove;
-        }
-        else if( token == "gfx.reflections.framerate" ) {
-
-            auto const updatespersecond { std::abs( Parser.getToken<double>() ) };
-			reflectiontune.update_interval = 1.0 / updatespersecond;
-        }
-        else if( token == "gfx.reflections.fidelity" ) {
-            Parser.getTokens( 1, false );
-            Parser >> reflectiontune.fidelity;
-            reflectiontune.fidelity = clamp( reflectiontune.fidelity, 0, 2 );
-        }
-        else if( token == "timespeed" ) {
-           // przyspieszenie czasu, zmienna do testów
-           Parser.getTokens( 1, false );
-           Parser >> fTimeSpeed;
+        else if (token == "timespeed")
+        {
+            // przyspieszenie czasu, zmienna do testów
+            Parser.getTokens(1, false);
+            Parser >> fTimeSpeed;
         }
         else if (token == "multisampling")
         {
             // tryb antyaliasingu: 0=brak,1=2px,2=4px
             Parser.getTokens(1, false);
             Parser >> iMultisampling;
-            iMultisampling = clamp( iMultisampling, 0, 3 );
+            iMultisampling = clamp(iMultisampling, 0, 3);
         }
         else if (token == "latitude")
         {
@@ -500,14 +470,12 @@ global_settings::ConfigParse(cParser &Parser) {
             Parser.getTokens(1, false);
             Parser >> iConvertModels;
             // temporary override, to prevent generation of .e3d not compatible with old exe
-            iConvertModels =
-                ( iConvertModels > 128 ?
-                    iConvertModels - 128 :
-                    0 );
+            iConvertModels = (iConvertModels > 128 ? iConvertModels - 128 : 0);
         }
-        else if( token == "file.binary.terrain" ) {
+        else if (token == "file.binary.terrain")
+        {
             // binary terrain (de)serialization
-            Parser.getTokens( 1, false );
+            Parser.getTokens(1, false);
             Parser >> file_binary_terrain;
         }
         else if (token == "inactivepause")
@@ -557,8 +525,7 @@ global_settings::ConfigParse(cParser &Parser) {
                 in = 5; // na ostatni, bo i tak trzeba pominąć wartości
             }
             Parser.getTokens(4, false);
-            Parser
-                >> fCalibrateIn[in][0] // wyraz wolny
+            Parser >> fCalibrateIn[in][0] // wyraz wolny
                 >> fCalibrateIn[in][1] // mnożnik
                 >> fCalibrateIn[in][2] // mnożnik dla kwadratu
                 >> fCalibrateIn[in][3]; // mnożnik dla sześcianu
@@ -623,9 +590,8 @@ global_settings::ConfigParse(cParser &Parser) {
         {
             // maksymalne wartości jakie można wyświetlić na mierniku
             Parser.getTokens(7, false);
-            Parser >> fCalibrateOutMax[0] >> fCalibrateOutMax[1] >>
-                fCalibrateOutMax[2] >> fCalibrateOutMax[3] >>
-                fCalibrateOutMax[4] >> fCalibrateOutMax[5] >>
+            Parser >> fCalibrateOutMax[0] >> fCalibrateOutMax[1] >> fCalibrateOutMax[2] >>
+                fCalibrateOutMax[3] >> fCalibrateOutMax[4] >> fCalibrateOutMax[5] >>
                 fCalibrateOutMax[6];
         }
         else if (token == "calibrateoutdebuginfo")
@@ -659,9 +625,10 @@ global_settings::ConfigParse(cParser &Parser) {
             Parser.getTokens(1, false);
             Parser >> iHiddenEvents;
         }
-        else if( token == "ai.trainman" ) {
+        else if (token == "ai.trainman")
+        {
             // czy łączyć eventy z torami poprzez nazwę toru
-            Parser.getTokens( 1, false );
+            Parser.getTokens(1, false);
             Parser >> AITrainman;
         }
         else if (token == "pause")
@@ -677,283 +644,168 @@ global_settings::ConfigParse(cParser &Parser) {
             Parser.getTokens(1, false);
             Parser >> asLang;
         }
-        else if( token == "pyscreenrendererpriority" )
+        else if (token == "pyscreenrendererpriority")
         {
             // old variable, repurposed as update rate of python screen renderer
             Parser.getTokens();
             Parser >> token;
-            auto const priority { token };
-            PythonScreenUpdateRate = (
-                priority == "normal" ? 200 :
-                priority == "lower" ? 500 :
-                priority == "lowest" ? 1000 :
-                priority == "off" ? 0 :
-                stol_def( priority, 200 ) );
+            auto const priority{token};
+            PythonScreenUpdateRate =
+                (priority == "normal" ?
+                     200 :
+                     priority == "lower" ?
+                     500 :
+                     priority == "lowest" ? 1000 : priority == "off" ? 0 : stol_def(priority, 200));
         }
-        else if( token == "python.updatetime" )
+        else if (token == "python.updatetime")
         {
             Parser.getTokens();
-			Parser >> PythonScreenUpdateRate;
+            Parser >> PythonScreenUpdateRate;
         }
-        else if( token == "uitextcolor" ) {
+        else if (token == "uitextcolor")
+        {
             // color of the ui text. NOTE: will be obsolete once the real ui is in place
-            Parser.getTokens( 3, false );
-            Parser
-                >> UITextColor.r
-                >> UITextColor.g
-                >> UITextColor.b;
-            glm::clamp( UITextColor, 0.f, 255.f );
+            Parser.getTokens(3, false);
+            Parser >> UITextColor.r >> UITextColor.g >> UITextColor.b;
+            glm::clamp(UITextColor, 0.f, 255.f);
             UITextColor = UITextColor / 255.f;
             UITextColor.a = 1.f;
         }
-        else if( token == "ui.bg.opacity" ) {
+        else if (token == "ui.bg.opacity")
+        {
             // czy grupować eventy o tych samych nazwach
             Parser.getTokens();
             Parser >> UIBgOpacity;
-            UIBgOpacity = clamp( UIBgOpacity, 0.f, 1.f );
+            UIBgOpacity = clamp(UIBgOpacity, 0.f, 1.f);
         }
-        else if( token == "input.gamepad" ) {
+        else if (token == "input.gamepad")
+        {
             // czy grupować eventy o tych samych nazwach
             Parser.getTokens();
             Parser >> InputGamepad;
-		}
+        }
 #ifdef WITH_UART
-        else if( token == "uart" ) {
+        else if (token == "uart")
+        {
             uart_conf.enable = true;
-            Parser.getTokens( 3, false );
-            Parser
-                >> uart_conf.port
-                >> uart_conf.baud
-                >> uart_conf.updatetime;
+            Parser.getTokens(3, false);
+            Parser >> uart_conf.port >> uart_conf.baud >> uart_conf.updatetime;
         }
-        else if( token == "uarttune" ) {
-            Parser.getTokens( 16 );
-            Parser
-                >> uart_conf.mainbrakemin
-                >> uart_conf.mainbrakemax
-                >> uart_conf.localbrakemin
-                >> uart_conf.localbrakemax
-                >> uart_conf.tankmax
-                >> uart_conf.tankuart
-                >> uart_conf.pipemax
-                >> uart_conf.pipeuart
-                >> uart_conf.brakemax
-                >> uart_conf.brakeuart
-                >> uart_conf.hvmax
-                >> uart_conf.hvuart
-                >> uart_conf.currentmax
-                >> uart_conf.currentuart
-                >> uart_conf.lvmax
-                >> uart_conf.lvuart;
+        else if (token == "uarttune")
+        {
+            Parser.getTokens(16);
+            Parser >> uart_conf.mainbrakemin >> uart_conf.mainbrakemax >> uart_conf.localbrakemin >>
+                uart_conf.localbrakemax >> uart_conf.tankmax >> uart_conf.tankuart >>
+                uart_conf.pipemax >> uart_conf.pipeuart >> uart_conf.brakemax >>
+                uart_conf.brakeuart >> uart_conf.hvmax >> uart_conf.hvuart >>
+                uart_conf.currentmax >> uart_conf.currentuart >> uart_conf.lvmax >>
+                uart_conf.lvuart;
         }
-		else if ( token == "uarttachoscale" ) {
-			Parser.getTokens( 1 );
-			Parser >> uart_conf.tachoscale;
-		}
-        else if( token == "uartfeature" ) {
-            Parser.getTokens( 4 );
-            Parser
-                >> uart_conf.mainenable
-                >> uart_conf.scndenable
-                >> uart_conf.trainenable
-                >> uart_conf.localenable;
+        else if (token == "uarttachoscale")
+        {
+            Parser.getTokens(1);
+            Parser >> uart_conf.tachoscale;
         }
-        else if( token == "uartdebug" ) {
-            Parser.getTokens( 1 );
+        else if (token == "uartfeature")
+        {
+            Parser.getTokens(4);
+            Parser >> uart_conf.mainenable >> uart_conf.scndenable >> uart_conf.trainenable >>
+                uart_conf.localenable;
+        }
+        else if (token == "uartdebug")
+        {
+            Parser.getTokens(1);
             Parser >> uart_conf.debug;
         }
 #endif
 #ifdef USE_EXTCAM_CAMERA
-		else if( token == "extcam.cmd" ) {
-			Parser.getTokens( 1 );
-			Parser >> extcam_cmd;
-		}
-		else if( token == "extcam.rec" ) {
-			Parser.getTokens( 1 );
-			Parser >> extcam_rec;
-		}
-		else if( token == "extcam.res" ) {
-			Parser.getTokens( 2 );
-			Parser >> extcam_res.x >> extcam_res.y;
-		}
+        else if (token == "extcam.cmd")
+        {
+            Parser.getTokens(1);
+            Parser >> extcam_cmd;
+        }
+        else if (token == "extcam.rec")
+        {
+            Parser.getTokens(1);
+            Parser >> extcam_rec;
+        }
+        else if (token == "extcam.res")
+        {
+            Parser.getTokens(2);
+            Parser >> extcam_res.x >> extcam_res.y;
+        }
 #endif
-		else if (token == "compresstex") {
-            Parser.getTokens( 1 );
-            if( false == gfx_usegles ) {
+        else if (token == "compresstex")
+        {
+            Parser.getTokens(1);
+            if (false == gfx_usegles)
+            {
                 // ogl es use requires compression to be disabled
                 Parser >> compress_tex;
             }
-		}
-        else if (token == "gfx.framebuffer.width")
-        {
-            Parser.getTokens(1, false);
-            Parser >> gfx_framebuffer_width;
         }
-        else if (token == "gfx.framebuffer.height")
-        {
-            Parser.getTokens(1, false);
-            Parser >> gfx_framebuffer_height;
-        }
-        else if (token == "gfx.framebuffer.fidelity")
-        {
-            Parser.getTokens(1, false);
-            Parser >> gfx_framebuffer_fidelity;
-        }
-        else if (token == "gfx.shadowmap.enabled")
+        else if (token == "fpslimit")
         {
             Parser.getTokens(1);
-            Parser >> gfx_shadowmap_enabled;
+            float fpslimit;
+            Parser >> fpslimit;
+            minframetime = std::chrono::duration<float>(1.0f / fpslimit);
         }
-		else if (token == "fpslimit")
-		{
-			Parser.getTokens(1);
-			float fpslimit;
-			Parser >> fpslimit;
-			minframetime = std::chrono::duration<float>(1.0f / fpslimit);
-		}
-		else if (token == "randomseed")
-		{
-			Parser.getTokens(1);
-			Parser >> Global.random_seed;
-		}
-        else if (token == "gfx.envmap.enabled")
+        else if (token == "randomseed")
         {
             Parser.getTokens(1);
-            Parser >> gfx_envmap_enabled;
+            Parser >> Global.random_seed;
         }
-        else if (token == "gfx.postfx.motionblur.enabled")
+        else if (token == "python.enabled")
         {
             Parser.getTokens(1);
-            Parser >> gfx_postfx_motionblur_enabled;
+            Parser >> python_enabled;
         }
-        else if (token == "gfx.postfx.motionblur.shutter")
+        else if (token == "python.threadedupload")
         {
             Parser.getTokens(1);
-            Parser >> gfx_postfx_motionblur_shutter;
+            Parser >> python_threadedupload;
         }
-        else if (token == "gfx.postfx.motionblur.format")
+        else if (token == "python.uploadmain")
         {
             Parser.getTokens(1);
-            std::string token;
-            Parser >> token;
-            if (token == "rg16f")
-                gfx_postfx_motionblur_format = GL_RG16F;
-            else if (token == "rg32f")
-                gfx_postfx_motionblur_format = GL_RG32F;
+            Parser >> python_uploadmain;
         }
-        else if (token == "gfx.postfx.chromaticaberration.enabled")
+        else if (token == "python.mipmaps")
         {
             Parser.getTokens(1);
-            Parser >> gfx_postfx_chromaticaberration_enabled;
+            Parser >> python_mipmaps;
         }
-        else if (token == "gfx.format.color")
+        else if (token == "network.server")
+        {
+            Parser.getTokens(2);
+
+            std::string backend;
+            std::string conf;
+            Parser >> backend >> conf;
+
+            network_servers.push_back(std::make_pair(backend, conf));
+        }
+        else if (token == "network.client")
+        {
+            Parser.getTokens(2);
+
+            network_client.emplace();
+            Parser >> network_client->first;
+            Parser >> network_client->second;
+        }
+        else if (token == "execonexit")
         {
             Parser.getTokens(1);
-            std::string token;
-            Parser >> token;
-            if (token == "rgb8")
-                gfx_format_color = GL_RGB8;
-            else if (token == "rgb16f")
-                gfx_format_color = GL_RGB16F;
-            else if (token == "rgb32f")
-                gfx_format_color = GL_RGB32F;
-            else if (token == "r11f_g11f_b10f")
-                gfx_format_color = GL_R11F_G11F_B10F;
-        }
-        else if (token == "gfx.format.depth")
-        {
-            Parser.getTokens(1);
-            std::string token;
-            Parser >> token;
-            if (token == "z16")
-                gfx_format_depth = GL_DEPTH_COMPONENT16;
-            else if (token == "z24")
-                gfx_format_depth = GL_DEPTH_COMPONENT24;
-            else if (token == "z32")
-                gfx_format_depth = GL_DEPTH_COMPONENT32;
-            else if (token == "z32f")
-                gfx_format_depth = GL_DEPTH_COMPONENT32F;
-        }
-        else if (token == "gfx.skiprendering")
-        {
-            Parser.getTokens(1);
-            Parser >> gfx_skiprendering;
-        }
-        else if (token == "gfx.skippipeline")
-        {
-            Parser.getTokens(1);
-            Parser >> gfx_skippipeline;
-        }
-        else if (token == "gfx.extraeffects")
-        {
-            Parser.getTokens(1);
-            Parser >> gfx_extraeffects;
+            Parser >> exec_on_exit;
+            std::replace(std::begin(exec_on_exit), std::end(exec_on_exit), '_', ' ');
         }
         /*
-        else if (token == "gfx.usegles")
-        {
-            Parser.getTokens(1);
-            Parser >> gfx_usegles;
-            if( true == gfx_usegles ) {
-                compress_tex = false;
-                gfx_shadergamma = true;
-            }
-        }
-        else if (token == "gfx.shadergamma")
-        {
-            Parser.getTokens(1);
-            Parser >> gfx_shadergamma;
-        }
+                        else if (token == "crashdamage") {
+                                Parser.getTokens(1);
+                                Parser >> crash_damage;
+                        }
         */
-		else if (token == "python.enabled")
-		{
-			Parser.getTokens(1);
-			Parser >> python_enabled;
-		}
-		else if (token == "python.threadedupload")
-		{
-			Parser.getTokens(1);
-			Parser >> python_threadedupload;
-		}
-		else if (token == "python.uploadmain")
-		{
-			Parser.getTokens(1);
-			Parser >> python_uploadmain;
-		}
-        else if (token == "python.mipmaps")
-		{
-			Parser.getTokens(1);
-			Parser >> python_mipmaps;
-		}
-		else if (token == "network.server")
-		{
-			Parser.getTokens(2);
-
-			std::string backend;
-			std::string conf;
-			Parser >> backend >> conf;
-
-			network_servers.push_back(std::make_pair(backend, conf));
-		}
-		else if (token == "network.client")
-		{
-			Parser.getTokens(2);
-
-			network_client.emplace();
-			Parser >> network_client->first;
-			Parser >> network_client->second;
-		}
-		else if (token == "execonexit") {
-			Parser.getTokens(1);
-			Parser >> exec_on_exit;
-			std::replace(std::begin(exec_on_exit), std::end(exec_on_exit), '_', ' ');
-		}
-/*
-		else if (token == "crashdamage") {
-			Parser.getTokens(1);
-			Parser >> crash_damage;
-		}
-*/
     } while ((token != "") && (token != "endconfig")); //(!Parser->EndOfFile)
     // na koniec trochę zależności
     if (!bLoadTraction) // wczytywanie drutów i słupów
@@ -971,18 +823,182 @@ global_settings::ConfigParse(cParser &Parser) {
         // pauzowanie jest zablokowane dla (iMultiplayer&2)>0, więc iMultiplayer=1 da się zapauzować
         // (tryb instruktora)
     }
-/*
-    fFpsMin = fFpsAverage -
-              fFpsDeviation; // dolna granica FPS, przy której promień scenerii będzie zmniejszany
-    fFpsMax = fFpsAverage +
-              fFpsDeviation; // górna granica FPS, przy której promień scenerii będzie zwiększany
-*/
+    /*
+        fFpsMin = fFpsAverage -
+                  fFpsDeviation; // dolna granica FPS, przy której promień scenerii będzie
+       zmniejszany fFpsMax = fFpsAverage + fFpsDeviation; // górna granica FPS, przy której promień
+       scenerii będzie zwiększany
+    */
     if (iPause)
         iTextMode = GLFW_KEY_F1; // jak pauza, to pokazać zegar
 
 #ifdef _WIN32
     Console::ModeSet(iFeedbackMode, iFeedbackPort); // tryb pracy konsoli sterowniczej
 #endif
+}
+
+bool
+global_settings::ConfigParse_gfx( cParser &Parser, std::string_view const Token ) {
+
+    // TODO: move other graphics switches here
+    auto tokenparsed { true };
+
+    if (Token == "gfx.shadows.cab.range")
+    {
+        // shadow render toggle
+        Parser.getTokens();
+        Parser >> RenderCabShadowsRange;
+    }
+    else if (Token == "gfx.smoke")
+    {
+        // smoke visualization toggle
+        Parser.getTokens();
+        Parser >> Smoke;
+    }
+    else if (Token == "gfx.smoke.fidelity")
+    {
+        // smoke visualization fidelity
+        float smokefidelity;
+        Parser.getTokens();
+        Parser >> smokefidelity;
+        SmokeFidelity = clamp(smokefidelity, 1.f, 4.f);
+    }
+    else if (Token == "gfx.resource.sweep")
+    {
+        Parser.getTokens();
+        Parser >> ResourceSweep;
+    }
+    else if (Token == "gfx.resource.move")
+    {
+        Parser.getTokens();
+        Parser >> ResourceMove;
+    }
+    else if (Token == "gfx.reflections.framerate")
+    {
+        auto const updatespersecond{std::abs(Parser.getToken<double>())};
+        reflectiontune.update_interval = 1.0 / updatespersecond;
+    }
+    else if (Token == "gfx.reflections.fidelity")
+    {
+        Parser.getTokens(1, false);
+        Parser >> reflectiontune.fidelity;
+        reflectiontune.fidelity = clamp(reflectiontune.fidelity, 0, 2);
+    }
+    else if (Token == "gfx.framebuffer.width")
+    {
+        Parser.getTokens(1, false);
+        Parser >> gfx_framebuffer_width;
+    }
+    else if (Token == "gfx.framebuffer.height")
+    {
+        Parser.getTokens(1, false);
+        Parser >> gfx_framebuffer_height;
+    }
+    else if (Token == "gfx.framebuffer.fidelity")
+    {
+        Parser.getTokens(1, false);
+        Parser >> gfx_framebuffer_fidelity;
+    }
+    else if (Token == "gfx.shadowmap.enabled")
+    {
+        Parser.getTokens(1);
+        Parser >> gfx_shadowmap_enabled;
+    }
+    else if (Token == "gfx.envmap.enabled")
+    {
+        Parser.getTokens(1);
+        Parser >> gfx_envmap_enabled;
+    }
+    else if (Token == "gfx.postfx.motionblur.enabled")
+    {
+        Parser.getTokens(1);
+        Parser >> gfx_postfx_motionblur_enabled;
+    }
+    else if (Token == "gfx.postfx.motionblur.shutter")
+    {
+        Parser.getTokens(1);
+        Parser >> gfx_postfx_motionblur_shutter;
+    }
+    else if (Token == "gfx.postfx.motionblur.format")
+    {
+        Parser.getTokens(1);
+        std::string value;
+        Parser >> value;
+        if (value == "rg16f")
+            gfx_postfx_motionblur_format = GL_RG16F;
+        else if (value == "rg32f")
+            gfx_postfx_motionblur_format = GL_RG32F;
+    }
+    else if (Token == "gfx.postfx.chromaticaberration.enabled")
+    {
+        Parser.getTokens(1);
+        Parser >> gfx_postfx_chromaticaberration_enabled;
+    }
+    else if (Token == "gfx.format.color")
+    {
+        Parser.getTokens(1);
+        std::string value;
+        Parser >> value;
+        if (value == "rgb8")
+            gfx_format_color = GL_RGB8;
+        else if (value == "rgb16f")
+            gfx_format_color = GL_RGB16F;
+        else if (value == "rgb32f")
+            gfx_format_color = GL_RGB32F;
+        else if (value == "r11f_g11f_b10f")
+            gfx_format_color = GL_R11F_G11F_B10F;
+    }
+    else if (Token == "gfx.format.depth")
+    {
+        Parser.getTokens(1);
+        std::string value;
+        Parser >> value;
+        if (value == "z16")
+            gfx_format_depth = GL_DEPTH_COMPONENT16;
+        else if (value == "z24")
+            gfx_format_depth = GL_DEPTH_COMPONENT24;
+        else if (value == "z32")
+            gfx_format_depth = GL_DEPTH_COMPONENT32;
+        else if (value == "z32f")
+            gfx_format_depth = GL_DEPTH_COMPONENT32F;
+    }
+    else if (Token == "gfx.skiprendering")
+    {
+        Parser.getTokens(1);
+        Parser >> gfx_skiprendering;
+    }
+    else if (Token == "gfx.skippipeline")
+    {
+        Parser.getTokens(1);
+        Parser >> gfx_skippipeline;
+    }
+    else if (Token == "gfx.extraeffects")
+    {
+        Parser.getTokens(1);
+        Parser >> gfx_extraeffects;
+    }
+    /*
+    else if (Token == "gfx.usegles")
+    {
+        Parser.getTokens(1);
+        Parser >> gfx_usegles;
+        if( true == gfx_usegles ) {
+            compress_tex = false;
+            gfx_shadergamma = true;
+        }
+    }
+    */
+    else if (Token == "gfx.shadergamma")
+    {
+        Parser.getTokens(1);
+        Parser >> gfx_shadergamma;
+    }
+    else
+    {
+        tokenparsed = false;
+    }
+
+    return tokenparsed;
 }
 
 void
@@ -1194,6 +1210,7 @@ global_settings::export_as_text( std::ostream &Output ) const {
     export_as_text( Output, "gfx.skiprendering", gfx_skiprendering );
     export_as_text( Output, "gfx.skippipeline", gfx_skippipeline );
     export_as_text( Output, "gfx.extraeffects", gfx_extraeffects );
+    export_as_text( Output, "gfx.shadergamma", gfx_shadergamma );
     export_as_text( Output, "python.enabled", python_enabled );
     export_as_text( Output, "python.threadedupload", python_threadedupload );
     export_as_text( Output, "python.uploadmain", python_uploadmain );

@@ -876,6 +876,7 @@ TCommandType TController::TableUpdate(double &fVelDes, double &fDist, double &fN
     auto d { 0.0 }; // droga
     auto d_to_next_sem { 10000.0 }; //ustaiwamy na pewno dalej niż widzi AI
     auto go { TCommandType::cm_Unknown };
+    auto speedlimitiscontinuous { true }; // stays true if potential active speed limit is unbroken to the last (relevant) point in scan table
     eSignNext = nullptr;
     IsAtPassengerStop = false;
     IsScheduledPassengerStopVisible = false;
@@ -903,11 +904,13 @@ TCommandType TController::TableUpdate(double &fVelDes, double &fDist, double &fN
         }
 
         auto const railwaytrackend { ( true == TestFlag( point.iFlags, spEnd ) ) && ( is_train() ) };
-        if( ( v >= 0.0 )
+        if( ( v >= 0.0 ) // pozycje z prędkością -1 można spokojnie pomijać
          || ( railwaytrackend ) ) {
-            // pozycje z prędkością -1 można spokojnie pomijać
+
             d = point.fDist;
+
             if( v >= 0.0 ) {
+                // points located in front of us can potentially affect our acceleration and target speed
                 if( ( d > 0.0 )
                  && ( false == TestFlag( point.iFlags, spElapsed ) ) ) {
                     // sygnał lub ograniczenie z przodu (+32=przejechane)
@@ -942,6 +945,7 @@ TCommandType TController::TableUpdate(double &fVelDes, double &fDist, double &fN
                         }
                     }
                 }
+                // points located behind can affect our current speed, but little else
                 else if ( point.iFlags & spTrack) // jeśli tor
                 { // tor ogranicza prędkość, dopóki cały skład nie przejedzie,
                     if( v >= 1.0 ) { // EU06 się zawieszało po dojechaniu na koniec toru postojowego
@@ -959,6 +963,9 @@ TCommandType TController::TableUpdate(double &fVelDes, double &fDist, double &fN
                     if( v < VelLimitLastDist.first ) {
                         VelLimitLastDist.second = d + point.trTrack->Length() + fLength;
                     }
+                    else if( VelLimitLastDist.second > 0 ) { // the speed limit can potentially start afterwards, so don't mark it as broken too soon
+                        speedlimitiscontinuous = false;
+                    }
                     if( false == railwaytrackend ) {
                         continue; // i tyle wystarczy
                     }
@@ -974,8 +981,7 @@ TCommandType TController::TableUpdate(double &fVelDes, double &fDist, double &fN
             }
             // track can potentially end, which creates another virtual point of interest with speed limit of 0 at the end of it
             // TBD, TODO: when tracing the route create a dedicated table entry for it, to simplify the code?
-            if( ( true == TestFlag( point.iFlags, spEnd ) )
-             && ( is_train() ) ) {
+            if( railwaytrackend ) {
                 // if the railway track ends here set the velnext accordingly as well
                 // TODO: test this with turntables and such
                 auto const stopatendacceleration = ( -1.0 * mvOccupied->Vel * mvOccupied->Vel ) / ( 25.92 * ( d + point.trTrack->Length() ) );
@@ -990,27 +996,53 @@ TCommandType TController::TableUpdate(double &fVelDes, double &fDist, double &fN
                 }
             }
 
-            if ((a < fAcc) && (v == min_speed(v, fNext))) {
+            if( ( a <= fAcc )
+             && ( ( v < fNext ) || ( fNext < 0 ) ) ) { // filter out consecutive, farther out blocks with the same speed limit; they'd make us accelerate slower due to their lower a value
                 // mniejsze przyspieszenie to mniejsza możliwość rozpędzenia się albo konieczność hamowania
                 // jeśli droga wolna, to może być a>1.0 i się tu nie załapuje
                 fAcc = a; // zalecane przyspieszenie (nie musi być uwzględniane przez AI)
                 fNext = v; // istotna jest prędkość na końcu tego odcinka
                 fDist = d; // dlugość odcinka
             }
-            else if ((fAcc > 0) && (v >= 0) && (v <= fNext)) {
+/*
+            else if ((fAcc > 0) && (v >= 0) && (v > fNext)) {
                 // jeśli nie ma wskazań do hamowania, można podać drogę i prędkość na jej końcu
                 fNext = v; // istotna jest prędkość na końcu tego odcinka
                 fDist = d; // dlugość odcinka (kolejne pozycje mogą wydłużać drogę, jeśli prędkość jest stała)
             }
-            if( ( v < VelLimitLastDist.first ) /* && ( d < VelLimitLastDist.second ) */ ) {
-                // if we encounter another speed limit before we can clear current/last registered one,
-                // update our calculation where we'll be able to resume regular speed
+*/
+            // we'll pick first scanned target speed as our goal
+            // farther scan table points can override it through previous clause, if they require lower acceleration or speed reduction
+            else if( ( a > 0 ) && ( a <= fAcc ) && ( v >= 0 ) && ( fNext < 0 ) ) {
+                fAcc = a;
+                fNext = v;
+                fDist = d;
+            }
+            // potentially update our current speed limit
+            if( ( v < VelLimitLastDist.first )
+             && ( ( d < 0 ) // the point counts as part of last speed limit either if it's behind us
+               || ( VelLimitLastDist.second > 0 ) ) ) { // or if we already have the last limit ongoing
                 VelLimitLastDist.second = d + fLength;
                 if( ( point.iFlags & spTrack ) != 0 ) {
                     VelLimitLastDist.second += point.trTrack->Length();
                 }
             }
+            else {
+                // if we found a point which isn't part of the current speed limit mark the limit as broken
+                // NOTE: we exclude switches from this rule, as speed limits generally extend through these
+                if( ( point.iFlags & ( spSwitch | spPassengerStopPoint ) ) == 0 ) {
+                    speedlimitiscontinuous = false;
+                }
+            }
         } // if (v>=0.0)
+        // finding a point which doesn't impose speed limit means any potential active speed limit can't extend through entire scan table
+        // NOTE: we test actual speed value for the given point, as events may receive (v = -1) as a way to disable them in irrelevant modes
+        if( point.fVelNext < 0 ) {
+            // NOTE: we exclude switches from this rule, as speed limits generally extend through these
+            if( ( point.iFlags & ( spSwitch | spPassengerStopPoint ) ) == 0 ) {
+                speedlimitiscontinuous = false;
+            }
+        }
         if (fNext >= 0.0)
         { // jeśli ograniczenie
             if( ( point.iFlags & ( spEnabled | spEvent ) ) == ( spEnabled | spEvent ) ) { // tylko sygnał przypisujemy
@@ -1029,6 +1061,11 @@ TCommandType TController::TableUpdate(double &fVelDes, double &fDist, double &fN
      && ( ( iDrivigFlags & ( moveSemaphorFound | moveSwitchFound | moveStopPointFound ) ) == 0 )
        && ( true == TestFlag( OrderCurrentGet(), Obey_train ) ) ) {
         VelSignalLast = -1.0;
+    }
+    // if there's unbroken speed limit through our scan table take a note of it
+    if( ( VelLimitLastDist.second > 0 )
+     && ( speedlimitiscontinuous ) ) {
+        VelLimitLastDist.second = EU07_AI_SPEEDLIMITEXTENDSBEYONDSCANRANGE;
     }
     // take into account the effect switches have on duration of signal-imposed speed limit, in calculation of speed limit end point
     if( ( VelSignalLast >= 0.0 ) && ( SwitchClearDist >= 0.0 ) ) {
@@ -1054,7 +1091,7 @@ TCommandType TController::TableUpdate(double &fVelDes, double &fDist, double &fN
 bool
 TController::TableUpdateStopPoint( TCommandType &Command, TSpeedPos &Point, double const Signaldistance ) {
     // stop points are irrelevant when not in one of the basic modes
-    if( ( OrderCurrentGet() & ( Shunt | Loose_shunt | Obey_train | Bank ) ) == 0 ) { return true; }
+    if( ( OrderCurrentGet() & ( /*Shunt | Loose_shunt |*/ Obey_train | Bank ) ) == 0 ) { return true; }
     // jeśli przystanek, trzeba obsłużyć wg rozkładu
     iDrivigFlags |= moveStopPointFound;
     // first 19 chars of the command is expected to be "PassengerStopPoint:" so we skip them
@@ -1498,12 +1535,17 @@ TController::TableUpdateEvent( double &Velocity, TCommandType &Command, TSpeedPo
             // HACK: if so, make it a stop point, to prevent non-signals farther down affect us
             auto const isforsomeoneelse { ( is_train() ) && ( Obstacle.distance < Point.fDist ) };
             if( Point.fDist <= Signaldistance ) {
-                VelSignalNext = ( isforsomeoneelse ? 0.0 : Point.fVelNext );
-            }
-            if( isforsomeoneelse ) {
-                Velocity = 0.0;
-//                VelNext = 0.0;
-//                return true;
+                if( isforsomeoneelse ) {
+                    VelSignalNext = 0.0;
+                    Velocity = 0.0;
+                }
+                else {
+                    VelSignalNext - Point.fVelNext;
+                    if( Velocity < 0 ) {
+                        Velocity = fVelMax;
+                        VelSignal = fVelMax;
+                    }
+                }
             }
         }
     }
@@ -6877,29 +6919,33 @@ TController::pick_optimal_speed( double const Range ) {
 //    if( ( OrderCurrentGet() & ( Shunt | Loose_shunt | Obey_train | Bank | Connect | Disconnect | Change_direction ) ) == 0 ) { return; }
 
     // set initial velocity and acceleration values
-    VelDesired = fVelMax; // wstępnie prędkość maksymalna dla pojazdu(-ów), będzie następnie ograniczana
-    VelNext = VelDesired; // maksymalna prędkość wynikająca z innych czynników niż trajektoria ruchu
     SetDriverPsyche(); // ustawia AccPreferred (potrzebne tu?)
+    VelDesired = fVelMax; // wstępnie prędkość maksymalna dla pojazdu(-ów), będzie następnie ograniczana
     AccDesired = AccPreferred; // AccPreferred wynika z osobowości mechanika
-    ActualProximityDist = Range; // funkcja Update() może pozostawić wartości bez zmian
-    VelLimitLastDist = { VelDesired, -1 };
-    SwitchClearDist = -1;
 
-    // if we're idling bail out early
-    if( false == is_active() ) {
-        VelDesired = 0.0;
-        VelNext = 0.0;
-        AccDesired = std::min( AccDesired, EU07_AI_NOACCELERATION );
-        return;
+    // nie przekraczać rozkladowej
+    if( ( ( OrderCurrentGet() & Obey_train ) != 0 )
+     && ( TrainParams.TTVmax > 0.0 ) ) {
+        VelDesired =
+            min_speed(
+                VelDesired,
+                TrainParams.TTVmax );
     }
 
-    // basic velocity and acceleration adjustments
+//    VelNext = VelDesired; // maksymalna prędkość wynikająca z innych czynników niż trajektoria ruchu
+    // HACK: -1 means we can pick up 0 speed limits in ( point.velnext > velnext ) tests aimed to find highest next speed,
+    // but also doubles as 'max speed' in min_speed tests, so it shouldn't interfere if we don't find any speed limits
+    VelNext = -1.0;
 
+    // basic velocity and acceleration adjustments
     // jeśli manewry, to ograniczamy prędkość
     if( ( OrderCurrentGet() & ( Obey_train | Bank ) ) == 0 ) { // spokojne manewry
         SetVelocity( fShuntVelocity, fShuntVelocity );
+        VelDesired =
+            min_speed(
+                VelDesired,
+                fShuntVelocity );
     }
-
     // uncoupling mode changes velocity/acceleration between stages
     if( ( OrderCurrentGet() & Disconnect ) != 0 ) {
         if( iVehicleCount >= 0 ) {
@@ -6920,6 +6966,19 @@ TController::pick_optimal_speed( double const Range ) {
             }
         }
     }
+
+    VelLimitLastDist = { VelDesired, -1 };
+    SwitchClearDist = -1;
+    ActualProximityDist = Range; // funkcja Update() może pozostawić wartości bez zmian
+
+    // if we're idling bail out early
+    if( false == is_active() ) {
+        VelDesired = 0.0;
+        VelNext = 0.0;
+        AccDesired = std::min( AccDesired, EU07_AI_NOACCELERATION );
+        return;
+    }
+
     // Ra: odczyt (ActualProximityDist), (VelNext) i (AccPreferred) z tabelki prędkosci
     check_route_ahead( Range );
 
@@ -7086,14 +7145,6 @@ TController::adjust_desired_speed_for_limits() {
             min_speed(
                 VelDesired,
                 VelSignal );
-    }
-    if( ( ( OrderCurrentGet() & Obey_train ) != 0 )
-     && ( TrainParams.TTVmax > 0.0 ) ) {
-        // jesli nie spozniony to nie przekraczać rozkladowej
-        VelDesired =
-            min_speed(
-                VelDesired,
-                TrainParams.TTVmax );
     }
     if( mvOccupied->RunningTrack.Velmax >= 0 ) {
         // ograniczenie prędkości z trajektorii ruchu

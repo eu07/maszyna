@@ -105,7 +105,7 @@ editor_mode::enter() {
 
     m_statebackup = { Global.pCamera, FreeFlyModeFlag, Global.ControlPicking };
 
-    Global.pCamera = Camera;
+    Camera = Global.pCamera;
     FreeFlyModeFlag = true;
     Global.ControlPicking = true;
     EditorModeFlag = true;

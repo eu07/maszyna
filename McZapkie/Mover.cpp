@@ -3485,7 +3485,7 @@ void TMoverParameters::MainSwitch_( bool const State ) {
         return;
     }
 
-    bool const initialstate { Mains || dizel_startup };
+    bool const initialstate { Mains };
 
     if( ( false == State )
      || ( true == MainSwitchCheck() ) ) {

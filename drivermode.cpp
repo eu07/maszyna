@@ -464,7 +464,9 @@ driver_mode::on_key( int const Key, int const Scancode, int const Action, int co
 
 void
 driver_mode::on_char( unsigned int const Char ) {
-    // TODO: implement
+
+    // give the ui first shot at the input processing...
+    if( true == m_userinterface->on_char( Char ) ) { return; }
 }
 
 void

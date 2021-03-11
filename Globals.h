@@ -237,6 +237,7 @@ struct global_settings {
 // methods
     void LoadIniFile( std::string asFileName );
     void ConfigParse( cParser &parser );
+    bool ConfigParse_gfx( cParser &parser, std::string_view const Token );
     // sends basic content of the class in legacy (text) format to provided stream
     void
         export_as_text( std::ostream &Output ) const;

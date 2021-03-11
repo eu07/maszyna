@@ -63,21 +63,53 @@ drivingaid_panel::update() {
                 gradetext = m_buffer.data();
             }
             // next speed limit
-            auto const speedlimit { static_cast<int>( std::floor( owner->VelDesired ) ) };
+            auto const speedlimit { static_cast<int>( owner->VelDesired ) };
             auto nextspeedlimit { speedlimit };
-            auto nextspeedlimitdistance { 0.0 };
-            if( speedlimit != 0 ) {
-                // if we aren't allowed to move then any next speed limit is irrelevant
-                if( ( owner->VelLimitLastDist.first > 0.0 ) && ( owner->VelLimitLastDist.second > 0.0 ) ) {
-                    // first take note of any speed change which should occur after passing potential current speed limit
-                    nextspeedlimit = static_cast<int>( std::floor( owner->VelLimitLastDist.first ) );
+            auto nextspeedlimitdistance { std::numeric_limits<double>::max() };
+            if( speedlimit != 0 ) { // if we aren't allowed to move then any next speed limit is irrelevant
+                // nie przekraczać rozkladowej
+                auto const schedulespeedlimit { (
+                    ( ( owner->OrderCurrentGet() & ( Obey_train | Bank ) ) != 0 ) && ( owner->TrainParams.TTVmax > 0.0 ) ? static_cast<int>( owner->TrainParams.TTVmax ) :
+                    ( ( owner->OrderCurrentGet() & ( Obey_train | Bank ) ) == 0 ) ? static_cast<int>( owner->fShuntVelocity ) :
+                        -1 ) };
+                // first take note of any speed change which should occur after passing potential current speed limit
+                if( owner->VelLimitLastDist.second > 0 ) {
+                    nextspeedlimit = min_speed( schedulespeedlimit, static_cast<int>( owner->VelLimitLastDist.first ) );
                     nextspeedlimitdistance = owner->VelLimitLastDist.second;
                 }
-                auto const speedatproximitydistance{ static_cast<int>( std::floor( owner->VelNext ) ) };
-                if( ( speedatproximitydistance != speedlimit ) && ( speedatproximitydistance < nextspeedlimit ) ) {
-                    // if there's speed reduction down the road then it's more important than any potential speedup
+                // then take into account speed change ahead, compare it with speed after potentially clearing last limit
+                // lower of these two takes priority; otherwise limit lasts at least until potential last limit is cleared
+                auto const noactivespeedlimit { owner->VelLimitLastDist.second < 0 };
+                auto const speedatproximitydistance { min_speed( schedulespeedlimit, static_cast<int>( owner->VelNext ) ) };
+                if( speedatproximitydistance == nextspeedlimit ) {
+                    if( noactivespeedlimit ) {
+                        nextspeedlimit = speedatproximitydistance;
+                        nextspeedlimitdistance = owner->ActualProximityDist;
+                    }
+                }
+                else if( speedatproximitydistance < nextspeedlimit ) {
+                    // if the speed limit ahead is more strict than our current limit, it's important enough to report
+                    if( speedatproximitydistance < owner->VelDesired ) {
+                        nextspeedlimit = speedatproximitydistance;
+                        nextspeedlimitdistance = owner->ActualProximityDist;
+                    }
+                    // otherwise report it only if it's located after our current (lower) limit ends
+                    else if( owner->ActualProximityDist > nextspeedlimitdistance ) {
+                        nextspeedlimit = speedatproximitydistance;
+                        nextspeedlimitdistance = owner->ActualProximityDist;
+                    }
+                }
+                else if( noactivespeedlimit ) { // implicit proximity > last, report only if last limit isn't present
                     nextspeedlimit = speedatproximitydistance;
                     nextspeedlimitdistance = owner->ActualProximityDist;
+                }
+                // HACK: if our current speed limit extends beyond our scan range don't display potentially misleading information about its length
+                if( nextspeedlimitdistance >= EU07_AI_SPEEDLIMITEXTENDSBEYONDSCANRANGE ) {
+                    nextspeedlimit = speedlimit;
+                }
+                // HACK: hide next speed limit if the 'limit' is a vehicle in front of us
+                else if( owner->ActualProximityDist == std::abs( owner->TrackObstacle() ) ) {
+                    nextspeedlimit = speedlimit;
                 }
             }
             std::string nextspeedlimittext;
@@ -590,10 +622,7 @@ debug_panel::render() {
         render_section( "Vehicle AI", m_ailines );
         render_section( "Vehicle Scan Table", m_scantablelines );
         render_section_scenario();
-        if( true == render_section( "Scenario Event Queue", m_eventqueuelines ) ) {
-            // event queue filter
-            ImGui::Checkbox( "By This Vehicle Only", &m_eventqueueactivevehicleonly );
-        }
+        render_section_eventqueue();
         if( true == render_section( "Power Grid", m_powergridlines ) ) {
             // traction state debug
             ImGui::Checkbox( "Debug Traction", &DebugTractionFlag );
@@ -689,6 +718,22 @@ debug_panel::render_section_scenario() {
             }
         }
     }
+
+    return true;
+}
+
+bool
+debug_panel::render_section_eventqueue() {
+
+    if( false == ImGui::CollapsingHeader( "Scenario Event Queue" ) ) { return false; }
+    // event queue name filter
+    ImGui::PushItemWidth( -1 );
+    ImGui::InputTextWithHint( "", "Search event queue", m_eventsearch.data(), m_eventsearch.size() );
+    ImGui::PopItemWidth();
+    // event queue
+    render_section( m_eventqueuelines );
+    // event queue activator filter
+    ImGui::Checkbox( "By This Vehicle Only", &m_eventqueueactivevehicleonly );
 
     return true;
 }
@@ -1061,6 +1106,15 @@ debug_panel::update_section_ai( std::vector<text_line> &Output ) {
     textline =
         "Distances:\n proximity: " + to_string( mechanik.ActualProximityDist, 0 )
         + ", braking: " + to_string( mechanik.fBrakeDist, 0 );
+    if( mechanik.VelLimitLastDist.second > 0 ) {
+        textline += ", last limit: " + (
+            mechanik.VelLimitLastDist.second < EU07_AI_SPEEDLIMITEXTENDSBEYONDSCANRANGE ?
+                to_string( mechanik.VelLimitLastDist.second, 0 ) :
+                "???" );
+    }
+    if( mechanik.SwitchClearDist > 0 ) {
+        textline += ", switches: " + to_string( mechanik.SwitchClearDist, 0 );
+    }
 
     if( mechanik.Obstacle.distance < 5000 ) {
         textline +=
@@ -1116,7 +1170,7 @@ debug_panel::update_section_ai( std::vector<text_line> &Output ) {
     textline =
         "Brakes:\n highest pressure: " + to_string( mechanik.fReady, 2 ) + ( mechanik.Ready ? " (all brakes released)" : "" )
         + "\n activation threshold: " + to_string( mechanik.fAccThreshold, 2 )
-        + "\n activation delays: " + to_string( mechanik.fBrake_a0[ 0 ], 2 ) + " + " + to_string( mechanik.fBrake_a1[ 0 ], 2 )
+        + ", delays: " + to_string( mechanik.fBrake_a0[ 0 ], 2 ) + " + " + to_string( mechanik.fBrake_a1[ 0 ], 2 )
         + "\n virtual brake position: " + to_string( mechanik.BrakeCtrlPosition, 2 );
 
     Output.emplace_back( textline, Global.UITextColor );
@@ -1188,6 +1242,7 @@ debug_panel::update_section_eventqueue( std::vector<text_line> &Output ) {
     // current event queue
     auto const time { Timer::GetTime() };
     auto const *event { simulation::Events.begin() };
+    auto const searchfilter { std::string( m_eventsearch.data() ) };
 
     Output.emplace_back( "Delay:   Event:", Global.UITextColor );
 
@@ -1199,18 +1254,29 @@ debug_panel::update_section_eventqueue( std::vector<text_line> &Output ) {
          && ( ( false == m_eventqueueactivevehicleonly )
            || ( event->m_activator == m_input.vehicle ) ) ) {
 
+            if( ( false == searchfilter.empty() )
+             && ( event->m_name.find( searchfilter ) == std::string::npos ) ) {
+                event = event->m_next;
+                continue;
+            }
+
             auto const delay { "   " + to_string( std::max( 0.0, event->m_launchtime - time ), 1 ) };
-            textline = delay.substr( delay.length() - 6 )
-                + "   " + event->m_name
-                + ( event->m_activator ? " (by: " + event->m_activator->asName + ")" : "" )
-                + ( event->m_sibling ? " (joint event)" : "" );
+            auto const label { event->m_name + ( event->m_activator ? " (by: " + event->m_activator->asName + ")" : "" ) };
+            textline =
+                delay.substr( delay.length() - 6 )
+                + "   "
+                + label + ( event->m_sibling ? " (joint event)" : "" );
 
             Output.emplace_back( textline, Global.UITextColor );
         }
         event = event->m_next;
     }
     if( Output.size() == 1 ) {
-        Output.front().data = "(no queued events)";
+        // event queue can be empty either because no event got through active filters, or because it is genuinely empty
+        Output.front().data = (
+            simulation::Events.begin() == nullptr ?
+                "(no queued events)" :
+                "(no matching events)" );
     }
 }
 
@@ -1327,6 +1393,12 @@ debug_panel::render_section( std::string const &Header, std::vector<text_line> c
 
     if( true == Lines.empty() ) { return false; }
     if( false == ImGui::CollapsingHeader( Header.c_str() ) ) { return false; }
+
+    return render_section( Lines );
+}
+
+bool
+debug_panel::render_section( std::vector<text_line> const &Lines ) {
 
     for( auto const &line : Lines ) {
         ImGui::PushStyleColor( ImGuiCol_Text, { line.color.r, line.color.g, line.color.b, line.color.a } );

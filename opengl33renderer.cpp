@@ -386,30 +386,30 @@ bool opengl33_renderer::init_viewport(viewport_config &vp)
 		vp.msaa_fb->attach(*vp.msaa_rbc, GL_COLOR_ATTACHMENT0);
 		vp.msaa_fb->attach(*vp.msaa_rbd, GL_DEPTH_ATTACHMENT);
 
+        vp.main_tex = std::make_unique<opengl_texture>();
+        vp.main_tex->alloc_rendertarget(Global.gfx_format_color, GL_RGB, vp.width, vp.height, 1, 1, GL_CLAMP_TO_EDGE);
+
+        vp.main_fb = std::make_unique<gl::framebuffer>();
+        vp.main_fb->attach(*vp.main_tex, GL_COLOR_ATTACHMENT0);
+
 		if (Global.gfx_postfx_motionblur_enabled)
 		{
 			vp.msaa_rbv = std::make_unique<gl::renderbuffer>();
 			vp.msaa_rbv->alloc(Global.gfx_postfx_motionblur_format, vp.width, vp.height, samples);
 			vp.msaa_fb->attach(*vp.msaa_rbv, GL_COLOR_ATTACHMENT1);
 
-			vp.main_tex = std::make_unique<opengl_texture>();
-			vp.main_tex->alloc_rendertarget(Global.gfx_format_color, GL_RGB, vp.width, vp.height, 1, 1, GL_CLAMP_TO_EDGE);
-
-			vp.main_fb = std::make_unique<gl::framebuffer>();
-			vp.main_fb->attach(*vp.main_tex, GL_COLOR_ATTACHMENT0);
-
 			vp.main_texv = std::make_unique<opengl_texture>();
 			vp.main_texv->alloc_rendertarget(Global.gfx_postfx_motionblur_format, GL_RG, vp.width, vp.height);
 			vp.main_fb->attach(*vp.main_texv, GL_COLOR_ATTACHMENT1);
 			vp.main_fb->setup_drawing(2);
 
-            if( !vp.main_fb->is_complete() ) {
-                ErrorLog( "main framebuffer setup failed" );
-                return false;
-            }
-
 			WriteLog("motion blur enabled");
 		}
+
+        if( !vp.main_fb->is_complete() ) {
+            ErrorLog( "main framebuffer setup failed" );
+            return false;
+        }
 
         if( !vp.msaa_fb->is_complete() ) {
             ErrorLog( "msaa framebuffer setup failed" );
@@ -782,14 +782,16 @@ void opengl33_renderer::Render_pass(viewport_config &vp, rendermode const Mode)
 			if (Global.gfx_postfx_motionblur_enabled)
 			{
                 gl::program::unbind();
-				vp.main_fb->clear(GL_COLOR_BUFFER_BIT);
+                vp.main_fb->clear(GL_COLOR_BUFFER_BIT);
 				vp.msaa_fb->blit_to(vp.main_fb.get(), vp.width, vp.height, GL_COLOR_BUFFER_BIT, GL_COLOR_ATTACHMENT0);
 				vp.msaa_fb->blit_to(vp.main_fb.get(), vp.width, vp.height, GL_COLOR_BUFFER_BIT, GL_COLOR_ATTACHMENT1);
 
 				model_ubs.param[0].x = m_framerate / (1.0 / Global.gfx_postfx_motionblur_shutter);
 				model_ubo->update(model_ubs);
 				m_pfx_motionblur->apply({vp.main_tex.get(), vp.main_texv.get()}, vp.main2_fb.get());
-			}
+
+                vp.main_fb->setup_drawing(1); // restore draw buffers after blit operation
+            }
 			else
 			{
 				vp.main2_fb->clear(GL_COLOR_BUFFER_BIT);
@@ -802,6 +804,7 @@ void opengl33_renderer::Render_pass(viewport_config &vp, rendermode const Mode)
             glViewport(0, 0, target_size.x, target_size.y);
 
             if( Global.gfx_postfx_chromaticaberration_enabled ) {
+                // NOTE: for some unexplained reason need this setup_drawing() call here for the tonemapping effects to show up on the main_tex?
                 m_pfx_tonemapping->apply( *vp.main2_tex, vp.main_fb.get() );
                 m_pfx_chromaticaberration->apply( *vp.main_tex, nullptr );
             }
@@ -3844,7 +3847,7 @@ void opengl33_renderer::Render_Alpha(TSubModel *Submodel)
 					auto lightcolor = glm::vec3(Submodel->DiffuseOverride.r < 0.f ? // -1 indicates no override
                                             Submodel->f4Diffuse :
                                             Submodel->DiffuseOverride);
-                    lightcolor = glm::pow( lightcolor, gammacorrection );
+//                    lightcolor = glm::pow( lightcolor, gammacorrection );
 
 					m_freespot_shader->bind();
 
