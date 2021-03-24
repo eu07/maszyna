@@ -31,7 +31,6 @@ http://mozilla.org/MPL/2.0/.
 #include "Console.h"
 #include "application.h"
 #include "renderer.h"
-#include "dictionary.h"
 /*
 namespace input {
 
@@ -70,6 +69,38 @@ bool
 control_mapper::contains( std::string const Control ) const {
 
     return ( m_names.find( Control ) != m_names.end() );
+}
+
+void TTrain::screen_entry::deserialize( cParser &Input ) {
+
+    while( true == deserialize_mapping( Input ) ) {
+        ; // all work done by while()
+    }
+}
+
+bool TTrain::screen_entry::deserialize_mapping( cParser &Input ) {
+    // token can be a key or block end
+    auto const key { Input.getToken<std::string>( true, "\n\r\t  ,;[]" ) };
+
+    if( ( true == key.empty() ) || ( key == "}" ) ) { return false; }
+
+    if( key == "{" ) {
+        script = Input.getToken<std::string>();
+    }
+    else if( key == "target:" ) {
+        target = Input.getToken<std::string>();
+    }
+    else if( key == "parameters:" ) {
+        parameters = dictionary_source( Input.getToken<std::string>() );
+    }
+    else {
+        // HACK: we expect this to be true only if the screen entry doesn't start with a { which means legacy configuration format
+        target = key;
+        script = Input.getToken<std::string>();
+        return false;
+    }
+
+    return true;
 }
 
 void TCab::Load(cParser &Parser)
@@ -537,12 +568,12 @@ bool TTrain::Init(TDynamicObject *NewDynamicObject, bool e3d)
     return true;
 }
 
-dictionary_source *TTrain::GetTrainState() {
+dictionary_source *TTrain::GetTrainState( dictionary_source const &Extraparameters ) {
 
     if( ( mvOccupied   == nullptr )
      || ( mvControlled == nullptr ) ) { return nullptr; }
 
-    auto *dict { new dictionary_source };
+    auto *dict { new dictionary_source( Extraparameters ) };
     if( dict == nullptr ) { return nullptr; }
 
     dict->insert( "name", DynamicObject->asName );
@@ -612,6 +643,7 @@ dictionary_source *TTrain::GetTrainState() {
     dict->insert( "distance_counter", m_distancecounter );
     dict->insert( "pantpress", std::abs( mvPantographUnit->PantPress ) );
     dict->insert( "universal3", InstrumentLightActive );
+    dict->insert( "radio", mvOccupied->Radio );
     dict->insert( "radio_channel", RadioChannel() );
 	dict->insert( "radio_volume", Global.RadioVolume );
     dict->insert( "door_lock", mvOccupied->Doors.lock_enabled );
@@ -621,6 +653,7 @@ dictionary_source *TTrain::GetTrainState() {
     dict->insert( "tractionforce", std::abs( mvOccupied->Ft ) );
     dict->insert( "slipping_wheels", mvOccupied->SlippingWheels );
     dict->insert( "sanding", mvOccupied->SandDose );
+    dict->insert( "odometer", mvOccupied->DistCounter );
     // electric current data
     dict->insert( "traction_voltage", std::abs( mvPantographUnit->PantographVoltage ) );
     dict->insert( "voltage", std::abs( mvControlled->EngineVoltage ) );
@@ -1122,18 +1155,30 @@ void TTrain::OnCommand_tempomattoggle( TTrain *Train, command_data const &Comman
     if( Train->ggScndCtrlButton.type() == TGaugeType::push ) {
         // impulse switch
         if( Command.action == GLFW_RELEASE ) {
-            // just move the button back to default position
+            // just move the button(s) back to default position
             // visual feedback
             Train->ggScndCtrlButton.UpdateValue( 0.0, Train->dsbSwitch );
+            Train->ggScndCtrlOffButton.UpdateValue( 0.0, Train->dsbSwitch );
             return;
         }
         // glfw_press
         if( Train->mvControlled->ScndCtrlPos == 0 ) {
-            // turn on if needed
+            // turn on if it's not active
             Train->mvControlled->IncScndCtrl( 1 );
+            // visual feedback
+            Train->ggScndCtrlButton.UpdateValue( 1.0, Train->dsbSwitch );
         }
-        // visual feedback
-        Train->ggScndCtrlButton.UpdateValue( 1.0, Train->dsbSwitch );
+        else {
+            // otherwise turn off
+            Train->mvControlled->DecScndCtrl( 2 );
+            // visual feedback
+            if( Train->m_controlmapper.contains( "tempomatoff_sw:" ) ) {
+                Train->ggScndCtrlOffButton.UpdateValue( 1.0, Train->dsbSwitch );
+            }
+            else {
+                Train->ggScndCtrlButton.UpdateValue( 1.0, Train->dsbSwitch );
+            }
+        }
     }
     else {
         // two-state switch
@@ -2194,7 +2239,7 @@ void TTrain::OnCommand_batterydisable( TTrain *Train, command_data const &Comman
 void TTrain::OnCommand_pantographtogglefront( TTrain *Train, command_data const &Command ) {
 
     // HACK: presence of pantograph selector prevents manual operation of the individual valves
-    if( Train->ggPantSelectButton.SubModel ) { return; }
+    if( Train->m_controlmapper.contains( "pantselect_sw:" ) ) { return; }
 
     if( Command.action == GLFW_PRESS ) {
         // only reacting to press, so the switch doesn't flip back and forth if key is held down
@@ -2226,7 +2271,7 @@ void TTrain::OnCommand_pantographtogglefront( TTrain *Train, command_data const 
 void TTrain::OnCommand_pantographtogglerear( TTrain *Train, command_data const &Command ) {
 
     // HACK: presence of pantograph selector prevents manual operation of the individual valves
-    if( Train->ggPantSelectButton.SubModel ) { return; }
+    if( Train->m_controlmapper.contains( "pantselect_sw:" ) ) { return; }
 
     if( Command.action == GLFW_PRESS ) {
         // only reacting to press, so the switch doesn't flip back and forth if key is held down
@@ -2258,7 +2303,7 @@ void TTrain::OnCommand_pantographtogglerear( TTrain *Train, command_data const &
 void TTrain::OnCommand_pantographraisefront( TTrain *Train, command_data const &Command ) {
 
     // HACK: presence of pantograph selector prevents manual operation of the individual valves
-    if( Train->ggPantSelectButton.SubModel ) { return; }
+    if( Train->m_controlmapper.contains( "pantselect_sw:" ) ) { return; }
     // prevent operation without submodel outside of engine compartment
     if( ( Train->iCabn != 0 )
      && ( false == Train->m_controlmapper.contains( "pantfront_sw:" ) ) ) { return; }
@@ -2285,7 +2330,7 @@ void TTrain::OnCommand_pantographraisefront( TTrain *Train, command_data const &
 void TTrain::OnCommand_pantographraiserear( TTrain *Train, command_data const &Command ) {
 
     // HACK: presence of pantograph selector prevents manual operation of the individual valves
-    if( Train->ggPantSelectButton.SubModel ) { return; }
+    if( Train->m_controlmapper.contains( "pantselect_sw:" ) ) { return; }
     // prevent operation without submodel outside of engine compartment
     if( ( Train->iCabn != 0 )
      && ( false == Train->m_controlmapper.contains( "pantrear_sw:" ) ) ) { return; }
@@ -2312,7 +2357,7 @@ void TTrain::OnCommand_pantographraiserear( TTrain *Train, command_data const &C
 void TTrain::OnCommand_pantographlowerfront( TTrain *Train, command_data const &Command ) {
 
     // HACK: presence of pantograph selector prevents manual operation of the individual valves
-    if( Train->ggPantSelectButton.SubModel ) { return; }
+    if( Train->m_controlmapper.contains( "pantselect_sw:" ) ) { return; }
     // prevent operation without submodel outside of engine compartment
     if( ( Train->iCabn != 0 )
      && ( false == Train->m_controlmapper.contains(
@@ -2344,7 +2389,8 @@ void TTrain::OnCommand_pantographlowerfront( TTrain *Train, command_data const &
 void TTrain::OnCommand_pantographlowerrear( TTrain *Train, command_data const &Command ) {
 
     // HACK: presence of pantograph selector prevents manual operation of the individual valves
-    if( Train->ggPantSelectButton.SubModel ) { return; }
+    if( Train->m_controlmapper.contains( "pantselect_sw:" ) ) { return; }
+
     if( ( Train->iCabn != 0 )
      && ( false == Train->m_controlmapper.contains(
          Train->mvOccupied->PantSwitchType == "impulse" ?
@@ -2404,7 +2450,7 @@ void TTrain::OnCommand_pantographselectnext( TTrain *Train, command_data const &
 
     if( Command.action != GLFW_PRESS ) { return; }
 
-    if( Train->ggPantSelectButton.SubModel == nullptr ) { return; }
+    if( false == Train->m_controlmapper.contains( "pantselect_sw:" ) ) { return; }
 
     Train->change_pantograph_selection( 1 );
 }
@@ -2413,7 +2459,7 @@ void TTrain::OnCommand_pantographselectprevious( TTrain *Train, command_data con
 
     if( Command.action != GLFW_PRESS )  { return; }
 
-    if( Train->ggPantSelectButton.SubModel == nullptr ) { return; }
+    if( false == Train->m_controlmapper.contains( "pantselect_sw:" ) ) { return; }
 
     Train->change_pantograph_selection( -1 );
 }
@@ -2508,19 +2554,19 @@ void TTrain::OnCommand_pantographlowerselected( TTrain *Train, command_data cons
 
 void TTrain::change_pantograph_selection( int const Change ) {
 
-    auto const initialstate { m_pantselection };
+    auto const &presets { mvOccupied->PantsPreset.first };
+    auto &selection { mvOccupied->PantsPreset.second[ cab_to_end() ] };
+    auto const initialstate { selection };
+    selection = clamp<int>( selection + Change, 0, std::max<int>( presets.size() - 1, 0 ) );
 
-    m_pantselection = clamp( m_pantselection + Change, 0, 3 );
-    // visual feedback
-    ggPantSelectButton.UpdateValue( m_pantselection );
-
-    if( m_pantselection == initialstate ) { return; } // no change, nothing to do
+    if( selection == initialstate ) { return; } // no change, nothing to do
 
     // configure pantograph valves matching the new state
+    auto const preset { presets[ selection ] - '0' };
     auto const swapends { cab_to_end() != end::front };
     // check desired states for both pantographs; value: whether the pantograph should be raised
-    auto const frontstate{ ( m_pantselection == 2 ) || ( m_pantselection == ( swapends ? 1 : 3 ) ) };
-    auto const rearstate{ ( m_pantselection == 2 ) || ( m_pantselection == ( swapends ? 3 : 1 ) ) };
+    auto const frontstate { preset & ( swapends ? 1 : 2 ) };
+    auto const rearstate { preset & ( swapends ? 2 : 1 ) };
     // potentially adjust pantograph valves
     mvOccupied->OperatePantographValve( end::front, ( frontstate ? operation_t::enable : operation_t::disable ) );
     mvOccupied->OperatePantographValve( end::rear, ( rearstate ? operation_t::enable : operation_t::disable ) );
@@ -5503,9 +5549,27 @@ void TTrain::OnCommand_doorcloseall( TTrain *Train, command_data const &Command 
 }
 
 void TTrain::OnCommand_doorsteptoggle( TTrain *Train, command_data const &Command ) {
-
+    // TODO: move logic/visualization code to the gauge, on_command() should return hint whether it should invoke a reaction
     if( Command.action == GLFW_PRESS ) {
-        Train->mvOccupied->PermitDoorStep( false == Train->mvOccupied->Doors.step_enabled );
+        // effect
+        if( false == Train->ggDoorStepButton.is_delayed() ) {
+            Train->mvOccupied->PermitDoorStep( false == Train->mvOccupied->Doors.step_enabled );
+        }
+        // visual feedback
+        auto const isactive { (
+            Train->ggDoorStepButton.is_push() // always press push button
+         || Train->mvOccupied->Doors.step_enabled ) }; // for toggle buttons indicate item state
+        Train->ggDoorStepButton.UpdateValue( isactive ? 1 : 0 );
+    }
+    else if( Command.action == GLFW_RELEASE ) {
+        // effect
+        if( Train->ggDoorStepButton.is_delayed() ) {
+            Train->mvOccupied->PermitDoorStep( false == Train->mvOccupied->Doors.step_enabled );
+        }
+        // visual feedback
+        if( Train->ggDoorStepButton.is_push() ) {
+            Train->ggDoorStepButton.UpdateValue( 0 );
+        }
     }
 }
 
@@ -6964,6 +7028,7 @@ bool TTrain::Update( double const Deltatime )
         ggScndCtrl.Update();
     }
     ggScndCtrlButton.Update( lowvoltagepower );
+    ggScndCtrlOffButton.Update( lowvoltagepower );
     ggDistanceCounterButton.Update();
     if (ggDirKey.SubModel) {
         if (mvControlled->TrainType != dt_EZT)
@@ -7047,16 +7112,17 @@ bool TTrain::Update( double const Deltatime )
     // NBMX wrzesien 2003 - drzwi
     ggDoorLeftPermitButton.Update( lowvoltagepower );
     ggDoorRightPermitButton.Update( lowvoltagepower );
-    ggDoorPermitPresetButton.Update();
-    ggDoorLeftButton.Update();
-    ggDoorRightButton.Update();
-    ggDoorLeftOnButton.Update();
-    ggDoorRightOnButton.Update();
-    ggDoorLeftOffButton.Update();
-    ggDoorRightOffButton.Update();
-    ggDoorAllOnButton.Update();
+    ggDoorPermitPresetButton.Update( lowvoltagepower );
+    ggDoorLeftButton.Update( lowvoltagepower );
+    ggDoorRightButton.Update( lowvoltagepower );
+    ggDoorLeftOnButton.Update( lowvoltagepower );
+    ggDoorRightOnButton.Update( lowvoltagepower );
+    ggDoorLeftOffButton.Update( lowvoltagepower );
+    ggDoorRightOffButton.Update( lowvoltagepower );
+    ggDoorAllOnButton.Update( lowvoltagepower );
     ggDoorAllOffButton.Update( lowvoltagepower );
-    ggDoorSignallingButton.Update();
+    ggDoorSignallingButton.Update( lowvoltagepower );
+    ggDoorStepButton.Update( lowvoltagepower );
     // NBMX dzwignia sprezarki
     ggCompressorButton.Update();
     ggCompressorLocalButton.Update();
@@ -7125,7 +7191,6 @@ bool TTrain::Update( double const Deltatime )
     ggPantAllDownButton.Update();
     ggPantSelectedDownButton.Update();
     ggPantSelectedButton.Update();
-    ggPantSelectButton.Update();
     ggPantCompressorButton.Update();
     ggPantCompressorValve.Update();
 
@@ -7237,13 +7302,13 @@ bool TTrain::Update( double const Deltatime )
      && ( fScreenTimer > std::max( fScreenUpdateRate, Global.PythonScreenUpdateRate ) * 0.001f )
      && ( false == FreeFlyModeFlag ) ) { // don't bother if we're outside
         fScreenTimer = 0.f;
-        for( auto const &screen : m_screens ) {
-            auto state_dict = GetTrainState();
+        for( auto &screen : m_screens ) {
+            auto *state_dict = GetTrainState( screen.parameters );
 /*
             state_dict->insert("touches", *screen.touch_list);
             screen.touch_list->clear();
 */
-            Application.request({ screen.rendererpath, state_dict, screen.rt } );
+            Application.request( { screen.script, state_dict, screen.rt } );
         }
     }
     // sounds
@@ -8038,60 +8103,62 @@ bool TTrain::InitializeCab(int NewCabNo, std::string const &asFileName)
             // TODO: add "pydestination:"
             else if (token == "pyscreen:")
             {
-                std::string submodelname, renderername;
-                parser.getTokens( 2 );
-                parser
-                    >> submodelname
-                    >> renderername;
+                screen_entry screen;
+                screen.deserialize(parser);
+                if ((false == screen.script.empty()) && (substr_path(screen.script).empty()))
+                {
+                    screen.script = DynamicObject->asBaseDir + screen.script;
+                }
 
-                const std::string rendererpath {
-                    substr_path(renderername).empty() ? // supply vehicle folder as path if none is provided
-                                            DynamicObject->asBaseDir + renderername :
-                                            renderername };
-
-				opengl_texture *tex = nullptr;
+                opengl_texture *tex = nullptr;
                 TSubModel *submodel = nullptr;
-				if (submodelname != "none") {
-                    submodel = (
-                        DynamicObject->mdKabina ? DynamicObject->mdKabina->GetFromName( submodelname ) :
-                        DynamicObject->mdLowPolyInt ? DynamicObject->mdLowPolyInt->GetFromName( submodelname ) :
-                        nullptr );
-					if( submodel == nullptr ) {
-						WriteLog( "Python Screen: submodel " + submodelname + " not found - Ignoring screen" );
-						continue;
-					}
-					auto const material { submodel->GetMaterial() };
-					if( material <= 0 ) {
-						// sub model nie posiada tekstury lub tekstura wymienna - nie obslugiwana
-						WriteLog( "Python Screen: invalid texture id " + std::to_string( material ) + " - Ignoring screen" );
-						continue;
-					}
+                if (screen.target != "none")
+                {
+                    submodel = (DynamicObject->mdKabina ?
+                                    DynamicObject->mdKabina->GetFromName(screen.target) :
+                                    DynamicObject->mdLowPolyInt ?
+                                    DynamicObject->mdLowPolyInt->GetFromName(screen.target) :
+                                    nullptr);
+                    if (submodel == nullptr)
+                    {
+                        WriteLog("Python Screen: submodel " + screen.target +
+                                 " not found - Ignoring screen");
+                        continue;
+                    }
+                    auto const material{submodel->GetMaterial()};
+                    if (material <= 0)
+                    {
+                        // sub model nie posiada tekstury lub tekstura wymienna - nie obslugiwana
+                        WriteLog("Python Screen: invalid texture id " + std::to_string(material) +
+                                 " - Ignoring screen");
+                        continue;
+                    }
 
                     tex = &GfxRenderer->Texture(GfxRenderer->Material(material).textures[0]);
-				}
-				else {
-					// TODO: fix leak
-					tex = new opengl_texture();
-					tex->make_stub();
-				}
+                }
+                else
+                {
+                    // TODO: fix leak
+                    tex = new opengl_texture();
+                    tex->make_stub();
+                }
 
-				tex->create( true ); // make the surface static so it doesn't get destroyed by garbage collector if the user spends long time outside cab
-                // TBD, TODO: keep texture handles around, so we can undo the static switch when the user changes cabs?
+				tex->create(true); // make the surface static so it doesn't get destroyed by garbage
+                                   // collector if the user spends long time outside cab
+                // TBD, TODO: keep texture handles around, so we can undo the static switch when the
+                // user changes cabs?
+                auto rt = std::make_shared<python_rt>();
+                rt->shared_tex = tex->id;
 
-                auto touch_list = std::make_shared<std::vector<glm::vec2>>();
-				auto rt = std::make_shared<python_rt>();
-				rt->shared_tex = tex->id;
-/*
-                if (submodel)
-                    submodel->screen_touch_list = touch_list;
-*/
                 // record renderer and material binding for future update requests
-                m_screens.emplace_back();
-                m_screens.back().rendererpath = rendererpath;
+                m_screens.emplace_back(screen);
                 m_screens.back().rt = rt;
 /*
-                m_screens.back().touch_list = touch_list;
-
+                m_screens.back().touch_list = std::make_shared<std::vector<glm::vec2>>();
+                if (submodel) // guaranteed at this point
+                    submodel->screen_touch_list = m_screens.back().touch_list;
+*/
+/*
 				if (Global.python_displaywindows)
                     m_screens.back().viewer = std::make_unique<python_screen_viewer>(rt, touch_list, rendererpath);
 */
@@ -8280,8 +8347,14 @@ TTrain::MoveToVehicle(TDynamicObject *target) {
 			target_train->Occupied()->LimPipePress = target_train->Occupied()->PipePress;
 			target_train->Occupied()->CabActivisation( true ); // załączenie rozrządu (wirtualne kabiny)
 			target_train->Dynamic()->MechInside = true;
-			target_train->Dynamic()->Controller = ( target_train->Dynamic()->Mechanik ? !target_train->Dynamic()->Mechanik->AIControllFlag : Humandriver );
-		} else {
+            if( target_train->Dynamic()->Mechanik ) {
+                target_train->Dynamic()->Controller = target_train->Dynamic()->Mechanik->AIControllFlag;
+                target_train->Dynamic()->Mechanik->DirectionChange();
+            }
+            else {
+                target_train->Dynamic()->Controller = Humandriver;
+            }
+        } else {
 			target_train->Dynamic()->bDisplayCab = false;
 			target_train->Dynamic()->ABuSetModelShake( {} );
 		}
@@ -8327,7 +8400,13 @@ TTrain::MoveToVehicle(TDynamicObject *target) {
 			Occupied()->LimPipePress = Occupied()->PipePress;
 			Occupied()->CabActivisation( true ); // załączenie rozrządu (wirtualne kabiny)
 			Dynamic()->MechInside = true;
-			Dynamic()->Controller = ( Dynamic()->Mechanik ? Dynamic()->Mechanik->AIControllFlag : Humandriver );
+            if( Dynamic()->Mechanik ) {
+                Dynamic()->Controller = Dynamic()->Mechanik->AIControllFlag;
+                Dynamic()->Mechanik->DirectionChange();
+            }
+            else {
+                Dynamic()->Controller = Humandriver;
+            }
 		} else {
 			Dynamic()->bDisplayCab = false;
 			Dynamic()->ABuSetModelShake( {} );
@@ -8429,6 +8508,7 @@ void TTrain::clear_cab_controls()
     ggMainCtrlAct.Clear();
     ggScndCtrl.Clear();
     ggScndCtrlButton.Clear();
+    ggScndCtrlOffButton.Clear();
     ggDistanceCounterButton.Clear();
     ggDirKey.Clear();
     ggDirForwardButton.Clear();
@@ -8512,6 +8592,7 @@ void TTrain::clear_cab_controls()
     ggTrainHeatingButton.Clear();
     ggSignallingButton.Clear();
     ggDoorSignallingButton.Clear();
+    ggDoorStepButton.Clear();
     ggDepartureSignalButton.Clear();
     ggCompressorButton.Clear();
     ggCompressorLocalButton.Clear();
@@ -8528,7 +8609,6 @@ void TTrain::clear_cab_controls()
     ggPantAllDownButton.Clear();
     ggPantSelectedButton.Clear();
     ggPantSelectedDownButton.Clear();
-    ggPantSelectButton.Clear();
     ggPantCompressorButton.Clear();
     ggPantCompressorValve.Clear();
     ggI1B.Clear();
@@ -8705,13 +8785,6 @@ void TTrain::set_cab_controls( int const Cab ) {
     }
 */
     // front/end pantograph selection is relative to occupied cab
-    m_pantselection = (
-        m_pantselection == 1 ? ( cab_to_end( Cab ) == cab_to_end() ? 1 : 3 ) :
-        m_pantselection == 3 ? ( cab_to_end( Cab ) == cab_to_end() ? 3 : 1 ) :
-        m_pantselection ); // other settings affect both pantographs
-    if( ggPantSelectButton.SubModel ) {
-        ggPantSelectButton.PutValue( m_pantselection );
-    }
     if( ggPantSelectedButton.type() == TGaugeType::toggle ) {
         ggPantSelectedButton.PutValue(
             ( mvPantographUnit->PantsValve.is_enabled ?
@@ -8825,10 +8898,10 @@ void TTrain::set_cab_controls( int const Cab ) {
             1.f :
             0.f ) );
     // doors permits
-    if( ggDoorLeftPermitButton.type() != TGaugeType::push ) {
+    if( false == ggDoorLeftPermitButton.is_push() ) {
         ggDoorLeftPermitButton.PutValue( mvOccupied->Doors.instances[ ( cab_to_end() == end::front ? side::left : side::right ) ].open_permit ? 1.f : 0.f );
     }
-    if( ggDoorRightPermitButton.type() != TGaugeType::push ) {
+    if( false == ggDoorRightPermitButton.is_push() ) {
         ggDoorRightPermitButton.PutValue( mvOccupied->Doors.instances[ ( cab_to_end() == end::front ? side::right : side::left ) ].open_permit ? 1.f : 0.f );
     }
     ggDoorPermitPresetButton.PutValue( mvOccupied->Doors.permit_preset );
@@ -8840,8 +8913,15 @@ void TTrain::set_cab_controls( int const Cab ) {
         mvOccupied->Doors.lock_enabled ?
             1.f :
             0.f );
+    // door step
+    if( false == ggDoorStepButton.is_push() ) {
+        ggDoorStepButton.PutValue(
+            mvOccupied->Doors.step_enabled ?
+                1.f :
+                0.f );
+    }
     // heating
-    if( ggTrainHeatingButton.type() != TGaugeType::push ) {
+    if( false == ggTrainHeatingButton.is_push() ) {
         ggTrainHeatingButton.PutValue(
             mvControlled->Heating ?
                 1.f :
@@ -8946,7 +9026,7 @@ void TTrain::set_cab_controls( int const Cab ) {
                 0.f );
     }
     // tempomat
-    if( ggScndCtrlButton.type() != TGaugeType::push ) {
+    if( false == ggScndCtrlButton.is_push() ) {
         ggScndCtrlButton.PutValue(
             ( mvControlled->ScndCtrlPos > 0 ) ?
                 1.f :
@@ -9225,7 +9305,6 @@ bool TTrain::initialize_gauge(cParser &Parser, std::string const &Label, int con
         { "pantalloff_sw:", ggPantAllDownButton },
         { "pantselected_sw:", ggPantSelectedButton },
         { "pantselectedoff_sw:", ggPantSelectedDownButton },
-        { "pantselect_sw:", ggPantSelectButton },
         { "pantcompressor_sw:", ggPantCompressorButton },
         { "pantcompressorvalve_sw:", ggPantCompressorValve },
         { "trainheating_sw:", ggTrainHeatingButton },
@@ -9265,9 +9344,12 @@ bool TTrain::initialize_gauge(cParser &Parser, std::string const &Label, int con
             return true;
         }
     }
-    // TODO: move viable gauges to the state driven array 
+    // dedicated gauges with state-driven optional submodel
+    // TODO: move viable gauges here
+    // TODO: convert dedicated gauges to auto-allocated ones, replace dedicated references in command handlers to mapper lookups
     std::unordered_map<std::string, std::tuple<TGauge &, bool const *> > const stategauges = {
         { "tempomat_sw:", { ggScndCtrlButton, &mvOccupied->SpeedCtrlUnit.IsActive } },
+        { "tempomatoff_sw:", { ggScndCtrlOffButton, &mvOccupied->SpeedCtrlUnit.IsActive } },
         { "speedinc_bt:", { ggSpeedControlIncreaseButton, &mvOccupied->SpeedCtrlUnit.IsActive } },
 		{ "speeddec_bt:", { ggSpeedControlDecreaseButton, &mvOccupied->SpeedCtrlUnit.IsActive } },
 		{ "speedctrlpowerinc_bt:", { ggSpeedControlPowerIncreaseButton, &mvOccupied->SpeedCtrlUnit.IsActive } },
@@ -9285,7 +9367,8 @@ bool TTrain::initialize_gauge(cParser &Parser, std::string const &Label, int con
         { "doorleftpermit_sw:", { ggDoorLeftPermitButton, &mvOccupied->Doors.instances[ ( cab_to_end() == end::front ? side::left : side::right ) ].open_permit } },
         { "doorrightpermit_sw:", { ggDoorRightPermitButton, &mvOccupied->Doors.instances[ ( cab_to_end() == end::front ? side::right : side::left ) ].open_permit } },
         { "dooralloff_sw:", { ggDoorAllOffButton, &m_doors } },
-		{ "dirforward_bt:", { ggDirForwardButton, &m_dirforward } },
+        { "doorstep_sw:", { ggDoorStepButton, &mvOccupied->Doors.step_enabled } },
+        { "dirforward_bt:", { ggDirForwardButton, &m_dirforward } },
 		{ "dirneutral_bt:", { ggDirNeutralButton, &m_dirneutral } },
 		{ "dirbackward_bt:", { ggDirBackwardButton, &m_dirbackward } },
     };
@@ -9302,7 +9385,6 @@ bool TTrain::initialize_gauge(cParser &Parser, std::string const &Label, int con
     // TODO: move viable dedicated gauges to the automatic array
     std::unordered_map<std::string, bool *> const autoboolgauges = {
         { "doormode_sw:", &mvOccupied->Doors.remote_only },
-        { "doorstep_sw:", &mvOccupied->Doors.step_enabled },
         { "coolingfans_sw:", &mvControlled->RVentForceOn },
         { "pantfront_sw:", &mvPantographUnit->Pantographs[end::front].valve.is_enabled },
         { "pantrear_sw:", &mvPantographUnit->Pantographs[end::rear].valve.is_enabled },
@@ -9326,6 +9408,7 @@ bool TTrain::initialize_gauge(cParser &Parser, std::string const &Label, int con
     // TODO: move viable dedicated gauges to the automatic array
     std::unordered_map<std::string, int *> const autointgauges = {
         { "manualbrake:", &mvOccupied->ManualBrakePos },
+        { "pantselect_sw:", &mvOccupied->PantsPreset.second[cab_to_end()] },
     };
     {
         auto lookup = autointgauges.find( Label );

@@ -17,6 +17,7 @@ http://mozilla.org/MPL/2.0/.
 #include "sound.h"
 #include "PyInt.h"
 #include "command.h"
+#include "dictionary.h"
 
 #undef snprintf // pyint.h->python
 
@@ -113,15 +114,21 @@ class TTrain {
     };
 
     struct screen_entry {
-        std::string rendererpath;
+
+        std::string script;
+        std::string target;
         std::shared_ptr<python_rt> rt;
 /*
         std::unique_ptr<python_screen_viewer> viewer;
         std::shared_ptr<std::vector<glm::vec2>> touch_list;
 */
+        dictionary_source parameters; // cached pre-processed optional per-screen parameters
+
+        void deserialize( cParser &Input );
+        bool deserialize_mapping( cParser &Input );
     };
 
-	typedef std::vector<screen_entry> screen_map;
+	typedef std::vector<screen_entry> screenentry_sequence;
 
 // constructors
     TTrain();
@@ -132,16 +139,23 @@ class TTrain {
     // McZapkie-010302
     bool Init(TDynamicObject *NewDynamicObject, bool e3d = false);
 
-    inline Math3D::vector3 GetDirection() { return DynamicObject->VectorFront(); };
-    inline Math3D::vector3 GetUp() { return DynamicObject->VectorUp(); };
-    inline std::string GetLabel( TSubModel const *Control ) const { return m_controlmapper.find( Control ); }
+    inline
+    Math3D::vector3 GetDirection() const {
+        return DynamicObject->VectorFront(); };
+    inline
+    Math3D::vector3 GetUp() const {
+        return DynamicObject->VectorUp(); };
+    inline
+    std::string GetLabel( TSubModel const *Control ) const {
+        return m_controlmapper.find( Control ); }
     void UpdateCab();
     bool Update( double const Deltatime );
     void add_distance( double const Distance );
     // McZapkie-310302: ladowanie parametrow z pliku
     bool LoadMMediaFile(std::string const &asFileName);
-    dictionary_source *GetTrainState();
+    dictionary_source *GetTrainState( dictionary_source const &Extraparameters );
     state_t get_state() const;
+    // basic_table interface
     inline
     std::string name() const {
         return Dynamic()->name(); }
@@ -464,6 +478,7 @@ public: // reszta może by?publiczna
     TGauge ggMainCtrlAct;
     TGauge ggScndCtrl;
     TGauge ggScndCtrlButton;
+    TGauge ggScndCtrlOffButton;
     TGauge ggDirKey;
     TGauge ggDirForwardButton;
     TGauge ggDirNeutralButton;
@@ -572,6 +587,7 @@ public: // reszta może by?publiczna
     TGauge ggDoorAllOnButton;
     TGauge ggDoorAllOffButton;
     TGauge ggDepartureSignalButton;
+    TGauge ggDoorStepButton;
 
     // Winger 160204 - obsluga pantografow - ZROBIC
 /*
@@ -583,7 +599,6 @@ public: // reszta może by?publiczna
     TGauge ggPantAllDownButton;
     TGauge ggPantSelectedButton;
     TGauge ggPantSelectedDownButton;
-    TGauge ggPantSelectButton;
     TGauge ggPantCompressorButton;
     TGauge ggPantCompressorValve;
     // Winger 020304 - wlacznik ogrzewania
@@ -790,11 +805,10 @@ private:
     float fPPress, fNPress;
     bool m_mastercontrollerinuse { false };
     float m_mastercontrollerreturndelay { 0.f };
-	screen_map m_screens;
+	screenentry_sequence m_screens;
 	uint16_t vid { 0 }; // train network recipient id
     float m_distancecounter { -1.f }; // distance traveled since meter was activated or -1 if inactive
     double m_brakehandlecp{ 0.0 };
-    int m_pantselection{ 0 };
     bool m_doors{ false }; // helper, true if any door is open
     bool m_dirforward{ false }; // helper, true if direction set to forward
     bool m_dirneutral{ false }; // helper, true if direction set to neutral

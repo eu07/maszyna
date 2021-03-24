@@ -335,7 +335,7 @@ void
 openal_renderer::update( double const Deltatime ) {
     // update listener
     // gain
-    ::alListenerf( AL_GAIN, clamp( Global.AudioVolume, 0.f, 2.f ) * ( Global.iPause == 0 ? 1.f : 0.15f ) );
+    ::alListenerf( AL_GAIN, clamp( Global.AudioVolume, 0.f, 2.f ) * ( Global.iPause == 0 ? 1.f : Global.PausedVolume ) );
     // orientation
     glm::dmat4 cameramatrix;
     Global.pCamera.SetMatrix( cameramatrix );

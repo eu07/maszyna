@@ -279,7 +279,7 @@ scenario_panel::render() {
         // hints
         if( owner != nullptr ) {
             auto const hintheader{ locale::strings[ locale::string::driver_hint_header ] };
-            if( true == ImGui::CollapsingHeader( hintheader.c_str() ) ) {
+            if( true == ImGui::CollapsingHeader( hintheader.c_str(), ImGuiTreeNodeFlags_DefaultOpen ) ) {
                 for( auto const &hint : owner->m_hints ) {
                     auto const isdone { std::get<TController::hintpredicate>( hint )( std::get<float>( hint ) ) };
                     auto const hintcolor{ (
@@ -1254,14 +1254,15 @@ debug_panel::update_section_eventqueue( std::vector<text_line> &Output ) {
          && ( ( false == m_eventqueueactivevehicleonly )
            || ( event->m_activator == m_input.vehicle ) ) ) {
 
+            auto const label { event->m_name + ( event->m_activator ? " (by: " + event->m_activator->asName + ")" : "" ) };
+
             if( ( false == searchfilter.empty() )
-             && ( event->m_name.find( searchfilter ) == std::string::npos ) ) {
+             && ( label.find( searchfilter ) == std::string::npos ) ) {
                 event = event->m_next;
                 continue;
             }
 
             auto const delay { "   " + to_string( std::max( 0.0, event->m_launchtime - time ), 1 ) };
-            auto const label { event->m_name + ( event->m_activator ? " (by: " + event->m_activator->asName + ")" : "" ) };
             textline =
                 delay.substr( delay.length() - 6 )
                 + "   "

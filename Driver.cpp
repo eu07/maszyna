@@ -964,7 +964,9 @@ TCommandType TController::TableUpdate(double &fVelDes, double &fDist, double &fN
                         VelLimitLastDist.second = d + point.trTrack->Length() + fLength;
                     }
                     else if( VelLimitLastDist.second > 0 ) { // the speed limit can potentially start afterwards, so don't mark it as broken too soon
-                        speedlimitiscontinuous = false;
+                        if( ( point.iFlags & ( spSwitch | spPassengerStopPoint ) ) == 0 ) {
+                            speedlimitiscontinuous = false;
+                        }
                     }
                     if( false == railwaytrackend ) {
                         continue; // i tyle wystarczy
@@ -1213,7 +1215,7 @@ TController::TableUpdateStopPoint( TCommandType &Command, TSpeedPos &Point, doub
                 //jeśli nie widzi następnego sygnału ustawia dotychczasową
                 eSignNext = Point.evEvent;
             }
-            if( mvOccupied->Vel > 0.3 ) {
+            if( mvOccupied->Vel > EU07_AI_MOVEMENT ) {
                 // jeśli jedzie (nie trzeba czekać, aż się drgania wytłumią - drzwi zamykane od 1.0) to będzie zatrzymanie
                 Point.fVelNext = 0;
                 // potentially announce pending stop
@@ -1540,7 +1542,7 @@ TController::TableUpdateEvent( double &Velocity, TCommandType &Command, TSpeedPo
                     Velocity = 0.0;
                 }
                 else {
-                    VelSignalNext - Point.fVelNext;
+                    VelSignalNext = Point.fVelNext;
                     if( Velocity < 0 ) {
                         Velocity = fVelMax;
                         VelSignal = fVelMax;
@@ -2510,10 +2512,8 @@ bool TController::CheckVehicles(TOrders user)
 */
         }
 
-        // Ra 2014-09: tymczasowo prymitywne ustawienie warunku pod kątem SN61
-        if( ( is_emu() )
-         || ( is_dmu() )
-         || ( iVehicles == 1 ) ) {
+        // detect push-pull train configurations and mark them accordingly
+        if( pVehicles[ end::front ]->is_connected( pVehicles[ end::rear ], coupling::control ) ) {
             // zmiana czoła przez zmianę kabiny
             iDrivigFlags |= movePushPull;
         }
@@ -2540,7 +2540,7 @@ void TController::Lights(int head, int rear)
 void TController::DirectionInitial()
 { // ustawienie kierunku po wczytaniu trainset (może jechać na wstecznym
     mvOccupied->CabActivisation(); // załączenie rozrządu (wirtualne kabiny)
-    if (mvOccupied->Vel > 0.0)
+    if (mvOccupied->Vel > EU07_AI_NOMOVEMENT)
     { // jeśli na starcie jedzie
         iDirection = iDirectionOrder =
             (mvOccupied->V > 0 ? 1 : -1); // początkowa prędkość wymusza kierunek jazdy
@@ -2825,7 +2825,7 @@ bool TController::ReleaseEngine() {
     }
 */
     // don't bother with the rest until we're standing still
-    if( mvOccupied->Vel > 0.01 ) { return false; }
+    if( mvOccupied->Vel > EU07_AI_NOMOVEMENT ) { return false; }
 
     LastReactionTime = 0.0;
     ReactionTime = PrepareTime;
@@ -3248,7 +3248,7 @@ bool TController::DecBrakeEIM()
 	{
         case 0: {
             if( mvOccupied->MED_amax != 9.81 ) {
-                auto const desiredacceleration { ( mvOccupied->Vel > 0.01 ? AccDesired : std::max( 0.0, AccDesired ) ) };
+                auto const desiredacceleration { ( mvOccupied->Vel > EU07_AI_NOMOVEMENT ? AccDesired : std::max( 0.0, AccDesired ) ) };
                 auto const brakeposition { clamp( -1.0 * mvOccupied->AIHintLocalBrakeAccFactor * desiredacceleration / mvOccupied->MED_amax, 0.0, 1.0 ) };
                 OK = ( brakeposition != mvOccupied->LocalBrakePosA );
                 mvOccupied->LocalBrakePosA = brakeposition;
@@ -3684,7 +3684,7 @@ void TController::SpeedSet() {
             else {
                 // jak ma jechać
                 if( fActionTime < 0.0 ) { break; }
-                if( fReady > ( mvOccupied->Vel > 5.0 ? 0.5 : 0.4 ) ) { break; }
+                if( false == Ready )    { break; }
 
                 if( mvOccupied->DirActive > 0 ) {
                     mvOccupied->DirectionForward(); //żeby EN57 jechały na drugiej nastawie
@@ -4210,7 +4210,7 @@ void TController::Doors( bool const Open, int const Side ) {
 
                     if( ( true == ismanualdoor )
                      && ( ( vehicle->LoadExchangeTime() == 0.f )
-                       || ( vehicle->MoverParameters->Vel > 0.1 ) ) ) {
+                       || ( vehicle->MoverParameters->Vel > EU07_AI_MOVEMENT ) ) ) {
                         vehicle->MoverParameters->OperateDoors( side::right, false, range_t::local );
                         vehicle->MoverParameters->OperateDoors( side::left, false, range_t::local );
                     }
@@ -4535,7 +4535,7 @@ bool TController::PutCommand( std::string NewCommand, double NewValue1, double N
             OrderNext(o); // to samo robić po zmianie
         else if (!o) // jeśli wcześniej było czekanie
             OrderNext(Shunt); // to dalej jazda manewrowa
-        if (mvOccupied->Vel >= 1.0) // jeśli jedzie
+        if (mvOccupied->Vel >= EU07_AI_MOVEMENT) // jeśli jedzie
             iDrivigFlags &= ~moveStartHorn; // to bez trąbienia po ruszeniu z zatrzymania
         // Change_direction wykona się samo i następnie przejdzie do kolejnej komendy
         return true;
@@ -4795,7 +4795,7 @@ TController::Update( double const Timedelta ) {
     auto const awarenessrange {
         std::max(
             750.0,
-            mvOccupied->Vel > 5.0 ?
+            mvOccupied->Vel > EU07_AI_MOVEMENT ?
                 400 + fBrakeDist :
                 30.0 * fDriverDist ) }; // 1500m dla stojących pociągów;
     if( is_active() ) {
@@ -4893,8 +4893,9 @@ TController::PrepareDirection() {
 
     if( iDirection == 0 ) {
         // jeśli nie ma ustalonego kierunku
-        if( mvOccupied->Vel < 0.01 ) { // ustalenie kierunku, gdy stoi
+        if( mvOccupied->Vel < EU07_AI_NOMOVEMENT ) { // ustalenie kierunku, gdy stoi
             iDirection = mvOccupied->CabActive; // wg wybranej kabiny
+/*
             if( iDirection == 0 ) {
                 // jeśli nie ma ustalonego kierunku
                 if( mvOccupied->Couplers[ end::rear ].Connected == nullptr ) {
@@ -4906,6 +4907,7 @@ TController::PrepareDirection() {
                     iDirection = 1; // jazda w kierunku sprzęgu 0
                 }
             }
+*/
         }
         else {
             // ustalenie kierunku, gdy jedzie
@@ -5354,7 +5356,7 @@ TCommandType TController::BackwardScan( double const Range )
                         }
                         else {
                             if( ( scandist > fMinProximityDist )
-                             && ( ( mvOccupied->Vel > 0.0 )
+                             && ( ( mvOccupied->Vel > EU07_AI_NOMOVEMENT )
                                && ( ( OrderCurrentGet() & ( Shunt | Loose_shunt ) ) == 0 ) ) ) {
                                 // jeśli semafor jest daleko, a pojazd jedzie, to informujemy o zmianie prędkości
                                 // jeśli jedzie manewrowo, musi dostać SetVelocity, żeby sie na pociągowy przełączył
@@ -5393,12 +5395,12 @@ TCommandType TController::BackwardScan( double const Range )
                         if (move ? true : e->input_command() == TCommandType::cm_ShuntVelocity)
                         { // jeśli powyżej było SetVelocity 0 0, to dociągamy pod S1
                             if ((scandist > fMinProximityDist) &&
-                                    (mvOccupied->Vel > 0.0) || (vmechmax == 0.0) )
+                                    (mvOccupied->Vel > EU07_AI_NOMOVEMENT) || (vmechmax == 0.0) )
                             { // jeśli tarcza jest daleko, to:
                                 //- jesli pojazd jedzie, to informujemy o zmianie prędkości
                                 //- jeśli stoi, to z własnej inicjatywy może podjechać pod zamkniętą
                                 // tarczę
-                                if (mvOccupied->Vel > 0.0) // tylko jeśli jedzie
+                                if (mvOccupied->Vel > EU07_AI_NOMOVEMENT) // tylko jeśli jedzie
                                 { // Mechanik->PutCommand("SetProximityVelocity",scandist,vmechmax,sl);
 #if LOGBACKSCAN
                                     // WriteLog(edir+"SetProximityVelocity "+AnsiString(scandist)+"
@@ -5907,7 +5909,7 @@ TController::determine_consist_state() {
     fAccGravity /= fMass;
     {
         auto absaccs { fAccGravity }; // Ra 2014-03: jesli skład stoi, to działa na niego składowa styczna grawitacji
-        if( mvOccupied->Vel > 0.01 ) {
+        if( mvOccupied->Vel > EU07_AI_NOMOVEMENT ) {
             absaccs = 0;
             auto *d = pVehicles[ end::front ]; // pojazd na czele składu
             while( d ) {
@@ -5939,7 +5941,7 @@ TController::determine_consist_state() {
         if( has_diesel_engine() ) {
 
             Ready = (
-                ( vehicle->Vel > 0.5 ) // already moving
+                ( vehicle->Vel > EU07_AI_MOVEMENT ) // already moving
              || ( false == vehicle->Mains ) // deadweight vehicle
              || ( vehicle->enrot > 0.8 * (
                     vehicle->EngineType == TEngineType::DieselEngine ?
@@ -6001,7 +6003,7 @@ TController::control_pantographs() {
      || ( is_emu() ) // special case
      || ( mvControlling->TrainType == dt_ET41 ) }; // special case
 
-    if( mvOccupied->Vel > 0.05 ) {
+    if( mvOccupied->Vel > EU07_AI_NOMOVEMENT ) {
 
         if( ( fOverhead2 >= 0.0 ) || iOverheadZero ) {
             // jeśli jazda bezprądowa albo z opuszczonym pantografem
@@ -6116,7 +6118,7 @@ TController::control_horns( double const Timedelta ) {
             cue_action( locale::string::driver_hint_hornoff ); // a tu się kończy
         }
     }
-    if( mvOccupied->Vel >= 5.0 ) {
+    if( mvOccupied->Vel > EU07_AI_MOVEMENT ) {
         // jesli jedzie, można odblokować trąbienie, bo się wtedy nie włączy
         iDrivigFlags &= ~moveStartHornDone; // zatrąbi dopiero jak następnym razem stanie
         iDrivigFlags |= moveStartHorn; // i trąbić przed następnym ruszeniem
@@ -6292,7 +6294,7 @@ TController::control_doors() {
     if( false == doors_open() ) { return; }
     // jeżeli jedzie
     // nie zamykać drzwi przy drganiach, bo zatrzymanie na W4 akceptuje niewielkie prędkości
-    if( mvOccupied->Vel > 1.0 ) {
+    if( mvOccupied->Vel > EU07_AI_MOVEMENT ) {
         Doors( false );
         return;
     }
@@ -6600,25 +6602,30 @@ TController::check_departure() {
 void
 TController::UpdateChangeDirection() {
     // TODO: rework into driver mode independent routine
-    if( ( true == AIControllFlag)
-     && ( true == TestFlag( OrderCurrentGet(), Change_direction ) ) ) {
+    if( false == TestFlag( OrderCurrentGet(), Change_direction ) ) { return; }
+
+    if( true == AIControllFlag ) {
         // sprobuj zmienic kierunek (może być zmieszane z jeszcze jakąś komendą)
-        if( mvOccupied->Vel < 0.1 ) {
+        if( mvOccupied->Vel < EU07_AI_NOMOVEMENT ) {
             // jeśli się zatrzymał, to zmieniamy kierunek jazdy, a nawet kabinę/człon
             Activation(); // ustawienie zadanego wcześniej kierunku i ewentualne przemieszczenie AI
-            PrepareEngine();
-            JumpToNextOrder(); // następnie robimy, co jest do zrobienia (Shunt albo Obey_train)
-            if( OrderCurrentGet() & ( Shunt | Loose_shunt | Connect ) ) {
-                // jeśli dalej mamy manewry
-                if( false == TestFlag( iDrivigFlags, moveStopHere ) ) {
-                    // o ile nie ma stać w miejscu,
-                    // jechać od razu w przeciwną stronę i nie trąbić z tego tytułu:
-                    iDrivigFlags &= ~moveStartHorn;
-                    SetVelocity( fShuntVelocity, fShuntVelocity );
-                }
+        } // Change_direction (tylko dla AI)
+    }
+    // shared part of the routine, implement if direction matches what was requested
+    if( ( mvOccupied->Vel < EU07_AI_NOMOVEMENT )
+     && ( iDirection == iDirectionOrder ) ) {
+        PrepareEngine();
+        JumpToNextOrder(); // następnie robimy, co jest do zrobienia (Shunt albo Obey_train)
+        if( OrderCurrentGet() & ( Shunt | Loose_shunt | Connect ) ) {
+            // jeśli dalej mamy manewry
+            if( false == TestFlag( iDrivigFlags, moveStopHere ) ) {
+                // o ile nie ma stać w miejscu,
+                // jechać od razu w przeciwną stronę i nie trąbić z tego tytułu:
+                iDrivigFlags &= ~moveStartHorn;
+                SetVelocity( fShuntVelocity, fShuntVelocity );
             }
         }
-    } // Change_direction (tylko dla AI)
+    }
 }
 
 void
@@ -7116,7 +7123,7 @@ TController::adjust_desired_speed_for_obstacles() {
                     }
                 }
                 ReactionTime = (
-                    mvOccupied->Vel > 0.01 ?
+                    mvOccupied->Vel > EU07_AI_NOMOVEMENT ?
                         0.1 : // orientuj się, bo jest goraco
                         2.0 ); // we're already standing still, so take it easy
             }
@@ -7225,7 +7232,7 @@ TController::adjust_desired_speed_for_target_speed( double const Range ) {
      && ( ActualProximityDist <= Range )
      && ( vel >= VelNext ) ) {
         // gdy zbliża się i jest za szybki do nowej prędkości, albo stoi na zatrzymaniu
-        if (vel > 0.0) {
+        if (vel > EU07_AI_NOMOVEMENT) {
             // jeśli jedzie
             if( ( vel < VelNext )
              && ( ActualProximityDist > fMaxProximityDist * ( 1.0 + 0.1 * vel ) ) ) {
@@ -7402,7 +7409,7 @@ TController::adjust_desired_speed_for_current_speed() {
                         clamp( VelDesired - speedestimate, 0.0, fVelMinus ) / fVelMinus ) );
             }
             // final tweaks
-            if( vel > 0.1 ) {
+            if( vel > EU07_AI_NOMOVEMENT ) {
                 // going downhill also take into account impact of gravity
                 AccDesired -= fAccGravity;
                 // HACK: if the max allowed speed was exceeded something went wrong; brake harder
@@ -7450,7 +7457,7 @@ TController::adjust_desired_speed_for_current_speed() {
         if( vel < VelDesired ) {
             // don't adjust acceleration when going above current target speed
             if( -AccDesired * BrakeAccFactor() < (
-                ( ( fReady > ( IsHeavyCargoTrain ? 0.4 : ( mvOccupied->Vel > 5.0 ) ? 0.45 : 0.4 ) )
+                ( ( false == Ready )
                || ( VelNext > vel - 40.0 ) ) ?
                     fBrake_a0[ 0 ] * 0.8 :
                     -fAccThreshold )
@@ -7483,7 +7490,7 @@ TController::control_tractive_and_braking_force() {
 
     // if the radio-stop was issued don't waste effort trying to fight it
     if( ( true == mvOccupied->RadioStopFlag ) // radio-stop
-     && ( mvOccupied->Vel > 0.0 ) ) { // and still moving
+     && ( mvOccupied->Vel > EU07_AI_NOMOVEMENT ) ) { // and still moving
         cue_action( locale::string::driver_hint_mastercontrollersetzerospeed ); // just throttle down...
         return; // ...and don't touch any other controls
     }
@@ -7702,14 +7709,17 @@ void TController::control_braking_force() {
     }
 
     // odhamowywanie składu po zatrzymaniu i zabezpieczanie lokomotywy
-    if( ( mvOccupied->Vel < 0.01 )
+    if( ( mvOccupied->Vel < EU07_AI_NOMOVEMENT )
      && ( ( VelDesired == 0.0 )
        || ( AccDesired <= EU07_AI_NOACCELERATION ) ) ) {
 
-        if( ( ( OrderCurrentGet() & ( Disconnect | Connect ) ) == 0 ) // przy (p)odłączaniu nie zwalniamy tu hamulca
+        if( ( ( OrderCurrentGet() & ( Disconnect | Connect | Change_direction ) ) == 0 ) // przy (p)odłączaniu nie zwalniamy tu hamulca
          && ( std::abs( fAccGravity ) < 0.01 ) ) { // only do this on flats, on slopes keep applied the train brake
-            // do it only if the vehicle actually has the independent brake
             apply_independent_brake_only();
+        }
+        // if told to change direction don't confuse human driver with request to leave applied brake in the cab they're about to leave
+        if( ( OrderCurrentGet() & ( Change_direction ) ) != 0 ) {
+            cue_action( locale::string::driver_hint_independentbrakerelease );
         }
     }
 }
@@ -7924,7 +7934,7 @@ TController::check_route_behind( double const Range ) {
 void
 TController::UpdateBrakingHelper() {
 
-	if (( HelperState > 0 ) && (-AccDesired < fBrake_a0[0] + 2 * fBrake_a1[0]) && (mvOccupied->Vel > 1)) {
+	if (( HelperState > 0 ) && (-AccDesired < fBrake_a0[0] + 2 * fBrake_a1[0]) && (mvOccupied->Vel > EU07_AI_NOMOVEMENT)) {
 		HelperState = 0;
 	}
 

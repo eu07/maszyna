@@ -243,7 +243,7 @@ enum sound {
     parallel = 1 << 4,
     shuntfield = 1 << 5,
     pneumatic = 1 << 6,
-    detachall = 1 << 7,
+    detach = 1 << 7,
     attachcoupler = 1 << 8,
     attachbrakehose = 1 << 9,
     attachmainhose = 1 << 10,
@@ -1168,6 +1168,7 @@ public:
 	bool UniCtrlIntegratedBrakeCtrl = false; /*zintegrowany nastawnik JH obsluguje hamowanie*/
     bool UniCtrlIntegratedLocalBrakeCtrl = false; /*zintegrowany nastawnik JH obsluguje hamowanie hamulcem pomocniczym*/
     int UniCtrlNoPowerPos{ 0 }; // cached highesr position not generating traction force
+    std::pair<std::string, std::array<int, 2>> PantsPreset { "", { 0, 0 } }; // pantograph preset switches; .first holds possible setups as chars, .second holds currently selected preset in each cab
 
 	/*-sekcja parametrow dla lokomotywy elektrycznej*/
 	TSchemeTable RList;     /*lista rezystorow rozruchowych i polaczen silnikow, dla dizla: napelnienia*/

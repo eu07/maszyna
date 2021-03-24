@@ -511,23 +511,39 @@ bool TMoverParameters::Dettach(int ConnectNo)
 
     if( othervehicle == nullptr ) { return true; } // nie ma nic, to odczepiono
 
-    auto const i = DettachStatus(ConnectNo); // stan sprzęgu
-    if (i < 0) {
+    auto couplingchange { coupler.CouplingFlag }; // presume we'll uncouple all active flags
+    auto const couplingstate { DettachStatus( ConnectNo ) }; // stan sprzęgu
+    if (couplingstate < 0) {
         // gdy scisniete zderzaki, chyba ze zerwany sprzeg (wirtualnego nie odpinamy z drugiej strony)
         std::tie(      coupler.Connected,      coupler.ConnectedNr,      coupler.CouplingFlag )
       = std::tie( othercoupler.Connected, othercoupler.ConnectedNr, othercoupler.CouplingFlag )
       = std::make_tuple( nullptr, -1, coupling::faux );
-        // set sound event flag
-        SetFlag( coupler.sounds, sound::detachall );
-
-        return true;
     }
-    else if (i > 0)
+    else if (couplingstate > 0)
     { // odłączamy węże i resztę, pozostaje sprzęg fizyczny, który wymaga dociśnięcia (z wirtualnym nic)
         coupler.CouplingFlag &= coupling::coupler;
         othercoupler.CouplingFlag &= coupling::coupler;
     }
-    return false; // jeszcze nie rozłączony
+    // set sound event flag
+    couplingchange ^= coupler.CouplingFlag; // remaining bits were removed from coupling
+    if( couplingchange != 0 ) {
+        int soundflag { sound::detach }; // HACK: use detach flag to indicate removal of listed coupling
+        std::vector<std::pair<coupling, sound>> const soundmappings = {
+            { coupling::coupler, sound::attachcoupler },
+            { coupling::brakehose, sound::attachbrakehose },
+            { coupling::mainhose, sound::attachmainhose },
+            { coupling::control, sound::attachcontrol},
+            { coupling::gangway, sound::attachgangway},
+            { coupling::heating, sound::attachheating} };
+        for( auto const &soundmapping : soundmappings ) {
+            if( ( couplingchange & soundmapping.first ) != 0 ) {
+                soundflag |= soundmapping.second;
+            }
+        }
+        SetFlag( coupler.sounds, soundflag );
+    }
+
+    return ( couplingstate < 0 );
 };
 
 bool TMoverParameters::DirectionForward()
@@ -10800,6 +10816,14 @@ void TMoverParameters::LoadFIZ_Switches( std::string const &Input ) {
     extract_value( UniversalResetButtonFlag[ 0 ], "RelayResetButton1", Input, "" );
     extract_value( UniversalResetButtonFlag[ 1 ], "RelayResetButton2", Input, "" );
     extract_value( UniversalResetButtonFlag[ 2 ], "RelayResetButton3", Input, "" );
+    // pantograph presets
+    {
+        auto &presets { PantsPreset.first };
+        extract_value( presets, "PantographPresets", Input, "0|1|3|2" );
+        presets.erase(
+            std::remove( std::begin( presets ), std::end( presets ), '|' ),
+            std::end( presets ) );
+    }
 }
 
 void TMoverParameters::LoadFIZ_MotorParamTable( std::string const &Input ) {

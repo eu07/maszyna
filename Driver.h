@@ -18,6 +18,8 @@ http://mozilla.org/MPL/2.0/.
 #include "translation.h"
 
 auto const EU07_AI_NOACCELERATION = -0.05;
+auto const EU07_AI_NOMOVEMENT = 0.05; // standstill velocity threshold
+auto const EU07_AI_MOVEMENT = 1.0; // deliberate movement velocity threshold
 auto const EU07_AI_SPEEDLIMITEXTENDSBEYONDSCANRANGE = 10000.0;
 
 enum TOrders

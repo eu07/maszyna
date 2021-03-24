@@ -112,7 +112,7 @@ world_environment::update() {
     // twilight factor can be reset later down, so we do it here while it's still reflecting state of the sun
     // turbidity varies from 2-3 during the day based on overcast, 3-4 after sunset to deal with sunlight bleeding too much into the sky from below horizon
     m_skydome.SetTurbidity(
-        2.f
+        2.25f
         + clamp( Global.Overcast, 0.f, 1.f )
         + interpolate( 0.f, 1.f, clamp( twilightfactor * 1.5f, 0.f, 1.f ) ) );
     m_skydome.SetOvercastFactor( Global.Overcast );
@@ -173,8 +173,9 @@ world_environment::update() {
 
     // update the fog. setting it to match the average colour of the sky dome is cheap
     // but quite effective way to make the distant items blend with background better
-    // NOTE: base brightness calculation provides scaled up value, so we bring it back to 'real' one here
-    Global.FogColor = m_skydome.GetAverageHorizonColor();
+    Global.FogColor =
+        interpolate( m_skydome.GetAverageColor(), m_skydome.GetAverageHorizonColor(), 0.33f )
+        * clamp<float>( Global.fLuminance, 0.25f, 1.f );
 
     // weather-related simulation factors
     Global.FrictionWeatherFactor = (

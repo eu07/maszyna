@@ -159,6 +159,7 @@ struct global_settings {
     float VehicleVolume{ 1.0f };
     float EnvironmentPositionalVolume{ 1.0f };
     float EnvironmentAmbientVolume{ 1.0f };
+    float PausedVolume { 0.15f };
     std::string AudioRenderer;
     // input
     float fMouseXScale{ 1.5f };

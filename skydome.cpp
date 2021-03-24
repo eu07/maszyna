@@ -264,6 +264,10 @@ void CSkyDome::RebuildColors() {
 			colorconverter.z = 1.0f - std::exp( -m_expfactor * colorconverter.z );  
 		}
 
+        if( colorconverter.z > 0.85f ) {
+            colorconverter.z = 0.85f + ( colorconverter.z - 0.85f ) * 0.35f;
+        }
+
         colorconverter.y = clamp( colorconverter.y * 1.15f, 0.0f, 1.0f );
         // desaturate sky colour, based on overcast level
         if( colorconverter.y > 0.0f ) {
@@ -310,14 +314,14 @@ void CSkyDome::RebuildColors() {
 		// save
         m_colours[ i ] = color;
         averagecolor += color;
-        if( ( m_vertices.size() - i ) <= ( m_tesselation * 2 ) ) {
+        if( ( m_vertices.size() - i ) <= ( m_tesselation * 3 + 3 ) ) {
             // calculate horizon colour from the bottom band of tris
             averagehorizoncolor += color;
         }
 	}
 
     m_averagecolour = glm::max( glm::vec3(), averagecolor / static_cast<float>( m_vertices.size() ) );
-    m_averagehorizoncolour = glm::max( glm::vec3(), averagehorizoncolor / static_cast<float>( m_tesselation * 2 ) );
+    m_averagehorizoncolour = glm::max( glm::vec3(), averagehorizoncolor / static_cast<float>( m_tesselation * 3 + 3 ) );
 
     m_dirty = true;
 }

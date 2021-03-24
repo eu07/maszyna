@@ -58,6 +58,14 @@ public:
     // returns offset of submodel associated with the button from the model centre
     glm::vec3 model_offset() const;
     TGaugeType type() const;
+    inline
+    bool is_push() const {
+        return ( static_cast<int>( type() ) & static_cast<int>( TGaugeType::push ) ) != 0; }
+    inline
+    bool is_toggle() const {
+        return ( static_cast<int>( type() ) & static_cast<int>( TGaugeType::toggle ) ) != 0; }
+    bool is_delayed() const {
+        return ( static_cast<int>( type() ) & static_cast<int>( TGaugeType::delayed ) ) != 0; }
 // members
     TSubModel *SubModel { nullptr }, // McZapkie-310302: zeby mozna bylo sprawdzac czy zainicjowany poprawnie
               *SubModelOn { nullptr }; // optional submodel visible when the state input is set

@@ -64,7 +64,8 @@ class debug_panel : public ui_panel {
 
 public:
     debug_panel( std::string const &Name, bool const Isopen )
-        : ui_panel( Name, Isopen ) {}
+        : ui_panel( Name, Isopen ) {
+        m_eventsearch.fill( 0 ); }
 
     void update() override;
     void render() override;

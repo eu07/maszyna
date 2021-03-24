@@ -249,6 +249,9 @@ bool TDynamicObject::destination_data::deserialize_mapping( cParser &Input ) {
     else if( key == "parameters:" ) {
         parameters = Input.getToken<std::string>();
     }
+    else if( key == "background:" ) {
+        background = Input.getToken<std::string>();
+    }
 
     return true;
 }
@@ -4648,31 +4651,47 @@ void TDynamicObject::RenderSounds() {
             }
         }
         // attach/detach sounds
-        if( ( coupler.sounds & sound::attachcoupler ) != 0 ) {
-            couplersounds.attach_coupler.play();
+        if( ( coupler.sounds & sound::detach ) == 0 ) {
+            // potentially added some couplings
+            if( ( coupler.sounds & sound::attachcoupler ) != 0 ) {
+                couplersounds.attach_coupler.play();
+            }
+            if( ( coupler.sounds & sound::attachbrakehose ) != 0 ) {
+                couplersounds.attach_brakehose.play();
+            }
+            if( ( coupler.sounds & sound::attachmainhose ) != 0 ) {
+                couplersounds.attach_mainhose.play();
+            }
+            if( ( coupler.sounds & sound::attachcontrol ) != 0 ) {
+                couplersounds.attach_control.play();
+            }
+            if( ( coupler.sounds & sound::attachgangway ) != 0 ) {
+                couplersounds.attach_gangway.play();
+            }
+            if( ( coupler.sounds & sound::attachheating ) != 0 ) {
+                couplersounds.attach_heating.play();
+            }
         }
-        if( ( coupler.sounds & sound::attachbrakehose ) != 0 ) {
-            couplersounds.attach_brakehose.play();
-        }
-        if( ( coupler.sounds & sound::attachmainhose ) != 0 ) {
-            couplersounds.attach_mainhose.play();
-        }
-        if( ( coupler.sounds & sound::attachcontrol ) != 0 ) {
-            couplersounds.attach_control.play();
-        }
-        if( ( coupler.sounds & sound::attachgangway ) != 0 ) {
-            couplersounds.attach_gangway.play();
-        }
-        if( ( coupler.sounds & sound::attachheating ) != 0 ) {
-            couplersounds.attach_heating.play();
-        }
-        if( true == TestFlag( coupler.sounds, sound::detachall ) ) {
-            couplersounds.detach_coupler.play();
-            couplersounds.detach_brakehose.play();
-            couplersounds.detach_mainhose.play();
-            couplersounds.detach_control.play();
-            couplersounds.detach_gangway.play();
-            couplersounds.detach_heating.play();
+        else {
+            // potentially removed some couplings
+            if( ( coupler.sounds & sound::attachcoupler ) != 0 ) {
+                couplersounds.detach_coupler.play();
+            }
+            if( ( coupler.sounds & sound::attachbrakehose ) != 0 ) {
+                couplersounds.detach_brakehose.play();
+            }
+            if( ( coupler.sounds & sound::attachmainhose ) != 0 ) {
+                couplersounds.detach_mainhose.play();
+            }
+            if( ( coupler.sounds & sound::attachcontrol ) != 0 ) {
+                couplersounds.detach_control.play();
+            }
+            if( ( coupler.sounds & sound::attachgangway ) != 0 ) {
+                couplersounds.detach_gangway.play();
+            }
+            if( ( coupler.sounds & sound::attachheating ) != 0 ) {
+                couplersounds.detach_heating.play();
+            }
         }
         if( true == TestFlag( coupler.sounds, sound::attachadapter ) ) {
             couplersounds.dsbAdapterAttach.play();
@@ -5992,12 +6011,15 @@ void TDynamicObject::LoadMMediaFile( std::string const &TypeName, std::string co
                         // vehicle faces +Z in 'its' space, for motor locations negative value means ahead of centre
                         auto const offset { std::atof( token.c_str() ) * -1.f };
                         // NOTE: we skip setting owner of the sounds, it'll be done during individual sound deserialization
-                        sound_source motor { sound_placement::external }; // generally traction motor
+                        sound_source motor { sound_placement::external }; // generic traction motor sounds
+                        sound_source acmotor { sound_placement::external }; // inverter-specific traction motor sounds
                         sound_source motorblower { sound_placement::engine }; // associated motor blowers
                         // add entry to the list
                         auto const location { glm::vec3 { 0.f, 0.f, offset } };
                         motor.offset( location );
                         m_powertrainsounds.motors.emplace_back( motor );
+                        acmotor.offset( location );
+                        m_powertrainsounds.acmotors.emplace_back( acmotor );
                         motorblower.offset( location );
                         m_powertrainsounds.motorblowers.emplace_back( motorblower );
                     }
@@ -6344,6 +6366,7 @@ void TDynamicObject::LoadMMediaFile( std::string const &TypeName, std::string co
                         DestinationSign.script = asBaseDir + DestinationSign.script;
                     }
                 }
+                // NOTE: legacy key, now expected as optional "background:" parameter in pydestinationsign: { parameter block }
                 else if( token == "destinationsignbackground:" ) {
                     parser.getTokens();
                     parser >> DestinationSign.background;

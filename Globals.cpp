@@ -174,6 +174,12 @@ global_settings::ConfigParse(cParser &Parser) {
             Parser >> EnvironmentAmbientVolume;
             EnvironmentAmbientVolume = clamp(EnvironmentAmbientVolume, 0.f, 1.f);
         }
+        else if( token == "sound.volume.paused" ) {
+            // selected device for audio renderer
+            Parser.getTokens();
+            Parser >> PausedVolume;
+            EnvironmentAmbientVolume = clamp( EnvironmentAmbientVolume, 0.f, 1.f );
+        }
         // else if (str==AnsiString("renderalpha")) //McZapkie-1312302 - dwuprzebiegowe renderowanie
         // bRenderAlpha=(GetNextSymbol().LowerCase()==AnsiString("yes"));
         else if (token == "physicslog")
@@ -1035,6 +1041,7 @@ global_settings::export_as_text( std::ostream &Output ) const {
     export_as_text( Output, "sound.volume.vehicle", VehicleVolume );
     export_as_text( Output, "sound.volume.positional", EnvironmentPositionalVolume );
     export_as_text( Output, "sound.volume.ambient", EnvironmentAmbientVolume );
+    export_as_text( Output, "sound.volume.paused", PausedVolume );
     export_as_text( Output, "physicslog", WriteLogFlag );
     export_as_text( Output, "fullphysics", FullPhysics );
     export_as_text( Output, "debuglog", iWriteLogEnabled );
