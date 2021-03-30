@@ -268,10 +268,10 @@ void CSkyDome::RebuildColors() {
             colorconverter.z = 0.85f + ( colorconverter.z - 0.85f ) * 0.35f;
         }
 
-        colorconverter.y = clamp( colorconverter.y * 1.15f, 0.0f, 1.0f );
+        colorconverter.y = clamp( colorconverter.y * Global.m_skysaturationcorrection, 0.0f, 1.0f );
         // desaturate sky colour, based on overcast level
         if( colorconverter.y > 0.0f ) {
-            colorconverter.y *= ( 1.0f - m_overcast );
+            colorconverter.y *= ( 1.0f - 0.5f * m_overcast );
         }
 
         // override the hue, based on sun height above the horizon. crude way to deal with model shortcomings
@@ -288,13 +288,8 @@ void CSkyDome::RebuildColors() {
 
 		color = colors::HSVtoRGB(colorconverter);
 
-        color = interpolate( color, shiftedcolor, shiftfactor );
-/*
-		// gamma control
-		color.x = std::pow( color.x, m_gammacorrection );
-		color.x = std::pow( color.y, m_gammacorrection );
-		color.x = std::pow( color.z, m_gammacorrection );
-*/
+        color = interpolate( color, shiftedcolor, shiftfactor * Global.m_skyhuecorrection );
+
         // crude correction for the times where the model breaks (late night)
         // TODO: use proper night sky calculation for these times instead
         if( ( color.x <= 0.05f )
@@ -304,14 +299,17 @@ void CSkyDome::RebuildColors() {
             color.z = 0.75f * std::max( color.z + m_sundirection.y, 0.075f );
             color.x = 0.20f * color.z; 
             color.y = 0.65f * color.z;
-            color = color * ( 1.15f - vertex.y ); // simple gradient, darkening towards the top
         }
         // gamma correction
         color = glm::pow( color, gammacorrection );
+/*
         if( Global.GfxFramebufferSRGB ) {
             color = glm::pow( color, glm::vec3( 2.2f ) - ( gammacorrection * 0.5f ) );
         }
-		// save
+*/
+        // simple gradient, darkening towards the top
+        color *= ( 1.15f - vertex.y );
+        // save
         m_colours[ i ] = color;
         averagecolor += color;
         if( ( m_vertices.size() - i ) <= ( m_tesselation * 3 + 3 ) ) {

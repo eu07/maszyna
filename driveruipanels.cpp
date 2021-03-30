@@ -1420,6 +1420,17 @@ debug_panel::render_section_settings() {
     ImGui::PopStyleColor();
     // reflection fidelity
     ImGui::SliderInt( ( to_string( Global.reflectiontune.fidelity ) + "###reflectionfidelity" ).c_str(), &Global.reflectiontune.fidelity, 0, 2, "Reflection fidelity" );
+    if( DebugModeFlag ) {
+        // sky sliders
+        {
+            ImGui::SliderFloat(
+                ( to_string( Global.m_skysaturationcorrection, 2, 5 ) + "###skysaturation" ).c_str(), &Global.m_skysaturationcorrection, 0.0f, 3.0f, "Sky saturation" );
+        }
+        {
+            ImGui::SliderFloat(
+                ( to_string( Global.m_skyhuecorrection, 2, 5 ) + "###skyhue" ).c_str(), &Global.m_skyhuecorrection, 0.0f, 1.0f, "Sky hue correction" );
+        }
+    }
 
     ImGui::PushStyleColor( ImGuiCol_Text, { Global.UITextColor.r, Global.UITextColor.g, Global.UITextColor.b, Global.UITextColor.a } );
     ImGui::TextUnformatted( "Sound" );

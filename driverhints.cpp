@@ -1010,7 +1010,7 @@ TController::cue_action( locale::string const Action, float const Actionparamete
             hint(
                 Action,
                 [this](float const Parameter) -> bool {
-                    return ( ( mvOccupied->Doors.has_warning == false ) || ( mvOccupied->DepartureSignal == true ) || mvOccupied->Vel > 5.0 ); } );
+                    return ( ( mvOccupied->Doors.has_warning == false ) || ( mvOccupied->Doors.has_autowarning == true ) || ( mvOccupied->DepartureSignal == true ) || mvOccupied->Vel > 5.0 ); } );
             break;
         }
         case locale::string::driver_hint_departuresignaloff: {
@@ -1021,7 +1021,7 @@ TController::cue_action( locale::string const Action, float const Actionparamete
             hint(
                 Action,
                 [this](float const Parameter) -> bool {
-                    return ( ( mvOccupied->Doors.has_warning == false ) || ( mvOccupied->DepartureSignal == false ) ); } );
+                    return ( ( mvOccupied->Doors.has_warning == false ) || ( mvOccupied->Doors.has_autowarning == true ) || ( mvOccupied->DepartureSignal == false ) ); } );
             break;
         }
         // consist doors

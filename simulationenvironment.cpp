@@ -174,7 +174,7 @@ world_environment::update() {
     // update the fog. setting it to match the average colour of the sky dome is cheap
     // but quite effective way to make the distant items blend with background better
     Global.FogColor =
-        interpolate( m_skydome.GetAverageColor(), m_skydome.GetAverageHorizonColor(), 0.33f )
+        interpolate( m_skydome.GetAverageColor(), m_skydome.GetAverageHorizonColor(), 0.25f )
         * clamp<float>( Global.fLuminance, 0.25f, 1.f );
 
     // weather-related simulation factors

@@ -1152,7 +1152,7 @@ void TTrain::OnCommand_tempomattoggle( TTrain *Train, command_data const &Comman
 
     if( Command.action == GLFW_REPEAT ) { return; }
 
-    if( Train->ggScndCtrlButton.type() == TGaugeType::push ) {
+    if( Train->ggScndCtrlButton.is_push() ) {
         // impulse switch
         if( Command.action == GLFW_RELEASE ) {
             // just move the button(s) back to default position
@@ -2565,8 +2565,8 @@ void TTrain::change_pantograph_selection( int const Change ) {
     auto const preset { presets[ selection ] - '0' };
     auto const swapends { cab_to_end() != end::front };
     // check desired states for both pantographs; value: whether the pantograph should be raised
-    auto const frontstate { preset & ( swapends ? 1 : 2 ) };
-    auto const rearstate { preset & ( swapends ? 2 : 1 ) };
+    auto const frontstate { preset & ( swapends ? 2 : 1 ) };
+    auto const rearstate  { preset & ( swapends ? 1 : 2 ) };
     // potentially adjust pantograph valves
     mvOccupied->OperatePantographValve( end::front, ( frontstate ? operation_t::enable : operation_t::disable ) );
     mvOccupied->OperatePantographValve( end::rear, ( rearstate ? operation_t::enable : operation_t::disable ) );
@@ -7027,6 +7027,11 @@ bool TTrain::Update( double const Deltatime )
             dsbNastawnikBocz );
         ggScndCtrl.Update();
     }
+    if( ggScndCtrlButton.is_toggle() ) {
+        ggScndCtrlButton.UpdateValue(
+            ( ( mvControlled->ScndCtrlPos > 0 ) ? 1.f : 0.f ),
+            dsbSwitch );
+    }
     ggScndCtrlButton.Update( lowvoltagepower );
     ggScndCtrlOffButton.Update( lowvoltagepower );
     ggDistanceCounterButton.Update();
@@ -8393,20 +8398,18 @@ TTrain::MoveToVehicle(TDynamicObject *target) {
 
             if( Dynamic()->Mechanik ) {
                 Dynamic()->Mechanik->MoveTo( target );
-            }
-
-			DynamicSet(target);
-
-			Occupied()->LimPipePress = Occupied()->PipePress;
-			Occupied()->CabActivisation( true ); // załączenie rozrządu (wirtualne kabiny)
-			Dynamic()->MechInside = true;
-            if( Dynamic()->Mechanik ) {
                 Dynamic()->Controller = Dynamic()->Mechanik->AIControllFlag;
                 Dynamic()->Mechanik->DirectionChange();
             }
             else {
                 Dynamic()->Controller = Humandriver;
             }
+            Dynamic()->MechInside = true;
+
+			DynamicSet(target);
+
+			Occupied()->LimPipePress = Occupied()->PipePress;
+			Occupied()->CabActivisation( true ); // załączenie rozrządu (wirtualne kabiny)
 		} else {
 			Dynamic()->bDisplayCab = false;
 			Dynamic()->ABuSetModelShake( {} );

@@ -208,6 +208,7 @@ class opengl33_renderer : public gfx_renderer {
 		std::unique_ptr<gl::framebuffer> main_fb;
 		std::unique_ptr<opengl_texture> main_texv;
 		std::unique_ptr<opengl_texture> main_tex;
+        std::unique_ptr<opengl_texture> main_texd;
 
 		std::unique_ptr<gl::framebuffer> main2_fb;
 		std::unique_ptr<opengl_texture> main2_tex;

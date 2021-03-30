@@ -235,6 +235,9 @@ struct global_settings {
     std::optional<std::pair<std::string, std::string>> network_client;
     double desync = 0.0;
 
+    float m_skysaturationcorrection{ 1.65f };
+    float m_skyhuecorrection{ 0.5f };
+
 // methods
     void LoadIniFile( std::string asFileName );
     void ConfigParse( cParser &parser );

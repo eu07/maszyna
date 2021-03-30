@@ -2064,10 +2064,6 @@ void TController::Activation()
         }
         if (pVehicle != initialvehicle)
         { // jeśli zmieniony został pojazd prowadzony
-            auto *train { simulation::Trains.find( initialvehicle->name() ) };
-            if( train ) {
-                train->MoveToVehicle( pVehicle );
-            }
             ControllingSet(); // utworzenie połączenia do sterowanego pojazdu (może się zmienić) - silnikowy dla EZT
             if( ( mvOccupied->BrakeCtrlPosNo > 0 )
              && ( ( mvOccupied->BrakeSystem == TBrakeSystem::Pneumatic )
@@ -2089,13 +2085,20 @@ void TController::Activation()
         mvOccupied->CabOccupied = iDirection; // aktywacja kabiny w prowadzonym pojeżdzie (silnikowy może być odwrotnie?)
         mvOccupied->CabActivisation(); // uruchomienie kabin w członach
         DirectionForward(true); // nawrotnik do przodu
+        mvOccupied->SpringBrakeActivate( initialspringbrakestate );
 /*
         // NOTE: this won't restore local brake if the vehicle has integrated local brake control
         // TBD, TODO: fix or let the ai activate the brake again as part of its standard logic?
         if (initiallocalbrakelevel > 0.0) // hamowanie tylko jeśli był wcześniej zahamowany (bo możliwe, że jedzie!)
             mvOccupied->LocalBrakePosA = initiallocalbrakelevel; // zahamuj jak wcześniej
 */
-        mvOccupied->SpringBrakeActivate( initialspringbrakestate );
+        if( pVehicle != initialvehicle ) {
+            auto *train { simulation::Trains.find( initialvehicle->name() ) };
+            if( train ) {
+                train->MoveToVehicle( pVehicle );
+            }
+        }
+
         CheckVehicles(); // sprawdzenie składu, AI zapali światła
         TableClear(); // resetowanie tabelki skanowania torów
     }
@@ -6745,10 +6748,42 @@ TController::UpdateConnect() {
     }
 }
 
+int
+TController::unit_count( int const Threshold ) const {
+
+    auto *vehicle { pVehicle };
+    auto unitcount { 1 };
+    do {
+        auto const decoupledend{ ( vehicle->DirectionGet() > 0 ? // numer sprzęgu od strony czoła składu
+            end::rear :
+            end::front ) };
+        auto const coupling { vehicle->MoverParameters->Couplers[ decoupledend ].CouplingFlag };
+        if( coupling == coupling::faux ) {
+            break;
+        }
+        // jeżeli sprzęg zablokowany to liczymy człony jako jeden
+        if( ( coupling & coupling::permanent ) == 0 ) {
+            ++unitcount;
+        }
+        vehicle = vehicle->Next();
+    } while( unitcount < Threshold );
+
+    return unitcount;
+}
+
 void
 TController::UpdateDisconnect() {
 
     if( iVehicleCount >= 0 ) {
+        // early test for human drivers, who might disregard the proper procedure, or perform it before they receive the order to
+        if( false == AIControllFlag ) {
+            // iVehicleCount = 0 means the consist should be reduced to (1) leading unit, thus we increase our test values by 1
+            if( unit_count( iVehicleCount + 2 ) <= iVehicleCount + 1 ) {
+                iVehicleCount = -2; // odczepiono, co było do odczepienia
+                return; // we'll wrap up the procedure on the next update beat
+            }
+        }
+        // regular uncoupling procedure, performed by ai and naively expected from the human drivers
         // 3rd stage: change direction, compress buffers and uncouple
         if( iDirection != iDirectionOrder ) {
             cue_action( locale::string::driver_hint_mastercontrollersetreverserunlock );
@@ -6814,6 +6849,10 @@ TController::UpdateDisconnect() {
         }
         // 2nd stage: apply consist brakes and change direction
         if( ( iDrivigFlags & movePress ) == 0 ) {
+            // store initial consist direction
+            if( !iDirectionBackup ) {
+                iDirectionBackup = iDirection;
+            }
             if( false == IsConsistBraked ) {
                 WriteLog( "Uncoupling [" + mvOccupied->Name + "]: applying consist brakes..." );
                 cue_action( locale::string::driver_hint_trainbrakeapply );
@@ -6834,19 +6873,23 @@ TController::UpdateDisconnect() {
     } // odczepianie
     if( iVehicleCount < 0 ) {
         // 4th stage: restore initial direction
-        if( ( iDrivigFlags & movePress ) != 0 ) {
-            if( eStopReason == stopNone ) { // HACK: use current speed limit to discern whether we're entering this stage for the first time
-                WriteLog( "Uncoupling [" + mvOccupied->Name + "]: second direction change" );
-                iDirectionOrder = -iDirection;
-                cue_action( locale::string::driver_hint_mastercontrollersetreverserunlock );
-                cue_action( locale::string::driver_hint_directionother ); // zmiana kierunku jazdy na właściwy
-            }
-            if( iDirection == iDirectionOrder ) {
-                iDrivigFlags &= ~movePress; // koniec dociskania
+        if( iDirectionBackup ) {
+            iDirectionOrder = iDirectionBackup.value();
+            iDirectionBackup.reset();
+        }
+        if( iDirection != iDirectionOrder ) {
+            WriteLog( "Uncoupling [" + mvOccupied->Name + "]: second direction change" );
+            cue_action( locale::string::driver_hint_mastercontrollersetreverserunlock );
+            cue_action( locale::string::driver_hint_directionother ); // zmiana kierunku jazdy na właściwy
+        }
+        // 5th stage: clean up and move on to next order
+        if( iDirection == iDirectionOrder ) {
+            iDrivigFlags &= ~movePress; // koniec dociskania
+            while( ( OrderCurrentGet() & Disconnect ) != 0 ) {
                 JumpToNextOrder(); // zmieni światła
-                TableClear(); // skanowanie od nowa
-                iDrivigFlags &= ~moveStartHorn; // bez trąbienia przed ruszeniem
             }
+            TableClear(); // skanowanie od nowa
+            iDrivigFlags &= ~moveStartHorn; // bez trąbienia przed ruszeniem
         }
     }
 }

@@ -527,6 +527,9 @@ drivermouse_input::default_bindings() {
         { "tempomat_sw:", {
             user_command::tempomattoggle,
             user_command::none } },
+        { "tempomatoff_sw:", {
+            user_command::tempomattoggle,
+            user_command::none } },
         { "dirkey:", {
             user_command::reverserincrease,
             user_command::reverserdecrease } },

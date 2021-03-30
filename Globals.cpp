@@ -178,7 +178,7 @@ global_settings::ConfigParse(cParser &Parser) {
             // selected device for audio renderer
             Parser.getTokens();
             Parser >> PausedVolume;
-            EnvironmentAmbientVolume = clamp( EnvironmentAmbientVolume, 0.f, 1.f );
+            PausedVolume = clamp( PausedVolume, 0.f, 1.f );
         }
         // else if (str==AnsiString("renderalpha")) //McZapkie-1312302 - dwuprzebiegowe renderowanie
         // bRenderAlpha=(GetNextSymbol().LowerCase()==AnsiString("yes"));

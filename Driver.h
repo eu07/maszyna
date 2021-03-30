@@ -317,6 +317,7 @@ private:
     void check_departure();
     void UpdateConnect();
     void UpdateDisconnect();
+    int unit_count( int const Threshold ) const;
     void UpdateChangeDirection();
     void UpdateLooseShunt();
     void UpdateObeyTrain();
@@ -381,6 +382,7 @@ private:
     double SwitchClearDist { 0.0 }; // distance to point after farthest detected switch
     int iDirection = 0; // kierunek jazdy względem sprzęgów pojazdu, w którym siedzi AI (1=przód,-1=tył)
     int iDirectionOrder = 0; //żadany kierunek jazdy (służy do zmiany kierunku)
+    std::optional<int> iDirectionBackup; // consist direction to be restored after coupling/uncoupling and similar direction-changing operations
     int iVehicleCount = -2; // wartość neutralna // ilość pojazdów do odłączenia albo zabrania ze składu (-1=wszystkie)
     int iCoupler = 0; // maska sprzęgu, jaką należy użyć przy łączeniu (po osiągnięciu trybu Connect), 0 gdy jazda bez łączenia
     int iDriverFailCount = 0; // licznik błędów AI
