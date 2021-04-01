@@ -822,6 +822,9 @@ drivermouse_input::default_bindings() {
         { "pantselect_sw:", {
             user_command::pantographselectnext,
             user_command::pantographselectprevious } },
+        { "pantvalves_sw:", {
+            user_command::pantographvalvesupdate,
+            user_command::pantographvalvesoff } },
         { "pantcompressor_sw:", {
             user_command::pantographcompressoractivate,
             user_command::none } },

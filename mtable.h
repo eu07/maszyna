@@ -51,6 +51,7 @@ class TTrainParameters
   public:
     std::string TrainName;
 	std::string TrainCategory;
+    std::string TrainLabel;
     double TTVmax;
     std::string Relation1;
     std::string Relation2; // nazwy stacji danego odcinka

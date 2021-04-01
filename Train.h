@@ -190,6 +190,8 @@ class TTrain {
     void set_paired_open_motor_connectors_button( bool const State );
     // helper, common part of pantograph selection methods
     void change_pantograph_selection( int const Change );
+    // helper, common part of pantograh valves state update methods
+    void update_pantograph_valves();
     // update function subroutines
     void update_sounds( double const Deltatime );
     void update_sounds_runningnoise( sound_source &Sound );
@@ -291,6 +293,8 @@ class TTrain {
     static void OnCommand_pantographtoggleselected( TTrain *Train, command_data const &Command );
     static void OnCommand_pantographraiseselected( TTrain *Train, command_data const &Command );
     static void OnCommand_pantographlowerselected( TTrain *Train, command_data const &Command );
+    static void OnCommand_pantographvalvesupdate( TTrain *Train, command_data const &Command );
+    static void OnCommand_pantographvalvesoff( TTrain *Train, command_data const &Command );
     static void OnCommand_linebreakertoggle( TTrain *Train, command_data const &Command );
     static void OnCommand_linebreakeropen( TTrain *Train, command_data const &Command );
     static void OnCommand_linebreakerclose( TTrain *Train, command_data const &Command );
@@ -599,6 +603,7 @@ public: // reszta może by?publiczna
     TGauge ggPantAllDownButton;
     TGauge ggPantSelectedButton;
     TGauge ggPantSelectedDownButton;
+    TGauge ggPantValvesButton;
     TGauge ggPantCompressorButton;
     TGauge ggPantCompressorValve;
     // Winger 020304 - wlacznik ogrzewania

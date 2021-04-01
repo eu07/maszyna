@@ -285,6 +285,8 @@ TTrain::commandhandler_map const TTrain::m_commandhandlers = {
     { user_command::pantographtoggleselected, &TTrain::OnCommand_pantographtoggleselected },
     { user_command::pantographraiseselected, &TTrain::OnCommand_pantographraiseselected },
     { user_command::pantographlowerselected, &TTrain::OnCommand_pantographlowerselected },
+    { user_command::pantographvalvesupdate, &TTrain::OnCommand_pantographvalvesupdate },
+    { user_command::pantographvalvesoff, &TTrain::OnCommand_pantographvalvesoff },
     { user_command::linebreakertoggle, &TTrain::OnCommand_linebreakertoggle },
     { user_command::linebreakeropen, &TTrain::OnCommand_linebreakeropen },
     { user_command::linebreakerclose, &TTrain::OnCommand_linebreakerclose },
@@ -2552,6 +2554,20 @@ void TTrain::OnCommand_pantographlowerselected( TTrain *Train, command_data cons
     }
 }
 
+void TTrain::update_pantograph_valves() {
+
+    auto const &presets { mvOccupied->PantsPreset.first };
+    auto &selection { mvOccupied->PantsPreset.second[ cab_to_end() ] };
+
+    auto const preset { presets[ selection ] - '0' };
+    auto const swapends { cab_to_end() != end::front };
+    // check desired states for both pantographs; value: whether the pantograph should be raised
+    auto const frontstate { preset & ( swapends ? 2 : 1 ) };
+    auto const rearstate { preset & ( swapends ? 1 : 2 ) };
+    mvOccupied->OperatePantographValve( end::front, ( frontstate ? operation_t::enable : operation_t::disable ) );
+    mvOccupied->OperatePantographValve( end::rear, ( rearstate ? operation_t::enable : operation_t::disable ) );
+}
+
 void TTrain::change_pantograph_selection( int const Change ) {
 
     auto const &presets { mvOccupied->PantsPreset.first };
@@ -2561,15 +2577,45 @@ void TTrain::change_pantograph_selection( int const Change ) {
 
     if( selection == initialstate ) { return; } // no change, nothing to do
 
-    // configure pantograph valves matching the new state
-    auto const preset { presets[ selection ] - '0' };
-    auto const swapends { cab_to_end() != end::front };
-    // check desired states for both pantographs; value: whether the pantograph should be raised
-    auto const frontstate { preset & ( swapends ? 2 : 1 ) };
-    auto const rearstate  { preset & ( swapends ? 1 : 2 ) };
-    // potentially adjust pantograph valves
-    mvOccupied->OperatePantographValve( end::front, ( frontstate ? operation_t::enable : operation_t::disable ) );
-    mvOccupied->OperatePantographValve( end::rear, ( rearstate ? operation_t::enable : operation_t::disable ) );
+    // potentially adjust pantograph valves to match the new state
+    if( false == m_controlmapper.contains( "pantvalves_sw:" ) ) {
+        update_pantograph_valves();
+    }
+}
+
+void TTrain::OnCommand_pantographvalvesupdate( TTrain *Train, command_data const &Command ) {
+
+    if( Command.action == GLFW_REPEAT ) { return; }
+
+    if( Command.action == GLFW_PRESS ) {
+        // implement action
+        Train->update_pantograph_valves();
+        // visual feedback
+        Train->ggPantValvesButton.UpdateValue( 1.0, Train->dsbSwitch );
+    }
+    else if( Command.action == GLFW_RELEASE ) {
+        // visual feedback
+        // NOTE: pantvalves_sw: is a specialized button, with no toggle behavior support
+        Train->ggPantValvesButton.UpdateValue( 0.5, Train->dsbSwitch );
+    }
+}
+
+void TTrain::OnCommand_pantographvalvesoff( TTrain *Train, command_data const &Command ) {
+
+    if( Command.action == GLFW_REPEAT ) { return; }
+
+    if( Command.action == GLFW_PRESS ) {
+        // implement action
+        Train->mvOccupied->OperatePantographValve( end::front, operation_t::disable );
+        Train->mvOccupied->OperatePantographValve( end::rear, operation_t::disable );
+        // visual feedback
+        Train->ggPantValvesButton.UpdateValue( 0.0, Train->dsbSwitch );
+    }
+    else if( Command.action == GLFW_RELEASE ) {
+        // visual feedback
+        // NOTE: pantvalves_sw: is a specialized button, with no toggle behavior support
+        Train->ggPantValvesButton.UpdateValue( 0.5, Train->dsbSwitch );
+    }
 }
 
 void TTrain::OnCommand_pantographcompressorvalvetoggle( TTrain *Train, command_data const &Command ) {
@@ -7196,6 +7242,7 @@ bool TTrain::Update( double const Deltatime )
     ggPantAllDownButton.Update();
     ggPantSelectedDownButton.Update();
     ggPantSelectedButton.Update();
+    ggPantValvesButton.Update();
     ggPantCompressorButton.Update();
     ggPantCompressorValve.Update();
 
@@ -8398,15 +8445,18 @@ TTrain::MoveToVehicle(TDynamicObject *target) {
 
             if( Dynamic()->Mechanik ) {
                 Dynamic()->Mechanik->MoveTo( target );
+            }
+
+            DynamicSet( target );
+
+            Dynamic()->MechInside = true;
+            if( Dynamic()->Mechanik ) {
                 Dynamic()->Controller = Dynamic()->Mechanik->AIControllFlag;
                 Dynamic()->Mechanik->DirectionChange();
             }
             else {
                 Dynamic()->Controller = Humandriver;
             }
-            Dynamic()->MechInside = true;
-
-			DynamicSet(target);
 
 			Occupied()->LimPipePress = Occupied()->PipePress;
 			Occupied()->CabActivisation( true ); // załączenie rozrządu (wirtualne kabiny)
@@ -8612,6 +8662,7 @@ void TTrain::clear_cab_controls()
     ggPantAllDownButton.Clear();
     ggPantSelectedButton.Clear();
     ggPantSelectedDownButton.Clear();
+    ggPantValvesButton.Clear();
     ggPantCompressorButton.Clear();
     ggPantCompressorValve.Clear();
     ggI1B.Clear();
@@ -8806,6 +8857,7 @@ void TTrain::set_cab_controls( int const Cab ) {
                 1.f :
                 0.f ) );
     }
+    ggPantValvesButton.PutValue( 0.5f );
     // auxiliary compressor
     ggPantCompressorValve.PutValue(
         mvControlled->bPantKurek3 ?
@@ -9308,6 +9360,7 @@ bool TTrain::initialize_gauge(cParser &Parser, std::string const &Label, int con
         { "pantalloff_sw:", ggPantAllDownButton },
         { "pantselected_sw:", ggPantSelectedButton },
         { "pantselectedoff_sw:", ggPantSelectedDownButton },
+        { "pantvalves_sw:", ggPantValvesButton },
         { "pantcompressor_sw:", ggPantCompressorButton },
         { "pantcompressorvalve_sw:", ggPantCompressorValve },
         { "trainheating_sw:", ggTrainHeatingButton },

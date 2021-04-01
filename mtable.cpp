@@ -310,7 +310,6 @@ bool TTrainParameters::LoadTTfile(std::string scnpath, int iPlus, double vmax)
                 // pliku}
                 // ConversionError:=-7 {błąd niezgodności}
                 TrainName = s; // nadanie nazwy z pliku TXT (bez ścieżki do pliku)
-				bool isCategory = false;
 				while (fin >> s || fin.bad())
 				{
 					if (s.find("_______|") != std::string::npos)
@@ -319,29 +318,25 @@ bool TTrainParameters::LoadTTfile(std::string scnpath, int iPlus, double vmax)
 					}
 					if (s == "Kategoria")
 					{
-						isCategory = true;
-						break;
+						do
+						{
+							fin >> s;
+						} while (!((s == "|") || (fin.bad())));
+						fin >> TrainCategory;
+		                        continue;
 					}
+					if (s == "Nazwa")
+			                {
+			                        do
+			                        {
+			                            fin >> s;
+				                } while (!((s == "|") || (fin.bad())));
+			                        fin >> TrainLabel;
+			                        continue;
+			                 }
 				} // while (!(s == "Seria"));
-				if (isCategory)
-				{
-					do
-					{
-						fin >> s;
-					} while (!((s == "|") || (fin.bad())));
-					fin >> TrainCategory;
-				}
                 // else
                 { /*czytaj naglowek*/
-					if (isCategory)
-					{
-						while (fin >> s || !fin.bad())
-						{
-							if (s.find("_______|") != std::string::npos)
-								break;
-							// fin >> s;
-						} // while (!(s.find("_______|") != std::string::npos) || fin.eof());
-					}
                     while (fin >> s || !fin.bad())
                     {
                         if (s == "[")
@@ -647,6 +642,7 @@ void TTrainParameters::serialize( dictionary_source *Output ) const {
 
     Output->insert( "trainnumber", TrainName );
 	Output->insert( "traincategory", TrainCategory );
+	Output->insert( "trainname", TrainLabel );
     Output->insert( "train_brakingmassratio", BrakeRatio );
     Output->insert( "train_enginetype", LocSeries );
     Output->insert( "train_engineload", LocLoad );

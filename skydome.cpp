@@ -300,6 +300,9 @@ void CSkyDome::RebuildColors() {
             color.x = 0.20f * color.z; 
             color.y = 0.65f * color.z;
         }
+        // simple gradient, darkening towards the top
+        color *= clamp( ( 1.25f - vertex.y ), 0.f, 1.f );
+//        color *= ( 1.25f - vertex.y );
         // gamma correction
         color = glm::pow( color, gammacorrection );
 /*
@@ -307,8 +310,6 @@ void CSkyDome::RebuildColors() {
             color = glm::pow( color, glm::vec3( 2.2f ) - ( gammacorrection * 0.5f ) );
         }
 */
-        // simple gradient, darkening towards the top
-        color *= ( 1.15f - vertex.y );
         // save
         m_colours[ i ] = color;
         averagecolor += color;
