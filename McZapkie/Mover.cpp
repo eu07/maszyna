@@ -8236,7 +8236,7 @@ bool TMoverParameters::PermitDoors( side const Door, bool const State, range_t c
 
     bool const initialstate { Doors.instances[Door].open_permit };
 
-    Doors.instances[ Door ].open_permit = State;
+    PermitDoors_( Door, State );
 
     if( Notify != range_t::local ) {
 
@@ -8253,6 +8253,14 @@ bool TMoverParameters::PermitDoors( side const Door, bool const State, range_t c
     }
 
     return ( Doors.instances[ Door ].open_permit != initialstate );
+}
+
+void TMoverParameters::PermitDoors_( side const Door, bool const State ) {
+
+    if( ( State ) && ( State != Doors.instances[ Door ].open_permit ) ) {
+        SetFlag( SoundFlag, sound::doorpermit );
+    }
+    Doors.instances[ Door ].open_permit = State;
 }
 
 bool TMoverParameters::ChangeDoorControlMode( bool const State, range_t const Notify ) {
@@ -8483,20 +8491,14 @@ TMoverParameters::update_doors( double const Deltatime ) {
         // doors
         if( true == door.is_opening ) {
             // open door
-            if( ( TrainType == dt_EZT )
-             || ( TrainType == dt_DMU ) ) {
-                // multi-unit vehicles typically open door only after unfolding the doorstep
-                if( ( false == door.step_unfolding ) // no wait if no doorstep
-                 || ( Doors.step_type == 2 ) ) { // no wait for rotating doorstep
+            if( ( false == door.step_unfolding ) // no wait if no doorstep
+             || ( Doors.step_type == 2 ) ) { // no wait for rotating doorstep
+                door.open_delay += Deltatime;
+                if( door.open_delay > Doors.open_delay ) {
                     door.position = std::min<float>(
                         Doors.range,
                         door.position + Doors.open_rate * Deltatime );
                 }
-            }
-            else {
-                door.position = std::min<float>(
-                    Doors.range,
-                    door.position + Doors.open_rate * Deltatime );
             }
             door.close_delay = 0.f;
         }
@@ -8508,6 +8510,7 @@ TMoverParameters::update_doors( double const Deltatime ) {
                     0.f,
                     door.position - Doors.close_rate * Deltatime );
             }
+            door.open_delay = 0.f;
         }
         // doorsteps
         if( door.step_unfolding ) {
@@ -9973,6 +9976,7 @@ void TMoverParameters::LoadFIZ_Doors( std::string const &line ) {
     }
 
     extract_value( Doors.open_rate, "OpenSpeed", line, "" );
+    extract_value( Doors.open_delay, "DoorOpenDelay", line, "" );
     extract_value( Doors.close_rate, "CloseSpeed", line, "" );
     extract_value( Doors.close_delay, "DoorCloseDelay", line, "" );
     extract_value( Doors.range, "DoorMaxShiftL", line, "" );
@@ -10016,6 +10020,7 @@ void TMoverParameters::LoadFIZ_Doors( std::string const &line ) {
     extract_value( MirrorMaxShift, "MirrorMaxShift", line, "" );
 	extract_value( MirrorVelClose, "MirrorVelClose", line, "");
 
+    extract_value( DoorsOpenWithPermitAfter, "DoorOpenWithPermit", line, "" );
 }
 
 void TMoverParameters::LoadFIZ_BuffCoupl( std::string const &line, int const Index ) {
@@ -11841,10 +11846,10 @@ bool TMoverParameters::RunCommand( std::string Command, double CValue1, double C
         auto const right { 3 - left };
 
         if( std::abs( static_cast<int>( CValue1 ) ) & right ) {
-            Doors.instances[ side::right ].open_permit = (CValue1 > 0);
+            PermitDoors_( side::right, ( CValue1 > 0 ) );
         }
         if( std::abs( static_cast<int>( CValue1 ) ) & left ) {
-            Doors.instances[ side::left ].open_permit = (CValue1 > 0);
+            PermitDoors_( side::left, ( CValue1 > 0 ) );
         }
 
         OK = SendCtrlToNext( Command, CValue1, CValue2, Couplertype );

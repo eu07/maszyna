@@ -4347,13 +4347,15 @@ void TDynamicObject::RenderSounds() {
 
         if( true == door.is_opening ) {
             // door sounds
-            // due to potential wait for the doorstep we play the sound only during actual animation
-            if( door.position > 0.f ) {
-                for( auto &doorsounds : m_doorsounds ) {
-                    if( doorsounds.placement == side ) {
-                        // determine left side doors from their offset
-                        doorsounds.rsDoorOpen.play( sound_flags::exclusive );
-                        doorsounds.rsDoorClose.stop();
+            if( ( false == door.step_unfolding ) // no wait if no doorstep
+             || ( MoverParameters->Doors.step_type == 2 ) ) { // no wait for rotating doorstep
+                if( door.position < 0.5f ) { // safety measure, to keep slightly too short sounds from repeating
+                    for( auto &doorsounds : m_doorsounds ) {
+                        if( doorsounds.placement == side ) {
+                            // determine left side doors from their offset
+                            doorsounds.rsDoorOpen.play( sound_flags::exclusive );
+                            doorsounds.rsDoorClose.stop();
+                        }
                     }
                 }
             }
@@ -4579,10 +4581,9 @@ void TDynamicObject::RenderSounds() {
         }
     }
 
-    // McZapkie! - to wazne - SoundFlag wystawiane jest przez moje moduly
-    // gdy zachodza pewne wydarzenia komentowane dzwiekiem.
+    // McZapkie! - to wazne - SoundFlag wystawiane jest przez moje moduly gdy zachodza pewne wydarzenia komentowane dzwiekiem.
+    // pneumatic relay
     if( TestFlag( MoverParameters->SoundFlag, sound::pneumatic ) ) {
-        // pneumatic relay
         dsbPneumaticRelay
             .gain(
                 true == TestFlag( MoverParameters->SoundFlag, sound::loud ) ?
@@ -4590,6 +4591,16 @@ void TDynamicObject::RenderSounds() {
                     0.8f )
             .play();
     }
+    // door permit
+    if( TestFlag( MoverParameters->SoundFlag, sound::doorpermit ) ) {
+        // NOTE: current implementation doesn't discern between permit for left/right side,
+        // which may be undesired in weird setups with doors only on one side
+        // TBD, TODO: rework into dedicated sound event flag for each door location instance?
+        for( auto &door : m_doorsounds ) {
+            door.permit_granted.play( sound_flags::exclusive );
+        }
+    }
+
     // couplers
     int couplerindex { 0 };
     for( auto &couplersounds : m_couplersounds ) {
@@ -5848,6 +5859,18 @@ void TDynamicObject::LoadMMediaFile( std::string const &TypeName, std::string co
                     }
                 }
 
+                else if( token == "doorpermit:" ) {
+                    sound_source soundtemplate { sound_placement::general };
+                    soundtemplate.deserialize( parser, sound_type::single );
+                    soundtemplate.owner( this );
+                    for( auto &door : m_doorsounds ) {
+                        // apply configuration to all defined doors, but preserve their individual offsets
+                        auto const dooroffset { door.permit_granted.offset() };
+                        door.permit_granted = soundtemplate;
+                        door.permit_granted.offset( dooroffset );
+                    }
+                }
+
                 else if( token == "unloading:" ) {
                     m_exchangesounds.unloading.range( MoverParameters->Dim.L * 0.5f * -1 );
                     m_exchangesounds.unloading.deserialize( parser, sound_type::single );
@@ -5982,6 +6005,7 @@ void TDynamicObject::LoadMMediaFile( std::string const &TypeName, std::string co
                             door.unlock.offset( location );
                             door.step_close.offset( location );
                             door.step_open.offset( location );
+                            door.permit_granted.offset( location );
                             m_doorsounds.emplace_back( door );
                         }
                         if( ( sides == "both" )
@@ -5995,6 +6019,7 @@ void TDynamicObject::LoadMMediaFile( std::string const &TypeName, std::string co
                             door.unlock.offset( location );
                             door.step_close.offset( location );
                             door.step_open.offset( location );
+                            door.permit_granted.offset( location );
                             m_doorsounds.emplace_back( door );
                         }
                         m_doorspeakers.emplace_back(

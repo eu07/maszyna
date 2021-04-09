@@ -252,6 +252,7 @@ enum sound {
     attachheating = 1 << 13,
     attachadapter = 1 << 14,
     removeadapter = 1 << 15,
+    doorpermit = 1 << 16,
 };
 
 // customizable reset button
@@ -882,6 +883,7 @@ private:
         // internal data
         float auto_timer { -1.f }; // delay between activation of open state and closing state for automatic doors
         float close_delay { 0.f }; // delay between activation of closing state and actual closing
+        float open_delay { 0.f }; // delay between activation of opening state and actual opening
         float position { 0.f }; // current shift of the door from the closed position
         float step_position { 0.f }; // current shift of the movable step from the retracted position
         // ld outputs
@@ -897,6 +899,7 @@ private:
         // config
         control_t open_control { control_t::passenger };
         float open_rate { 1.f };
+        float open_delay { 0.f };
         control_t close_control { control_t::passenger };
         float close_rate { 1.f };
         float close_delay { 0.f };
@@ -1432,6 +1435,7 @@ public:
     heat_data dizel_heat;
     std::array<cooling_fan, 2> MotorBlowers;
     door_data Doors;
+    float DoorsOpenWithPermitAfter { -1.f }; // remote open if permit button is held for specified time. NOTE: separate from door data as its cab control thing
 
     int BrakeCtrlPos = -2;               /*nastawa hamulca zespolonego*/
 	double BrakeCtrlPosR = 0.0;                 /*nastawa hamulca zespolonego - plynna dla FV4a*/
@@ -1868,6 +1872,7 @@ public:
     bool AssignLoad( std::string const &Name, float const Amount = 0.f );
 	bool LoadingDone(double LSpeed, std::string const &Loadname);
     bool PermitDoors( side const Door, bool const State = true, range_t const Notify = range_t::consist );
+    void PermitDoors_( side const Door, bool const State = true );
     bool ChangeDoorPermitPreset( int const Change, range_t const Notify = range_t::consist );
     bool PermitDoorStep( bool const State, range_t const Notify = range_t::consist );
     bool ChangeDoorControlMode( bool const State, range_t const Notify = range_t::consist );

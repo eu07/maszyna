@@ -356,6 +356,7 @@ private:
         sound_source unlock { sound_placement::general };
         sound_source step_open { sound_placement::general };
         sound_source step_close { sound_placement::general };
+        sound_source permit_granted { sound_placement::general };
         side placement {};
     };
 

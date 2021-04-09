@@ -1100,7 +1100,7 @@ void TTrain::OnCommand_secondcontrollerincrease( TTrain *Train, command_data con
         }
     }
     else {
-        if( Train->ggScndCtrl.type() == TGaugeType::push ) {
+        if( Train->ggScndCtrl.is_push() ) {
             // two-state control, active while the button is down
             if( Command.action == GLFW_PRESS ) {
                 // activate on press
@@ -1117,6 +1117,13 @@ void TTrain::OnCommand_secondcontrollerincrease( TTrain *Train, command_data con
                 // on press or hold
                 Train->mvControlled->IncScndCtrl( 1 );
             }
+        }
+        // potentially animate tempomat button
+        if( ( Train->ggScndCtrlButton.is_push() )
+         && ( Train->mvControlled->ScndCtrlPos <= 1 ) ) {
+            Train->ggScndCtrlButton.UpdateValue(
+                ( ( Command.action == GLFW_RELEASE ) ? 0.f : 1.f ),
+                Train->dsbSwitch );
         }
     }
 }
@@ -1250,6 +1257,20 @@ void TTrain::OnCommand_secondcontrollerdecrease( TTrain *Train, command_data con
         }
         else {
             Train->mvControlled->DecScndCtrl( 1 );
+        }
+    }
+    // potentially animate tempomat button
+    if( ( Train->ggScndCtrlButton.is_push() )
+     && ( Train->mvControlled->ScndCtrlPos <= 1 ) ) {
+        if( Train->m_controlmapper.contains( "tempomatoff_sw:" ) ) {
+            Train->ggScndCtrlOffButton.UpdateValue(
+                ( ( Command.action == GLFW_RELEASE ) ? 0.f : 1.f ),
+                Train->dsbSwitch );
+        }
+        else {
+            Train->ggScndCtrlButton.UpdateValue(
+                ( ( Command.action == GLFW_RELEASE ) ? 0.f : 1.f ),
+                Train->dsbSwitch );
         }
     }
 }
@@ -5168,18 +5189,20 @@ void TTrain::OnCommand_doorpermitleft( TTrain *Train, command_data const &Comman
     if( Command.action == GLFW_REPEAT ) { return; }
     if( false == Train->mvOccupied->Doors.permit_presets.empty() ) { return; }
 
+    auto const side { (
+    Train->cab_to_end() == end::front ?
+        side::left :
+        side::right ) };
+
     if( Command.action == GLFW_PRESS ) {
 
-        auto const side { (
-            Train->cab_to_end() == end::front ?
-                side::left :
-                side::right ) };
-
-        if( Train->ggDoorLeftPermitButton.type() == TGaugeType::push ) {
+        if( Train->ggDoorLeftPermitButton.is_push() ) {
             // impulse switch
             Train->mvOccupied->PermitDoors( side );
             // visual feedback
             Train->ggDoorLeftPermitButton.UpdateValue( 1.0, Train->dsbSwitch );
+            // start potential timer for remote door control
+            Train->m_doorpermittimers[ side ] = Train->mvOccupied->DoorsOpenWithPermitAfter;
         }
         else {
             // two-state switch
@@ -5192,10 +5215,12 @@ void TTrain::OnCommand_doorpermitleft( TTrain *Train, command_data const &Comman
     }
     else if( Command.action == GLFW_RELEASE ) {
 
-        if( Train->ggDoorLeftPermitButton.type() == TGaugeType::push ) {
+        if( Train->ggDoorLeftPermitButton.is_push() ) {
             // impulse switch
             // visual feedback
             Train->ggDoorLeftPermitButton.UpdateValue( 0.0, Train->dsbSwitch );
+            // reset potential remote door control timer
+            Train->m_doorpermittimers[ side ] = -1.f;
         }
     }
 }
@@ -5205,18 +5230,20 @@ void TTrain::OnCommand_doorpermitright( TTrain *Train, command_data const &Comma
     if( Command.action == GLFW_REPEAT ) { return; }
     if( false == Train->mvOccupied->Doors.permit_presets.empty() ) { return; }
 
-    if( Command.action == GLFW_PRESS ) {
+    auto const side { (
+        Train->cab_to_end() == end::front ?
+            side::right :
+            side::left ) };
 
-        auto const side { (
-            Train->cab_to_end() == end::front ?
-                side::right :
-                side::left ) };
+    if( Command.action == GLFW_PRESS ) {
 
         if( Train->ggDoorRightPermitButton.type() == TGaugeType::push ) {
             // impulse switch
             Train->mvOccupied->PermitDoors( side );
             // visual feedback
             Train->ggDoorRightPermitButton.UpdateValue( 1.0, Train->dsbSwitch );
+            // start potential timer for remote door control
+            Train->m_doorpermittimers[ side ] = Train->mvOccupied->DoorsOpenWithPermitAfter;
         }
         else {
             // two-state switch
@@ -5233,6 +5260,8 @@ void TTrain::OnCommand_doorpermitright( TTrain *Train, command_data const &Comma
             // impulse switch
             // visual feedback
             Train->ggDoorRightPermitButton.UpdateValue( 0.0, Train->dsbSwitch );
+            // reset potential remote door control timer
+            Train->m_doorpermittimers[ side ] = -1.f;
         }
     }
 }
@@ -6118,7 +6147,7 @@ void TTrain::UpdateCab() {
 
 bool TTrain::Update( double const Deltatime )
 {
-    // train state verification
+    // train state update
     // line breaker:
     if( m_linebreakerstate == 0 ) {
         if( true == mvControlled->Mains ) {
@@ -6169,13 +6198,29 @@ bool TTrain::Update( double const Deltatime )
                     0 );
         }
     }
+    // door permits
+    for( auto idx = 0; idx < 2; ++idx ) {
+        auto &doorpermittimer { m_doorpermittimers[ idx ] };
+        if( doorpermittimer < 0.f ) {
+            continue;
+        }
+        doorpermittimer -= Deltatime;
+        if( doorpermittimer < 0.f ) {
+            mvOccupied->OperateDoors( static_cast<side>( idx ), true );
+        }
+    }
     // helper variables
     if( DynamicObject->Mechanik != nullptr ) {
-        m_doors = ( DynamicObject->Mechanik->IsAnyDoorOpen[ side::right ] || DynamicObject->Mechanik->IsAnyDoorOpen[ side::left ] );
+        m_doors = (
+            DynamicObject->Mechanik->IsAnyDoorOpen[ side::right ]
+         || DynamicObject->Mechanik->IsAnyDoorOpen[ side::left ] );
+        m_doorpermits = (
+            DynamicObject->Mechanik->IsAnyDoorPermitActive[ side::right ]
+         || DynamicObject->Mechanik->IsAnyDoorPermitActive[ side::left ] );
     }
 	m_dirforward = ( mvControlled->DirActive > 0 );
 	m_dirneutral = ( mvControlled->DirActive == 0 );
-	m_dirbackward = ( mvControlled->DirActive <0 );
+	m_dirbackward = ( mvControlled->DirActive < 0 );
 
     // check for received user commands
     // NOTE: this is a temporary arrangement, for the transition period from old command setup to the new one
@@ -9213,6 +9258,7 @@ bool TTrain::initialize_button(cParser &Parser, std::string const &Label, int co
         { "i-doors:", &m_doors },
         { "i-doorpermit_left:",  &mvOccupied->Doors.instances[ ( cab_to_end() == end::front ? side::left : side::right ) ].open_permit },
         { "i-doorpermit_right:", &mvOccupied->Doors.instances[ ( cab_to_end() == end::front ? side::right : side::left ) ].open_permit },
+        { "i-doorpermit_any:", &m_doorpermits },
         { "i-doorstep:", &mvOccupied->Doors.step_enabled },
         { "i-mainpipelock:", &mvOccupied->LockPipe },
         { "i-battery:", &mvOccupied->Power24vIsAvailable },

@@ -818,6 +818,8 @@ private:
     bool m_dirforward{ false }; // helper, true if direction set to forward
     bool m_dirneutral{ false }; // helper, true if direction set to neutral
     bool m_dirbackward{ false }; // helper, true if direction set to backward
+    bool m_doorpermits{ false }; // helper, true if any door permit is active
+    float m_doorpermittimers[2] = { -1.f, -1.f };
     // ld substitute
     bool m_couplingdisconnect { false };
 
