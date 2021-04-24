@@ -1046,7 +1046,7 @@ public:
     double EngineHeatingRPM { 0.0 }; // guaranteed engine revolutions with heating enabled
     double LightPower = 0.0; /*moc pobierana na ogrzewanie/oswietlenie*/
 	double BatteryVoltage = 0.0;        /*Winger - baterie w elektrykach*/
-	bool Battery = false; /*Czy sa zalavzone baterie*/
+	bool Battery = false; /*Czy sa zalaczone baterie*/
     start_t BatteryStart = start_t::manual;
 	bool EpFuse = true; /*Czy sa zalavzone baterie*/
 	bool Signalling = false;         /*Czy jest zalaczona sygnalizacja hamowania ostatniego wagonu*/
@@ -1805,8 +1805,10 @@ public:
     bool ConverterSwitch( bool State, range_t const Notify = range_t::consist );/*! wl/wyl przetwornicy*/
     bool CompressorSwitch( bool State, range_t const Notify = range_t::consist );/*! wl/wyl sprezarki*/
     bool ChangeCompressorPreset( int const Change, range_t const Notify = range_t::consist );
+    bool HeatingSwitch( bool const State, range_t const Notify = range_t::consist );
+    void HeatingSwitch_( bool const State );
 
-									  /*-funkcje typowe dla lokomotywy elektrycznej*/
+    /*-funkcje typowe dla lokomotywy elektrycznej*/
     void LowVoltagePowerCheck( double const Deltatime );
     void MainsCheck( double const Deltatime );
     void PowerCouplersCheck( double const Deltatime, coupling const Coupling );

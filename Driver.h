@@ -383,6 +383,7 @@ private:
     int iDirection = 0; // kierunek jazdy względem sprzęgów pojazdu, w którym siedzi AI (1=przód,-1=tył)
     int iDirectionOrder = 0; //żadany kierunek jazdy (służy do zmiany kierunku)
     std::optional<int> iDirectionBackup; // consist direction to be restored after coupling/uncoupling and similar direction-changing operations
+    std::optional<std::pair<TDynamicObject*,int>> iCouplingVehicle; // <vehicle, coupler> to be coupled with another consist in current coupling operation
     int iVehicleCount = -2; // wartość neutralna // ilość pojazdów do odłączenia albo zabrania ze składu (-1=wszystkie)
     int iCoupler = 0; // maska sprzęgu, jaką należy użyć przy łączeniu (po osiągnięciu trybu Connect), 0 gdy jazda bez łączenia
     int iDriverFailCount = 0; // licznik błędów AI
@@ -446,7 +447,7 @@ public:
     std::string OrderCurrent() const;
 private:
     void RecognizeCommand(); // odczytuje komende przekazana lokomotywie
-    void JumpToNextOrder();
+    void JumpToNextOrder( bool const Skipmergedchangedirection = false );
     void JumpToFirstOrder();
     void OrderPush( TOrders NewOrder );
     void OrderNext( TOrders NewOrder );

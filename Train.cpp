@@ -4859,7 +4859,7 @@ void TTrain::OnCommand_heatingenable( TTrain *Train, command_data const &Command
 
     if( Command.action == GLFW_PRESS ) {
 
-        Train->mvControlled->HeatingAllow = true;
+        Train->mvOccupied->HeatingSwitch( true );
         // visual feedback
         Train->ggTrainHeatingButton.UpdateValue( 1.0, Train->dsbSwitch );
     }
@@ -4869,7 +4869,7 @@ void TTrain::OnCommand_heatingdisable( TTrain *Train, command_data const &Comman
 
     if( Command.action == GLFW_PRESS ) {
 
-        Train->mvControlled->HeatingAllow = false;
+        Train->mvOccupied->HeatingSwitch( false );
         // visual feedback
         Train->ggTrainHeatingButton.UpdateValue( 
             ( Train->ggTrainHeatingButton.type() == TGaugeType::push ?
@@ -7101,7 +7101,7 @@ bool TTrain::Update( double const Deltatime )
         }
         ggMainCtrl.Update();
     }
-    if (ggMainCtrlAct.SubModel)
+    if (ggMainCtrlAct.SubModel != nullptr )
     {
         if (mvControlled->CoupledCtrl)
             ggMainCtrlAct.UpdateValue(
@@ -7110,7 +7110,7 @@ bool TTrain::Update( double const Deltatime )
             ggMainCtrlAct.UpdateValue(double(mvControlled->MainCtrlActualPos));
         ggMainCtrlAct.Update();
     }
-    if (ggScndCtrl.SubModel) {
+    if (ggScndCtrl.SubModel != nullptr ) {
         // Ra: od byte odejmowane boolean i konwertowane potem na double?
         ggScndCtrl.UpdateValue(
             double( mvControlled->ScndCtrlPos
@@ -7118,26 +7118,34 @@ bool TTrain::Update( double const Deltatime )
             dsbNastawnikBocz );
         ggScndCtrl.Update();
     }
-    if( ggScndCtrlButton.is_toggle() ) {
-        ggScndCtrlButton.UpdateValue(
-            ( ( mvControlled->ScndCtrlPos > 0 ) ? 1.f : 0.f ),
-            dsbSwitch );
+    if( ggScndCtrlButton.SubModel != nullptr ) {
+        if( ggScndCtrlButton.is_toggle() ) {
+            ggScndCtrlButton.UpdateValue(
+                ( ( mvControlled->ScndCtrlPos > 0 ) ? 1.f : 0.f ),
+                dsbSwitch );
+        }
+        ggScndCtrlButton.Update( lowvoltagepower );
     }
-    ggScndCtrlButton.Update( lowvoltagepower );
-    ggScndCtrlOffButton.Update( lowvoltagepower );
-    ggDistanceCounterButton.Update();
-    if (ggDirKey.SubModel) {
-        if (mvControlled->TrainType != dt_EZT)
+    if( ggScndCtrlOffButton.SubModel != nullptr ) {
+        ggScndCtrlOffButton.Update( lowvoltagepower );
+    }
+    if( ggDistanceCounterButton.SubModel != nullptr ) {
+        ggDistanceCounterButton.Update();
+    }
+    if (ggDirKey.SubModel != nullptr ) {
+        if( mvControlled->TrainType != dt_EZT ) {
             ggDirKey.UpdateValue(
-                double(mvControlled->DirActive),
-                dsbReverserKey);
-        else
+                double( mvControlled->DirActive ),
+                dsbReverserKey );
+        }
+        else {
             ggDirKey.UpdateValue(
-                double(mvControlled->DirActive) + double(mvControlled->Imin == mvControlled->IminHi),
-                dsbReverserKey);
+                double( mvControlled->DirActive ) + double( mvControlled->Imin == mvControlled->IminHi ),
+                dsbReverserKey );
+        }
         ggDirKey.Update();
     }
-    if (ggBrakeCtrl.SubModel)
+    if (ggBrakeCtrl.SubModel != nullptr )
     {
 #ifdef _WIN32
         if (DynamicObject->Mechanik ?
@@ -9437,7 +9445,7 @@ bool TTrain::initialize_gauge(cParser &Parser, std::string const &Label, int con
         { "universal7:", ggUniversals[ 7 ] },
         { "universal8:", ggUniversals[ 8 ] },
         { "universal9:", ggUniversals[ 9 ] }
-   };
+    };
     {
         auto const lookup { gauges.find( Label ) };
         if( lookup != gauges.end() ) {

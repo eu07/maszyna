@@ -1676,14 +1676,19 @@ TController::TableUpdateEvent( double &Velocity, TCommandType &Command, TSpeedPo
                 else if( Point.evEvent->is_command() ) {
                     // jeśli prędkość jest zerowa, a komórka zawiera komendę
                     eSignNext = Point.evEvent; // dla informacji
-                    if( true == TestFlag( iDrivigFlags, moveStopHere ) ) {
-                        // jeśli ma stać, dostaje komendę od razu
-                        Command = TCommandType::cm_Command; // komenda z komórki, do wykonania po zatrzymaniu
-                    }
-                    else if( Point.fDist <= fMaxProximityDist ) {
-                        // jeśli ma dociągnąć, to niech dociąga
-                        // (moveStopCloser dotyczy dociągania do W4, nie semafora)
-                        Command = TCommandType::cm_Command; // komenda z komórki, do wykonania po zatrzymaniu
+                    // make sure the command isn't for someone else
+                    // TBD, TODO: revise this check for bank/loose_shunt; we might want to ignore obstacles with no owner in these modes
+                    if( Point.fDist < Obstacle.distance ) {
+                        if( true == TestFlag( iDrivigFlags, moveStopHere ) ) {
+                            // jeśli ma stać, dostaje komendę od razu
+                            Command = TCommandType::cm_Command; // komenda z komórki, do wykonania po zatrzymaniu
+                        }
+                        // NOTE: human drivers are likely to stop wherever and expect things to still work, so we give them more leeway
+                        else if( Point.fDist <= ( AIControllFlag ? fMaxProximityDist : std::max( 250.0, fMaxProximityDist ) ) ) {
+                            // jeśli ma dociągnąć, to niech dociąga
+                            // (moveStopCloser dotyczy dociągania do W4, nie semafora)
+                            Command = TCommandType::cm_Command; // komenda z komórki, do wykonania po zatrzymaniu
+                        }
                     }
                 }
             }
@@ -1928,9 +1933,13 @@ TController::~TController()
 // zamiana kodu rozkazu na opis
 std::string TController::Order2Str(TOrders Order) const {
 
-    if( Order & Change_direction ) {
+    if( ( ( Order & Change_direction ) != 0 )
+     && ( Order != Change_direction ) ) {
         // może być nałożona na inną i wtedy ma priorytet
-        return "Change_direction";
+        return
+            Order2Str( Change_direction )
+            + " + "
+            + Order2Str( static_cast<TOrders>( Order & ~Change_direction ) );
     }
     switch( Order ) {
         case Wait_for_orders:     return "Wait_for_orders";
@@ -1953,11 +1962,15 @@ std::array<char, 64> orderbuffer;
 std::string TController::OrderCurrent() const
 { // pobranie aktualnego rozkazu celem wyświetlenia
     auto const order { OrderCurrentGet() };
+    // generally prioritize direction change...
     if( order & Change_direction ) {
-        return locale::strings[ locale::string::driver_scenario_changedirection ];
+        // ...but not in the middle of coupling operation
+        if( false == TestFlag( iDrivigFlags, moveConnect ) ) {
+            return locale::strings[ locale::string::driver_scenario_changedirection ];
+        }
     }
 
-    switch( OrderList[ OrderPos ] ) {
+    switch( static_cast<TOrders>( order & ~Change_direction ) ) {
         case Wait_for_orders: { return locale::strings[ locale::string::driver_scenario_waitfororders ]; }
         case Prepare_engine: { return locale::strings[ locale::string::driver_scenario_prepareengine ]; }
         case Release_engine: { return locale::strings[ locale::string::driver_scenario_releaseengine ]; }
@@ -4927,17 +4940,20 @@ TController::PrepareDirection() {
             locale::string::driver_hint_directionbackward );
 }
 
-void TController::JumpToNextOrder()
+void TController::JumpToNextOrder( bool const Ignoremergedchangedirection )
 { // wykonanie kolejnej komendy z tablicy rozkazów
     if (OrderList[OrderPos] != Wait_for_orders)
     {
-        if (OrderList[OrderPos] & Change_direction) // jeśli zmiana kierunku
-            if (OrderList[OrderPos] != Change_direction) // ale nałożona na coś
-            {
-                OrderList[OrderPos] = TOrders(OrderList[OrderPos] & ~Change_direction); // usunięcie zmiany kierunku z innej komendy
+        if( ( ( OrderList[ OrderPos ] & Change_direction ) != 0 ) // jeśli zmiana kierunku
+        &&  ( OrderList[ OrderPos ] != Change_direction ) ) { // ale nałożona na coś
+
+            if( false == Ignoremergedchangedirection ) {
+                // usunięcie zmiany kierunku z innej komendy
+                OrderList[ OrderPos ] = TOrders( OrderList[ OrderPos ] & ~Change_direction );
                 OrderCheck();
                 return;
             }
+        }
         if (OrderPos < maxorders - 1)
             ++OrderPos;
         else
@@ -6701,9 +6717,9 @@ TController::UpdateConnect() {
     // podłączanie do składu
     if (iDrivigFlags & moveConnect) {
         // sprzęgi sprawdzamy w pierwszej kolejności, bo jak połączony, to koniec
-        auto *vehicle { pVehicles[ end::front ] };
+        auto *vehicle { iCouplingVehicle.value().first };
+        auto const couplingend { iCouplingVehicle.value().second };
         auto *vehicleparameters { vehicle->MoverParameters };
-        auto const couplingend { ( vehicle->DirectionGet() > 0 ? end::front : end::rear ) };
         if( vehicleparameters->Couplers[ couplingend ].CouplingFlag != iCoupler ) {
             auto const &neighbour { vehicleparameters->Neighbours[ couplingend ] };
             if( neighbour.vehicle != nullptr ) {
@@ -6736,14 +6752,24 @@ TController::UpdateConnect() {
             CheckVehicles( Connect ); // sprawdzić światła nowego składu
 
             iCoupler = 0; // dalsza jazda manewrowa już bez łączenia
+            iCouplingVehicle.reset();
             iDrivigFlags &= ~moveConnect; // zdjęcie flagi doczepiania
-            JumpToNextOrder(); // wykonanie następnej komendy
+            JumpToNextOrder( true ); // wykonanie następnej komendy
         }
     } // moveConnect
     else {
+        // początek podczepiania, z wyłączeniem sprawdzania fTrackBlock
         if( Obstacle.distance <= 20.0 ) {
-            // początek podczepiania, z wyłączeniem sprawdzania fTrackBlock
-            iDrivigFlags |= moveConnect;
+            if( !iCouplingVehicle ) {
+                // write down which vehicle should be coupled with the target consist,
+                // so we don't lose track of it if the user does something unexpected
+                iCouplingVehicle = {
+                    pVehicles[ end::front ],
+                    ( pVehicles[ end::front ]->DirectionGet() > 0 ?
+                        end::front :
+                        end::rear ) };
+                iDrivigFlags |= moveConnect;
+            }
         }
     }
 }
@@ -6885,9 +6911,7 @@ TController::UpdateDisconnect() {
         // 5th stage: clean up and move on to next order
         if( iDirection == iDirectionOrder ) {
             iDrivigFlags &= ~movePress; // koniec dociskania
-            while( ( OrderCurrentGet() & Disconnect ) != 0 ) {
-                JumpToNextOrder(); // zmieni światła
-            }
+            JumpToNextOrder( true ); // zmieni światła
             TableClear(); // skanowanie od nowa
             iDrivigFlags &= ~moveStartHorn; // bez trąbienia przed ruszeniem
         }
@@ -6957,6 +6981,11 @@ TController::handle_orders() {
         break;
     }
     default: {
+        // special case, change_direction potentially received during partially completed coupling operation
+        // this is unlikely to happen for the AI, but can happen for a (slower) human user
+        if( TestFlag( iDrivigFlags, moveConnect ) ) {
+            UpdateConnect();
+        }
         break;
     }
     } // switch OrderList[OrderPos]
@@ -7949,27 +7978,31 @@ TController::check_route_ahead( double const Range ) {
 void
 TController::check_route_behind( double const Range ) {
 
-    if( VelNext != 0.0 ) { return; }
+    if( VelNext != 0.0 ) { return; } // not if we can move ahead
+    if( TestFlag( iDrivigFlags, moveConnect ) ) { return; } // not if we're in middle of coupling operation
 
-    if( !( OrderCurrentGet() & ~( Shunt | Loose_shunt | Connect ) ) ) {
+    if( ( OrderCurrentGet() & ~( Shunt | Loose_shunt | Connect ) ) == 0 ) {
         // jedzie w Shunt albo Connect, albo Wait_for_orders
         // w trybie Connect skanować do tyłu tylko jeśli przed kolejnym sygnałem nie ma taboru do podłączenia
-        if( ( ( OrderCurrentGet() & Connect ) == 0 )
-         || ( Obstacle.distance > std::min( 2000.0, FirstSemaphorDist ) ) ) {
-            auto const comm { BackwardScan( Range ) };
-            if( comm != TCommandType::cm_Unknown ) {
-                // jeśli w drugą można jechać
-                // należy sprawdzać odległość od znalezionego sygnalizatora,
-                // aby w przypadku prędkości 0.1 wyciągnąć najpierw skład za sygnalizator
-                // i dopiero wtedy zmienić kierunek jazdy, oczekując podania prędkości >0.5
-                if( comm == TCommandType::cm_Command ) {
-                    // jeśli komenda Shunt to ją odbierz bez przemieszczania się (np. odczep wagony po dopchnięciu do końca toru)
-                    iDrivigFlags |= moveStopHere;
-                }
-                iDirectionOrder = -iDirection; // zmiana kierunku jazdy
-                // zmiana kierunku bez psucia kolejnych komend
-                OrderList[ OrderPos ] = TOrders( OrderCurrentGet() | Change_direction );
+        auto const couplinginprogress {
+            ( TestFlag( OrderCurrentGet(), Connect ) )
+         && ( ( Obstacle.distance < std::min( 2000.0, FirstSemaphorDist ) )
+           || ( TestFlag( iDrivigFlags, moveConnect ) ) ) };
+        if( couplinginprogress ) { return; }
+
+        auto const comm { BackwardScan( Range ) };
+        if( comm != TCommandType::cm_Unknown ) {
+            // jeśli w drugą można jechać
+            // należy sprawdzać odległość od znalezionego sygnalizatora,
+            // aby w przypadku prędkości 0.1 wyciągnąć najpierw skład za sygnalizator
+            // i dopiero wtedy zmienić kierunek jazdy, oczekując podania prędkości >0.5
+            if( comm == TCommandType::cm_Command ) {
+                // jeśli komenda Shunt to ją odbierz bez przemieszczania się (np. odczep wagony po dopchnięciu do końca toru)
+                iDrivigFlags |= moveStopHere;
             }
+            iDirectionOrder = -iDirection; // zmiana kierunku jazdy
+            // zmiana kierunku bez psucia kolejnych komend
+            OrderList[ OrderPos ] = TOrders( OrderCurrentGet() | Change_direction );
         }
     }
 }

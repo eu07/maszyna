@@ -141,8 +141,32 @@ void TGauge::Load( cParser &Parser, TDynamicObject const *Owner, double const mu
                 >> endscale;
         }
         // new, variable length section
-        while( true == Load_mapping( Parser ) ) {
-            ; // all work done by while()
+        {
+            scratch_data scratchpad;
+            while( true == Load_mapping( Parser, scratchpad ) ) {
+                ; // all work done by while()
+            }
+            // post-deserialization cleanup
+            // set provided custom soundproofing to assigned sounds (for sounds without their own custom soundproofing)
+            if( scratchpad.soundproofing ) {
+                if( !m_soundfxincrease.soundproofing() ) {
+                    m_soundfxincrease.soundproofing() = scratchpad.soundproofing;
+                }
+                if( !m_soundfxdecrease.soundproofing() ) {
+                    m_soundfxdecrease.soundproofing() = scratchpad.soundproofing;
+                }
+                if( !m_soundfxon.soundproofing() ) {
+                    m_soundfxon.soundproofing() = scratchpad.soundproofing;
+                }
+                if( !m_soundfxoff.soundproofing() ) {
+                    m_soundfxoff.soundproofing() = scratchpad.soundproofing;
+                }
+                for( auto &soundfxrecord : m_soundfxvalues ) {
+                    if( !soundfxrecord.second.soundproofing() ) {
+                        soundfxrecord.second.soundproofing() = scratchpad.soundproofing;
+                    }
+                }
+            }
         }
     }
 
@@ -207,7 +231,7 @@ void TGauge::Load( cParser &Parser, TDynamicObject const *Owner, double const mu
 };
 
 bool
-TGauge::Load_mapping( cParser &Input ) {
+TGauge::Load_mapping( cParser &Input, TGauge::scratch_data &Scratchpad ) {
 
     // token can be a key or block end
     auto const key { Input.getToken<std::string>( true, "\n\r\t  ,;" ) };
@@ -236,8 +260,21 @@ TGauge::Load_mapping( cParser &Input ) {
     else if( key == "soundoff:" ) {
         m_soundfxoff.deserialize( Input, sound_type::single );
     }
-    else if( key.compare( 0, std::min<std::size_t>( key.size(), 5 ), "sound" ) == 0 ) {
-        // sounds assigned to specific gauge values, defined by key soundFoo: where Foo = value
+    else if( key == "soundproofing:" ) {
+        // custom soundproofing in format [ p1, p2, p3, p4, p5, p6 ]
+        Input.getTokens( 6, false, "\n\r\t ,;[]" );
+        std::array<float, 6> soundproofing;
+        Input
+            >> soundproofing[ 0 ]
+            >> soundproofing[ 1 ]
+            >> soundproofing[ 2 ]
+            >> soundproofing[ 3 ]
+            >> soundproofing[ 4 ]
+            >> soundproofing[ 5 ];
+        Scratchpad.soundproofing = soundproofing;
+    }
+    else if( starts_with( key, "sound" ) ) {
+        // sounds assigned to specific gauge values, defined by key soundX: where X = value
         auto const indexstart { key.find_first_of( "-1234567890" ) };
         auto const indexend { key.find_first_not_of( "-1234567890", indexstart ) };
         if( indexstart != std::string::npos ) {
@@ -290,13 +327,19 @@ TGauge::UpdateValue( float fNewDesired, sound_source *Fallbacksound ) {
     // HACK: crude way to discern controls with continuous and quantized value range
     if( currentvalue < fNewDesired ) {
         // shift up
-        m_soundfxincrease.play( m_soundtype );
+        if( false == m_soundfxincrease.empty() ) {
+            m_soundfxincrease.play( m_soundtype );
+            return;
+        }
     }
     else if( currentvalue > fNewDesired ) {
         // shift down
-        m_soundfxdecrease.play( m_soundtype );
+        if( false == m_soundfxdecrease.empty() ) {
+            m_soundfxdecrease.play( m_soundtype );
+            return;
+        }
     }
-    else if( Fallbacksound != nullptr ) {
+    if( Fallbacksound != nullptr ) {
         // ...and if that fails too, try the provided fallback sound from legacy system
         Fallbacksound->play( m_soundtype );
     }

@@ -71,10 +71,14 @@ public:
               *SubModelOn { nullptr }; // optional submodel visible when the state input is set
 
 private:
+// types
+    struct scratch_data {
+        std::optional< std::array<float, 6> > soundproofing;
+    };
 // methods
-// imports member data pair from the config file
+    // imports member data pair from the config file
     bool
-        Load_mapping( cParser &Input );
+        Load_mapping( cParser &Input, TGauge::scratch_data &Scratchpad );
     void
         UpdateValue( float fNewDesired, sound_source *Fallbacksound );
     float

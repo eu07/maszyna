@@ -1088,7 +1088,7 @@ debug_panel::update_section_ai( std::vector<text_line> &Output ) {
     // biezaca komenda dla AI
     auto textline =
         "Current order: [" + std::to_string( mechanik.OrderPos ) + "] "
-        + mechanik.OrderCurrent();
+        + mechanik.Order2Str( mechanik.OrderCurrentGet() );
 
     if( mechanik.fStopTime < 0.0 ) {
         textline += "\n stop time: " + to_string( std::abs( mechanik.fStopTime ), 1 );

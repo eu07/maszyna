@@ -4122,6 +4122,14 @@ void TDynamicObject::RenderSounds() {
         sHeater.stop();
     }
 
+    // battery sound
+    if( MoverParameters->Battery ) {
+        m_batterysound.play( sound_flags::exclusive | sound_flags::looping );
+    }
+    else {
+        m_batterysound.stop();
+    }
+
     // brake system and braking sounds:
 
     // brake cylinder piston
@@ -5763,6 +5771,12 @@ void TDynamicObject::LoadMMediaFile( std::string const &TypeName, std::string co
                     sHeater.owner( this );
                 }
 
+                else if( token == "battery:" ) {
+                    // train heating device
+                    m_batterysound.deserialize( parser, sound_type::single );
+                    m_batterysound.owner( this );
+                }
+
 				else if( token == "turbo:" ) {
 					// pliki z turbogeneratorem
                     m_powertrainsounds.engine_turbo.deserialize( parser, sound_type::multipart, sound_parameters::range );
@@ -6484,7 +6498,7 @@ void TDynamicObject::LoadMMediaFile( std::string const &TypeName, std::string co
     // other engine compartment sounds
     auto const nullvector { glm::vec3() };
     std::vector<sound_source *> enginesounds = {
-        &sConverter, &sCompressor, &sCompressorIdle, &sSmallCompressor, &sHeater
+        &sConverter, &sCompressor, &sCompressorIdle, &sSmallCompressor, &sHeater, &m_batterysound
     };
     for( auto sound : enginesounds ) {
         if( sound->offset() == nullvector ) {

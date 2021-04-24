@@ -77,7 +77,7 @@ ui_layer::init( GLFWwindow *Window ) {
 
     static ImWchar const glyphranges[] = {
         0x0020, 0x00FF, // ascii + extension
-        0x0100, 0x017F, // latin extended-a
+//        0x0100, 0x017F, // latin extended-a
         0x2070, 0x2079, // superscript
         0x2500, 0x256C, // box drawings
         0,

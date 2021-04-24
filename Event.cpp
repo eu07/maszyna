@@ -538,10 +538,10 @@ updatevalues_event::run_() {
         auto const location { targetcell->location() };
         for( auto vehicle : targetcell->Track->Dynamics ) {
             if( vehicle->Mechanik ) {
+                WriteLog( " Vehicle: [" + vehicle->name() + "]" );
                 targetcell->PutCommand(
                     vehicle->Mechanik,
                     &location );
-                WriteLog( " Vehicle: [" + vehicle->name() + "]" );
             }
         }
     }
@@ -775,10 +775,9 @@ putvalues_event::run_() {
          m_input.location.z,
          m_input.location.y };
 
-    std::string vehiclename;
     if( m_activator->Mechanik ) {
         // przekazanie rozkazu do AI
-        vehiclename = m_activator->Mechanik->Vehicle()->name();
+        WriteLog( " Vehicle: [" + m_activator->Mechanik->Vehicle()->name() + "]" );
         m_activator->Mechanik->PutCommand(
             m_input.data_text,
             m_input.data_value_1,
@@ -790,7 +789,7 @@ putvalues_event::run_() {
         // send the command to consist owner,
         // we're acting on presumption there's hardly ever need to issue command to unmanned vehicle
         // and the intended recipient moved between vehicles after the event was queued
-        vehiclename = m_activator->ctOwner->Vehicle()->name();
+        WriteLog( " Vehicle: [" + m_activator->ctOwner->Vehicle()->name() + "]" );
         m_activator->ctOwner->PutCommand(
             m_input.data_text,
             m_input.data_value_1,
@@ -799,15 +798,13 @@ putvalues_event::run_() {
     }
     else {
         // przekazanie do pojazdu
-        vehiclename = m_activator->name();
+        WriteLog( " Vehicle: [" + m_activator->name() +"]" );
         m_activator->MoverParameters->PutCommand(
             m_input.data_text,
             m_input.data_value_1,
             m_input.data_value_2,
             loc );
     }
-
-    WriteLog( " Vehicle: [" + vehiclename + "]" );
 }
 
 // export_as_text() subclass details
@@ -944,10 +941,10 @@ copyvalues_event::run_() {
         auto const location { targetcell->location() };
         for( auto vehicle : targetcell->Track->Dynamics ) {
             if( vehicle->Mechanik ) {
+                WriteLog( " Vehicle: [" + vehicle->name() + "]" );
                 targetcell->PutCommand(
                     vehicle->Mechanik,
                     &location );
-                WriteLog( " Vehicle: [" + vehicle->name() + "]" );
             }
         }
     }

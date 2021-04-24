@@ -480,6 +480,7 @@ private:
     sound_source sCompressorIdle { sound_placement::engine };
     sound_source sSmallCompressor { sound_placement::engine };
     sound_source sHeater { sound_placement::engine };
+    sound_source m_batterysound { sound_placement::engine };
     // braking sounds
     sound_source dsbPneumaticRelay { sound_placement::external };
     sound_source rsBrake { sound_placement::external, EU07_SOUND_BRAKINGCUTOFFRANGE }; // moved from cab

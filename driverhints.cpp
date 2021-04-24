@@ -1147,24 +1147,24 @@ TController::cue_action( locale::string const Action, float const Actionparamete
         // consist heating
         case locale::string::driver_hint_consistheatingon: {
             if( AIControllFlag ) {
-                mvControlling->HeatingAllow = true;
+                mvOccupied->HeatingSwitch( true );
             }
             remove_hint( locale::string::driver_hint_consistheatingoff );
             hint(
                 Action,
                 [this](float const Parameter) -> bool {
-                    return ( mvControlling->HeatingAllow == true ); } );
+                    return ( mvOccupied->HeatingAllow == true ); } );
             break;
         }
         case locale::string::driver_hint_consistheatingoff: {
             if( AIControllFlag ) {
-                mvControlling->HeatingAllow = false;
+                mvOccupied->HeatingSwitch( false );
             }
             remove_hint( locale::string::driver_hint_consistheatingon );
             hint(
                 Action,
                 [this](float const Parameter) -> bool {
-                    return ( mvControlling->HeatingAllow == false ); } );
+                    return ( mvOccupied->HeatingAllow == false ); } );
             break;
         }
 

@@ -116,6 +116,11 @@ public:
         start( float const Offset );
     float const &
         start() const;
+    // custom soundproofing setter/getter
+    auto &
+        soundproofing();
+    auto const &
+        soundproofing() const;
     // returns true if there isn't any sound buffer associated with the object, false otherwise
     bool
         empty() const;
@@ -231,6 +236,7 @@ private:
     std::vector<soundchunk_pair> m_soundchunks; // table of samples activated when associated variable is within certain range
     bool m_soundchunksempty { true }; // helper, cached check whether sample table is linked with any actual samples
     int m_crossfaderange {}; // range of transition from one chunk to another
+    std::optional< std::array<float, 6> > m_soundproofing; // custom soundproofing parameters
 };
 
 // owner setter/getter
@@ -245,6 +251,10 @@ inline std::string const & sound_source::name() const { return m_name; }
 // playback starting point shift setter/getter
 inline void sound_source::start( float const Offset ) { m_startoffset = Offset; }
 inline float const & sound_source::start() const { return m_startoffset; }
+// custom soundproofing setter/getter
+inline auto & sound_source::soundproofing() { return m_soundproofing; }
+inline auto const & sound_source::soundproofing() const { return m_soundproofing; }
+
 
 // collection of sound sources present in the scene
 class sound_table : public basic_table<sound_source> {

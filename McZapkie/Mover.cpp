@@ -647,10 +647,12 @@ bool TMoverParameters::ChangeCab(int direction)
 // rozruch wysoki (true) albo niski (false)
 bool
 TMoverParameters::CurrentSwitch(bool const State) {
-    // Ra: przeniosłem z Train.cpp, nie wiem czy ma to sens
-    if (MaxCurrentSwitch(State)) {
-        if (TrainType != dt_EZT)
-            return (MinCurrentSwitch(State));
+
+    if( MaxCurrentSwitch( State ) ) {
+        if( TrainType != dt_EZT ) {
+            ( MinCurrentSwitch( State ) );
+        }
+        return true;
     }
     // TBD, TODO: split off shunt mode toggle into a separate command? It doesn't make much sense to have these two together like that
     // dla 2Ls150
@@ -3641,6 +3643,33 @@ bool TMoverParameters::ChangeCompressorPreset( int const State, range_t const No
     return ( CompressorListPos != initialstate );
 }
 
+bool TMoverParameters::HeatingSwitch( bool const State, range_t const Notify ) {
+
+    bool const initialstate { HeatingAllow };
+
+    HeatingSwitch_( State );
+
+    if( Notify != range_t::local ) {
+    // pass the command to other vehicles
+    // TBD: pass the requested state, or the actual state?
+    SendCtrlToNext(
+        "HeatingSwitch",
+        ( State ? 1 : 0 ),
+        CabActive,
+        ( Notify == range_t::unit ?
+            coupling::control | coupling::permanent :
+            coupling::control ) );
+    }
+
+    return ( HeatingAllow != initialstate );
+}
+
+void TMoverParameters::HeatingSwitch_( bool const State ) {
+
+    // TBD, TODO: activation dependencies?
+    HeatingAllow = State;
+}
+
 // *************************************************************************************************
 // Q: 20160711
 // zwiększenie nastawy hamulca
@@ -6550,12 +6579,14 @@ bool TMoverParameters::MaxCurrentSwitch(bool State)
             if (State && (Imax == ImaxLo) && (RList[MainCtrlPos].Bn < 2) &&
                 !((TrainType == dt_ET42) && (MainCtrlPos > 0)))
             {
+
                 Imax = ImaxHi;
                 MCS = true;
                 if (CabActive != 0)
                     SendCtrlToNext("MaxCurrentSwitch", 1, CabActive);
             }
             if (!State)
+
                 if (Imax == ImaxHi)
                     if (!((TrainType == dt_ET42) && (MainCtrlPos > 0)))
                     {
@@ -11769,6 +11800,11 @@ bool TMoverParameters::RunCommand( std::string Command, double CValue1, double C
     else if (Command == "MainSwitch")
 	{
         MainSwitch_( CValue1 > 0.0 );
+        OK = SendCtrlToNext( Command, CValue1, CValue2, Couplertype );
+	}
+    else if (Command == "HeatingSwitch")
+	{
+        HeatingSwitch_( CValue1 > 0.0 );
         OK = SendCtrlToNext( Command, CValue1, CValue2, Couplertype );
 	}
 	else if (Command == "Direction")
