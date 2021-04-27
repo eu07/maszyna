@@ -4109,17 +4109,20 @@ void TDynamicObject::RenderSounds() {
     }
 
     // heater sound
-    if( ( true == MoverParameters->Heating )
-     && ( std::abs( MoverParameters->enrot ) > 0.01 ) ) {
-        // TBD: check whether heating should depend on 'engine rotations' for electric vehicles
-        sHeater
-            .pitch( true == sHeater.is_combined() ?
+    {
+        auto const isdieselenginepowered { ( MoverParameters->EngineType == TEngineType::DieselElectric ) || ( MoverParameters->EngineType == TEngineType::DieselEngine ) };
+        if( ( true == MoverParameters->Heating )
+         && ( ( false == isdieselenginepowered )
+           || ( std::abs( MoverParameters->enrot ) > 0.01 ) ) ) {
+            sHeater
+                .pitch( true == sHeater.is_combined() ?
                     std::abs( MoverParameters->enrot ) * 60.f * 0.01f :
                     1.f )
-            .play( sound_flags::exclusive | sound_flags::looping );
-    }
-    else {
-        sHeater.stop();
+                .play( sound_flags::exclusive | sound_flags::looping );
+        }
+        else {
+            sHeater.stop();
+        }
     }
 
     // battery sound
@@ -4338,6 +4341,11 @@ void TDynamicObject::RenderSounds() {
                 m_pasystem.announcement = m_pasystem.announcement_queue.front();
                 m_pasystem.announcement.owner( this );
                 m_pasystem.announcement.range( 0.5 * MoverParameters->Dim.L * -1 );
+                if( m_pasystem.soundproofing ) {
+                    if( !m_pasystem.announcement.soundproofing() ) {
+                        m_pasystem.announcement.soundproofing() = m_pasystem.soundproofing;
+                    }
+                }
                 m_pasystem.announcement.play();
                 m_pasystem.announcement_queue.pop_front();
             }
@@ -5958,7 +5966,6 @@ void TDynamicObject::LoadMMediaFile( std::string const &TypeName, std::string co
 					// announcement sounds
                     // content provided as "key: value" pairs together enclosed in "{}"
                     // value can be optionally set of values enclosed in "[]" in which case one value will be picked randomly
-                    std::array<sound_source, static_cast<int>( announcement_t::end )> announcementsounds;
                     std::unordered_map<std::string, announcement_t> const announcements = {
                         { "near_stop:", announcement_t::approaching },
                         { "stop:", announcement_t::current },
@@ -5968,21 +5975,48 @@ void TDynamicObject::LoadMMediaFile( std::string const &TypeName, std::string co
                     while( ( ( token = parser.getToken<std::string>() ) != "" )
                         && ( token != "}" ) ) {
                         if( token.back() == ':' ) {
+
+                            if( token == "soundproofing:" ) {
+                                // custom soundproofing in format [ p1, p2, p3, p4, p5, p6 ]
+                                parser.getTokens( 6, false, "\n\r\t ,;[]" );
+                                std::array<float, 6> soundproofing;
+                                parser
+                                    >> soundproofing[ 0 ]
+                                    >> soundproofing[ 1 ]
+                                    >> soundproofing[ 2 ]
+                                    >> soundproofing[ 3 ]
+                                    >> soundproofing[ 4 ]
+                                    >> soundproofing[ 5 ];
+                                m_pasystem.soundproofing = soundproofing;
+                                continue;
+                            }
+
                             auto const lookup { announcements.find( token ) };
                             auto const announcementtype { (
                                 lookup != announcements.end() ?
                                     lookup->second :
                                     announcement_t::idle ) };
                             // NOTE: we retrieve key value for all keys, not just recognized ones
-                            auto announcementsound{ deserialize_random_set( parser ) };
-                            replace_slashes( announcementsound );
                             if( announcementtype == announcement_t::idle ) {
+                                token = parser.getToken<std::string>();
                                 continue;
                             }
+/*
+                            auto announcementsound { deserialize_random_set( parser ) };
+                            replace_slashes( announcementsound );
+*/
                             sound_source soundtemplate { sound_placement::engine }; // NOTE: sound range gets filled by pa system
-                            soundtemplate.deserialize( announcementsound, sound_type::single );
+                            soundtemplate.deserialize( parser, sound_type::single );
                             soundtemplate.owner( this );
                             m_pasystem.announcements[ static_cast<int>( announcementtype ) ] = soundtemplate;
+                        }
+                    }
+                    // set provided custom soundproofing to assigned sounds (for sounds without their own custom soundproofing)
+                    if( m_pasystem.soundproofing ) {
+                        for( auto &announcement : m_pasystem.announcements ) {
+                            if( !announcement.soundproofing() ) {
+                                announcement.soundproofing() = m_pasystem.soundproofing;
+                            }
                         }
                     }
                 }

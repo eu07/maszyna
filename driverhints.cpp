@@ -938,7 +938,7 @@ TController::cue_action( locale::string const Action, float const Actionparamete
             hint(
                 Action,
                 [this](float const Parameter) -> bool {
-                    return ( ( mvControlling->Sand == 0 ) || ( mvControlling->SandDose == true ) ); } );
+                    return ( ( mvControlling->Sand == 0 ) || ( mvControlling->SandDose == true ) || ( mvControlling->SlippingWheels == false ) ); } );
             break;
         }
         case locale::string::driver_hint_sandingoff: {

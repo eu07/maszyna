@@ -417,6 +417,7 @@ private:
     // single source per vehicle
     struct pasystem_sounds {
         std::array<sound_source, static_cast<int>( announcement_t::end )> announcements;
+        std::optional< std::array<float, 6> > soundproofing; 
         sound_source announcement;
         std::deque<sound_source> announcement_queue; // fifo queue
     };

@@ -7622,7 +7622,7 @@ void TController::control_tractive_force() {
     auto const velocity { DirectionalVel() };
     // jeśli przyspieszenie pojazdu jest mniejsze niż żądane oraz...
     if( ( AccDesired > EU07_AI_NOACCELERATION ) // don't add power if not asked for actual speed-up
-     && ( AccDesired - AbsAccS > 0.05 )
+     && ( AbsAccS < AccDesired /* - 0.05 */ )
      && ( false == TestFlag( iDrivigFlags, movePress ) ) ) {
         // ...jeśli prędkość w kierunku czoła jest mniejsza od dozwolonej o margines...
         if( velocity < (
@@ -7652,7 +7652,7 @@ void TController::control_tractive_force() {
         else if( ( velocity > VelDesired + SpeedCtrlMargin)
               || ( fAccGravity < -0.01 ?
                         AccDesired < 0.0 :
-                        (AbsAccS > AccDesired + 0.05) )
+                        ( AbsAccS > AccDesired + 0.05 ) )
                || ( IsAnyCouplerStretched ) ) {
                 // jak za bardzo przyspiesza albo prędkość przekroczona
 				// dodany wyjatek na "pelna w przod"
@@ -7817,11 +7817,12 @@ void TController::control_releaser() {
     if( mvOccupied->BrakeSystem != TBrakeSystem::Pneumatic ) { return; }
 
     auto const hasreleaser {
-        ( mvOccupied->BrakeHandle == TBrakeHandle::FV4a )
-     || ( mvOccupied->BrakeHandle == TBrakeHandle::MHZ_6P )
-     || ( mvOccupied->BrakeHandle == TBrakeHandle::MHZ_K5P )
-     || ( mvOccupied->BrakeHandle == TBrakeHandle::MHZ_K8P )
-     || ( mvOccupied->BrakeHandle == TBrakeHandle::M394 ) };
+        ( false == ( is_dmu() || is_emu() ) ) // TODO: a more refined test than rejecting these types wholesale
+     && ( ( mvOccupied->BrakeHandle == TBrakeHandle::FV4a )
+       || ( mvOccupied->BrakeHandle == TBrakeHandle::MHZ_6P )
+       || ( mvOccupied->BrakeHandle == TBrakeHandle::MHZ_K5P )
+       || ( mvOccupied->BrakeHandle == TBrakeHandle::MHZ_K8P )
+       || ( mvOccupied->BrakeHandle == TBrakeHandle::M394 ) ) };
     
     if( false == hasreleaser ) { return; }
 
