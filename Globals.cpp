@@ -695,17 +695,24 @@ global_settings::ConfigParse(cParser &Parser) {
         {
             uart_conf.enable = true;
             Parser.getTokens(3, false);
-            Parser >> uart_conf.port >> uart_conf.baud >> uart_conf.updatetime;
+            Parser
+                >> uart_conf.port
+                >> uart_conf.baud
+                >> uart_conf.updatetime;
         }
         else if (token == "uarttune")
         {
             Parser.getTokens(16);
-            Parser >> uart_conf.mainbrakemin >> uart_conf.mainbrakemax >> uart_conf.localbrakemin >>
-                uart_conf.localbrakemax >> uart_conf.tankmax >> uart_conf.tankuart >>
-                uart_conf.pipemax >> uart_conf.pipeuart >> uart_conf.brakemax >>
-                uart_conf.brakeuart >> uart_conf.hvmax >> uart_conf.hvuart >>
-                uart_conf.currentmax >> uart_conf.currentuart >> uart_conf.lvmax >>
-                uart_conf.lvuart;
+            Parser
+                >> uart_conf.mainbrakemin >> uart_conf.mainbrakemax
+                >> uart_conf.localbrakemin >> uart_conf.localbrakemax
+                >> uart_conf.tankmax >> uart_conf.tankuart
+                >> uart_conf.pipemax >> uart_conf.pipeuart
+                >> uart_conf.brakemax >> uart_conf.brakeuart
+                >> uart_conf.pantographmax >> uart_conf.pantographuart
+                >> uart_conf.hvmax >> uart_conf.hvuart
+                >> uart_conf.currentmax >> uart_conf.currentuart
+                >> uart_conf.lvmax >> uart_conf.lvuart;
         }
         else if (token == "uarttachoscale")
         {
@@ -715,8 +722,11 @@ global_settings::ConfigParse(cParser &Parser) {
         else if (token == "uartfeature")
         {
             Parser.getTokens(4);
-            Parser >> uart_conf.mainenable >> uart_conf.scndenable >> uart_conf.trainenable >>
-                uart_conf.localenable;
+            Parser
+                >> uart_conf.mainenable
+                >> uart_conf.scndenable
+                >> uart_conf.trainenable
+                >> uart_conf.localenable;
         }
         else if (token == "uartdebug")
         {
@@ -1177,6 +1187,8 @@ global_settings::export_as_text( std::ostream &Output ) const {
         << uart_conf.pipeuart << " "
         << uart_conf.brakemax << " "
         << uart_conf.brakeuart << " "
+        << uart_conf.pantographmax << " "
+        << uart_conf.pipemax << " "
         << uart_conf.hvmax << " "
         << uart_conf.hvuart << " "
         << uart_conf.currentmax << " "

@@ -106,7 +106,25 @@ editor_mode::enter() {
     m_statebackup = { Global.pCamera, FreeFlyModeFlag, Global.ControlPicking };
 
     Camera = Global.pCamera;
-    FreeFlyModeFlag = true;
+    // NOTE: camera placement is effectively a copy of drivermode DistantView( true )
+    // TBD, TODO: refactor into a common vehicle method?
+    if( false == FreeFlyModeFlag ) {
+
+        auto const *vehicle { Camera.m_owner };
+        auto const cab {
+            ( vehicle->MoverParameters->CabOccupied == 0 ?
+                1 :
+                vehicle->MoverParameters->CabOccupied ) };
+        auto const left { vehicle->VectorLeft() * cab };
+        Camera.Pos =
+            Math3D::vector3( Camera.Pos.x, vehicle->GetPosition().y, Camera.Pos.z )
+            + left * vehicle->GetWidth()
+            + Math3D::vector3( 1.25 * left.x, 1.6, 1.25 * left.z );
+        Camera.m_owner = nullptr;
+        Camera.LookAt = vehicle->GetPosition();
+        Camera.RaLook(); // jednorazowe przestawienie kamery
+        FreeFlyModeFlag = true;
+    }
     Global.ControlPicking = true;
     EditorModeFlag = true;
 
