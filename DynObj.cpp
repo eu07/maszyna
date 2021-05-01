@@ -3114,6 +3114,7 @@ bool TDynamicObject::Update(double dt, double dt1)
 				RapidMult = MoverParameters->RapidMult;
 
 			auto const amax = RapidMult * std::min(FmaxPN / masamax, MoverParameters->MED_amax);
+			Mechanik->fMedAmax = amax;
             auto doorisopen {
                 ( false == MoverParameters->Doors.instances[ side::left ].is_closed )
              || ( false == MoverParameters->Doors.instances[ side::right ].is_closed )

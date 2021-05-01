@@ -3105,8 +3105,8 @@ bool TController::IncBrakeEIM()
         case 0: {
             if( mvOccupied->MED_amax != 9.81 ) {
                 auto const maxpos{mvOccupied->EIMCtrlEmergency ? 0.9 : 1.0 };
-                auto const brakelimit{ -2.2 * AccDesired / mvOccupied->MED_amax - 1.0}; //additional limit when hinted is too low
-				auto const brakehinted{ -1.0 * mvOccupied->AIHintLocalBrakeAccFactor * AccDesired / mvOccupied->MED_amax }; //preffered by AI
+                auto const brakelimit{ -2.2 * AccDesired / fMedAmax - 1.0}; //additional limit when hinted is too low
+				auto const brakehinted{ -1.0 * mvOccupied->AIHintLocalBrakeAccFactor * AccDesired / fMedAmax }; //preffered by AI
                 auto const brakeposition{ maxpos * clamp(std::max(brakelimit, brakehinted), 0.0, 1.0)};
                 OK = ( brakeposition != mvOccupied->LocalBrakePosA );
                 mvOccupied->LocalBrakePosA = brakeposition;

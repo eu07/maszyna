@@ -354,6 +354,7 @@ public:
     int UniversalBrakeButtons = 0.0; // flag of which universal buttons need to be pressed
     int DizelPercentage = 0; // oczekiwane procenty jazdy/hamowania szynobusem
     int DizelPercentage_Speed = 0; // oczekiwane procenty jazdy/hamowania szynobusem w związku z osiąganiem VelDesired
+	double fMedAmax = 0.8; //maximum decceleration when using ep/med brake
 private:
     bool Psyche = false;
     int HelperState = 0; //stan pomocnika maszynisty
