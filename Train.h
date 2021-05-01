@@ -104,6 +104,7 @@ class TTrain {
         float reservoir_pressure;
         float pipe_pressure;
         float brake_pressure;
+        float pantograph_pressure;
         float hv_voltage;
         std::array<float, 3> hv_current;
         float lv_voltage;

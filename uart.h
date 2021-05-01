@@ -23,6 +23,8 @@ public:
         float pipeuart = 65535.0f;
         float brakemax = 10.0f;
         float brakeuart = 65535.0f;
+        float pantographmax = 10.0f;
+        float pantographuart = 65535.0f;
         float hvmax = 100000.0f;
         float hvuart = 65535.0f;
         float currentmax = 10000.0f;

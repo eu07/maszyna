@@ -408,7 +408,7 @@ private:
     double IdleTime{}; // keeps track of time spent at a stop
     double fStopTime = 0.0; // czas postoju przed dalszą jazdą (np. na przystanku)
     float ExchangeTime{ 0.0 }; // time needed to finish current load exchange
-    double fShuntVelocity = 25.0; // prędkość manewrowania, zależy m.in. od składu
+    double fShuntVelocity = 40.0; // prędkość manewrowania, zależy m.in. od składu
     int iDrivigFlags = // flagi bitowe ruchu
         moveStopPoint | // podjedź do W4 możliwie blisko
         moveStopHere | // nie podjeżdżaj do semafora, jeśli droga nie jest wolna

@@ -799,6 +799,7 @@ TTrain::get_state() const {
         static_cast<float>( mvOccupied->Compressor ),
         static_cast<float>( mvOccupied->PipePress ),
         static_cast<float>( mvOccupied->BrakePress ),
+        static_cast<float>( mvPantographUnit->PantPress ),
         fHVoltage,
         { fHCurrent[ ( mvControlled->TrainType & dt_EZT ) ? 0 : 1 ], fHCurrent[ 2 ], fHCurrent[ 3 ] },
         ggLVoltage.GetValue(),

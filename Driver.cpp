@@ -2502,10 +2502,14 @@ bool TController::CheckVehicles(TOrders user)
             {
                 // HACK: to account for su-45/46 shortcomings diesel-powered engines only activate heating in cold conditions
                 // TODO: take instead into account presence of converters in attached cars, once said presence is possible to specify
-                auto const isheatingneeded{ (
-                    IsCargoTrain ? false :
-                    has_diesel_engine() ? ( Global.AirTemperature < 10 ) :
-                    true ) };
+                auto const ispassengertrain { ( IsPassengerTrain ) && ( iVehicles - ControlledEnginesCount > 0 ) };
+                auto const isheatingcouplingactive { pVehicles[ end::front ]->is_connected( pVehicles[ end::rear ], coupling::heating ) };
+                auto const isheatingneeded {
+                    (is_emu() || is_dmu() ? true :
+//                    false == isheatingcouplingactive ? false :
+                    (OrderCurrentGet() & (Obey_train | Bank)) == 0 ? false :
+                    ispassengertrain ? (has_diesel_engine() ? (Global.AirTemperature < 10) : true) :
+                    false)};
                 if( mvControlling->HeatingAllow != isheatingneeded ) {
                     cue_action(
                         isheatingneeded ?
@@ -5317,161 +5321,164 @@ TCommandType TController::BackwardScan( double const Range )
     }
     // szukamy od pierwszej osi w wybranym kierunku
     double scandir = startdir * pVehicles[0]->RaDirectionGet();
-    if (scandir != 0.0) {
-        // skanowanie toru w poszukiwaniu eventów GetValues (PutValues nie są przydatne)
-        // Ra: przy wstecznym skanowaniu prędkość nie ma znaczenia
-        double scandist = Range; // zmodyfikuje na rzeczywiście przeskanowane
-        basic_event *e = NULL; // event potencjalnie od semafora
-        // opcjonalnie może być skanowanie od "wskaźnika" z przodu, np. W5, Tm=Ms1, koniec toru wg drugiej osi w kierunku ruchu
-        TTrack *scantrack = BackwardTraceRoute(scandist, scandir, pVehicles[end::front], e);
-        auto const dir = startdir * pVehicles[end::front]->VectorFront(); // wektor w kierunku jazdy/szukania
-        if( !scantrack ) {
-            // jeśli wstecz wykryto koniec toru to raczej nic się nie da w takiej sytuacji zrobić
-            return TCommandType::cm_Unknown;
+
+    if( scandir == 0.0 ) { return TCommandType::cm_Unknown; }
+
+    // skanowanie toru w poszukiwaniu eventów GetValues (PutValues nie są przydatne)
+    // Ra: przy wstecznym skanowaniu prędkość nie ma znaczenia
+    double scandist = Range; // zmodyfikuje na rzeczywiście przeskanowane
+    basic_event *e = nullptr; // event potencjalnie od semafora
+    // opcjonalnie może być skanowanie od "wskaźnika" z przodu, np. W5, Tm=Ms1, koniec toru wg
+    // drugiej osi w kierunku ruchu
+    auto const *scantrack{BackwardTraceRoute(scandist, scandir, pVehicles[end::front], e)};
+    auto const dir{startdir *
+                   pVehicles[end::front]->VectorFront()}; // wektor w kierunku jazdy/szukania
+
+    // jeśli wstecz wykryto koniec toru to raczej nic się nie da w takiej sytuacji zrobić
+    if (e == nullptr)
+    {
+        return TCommandType::cm_Unknown;
+    }
+    if (typeid(*e) != typeid(getvalues_event))
+    {
+        return TCommandType::cm_Unknown;
+    }
+
+    // jeśli jest jakiś sygnał na widoku
+    double scanvel; // prędkość ustawiona semaforem
+#if LOGBACKSCAN
+    std::string edir{"Backward scan by " + pVehicle->asName + " - " +
+                     ((scandir > 0) ? "Event2 " : "Event1 ")};
+    edir += "(" + (e->name()) + ")";
+#endif
+    {
+        // najpierw sprawdzamy, czy semafor czy inny znak został przejechany
+        auto const sl{e->input_location()}; // położenie komórki pamięci
+        auto const pos{pVehicles[end::rear]->RearPosition()}; // pozycja tyłu
+        auto const sem{sl - pos}; // wektor do komórki pamięci od końca składu
+        if (dir.x * sem.x + dir.z * sem.z < 0)
+        {
+            // jeśli został minięty
+            // iloczyn skalarny jest ujemny, gdy sygnał stoi z tyłu
+#if LOGBACKSCAN
+            WriteLog(edir + " - ignored as not passed yet");
+#endif
+            return TCommandType::cm_Unknown; // nic
         }
-        else {
-            // a jeśli są dalej tory
-            double vmechmax; // prędkość ustawiona semaforem
-            if( e != nullptr ) {
-                // jeśli jest jakiś sygnał na widoku
+        scanvel = e->input_value(1); // prędkość przy tym semaforze
+        // przeliczamy odległość od semafora - potrzebne by były współrzędne początku składu
+        scandist = sem.Length() - 2; // 2m luzu przy manewrach wystarczy
+        if (scandist < 0)
+        {
+            // ujemnych nie ma po co wysyłać
+            scandist = 0;
+        }
+    }
+
+    auto move{false}; // czy AI w trybie manewerowym ma dociągnąć pod S1
+    if (e->input_command() == TCommandType::cm_SetVelocity)
+    {
+        if ((scanvel == 0.0) ? (OrderCurrentGet() & (Shunt | Loose_shunt | Connect)) :
+                               (OrderCurrentGet() & Connect))
+        { // przy podczepianiu ignorować wyjazd?
+            move = true; // AI w trybie manewerowym ma dociągnąć pod S1
+        }
+        else
+        {
+            if ((scandist > fMinProximityDist) &&
+                ((mvOccupied->Vel > EU07_AI_NOMOVEMENT) &&
+                 ((OrderCurrentGet() & (Shunt | Loose_shunt)) == 0)))
+            {
+                // jeśli semafor jest daleko, a pojazd jedzie, to informujemy o zmianie prędkości
+                // jeśli jedzie manewrowo, musi dostać SetVelocity, żeby sie na pociągowy przełączył
 #if LOGBACKSCAN
-                std::string edir {
-                    "Backward scan by "
-                    + pVehicle->asName + " - "
-                    + ( ( scandir > 0 ) ?
-                        "Event2 " :
-                        "Event1 " ) };
+                // WriteLog(edir+"SetProximityVelocity "+AnsiString(scandist) +
+                // AnsiString(scanvel));
+                WriteLog(edir);
 #endif
-                // najpierw sprawdzamy, czy semafor czy inny znak został przejechany
-                auto pos = pVehicles[1]->RearPosition(); // pozycja tyłu
-                if( typeid( *e ) == typeid( getvalues_event ) )
-                { // przesłać info o zbliżającym się semaforze
+                // SetProximityVelocity(scandist,scanvel,&sl);
+                return (scanvel > 0 ? TCommandType::cm_SetVelocity : TCommandType::cm_Unknown);
+            }
+            else
+            {
+                // ustawiamy prędkość tylko wtedy, gdy ma ruszyć, stanąć albo ma stać
+                // if ((MoverParameters->Vel==0.0)||(scanvel==0.0)) //jeśli stoi lub ma stanąć/stać
+                // semafor na tym torze albo lokomtywa stoi, a ma ruszyć, albo ma stanąć, albo nie
+                // ruszać stop trzeba powtarzać, bo inaczej zatrąbi i pojedzie sam
+                // PutCommand("SetVelocity",scanvel,e->Params[9].asMemCell->Value2(),&sl,stopSem);
 #if LOGBACKSCAN
-                    edir += "(" + ( e->name() ) + ")";
+                WriteLog(edir + " - [SetVelocity] [" + to_string(scanvel, 2) + "] [" +
+                         to_string(e->input_value(2), 2) + "]");
 #endif
-                    auto sl = e->input_location(); // położenie komórki pamięci
-                    auto sem = sl - pos; // wektor do komórki pamięci od końca składu
-                    if (dir.x * sem.x + dir.z * sem.z < 0) {
-                        // jeśli został minięty
-                        // iloczyn skalarny jest ujemny, gdy sygnał stoi z tyłu
+                return (scanvel > 0 ? TCommandType::cm_SetVelocity : TCommandType::cm_Unknown);
+            }
+        }
+    }
+    // reakcja AI w trybie manewrowym dodatkowo na sygnały manewrowe
+    if (OrderCurrentGet() ? OrderCurrentGet() & (Shunt | Loose_shunt | Connect) :
+                            true) // w Wait_for_orders też widzi tarcze
+    {
+        if (move || e->input_command() == TCommandType::cm_ShuntVelocity)
+        { // jeśli powyżej było SetVelocity 0 0, to dociągamy pod S1
+/*
+            if ((scandist > fMinProximityDist) &&
+                ((mvOccupied->Vel > EU07_AI_NOMOVEMENT) || (scanvel == 0.0)))
+            {
+                // jeśli tarcza jest daleko, to:
+                //- jesli pojazd jedzie, to informujemy o zmianie prędkości
+                //- jeśli stoi, to z własnej inicjatywy może podjechać pod zamkniętą tarczę
+                if (mvOccupied->Vel > EU07_AI_NOMOVEMENT) // tylko jeśli jedzie
+                { // Mechanik->PutCommand("SetProximityVelocity",scandist,scanvel,sl);
 #if LOGBACKSCAN
-                        WriteLog(edir + " - ignored as not passed yet");
+                  // WriteLog(edir+"SetProximityVelocity "+AnsiString(scandist)+"
+                    // "+AnsiString(scanvel));
+                    WriteLog(edir);
 #endif
-                        return TCommandType::cm_Unknown; // nic
-                    }
-                    vmechmax = e->input_value(1); // prędkość przy tym semaforze
-                    // przeliczamy odległość od semafora - potrzebne by były współrzędne początku składu
-                    scandist = sem.Length() - 2; // 2m luzu przy manewrach wystarczy
-                    if( scandist < 0 ) {
-                        // ujemnych nie ma po co wysyłać
-                        scandist = 0;
-                    }
-                    bool move = false; // czy AI w trybie manewerowym ma dociągnąć pod S1
-                    if( e->input_command() == TCommandType::cm_SetVelocity ) {
-                        if( ( vmechmax == 0.0 ) ?
-                                ( OrderCurrentGet() & ( Shunt | Loose_shunt | Connect ) ) :
-                                ( OrderCurrentGet() & Connect ) ) { // przy podczepianiu ignorować wyjazd?
-                            move = true; // AI w trybie manewerowym ma dociągnąć pod S1
-                        }
-                        else {
-                            if( ( scandist > fMinProximityDist )
-                             && ( ( mvOccupied->Vel > EU07_AI_NOMOVEMENT )
-                               && ( ( OrderCurrentGet() & ( Shunt | Loose_shunt ) ) == 0 ) ) ) {
-                                // jeśli semafor jest daleko, a pojazd jedzie, to informujemy o zmianie prędkości
-                                // jeśli jedzie manewrowo, musi dostać SetVelocity, żeby sie na pociągowy przełączył
+                    // SetProximityVelocity(scandist,scanvel,&sl);
+                    // jeśli jedzie na W5 albo koniec toru, to można zmienić kierunek
+                    return (iDrivigFlags & moveTrackEnd) ? TCommandType::cm_ChangeDirection :
+                                                           TCommandType::cm_Unknown;
+                    // TBD: request direction change also if VelNext in current direction is 0,
+                    // while signal behind requests movement?
+                }
+            }
+            else
+            {
+                // ustawiamy prędkość tylko wtedy, gdy ma ruszyć, albo stanąć albo ma stać pod
+                // tarczą stop trzeba powtarzać, bo inaczej zatrąbi i pojedzie sam if
+                // ((MoverParameters->Vel==0.0)||(scanvel==0.0)) //jeśli jedzie lub ma stanąć/stać
+                { // nie dostanie komendy jeśli jedzie i ma jechać
+                  // PutCommand("ShuntVelocity",scanvel,e->Params[9].asMemCell->Value2(),&sl,stopSem);
 #if LOGBACKSCAN
-                                // WriteLog(edir+"SetProximityVelocity "+AnsiString(scandist) + AnsiString(vmechmax));
-                                WriteLog(edir);
+                    WriteLog(edir + " - [ShuntVelocity] [" + to_string(scanvel, 2) + "] [" +
+                             to_string(e->input_value(2), 2) + "]");
 #endif
-                                // SetProximityVelocity(scandist,vmechmax,&sl);
-                                return (
-                                    vmechmax > 0 ?
-                                        TCommandType::cm_SetVelocity :
-                                        TCommandType::cm_Unknown );
-                            }
-                            else {
-                                // ustawiamy prędkość tylko wtedy, gdy ma ruszyć, stanąć albo ma stać
-                                // if ((MoverParameters->Vel==0.0)||(vmechmax==0.0)) //jeśli stoi lub ma stanąć/stać
-                                // semafor na tym torze albo lokomtywa stoi, a ma ruszyć, albo ma stanąć, albo nie ruszać
-                                // stop trzeba powtarzać, bo inaczej zatrąbi i pojedzie sam
-                                // PutCommand("SetVelocity",vmechmax,e->Params[9].asMemCell->Value2(),&sl,stopSem);
+                    return (scanvel > 0 ? TCommandType::cm_ShuntVelocity :
+                                          TCommandType::cm_Unknown);
+                }
+            }
+            // NOTE: dead code due to returns in branching above
+            if ((scanvel != 0.0) && (scandist < 100.0))
+            {
+                // jeśli Tm w odległości do 100m podaje zezwolenie na jazdę, to od razu ją
+                // ignorujemy, aby móc szukać kolejnej eSignSkip=e; //wtedy uznajemy ignorowaną przy
+                // poszukiwaniu nowej
 #if LOGBACKSCAN
-                                WriteLog(
-                                    edir + " - [SetVelocity] ["
-                                    + to_string( vmechmax, 2 ) + "] ["
-                                    + to_string( e->input_value( 2 ), 2 ) + "]" );
+                WriteLog(edir + " - will be ignored due to Ms2");
 #endif
-                                return (
-                                    vmechmax > 0 ?
-                                        TCommandType::cm_SetVelocity :
-                                        TCommandType::cm_Unknown );
-                            }
-                        }
-                    }
-                    if (OrderCurrentGet() ? OrderCurrentGet() & (Shunt | Loose_shunt | Connect) :
-                                            true) // w Wait_for_orders też widzi tarcze
-                    { // reakcja AI w trybie manewrowym dodatkowo na sygnały manewrowe
-                        if (move ? true : e->input_command() == TCommandType::cm_ShuntVelocity)
-                        { // jeśli powyżej było SetVelocity 0 0, to dociągamy pod S1
-                            if ((scandist > fMinProximityDist) &&
-                                    (mvOccupied->Vel > EU07_AI_NOMOVEMENT) || (vmechmax == 0.0) )
-                            { // jeśli tarcza jest daleko, to:
-                                //- jesli pojazd jedzie, to informujemy o zmianie prędkości
-                                //- jeśli stoi, to z własnej inicjatywy może podjechać pod zamkniętą
-                                // tarczę
-                                if (mvOccupied->Vel > EU07_AI_NOMOVEMENT) // tylko jeśli jedzie
-                                { // Mechanik->PutCommand("SetProximityVelocity",scandist,vmechmax,sl);
-#if LOGBACKSCAN
-                                    // WriteLog(edir+"SetProximityVelocity "+AnsiString(scandist)+"
-                                    // "+AnsiString(vmechmax));
-                                    WriteLog(edir);
-#endif
-                                    // SetProximityVelocity(scandist,vmechmax,&sl);
-                                    return (iDrivigFlags & moveTrackEnd) ?
-                                               TCommandType::cm_ChangeDirection :
-                                               TCommandType::cm_Unknown; // jeśli jedzie na W5 albo koniec toru,
-                                    // to można zmienić kierunek
-                                }
-                            }
-                            else {
-                                // ustawiamy prędkość tylko wtedy, gdy ma ruszyć, albo stanąć albo ma stać pod tarczą
-                             // stop trzeba powtarzać, bo inaczej zatrąbi i pojedzie sam
-                                // if ((MoverParameters->Vel==0.0)||(vmechmax==0.0)) //jeśli jedzie lub ma stanąć/stać
-                                { // nie dostanie komendy jeśli jedzie i ma jechać
-                                  // PutCommand("ShuntVelocity",vmechmax,e->Params[9].asMemCell->Value2(),&sl,stopSem);
-#if LOGBACKSCAN
-                                    WriteLog(
-                                        edir + " - [ShuntVelocity] ["
-                                        + to_string( vmechmax, 2 ) + "] ["
-                                        + to_string( e->input_value( 2 ), 2 ) + "]" );
-#endif
-                                    return (
-                                        vmechmax > 0 ?
-                                            TCommandType::cm_ShuntVelocity :
-                                            TCommandType::cm_Unknown );
-                                }
-                            }
-                            if ((vmechmax != 0.0) && (scandist < 100.0)) {
-                                // jeśli Tm w odległości do 100m podaje zezwolenie na jazdę, to od razu ją ignorujemy, aby móc szukać kolejnej
-                                // eSignSkip=e; //wtedy uznajemy ignorowaną przy poszukiwaniu nowej
-#if LOGBACKSCAN
-                                WriteLog(edir + " - will be ignored due to Ms2");
-#endif
-                                return (
-                                    vmechmax > 0 ?
-                                        TCommandType::cm_ShuntVelocity :
-                                        TCommandType::cm_Unknown );
-                            }
-                        } // if (move?...
-                    } // if (OrderCurrentGet()==Shunt)
-                    if (e->m_passive) // jeśli skanowany
-                        if (e->is_command()) // a podłączona komórka ma komendę
-                            return TCommandType::cm_Command; // to też się obrócić
-                } // if (e->Type==tp_GetValues)
-            } // if (e)
-        } // if (scantrack)
-    } // if (scandir!=0.0)
-    return TCommandType::cm_Unknown; // nic
+                return (scanvel > 0 ? TCommandType::cm_ShuntVelocity : TCommandType::cm_Unknown);
+            }
+*/
+            return ((VelNext > 0) ?
+                        TCommandType::cm_Unknown : // no need to bother if we can continue in current direction
+                        (scanvel == 0) ?
+                            TCommandType::cm_Unknown : // no need to bother with a stop signal
+                            TCommandType::cm_ShuntVelocity); // otherwise report a relevant shunt signal behind
+        } // if (move?...
+    } // if (OrderCurrentGet()==Shunt)
+
+    return (((e->m_passive) && (e->is_command())) ? TCommandType::cm_Command :
+                                                    TCommandType::cm_Unknown);
 };
 
 std::string TController::NextStop() const
@@ -7991,13 +7998,13 @@ TController::check_route_behind( double const Range ) {
            || ( TestFlag( iDrivigFlags, moveConnect ) ) ) };
         if( couplinginprogress ) { return; }
 
-        auto const comm { BackwardScan( Range ) };
-        if( comm != TCommandType::cm_Unknown ) {
+        auto const commandbehind { BackwardScan( Range ) };
+        if( commandbehind != TCommandType::cm_Unknown ) {
             // jeśli w drugą można jechać
             // należy sprawdzać odległość od znalezionego sygnalizatora,
             // aby w przypadku prędkości 0.1 wyciągnąć najpierw skład za sygnalizator
             // i dopiero wtedy zmienić kierunek jazdy, oczekując podania prędkości >0.5
-            if( comm == TCommandType::cm_Command ) {
+            if( commandbehind == TCommandType::cm_Command ) {
                 // jeśli komenda Shunt to ją odbierz bez przemieszczania się (np. odczep wagony po dopchnięciu do końca toru)
                 iDrivigFlags |= moveStopHere;
             }

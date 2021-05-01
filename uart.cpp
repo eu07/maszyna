@@ -336,7 +336,8 @@ void uart_input::poll()
 	    uint16_t tank_press = (uint16_t)std::min(conf.tankuart, trainstate.reservoir_pressure * 0.1f / conf.tankmax * conf.tankuart);
 	    uint16_t pipe_press = (uint16_t)std::min(conf.pipeuart, trainstate.pipe_pressure * 0.1f / conf.pipemax * conf.pipeuart);
 	    uint16_t brake_press = (uint16_t)std::min(conf.brakeuart, trainstate.brake_pressure * 0.1f / conf.brakemax * conf.brakeuart);
-	    uint16_t hv_voltage = (uint16_t)std::min(conf.hvuart, trainstate.hv_voltage / conf.hvmax * conf.hvuart);
+        uint16_t pantograph_press = (uint16_t)std::min(conf.pantographuart, trainstate.pantograph_pressure * 0.1f / conf.pantographmax * conf.pantographuart );
+        uint16_t hv_voltage = (uint16_t)std::min(conf.hvuart, trainstate.hv_voltage / conf.hvmax * conf.hvuart);
 	    uint16_t current1 = (uint16_t)std::min(conf.currentuart, trainstate.hv_current[0] / conf.currentmax * conf.currentuart);
 	    uint16_t current2 = (uint16_t)std::min(conf.currentuart, trainstate.hv_current[1] / conf.currentmax * conf.currentuart);
 	    uint16_t current3 = (uint16_t)std::min(conf.currentuart, trainstate.hv_current[2] / conf.currentmax * conf.currentuart);
@@ -409,8 +410,10 @@ void uart_input::poll()
 			SPLIT_INT16(lv_voltage),
 			//byte 33
 			(uint8_t)trainstate.radio_channel,
-			//byte 34-48
-			0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
+            //byte 34-35
+            SPLIT_INT16(pantograph_press),
+			//byte 36-48
+			0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
 	    };
 
 		if (conf.debug)
