@@ -194,6 +194,12 @@ enum class start_t {
     battery,
     direction
 };
+
+enum lightstate : bool {
+enabled = true,
+disabled = false
+};
+
 // recognized vehicle light locations and types; can be combined
 enum light {
 
@@ -1296,7 +1302,7 @@ public:
 	double Ftmax = 0.0;
 	/*- dla lokomotyw z silnikami indukcyjnymi -*/
 	double eimc[26];
-	bool EIMCLogForce = false; // 
+	bool EIMCLogForce = false; //
     static std::vector<std::string> const eimc_labels;
     double InverterFrequency { 0.0 }; // current frequency of power inverters
 	int InvertersNo = 0; // number of inverters

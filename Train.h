@@ -353,6 +353,10 @@ class TTrain {
     static void OnCommand_headlighttogglerearleft( TTrain *Train, command_data const &Command );
     static void OnCommand_headlighttogglerearright( TTrain *Train, command_data const &Command );
     static void OnCommand_headlighttogglerearupper( TTrain *Train, command_data const &Command );
+    static void OnCommand_redmarkertogglerearleft( TTrain *Train, command_data const &Command );
+    static void OnCommand_redmarkertogglerearright( TTrain *Train, command_data const &Command );
+    static void OnCommand_redmarkerstoggle( TTrain *Train, command_data const &Command );
+    // bezposrednie wlaczanie swiatel SM42 i podobnych jednokabinowych
     static void OnCommand_headlightenablefrontleft( TTrain *Train, command_data const &Command );
     static void OnCommand_headlightdisablefrontleft( TTrain *Train, command_data const &Command );
     static void OnCommand_headlightenablefrontright( TTrain *Train, command_data const &Command );
@@ -365,9 +369,16 @@ class TTrain {
     static void OnCommand_headlightdisablerearright( TTrain *Train, command_data const &Command );
     static void OnCommand_headlightenablerearupper( TTrain *Train, command_data const &Command );
     static void OnCommand_headlightdisablerearupper( TTrain *Train, command_data const &Command );
-    static void OnCommand_redmarkertogglerearleft( TTrain *Train, command_data const &Command );
-    static void OnCommand_redmarkertogglerearright( TTrain *Train, command_data const &Command );
-    static void OnCommand_redmarkerstoggle( TTrain *Train, command_data const &Command );
+    static void OnCommand_redmarkerenablefrontleft( TTrain *Train, command_data const &Command );
+    static void OnCommand_redmarkerdisablefrontleft( TTrain *Train, command_data const &Command );
+    static void OnCommand_redmarkerenablefrontright( TTrain *Train, command_data const &Command );
+    static void OnCommand_redmarkerdisablefrontright( TTrain *Train, command_data const &Command );
+    static void OnCommand_redmarkerenablerearleft( TTrain *Train, command_data const &Command );
+    static void OnCommand_redmarkerdisablerearleft( TTrain *Train, command_data const &Command );
+    static void OnCommand_redmarkerenablerearright( TTrain *Train, command_data const &Command );
+    static void OnCommand_redmarkerdisablerearright( TTrain *Train, command_data const &Command );
+
+    // pozostale
     static void OnCommand_endsignalstoggle( TTrain *Train, command_data const &Command );
     static void OnCommand_headlightsdimtoggle( TTrain *Train, command_data const &Command );
     static void OnCommand_headlightsdimenable( TTrain *Train, command_data const &Command );
@@ -846,6 +857,9 @@ private:
     void set_scndctrl(int);
     void set_trainbrake(float);
     void set_localbrake(float);
+    bool hasThreeWayLightSwitch();
+    bool hasLightsControlledByPresetSelector();
+    void setLight(int cab, int light, TGauge *button, bool enabled);
 
 	uint16_t id();
 	bool pending_delete = false;
