@@ -3197,15 +3197,15 @@ bool TController::DecBrake() {
                         clamp( -AccDesired / AccMax * mvOccupied->AIHintLocalBrakeAccFactor, 0.0, 1.0 ) ) );
                 OK = ( mvOccupied->fBrakeCtrlPos != initialbrakeposition );
             }
-            else if( mvOccupied->fBrakeCtrlPos != mvOccupied->Handle->GetPos( bh_EPR ) ) {
-                mvOccupied->BrakeLevelSet(mvOccupied->Handle->GetPos(bh_EPR));
-                if( mvOccupied->Handle->GetPos( bh_EPR ) - mvOccupied->Handle->GetPos( bh_EPN ) < 0.1 ) {
-                    mvOccupied->SwitchEPBrake( 1 );
-                }
-                OK = true;
-            }
             else {
-                OK = false;
+				OK = false;
+				if (mvOccupied->fBrakeCtrlPos != mvOccupied->Handle->GetPos(bh_EPR)) {
+					mvOccupied->BrakeLevelSet(mvOccupied->Handle->GetPos(bh_EPR));
+					OK = true;
+				}
+				if (mvOccupied->Handle->GetPos(bh_EPR) - mvOccupied->Handle->GetPos(bh_EPN) < 0.1) {
+					OK = OK || mvOccupied->SwitchEPBrake(1);
+				}
             }
             if( !OK ) {
                 OK = mvOccupied->DecLocalBrakeLevel( 2 );
