@@ -3135,7 +3135,7 @@ double TSt113::GetPF(double i_bcp, double PP, double HP, double dt, double ep)
 
     BCP = lround(i_bcp);
 
-    EPS = BEP_K[BCP];
+    EPS = BEP_K[BCP+1];
 
     if (BCP > 0)
         BCP = BCP - 1;
