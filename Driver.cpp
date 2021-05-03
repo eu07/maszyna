@@ -1285,25 +1285,6 @@ TController::TableUpdateStopPoint( TCommandType &Command, TSpeedPos &Point, doub
                     }
                 }
 
-                if( pVehicle->DirectionGet() != m_lastexchangedirection ) {
-                    // generally means the ai driver moved to the opposite end of the consist
-                    // TODO: investigate whether user playing with the reverser can mess this up
-                    auto const left { ( m_lastexchangedirection > 0 ) ? 1 : 2 };
-                    auto const right { 3 - left };
-                    m_lastexchangeplatforms =
-                        ( ( m_lastexchangeplatforms & left )  != 0 ? right : 0 )
-                        + ( ( m_lastexchangeplatforms & right ) != 0 ? left : 0 );
-                    m_lastexchangedirection = pVehicle->DirectionGet();
-                }
-                if( ( false == TrainParams.IsMaintenance() )
-                 && ( ( false == TestFlag( iDrivigFlags, moveDoorOpened ) )
-                   || ( true == DoesAnyDoorNeedOpening ) ) ) {
-                    iDrivigFlags |= moveDoorOpened; // nie wykonywać drugi raz
-                    remove_hint( locale::string::driver_hint_doorleftopen );
-                    remove_hint( locale::string::driver_hint_doorrightopen );
-                    Doors( true, m_lastexchangeplatforms );
-                }
-
                 if (OrderCurrentGet() & ( Shunt | Loose_shunt )) {
                     OrderNext(Obey_train); // uruchomić jazdę pociągową
                     CheckVehicles(); // zmienić światła
@@ -2748,6 +2729,7 @@ bool TController::PrepareEngine()
 
         if( IsAnyConverterOverloadRelayOpen ) {
             // wywalił bezpiecznik nadmiarowy przetwornicy
+            cue_action( locale::string::driver_hint_compressoroff ); // TODO: discern whether compressor needs converter to operate
             cue_action( locale::string::driver_hint_converteroff );
             cue_action( locale::string::driver_hint_primaryconverteroverloadreset ); // reset nadmiarowego
         }
@@ -6625,6 +6607,44 @@ TController::check_departure() {
     }
 }
 
+// verify progress of load exchange
+void
+TController::check_load_exchange() {
+
+    ExchangeTime = 0.f;
+    DoesAnyDoorNeedOpening = false;
+
+    if( fStopTime > 0 ) { return; }
+
+    // czas postoju przed dalszą jazdą (np. na przystanku)
+    auto *vehicle { pVehicles[ end::front ] };
+    while( vehicle != nullptr ) {
+        auto const vehicleexchangetime { vehicle->LoadExchangeTime() };
+        DoesAnyDoorNeedOpening |= ( ( vehicleexchangetime > 0 ) && ( vehicle->LoadExchangeSpeed() == 0 ) );
+        ExchangeTime = std::max( ExchangeTime, vehicleexchangetime );
+        vehicle = vehicle->Next();
+    }
+
+    if( pVehicle->DirectionGet() != m_lastexchangedirection ) {
+        // generally means the ai driver moved to the opposite end of the consist
+        // TODO: investigate whether user playing with the reverser can mess this up
+        auto const left { ( m_lastexchangedirection > 0 ) ? 1 : 2 };
+        auto const right { 3 - left };
+        m_lastexchangeplatforms =
+            ( ( m_lastexchangeplatforms & left )  != 0 ? right : 0 )
+            + ( ( m_lastexchangeplatforms & right ) != 0 ? left : 0 );
+        m_lastexchangedirection = pVehicle->DirectionGet();
+    }
+    if( ( false == TrainParams.IsMaintenance() )
+     && ( ( false == TestFlag( iDrivigFlags, moveDoorOpened ) )
+       || ( true == DoesAnyDoorNeedOpening ) ) ) {
+        iDrivigFlags |= moveDoorOpened; // nie wykonywać drugi raz
+        remove_hint( locale::string::driver_hint_doorleftopen );
+        remove_hint( locale::string::driver_hint_doorrightopen );
+        Doors( true, m_lastexchangeplatforms );
+    }
+}
+
 void
 TController::UpdateChangeDirection() {
     // TODO: rework into driver mode independent routine
@@ -6640,6 +6660,10 @@ TController::UpdateChangeDirection() {
     // shared part of the routine, implement if direction matches what was requested
     if( ( mvOccupied->Vel < EU07_AI_NOMOVEMENT )
      && ( iDirection == iDirectionOrder ) ) {
+        // NOTE: we can't be sure there's a visible signal within scan range after direction change
+        // which would normally overwrite the old limit, so we reset signal value manually here
+        VelSignal = -1;
+        VelSignalNext = -1;
         PrepareEngine();
         JumpToNextOrder(); // następnie robimy, co jest do zrobienia (Shunt albo Obey_train)
         if( OrderCurrentGet() & ( Shunt | Loose_shunt | Connect ) ) {
@@ -7249,22 +7273,12 @@ TController::adjust_desired_speed_for_limits() {
     }
 
     // recalculate potential load exchange duration
-    DoesAnyDoorNeedOpening = false;
-    ExchangeTime = 0.f;
+    check_load_exchange();
+    if( ( ExchangeTime > 0 )
+     || ( mvOccupied->Vel > 2.0 ) ) { // HACK: force timer reset if the load exchange is cancelled due to departure
+        WaitingSet( ExchangeTime );
+    }
     if( fStopTime < 0 ) {
-        // czas postoju przed dalszą jazdą (np. na przystanku)
-        // verify progress of load exchange
-        auto *vehicle { pVehicles[ end::front ] };
-        while( vehicle != nullptr ) {
-            auto const vehicleexchangetime { vehicle->LoadExchangeTime() };
-            DoesAnyDoorNeedOpening |= ( ( vehicleexchangetime > 0 ) && ( vehicle->LoadExchangeSpeed() == 0 ) );
-            ExchangeTime = std::max( ExchangeTime, vehicleexchangetime );
-            vehicle = vehicle->Next();
-        }
-        if( ( ExchangeTime > 0 )
-         || ( mvOccupied->Vel > 2.0 ) ) { // HACK: force timer reset if the load exchange is cancelled due to departure
-            WaitingSet( ExchangeTime );
-        }
         VelDesired = 0.0; // jak ma czekać, to nie ma jazdy
         cue_action( locale::string::driver_hint_waitloadexchange );
         return; // speed limit can't get any lower

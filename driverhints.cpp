@@ -723,7 +723,7 @@ TController::cue_action( locale::string const Action, float const Actionparamete
             hint(
                 Action,
                 [this](float const Parameter) -> bool {
-                    return ( mvPantographUnit->PantPress >= 4.2 ); } );
+                    return ( mvPantographUnit->PantPress >= ( is_emu() ? ( mvPantographUnit->PantPressLockActive ? 4.6 : 2.6 ) : 4.2 ) ); } );
             break;
         }
         case locale::string::driver_hint_waitloadexchange: {
