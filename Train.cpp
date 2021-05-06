@@ -9663,13 +9663,32 @@ void train_table::update(double dt)
 	}
 }
 
-void _doSetLightCommand(TTrain *Train, command_data const &Command, int cab, int light, TGauge *button, bool state) {
+void _doSetLightCommand(TTrain *Train, command_data const &Command, end cab, light requestedLight, TGauge *button, bool state) {
     if(Train->hasLightsControlledByPresetSelector()) {
         // lights are controlled by preset selector
         return;
     }
     if( Command.action == GLFW_PRESS ) {
-        Train->setLight(cab, light, button, state);
+        const end currentCab = Train->getActiveEnd();
+        TGauge *targetButton = button;
+
+        /* jesli jestesmy na tyle, to buttony sa na odwrot */
+        if(currentCab == end::rear) {
+            if(button == &Train->ggLeftLightButton) {
+                targetButton = &Train->ggRearLeftLightButton;
+            } else if(button == &Train->ggRightLightButton) {
+                targetButton = &Train->ggRearRightLightButton;
+            } else if(button == &Train->ggUpperLightButton) {
+                targetButton = &Train->ggRearUpperLightButton;
+            } else if(button == &Train->ggRearLeftLightButton) {
+                targetButton = &Train->ggLeftLightButton;
+            } else if(button == &Train->ggRearRightLightButton) {
+                targetButton = &Train->ggRightLightButton;
+            } else if(button == &Train->ggRearUpperLightButton) {
+                targetButton = &Train->ggUpperLightButton;
+            }
+        }
+        Train->setLight(cab, requestedLight, targetButton, state);
     }
 }
 
@@ -9686,11 +9705,13 @@ void TTrain::OnCommand_headlightenablefrontupper(TTrain *Train, command_data con
 }
 
 void TTrain::OnCommand_headlightenablerearleft(TTrain *Train, command_data const &Command) {
-    _doSetLightCommand(Train, Command, end::rear, light::headlight_left, &Train->ggRearLeftLightButton, lightstate::enabled);
+    // tylne reflektory w maszynie sa na odwrot?
+    _doSetLightCommand(Train, Command, end::rear, light::headlight_right, &Train->ggRearLeftLightButton, lightstate::enabled);
 }
 
 void TTrain::OnCommand_headlightenablerearright(TTrain *Train, command_data const &Command) {
-    _doSetLightCommand(Train, Command, end::rear, light::headlight_right, &Train->ggRearRightLightButton, lightstate::enabled);
+    // tylne reflektory w maszynie sa na odwrot?
+    _doSetLightCommand(Train, Command, end::rear, light::headlight_left, &Train->ggRearRightLightButton, lightstate::enabled);
 }
 
 void TTrain::OnCommand_headlightenablerearupper(TTrain *Train, command_data const &Command) {
@@ -9710,11 +9731,13 @@ void TTrain::OnCommand_headlightdisablefrontupper(TTrain *Train, command_data co
 }
 
 void TTrain::OnCommand_headlightdisablerearleft(TTrain *Train, command_data const &Command) {
-    _doSetLightCommand(Train, Command, end::rear, light::headlight_left, &Train->ggRearLeftLightButton, lightstate::disabled);
+    // tylne reflektory w maszynie sa na odwrot?
+    _doSetLightCommand(Train, Command, end::rear, light::headlight_right, &Train->ggRearLeftLightButton, lightstate::disabled);
 }
 
 void TTrain::OnCommand_headlightdisablerearright(TTrain *Train, command_data const &Command) {
-    _doSetLightCommand(Train, Command, end::rear, light::headlight_right, &Train->ggRearRightLightButton, lightstate::disabled);
+    // tylne reflektory w maszynie sa na odwrot?
+    _doSetLightCommand(Train, Command, end::rear, light::headlight_left, &Train->ggRearRightLightButton, lightstate::disabled);
 }
 
 void TTrain::OnCommand_headlightdisablerearupper(TTrain *Train, command_data const &Command) {
@@ -9761,7 +9784,11 @@ bool TTrain::hasLightsControlledByPresetSelector() {
     return (this->mvOccupied->LightsPosNo > 0);
 }
 
-void TTrain::setLight(int cab, int light, TGauge *button, bool enabled) {
+end TTrain::getActiveEnd() {
+    return this->cab_to_end();
+}
+
+void TTrain::setLight(end cab, light requestedLight, TGauge *button, bool enabled) {
     /* turn on/off light directly */
     /* works only for cabs with two way switches */
 
@@ -9770,9 +9797,9 @@ void TTrain::setLight(int cab, int light, TGauge *button, bool enabled) {
 
     if(!this->hasThreeWayLightSwitch()) {
         if(enabled) {
-            this->mvOccupied->iLights[cab] |= light;
+            this->mvOccupied->iLights[cab] |= requestedLight;
         } else {
-            this->mvOccupied->iLights[cab] &= (~light);
+            this->mvOccupied->iLights[cab] &= (~requestedLight);
         }
         if(button) {
             button->UpdateValue(enabled ? 1.0 : 0.0, this->dsbSwitch);

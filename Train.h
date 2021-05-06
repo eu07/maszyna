@@ -18,6 +18,7 @@ http://mozilla.org/MPL/2.0/.
 #include "PyInt.h"
 #include "command.h"
 #include "pythonscreenviewer.h"
+#include "McZapkie/MOVER.h"
 
 #undef snprintf // pyint.h->python
 
@@ -859,7 +860,8 @@ private:
     void set_localbrake(float);
     bool hasThreeWayLightSwitch();
     bool hasLightsControlledByPresetSelector();
-    void setLight(int cab, int light, TGauge *button, bool enabled);
+    void setLight(end cab, light requestedLight, TGauge *button, bool enabled);
+    end getActiveEnd();
 
 	uint16_t id();
 	bool pending_delete = false;
