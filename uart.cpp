@@ -59,7 +59,7 @@ bool uart_input::setup_port()
         port = nullptr;
         return false;
     }
-    
+
     return true;
 }
 
@@ -173,17 +173,17 @@ void uart_input::poll()
 		return;
 
     sp_return ret;
-	
+
     if ((ret = sp_input_waiting(port)) >= 20)
     {
         std::array<uint8_t, 20> tmp_buffer; // TBD, TODO: replace with vector of configurable size?
         ret = sp_blocking_read(port, (void*)tmp_buffer.data(), tmp_buffer.size(), 0);
-		
+
         if (ret < 0) {
           setup_port();
           return;
         }
-		
+
 		bool sync;
 		if (tmp_buffer[0] != 0xEF || tmp_buffer[1] != 0xEF || tmp_buffer[2] != 0xEF || tmp_buffer[3] != 0xEF) {
 			if (conf.debug)
@@ -195,7 +195,7 @@ void uart_input::poll()
 				WriteLog("uart: sync ok");
 			sync = true;
 		}
-		
+
 		if (!sync) {
 			int sync_cnt = 0;
 			int sync_fail = 0;
@@ -231,7 +231,7 @@ void uart_input::poll()
       }
 			return;
 		}
-		
+
 		std::array<uint8_t, 16> buffer;
 		memmove(&buffer[0], &tmp_buffer[4], 16);
 
