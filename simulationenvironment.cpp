@@ -126,7 +126,7 @@ world_environment::update() {
         Global.DayLight.position = m_moon.getDirection();
         Global.DayLight.direction = -1.0f * m_moon.getDirection();
         keylightintensity = moonlightlevel;
-        m_lightintensity = 0.35f;
+        m_lightintensity = moonlightlevel;
         // if the moon is up, it overrides the twilight
         twilightfactor = 0.0f;
         keylightcolor = glm::vec3( 255.0f / 255.0f, 242.0f / 255.0f, 202.0f / 255.0f );
@@ -165,9 +165,10 @@ world_environment::update() {
     // tonal impact of skydome color is inversely proportional to how high the sun is above the horizon
     // (this is pure conjecture, aimed more to 'look right' than be accurate)
     float const ambienttone = clamp( 1.0f - ( Global.SunAngle / 90.0f ), 0.0f, 1.0f );
-    Global.DayLight.ambient[ 0 ] = interpolate( skydomehsv.z, skydomecolour.r, ambienttone );
-    Global.DayLight.ambient[ 1 ] = interpolate( skydomehsv.z, skydomecolour.g, ambienttone );
-    Global.DayLight.ambient[ 2 ] = interpolate( skydomehsv.z, skydomecolour.b, ambienttone );
+    float const ambientintensitynightfactor = 1.f - 0.75f * clamp( -m_sun.getAngle(), 0.0f, 18.0f ) / 18.0f;
+    Global.DayLight.ambient[ 0 ] = interpolate( skydomehsv.z, skydomecolour.r, ambienttone ) * ambientintensitynightfactor;
+    Global.DayLight.ambient[ 1 ] = interpolate( skydomehsv.z, skydomecolour.g, ambienttone ) * ambientintensitynightfactor;
+    Global.DayLight.ambient[ 2 ] = interpolate( skydomehsv.z, skydomecolour.b, ambienttone ) * ambientintensitynightfactor;
 
     Global.fLuminance = intensity;
 
@@ -208,6 +209,12 @@ void
 world_environment::update_precipitation() {
 
     m_precipitation.update();
+}
+
+void
+world_environment::update_moon() {
+
+    m_moon.update( true );
 }
 
 void

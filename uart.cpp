@@ -199,7 +199,7 @@ void uart_input::poll()
 		if (!sync) {
 			int sync_cnt = 0;
 			int sync_fail = 0;
-			char sc = 0;
+			unsigned char sc = 0;
 			while ((ret = sp_blocking_read(port, &sc, 1, 10)) >= 0) {
 				if (conf.debug)
 					WriteLog("uart: read byte: " + std::to_string((int)sc));

@@ -86,8 +86,7 @@ global_settings::ConfigParse(cParser &Parser) {
         {
             Parser.getTokens(1);
             Parser >> BaseDrawRange;
-            BaseDrawRange = clamp(BaseDrawRange, 500.f,
-                                  5000.f); // arbitrary limits to keep users from hurting themselves
+            BaseDrawRange = clamp(BaseDrawRange, 500.f, 5000.f); // arbitrary limits to keep users from hurting themselves
         }
         else if (token == "fullscreen")
         {
@@ -1009,6 +1008,12 @@ global_settings::ConfigParse_gfx( cParser &Parser, std::string_view const Token 
         Parser.getTokens(1);
         Parser >> gfx_shadergamma;
     }
+    else if (Token == "gfx.drawrange.factor.max")
+    {
+        Parser.getTokens(1);
+        Parser >> gfx_distance_factor_max;
+        gfx_distance_factor_max = clamp(gfx_distance_factor_max, 1.f, 3.f);
+    }
     else
     {
         tokenparsed = false;
@@ -1230,6 +1235,7 @@ global_settings::export_as_text( std::ostream &Output ) const {
     export_as_text( Output, "gfx.skippipeline", gfx_skippipeline );
     export_as_text( Output, "gfx.extraeffects", gfx_extraeffects );
     export_as_text( Output, "gfx.shadergamma", gfx_shadergamma );
+    export_as_text( Output, "gfx.drawrange.factor.max", gfx_distance_factor_max );
     export_as_text( Output, "python.enabled", python_enabled );
     export_as_text( Output, "python.threadedupload", python_threadedupload );
     export_as_text( Output, "python.uploadmain", python_uploadmain );

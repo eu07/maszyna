@@ -234,7 +234,7 @@ class opengl33_renderer : public gfx_renderer {
 	void Render_pass(viewport_config &vp, rendermode const Mode);
 	// creates dynamic environment cubemap
 	bool Render_reflections(viewport_config &vp);
-	bool Render(world_environment *Environment);
+	bool Render(world_environment *Environment, bool const Skipcelestialbodies );
 	void Render(scene::basic_region *Region);
 	void Render(section_sequence::iterator First, section_sequence::iterator Last);
 	void Render(cell_sequence::iterator First, cell_sequence::iterator Last);

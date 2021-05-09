@@ -702,7 +702,7 @@ void opengl33_renderer::Render_pass(viewport_config &vp, rendermode const Mode)
 
 		scene_ubs.projection = OpenGLMatrices.data(GL_PROJECTION);
 		scene_ubo->update(scene_ubs);
-		Render(&simulation::Environment);
+		Render(&simulation::Environment, false);
 
         if( Global.gfx_shadowmap_enabled )
             setup_shadow_bind_map();
@@ -916,7 +916,7 @@ void opengl33_renderer::Render_pass(viewport_config &vp, rendermode const Mode)
         setup_shadow_unbind_map();
 		scene_ubs.projection = OpenGLMatrices.data(GL_PROJECTION);
 		scene_ubo->update(scene_ubs);
-		Render(&simulation::Environment);
+		Render(&simulation::Environment, Global.gfx_skippipeline); // HACK: sun/moon drawing messes up rendering with skippipeline on TODO: investigate and fix
 		// opaque parts...
 		setup_drawing(false);
 		setup_shadow_bind_map();
@@ -1521,7 +1521,7 @@ void opengl33_renderer::setup_sunlight_intensity( float const Factor ) {
     light_ubo->update( light_ubs );
 }
 
-bool opengl33_renderer::Render(world_environment *Environment)
+bool opengl33_renderer::Render(world_environment *Environment, bool const Skipcelestialbodies )
 {
     m_shadowcolor = colors::white; // prevent shadow from affecting sky
     setup_shadow_color( m_shadowcolor );
@@ -1534,6 +1534,7 @@ bool opengl33_renderer::Render(world_environment *Environment)
 
 	Bind_Material(null_handle);
 	::glDisable(GL_DEPTH_TEST);
+    ::glDepthMask(GL_FALSE);
 	::glPushMatrix();
 
 	// skydome
@@ -1554,7 +1555,7 @@ bool opengl33_renderer::Render(world_environment *Environment)
     ::glBlendFunc( GL_SRC_ALPHA, GL_ONE );
 
     // stars
-	if (Environment->m_stars.m_stars != nullptr)
+	if (Environment->m_stars.m_stars != nullptr && !Skipcelestialbodies )
 	{
 		// setup
 		::glPushMatrix();
@@ -1581,6 +1582,7 @@ bool opengl33_renderer::Render(world_environment *Environment)
 	glm::vec3 suncolor = interpolate(glm::vec3(255.0f / 255.0f, 242.0f / 255.0f, 231.0f / 255.0f), glm::vec3(235.0f / 255.0f, 140.0f / 255.0f, 36.0f / 255.0f), duskfactor);
 
 	// sun
+//    if( !Skipcelestialbodies )
 	{
 		Bind_Texture(0, m_suntexture);
 		glm::vec4 color(suncolor.x, suncolor.y, suncolor.z, clamp(1.5f - Global.Overcast, 0.f, 1.f) * fogfactor);
@@ -1597,6 +1599,7 @@ bool opengl33_renderer::Render(world_environment *Environment)
 		glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
 	}
 	// moon
+    if( !Skipcelestialbodies )
 	{
 		Bind_Texture(0, m_moontexture);
 		glm::vec3 mooncolor(255.0f / 255.0f, 242.0f / 255.0f, 231.0f / 255.0f);
@@ -1668,7 +1671,8 @@ bool opengl33_renderer::Render(world_environment *Environment)
             clamp( Environment->m_moon.getAngle(), 0.f, 90.f ) / 90.f );
 
 		model_ubs.param[0] = color;
-		model_ubs.param[1] = glm::vec4(glm::vec3(modelview * glm::vec4(moonvector, 1.0f)), /*0.00451f*/ size);
+//		model_ubs.param[1] = glm::vec4(glm::vec3(modelview * glm::vec4(moonvector, 1.0f)), 0.00451f);
+		model_ubs.param[1] = glm::vec4(glm::vec3(modelview * glm::vec4(moonvector, 1.0f)), size);
 		model_ubs.param[2] = glm::vec4(moonu, moonv, 0.333f, 0.0f);
 		model_ubo->update(model_ubs);
 		glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
@@ -1711,6 +1715,7 @@ bool opengl33_renderer::Render(world_environment *Environment)
 	gl::program::unbind();
 	gl::vao::unbind();
 	::glPopMatrix();
+    ::glDepthMask(GL_TRUE);
 	::glEnable(GL_DEPTH_TEST);
 
 	m_sunlight.apply_angle();
@@ -4135,28 +4140,38 @@ void opengl33_renderer::Update(double const Deltatime)
 
 	// adjust draw ranges etc, based on recent performance
 	// TODO: it doesn't make much sense with vsync
-    if( Global.targetfps == 0.0f ) {
-        // automatic adjustment
+    if( Global.targetfps != 0.f ) {
+        auto const fps_diff = m_framerate - Global.targetfps;
+        if( fps_diff < -0.5f ) {
+            Global.fDistanceFactor = std::min( std::max( 1.0f, Global.fDistanceFactor - 0.05f ), Global.gfx_distance_factor_max );
+        }
+        else if( fps_diff > 0.5f ) {
+            Global.fDistanceFactor = std::min( std::min( 3.0f, Global.fDistanceFactor + 0.05f ), Global.gfx_distance_factor_max );
+        }
+    }
+    // legacy framerate parameters
+    else if( Global.fFpsAverage != 0.f ) {
+        auto const fps_diff = m_framerate - Global.fFpsAverage;
+        if( fps_diff < -Global.fFpsDeviation ) {
+            Global.fDistanceFactor = std::min( std::max( 1.0f, Global.fDistanceFactor - 0.05f ), Global.gfx_distance_factor_max );
+        }
+        else if( fps_diff > Global.fFpsDeviation ) {
+            Global.fDistanceFactor = std::min( std::min( 3.0f, Global.fDistanceFactor + 0.05f ), Global.gfx_distance_factor_max );
+        }
+    }
+    // automatic adjustment
+    else {
         auto const framerate = interpolate( 1000.f / Timer::subsystem.gfx_color.average(), m_framerate, 0.75f );
         float targetfactor;
-             if( framerate > 120.0 ) { targetfactor = 3.00f; }
-        else if( framerate >  90.0 ) { targetfactor = 1.50f; }
-        else if( framerate >  60.0 ) { targetfactor = 1.25f; }
+             if( framerate > 120.f ) { targetfactor = std::min( Global.gfx_distance_factor_max, 3.00f ); }
+        else if( framerate >  90.f ) { targetfactor = std::min( Global.gfx_distance_factor_max, 1.50f ); }
+        else if( framerate >  60.f ) { targetfactor = std::min( Global.gfx_distance_factor_max, 1.25f ); }
         else                         { targetfactor = 1.00f; }
         if( targetfactor > Global.fDistanceFactor ) {
             Global.fDistanceFactor = std::min( targetfactor, Global.fDistanceFactor + 0.05f );
         }
         else if( targetfactor < Global.fDistanceFactor ) {
             Global.fDistanceFactor = std::max( targetfactor, Global.fDistanceFactor - 0.05f );
-        }
-    }
-    else {
-        auto const fps_diff = Global.targetfps - m_framerate;
-        if( fps_diff > 0.5f ) {
-            Global.fDistanceFactor = std::max( 1.0f, Global.fDistanceFactor - 0.05f );
-        }
-        else if( fps_diff < 1.0f ) {
-            Global.fDistanceFactor = std::min( 3.0f, Global.fDistanceFactor + 0.05f );
         }
     }
 

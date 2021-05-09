@@ -31,6 +31,7 @@ public:
     void init();
     void update();
     void update_precipitation();
+    void update_moon();
     void time( int const Hour = -1, int const Minute = -1, int const Second = -1 );
     // switches between static and dynamic daylight calculation
     void on_daylight_change();
