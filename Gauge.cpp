@@ -286,25 +286,25 @@ TGauge::Load_mapping( cParser &Input, TGauge::scratch_data &Scratchpad ) {
     return true; // return value marks a key: value pair was extracted, nothing about whether it's recognized
 }
 
-void
-TGauge::UpdateValue( float fNewDesired ) {
-
-    return UpdateValue( fNewDesired, nullptr );
-}
-
-void
-TGauge::UpdateValue( float fNewDesired, sound_source &Fallbacksound ) {
-
-    return UpdateValue( fNewDesired, &Fallbacksound );
-}
-
 // ustawienie wartości docelowej. plays provided fallback sound, if no sound was defined in the control itself
-void
-TGauge::UpdateValue( float fNewDesired, sound_source *Fallbacksound ) {
+bool
+TGauge::UpdateValue( float fNewDesired, std::optional<sound_source> &Fallbacksound ) {
+
+    if( false == UpdateValue( fNewDesired ) ) {
+        if( Fallbacksound ) {
+            Fallbacksound->play( m_soundtype );
+            return true;
+        }
+    }
+    return false;
+}
+
+bool
+TGauge::UpdateValue( float fNewDesired ) {
 
     auto const desiredtimes100 = static_cast<int>( std::round( 100.0 * fNewDesired ) );
     if( desiredtimes100 == static_cast<int>( std::round( 100.0 * m_targetvalue ) ) ) {
-        return;
+        return true;
     }
     m_targetvalue = fNewDesired;
     // if there's any sound associated with new requested value, play it
@@ -315,7 +315,7 @@ TGauge::UpdateValue( float fNewDesired, sound_source *Fallbacksound ) {
         auto const lookup = m_soundfxvalues.find( desiredtimes100 / 100 );
         if( lookup != m_soundfxvalues.end() ) {
             lookup->second.play();
-            return;
+            return true;
         }
     }
     else {
@@ -329,20 +329,17 @@ TGauge::UpdateValue( float fNewDesired, sound_source *Fallbacksound ) {
         // shift up
         if( false == m_soundfxincrease.empty() ) {
             m_soundfxincrease.play( m_soundtype );
-            return;
+            return true;
         }
     }
     else if( currentvalue > fNewDesired ) {
         // shift down
         if( false == m_soundfxdecrease.empty() ) {
             m_soundfxdecrease.play( m_soundtype );
-            return;
+            return true;
         }
     }
-    if( Fallbacksound != nullptr ) {
-        // ...and if that fails too, try the provided fallback sound from legacy system
-        Fallbacksound->play( m_soundtype );
-    }
+    return false; // no suitable sound was found
 };
 
 void TGauge::PutValue(float fNewDesired)

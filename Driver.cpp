@@ -2709,10 +2709,11 @@ bool TController::PrepareEngine()
                 cue_action( locale::string::driver_hint_pantographcompressoroff ); // sprężarkę pantografów można już wyłączyć
             }
         }
+        // TODO: make pantograph setup a part of control_pantographs() and call it here instead
         if( ( fOverhead2 == -1.0 ) && ( iOverheadDown == 0 ) ) {
             cue_action( locale::string::driver_hint_pantographsvalveon );
-            cue_action( locale::string::driver_hint_frontpantographvalveon );
-            cue_action( locale::string::driver_hint_rearpantographvalveon );
+            cue_action( locale::string::driver_hint_frontpantographvalveon, ( iDirection >= 0 ? 5 : 0 ) );
+            cue_action( locale::string::driver_hint_rearpantographvalveon, ( iDirection >= 0 ? 0 : 5 ) );
         }
     }
 

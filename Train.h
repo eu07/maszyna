@@ -728,35 +728,33 @@ public: // reszta może by?publiczna
     TButton btHaslerBrakes; // ciśnienie w cylindrach
     TButton btHaslerCurrent; // prąd na silnikach
 
-    sound_source dsbReverserKey { sound_placement::internal, EU07_SOUND_CABCONTROLSCUTOFFRANGE }; // hunter-121211
-    sound_source dsbNastawnikJazdy { sound_placement::internal, EU07_SOUND_CABCONTROLSCUTOFFRANGE };
-    sound_source dsbNastawnikBocz { sound_placement::internal, EU07_SOUND_CABCONTROLSCUTOFFRANGE }; // hunter-081211
-    sound_source dsbSwitch { sound_placement::internal, EU07_SOUND_CABCONTROLSCUTOFFRANGE };
-    sound_source dsbPneumaticSwitch { sound_placement::internal, EU07_SOUND_CABCONTROLSCUTOFFRANGE };
-
-    sound_source rsHiss { sound_placement::internal, EU07_SOUND_CABCONTROLSCUTOFFRANGE }; // upuszczanie
-    sound_source rsHissU { sound_placement::internal, EU07_SOUND_CABCONTROLSCUTOFFRANGE }; // napelnianie
-    sound_source rsHissE { sound_placement::internal, EU07_SOUND_CABCONTROLSCUTOFFRANGE }; // nagle
-    sound_source rsHissX { sound_placement::internal, EU07_SOUND_CABCONTROLSCUTOFFRANGE }; // fala
-    sound_source rsHissT { sound_placement::internal, EU07_SOUND_CABCONTROLSCUTOFFRANGE }; // czasowy
-    sound_source rsSBHiss { sound_placement::internal, EU07_SOUND_CABCONTROLSCUTOFFRANGE }; // local 
-    sound_source rsSBHissU { sound_placement::internal, EU07_SOUND_CABCONTROLSCUTOFFRANGE }; // local, engage brakes
-    float m_lastlocalbrakepressure { -1.f }; // helper, cached level of pressure in local brake cylinder
-    float m_localbrakepressurechange { 0.f }; // recent change of pressure in local brake cylinder
-    sound_source rsBrake { sound_placement::internal, -1 };
-
-    sound_source rsFadeSound { sound_placement::internal, EU07_SOUND_CABCONTROLSCUTOFFRANGE };
-    sound_source rsRunningNoise{ sound_placement::internal, EU07_SOUND_GLOBALRANGE };
-    sound_source rsHuntingNoise{ sound_placement::internal, EU07_SOUND_GLOBALRANGE };
-    sound_source m_rainsound { sound_placement::internal, -1 };
-
-    sound_source dsbHasler { sound_placement::internal, EU07_SOUND_CABCONTROLSCUTOFFRANGE };
-    sound_source dsbBuzzer { sound_placement::internal, EU07_SOUND_CABCONTROLSCUTOFFRANGE };
-    sound_source dsbSlipAlarm { sound_placement::internal, EU07_SOUND_CABCONTROLSCUTOFFRANGE }; // Bombardier 011010: alarm przy poslizgu dla 181/182
+    std::optional<sound_source>
+        dsbNastawnikJazdy,
+        dsbNastawnikBocz,
+        dsbReverserKey,
+        dsbBuzzer,
+        m_radiostop,
+        dsbSlipAlarm,
+        m_distancecounterclear,
+        dsbHasler,
+        dsbSwitch,
+        dsbPneumaticSwitch,
+        rsHiss,
+        rsHissU,
+        rsHissE,
+        rsHissX,
+        rsHissT,
+        rsSBHiss,
+        rsSBHissU,
+        rsBrake,
+        rsFadeSound,
+        rsRunningNoise,
+        rsHuntingNoise,
+        m_rainsound;
     sound_source m_radiosound { sound_placement::internal, 2 * EU07_SOUND_CABCONTROLSCUTOFFRANGE }; // cached template for radio messages
     std::vector<std::pair<int, std::shared_ptr<sound_source>>> m_radiomessages; // list of currently played radio messages
-    sound_source m_radiostop { sound_placement::internal, EU07_SOUND_CABCONTROLSCUTOFFRANGE };
-    sound_source m_distancecounterclear { sound_placement::internal, EU07_SOUND_CABCONTROLSCUTOFFRANGE }; // distance meter 'good to go' alert
+    float m_lastlocalbrakepressure { -1.f }; // helper, cached level of pressure in local brake cylinder
+    float m_localbrakepressurechange { 0.f }; // recent change of pressure in local brake cylinder
 /*
     int iCabLightFlag; // McZapkie:120503: oswietlenie kabiny (0: wyl, 1: przyciemnione, 2: pelne)
     bool bCabLight; // hunter-091012: czy swiatlo jest zapalone?
