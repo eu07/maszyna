@@ -314,6 +314,7 @@ private:
     void handle_engine();
     void handle_orders();
     void UpdateNextStop();
+    void check_load_exchange(); // returns: estimated remaining time of load exchange, in seconds
     void check_departure();
     void UpdateConnect();
     void UpdateDisconnect();

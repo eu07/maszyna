@@ -43,8 +43,8 @@ public:
         *this = TGauge(); }
     void Init(TSubModel *Submodel, TSubModel *Submodelon, TGaugeAnimation Type, float Scale = 1, float Offset = 0, float Friction = 0, float Value = 0, float const Endvalue = -1.0, float const Endscale = -1.0, bool const Interpolate = false );
     void Load(cParser &Parser, TDynamicObject const *Owner, double const mul = 1.0);
-    void UpdateValue( float fNewDesired );
-    void UpdateValue( float fNewDesired, sound_source &Fallbacksound );
+    bool UpdateValue( float fNewDesired );
+    bool UpdateValue( float fNewDesired, std::optional<sound_source> &Fallbacksound );
     void PutValue(float fNewDesired);
     float GetValue() const;
     float GetDesiredValue() const;
@@ -79,8 +79,6 @@ private:
     // imports member data pair from the config file
     bool
         Load_mapping( cParser &Input, TGauge::scratch_data &Scratchpad );
-    void
-        UpdateValue( float fNewDesired, sound_source *Fallbacksound );
     float
         GetScaledValue() const;
     void

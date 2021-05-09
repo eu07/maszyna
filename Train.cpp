@@ -671,32 +671,33 @@ dictionary_source *TTrain::GetTrainState( dictionary_source const &Extraparamete
     for( int j = 0; j < 10; ++j )
         dict->insert( ( "eimp_t_" + std::string( TXTT[ j ] ) ), fEIMParams[ 0 ][ j ] );
     for( int i = 0; i < 8; ++i ) {
+        auto const idx { std::to_string( i + 1 ) };
         for( int j = 0; j < 10; ++j )
-            dict->insert( ( "eimp_c" + std::to_string( i + 1 ) + "_" + std::string( TXTC[ j ] ) ), fEIMParams[ i + 1 ][ j ] );
+            dict->insert( ( "eimp_c" + idx + "_" + std::string( TXTC[ j ] ) ), fEIMParams[ i + 1 ][ j ] );
 
 		for (int j = 0; j < 10; ++j)
-			dict->insert(("diesel_param_" + std::to_string(i + 1) + "_" + std::string(TXTD[j])), fDieselParams[i + 1][j]);
+			dict->insert(("diesel_param_" + idx + "_" + std::string(TXTD[j])), fDieselParams[i + 1][j]);
 
-        dict->insert( ( "eimp_c" + std::to_string( i + 1 ) + "_ms" ), bMains[ i ] );
-        dict->insert( ( "eimp_c" + std::to_string( i + 1 ) + "_cv" ), fCntVol[ i ] );
-        dict->insert( ( "eimp_u" + std::to_string( i + 1 ) + "_pf" ), bPants[ i ][ 0 ] );
-        dict->insert( ( "eimp_u" + std::to_string( i + 1 ) + "_pr" ), bPants[ i ][ 1 ] );
-        dict->insert( ( "eimp_c" + std::to_string( i + 1 ) + "_fuse" ), bFuse[ i ] );
-        dict->insert( ( "eimp_c" + std::to_string( i + 1 ) + "_batt" ), bBatt[ i ] );
-        dict->insert( ( "eimp_c" + std::to_string( i + 1 ) + "_conv" ), bConv[ i ] );
-        dict->insert( ( "eimp_u" + std::to_string( i + 1 ) + "_comp_a" ), bComp[ i ][ 0 ] );
-        dict->insert( ( "eimp_u" + std::to_string( i + 1 ) + "_comp_w" ), bComp[ i ][ 1 ] );
-		//dict->insert( ( "eimp_c" + std::to_string( i + 1 ) + "_comp_a" ), bComp[ i ][ 2 ]);
-		//dict->insert( ( "eimp_c" + std::to_string( i + 1 ) + "_comp_w" ), bComp[ i ][ 3 ]);
-        dict->insert( ( "eimp_c" + std::to_string( i + 1 ) + "_heat" ), bHeat[ i ] );
+        dict->insert( ( "eimp_c" + idx + "_ms" ), bMains[ i ] );
+        dict->insert( ( "eimp_c" + idx + "_cv" ), fCntVol[ i ] );
+        dict->insert( ( "eimp_c" + idx + "_fuse" ), bFuse[ i ] );
+        dict->insert( ( "eimp_c" + idx + "_batt" ), bBatt[ i ] );
+        dict->insert( ( "eimp_c" + idx + "_conv" ), bConv[ i ] );
+        dict->insert( ( "eimp_c" + idx + "_heat" ), bHeat[ i ] );
+
+        dict->insert( ( "eimp_u" + idx + "_pf" ), bPants[ i ][ 0 ] );
+        dict->insert( ( "eimp_u" + idx + "_pr" ), bPants[ i ][ 1 ] );
+        dict->insert( ( "eimp_u" + idx + "_comp_a" ), bComp[ i ][ 0 ] );
+        dict->insert( ( "eimp_u" + idx + "_comp_w" ), bComp[ i ][ 1 ] );
     }
 
 	dict->insert( "compressors_no", (int)bCompressors.size() );
 	for (int i = 0; i < bCompressors.size(); i++)
 	{
-		dict->insert("compressors_" + std::to_string(i + 1) + "_allow", std::get<0>(bCompressors[i]));
-		dict->insert("compressors_" + std::to_string(i + 1) + "_work", std::get<1>(bCompressors[i]));
-		dict->insert("compressors_" + std::to_string(i + 1) + "_car_no", std::get<2>(bCompressors[i]));
+        auto const idx { std::to_string( i + 1 ) };
+        dict->insert("compressors_" + idx + "_allow", std::get<0>(bCompressors[i]));
+		dict->insert("compressors_" + idx + "_work", std::get<1>(bCompressors[i]));
+		dict->insert("compressors_" + idx + "_car_no", std::get<2>(bCompressors[i]));
 	}
 
 
@@ -856,7 +857,9 @@ void TTrain::set_train_brake( double const Position ) {
             ( ( originalbrakeposition / 100 == 0 ) || ( originalbrakeposition / 100 >= 5 ) )
          && ( ( mvOccupied->BrakeCtrlPos == 0 ) || ( mvOccupied->BrakeCtrlPos >= 5 ) ) ) ) ) {
         // sound feedback if the lever movement activates one of the switches
-        dsbPneumaticSwitch.play();
+        if( dsbPneumaticSwitch ) {
+            dsbPneumaticSwitch->play();
+        }
     }
 }
 
@@ -1839,7 +1842,9 @@ void TTrain::OnCommand_epbrakecontroltoggle( TTrain *Train, command_data const &
                 // turn on
                 if( Train->mvOccupied->EpFuseSwitch( true ) ) {
                     // audio feedback
-                    Train->dsbPneumaticSwitch.play();
+                    if( Train->dsbPneumaticSwitch ) {
+                        Train->dsbPneumaticSwitch->play();
+                    }
                 };
             }
             else {
@@ -1851,7 +1856,9 @@ void TTrain::OnCommand_epbrakecontroltoggle( TTrain *Train, command_data const &
             // potentially turn on
             if( Train->mvOccupied->EpFuseSwitch( true ) ) {
                 // audio feedback
-                Train->dsbPneumaticSwitch.play();
+                if( Train->dsbPneumaticSwitch ) {
+                    Train->dsbPneumaticSwitch->play();
+                }
             };
         }
         // visual feedback
@@ -6379,23 +6386,27 @@ bool TTrain::Update( double const Deltatime )
 				bPants[iUnitNo - 1][end::front] = ( bPants[iUnitNo - 1][end::front] || p->MoverParameters->Pantographs[end::front].is_active );
                 bPants[iUnitNo - 1][end::rear]  = ( bPants[iUnitNo - 1][end::rear]  || p->MoverParameters->Pantographs[end::rear].is_active );
             }
-			bComp[iUnitNo - 1][0] = (bComp[iUnitNo - 1][0] || p->MoverParameters->CompressorAllow || (p->MoverParameters->CompressorStart == start_t::automatic));
-			bSlip[i] = p->MoverParameters->SlippingWheels;
+            // TBD, TODO: clean up compressor data arrangement?
+            if( iUnitNo <= 8 ) {
+			    bComp[iUnitNo - 1][0] = (bComp[iUnitNo - 1][0] || p->MoverParameters->CompressorAllow || (p->MoverParameters->CompressorStart == start_t::automatic));
+            }
             if (p->MoverParameters->CompressorSpeed > 0.00001)
             {
-				bComp[iUnitNo - 1][1] = (bComp[iUnitNo - 1][1] || p->MoverParameters->CompressorFlag);
+                if( iUnitNo <= 8 ) {
+				    bComp[iUnitNo - 1][1] = (bComp[iUnitNo - 1][1] || p->MoverParameters->CompressorFlag);
+                }
 				bCompressors.emplace_back(
 					p->MoverParameters->CompressorAllow || (p->MoverParameters->CompressorStart == start_t::automatic),
 					p->MoverParameters->CompressorFlag,
 					i);
             }
+			bSlip[i] = p->MoverParameters->SlippingWheels;
             if ((in < 8) && (p->MoverParameters->eimc[eimc_p_Pmax] > 1))
             {
                 fEIMParams[1 + in][0] = p->MoverParameters->eimv[eimv_Fmax];
                 fEIMParams[1 + in][1] = Max0R(fEIMParams[1 + in][0], 0);
                 fEIMParams[1 + in][2] = -Min0R(fEIMParams[1 + in][0], 0);
-                fEIMParams[1 + in][3] = p->MoverParameters->eimv[eimv_Fmax] /
-                                        Max0R(p->MoverParameters->eimv[eimv_Fful], 1);
+                fEIMParams[1 + in][3] = p->MoverParameters->eimv[eimv_Fmax] / Max0R(p->MoverParameters->eimv[eimv_Fful], 1);
                 fEIMParams[1 + in][4] = Max0R(fEIMParams[1 + in][3], 0);
                 fEIMParams[1 + in][5] = -Min0R(fEIMParams[1 + in][3], 0);
                 fEIMParams[1 + in][6] = p->MoverParameters->eimv[eimv_If];
@@ -6437,10 +6448,9 @@ bool TTrain::Update( double const Deltatime )
 				in++;
 				iPowerNo = in;
 			}
-            //                p = p->NextC(4);                                       //prev
-            if ((kier ? p->NextC(128) : p->PrevC(128)) != (kier ? p->NextC(4) : p->PrevC(4)))
+            if ((kier ? p->NextC(coupling::permanent) : p->PrevC(coupling::permanent)) != (kier ? p->NextC(coupling::control) : p->PrevC(coupling::control)))
                 iUnitNo++;
-            p = (kier ? p->NextC(4) : p->PrevC(4));
+            p = (kier ? p->NextC(coupling::control) : p->PrevC(coupling::control));
             iCarNo = i + 1;
         }
         else
@@ -7437,32 +7447,34 @@ TTrain::update_sounds( double const Deltatime ) {
     }
     m_lastlocalbrakepressure = mvOccupied->LocBrakePress;
     // local brake, release
-    if( ( m_localbrakepressurechange < -0.05f )
-     && ( mvOccupied->LocBrakePress > mvOccupied->BrakePress - 0.05 ) ) {
-        rsSBHiss
-            .gain( clamp( rsSBHiss.m_amplitudeoffset + rsSBHiss.m_amplitudefactor * -m_localbrakepressurechange * 0.05, 0.0, 1.5 ) )
-            .play( sound_flags::exclusive | sound_flags::looping );
-    }
-    else {
-        // don't stop the sound too abruptly
-        volume = std::max( 0.0, rsSBHiss.gain() - 0.1 * Deltatime );
-        rsSBHiss.gain( volume );
-        if( volume < 0.05 ) {
-            rsSBHiss.stop();
+    if( rsSBHiss ) {
+        if( ( m_localbrakepressurechange < -0.05f )
+         && ( mvOccupied->LocBrakePress > mvOccupied->BrakePress - 0.05 ) ) {
+            rsSBHiss->gain( clamp( rsSBHiss->m_amplitudeoffset + rsSBHiss->m_amplitudefactor * -m_localbrakepressurechange * 0.05, 0.0, 1.5 ) );
+            rsSBHiss->play( sound_flags::exclusive | sound_flags::looping );
+        }
+        else {
+            // don't stop the sound too abruptly
+            volume = std::max( 0.0, rsSBHiss->gain() - 0.1 * Deltatime );
+            rsSBHiss->gain( volume );
+            if( volume < 0.05 ) {
+                rsSBHiss->stop();
+            }
         }
     }
     // local brake, engage
-    if( m_localbrakepressurechange > 0.05f ) {
-        rsSBHissU
-            .gain( clamp( rsSBHissU.m_amplitudeoffset + rsSBHissU.m_amplitudefactor * m_localbrakepressurechange * 0.05, 0.0, 1.5 ) )
-            .play( sound_flags::exclusive | sound_flags::looping );
-    }
-    else {
-        // don't stop the sound too abruptly
-        volume = std::max( 0.0, rsSBHissU.gain() - 0.1 * Deltatime );
-        rsSBHissU.gain( volume );
-        if( volume < 0.05 ) {
-            rsSBHissU.stop();
+    if( rsSBHissU ) {
+        if( m_localbrakepressurechange > 0.05f ) {
+            rsSBHissU->gain( clamp( rsSBHissU->m_amplitudeoffset + rsSBHissU->m_amplitudefactor * m_localbrakepressurechange * 0.05, 0.0, 1.5 ) );
+            rsSBHissU->play( sound_flags::exclusive | sound_flags::looping );
+        }
+        else {
+            // don't stop the sound too abruptly
+            volume = std::max( 0.0, rsSBHissU->gain() - 0.1 * Deltatime );
+            rsSBHissU->gain( volume );
+            if( volume < 0.05 ) {
+                rsSBHissU->stop();
+            }
         }
     }
 
@@ -7471,237 +7483,259 @@ TTrain::update_sounds( double const Deltatime ) {
     if( ( mvOccupied->BrakeHandle == TBrakeHandle::FV4a )
      || ( mvOccupied->BrakeHandle == TBrakeHandle::FVel6 ) ) {
         // upuszczanie z PG
-        fPPress = interpolate( fPPress, static_cast<float>( mvOccupied->Handle->GetSound( s_fv4a_b ) ), 0.05f );
-        volume = (
-            fPPress > 0 ?
-                rsHiss.m_amplitudefactor * fPPress * 0.25 :
-                0 );
-        if( volume * brakevolumescale > 0.05 ) {
-            rsHiss
-                .gain( volume * brakevolumescale )
-                .play( sound_flags::exclusive | sound_flags::looping );
-        }
-        else {
-            rsHiss.stop();
+        if( rsHiss ) {
+            fPPress = interpolate( fPPress, static_cast<float>( mvOccupied->Handle->GetSound( s_fv4a_b ) ), 0.05f );
+            volume = (
+                fPPress > 0 ?
+                    rsHiss->m_amplitudefactor * fPPress * 0.25 :
+                    0 );
+            if( volume * brakevolumescale > 0.05 ) {
+                rsHiss->gain( volume * brakevolumescale );
+                rsHiss->play( sound_flags::exclusive | sound_flags::looping );
+            }
+            else {
+                rsHiss->stop();
+            }
         }
         // napelnianie PG
-        fNPress = interpolate( fNPress, static_cast<float>( mvOccupied->Handle->GetSound( s_fv4a_u ) ), 0.25f );
-        volume = (
-            fNPress > 0 ?
-                rsHissU.m_amplitudefactor * fNPress :
-                0 );
-        if( volume * brakevolumescale > 0.05 ) {
-            rsHissU
-                .gain( volume * brakevolumescale )
-                .play( sound_flags::exclusive | sound_flags::looping );
-        }
-        else {
-            rsHissU.stop();
+        if( rsHissU ) {
+            fNPress = interpolate( fNPress, static_cast<float>( mvOccupied->Handle->GetSound( s_fv4a_u ) ), 0.25f );
+            volume = (
+                fNPress > 0 ?
+                    rsHissU->m_amplitudefactor * fNPress :
+                    0 );
+            if( volume * brakevolumescale > 0.05 ) {
+                rsHissU->gain( volume * brakevolumescale );
+                rsHissU->play( sound_flags::exclusive | sound_flags::looping );
+            }
+            else {
+                rsHissU->stop();
+            }
         }
         // upuszczanie przy naglym
-        volume = mvOccupied->Handle->GetSound( s_fv4a_e ) * rsHissE.m_amplitudefactor;
-        if( volume * brakevolumescale > 0.05 ) {
-            rsHissE
-                .gain( volume * brakevolumescale )
-                .play( sound_flags::exclusive | sound_flags::looping );
-        }
-        else {
-            rsHissE.stop();
+        if( rsHissE ) {
+            volume = mvOccupied->Handle->GetSound( s_fv4a_e ) * rsHissE->m_amplitudefactor;
+            if( volume * brakevolumescale > 0.05 ) {
+                rsHissE->gain( volume * brakevolumescale );
+                rsHissE->play( sound_flags::exclusive | sound_flags::looping );
+            }
+            else {
+                rsHissE->stop();
+            }
         }
         // upuszczanie sterujacego fala
-        volume = mvOccupied->Handle->GetSound( s_fv4a_x ) * rsHissX.m_amplitudefactor;
-        if( volume * brakevolumescale > 0.05 ) {
-            rsHissX
-                .gain( volume * brakevolumescale )
-                .play( sound_flags::exclusive | sound_flags::looping );
-        }
-        else {
-            rsHissX.stop();
+        if( rsHissX ) {
+            volume = mvOccupied->Handle->GetSound( s_fv4a_x ) * rsHissX->m_amplitudefactor;
+            if( volume * brakevolumescale > 0.05 ) {
+                rsHissX->gain( volume * brakevolumescale );
+                rsHissX->play( sound_flags::exclusive | sound_flags::looping );
+            }
+            else {
+                rsHissX->stop();
+            }
         }
         // upuszczanie z czasowego 
-        volume = mvOccupied->Handle->GetSound( s_fv4a_t ) * rsHissT.m_amplitudefactor;
-        if( volume * brakevolumescale > 0.05 ) {
-            rsHissT
-                .gain( volume * brakevolumescale )
-                .play( sound_flags::exclusive | sound_flags::looping );
-        }
-        else {
-            rsHissT.stop();
+        if( rsHissT ) {
+            volume = mvOccupied->Handle->GetSound( s_fv4a_t ) * rsHissT->m_amplitudefactor;
+            if( volume * brakevolumescale > 0.05 ) {
+                rsHissT->gain( volume * brakevolumescale );
+                rsHissT->play( sound_flags::exclusive | sound_flags::looping );
+            }
+            else {
+                rsHissT->stop();
+            }
         }
 
     } else {
         // jesli nie FV4a
         // upuszczanie z PG
-        fPPress = ( 4.0f * fPPress + std::max( mvOccupied->dpLocalValve, mvOccupied->dpMainValve ) ) / ( 4.0f + 1.0f );
-        volume = (
-            fPPress > 0.0f ?
-                2.0 * rsHiss.m_amplitudefactor * fPPress :
-                0.0 );
-        if( volume > 0.05 ) {
-            rsHiss
-                .gain( volume )
-                .play( sound_flags::exclusive | sound_flags::looping );
-        }
-        else {
-            rsHiss.stop();
+        if( rsHiss ) {
+            fPPress = ( 4.0f * fPPress + std::max( mvOccupied->dpLocalValve, mvOccupied->dpMainValve ) ) / ( 4.0f + 1.0f );
+            volume = (
+                fPPress > 0.0f ?
+                    2.0 * rsHiss->m_amplitudefactor * fPPress :
+                    0.0 );
+            if( volume > 0.05 ) {
+                rsHiss->gain( volume );
+                rsHiss->play( sound_flags::exclusive | sound_flags::looping );
+            }
+            else {
+                rsHiss->stop();
+            }
         }
         // napelnianie PG
-        fNPress = ( 4.0f * fNPress + Min0R( mvOccupied->dpLocalValve, mvOccupied->dpMainValve ) ) / ( 4.0f + 1.0f );
-        volume = (
-            fNPress < 0.0f ?
-                -1.0 * rsHissU.m_amplitudefactor * fNPress :
-                 0.0 );
-        if( volume > 0.01 ) {
-            rsHissU
-                .gain( volume )
-                .play( sound_flags::exclusive | sound_flags::looping );
-        }
-        else {
-            rsHissU.stop();
+        if( rsHissU ) {
+            fNPress = ( 4.0f * fNPress + Min0R( mvOccupied->dpLocalValve, mvOccupied->dpMainValve ) ) / ( 4.0f + 1.0f );
+            volume = (
+                fNPress < 0.0f ?
+                    -1.0 * rsHissU->m_amplitudefactor * fNPress :
+                     0.0 );
+            if( volume > 0.01 ) {
+                rsHissU->gain( volume );
+                rsHissU->play( sound_flags::exclusive | sound_flags::looping );
+            }
+            else {
+                rsHissU->stop();
+            }
         }
     } // koniec nie FV4a
 
     // brakes
-    if( ( mvOccupied->UnitBrakeForce > 10.0 )
-     && ( mvOccupied->Vel > 0.05 ) ) {
+    if( rsBrake ) {
+        if( ( mvOccupied->UnitBrakeForce > 10.0 )
+         && ( mvOccupied->Vel > 0.05 ) ) {
 
-        auto const brakeforceratio {
-            clamp(
-                mvOccupied->UnitBrakeForce / std::max( 1.0, mvOccupied->BrakeForceR( 1.0, mvOccupied->Vel ) / ( mvOccupied->NAxles * std::max( 1, mvOccupied->NBpA ) ) ),
-                0.0, 1.0 ) };
-        // HACK: in external view mute the sound rather than stop it, in case there's an opening bookend it'd (re)play on sound restart after returning inside
-        volume = (
-            FreeFlyModeFlag ?
-                0.0 :
-                rsBrake.m_amplitudeoffset
-                + std::sqrt( brakeforceratio * interpolate( 0.4, 1.0, ( mvOccupied->Vel / ( 1 + mvOccupied->Vmax ) ) ) ) * rsBrake.m_amplitudefactor );
-        rsBrake
-            .pitch( rsBrake.m_frequencyoffset + mvOccupied->Vel * rsBrake.m_frequencyfactor )
-            .gain( volume )
-            .play( sound_flags::exclusive | sound_flags::looping );
-    }
-    else {
-        rsBrake.stop();
+            auto const brakeforceratio{
+                clamp(
+                    mvOccupied->UnitBrakeForce / std::max( 1.0, mvOccupied->BrakeForceR( 1.0, mvOccupied->Vel ) / ( mvOccupied->NAxles * std::max( 1, mvOccupied->NBpA ) ) ),
+                    0.0, 1.0 ) };
+            // HACK: in external view mute the sound rather than stop it, in case there's an opening bookend it'd (re)play on sound restart after returning inside
+            volume = (
+                FreeFlyModeFlag ?
+                    0.0 :
+                    rsBrake->m_amplitudeoffset
+                    + std::sqrt( brakeforceratio * interpolate( 0.4, 1.0, ( mvOccupied->Vel / ( 1 + mvOccupied->Vmax ) ) ) ) * rsBrake->m_amplitudefactor );
+            rsBrake->pitch( rsBrake->m_frequencyoffset + mvOccupied->Vel * rsBrake->m_frequencyfactor );
+            rsBrake->gain( volume );
+            rsBrake->play( sound_flags::exclusive | sound_flags::looping );
+        }
+        else {
+            rsBrake->stop();
+        }
     }
 
     // ambient sound
     // since it's typically ticking of the clock we can center it on tachometer or on middle of compartment bounding area
-    rsFadeSound.play( sound_flags::exclusive | sound_flags::looping );
+    if( rsFadeSound ) {
+        rsFadeSound->play( sound_flags::exclusive | sound_flags::looping );
+    }
 
-    if( mvControlled->TrainType == dt_181 ) {
+    if( dsbSlipAlarm ) {
         // alarm przy poslizgu dla 181/182 - BOMBARDIER
         if( ( mvControlled->SlippingWheels )
          && ( DynamicObject->GetVelocity() > 1.0 ) ) {
-            dsbSlipAlarm.play( sound_flags::exclusive | sound_flags::looping );
+            dsbSlipAlarm->play( sound_flags::exclusive | sound_flags::looping );
         }
         else {
-            dsbSlipAlarm.stop();
+            dsbSlipAlarm->stop();
         }
     }
     // szum w czasie jazdy
-    if( ( false == FreeFlyModeFlag )
-     && ( false == Global.CabWindowOpen )
-     && ( DynamicObject->GetVelocity() > 0.5 ) ) {
+    if( rsRunningNoise ) {
+        if( ( false == FreeFlyModeFlag )
+         && ( false == Global.CabWindowOpen )
+         && ( DynamicObject->GetVelocity() > 0.5 ) ) {
 
-        update_sounds_runningnoise( rsRunningNoise );
-    }
-    else {
-        // don't play the optional ending sound if the listener switches views
-        rsRunningNoise.stop( true == FreeFlyModeFlag );
+            update_sounds_runningnoise( *rsRunningNoise );
+        }
+        else {
+            // don't play the optional ending sound if the listener switches views
+            rsRunningNoise->stop( true == FreeFlyModeFlag );
+        }
     }
     // hunting oscillation noise
-    if( ( false == FreeFlyModeFlag )
-     && ( false == Global.CabWindowOpen )
-     && ( DynamicObject->GetVelocity() > 0.5 )
-     && ( DynamicObject->IsHunting ) ) {
+    if( rsHuntingNoise ) {
+        if( ( false == FreeFlyModeFlag )
+         && ( false == Global.CabWindowOpen )
+         && ( DynamicObject->GetVelocity() > 0.5 )
+         && ( DynamicObject->IsHunting ) ) {
 
-        update_sounds_runningnoise( rsHuntingNoise );
-        // modify calculated sound volume by hunting amount
-        auto const huntingamount =
-            interpolate(
-                0.0, 1.0,
-                clamp(
-                ( mvOccupied->Vel - DynamicObject->HuntingShake.fadein_begin ) / ( DynamicObject->HuntingShake.fadein_end - DynamicObject->HuntingShake.fadein_begin ),
-                    0.0, 1.0 ) );
+            update_sounds_runningnoise( *rsHuntingNoise );
+            // modify calculated sound volume by hunting amount
+            auto const huntingamount =
+                interpolate(
+                    0.0, 1.0,
+                    clamp(
+                    ( mvOccupied->Vel - DynamicObject->HuntingShake.fadein_begin ) / ( DynamicObject->HuntingShake.fadein_end - DynamicObject->HuntingShake.fadein_begin ),
+                        0.0, 1.0 ) );
 
-        rsHuntingNoise.gain( rsHuntingNoise.gain() * huntingamount );
-    }
-    else {
-        // don't play the optional ending sound if the listener switches views
-        rsHuntingNoise.stop( true == FreeFlyModeFlag );
+            rsHuntingNoise->gain( rsHuntingNoise->gain() * huntingamount );
+        }
+        else {
+            // don't play the optional ending sound if the listener switches views
+            rsHuntingNoise->stop( true == FreeFlyModeFlag );
+        }
     }
     // rain sound
-    if( ( false == FreeFlyModeFlag )
-     && ( false == Global.CabWindowOpen )
-     && ( Global.Weather == "rain:" ) ) {
-        if( m_rainsound.is_combined() ) {
-            m_rainsound.pitch( Global.Overcast - 1.0 );
+    if( m_rainsound ) {
+        if( ( false == FreeFlyModeFlag )
+         && ( false == Global.CabWindowOpen )
+         && ( Global.Weather == "rain:" ) ) {
+            if( m_rainsound->is_combined() ) {
+                m_rainsound->pitch( Global.Overcast - 1.0 );
+            }
+            m_rainsound->gain( m_rainsound->m_amplitudeoffset + m_rainsound->m_amplitudefactor * 1.f );
+            m_rainsound->play( sound_flags::exclusive | sound_flags::looping );
         }
-        m_rainsound
-            .gain( m_rainsound.m_amplitudeoffset + m_rainsound.m_amplitudefactor * 1.f )
-            .play( sound_flags::exclusive | sound_flags::looping );
-    }
-    else {
-        m_rainsound.stop();
+        else {
+            m_rainsound->stop();
+        }
     }
 
-    if( fTachoCount >= 3.f ) {
-        auto const frequency { (
-            true == dsbHasler.is_combined() ?
-                fTachoVelocity * 0.01 :
-                dsbHasler.m_frequencyoffset + dsbHasler.m_frequencyfactor ) };
-        dsbHasler
-            .pitch( frequency )
-            .gain( dsbHasler.m_amplitudeoffset + dsbHasler.m_amplitudefactor )
-            .play( sound_flags::exclusive | sound_flags::looping );
-    }
-    else if( fTachoCount < 1.f ) {
-        dsbHasler.stop();
+    if( dsbHasler ) {
+        if( fTachoCount >= 3.f ) {
+            auto const frequency{ (
+                true == dsbHasler->is_combined() ?
+                    fTachoVelocity * 0.01 :
+                    dsbHasler->m_frequencyoffset + dsbHasler->m_frequencyfactor ) };
+            dsbHasler->pitch( frequency );
+            dsbHasler->gain( dsbHasler->m_amplitudeoffset + dsbHasler->m_amplitudefactor );
+            dsbHasler->play( sound_flags::exclusive | sound_flags::looping );
+        }
+        else if( fTachoCount < 1.f ) {
+            dsbHasler->stop();
+        }
     }
 
     // power-reliant sounds
     if( mvOccupied->Power24vIsAvailable || mvOccupied->Power110vIsAvailable ) {
         // McZapkie-141102: SHP i czuwak, TODO: sygnalizacja kabinowa
             // hunter-091012: rozdzielenie alarmow
-        if( TestFlag( mvOccupied->SecuritySystem.Status, s_CAalarm )
-         || TestFlag( mvOccupied->SecuritySystem.Status, s_SHPalarm ) ) {
+        if( dsbBuzzer ) {
+            if( TestFlag( mvOccupied->SecuritySystem.Status, s_CAalarm )
+             || TestFlag( mvOccupied->SecuritySystem.Status, s_SHPalarm ) ) {
 
-            if( false == dsbBuzzer.is_playing() ) {
-                dsbBuzzer
-                    .pitch( dsbBuzzer.m_frequencyoffset + dsbBuzzer.m_frequencyfactor )
-                    .gain( dsbBuzzer.m_amplitudeoffset + dsbBuzzer.m_amplitudefactor )
-                    .play( sound_flags::looping );
-                Console::BitsSet( 1 << 14 ); // ustawienie bitu 16 na PoKeys
+                if( false == dsbBuzzer->is_playing() ) {
+                    dsbBuzzer->pitch( dsbBuzzer->m_frequencyoffset + dsbBuzzer->m_frequencyfactor );
+                    dsbBuzzer->gain( dsbBuzzer->m_amplitudeoffset + dsbBuzzer->m_amplitudefactor );
+                    dsbBuzzer->play( sound_flags::looping );
+                    Console::BitsSet( 1 << 14 ); // ustawienie bitu 16 na PoKeys
+                }
             }
-        }
-        else {
-            if( true == dsbBuzzer.is_playing() ) {
-                dsbBuzzer.stop();
-                Console::BitsClear( 1 << 14 ); // ustawienie bitu 16 na PoKeys
+            else {
+                if( true == dsbBuzzer->is_playing() ) {
+                    dsbBuzzer->stop();
+                    Console::BitsClear( 1 << 14 ); // ustawienie bitu 16 na PoKeys
+                }
             }
         }
         // distance meter alert
-        auto const *owner { (
-            DynamicObject->ctOwner != nullptr ?
-                DynamicObject->ctOwner :
-                DynamicObject->Mechanik ) };
-        if( m_distancecounter > owner->fLength ) {
-            // play assigned sound if the train travelled its full length since meter activation
-            // TBD: check all combinations of directions and active cab
-            m_distancecounter = -1.f; // turn off the meter after its task is done
-            m_distancecounterclear
-                .pitch( m_distancecounterclear.m_frequencyoffset + m_distancecounterclear.m_frequencyfactor )
-                .gain( m_distancecounterclear.m_amplitudeoffset + m_distancecounterclear.m_amplitudefactor )
-                .play( sound_flags::exclusive );
+        if( m_distancecounterclear ) {
+            auto const *owner{ (
+                DynamicObject->ctOwner != nullptr ?
+                    DynamicObject->ctOwner :
+                    DynamicObject->Mechanik ) };
+            if( m_distancecounter > owner->fLength ) {
+                // play assigned sound if the train travelled its full length since meter activation
+                // TBD: check all combinations of directions and active cab
+                m_distancecounter = -1.f; // turn off the meter after its task is done
+                m_distancecounterclear->pitch( m_distancecounterclear->m_frequencyoffset + m_distancecounterclear->m_frequencyfactor );
+                m_distancecounterclear->gain( m_distancecounterclear->m_amplitudeoffset + m_distancecounterclear->m_amplitudefactor );
+                m_distancecounterclear->play( sound_flags::exclusive );
+            }
         }
     }
     else {
         // stop power-reliant sounds if power is cut
-        if( true == dsbBuzzer.is_playing() ) {
-            dsbBuzzer.stop();
-            Console::BitsClear( 1 << 14 ); // ustawienie bitu 16 na PoKeys
+        if( dsbBuzzer ) {
+            if( true == dsbBuzzer->is_playing() ) {
+                dsbBuzzer->stop();
+                Console::BitsClear( 1 << 14 ); // ustawienie bitu 16 na PoKeys
+            }
         }
-        m_distancecounterclear.stop();
+        if( m_distancecounterclear ) {
+            m_distancecounterclear->stop();
+        }
     }
 
     update_sounds_radio();
@@ -7784,12 +7818,14 @@ void TTrain::update_sounds_radio() {
         message.second->gain( volume );
     }
     // radiostop
-    if( ( true == radioenabled )
-     && ( true == mvOccupied->RadioStopFlag ) ) {
-        m_radiostop.play( sound_flags::exclusive | sound_flags::looping );
-    }
-    else {
-        m_radiostop.stop();
+    if( m_radiostop ) {
+        if( ( true == radioenabled )
+         && ( true == mvOccupied->RadioStopFlag ) ) {
+            m_radiostop->play( sound_flags::exclusive | sound_flags::looping );
+        }
+        else {
+            m_radiostop->stop();
+        }
     }
 }
 
@@ -7832,10 +7868,43 @@ bool TTrain::CabChange(int iDirection)
 // wczytywanie pliku z danymi multimedialnymi (dzwieki, kontrolki, kabiny)
 bool TTrain::LoadMMediaFile(std::string const &asFileName)
 {
+    // initialize sounds so potential entries from previous vehicle don't stick around
+    std::unordered_map<
+        std::string,
+        std::tuple<std::optional<sound_source> &, sound_placement, float, sound_type, int, double>>
+        internalsounds = {
+            {"ctrl:", {dsbNastawnikJazdy, sound_placement::internal, EU07_SOUND_CABCONTROLSCUTOFFRANGE, sound_type::single, 0, 100.0}},
+            {"ctrlscnd:", {dsbNastawnikBocz, sound_placement::internal, EU07_SOUND_CABCONTROLSCUTOFFRANGE, sound_type::single, 0, 100.0}},
+            {"reverserkey:", {dsbReverserKey, sound_placement::internal, EU07_SOUND_CABCONTROLSCUTOFFRANGE, sound_type::single, 0, 100.0}},
+            {"buzzer:", {dsbBuzzer, sound_placement::internal, EU07_SOUND_CABCONTROLSCUTOFFRANGE, sound_type::single, 0, 100.0}},
+            {"radiostop:", {m_radiostop, sound_placement::internal, EU07_SOUND_CABCONTROLSCUTOFFRANGE, sound_type::single, 0, 100.0}},
+            {"slipalarm:", {dsbSlipAlarm, sound_placement::internal, EU07_SOUND_CABCONTROLSCUTOFFRANGE, sound_type::single, 0, 100.0}},
+            {"distancecounter:", {m_distancecounterclear, sound_placement::internal, EU07_SOUND_CABCONTROLSCUTOFFRANGE, sound_type::single, 0, 100.0}},
+            {"tachoclock:", {dsbHasler, sound_placement::internal, EU07_SOUND_CABCONTROLSCUTOFFRANGE, sound_type::single, 0, 100.0}},
+            {"switch:", {dsbSwitch, sound_placement::internal, EU07_SOUND_CABCONTROLSCUTOFFRANGE, sound_type::single, 0, 100.0}},
+            {"pneumaticswitch:", {dsbPneumaticSwitch, sound_placement::internal, EU07_SOUND_CABCONTROLSCUTOFFRANGE, sound_type::single, 0, 100.0}},
+            {"airsound:", {rsHiss, sound_placement::internal, EU07_SOUND_CABCONTROLSCUTOFFRANGE, sound_type::single, sound_parameters::amplitude, 100.0}},
+            {"airsound2:", {rsHissU, sound_placement::internal, EU07_SOUND_CABCONTROLSCUTOFFRANGE, sound_type::single, sound_parameters::amplitude, 100.0}},
+            {"airsound3:", {rsHissE, sound_placement::internal, EU07_SOUND_CABCONTROLSCUTOFFRANGE, sound_type::single, sound_parameters::amplitude, 100.0}},
+            {"airsound4:", {rsHissX, sound_placement::internal, EU07_SOUND_CABCONTROLSCUTOFFRANGE, sound_type::single, sound_parameters::amplitude, 100.0}},
+            {"airsound5:", {rsHissT, sound_placement::internal, EU07_SOUND_CABCONTROLSCUTOFFRANGE, sound_type::single, sound_parameters::amplitude, 100.0}},
+            {"localbrakesound:", {rsSBHiss, sound_placement::internal, EU07_SOUND_CABCONTROLSCUTOFFRANGE, sound_type::single, sound_parameters::amplitude, 100.0}},
+            {"localbrakesound2:", {rsSBHissU, sound_placement::internal, EU07_SOUND_CABCONTROLSCUTOFFRANGE, sound_type::single, sound_parameters::amplitude, 100.0}},
+            {"brakesound:", {rsBrake, sound_placement::internal, -1, sound_type::single, sound_parameters::amplitude | sound_parameters::frequency, 100.0}},
+            {"fadesound:", {rsFadeSound, sound_placement::internal, EU07_SOUND_CABCONTROLSCUTOFFRANGE, sound_type::single, 0, 100.0}},
+            {"runningnoise:", {rsRunningNoise, sound_placement::internal, EU07_SOUND_GLOBALRANGE, sound_type::single, sound_parameters::amplitude | sound_parameters::frequency, mvOccupied->Vmax }},
+            {"huntingnoise:", {rsHuntingNoise, sound_placement::internal, EU07_SOUND_GLOBALRANGE, sound_type::single, sound_parameters::amplitude | sound_parameters::frequency, mvOccupied->Vmax }},
+            {"rainsound:", {m_rainsound, sound_placement::internal, -1, sound_type::single, 0, 100.0}},
+        };
+    for( auto &soundconfig : internalsounds ) {
+        std::get<std::optional<sound_source> &>( soundconfig.second ).reset();
+    }
+    // NOTE: since radiosound is an incomplete template not using std::optional it gets a special treatment
+    m_radiosound.owner( DynamicObject );
+
     cParser parser( asFileName, cParser::buffer_FILE, DynamicObject->asBaseDir );
     // NOTE: yaml-style comments are disabled until conflict in use of # is resolved
     // parser.addCommentStyle( "#", "\n" );
-
     std::string token;
     do
     {
@@ -7844,145 +7913,56 @@ bool TTrain::LoadMMediaFile(std::string const &asFileName)
         parser >> token;
     } while ((token != "") && (token != "internaldata:"));
 
-    if (token == "internaldata:")
-    {
-        do
-        {
+    if (token == "internaldata:") {
+
+        do {
             token = "";
             parser.getTokens();
             parser >> token;
-            // SEKCJA DZWIEKOW
-            if (token == "ctrl:") {
-                // nastawnik:
-                dsbNastawnikJazdy.deserialize( parser, sound_type::single );
-                dsbNastawnikJazdy.owner( DynamicObject );
-            }
-            else if (token == "ctrlscnd:") {
-                // hunter-081211: nastawnik bocznikowania
-                dsbNastawnikBocz.deserialize( parser, sound_type::single );
-                dsbNastawnikBocz.owner( DynamicObject );
-            }
-            else if (token == "reverserkey:") {
-                // hunter-131211: dzwiek kierunkowego
-                dsbReverserKey.deserialize( parser, sound_type::single );
-                dsbReverserKey.owner( DynamicObject );
-            }
-            else if (token == "buzzer:") {
-                // bzyczek shp:
-                dsbBuzzer.deserialize( parser, sound_type::single );
-                dsbBuzzer.owner( DynamicObject );
-            }
-            else if( token == "radiostop:" ) {
-                // radiostop
-                m_radiostop.deserialize( parser, sound_type::single );
-                m_radiostop.owner( DynamicObject );
-            }
-            else if (token == "slipalarm:") {
-                // Bombardier 011010: alarm przy poslizgu:
-                dsbSlipAlarm.deserialize( parser, sound_type::single );
-                dsbSlipAlarm.owner( DynamicObject );
-            }
-            else if (token == "distancecounter:") {
-                // distance meter 'good to go' sound
-                m_distancecounterclear.deserialize( parser, sound_type::single );
-                m_distancecounterclear.owner( DynamicObject );
-            }
-            else if (token == "tachoclock:") {
-                // cykanie rejestratora:
-                dsbHasler.deserialize( parser, sound_type::single );
-                dsbHasler.owner( DynamicObject );
-            }
-            else if (token == "switch:") {
-                // przelaczniki:
-                dsbSwitch.deserialize( parser, sound_type::single );
-                dsbSwitch.owner( DynamicObject );
-            }
-            else if (token == "pneumaticswitch:") {
-                // stycznik EP:
-                dsbPneumaticSwitch.deserialize( parser, sound_type::single );
-                dsbPneumaticSwitch.owner( DynamicObject );
-            }
-            else if (token == "airsound:") {
-                // syk:
-                rsHiss.deserialize( parser, sound_type::single, sound_parameters::amplitude );
-                rsHiss.owner( DynamicObject );
-                if( true == rsSBHiss.empty() ) {
-                    // fallback for vehicles without defined local brake hiss sound
-                    rsSBHiss = rsHiss;
-                }
-            }
-            else if (token == "airsound2:") {
-                // syk:
-                rsHissU.deserialize( parser, sound_type::single, sound_parameters::amplitude );
-                rsHissU.owner( DynamicObject );
-                if( true == rsSBHissU.empty() ) {
-                    // fallback for vehicles without defined local brake hiss sound
-                    rsSBHissU = rsHissU;
-                }
-            }
-            else if (token == "airsound3:") {
-                // syk:
-                rsHissE.deserialize( parser, sound_type::single, sound_parameters::amplitude );
-                rsHissE.owner( DynamicObject );
-            }
-            else if (token == "airsound4:") {
-                // syk:
-                rsHissX.deserialize( parser, sound_type::single, sound_parameters::amplitude );
-                rsHissX.owner( DynamicObject );
-            }
-            else if (token == "airsound5:") {
-                // syk:
-                rsHissT.deserialize( parser, sound_type::single, sound_parameters::amplitude );
-                rsHissT.owner( DynamicObject );
-            }
-            else if (token == "localbrakesound:") {
-                // syk:
-                rsSBHiss.deserialize( parser, sound_type::single, sound_parameters::amplitude );
-                rsSBHiss.owner( DynamicObject );
-            }
-            else if( token == "localbrakesound2:" ) {
-                // syk:
-                rsSBHissU.deserialize( parser, sound_type::single, sound_parameters::amplitude );
-                rsSBHissU.owner( DynamicObject );
-            }
-            else if( token == "brakesound:" ) {
-                // the sound of vehicle body vibrations etc, when brakes are engaged
-                rsBrake.deserialize( parser, sound_type::single, sound_parameters::amplitude | sound_parameters::frequency );
-                rsBrake.owner( DynamicObject );
-                // NOTE: can't pre-calculate amplitude normalization based on max brake force, as this varies depending on vehicle speed
-                rsBrake.m_frequencyfactor /= ( 1 + mvOccupied->Vmax );
-            }
-            else if (token == "fadesound:") {
-                // ambient sound:
-                rsFadeSound.deserialize( parser, sound_type::single );
-                rsFadeSound.owner( DynamicObject );
-            }
-            else if( token == "runningnoise:" ) {
-                // szum podczas jazdy:
-                rsRunningNoise.deserialize( parser, sound_type::single, sound_parameters::amplitude | sound_parameters::frequency, mvOccupied->Vmax );
-                rsRunningNoise.owner( DynamicObject );
-                rsRunningNoise.m_frequencyfactor /= ( 1 + mvOccupied->Vmax );
-            }
-            else if( token == "huntingnoise:" ) {
-                // hunting oscillation sound:
-                rsHuntingNoise.deserialize( parser, sound_type::single, sound_parameters::amplitude | sound_parameters::frequency, mvOccupied->Vmax );
-                rsHuntingNoise.owner( DynamicObject );
-                rsHuntingNoise.m_frequencyfactor /= ( 1 + mvOccupied->Vmax );
-            }
-            else if( token == "rainsound:" ) {
-                // precipitation sound:
-                m_rainsound.deserialize( parser, sound_type::single );
-                m_rainsound.owner( DynamicObject );
-            }
 
-        } while (token != "");
+            auto lookup { internalsounds.find( token ) };
+            if( lookup == internalsounds.end() ) { continue; }
+
+            auto const soundconfig { lookup->second };
+            sound_source sound {
+                std::get<sound_placement>( soundconfig ),
+                std::get<float>( soundconfig ) };
+            sound.deserialize(
+                parser,
+                std::get<sound_type>( soundconfig ),
+                std::get<int>( soundconfig ),
+                std::get<double>( soundconfig ) );
+            sound.owner( DynamicObject );
+            std::get<std::optional<sound_source> &>( soundconfig ) = sound;
+        } while( token != "" );
+
+
+        // assign default samples to sound emitters which weren't included in the config file
+        if( !m_rainsound ) {
+            sound_source rainsound;
+            rainsound.deserialize( "rainsound_default", sound_type::single );
+            rainsound.owner( DynamicObject );
+            m_rainsound = rainsound;
+        }
+        if (!rsSBHiss) {
+            // fallback for vehicles without defined local brake hiss sound
+            rsSBHiss = rsHiss;
+        }
+        if (!rsSBHissU) {
+            // fallback for vehicles without defined local brake hiss sound
+            rsSBHissU = rsHissU;
+        }
+        if (rsBrake) {
+            rsBrake->m_frequencyfactor /= (1 + mvOccupied->Vmax);
+        }
+        if (rsRunningNoise) {
+            rsRunningNoise->m_frequencyfactor /= (1 + mvOccupied->Vmax);
+        }
+        if (rsHuntingNoise) {
+            rsHuntingNoise->m_frequencyfactor /= (1 + mvOccupied->Vmax);
+        }
     }
-/*
-    else
-    {
-        return false;
-    } // nie znalazl sekcji internal
-*/
+
     return true;
 }
 
@@ -7991,19 +7971,21 @@ bool TTrain::InitializeCab(int NewCabNo, std::string const &asFileName)
     m_controlmapper.clear();
     // clear python screens
     m_screens.clear();
-    // reset sound positions and owner
+    // reset sound positions
     auto const nullvector { glm::vec3() };
-    std::vector<sound_source *> sounds = {
-        &dsbReverserKey, &dsbNastawnikJazdy, &dsbNastawnikBocz,
-        &dsbSwitch, &dsbPneumaticSwitch,
-        &rsHiss, &rsHissU, &rsHissE, &rsHissX, &rsHissT, &rsSBHiss, &rsSBHissU,
-        &rsFadeSound, &rsRunningNoise, &rsHuntingNoise,
-        &dsbHasler, &dsbBuzzer, &dsbSlipAlarm, &m_distancecounterclear, &m_radiosound, &m_radiostop
+    std::vector<std::reference_wrapper<std::optional<sound_source>>> sounds = {
+        dsbReverserKey, dsbNastawnikJazdy, dsbNastawnikBocz,
+        dsbSwitch, dsbPneumaticSwitch,
+        rsHiss, rsHissU, rsHissE, rsHissX, rsHissT, rsSBHiss, rsSBHissU,
+        rsFadeSound, rsRunningNoise, rsHuntingNoise,
+        dsbHasler, dsbBuzzer, dsbSlipAlarm, m_distancecounterclear, m_rainsound, m_radiostop
     };
-    for( auto sound : sounds ) {
-        sound->offset( nullvector );
-        sound->owner( DynamicObject );
+    for( auto &sound : sounds ) {
+        if( sound.get() ) {
+            sound.get()->offset( nullvector );
+        }
     }
+    m_radiosound.offset( nullvector );
     // reset view angles
     pMechViewAngle = { 0.0, 0.0 };
 
@@ -8011,7 +7993,7 @@ bool TTrain::InitializeCab(int NewCabNo, std::string const &asFileName)
 
     bool parse = false;
     int cabindex = 0;
-    DynamicObject->mdKabina = NULL; // likwidacja wskaźnika na dotychczasową kabinę
+    DynamicObject->mdKabina = nullptr; // likwidacja wskaźnika na dotychczasową kabinę
     switch (NewCabNo)
     { // ustalenie numeru kabiny do wczytania
     case -1:
@@ -8038,59 +8020,8 @@ bool TTrain::InitializeCab(int NewCabNo, std::string const &asFileName)
         token = "";
         parser.getTokens();
         parser >> token;
-/*
-        if( token == "locations:" ) {
-            do {
-                token = "";
-                parser.getTokens(); parser >> token;
-
-                if( token == "radio:" ) {
-                    // point in 3d space, in format [ x, y, z ]
-                    glm::vec3 radiolocation;
-                    parser.getTokens( 3, false, "\n\r\t ,;[]" );
-                    parser
-                        >> radiolocation.x
-                        >> radiolocation.y
-                        >> radiolocation.z;
-                    radiolocation *= glm::vec3( NewCabNo, 1, NewCabNo );
-                    m_radiosound.offset( radiolocation );
-                }
-
-                else if( token == "alerter:" ) {
-                    // point in 3d space, in format [ x, y, z ]
-                    glm::vec3 alerterlocation;
-                    parser.getTokens( 3, false, "\n\r\t ,;[]" );
-                    parser
-                        >> alerterlocation.x
-                        >> alerterlocation.y
-                        >> alerterlocation.z;
-                    alerterlocation *= glm::vec3( NewCabNo, 1, NewCabNo );
-                    dsbBuzzer.offset( alerterlocation );
-                }
-
-            } while( ( token != "" )
-                  && ( token != "endlocations" ) );
-
-        } // locations:
-*/
     } while ((token != "") && (token != cabstr));
-/*
-    if ((cabindex != 1) && (token != cabstr))
-    {
-        // jeśli nie znaleziony wpis kabiny, próba szukania kabiny 1
-        cabstr = "cab1definition:";
-        // crude way to start parsing from beginning
-        parser = std::make_shared<cParser>(asFileName, cParser::buffer_FILE);
-        // NOTE: yaml-style comments are disabled until conflict in use of # is resolved
-        // parser.addCommentStyle( "#", "\n" );
-        do
-        {
-            token = "";
-            parser.getTokens();
-            parser >> token;
-        } while ((token != "") && (token != cabstr));
-    }
-*/
+
     if (token == cabstr)
     {
         // jeśli znaleziony wpis kabiny
@@ -8288,63 +8219,53 @@ bool TTrain::InitializeCab(int NewCabNo, std::string const &asFileName)
     if (DynamicObject->mdKabina)
     {
 */
-        // assign default samples to sound emitters which weren't included in the config file
-        if( m_rainsound.empty() ) {
-            m_rainsound.deserialize( "rainsound_default", sound_type::single );
-            m_rainsound.owner( DynamicObject );
-        }
         // configure placement of sound emitters which aren't bound with any device model, and weren't placed manually
-        // try first to bind sounds to location of possible devices
-        if( dsbReverserKey.offset() == nullvector ) {
-            dsbReverserKey.offset( ggDirKey.model_offset() );
-        }
-        if( dsbNastawnikJazdy.offset() == nullvector ) {
-            dsbNastawnikJazdy.offset( ggJointCtrl.model_offset() );
-        }
-        if( dsbNastawnikJazdy.offset() == nullvector ) {
-            dsbNastawnikJazdy.offset( ggMainCtrl.model_offset() );
-        }
-        if( dsbNastawnikBocz.offset() == nullvector ) {
-            dsbNastawnikBocz.offset( ggScndCtrl.model_offset() );
-        }
-        if( dsbBuzzer.offset() == nullvector ) {
-            dsbBuzzer.offset( btLampkaCzuwaka.model_offset() );
-        }
-        // HACK: alerter is likely to be located somewhere near computer displays
-        if( m_distancecounterclear.offset() == nullvector ) {
-            m_distancecounterclear.offset( btLampkaCzuwaka.model_offset() );
-        }
-        // radio has two potential items which can provide the position
+        auto const caboffset { glm::dvec3 { ( Cabine[ cabindex ].CabPos1 + Cabine[ cabindex ].CabPos2 ) * 0.5 } +glm::dvec3 { 0, 1, 0 } };
+        // NOTE: since radiosound is an incomplete template not using std::optional it gets a special treatment
         if( m_radiosound.offset() == nullvector ) {
             m_radiosound.offset( btLampkaRadio.model_offset() );
         }
-        if( m_radiostop.offset() == nullvector ) {
-            m_radiostop.offset( m_radiosound.offset() );
+        if( m_radiosound.offset() == nullvector ) {
+            m_radiosound.offset( caboffset );
         }
-        auto const localbrakeoffset { ggLocalBrake.model_offset() };
-        std::vector<sound_source *> localbrakesounds = {
-            &rsSBHiss, &rsSBHissU
-        };
-        for( auto sound : localbrakesounds ) {
-            if( sound->offset() == nullvector ) {
-                sound->offset( localbrakeoffset );
+        std::vector<std::pair<std::reference_wrapper<std::optional<sound_source>>, glm::vec3>>
+            soundlocations = {
+                {dsbReverserKey, ggDirKey.model_offset()},
+                {dsbNastawnikJazdy, ggJointCtrl.model_offset()},
+                {dsbNastawnikJazdy, ggMainCtrl.model_offset()}, // NOTE: fallback for vehicles without universal controller
+                {dsbNastawnikBocz, ggScndCtrl.model_offset()},
+                {dsbSwitch, caboffset},
+                {dsbPneumaticSwitch, caboffset},
+                {rsHiss, ggBrakeCtrl.model_offset()},
+                {rsHissU, ggBrakeCtrl.model_offset()},
+                {rsHissE, ggBrakeCtrl.model_offset()},
+                {rsHissX, ggBrakeCtrl.model_offset()},
+                {rsHissT, ggBrakeCtrl.model_offset()},
+                {rsSBHiss, ggLocalBrake.model_offset()},
+                {rsSBHiss, ggBrakeCtrl.model_offset()}, // NOTE: fallback if the local brake model can't be located
+                {rsSBHissU, ggLocalBrake.model_offset()},
+                {rsSBHissU, ggBrakeCtrl.model_offset()}, // NOTE: fallback if the local brake model can't be located
+                {rsFadeSound, caboffset},
+                {rsRunningNoise, caboffset},
+                {rsHuntingNoise, caboffset},
+                {dsbHasler, caboffset},
+                {dsbBuzzer, btLampkaCzuwaka.model_offset()},
+                {dsbSlipAlarm, caboffset},
+                {m_distancecounterclear, btLampkaCzuwaka.model_offset()},
+                {m_rainsound, caboffset},
+                {m_radiostop, m_radiosound.offset()},
+            };
+        for( auto & sound : soundlocations ) {
+            if( ( sound.first.get() )
+             && ( sound.first.get()->offset() == nullvector ) ) {
+                sound.first.get()->offset( sound.second );
             }
         }
-        // NOTE: if the local brake model can't be located the emitter will also be assigned location of main brake
-        auto const brakeoffset { ggBrakeCtrl.model_offset() };
-        std::vector<sound_source *> brakesounds = {
-            &rsHiss, &rsHissU, &rsHissE, &rsHissX, &rsHissT, &rsSBHiss, &rsSBHissU,
-        };
-        for( auto sound : brakesounds ) {
-            if( sound->offset() == nullvector ) {
-                sound->offset( brakeoffset );
-            }
-        }
-        // for whatever is left fallback on generic location, centre of the cab 
-        auto const caboffset { glm::dvec3 { ( Cabine[ cabindex ].CabPos1 + Cabine[ cabindex ].CabPos2 ) * 0.5 } + glm::dvec3 { 0, 1, 0 } };
-        for( auto sound : sounds ) {
-            if( sound->offset() == nullvector ) {
-                sound->offset( caboffset );
+        // second pass, in case some items received no positioning due to missing submodels etc
+        for( auto & sound : soundlocations ) {
+            if( ( sound.first.get() )
+             && ( sound.first.get()->offset() == nullvector ) ) {
+                sound.first.get()->offset( caboffset );
             }
         }
 
@@ -8521,9 +8442,13 @@ TTrain::MoveToVehicle(TDynamicObject *target) {
 			DynamicSet(target);
 		}
 
-		InitializeCab(
-		    Occupied()->CabActive,
-		    Occupied()->TypeName + ".mmd" );
+        {
+            auto const filename { Occupied()->TypeName + ".mmd" };
+            LoadMMediaFile( filename );
+            InitializeCab(
+                Occupied()->CabActive,
+                filename );
+        }
 
 		Dynamic()->ABuSetModelShake( {} ); // zerowanie przesunięcia przed powrotem?
 
@@ -9544,8 +9469,9 @@ bool TTrain::initialize_gauge(cParser &Parser, std::string const &Label, int con
         gauge.Load(Parser, DynamicObject);
         gauge.AssignFloat(&fTachoVelocityJump);
         // bind tachometer sound location to the meter
-        if( dsbHasler.offset() == glm::vec3() ) {
-            dsbHasler.offset( gauge.model_offset() );
+        if( dsbHasler
+         && dsbHasler->offset() == glm::vec3() ) {
+            dsbHasler->offset( gauge.model_offset() );
         }
     }
     else if (Label == "tachometern:")
@@ -9555,8 +9481,9 @@ bool TTrain::initialize_gauge(cParser &Parser, std::string const &Label, int con
         gauge.Load(Parser, DynamicObject);
         gauge.AssignFloat(&fTachoVelocity);
         // bind tachometer sound location to the meter
-        if( dsbHasler.offset() == glm::vec3() ) {
-            dsbHasler.offset( gauge.model_offset() );
+        if( dsbHasler
+         && dsbHasler->offset() == glm::vec3() ) {
+            dsbHasler->offset( gauge.model_offset() );
         }
     }
     else if (Label == "tachometerd:")
@@ -9566,8 +9493,9 @@ bool TTrain::initialize_gauge(cParser &Parser, std::string const &Label, int con
         gauge.Load(Parser, DynamicObject);
         gauge.AssignFloat(&fTachoVelocity);
         // bind tachometer sound location to the meter
-        if( dsbHasler.offset() == glm::vec3() ) {
-            dsbHasler.offset( gauge.model_offset() );
+        if( dsbHasler
+         && dsbHasler->offset() == glm::vec3() ) {
+            dsbHasler->offset( gauge.model_offset() );
         }
     }
     else if ((Label == "hvcurrent1:") || (Label == "hvcurrent1b:"))

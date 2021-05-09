@@ -4210,7 +4210,7 @@ void TDynamicObject::RenderSounds() {
     }
 
     // Dzwiek odluzniacza
-    if( MoverParameters->Hamulec->GetStatus() & b_rls ) {
+    if( MoverParameters->Hamulec->Releaser() ) {
         sReleaser
             .gain(
                 clamp<float>(
@@ -4293,6 +4293,19 @@ void TDynamicObject::RenderSounds() {
     }
     if( volume < 0.05 ) {
         rsPisk.stop();
+    }
+
+    // spring brake
+    if( m_springbrakesounds.state != MoverParameters->SpringBrake.Activate ) {
+        m_springbrakesounds.state = MoverParameters->SpringBrake.Activate;
+        if( m_springbrakesounds.state ) {
+            m_springbrakesounds.activate.play( sound_flags::exclusive );
+            m_springbrakesounds.release.stop();
+        }
+        else {
+            m_springbrakesounds.activate.stop();
+            m_springbrakesounds.release.play( sound_flags::exclusive );
+        }
     }
 
     // other sounds
@@ -5702,6 +5715,15 @@ void TDynamicObject::LoadMMediaFile( std::string const &TypeName, std::string co
 					// plik z piskiem hamulca, mnozniki i ofsety amplitudy.
                     rsUnbrake.deserialize( parser, sound_type::single, sound_parameters::range );
                     rsUnbrake.owner( this );
+                }
+                // spring brake sounds
+                else if( token == "springbrake:" ) {
+                    m_springbrakesounds.activate.deserialize( parser, sound_type::single );
+                    m_springbrakesounds.activate.owner( this );
+                }
+                else if( token == "springbrakeoff:" ) {
+                    m_springbrakesounds.release.deserialize( parser, sound_type::single );
+                    m_springbrakesounds.release.owner( this );
                 }
 
 				else if( token == "derail:"  ) {

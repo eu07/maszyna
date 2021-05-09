@@ -215,7 +215,7 @@ std::ptrdiff_t len_common_prefix( std::string const &Left, std::string const &Ri
 // returns true if provided string ends with another provided string
 bool ends_with( std::string_view String, std::string_view Suffix );
 // returns true if provided string begins with another provided string
-bool starts_with( std::string_view String, std::string_view Suffix );
+bool starts_with( std::string_view String, std::string_view Prefix );
 
 template <typename Type_>
 void SafeDelete( Type_ &Pointer ) {

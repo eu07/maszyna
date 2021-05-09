@@ -421,6 +421,12 @@ private:
         sound_source announcement;
         std::deque<sound_source> announcement_queue; // fifo queue
     };
+    struct springbrake_sounds {
+        sound_source activate { sound_placement::external };
+        sound_source release { sound_placement::external };
+        bool state { false };
+    };
+
 
 // methods
     void ABuLittleUpdate(double ObjSqrDist);
@@ -496,6 +502,7 @@ private:
     sound_source m_emergencybrake { sound_placement::engine };
     double m_emergencybrakeflow{ 0.f };
     sound_source sReleaser { sound_placement::external };
+    springbrake_sounds m_springbrakesounds;
     sound_source rsSlippery { sound_placement::external, EU07_SOUND_BRAKINGCUTOFFRANGE }; // moved from cab
     sound_source sSand { sound_placement::external };
     // moving part and other external sounds
