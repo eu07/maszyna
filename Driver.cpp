@@ -7768,8 +7768,11 @@ void TController::control_braking_force() {
             fAccGravity < 0.025 ? // HACK: when going downhill be more responsive to desired deceleration
                 fAccThreshold :
                 std::max( -0.2, fAccThreshold ) ) };
+		auto const AccMax{ std::min(fBrake_a0[0] + 12 * fBrake_a1[0], mvOccupied->MED_amax) };
+		auto const accmargin = ((AccMax > 1.1 * AccDesired) && (fAccGravity < 0.025)) ?
+							0.05 : 0.0;
         if( ( AccDesired < accthreshold ) // jeśli hamować - u góry ustawia się hamowanie na fAccThreshold
-         && ( ( AbsAccS > AccDesired )
+         && ( ( AbsAccS > AccDesired + accmargin)
            || ( BrakeCtrlPosition < 0 ) ) ) {
             // hamować bardziej, gdy aktualne opóźnienie hamowania mniejsze niż (AccDesired)
             cue_action( locale::string::driver_hint_brakingforceincrease );
