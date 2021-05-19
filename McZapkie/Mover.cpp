@@ -2664,6 +2664,7 @@ bool TMoverParameters::CabDeactivisation( bool const Enforce )
         DirAbsolute = DirActive * CabActive;
         DepartureSignal = false; // nie buczeć z nieaktywnej kabiny
         SecuritySystem.Status = s_off; // deactivate alerter TODO: make it part of control based cab selection
+        SecuritySystem.SHPLock = false;
 
         SendCtrlToNext("CabActivisation", 0, CabOccupied); // CabActive==0!
     }
@@ -2827,18 +2828,18 @@ void TMoverParameters::SSReset(void)
         SetFlag(SecuritySystem.Status, -s_aware);
         SetFlag(SecuritySystem.Status, -s_CAalarm);
         SetFlag(SecuritySystem.Status, -s_CAebrake);
-        //   EmergencyBrakeFlag = false; //YB-HN
         SecuritySystem.VelocityAllowed = -1;
     }
     else if (TestFlag(SecuritySystem.Status, s_active))
     {
-        SecuritySystem.SystemBrakeSHPTimer = 0;
-        SecuritySystem.SystemSoundSHPTimer = 0;
-        SetFlag(SecuritySystem.Status, -s_active);
-        SetFlag(SecuritySystem.Status, -s_SHPalarm);
-        SetFlag(SecuritySystem.Status, -s_SHPebrake);
-        //   EmergencyBrakeFlag = false; //YB-HN
-        SecuritySystem.VelocityAllowed = -1;
+        if( false == SecuritySystem.SHPLock ) {
+            SecuritySystem.SystemBrakeSHPTimer = 0;
+            SecuritySystem.SystemSoundSHPTimer = 0;
+            SetFlag( SecuritySystem.Status, -s_active );
+            SetFlag( SecuritySystem.Status, -s_SHPalarm );
+            SetFlag( SecuritySystem.Status, -s_SHPebrake );
+            SecuritySystem.VelocityAllowed = -1;
+        }
     }
 }
 
@@ -10542,7 +10543,7 @@ void TMoverParameters::LoadFIZ_Security( std::string const &line ) {
     extract_value( SecuritySystem.SoundSignalDelay, "SoundSignalDelay", line, "" );
     extract_value( SecuritySystem.EmergencyBrakeDelay, "EmergencyBrakeDelay", line, "" );
     extract_value( SecuritySystem.RadioStop, "RadioStop", line, "" );
-    
+    extract_value( SecuritySystem.MagnetLocation, "MagnetLocation", line, "" );
     extract_value( EmergencyBrakeWarningSignal, "EmergencyBrakeWarningSignal", line, "" );
 }
 
@@ -11487,9 +11488,6 @@ bool TMoverParameters::CheckLocomotiveParameters(bool ReadyFlag, int Dir)
 		BrakeDelay[b] = BrakeDelay[b] * (2.5 + Random(0.0, 0.2)) / 3.0;
 	}
 
-	if (TrainType == dt_ET22)
-		CompressorPower = 0;
-
 	Hamulec->Init(PipePress, HighPipePress, LowPipePress, BrakePress, BrakeDelayFlag);
 /*
 	ScndPipePress = Compressor;
@@ -11505,6 +11503,13 @@ bool TMoverParameters::CheckLocomotiveParameters(bool ReadyFlag, int Dir)
             }
         }
     }
+    
+    // security system
+    // by default place the magnet in the vehicle centre
+    if( SecuritySystem.MagnetLocation == 0 ) {
+        SecuritySystem.MagnetLocation = Dim.L / 2 - 0.25;
+    }
+    SecuritySystem.MagnetLocation = clamp( SecuritySystem.MagnetLocation, 0.0, Dim.L );
 
 	return OK;
 }

@@ -740,6 +740,10 @@ putvalues_event::deserialize_( cParser &Input, scene::scratch_data &Scratchpad )
         m_input.command_type = TCommandType::cm_OutsideStation;
         m_passive = true; // ma być skanowny, aby AI nie przekraczało W5
     }
+    else if( token == "CabSignal" ) {
+        m_input.command_type = TCommandType::cm_SecuritySystemMagnet;
+        m_passive = true;
+    }
     else {
         m_input.command_type = TCommandType::cm_Unknown;
     }

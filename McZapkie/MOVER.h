@@ -664,6 +664,8 @@ struct TSecuritySystem
 	int NextVelocityAllowed; /*predkosc pokazywana przez sygnalizacje kabinowa*/
 	bool RadioStop; // czy jest RadioStop
     bool PoweredUp { false }; // helper, for detection of power state change
+    bool SHPLock{ false }; // prevents tps reset when true
+    double MagnetLocation { 0.0 }; // placement of tps magnet, as offset from vehicle front
 
     inline bool is_beeping() const {
         return TestFlag( Status, s_SHPalarm );
