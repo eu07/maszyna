@@ -7549,7 +7549,11 @@ TController::adjust_desired_speed_for_current_speed() {
             }
         }
         // HACK: limit acceleration for cargo trains, to reduce probability of breaking couplers on sudden jolts
+		auto MaxAcc{ 0.5 * (mvOccupied->Couplers[mvOccupied->DirAbsolute >= 0 ? 1 : 0].FmaxC) / fMass };
+		MaxAcc *= clamp(vel * 0.2, 0.2, 1.0);
+		AccDesired = std::min(AccDesired, clamp(MaxAcc, HeavyCargoTrainAcceleration, AccPreferred));
         // TBD: expand this behaviour to all trains with car(s) exceeding certain weight?
+		/*
         if( ( IsPassengerTrain ) && ( iVehicles - ControlledEnginesCount > 0 ) ) {
             AccDesired = std::min( AccDesired, ( iVehicles - ControlledEnginesCount > 8 ? HeavyPassengetTrainAcceleration : PassengetTrainAcceleration ) );
         }
@@ -7558,7 +7562,7 @@ TController::adjust_desired_speed_for_current_speed() {
         }
         if( ( IsHeavyCargoTrain ) && ( iVehicles - ControlledEnginesCount > 0 ) ) {
             AccDesired = std::min( AccDesired, HeavyCargoTrainAcceleration );
-        }
+        } */
     }
     else {
         // for cars the older version works better
@@ -7682,7 +7686,7 @@ void TController::control_tractive_force() {
     auto const velocity { DirectionalVel() };
     // jeśli przyspieszenie pojazdu jest mniejsze niż żądane oraz...
     if( ( AccDesired > EU07_AI_NOACCELERATION ) // don't add power if not asked for actual speed-up
-     && ( AbsAccS < AccDesired /* - 0.05 */ )
+     && (( AbsAccS < AccDesired /* - 0.05 */ ) || (mvOccupied->SpeedCtrlUnit.IsActive && velocity < mvOccupied->SpeedCtrlUnit.FullPowerVelocity))
      && ( false == TestFlag( iDrivigFlags, movePress ) ) ) {
         // ...jeśli prędkość w kierunku czoła jest mniejsza od dozwolonej o margines...
         if( velocity < (
@@ -7712,7 +7716,7 @@ void TController::control_tractive_force() {
         else if( ( velocity > VelDesired + SpeedCtrlMargin)
               || ( fAccGravity < -0.01 ?
                         AccDesired < 0.0 :
-                        ( AbsAccS > AccDesired + 0.05 ) )
+                        ( AbsAccS > AccDesired + 10.05 ) )
                || ( IsAnyCouplerStretched ) ) {
                 // jak za bardzo przyspiesza albo prędkość przekroczona
 				// dodany wyjatek na "pelna w przod"
