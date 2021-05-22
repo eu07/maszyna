@@ -1418,16 +1418,24 @@ TController::TableUpdateEvent( double &Velocity, TCommandType &Command, TSpeedPo
                 // NOTE: magnet induction calculation presumes the driver is located in the front vehicle
                 // TBD, TODO: take into account actual position of controlled/occupied vehicle in the consist, whichever comes first
                 auto const magnetlocation { pVehicles[ end::front ]->MoverParameters->SecuritySystem.MagnetLocation };
+                auto const magnetrange { 1.0 };
+                auto const ismagnetpassed { Point.fDist < -( magnetlocation + magnetrange ) };
                 if( Point.fDist < -( magnetlocation ) ) {
-                    mvOccupied->SecuritySystem.SHPLock |= ( !AIControllFlag ); // don't make life difficult for the ai, but a human driver is a fair game
-                    PutCommand(
-                        Point.evEvent->input_text(),
-                        Point.evEvent->input_value( 1 ),
-                        Point.evEvent->input_value( 2 ),
-                        nullptr );
+                    // NOTE: normally we'd activate the magnet once the leading vehicle passes it
+                    // but on a fresh scan after direction change it would be detected as long as it's under consist, and meet the (simple) activation condition
+                    // thus we're doing a more precise check in such situation (we presume direction change takes place only if the vehicle is standing still)
+                    if( ( mvOccupied->Vel > EU07_AI_NOMOVEMENT )
+                     || ( false == ismagnetpassed ) ) {
+                        mvOccupied->SecuritySystem.SHPLock |= ( !AIControllFlag ); // don't make life difficult for the ai, but a human driver is a fair game
+                        PutCommand(
+                            Point.evEvent->input_text(),
+                            Point.evEvent->input_value( 1 ),
+                            Point.evEvent->input_value( 2 ),
+                            nullptr );
+                    }
                 }
-                if( Point.fDist < -( magnetlocation + 0.5 ) ) {
-                    Point.Clear(); // magnet passed, deactivate
+                if( ismagnetpassed ) {
+                    Point.Clear();
                     mvOccupied->SecuritySystem.SHPLock = false;
                 }
                 return true;
@@ -7549,8 +7557,10 @@ TController::adjust_desired_speed_for_current_speed() {
             }
         }
         // HACK: limit acceleration for cargo trains, to reduce probability of breaking couplers on sudden jolts
-		auto MaxAcc{ 0.5 * (mvOccupied->Couplers[mvOccupied->DirAbsolute >= 0 ? 1 : 0].FmaxC) / fMass };
-		MaxAcc *= clamp(vel * 0.2, 0.2, 1.0);
+		auto MaxAcc{ 0.5 * mvOccupied->Couplers[(mvOccupied->DirAbsolute >= 0 ? end::rear : end::front)].FmaxC / fMass };
+        if( iVehicles - ControlledEnginesCount > 0 ) {
+            MaxAcc *= clamp( vel * 0.025, 0.2, 1.0 );
+        }
 		AccDesired = std::min(AccDesired, clamp(MaxAcc, HeavyCargoTrainAcceleration, AccPreferred));
         // TBD: expand this behaviour to all trains with car(s) exceeding certain weight?
 		/*

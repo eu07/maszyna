@@ -11507,7 +11507,7 @@ bool TMoverParameters::CheckLocomotiveParameters(bool ReadyFlag, int Dir)
     // security system
     // by default place the magnet in the vehicle centre
     if( SecuritySystem.MagnetLocation == 0 ) {
-        SecuritySystem.MagnetLocation = Dim.L / 2 - 0.25;
+        SecuritySystem.MagnetLocation = Dim.L / 2 - 0.5;
     }
     SecuritySystem.MagnetLocation = clamp( SecuritySystem.MagnetLocation, 0.0, Dim.L );
 
@@ -12042,7 +12042,7 @@ bool TMoverParameters::RunCommand( std::string Command, double CValue1, double C
 		{
 			SecuritySystem.VelocityAllowed = static_cast<int>(floor(CValue1));
 			SecuritySystem.NextVelocityAllowed = static_cast<int>(floor(CValue2));
-			SecuritySystem.SystemSoundSHPTimer = 0; // hunter-091012
+//			SecuritySystem.SystemSoundSHPTimer = 0; // hunter-091012
 			SetFlag(SecuritySystem.Status, s_active);
 		}
 		// else OK:=false;
