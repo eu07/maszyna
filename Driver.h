@@ -435,6 +435,7 @@ private:
     double LastReactionTime = 0.0;
     double fActionTime = 0.0; // czas używany przy regulacji prędkości i zamykaniu drzwi
     double m_radiocontroltime{ 0.0 }; // timer used to control speed of radio operations
+	double m_securitysystemreset { 1.0 }; // timer used to control speed of security system resetting
     TAction eAction{ TAction::actUnknown }; // aktualny stan
     std::list< std::tuple<locale::string, hintpredicate, float> > m_hints; // queued ai operations
 

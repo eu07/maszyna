@@ -1170,7 +1170,12 @@ TController::cue_action( locale::string const Action, float const Actionparamete
 
         case locale::string::driver_hint_securitysystemreset: {
             if( AIControllFlag ) {
-                mvOccupied->SecuritySystemReset();
+				auto time{ std::max(std::max(mvOccupied->SecuritySystem.SystemSoundSHPTimer, mvOccupied->SecuritySystem.SystemSoundCATimer),
+							std::max(mvOccupied->SecuritySystem.SystemBrakeSHPTimer, mvOccupied->SecuritySystem.SystemBrakeCATimer)) };
+				if (time > m_securitysystemreset) {
+					mvOccupied->SecuritySystemReset();
+					m_securitysystemreset = 0.5 + Random();
+				}
             }
             hint(
                 Action,
