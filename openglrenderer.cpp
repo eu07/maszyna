@@ -4185,29 +4185,40 @@ opengl_renderer::Update( double const Deltatime ) {
     m_updateaccumulator = 0.0;
     m_framerate = 1000.f / ( Timer::subsystem.gfx_total.average() );
 
-    // adjust draw ranges etc, based on recent performance
-    if( Global.targetfps == 0.0f ) {
-        // automatic adjustment
+	// adjust draw ranges etc, based on recent performance
+	// TODO: it doesn't make much sense with vsync
+    if( Global.targetfps != 0.f ) {
+        auto const fps_diff = m_framerate - Global.targetfps;
+        if( fps_diff < -0.5f ) {
+            Global.fDistanceFactor = std::min( std::max( 1.0f, Global.fDistanceFactor - 0.05f ), Global.gfx_distance_factor_max );
+        }
+        else if( fps_diff > 0.5f ) {
+            Global.fDistanceFactor = std::min( std::min( 3.0f, Global.fDistanceFactor + 0.05f ), Global.gfx_distance_factor_max );
+        }
+    }
+    // legacy framerate parameters
+    else if( Global.fFpsAverage != 0.f ) {
+        auto const fps_diff = m_framerate - Global.fFpsAverage;
+        if( fps_diff < -Global.fFpsDeviation ) {
+            Global.fDistanceFactor = std::min( std::max( 1.0f, Global.fDistanceFactor - 0.05f ), Global.gfx_distance_factor_max );
+        }
+        else if( fps_diff > Global.fFpsDeviation ) {
+            Global.fDistanceFactor = std::min( std::min( 3.0f, Global.fDistanceFactor + 0.05f ), Global.gfx_distance_factor_max );
+        }
+    }
+    // automatic adjustment
+    else {
         auto const framerate = interpolate( 1000.f / Timer::subsystem.gfx_color.average(), m_framerate, 0.75f );
         float targetfactor;
-             if( framerate > 120.0 ) { targetfactor = 3.00f; }
-        else if( framerate >  90.0 ) { targetfactor = 1.50f; }
-        else if( framerate >  60.0 ) { targetfactor = 1.25f; }
+             if( framerate > 120.f ) { targetfactor = std::min( Global.gfx_distance_factor_max, 3.00f ); }
+        else if( framerate >  90.f ) { targetfactor = std::min( Global.gfx_distance_factor_max, 1.50f ); }
+        else if( framerate >  60.f ) { targetfactor = std::min( Global.gfx_distance_factor_max, 1.25f ); }
         else                         { targetfactor = 1.00f; }
         if( targetfactor > Global.fDistanceFactor ) {
             Global.fDistanceFactor = std::min( targetfactor, Global.fDistanceFactor + 0.05f );
         }
         else if( targetfactor < Global.fDistanceFactor ) {
             Global.fDistanceFactor = std::max( targetfactor, Global.fDistanceFactor - 0.05f );
-        }
-    }
-    else {
-        auto const fps_diff = Global.targetfps - m_framerate;
-        if( fps_diff > 0.5f ) {
-            Global.fDistanceFactor = std::max( 1.0f, Global.fDistanceFactor - 0.05f );
-        }
-        else if( fps_diff < 1.0f ) {
-            Global.fDistanceFactor = std::min( 3.0f, Global.fDistanceFactor + 0.05f );
         }
     }
 

@@ -44,10 +44,10 @@ namespace gl
         glm::mat4 inv_view;
         glm::mat4 lightview[MAX_CASCADES];
         glm::vec4 cascade_end;
-        float time;
+        float time; UBS_PAD( 12 );
     };
 
-    static_assert(sizeof(scene_ubs) == 340, "bad size of ubs");
+    static_assert(sizeof(scene_ubs) == 352, "bad size of ubs");
 
     const size_t MAX_PARAMS = 3;
 
@@ -62,8 +62,7 @@ namespace gl
         float emission;
         float fog_density;
         float alpha_mult;
-        float shadow_tone;
-        UBS_PAD(4);
+        float shadow_tone; UBS_PAD(12);
 
         void set_modelview(const glm::mat4 &mv)
         {
@@ -72,7 +71,7 @@ namespace gl
         }
     };
 
-    static_assert(sizeof(model_ubs) == 200 + 16 * MAX_PARAMS, "bad size of ubs");
+    static_assert(sizeof(model_ubs) == 208 + 16 * MAX_PARAMS, "bad size of ubs");
 
     struct light_element_ubs
     {

@@ -148,8 +148,8 @@ struct global_settings {
     bool ResourceMove{ false }; // gfx resources are moved between cpu and gpu side instead of sending a copy
     bool compress_tex{ true }; // all textures are compressed on gpu side
     std::string asSky{ "1" };
-    double fFpsAverage{ 20.0 }; // oczekiwana wartosć FPS
-    double fFpsDeviation{ 5.0 }; // odchylenie standardowe FPS
+    float fFpsAverage{ 0.f }; // oczekiwana wartosć FPS
+    float fFpsDeviation{ 5.f }; // odchylenie standardowe FPS
     double fFpsMin{ 30.0 }; // dolna granica FPS, przy której promień scenerii będzie zmniejszany
     double fFpsMax{ 65.0 }; // górna granica FPS, przy której promień scenerii będzie zwiększany
     // audio
@@ -228,6 +228,7 @@ struct global_settings {
     bool gfx_extraeffects = true;
     bool gfx_shadergamma = false;
     bool gfx_usegles = false;
+    float gfx_distance_factor_max { 3.f };
 
     std::string exec_on_exit;
 

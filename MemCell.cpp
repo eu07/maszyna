@@ -86,6 +86,10 @@ TCommandType TMemCell::CommandCheck()
         eCommand = TCommandType::cm_EmergencyBrake;
         bCommand = false;
     }
+    else if( szText == "CabSignal" ) {
+        eCommand = TCommandType::cm_SecuritySystemMagnet;
+        bCommand = false;
+    }
     else
     {
         eCommand = TCommandType::cm_Unknown; // ciąg nierozpoznany (nie jest komendą)

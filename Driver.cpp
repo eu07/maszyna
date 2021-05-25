@@ -271,6 +271,9 @@ void TSpeedPos::CommandCheck()
     case TCommandType::cm_EmergencyBrake:
         fVelNext = -1;
         break;
+    case TCommandType::cm_SecuritySystemMagnet:
+        fVelNext = -1;
+        break;
     default:
         // inna komenda w evencie skanowanym powoduje zatrzymanie i wysłanie tej komendy
         // nie manewrowa, nie przystanek, nie zatrzymać na SBL
@@ -880,6 +883,7 @@ TCommandType TController::TableUpdate(double &fVelDes, double &fDist, double &fN
     eSignNext = nullptr;
     IsAtPassengerStop = false;
     IsScheduledPassengerStopVisible = false;
+    mvOccupied->SecuritySystem.SHPLock = false;
     // te flagi są ustawiane tutaj, w razie potrzeby
     iDrivigFlags &= ~(moveTrackEnd | moveSwitchFound | moveSemaphorFound | /*moveSpeedLimitFound*/ moveStopPointFound );
 
@@ -1404,9 +1408,37 @@ TController::TableUpdateEvent( double &Velocity, TCommandType &Command, TSpeedPo
             SemNextStopIndex = -1; // jeśli minęliśmy semafor od ograniczenia to go kasujemy ze zmiennej sprawdzającej dla skanowania w przód
         }
         switch( Point.evEvent->input_command() ) {
+            // TBD, TODO: expand emergency_brake handling to a more generic security system signal
             case TCommandType::cm_EmergencyBrake: {
                 pVehicle->RadioStop();
                 Point.Clear(); // signal received, deactivate
+                return true;
+            }
+            case TCommandType::cm_SecuritySystemMagnet: {
+                // NOTE: magnet induction calculation presumes the driver is located in the front vehicle
+                // TBD, TODO: take into account actual position of controlled/occupied vehicle in the consist, whichever comes first
+                auto const magnetlocation { pVehicles[ end::front ]->MoverParameters->SecuritySystem.MagnetLocation };
+                auto const magnetrange { 1.0 };
+                auto const ismagnetpassed { Point.fDist < -( magnetlocation + magnetrange ) };
+                if( Point.fDist < -( magnetlocation ) ) {
+                    // NOTE: normally we'd activate the magnet once the leading vehicle passes it
+                    // but on a fresh scan after direction change it would be detected as long as it's under consist, and meet the (simple) activation condition
+                    // thus we're doing a more precise check in such situation (we presume direction change takes place only if the vehicle is standing still)
+                    if( ( mvOccupied->Vel > EU07_AI_NOMOVEMENT )
+                     || ( false == ismagnetpassed ) ) {
+                        mvOccupied->SecuritySystem.SHPLock |= ( !AIControllFlag ); // don't make life difficult for the ai, but a human driver is a fair game
+                        PutCommand(
+                            Point.evEvent->input_text(),
+                            Point.evEvent->input_value( 1 ),
+                            Point.evEvent->input_value( 2 ),
+                            nullptr );
+                    }
+                }
+                if( ismagnetpassed ) {
+                    Point.Clear();
+                    mvOccupied->SecuritySystem.SHPLock = false;
+                }
+                return true;
             }
             default: {
                 break;
@@ -1415,6 +1447,19 @@ TController::TableUpdateEvent( double &Velocity, TCommandType &Command, TSpeedPo
     }
     // check signals ahead
     if( Point.fDist > 0.0 ) {
+        // bail out early for signals which activate when passed
+        // TBD: make it an event method?
+        switch( Point.evEvent->input_command() ) {
+            case TCommandType::cm_EmergencyBrake: {
+                return true;
+            }
+            case TCommandType::cm_SecuritySystemMagnet: {
+                return true;
+            }
+            default: {
+                break;
+            }
+        }
 
         if( Point.IsProperSemaphor( OrderCurrentGet() ) ) {
             // special rule for cars: ignore stop signals at distance too short to come to a stop
@@ -2793,7 +2838,8 @@ bool TController::PrepareEngine()
                && ( true == IsAnyConverterEnabled )
                && ( true == IsAnyCompressorEnabled )
                && ( ( mvControlling->ScndPipePress > 4.5 ) || ( mvControlling->VeselVolume == 0.0 ) )
-               && ( ( mvOccupied->fBrakeCtrlPos == mvOccupied->Handle->GetPos( bh_RP ) || ( mvOccupied->BrakeHandle == TBrakeHandle::NoHandle ) ) );
+               && ( ( static_cast<int>( mvOccupied->fBrakeCtrlPos ) == static_cast<int>( mvOccupied->Handle->GetPos( bh_RP ) ) )
+                 || ( mvOccupied->BrakeHandle == TBrakeHandle::NoHandle ) );
     }
 
     if( true == isready ) {
@@ -7511,8 +7557,10 @@ TController::adjust_desired_speed_for_current_speed() {
             }
         }
         // HACK: limit acceleration for cargo trains, to reduce probability of breaking couplers on sudden jolts
-		auto MaxAcc{ 0.5 * (mvOccupied->Couplers[mvOccupied->DirAbsolute >= 0 ? 1 : 0].FmaxC) / fMass };
-		MaxAcc *= clamp(vel * 0.2, 0.2, 1.0);
+		auto MaxAcc{ 0.5 * mvOccupied->Couplers[(mvOccupied->DirAbsolute >= 0 ? end::rear : end::front)].FmaxC / fMass };
+        if( iVehicles - ControlledEnginesCount > 0 ) {
+            MaxAcc *= clamp( vel * 0.025, 0.2, 1.0 );
+        }
 		AccDesired = std::min(AccDesired, clamp(MaxAcc, HeavyCargoTrainAcceleration, AccPreferred));
         // TBD: expand this behaviour to all trains with car(s) exceeding certain weight?
 		/*
