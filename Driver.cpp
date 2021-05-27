@@ -2459,6 +2459,7 @@ bool TController::CheckVehicles(TOrders user)
         // with the order established the virtual train manager can do their work
         p = pVehicles[ end::front ];
         ControlledEnginesCount = ( p->MoverParameters->Power > 1.0 ? 1 : 0 );
+        auto hasheaters { false };
         while (p)
         {
             if( p != pVehicle ) {
@@ -2470,6 +2471,7 @@ bool TController::CheckVehicles(TOrders user)
                     if( p->MoverParameters->HeatingPower > 0 ) {
                         p->MoverParameters->HeatingAllow = true;
                         p->MoverParameters->ConverterSwitch( true, range_t::local );
+                        hasheaters = true;
                     }
                 }
                 else {
@@ -2526,16 +2528,18 @@ bool TController::CheckVehicles(TOrders user)
             cue_action( locale::string::driver_hint_consistdoorlockson );
             // potentially enable train heating
             {
-                // HACK: to account for su-45/46 shortcomings diesel-powered engines only activate heating in cold conditions
-                // TODO: take instead into account presence of converters in attached cars, once said presence is possible to specify
                 auto const ispassengertrain { ( IsPassengerTrain ) && ( iVehicles - ControlledEnginesCount > 0 ) };
-                auto const isheatingcouplingactive { pVehicles[ end::front ]->is_connected( pVehicles[ end::rear ], coupling::heating ) };
+                // TODO: replace connection test with connection check between last engine and first car, specifically
+                auto const isheatingcouplingactive { (
+                    ControlledEnginesCount == 1 ?
+                        pVehicles[ end::front ]->is_connected( pVehicles[ end::rear ], coupling::heating ) :
+                        true ) };
                 auto const isheatingneeded {
                     (is_emu() || is_dmu() ? true :
-//                    false == isheatingcouplingactive ? false :
                     (OrderCurrentGet() & (Obey_train | Bank)) == 0 ? false :
-                    ispassengertrain ? (has_diesel_engine() ? (Global.AirTemperature < 10) : true) :
-                    false)};
+                    false == isheatingcouplingactive ? false :
+                    ispassengertrain ? hasheaters :
+                    false) };
                 if( mvControlling->HeatingAllow != isheatingneeded ) {
                     cue_action(
                         isheatingneeded ?
@@ -2839,6 +2843,7 @@ bool TController::PrepareEngine()
                && ( true == IsAnyCompressorEnabled )
                && ( ( mvControlling->ScndPipePress > 4.5 ) || ( mvControlling->VeselVolume == 0.0 ) )
                && ( ( static_cast<int>( mvOccupied->fBrakeCtrlPos ) == static_cast<int>( mvOccupied->Handle->GetPos( bh_RP ) ) )
+                 || ( static_cast<int>( mvOccupied->fBrakeCtrlPos ) != static_cast<int>( mvOccupied->Handle->GetPos( bh_NP ) ) )
                  || ( mvOccupied->BrakeHandle == TBrakeHandle::NoHandle ) );
     }
 
