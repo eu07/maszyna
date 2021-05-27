@@ -30,9 +30,9 @@ basic_station::update_load( TDynamicObject *First, Mtable::TTrainParameters &Sch
     auto const stationname { Schedule.TimeTable[ Schedule.StationIndex ].StationName };
     auto const stationequipment { Schedule.TimeTable[ Schedule.StationIndex ].StationWare };
     auto const trainstop { (
-        ( ( stationname.size() >= 2 ) && ( stationname.substr( stationname.size() - 2 ) == "po" ) )
-     || ( stationequipment.find( "po" ) != std::string::npos ) ) };
-    auto const maintenancestop { ( stationequipment.find( "pt" ) != std::string::npos ) };
+        ( ends_with( stationname, "po" ) )
+     || ( contains( stationequipment, "po" ) ) ) };
+    auto const maintenancestop { ( contains( stationequipment, "pt" ) ) };
     // train stops exchange smaller groups than regular stations
     // NOTE: this is crude and unaccurate, but for now will do
     auto const stationsizemodifier { ( trainstop ? 1.0 : 2.0 ) };

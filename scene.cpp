@@ -1190,7 +1190,7 @@ basic_region::insert( shape_node Shape, scratch_data &Scratchpad, bool const Tra
 
         auto const materialname{ GfxRenderer->Material( Shape.data().material ).name };
         for( auto const &switchtrackbedtexture : switchtrackbedtextures ) {
-            if( materialname.find( switchtrackbedtexture ) != std::string::npos ) {
+            if( contains( materialname, switchtrackbedtexture ) ) {
                 // geometry with blacklisted texture, part of old switch trackbed; ignore it
                 return;
             }

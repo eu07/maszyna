@@ -169,7 +169,7 @@ void
 material_data::assign( std::string const &Replacableskin ) {
 
     // check for the pipe method first
-    if( Replacableskin.find( '|' ) != std::string::npos ) {
+    if( contains( Replacableskin,  '|' ) ) {
         cParser nameparser( Replacableskin );
         nameparser.getTokens( 4, true, "|" );
         int skinindex = 0;
@@ -1172,7 +1172,7 @@ void TDynamicObject::ABuLittleUpdate(double ObjSqrDist)
         if( cabsection ) {
             // check whether we're still processing cab sections
             auto const &sectionname { section.compartment->pName };
-            cabsection &= ( ( sectionname.size() >= 4 ) && ( sectionname.substr( 0, 3 ) == "cab" ) );
+            cabsection &= ( ( sectionname.size() >= 4 ) && ( starts_with( sectionname, "cab" ) ) );
         }
         // TODO: add cablight devices
         auto const sectionlightlevel { section.light_level * ( cabsection ? 1.0f : MoverParameters->CompartmentLights.intensity ) };
@@ -1904,40 +1904,40 @@ TDynamicObject::Init(std::string Name, // nazwa pojazdu, np. "EU07-424"
         if (ActPar.substr(0, 1) == "B") // jesli hamulce
         { // sprawdzanie kolejno nastaw
             WriteLog("Wpis hamulca: " + ActPar);
-            if (ActPar.find('G') != std::string::npos)
+            if ( contains( ActPar, 'G') )
             {
                 MoverParameters->BrakeDelaySwitch(bdelay_G);
             }
-			if( ActPar.find( 'P' ) != std::string::npos )
+			if( contains( ActPar, 'P' ) )
             {
                 MoverParameters->BrakeDelaySwitch(bdelay_P);
             }
-			if( ActPar.find( 'R' ) != std::string::npos )
+			if( contains( ActPar, 'R' ) )
             {
                 MoverParameters->BrakeDelaySwitch(bdelay_R);
             }
-			if( ActPar.find( 'M' ) != std::string::npos )
+			if( contains( ActPar, 'M' ) )
             {
                 MoverParameters->BrakeDelaySwitch(bdelay_R);
                 MoverParameters->BrakeDelaySwitch(bdelay_R + bdelay_M);
             }
             // wylaczanie hamulca
-            if (ActPar.find("<>") != std::string::npos) // wylaczanie na probe hamowania naglego
+            if ( contains( ActPar, "<>") ) // wylaczanie na probe hamowania naglego
             {
                 MoverParameters->Hamulec->SetBrakeStatus( MoverParameters->Hamulec->GetBrakeStatus() | b_dmg ); // wylacz
             }
-            if (ActPar.find('0') != std::string::npos) // wylaczanie na sztywno
+            if ( contains( ActPar, '0' ) ) // wylaczanie na sztywno
             {
                 MoverParameters->Hamulec->ForceEmptiness();
                 MoverParameters->Hamulec->SetBrakeStatus( MoverParameters->Hamulec->GetBrakeStatus() | b_dmg ); // wylacz
             }
-            if (ActPar.find('E') != std::string::npos) // oprozniony
+            if ( contains( ActPar, 'E' ) ) // oprozniony
             {
                 MoverParameters->Hamulec->ForceEmptiness();
                 MoverParameters->Pipe->CreatePress(0);
                 MoverParameters->Pipe2->CreatePress(0);
             }
-            if (ActPar.find('Q') != std::string::npos) // oprozniony
+            if ( contains( ActPar, 'Q' ) ) // oprozniony
             {
                 MoverParameters->Hamulec->ForceEmptiness();
                 MoverParameters->Pipe->CreatePress(0.0);
@@ -1949,7 +1949,7 @@ TDynamicObject::Init(std::string Name, // nazwa pojazdu, np. "EU07-424"
                 MoverParameters->CompressedVolume = 0.0;
             }
 
-            if (ActPar.find('1') != std::string::npos) // wylaczanie 10%
+            if ( contains( ActPar, '1' ) ) // wylaczanie 10%
             {
                 if (Random(10) < 1) // losowanie 1/10
                 {
@@ -1957,7 +1957,7 @@ TDynamicObject::Init(std::string Name, // nazwa pojazdu, np. "EU07-424"
                     MoverParameters->Hamulec->SetBrakeStatus( MoverParameters->Hamulec->GetBrakeStatus() | b_dmg ); // wylacz
                 }
             }
-            if (ActPar.find('X') != std::string::npos) // agonalny wylaczanie 20%, usrednienie przekladni
+            if ( contains( ActPar, 'X') ) // agonalny wylaczanie 20%, usrednienie przekladni
             {
                 if (Random(100) < 20) // losowanie 20/100
                 {
@@ -1990,23 +1990,23 @@ TDynamicObject::Init(std::string Name, // nazwa pojazdu, np. "EU07-424"
                 }
             }
             // nastawianie ladunku
-            if (ActPar.find('T') != std::string::npos) // prozny
+            if ( contains( ActPar, 'T' ) ) // prozny
             {
                 MoverParameters->DecBrakeMult();
                 MoverParameters->DecBrakeMult();
             } // dwa razy w dol
-            if (ActPar.find('H') != std::string::npos) // ladowny I (dla P-Ł dalej prozny)
+            if ( contains( ActPar, 'H' ) ) // ladowny I (dla P-Ł dalej prozny)
             {
                 MoverParameters->IncBrakeMult();
                 MoverParameters->IncBrakeMult();
                 MoverParameters->DecBrakeMult();
             } // dwa razy w gore i obniz
-            if (ActPar.find('F') != std::string::npos) // ladowny II
+            if ( contains( ActPar, 'F' ) ) // ladowny II
             {
                 MoverParameters->IncBrakeMult();
                 MoverParameters->IncBrakeMult();
             } // dwa razy w gore
-            if (ActPar.find('N') != std::string::npos) // parametr neutralny
+            if ( contains( ActPar, 'N' ) ) // parametr neutralny
             {
             }
         } // koniec hamulce

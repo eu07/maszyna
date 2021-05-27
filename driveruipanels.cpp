@@ -1257,7 +1257,7 @@ debug_panel::update_section_eventqueue( std::vector<text_line> &Output ) {
             auto const label { event->m_name + ( event->m_activator ? " (by: " + event->m_activator->asName + ")" : "" ) };
 
             if( ( false == searchfilter.empty() )
-             && ( label.find( searchfilter ) == std::string::npos ) ) {
+             && ( false == contains( label, searchfilter ) ) ) {
                 event = event->m_next;
                 continue;
             }

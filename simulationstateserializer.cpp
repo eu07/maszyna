@@ -497,8 +497,8 @@ state_serializer::deserialize_node( cParser &Input, scene::scratch_data &Scratch
             // crude way to detect fixed switch trackbed geometry
          || ( ( true == Global.CreateSwitchTrackbeds )
            && ( Input.Name().size() >= 15 )
-           && ( Input.Name().substr( 0, 11 ) == "scenery/zwr" )
-           && ( Input.Name().substr( Input.Name().size() - 4 ) == ".inc" ) ) };
+           && ( starts_with( Input.Name(), "scenery/zwr" ) )
+           && ( ends_with( Input.Name(), ".inc" ) ) ) };
 
         if( false == skip ) {
 

@@ -2016,14 +2016,13 @@ void TSubModel::BinInit(TSubModel *s, float4x4 *m, std::vector<std::string> *t, 
 		if (!pName.empty())
 		{ // jeśli dany submodel jest zgaszonym światłem, to
 		  // domyślnie go ukrywamy
-			if ((pName.size() >= 8) && (pName.substr(0, 8) == "Light_On"))
+			if (starts_with( pName, "Light_On" ))
 			{ // jeśli jest światłem numerowanym
-				iVisible = 0; // to domyślnie wyłączyć, żeby się nie nakładało z
+				iVisible = 0; // to domyślnie wyłączyć, żeby się nie nakładało z obiektem "Light_Off"
 			}
-			// obiektem "Light_Off"
 			else if (dynamic)
 			{ // inaczej wyłączało smugę w latarniach
-				if ((pName.size() >= 3) && (pName.substr(pName.size() - 3, 3) == "_on")) {
+				if (ends_with( pName, "_on")) {
                     // jeśli jest kontrolką w stanie zapalonym to domyślnie wyłączyć,
                     // żeby się nie nakładało z obiektem "_off"
 					iVisible = 0;

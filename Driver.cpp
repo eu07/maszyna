@@ -5130,7 +5130,7 @@ void TController::OrdersInit(double fVel)
                     + ", " + std::to_string(t->Dh) + ":" + std::to_string(t->Dm)
                     + " " + t->StationWare);
             }
-            if (t->StationWare.find('@') != std::string::npos)
+            if ( contains( t->StationWare, '@' ) )
             { // zmiana kierunku i dalsza jazda wg rozk?adu
                 if (iDrivigFlags & movePushPull) // SZT również! SN61 zależnie od wagonów...
                 { // jeśli skład zespolony, wystarczy zmienić kierunek jazdy

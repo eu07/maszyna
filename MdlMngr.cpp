@@ -82,7 +82,7 @@ TModelsManager::GetModel(std::string const &Name, bool const Dynamic, bool const
     std::string const buftp { Global.asCurrentTexturePath }; // zapamiętanie aktualnej ścieżki do tekstur,
     std::string filename { Name };
     if( ( false == Dynamic )
-     && ( Name.find( '/' ) != std::string::npos ) ) {
+     && ( contains( Name, '/' ) ) ) {
         // pobieranie tekstur z katalogu, w którym jest model
         // when loading vehicles the path is set by the calling routine, so we can skip it here
         Global.asCurrentTexturePath += Name;

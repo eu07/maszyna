@@ -9179,7 +9179,7 @@ void TMoverParameters::BrakeValveDecode( std::string const &Valve ) {
         TBrakeValve::Other;
 
     if( ( BrakeValve == TBrakeValve::Other )
-        && ( Valve.find( "ESt" ) != std::string::npos ) ) {
+     && ( contains( Valve, "ESt" ) ) ) {
 
         BrakeValve = TBrakeValve::ESt3;
     }
@@ -9276,8 +9276,8 @@ bool TMoverParameters::LoadFIZ(std::string chkpath)
 
         inputline = fizparser.getToken<std::string>( false, "\n\r" );
 
-        bool comment = ( ( inputline.find('#') != std::string::npos )
-			          || ( inputline.compare( 0, 2, "//" ) == 0 ) );
+        bool comment = ( ( contains( inputline, '#') )
+			          || ( starts_with( inputline, "//" ) ) );
         if( true == comment ) {
             // skip commented lines
             continue;
@@ -10530,10 +10530,10 @@ void TMoverParameters::LoadFIZ_Light( std::string const &line ) {
 void TMoverParameters::LoadFIZ_Security( std::string const &line ) {
 
     std::string awaresystem = extract_value( "AwareSystem", line );
-    if( awaresystem.find( "Active" ) != std::string::npos ) {
+    if( contains( awaresystem, "Active" ) ) {
         SetFlag( SecuritySystem.SystemType, 1 );
     }
-    if( awaresystem.find( "CabSignal" ) != std::string::npos ) {
+    if( contains( awaresystem, "CabSignal" ) ) {
         SetFlag( SecuritySystem.SystemType, 2 );
     }
 
@@ -11168,7 +11168,7 @@ bool TMoverParameters::CheckLocomotiveParameters(bool ReadyFlag, int Dir)
 
 	// WriteLog("aa = " + AxleArangement + " " + std::string( Pos("o", AxleArangement)) );
 
-    if( ( AxleArangement.find( "o" ) != std::string::npos ) && ( EngineType == TEngineType::ElectricSeriesMotor ) ) {
+    if( ( contains( AxleArangement, "o" ) ) && ( EngineType == TEngineType::ElectricSeriesMotor ) ) {
         // test poprawnosci ilosci osi indywidualnie napedzanych
         OK = ( ( RList[ 1 ].Bn * RList[ 1 ].Mn ) == NPoweredAxles );
         // WriteLogSS("aa ok", BoolToYN(OK));

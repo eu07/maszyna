@@ -394,7 +394,7 @@ nodebank_panel::render() {
                         continue;
                     }
                     if( ( false == searchfilter.empty() )
-                     && ( entry.first.find( searchfilter ) == std::string::npos ) ) {
+                     && ( false == contains( entry.first, searchfilter ) ) ) {
                         continue;
                     }
                     auto const label { " " + entry.first + "##" + std::to_string( idx ) };
