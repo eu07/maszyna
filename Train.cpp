@@ -3823,7 +3823,7 @@ void TTrain::OnCommand_motoroverloadrelaythresholdtoggle( TTrain *Train, command
         // only reacting to press, so the switch doesn't flip back and forth if key is held down
         if( ( true == Train->mvControlled->ShuntModeAllow ?
                 ( false == Train->mvControlled->ShuntMode ) :
-                ( Train->mvControlled->Imax < Train->mvControlled->ImaxHi ) ) ) {
+                ( false == Train->mvControlled->MotorOverloadRelayHighThreshold ) ) ) {
             // turn on
             OnCommand_motoroverloadrelaythresholdsethigh( Train, Command );
         }
@@ -3838,10 +3838,9 @@ void TTrain::OnCommand_motoroverloadrelaythresholdsetlow( TTrain *Train, command
 
     if( Command.action == GLFW_PRESS ) {
         // only reacting to press, so the switch doesn't flip back and forth if key is held down
-        if( true == Train->mvControlled->CurrentSwitch( false ) ) {
-            // visual feedback
-            Train->ggMaxCurrentCtrl.UpdateValue( 0.0, Train->dsbSwitch );
-        }
+        Train->mvControlled->CurrentSwitch( false );
+        // visual feedback
+        Train->ggMaxCurrentCtrl.UpdateValue( Train->mvControlled->MotorOverloadRelayHighThreshold ? 1 : 0, Train->dsbSwitch );
     }
 }
 
@@ -3849,10 +3848,9 @@ void TTrain::OnCommand_motoroverloadrelaythresholdsethigh( TTrain *Train, comman
 
     if( Command.action == GLFW_PRESS ) {
         // only reacting to press, so the switch doesn't flip back and forth if key is held down
-        if( true == Train->mvControlled->CurrentSwitch( true ) ) {
-            // visual feedback
-            Train->ggMaxCurrentCtrl.UpdateValue( 1.0, Train->dsbSwitch );
-        }
+        Train->mvControlled->CurrentSwitch( true );
+        // visual feedback
+        Train->ggMaxCurrentCtrl.UpdateValue( Train->mvControlled->MotorOverloadRelayHighThreshold ? 1 : 0, Train->dsbSwitch );
     }
 }
 
@@ -7223,6 +7221,14 @@ bool TTrain::Update( double const Deltatime )
     ggBrakeProfileG.Update();
     ggBrakeProfileR.Update();
 	ggBrakeOperationModeCtrl.Update();
+    ggMaxCurrentCtrl.UpdateValue(
+        ( true == mvControlled->ShuntModeAllow ?
+            ( true == mvControlled->ShuntMode ?
+                1.f :
+                0.f ) :
+            ( mvControlled->MotorOverloadRelayHighThreshold ?
+                1.f :
+                0.f ) ) );
     ggMaxCurrentCtrl.Update();
     // NBMX wrzesien 2003 - drzwi
     ggDoorLeftPermitButton.Update( lowvoltagepower );
@@ -8873,7 +8879,7 @@ void TTrain::set_cab_controls( int const Cab ) {
             ( true == mvControlled->ShuntMode ?
                 1.f :
                 0.f ) :
-            ( mvControlled->Imax == mvControlled->ImaxHi ?
+            ( mvControlled->MotorOverloadRelayHighThreshold ?
                 1.f :
                 0.f ) ) );
     // lights

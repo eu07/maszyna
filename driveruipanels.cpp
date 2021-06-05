@@ -1171,7 +1171,11 @@ debug_panel::update_section_ai( std::vector<text_line> &Output ) {
         "Brakes:\n highest pressure: " + to_string( mechanik.fReady, 2 ) + ( mechanik.Ready ? " (all brakes released)" : "" )
         + "\n activation threshold: " + to_string( mechanik.fAccThreshold, 2 )
         + ", delays: " + to_string( mechanik.fBrake_a0[ 0 ], 2 ) + " + " + to_string( mechanik.fBrake_a1[ 0 ], 2 )
-        + "\n virtual brake position: " + to_string( mechanik.BrakeCtrlPosition, 2 );
+        + "\n virtual brake position: " + to_string( mechanik.BrakeCtrlPosition, 2 )
+        + "\n test stage: " + to_string( mechanik.DynamicBrakeTest )
+        + ", applied at: " + to_string( mechanik.DBT_VelocityBrake, 0 )
+        + ", release at: " + to_string( mechanik.DBT_VelocityRelease, 0 )
+        + ", done at: " + to_string( mechanik.DBT_VelocityFinish, 0 );
 
     Output.emplace_back( textline, Global.UITextColor );
 
@@ -1179,7 +1183,7 @@ debug_panel::update_section_ai( std::vector<text_line> &Output ) {
     std::vector<std::string> const drivingflagnames {
         "StopCloser", "StopPoint", "Active", "Press", "Connect", "Primary", "Late", "StopHere",
         "StartHorn", "StartHornNow", "StartHornDone", "Oerlikons", "IncSpeed", "TrackEnd", "SwitchFound", "GuardSignal",
-        "Visibility", "DoorOpened", "PushPull", "SemaphorFound", "StopPointFound" /*"SemaphorWasElapsed", "TrainInsideStation", "SpeedLimitFound"*/ };
+        "Visibility", "DoorOpened", "PushPull", "SignalFound", "StopPointFound" /*"SemaphorWasElapsed", "TrainInsideStation", "SpeedLimitFound"*/ };
 
     textline = "Driving flags:";
     for( int idx = 0, flagbit = 1; idx < drivingflagnames.size(); ++idx, flagbit <<= 1 ) {

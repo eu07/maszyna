@@ -90,7 +90,14 @@ std::string Now();
 double CompareTime( double t1h, double t1m, double t2h, double t2m );
 
 /*funkcje logiczne*/
-inline bool TestFlag( int const Flag, int const Value ) { return ( ( Flag & Value ) == Value ); }
+inline
+bool TestFlag( int const Flag, int const Value ) {
+    return ( ( Flag & Value ) == Value );
+}
+inline
+bool TestFlagAny( int const Flag, int const Value ) {
+    return ( ( Flag & Value ) != 0 );
+}
 bool SetFlag( int &Flag,  int const Value);
 bool ClearFlag(int &Flag, int const Value);
 
@@ -117,8 +124,8 @@ std::string to_string(double Value, int precision, int width);
 std::string to_hex_str( int const Value, int const width = 4 );
 std::string to_minutes_str( float const Minutes, bool const Leadingzero, int const Width );
 
-inline std::string to_string(bool Value) {
-
+inline
+std::string to_string(bool Value) {
 	return ( Value == true ? "true" : "false" );
 }
 

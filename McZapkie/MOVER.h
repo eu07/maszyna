@@ -1193,6 +1193,7 @@ public:
 	int IminLo = 0; int IminHi = 0; /*prady przelacznika automatycznego rozruchu, uzywane tez przez ai_driver*/
 	int ImaxLo = 0; // maksymalny prad niskiego rozruchu
     int ImaxHi = 0; // maksymalny prad wysokiego rozruchu
+    bool MotorOverloadRelayHighThreshold { false };
 	double nmax = 0.0;             /*maksymalna dop. ilosc obrotow /s*/
 	double InitialCtrlDelay = 0.0; double CtrlDelay = 0.0;        /* -//-  -//- miedzy kolejnymi poz.*/
 	double CtrlDownDelay = 0.0;    /* -//-  -//- przy schodzeniu z poz.*/ /*hunter-101012*/
@@ -1675,6 +1676,7 @@ public:
 	bool DecBrakeLevel();
 	bool ChangeCab(int direction);
 	bool CurrentSwitch(bool const State);
+    bool IsMotorOverloadRelayHighThresholdOn() const;
 	void UpdateBatteryVoltage(double dt);
 	double ComputeMovement(double dt, double dt1, const TTrackShape &Shape, TTrackParam &Track, TTractionParam &ElectricTraction, TLocation const &NewLoc, TRotation const &NewRot); //oblicza przesuniecie pojazdu
 	double FastComputeMovement(double dt, const TTrackShape &Shape, TTrackParam &Track, TLocation const &NewLoc, TRotation const &NewRot); //oblicza przesuniecie pojazdu - wersja zoptymalizowana
@@ -1841,7 +1843,7 @@ public:
 
 	bool CutOffEngine(void); //odlaczenie udszkodzonych silnikow
 							 /*funkcje automatycznego rozruchu np EN57*/
-	bool MaxCurrentSwitch(bool State); //przelacznik pradu wysokiego rozruchu
+	bool MaxCurrentSwitch(bool State, range_t const Notify = range_t::consist ); //przelacznik pradu wysokiego rozruchu
 	bool MinCurrentSwitch(bool State); //przelacznik pradu automatycznego rozruchu
 	bool AutoRelaySwitch(bool State); //przelacznik automatycznego rozruchu
 	bool AutoRelayCheck();//symulacja automatycznego rozruchu

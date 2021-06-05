@@ -2093,6 +2093,28 @@ TDynamicObject::Init(std::string Name, // nazwa pojazdu, np. "EU07-424"
                 MoverParameters->dizel_HeatSet( Global.AirTemperature );
             }
         } // temperature
+        else if( ( ActPar.size() >= 2 )
+              && ( ActPar.front() == 'L' ) ) {
+            // load
+            ActPar.erase( 0, 1 );
+            // immediately followed by max load override
+            // TBD: make it instead an optional sub-parameter?
+            {
+                auto const indexstart { 0 };
+                auto const indexend { ActPar.find_first_not_of( "1234567890", indexstart ) };
+                MoverParameters->MaxLoad = std::atoi( ActPar.substr( indexstart, indexend ).c_str() );
+                ActPar.erase( 0, indexend );
+            }
+            while( false == ActPar.empty() ) {
+                switch( ActPar.front() ) {
+                    default: {
+                        // unrecognized key
+                        ActPar.erase( 0, 1 );
+                        break;
+                    }
+                }
+            }
+        } // load
 /*        else if (ActPar.substr(0, 1) == "") // tu mozna wpisac inny prefiks i inne rzeczy
         {
             // jakies inne prefiksy
