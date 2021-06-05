@@ -475,6 +475,19 @@ starts_with( std::string_view const String, std::string_view Prefix ) {
         && ( 0 == String.compare( 0, Prefix.size(), Prefix ) );
 }
 
+// returns true if provided string contains another provided string
+bool
+contains( std::string_view const String, std::string_view Substring ) {
+
+    return ( String.find( Substring ) != std::string::npos );
+}
+
+bool
+contains( std::string_view const String, char Character ) {
+
+    return ( String.find( Character ) != std::string::npos );
+}
+
 // helper, restores content of a 3d vector from provided input stream
 // TODO: review and clean up the helper routines, there's likely some redundant ones
 glm::dvec3 LoadPoint( cParser &Input ) {

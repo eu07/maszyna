@@ -31,7 +31,7 @@ openal_buffer::openal_buffer( std::string const &Filename ) :
 
     ::alGenBuffers( 1, &id );
     // fetch audio data
-    if( Filename.substr( Filename.rfind( '.' ) ) == ".wav" ) {
+    if( ends_with( Filename, ".wav" ) ) {
         // .wav audio data file
         auto *file { drwav_open_file( Filename.c_str() ) };
         if( file != nullptr ) {
@@ -53,7 +53,7 @@ openal_buffer::openal_buffer( std::string const &Filename ) :
         // we're done with the disk data
         drwav_close( file );
     }
-    else if( Filename.substr( Filename.rfind( '.' ) ) == ".flac" ) {
+    else if( ends_with( Filename, ".flac" ) ) {
         // .flac audio data file
         auto *file { drflac_open_file( Filename.c_str() ) };
         if( file != nullptr ) {
@@ -75,7 +75,7 @@ openal_buffer::openal_buffer( std::string const &Filename ) :
         // we're done with the disk data
         drflac_close( file );
     }
-    else if( Filename.substr( Filename.rfind( '.' ) ) == ".ogg" ) {
+    else if( ends_with( Filename, ".ogg" ) ) {
         // vorbis .ogg audio data file
         // TBD, TODO: customized vorbis_decode to avoid unnecessary shuffling around of the decoded data
         int channels, samplerate;
@@ -173,7 +173,7 @@ buffer_manager::create( std::string const &Filename ) {
             return emplace( filelookup );
         }
     }
-    if( filename.find( '/' ) != std::string::npos ) {
+    if( contains( filename, '/' ) ) {
         // if the filename includes path, try to use it directly
         lookup = find_buffer( filename );
         if( lookup != null_handle ) {

@@ -1259,7 +1259,7 @@ global_settings::export_as_text( std::ostream &Output, std::string const Key, st
 
     if( Value.empty() ) { return; }
 
-    if( Value.find( ' ' ) != std::string::npos ) {
+    if( contains( Value, ' ' ) ) {
         Output << Key << " \"" << Value << "\"\n";
     }
     else {

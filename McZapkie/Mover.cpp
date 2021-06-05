@@ -674,6 +674,12 @@ TMoverParameters::CurrentSwitch(bool const State) {
     return false;
 };
 
+bool
+TMoverParameters::IsMotorOverloadRelayHighThresholdOn() const {
+
+    return ( ( ImaxHi > ImaxLo ) && ( Imax > ImaxLo ) );
+}
+
  // KURS90 - sprężarka pantografów; Ra 2014-07: teraz jest to zbiornik rozrządu, chociaż to jeszcze nie tak
 void TMoverParameters::UpdatePantVolume(double dt) {
     // check the pantograph compressor while at it
@@ -1418,6 +1424,23 @@ void TMoverParameters::compute_movement_( double const Deltatime ) {
         LastLoadChangeTime += Deltatime; // czas (roz)ładunku
 
     RunInternalCommand();
+
+    // relay settings
+    if( EngineType == TEngineType::ElectricSeriesMotor ) {
+        // adjust motor overload relay threshold
+        if( ImaxHi > ImaxLo ) {
+            if( MotorOverloadRelayHighThreshold ) { // set high threshold
+                if( ( TrainType != dt_ET42 ) ? ( RList[ MainCtrlPos ].Bn < 2 ) : ( MainCtrlPos == 0 ) ) {
+                    Imax = ImaxHi;
+                }
+            }
+            else { // set low threshold
+                if( ( TrainType != dt_ET42 ) || ( MainCtrlPos == 0 ) ) {
+                    Imax = ImaxLo;
+                }
+            }
+        }
+    }
 
     // automatyczny rozruch
     if( EngineType == TEngineType::ElectricSeriesMotor ) {
@@ -2233,14 +2256,12 @@ bool TMoverParameters::IncMainCtrl(int CtrlSpeed)
 					OK = true;
 					if( Imax == ImaxHi ) {
 						if( RList[ MainCtrlPos ].Bn > 1 ) {
+/* NOTE: disabled, relay configuration was moved to compute_movement_
 							if( true == MaxCurrentSwitch( false )) {
 								// wylaczanie wysokiego rozruchu
 								SetFlag( SoundFlag, sound::relay );
-							} // Q TODO:
-                                //         if (EngineType=ElectricSeriesMotor) and (MainCtrlPos=1)
-                                //         then
-                                //           MainCtrlActualPos:=1;
-                                //
+							}
+*/
 							if( TrainType == dt_ET42 ) {
 								--MainCtrlPos;
 								OK = false;
@@ -3957,7 +3978,7 @@ bool TMoverParameters::SwitchEPBrake(int state)
     if ((BrakeHandle == TBrakeHandle::St113) && (CabOccupied != 0))
     {
         if (state > 0)
-            temp = Handle->GetCP(); // TODO: przetlumaczyc
+            temp = Handle->GetEP(); // TODO: przetlumaczyc
         else
             temp = 0;
         Hamulec->SetEPS(temp);
@@ -4519,7 +4540,7 @@ void TMoverParameters::UpdatePipePressure(double dt)
          && (DirActive != 0)
          && (EpFuse)) // tu powinien byc jeszcze bezpiecznik EP i baterie -
             // temp = (Handle as TFVel6).GetCP
-            temp = Handle->GetCP();
+            temp = Handle->GetEP();
         else
             temp = 0.0;
 
@@ -6571,33 +6592,23 @@ bool TMoverParameters::CutOffEngine(void)
 // Q: 20160713
 // Przełączenie wysoki / niski prąd rozruchu
 // *************************************************************************************************
-bool TMoverParameters::MaxCurrentSwitch(bool State)
+bool TMoverParameters::MaxCurrentSwitch(bool State, range_t const Notify )
 {
-    bool MCS = false;
-    if (EngineType == TEngineType::ElectricSeriesMotor)
-        if (ImaxHi > ImaxLo)
-        {
-            if (State && (Imax == ImaxLo) && (RList[MainCtrlPos].Bn < 2) &&
-                !((TrainType == dt_ET42) && (MainCtrlPos > 0)))
-            {
+    auto const initialstate { MotorOverloadRelayHighThreshold };
 
-                Imax = ImaxHi;
-                MCS = true;
-                if (CabActive != 0)
-                    SendCtrlToNext("MaxCurrentSwitch", 1, CabActive);
-            }
-            if (!State)
+    MotorOverloadRelayHighThreshold = State;
 
-                if (Imax == ImaxHi)
-                    if (!((TrainType == dt_ET42) && (MainCtrlPos > 0)))
-                    {
-                        Imax = ImaxLo;
-                        MCS = true;
-                        if (CabActive != 0)
-                            SendCtrlToNext("MaxCurrentSwitch", 0, CabActive);
-                    }
-        }
-    return MCS;
+    if( Notify != range_t::local ) {
+        SendCtrlToNext(
+            "MaxCurrentSwitch",
+            ( State ? 1 : 0 ),
+            CabActive,
+            ( Notify == range_t::unit ?
+                coupling::control | coupling::permanent :
+                coupling::control ) );
+    }
+
+    return State != initialstate;
 }
 
 // *************************************************************************************************
@@ -6739,18 +6750,23 @@ bool TMoverParameters::AutoRelayCheck(void)
             }
             else
             { // zmieniaj mainctrlactualpos
-                if ((DirActive < 0) && (TrainType != dt_PseudoDiesel))
-                    if (RList[MainCtrlActualPos + 1].Bn > 1)
-                    {
+                if( ( DirActive < 0 ) && ( TrainType != dt_PseudoDiesel ) ) {
+                    if( RList[ MainCtrlActualPos + 1 ].Bn > 1 ) {
                         return false; // nie poprawiamy przy konwersji
-                        // return ARC;// bbylo exit; //Ra: to powoduje, że EN57 nie wyłącza się przy
-                        // IminLo
+                        // return ARC;// bbylo exit; //Ra: to powoduje, że EN57 nie wyłącza się przy IminLo
                     }
+                }
                 // main bez samoczynnego rozruchu
                 if( ( MainCtrlActualPos < ( sizeof( RList ) / sizeof( TScheme ) - 1 ) ) // crude guard against running out of current fixed table
                  && ( ( RList[ MainCtrlActualPos ].Relay < MainCtrlPos )
                    || ( ( RList[ MainCtrlActualPos + 1 ].Relay == MainCtrlPos ) && ( MainCtrlActualPos < RlistSize ) )
                    || ( ( TrainType == dt_ET22 ) && ( DelayCtrlFlag ) ) ) ) {
+
+                    // prevent switch to parallel mode if motor overload relay is set to high threshold mode
+                    if( ( IsMotorOverloadRelayHighThresholdOn() )
+                     && ( RList[ MainCtrlActualPos + 1 ].Bn > 1 ) ) {
+                        return false;
+                    }
 
                     if( ( RList[MainCtrlPos].R == 0 )
                      && ( MainCtrlPos > 0 )
@@ -9179,7 +9195,7 @@ void TMoverParameters::BrakeValveDecode( std::string const &Valve ) {
         TBrakeValve::Other;
 
     if( ( BrakeValve == TBrakeValve::Other )
-        && ( Valve.find( "ESt" ) != std::string::npos ) ) {
+     && ( contains( Valve, "ESt" ) ) ) {
 
         BrakeValve = TBrakeValve::ESt3;
     }
@@ -9276,8 +9292,8 @@ bool TMoverParameters::LoadFIZ(std::string chkpath)
 
         inputline = fizparser.getToken<std::string>( false, "\n\r" );
 
-        bool comment = ( ( inputline.find('#') != std::string::npos )
-			          || ( inputline.compare( 0, 2, "//" ) == 0 ) );
+        bool comment = ( ( contains( inputline, '#') )
+			          || ( starts_with( inputline, "//" ) ) );
         if( true == comment ) {
             // skip commented lines
             continue;
@@ -10530,10 +10546,10 @@ void TMoverParameters::LoadFIZ_Light( std::string const &line ) {
 void TMoverParameters::LoadFIZ_Security( std::string const &line ) {
 
     std::string awaresystem = extract_value( "AwareSystem", line );
-    if( awaresystem.find( "Active" ) != std::string::npos ) {
+    if( contains( awaresystem, "Active" ) ) {
         SetFlag( SecuritySystem.SystemType, 1 );
     }
-    if( awaresystem.find( "CabSignal" ) != std::string::npos ) {
+    if( contains( awaresystem, "CabSignal" ) ) {
         SetFlag( SecuritySystem.SystemType, 2 );
     }
 
@@ -11168,7 +11184,7 @@ bool TMoverParameters::CheckLocomotiveParameters(bool ReadyFlag, int Dir)
 
 	// WriteLog("aa = " + AxleArangement + " " + std::string( Pos("o", AxleArangement)) );
 
-    if( ( AxleArangement.find( "o" ) != std::string::npos ) && ( EngineType == TEngineType::ElectricSeriesMotor ) ) {
+    if( ( contains( AxleArangement, "o" ) ) && ( EngineType == TEngineType::ElectricSeriesMotor ) ) {
         // test poprawnosci ilosci osi indywidualnie napedzanych
         OK = ( ( RList[ 1 ].Bn * RList[ 1 ].Mn ) == NPoweredAxles );
         // WriteLogSS("aa ok", BoolToYN(OK));
@@ -11994,10 +12010,10 @@ bool TMoverParameters::RunCommand( std::string Command, double CValue1, double C
         DropAllPantographs( CValue1 == 1, range_t::local );
         OK = SendCtrlToNext( Command, CValue1, CValue2, Couplertype );
     }
-	else if (Command == "MaxCurrentSwitch")
-	{
-		OK = MaxCurrentSwitch(CValue1 == 1);
-	}
+	else if (Command == "MaxCurrentSwitch")	{
+		MaxCurrentSwitch( CValue1 == 1, range_t::local );
+        OK = SendCtrlToNext( Command, CValue1, CValue2, Couplertype );
+    }
 	else if (Command == "MinCurrentSwitch")
 	{
 		OK = MinCurrentSwitch(CValue1 == 1);

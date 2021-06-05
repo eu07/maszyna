@@ -783,7 +783,7 @@ TController::cue_action( locale::string const Action, float const Actionparamete
         case locale::string::driver_hint_trainbrakeapply: {
             if( AIControllFlag ) {
                 // za radą yB ustawiamy pozycję 3 kranu (ruszanie kranem w innych miejscach powino zostać wyłączone)
-                if( mvOccupied->BrakeSystem == TBrakeSystem::ElectroPneumatic ) {
+                if( ( BrakeSystem == TBrakeSystem::ElectroPneumatic ) && ( false == ForcePNBrake ) ) {
                     mvOccupied->BrakeLevelSet( mvOccupied->Handle->GetPos( bh_EPB ) );
                 }
                 else {

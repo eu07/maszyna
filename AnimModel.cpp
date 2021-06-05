@@ -453,7 +453,7 @@ bool TAnimModel::Load(cParser *parser, bool ter)
         { // gdy brak modelu
             if (ter) // jeśli teren
             {
-				if( name.substr( name.rfind( '.' ) ) == ".t3d" ) {
+				if( ends_with( name, ".t3d" ) ) {
 					name[ name.length() - 3 ] = 'e';
 				}
 #ifdef EU07_USE_OLD_TERRAINCODE
@@ -959,11 +959,11 @@ TAnimModel::export_as_text_( std::ostream &Output ) const {
         // don't include 'textures/' in the path
         texturefile.erase( 0, std::string{ szTexturePath }.size() );
     }
-    if( texturefile.find( ' ' ) == std::string::npos ) {
-        Output << texturefile << ' ';
+    if( contains( texturefile, ' ' ) ) {
+        Output << "\"" << texturefile << "\"" << ' ';
     }
     else {
-        Output << "\"" << texturefile << "\"" << ' ';
+        Output << texturefile << ' ';
     }
     // light submodels activation configuration
     if( iNumLights > 0 ) {

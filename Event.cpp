@@ -297,8 +297,9 @@ basic_event::deserialize( cParser &Input, scene::scratch_data &Scratchpad ) {
     Input >> token;
     deserialize_targets( token );
 
-    if (m_name.substr(0, 5) == "none_")
+    if( starts_with( m_name, "none_" ) ) {
         m_ignored = true; // Ra: takie są ignorowane
+    }
 
     deserialize_( Input, Scratchpad );
     // subclass method is expected to leave next token past its own data preloaded on its exit
@@ -712,9 +713,10 @@ putvalues_event::deserialize_( cParser &Input, scene::scratch_data &Scratchpad )
     Input.getTokens( 1, false ); // komendy 'case sensitive'
     Input >> token;
     // command type, previously held in param 6
-    if( token.substr( 0, 19 ) == "PassengerStopPoint:" ) {
-        if( token.find( '#' ) != std::string::npos )
+    if( starts_with( token, "PassengerStopPoint:" ) ) {
+        if( contains( token, '#' ) ) {
             token.erase( token.find( '#' ) ); // obcięcie unikatowości
+        }
         win1250_to_ascii( token ); // get rid of non-ascii chars
         m_input.command_type = TCommandType::cm_PassengerStopPoint;
         // nie do kolejki (dla SetVelocity też, ale jak jest do toru dowiązany)
@@ -1224,12 +1226,12 @@ multi_event::deserialize_( cParser &Input, scene::scratch_data &Scratchpad ) {
         }
         else {
             // potentially valid event name
-            if( token.substr( 0, 5 ) != "none_" ) {
+            if( starts_with( token, "none_" ) ) {
                 // eventy rozpoczynające się od "none_" są ignorowane
-                m_children.emplace_back( token, nullptr, ( m_conditions.has_else == false ) );
+                WriteLog( "Multi-event \"" + m_name + "\" ignored link to event \"" + token + "\"" );
             }
             else {
-                WriteLog( "Multi-event \"" + m_name + "\" ignored link to event \"" + token + "\"" );
+                m_children.emplace_back( token, nullptr, ( m_conditions.has_else == false ) );
             }
         }
     }
@@ -1564,7 +1566,7 @@ animation_event::deserialize_( cParser &Input, scene::scratch_data &Scratchpad )
 
     Input.getTokens();
     Input >> token;
-    if( token.compare( "rotate" ) == 0 ) { // obrót względem osi
+    if( token == "rotate" ) { // obrót względem osi
         Input.getTokens();
         // animation submodel, previously held in param 9
         Input >> m_animationsubmodel;
@@ -1578,7 +1580,7 @@ animation_event::deserialize_( cParser &Input, scene::scratch_data &Scratchpad )
             >> m_animationparams[ 2 ]
             >> m_animationparams[ 3 ];
     }
-    else if( token.compare( "translate" ) == 0 ) { // przesuw o wektor
+    else if( token == "translate" ) { // przesuw o wektor
         Input.getTokens();
         // animation submodel, previously held in param 9
         Input >> m_animationsubmodel;
@@ -1592,7 +1594,7 @@ animation_event::deserialize_( cParser &Input, scene::scratch_data &Scratchpad )
             >> m_animationparams[ 2 ]
             >> m_animationparams[ 3 ];
     }
-    else if( token.compare( "digital" ) == 0 ) { // licznik cyfrowy
+    else if( token == "digital" ) { // licznik cyfrowy
         Input.getTokens();
         // animation submodel, previously held in param 9
         Input >> m_animationsubmodel;
@@ -1606,7 +1608,7 @@ animation_event::deserialize_( cParser &Input, scene::scratch_data &Scratchpad )
             >> m_animationparams[ 2 ]
             >> m_animationparams[ 3 ];
     }
-    else if( token.substr( token.length() - 4, 4 ) == ".vmd" ) // na razie tu, może będzie inaczej
+    else if( ends_with( token, ".vmd" ) ) // na razie tu, może będzie inaczej
     { // animacja z pliku VMD
         {
             m_animationfilename = token;
@@ -2227,18 +2229,15 @@ event_manager::insert( basic_event *Event ) {
             return false;
         }
         // tymczasowo wyjątki:
-        else if( ( size > 8 )
-              && ( Event->m_name.substr( 0, 9 ) == "lineinfo:" ) ) {
+        else if( ends_with( Event->m_name, "lineinfo:" ) ) {
             // tymczasowa utylizacja duplikatów W5
             return false;
         }
-        else if( ( size > 8 )
-              && ( Event->m_name.substr( size - 8 ) == "_warning" ) ) {
+        else if( ends_with( Event->m_name, "_warning" ) ) {
             // tymczasowa utylizacja duplikatu z trąbieniem
             return false;
         }
-        else if( ( size > 4 )
-              && ( Event->m_name.substr( size - 4 ) == "_shp" ) ) {
+        else if( ends_with( Event->m_name, "_shp" ) ) {
             // nie podlegają logowaniu
             // tymczasowa utylizacja duplikatu SHP
             return false;
@@ -2263,7 +2262,7 @@ event_manager::insert( basic_event *Event ) {
         // if it's first event with such name, it's potential candidate for the execution queue
         m_eventmap.emplace( Event->m_name, m_events.size() - 1 );
         if( ( Event->m_ignored != true )
-         && ( Event->m_name.find( "onstart" ) != std::string::npos ) ) {
+         && ( contains( Event->m_name, "onstart" ) ) ) {
             // event uruchamiany automatycznie po starcie
             AddToQuery( Event, nullptr );
         }
