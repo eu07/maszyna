@@ -809,12 +809,15 @@ sound_source::update_crossfade( sound_handle const Chunk ) {
         // chunks other than the first can have fadein
         auto const fadeinwidth { chunkdata.threshold - chunkdata.fadein };
         if( soundpoint < chunkdata.threshold ) {
-            m_properties.gain *=
+            float lineargain =
                 interpolate(
                     0.f, 1.f,
                     clamp(
                         ( soundpoint - chunkdata.fadein ) / fadeinwidth,
                         0.f, 1.f ) );
+            m_properties.gain *=
+                lineargain /
+                (1 + (1 - lineargain) * (-0.57)); // approximation of logarytmic fade in
             return;
         }
     }
@@ -826,12 +829,14 @@ sound_source::update_crossfade( sound_handle const Chunk ) {
         auto const fadeoutwidth { chunkdata.fadeout - m_soundchunks[ chunkindex + 1 ].second.fadein };
         auto const fadeoutstart { chunkdata.fadeout - fadeoutwidth };
         if( soundpoint > fadeoutstart ) {
-            m_properties.gain *=
+			float lineargain =
                 interpolate(
-                    1.f, 0.f,
+                    0.f, 1.f,
                     clamp(
                         ( soundpoint - fadeoutstart ) / fadeoutwidth,
                         0.f, 1.f ) );
+            m_properties.gain *= (-lineargain + 1) /
+                                 (1 + lineargain * (-0.57)); // approximation of logarytmic fade out
             return;
         }
     }
