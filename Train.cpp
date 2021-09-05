@@ -758,7 +758,6 @@ dictionary_source *TTrain::GetTrainState( dictionary_source const &Extraparamete
     dict->insert( "actualproximitydist", driver->ActualProximityDist );
     // train data
     driver->TrainTimetable().serialize( dict );
-    dict->insert( "train_stationstart", driver->iStationStart );
     dict->insert( "train_atpassengerstop", driver->IsAtPassengerStop );
     dict->insert( "train_length", driver->fLength );
     // world state data

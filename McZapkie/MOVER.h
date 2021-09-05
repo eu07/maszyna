@@ -1364,6 +1364,7 @@ public:
     std::array<neighbour_data, 2> Neighbours; // potential collision sources
     bool Power110vIsAvailable = false; // cached availability of 110v power
     bool Power24vIsAvailable = false; // cached availability of 110v power
+    double Power24vVoltage { 0.0 }; // cached battery voltage
     bool EventFlag = false;                 /*!o true jesli cos nietypowego sie wydarzy*/
 	int SoundFlag = 0;                    /*!o patrz stale sound_ */
     int AIFlag{ 0 }; // HACK: events of interest for consist owner
@@ -1489,6 +1490,7 @@ public:
 	bool Mains = false;    /*polozenie glownego wylacznika*/
     double MainsInitTime{ 0.0 }; // config, initialization time (in seconds) of the main circuit after it receives power, before it can be closed
     double MainsInitTimeCountdown{ 0.0 }; // current state of main circuit initialization, remaining time (in seconds) until it's ready
+    start_t MainsStart { start_t::manual };
     bool LineBreakerClosesOnlyAtNoPowerPos{ false };
     bool ControlPressureSwitch{ false }; // activates if the main pipe and/or brake cylinder pressure aren't within operational levels
     bool HasControlPressureSwitch{ true };
@@ -1811,6 +1813,7 @@ public:
     bool ChangeCompressorPreset( int const Change, range_t const Notify = range_t::consist );
     bool HeatingSwitch( bool const State, range_t const Notify = range_t::consist );
     void HeatingSwitch_( bool const State );
+    double EnginePowerSourceVoltage() const; // returns voltage of defined main engine power source
 
     /*-funkcje typowe dla lokomotywy elektrycznej*/
     void LowVoltagePowerCheck( double const Deltatime );

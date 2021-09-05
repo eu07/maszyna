@@ -61,6 +61,7 @@ class TTrainParameters
     TMTable TimeTable;
     int StationCount; // ilość przystanków (0-techniczny)
     int StationIndex; // numer najbliższego (aktualnego) przystanku
+    int StationStart; // numer pierwszej stacji pokazywanej na podglądzie rozkładu
     std::string NextStationName;
     double LastStationLatency;
     int Direction; /*kierunek jazdy w/g kilometrazu*/

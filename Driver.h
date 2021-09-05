@@ -549,7 +549,7 @@ private:
 // members
     Mtable::TTrainParameters TrainParams; // rozkład jazdy zawsze jest, nawet jeśli pusty
     std::string asNextStop; // nazwa następnego punktu zatrzymania wg rozkładu
-    int iStationStart = 0; // numer pierwszej stacji pokazywanej na podglądzie rozkładu
+//    int iStationStart = 0; // numer pierwszej stacji pokazywanej na podglądzie rozkładu
     std::string m_lastexchangestop; // HACK: safeguard to prevent multiple load exchanges per station
     int m_lastexchangeplatforms { 0 }; // cached station platforms for last exchange
     int m_lastexchangedirection { 0 }; // 
@@ -595,8 +595,10 @@ private:
     bool IsAnyConverterOverloadRelayOpen{ false }; // state of converter overload relays in all vehicles under control
     bool IsAnyMotorOverloadRelayOpen{ false }; // state of motor overload relays in all vehicles under control
     bool IsAnyGroundRelayOpen{ false };
+    bool IsAnyCompressorPresent { false };
     bool IsAnyCompressorEnabled{ false };
     bool IsAnyCompressorExplicitlyEnabled{ false }; // only takes into account manually controlled devices
+    bool IsAnyConverterPresent{ false };
     bool IsAnyConverterEnabled{ false };
     bool IsAnyConverterExplicitlyEnabled{ false }; // only takes into account manually controlled devices
     bool IsAnyCouplerStretched{ false }; // whether there's a coupler in the consist stretched above limit

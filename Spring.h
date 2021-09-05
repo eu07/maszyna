@@ -29,11 +29,13 @@ public:
     //    double nrestLen= -1.0f);
     void Init(double nKs = 0.5f, double nKd = 0.002f);
     Math3D::vector3 ComputateForces( Math3D::vector3 const &pPosition1, Math3D::vector3 const &pPosition2);
-private:
+//private:
 // members
     double restLen { 0.01 }; // LENGTH OF SPRING AT REST
     double Ks { 0.0 }; // SPRING CONSTANT
     double Kd { 0.0 }; // SPRING DAMPING
+    float ks{ 0.f };
+    float kd{ 0.f };
 };
 
 //---------------------------------------------------------------------------

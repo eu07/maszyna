@@ -1014,6 +1014,23 @@ global_settings::ConfigParse_gfx( cParser &Parser, std::string_view const Token 
         Parser >> gfx_distance_factor_max;
         gfx_distance_factor_max = clamp(gfx_distance_factor_max, 1.f, 3.f);
     }
+    else if (Token == "gfx.shadow.angle.min")
+    {
+        Parser.getTokens(1);
+        Parser >> gfx_shadow_angle_min;
+        // variable internally uses negative values, but is presented as positive in settings
+        // so it's likely it'll be supplied as positive number by external launcher
+        if( gfx_shadow_angle_min > 0 ) {
+            gfx_shadow_angle_min *= -1;
+        }
+        gfx_shadow_angle_min = clamp(gfx_shadow_angle_min, -1.f, -0.2f);
+    }
+    else if (Token == "gfx.shadow.rank.cutoff")
+    {
+        Parser.getTokens(1);
+        Parser >> gfx_shadow_rank_cutoff;
+        gfx_shadow_rank_cutoff = clamp(gfx_shadow_rank_cutoff, 1, 3);
+    }
     else
     {
         tokenparsed = false;
@@ -1236,6 +1253,8 @@ global_settings::export_as_text( std::ostream &Output ) const {
     export_as_text( Output, "gfx.extraeffects", gfx_extraeffects );
     export_as_text( Output, "gfx.shadergamma", gfx_shadergamma );
     export_as_text( Output, "gfx.drawrange.factor.max", gfx_distance_factor_max );
+    export_as_text( Output, "gfx.shadow.angle.min", gfx_shadow_angle_min );
+    export_as_text( Output, "gfx.shadow.rank.cutoff", gfx_shadow_rank_cutoff );
     export_as_text( Output, "python.enabled", python_enabled );
     export_as_text( Output, "python.threadedupload", python_threadedupload );
     export_as_text( Output, "python.uploadmain", python_uploadmain );

@@ -359,12 +359,12 @@ timetable_panel::update() {
 
     if( is_expanded ) {
 
-        if( vehicle->MoverParameters->CategoryFlag == 1 ) {
+        if( owner->is_train() ) {
             // consist data
             auto consistmass { owner->fMass };
             auto consistlength { owner->fLength };
-            if( ( owner->mvControlling->TrainType != dt_DMU )
-             && ( owner->mvControlling->TrainType != dt_EZT ) ) {
+            if( ( false == owner->is_dmu() )
+             && ( false == owner->is_emu() ) ) {
 				//odejmij lokomotywy czynne, a przynajmniej aktualną
                 consistmass -= owner->pVehicle->MoverParameters->TotalMass;
                 // subtract potential other half of a two-part vehicle
@@ -392,12 +392,12 @@ timetable_panel::update() {
             m_tablelines.emplace_back( u8"┌─────┬────────────────────────────────────┬─────────┬─────┐", Global.UITextColor );
 
             TMTableLine const *tableline;
-            for( int i = owner->iStationStart; i <= table.StationCount; ++i ) {
+            for( int i = table.StationStart; i <= table.StationCount; ++i ) {
                 // wyświetlenie pozycji z rozkładu
                 tableline = table.TimeTable + i; // linijka rozkładu
 
                 bool vmaxchange { true };
-                if( i > owner->iStationStart ) {
+                if( i > table.StationStart ) {
                     auto const *previoustableline { tableline - 1 };
                     if( tableline->vmax == previoustableline->vmax ) {
                         vmaxchange = false;
@@ -427,7 +427,7 @@ timetable_panel::update() {
                         to_string( int( 100 + tableline->Dh ) ).substr( 1, 2 ) + ":" + to_minutes_str( tableline->Dm, true, 3 ) :
                         u8"  │   " ) };
                 auto const candepart { (
-                       ( owner->iStationStart < table.StationIndex )
+                       ( table.StationStart < table.StationIndex )
                     && ( i < table.StationIndex )
                     && ( ( tableline->Ah < 0 ) // pass-through, always valid
                       || ( tableline->is_maintenance ) // maintenance stop, always valid
@@ -439,7 +439,7 @@ timetable_panel::update() {
                     tableline->Ah >= 0 ? to_minutes_str( CompareTime( table.TimeTable[ i - 1 ].Dh, table.TimeTable[ i - 1 ].Dm, tableline->Ah, tableline->Am ), false, 3 ) :
                     to_minutes_str( std::max( 0.0, CompareTime( table.TimeTable[ i - 1 ].Dh, table.TimeTable[ i - 1 ].Dm, tableline->Dh, tableline->Dm ) - 0.5 ), false, 3 ) ) };
                 auto const linecolor { (
-                    ( i != owner->iStationStart ) ? Global.UITextColor :
+                    ( i != table.StationStart ) ? Global.UITextColor :
                     loadchangeinprogress ? colors::uitextred :
                     candepart ? colors::uitextgreen : // czas minął i odjazd był, to nazwa stacji będzie na zielono
                     isatpassengerstop ? colors::uitextorange :
@@ -1425,6 +1425,10 @@ debug_panel::render_section_settings() {
     ImGui::PopStyleColor();
     // reflection fidelity
     ImGui::SliderInt( ( to_string( Global.reflectiontune.fidelity ) + "###reflectionfidelity" ).c_str(), &Global.reflectiontune.fidelity, 0, 2, "Reflection fidelity" );
+    ImGui::SliderInt( ( to_string( Global.gfx_shadow_rank_cutoff ) + "###shadowrankcutoff" ).c_str(), &Global.gfx_shadow_rank_cutoff, 1, 3, "Shadow ranks" );
+    if( ImGui::SliderFloat( ( to_string( std::abs( Global.gfx_shadow_angle_min ), 2 ) + "###shadowanglecutoff" ).c_str(), &Global.gfx_shadow_angle_min, -1.0, -0.2, "Shadow angle cutoff" ) ) {
+        Global.gfx_shadow_angle_min = quantize( Global.gfx_shadow_angle_min, 0.05f );
+    };
     if( DebugModeFlag ) {
         // sky sliders
         {

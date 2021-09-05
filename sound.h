@@ -130,6 +130,12 @@ public:
     // returns true if the source uses sample table
     bool
         is_combined() const;
+    // returns true if specified buffer is one of the optional bookends
+    bool
+        is_bookend( audio::buffer_handle const Buffer ) const;
+    // returns true if the source has optional bookends
+    bool
+        has_bookends() const;
     // returns location of the sound source in simulation region space
     glm::dvec3 const
         location() const;

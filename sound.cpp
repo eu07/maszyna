@@ -182,6 +182,11 @@ sound_source::deserialize_mapping( cParser &Input ) {
             >> soundproofing[ 3 ]
             >> soundproofing[ 4 ]
             >> soundproofing[ 5 ];
+        for( auto & soundproofingelement : soundproofing ) {
+            if( soundproofingelement != -1.f ) {
+                soundproofingelement = std::sqrtf( clamp( soundproofingelement, 0.f, 1.f ) );
+            }
+        }
         m_soundproofing = soundproofing;
     }
     else if( starts_with( key, "sound" ) ) {
@@ -890,6 +895,20 @@ bool
 sound_source::is_combined() const {
 
     return ( ( !m_soundchunks.empty() ) && ( sound( sound_id::main ).buffer == null_handle ) );
+}
+
+// returns true if specified buffer is one of the optional bookends
+bool
+sound_source::is_bookend( audio::buffer_handle const Buffer ) const {
+
+    return ( ( sound( sound_id::begin ).buffer == Buffer ) || ( sound( sound_id::end ).buffer == Buffer ) );
+}
+
+// returns true if the source has optional bookends
+bool
+sound_source::has_bookends() const {
+
+    return ( ( sound( sound_id::begin ).buffer != null_handle ) && ( sound( sound_id::end ).buffer != null_handle ) );
 }
 
 // returns location of the sound source in simulation region space

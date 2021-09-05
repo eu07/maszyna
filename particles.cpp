@@ -301,7 +301,7 @@ smoke_source::initialize( smoke_particle &Particle ) {
 
     if( m_ownertype == owner_type::vehicle ) {
         Particle.opacity *= m_owner.vehicle->MoverParameters->dizel_fill;
-        auto const enginerevolutionsfactor { 1.5f }; // high engine revolutions increase initial particle velocity
+        auto const enginerevolutionsfactor { 0.5f }; // high engine revolutions increase initial particle velocity
         switch( m_owner.vehicle->MoverParameters->EngineType ) {
             case TEngineType::DieselElectric: {
                 Particle.velocity *= 1.0 + enginerevolutionsfactor * m_owner.vehicle->MoverParameters->enrot / ( m_owner.vehicle->MoverParameters->DElist[ m_owner.vehicle->MoverParameters->MainCtrlPosNo ].RPM / 60.0 );
@@ -331,7 +331,7 @@ smoke_source::update( smoke_particle &Particle, bounding_box &Boundingbox, doubl
     // crude smoke dispersion simulation
     // http://www.auburn.edu/academic/forestry_wildlife/fire/smoke_guide/smoke_dispersion.htm
     Particle.velocity.y += ( 0.005 * Particle.velocity.y ) * std::min( 0.f, Global.AirTemperature - 10 ) * Timedelta; // decelerate faster in cold weather
-    Particle.velocity.y -= ( 0.010 * Particle.velocity.y ) * Global.Overcast * Timedelta; // decelerate faster with high air humidity and/or precipitation
+    Particle.velocity.y -= ( 0.050 * Particle.velocity.y ) * Global.Overcast * Timedelta; // decelerate faster with high air humidity and/or precipitation
     Particle.velocity.y = std::max<float>( 0.25 * ( 2.f - Global.Overcast ), Particle.velocity.y ); // put a cap on deceleration
 
     Particle.position += Particle.velocity * static_cast<float>( Timedelta );

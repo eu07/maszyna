@@ -229,6 +229,8 @@ struct global_settings {
     bool gfx_shadergamma = false;
     bool gfx_usegles = false;
     float gfx_distance_factor_max { 3.f };
+    float gfx_shadow_angle_min { -0.2f };
+    int gfx_shadow_rank_cutoff { 3 };
 
     std::string exec_on_exit;
 

@@ -391,6 +391,11 @@ opengl_material::deserialize_mapping( cParser &Input, int const Priority, bool c
             glossiness = std::stof(value); //m7t: handle exception
             m_glossiness_priority = Priority;
         }
+        else if (key == "shadow_rank:")
+        {
+            auto const value { deserialize_random_set( Input ) };
+            shadow_rank = std::stof(value); //m7t: handle exception
+        }
         else if( key == "size:" ) {
             Input.getTokens( 2 );
             Input
