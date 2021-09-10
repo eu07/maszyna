@@ -13,6 +13,8 @@ http://mozilla.org/MPL/2.0/.
 void TSpring::Init(double nKs, double nKd) {
     Ks = nKs;
     Kd = nKd;
+    ks = Ks;
+    kd = Kd;
 }
 
 Math3D::vector3 TSpring::ComputateForces( Math3D::vector3 const &pPosition1, Math3D::vector3 const &pPosition2) {

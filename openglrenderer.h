@@ -117,6 +117,8 @@ public:
     std::string const &
         info_stats() const override;
 
+    opengl_material const & Material( TSubModel const * Submodel ) const;
+
 // members
     GLenum static const sunlight { GL_LIGHT0 };
 

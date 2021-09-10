@@ -1289,7 +1289,7 @@ void opengl33_renderer::setup_pass(viewport_config &Viewport, renderpass_config 
 		bounding_box(frustumchunkmin, frustumchunkmax, std::begin(frustumchunkshapepoints), std::end(frustumchunkshapepoints));
 		auto const frustumchunkcentre = (frustumchunkmin + frustumchunkmax) * 0.5f;
 		// ...cap the vertical angle to keep shadows from getting too long...
-		auto const lightvector = glm::normalize(glm::vec3{m_sunlight.direction.x, std::min(m_sunlight.direction.y, -0.2f), m_sunlight.direction.z});
+		auto const lightvector = glm::normalize(glm::vec3{m_sunlight.direction.x, std::min(m_sunlight.direction.y, Global.gfx_shadow_angle_min), m_sunlight.direction.z});
 		// ...place the light source at the calculated centre and setup world space light view matrix...
 		camera.position() = worldview.pass_camera.position() + glm::dvec3{frustumchunkcentre};
 		viewmatrix *= glm::lookAt(camera.position(), camera.position() + glm::dvec3{lightvector}, glm::dvec3{0.f, 1.f, 0.f});
@@ -1974,6 +1974,12 @@ opengl_material &opengl33_renderer::Material(material_handle const Material)
 	return m_materials.material(Material);
 }
 
+opengl_material const & opengl33_renderer::Material( TSubModel const * Submodel ) const {
+
+    auto const material { Submodel->m_material >= 0 ? Submodel->m_material : Submodel->ReplacableSkinId[ -Submodel->m_material ] };
+    return Material( material );
+}
+
 texture_handle opengl33_renderer::Fetch_Texture(std::string const &Filename, bool const Loadnow, GLint format_hint)
 {
 	return m_textures.create(Filename, Loadnow, format_hint);
@@ -1999,11 +2005,6 @@ opengl_texture const &opengl33_renderer::Texture(texture_handle const Texture) c
 {
 
 	return m_textures.texture(Texture);
-}
-
-void opengl33_renderer::Update_AnimModel(TAnimModel *model)
-{
-	model->RaAnimate(m_framestamp);
 }
 
 void opengl33_renderer::Render(scene::basic_region *Region)
@@ -2442,18 +2443,26 @@ void opengl33_renderer::Render(scene::shape_node const &Shape, bool const Ignore
 	switch (m_renderpass.draw_mode)
 	{
 	case rendermode::color:
-	case rendermode::reflections:
-		Bind_Material(data.material, nullptr, &Shape.data().lighting );
-		break;
-	case rendermode::shadows:
-        Bind_Material_Shadow(data.material);
-		break;
+    case rendermode::reflections: {
+        Bind_Material( data.material, nullptr, &Shape.data().lighting );
+        break;
+    }
+    case rendermode::shadows: {
+        // skip if the shadow caster rank is too low for currently set threshold
+        if( Material( data.material ).shadow_rank > Global.gfx_shadow_rank_cutoff ) {
+            return;
+        }
+        Bind_Material_Shadow( data.material );
+        break;
+    }
 	case rendermode::pickscenery:
-	case rendermode::pickcontrols:
-		m_pick_shader->bind();
-		break;
-	default:
-		break;
+    case rendermode::pickcontrols: {
+        m_pick_shader->bind();
+        break;
+    }
+    default: {
+        break;
+    }
 	}
 	// render
 
@@ -2921,6 +2930,13 @@ void opengl33_renderer::Render(TSubModel *Submodel)
 				}
 				case rendermode::shadows:
 				{
+                    // skip if the shadow caster rank is too low for currently set threshold
+                    if( Material( Submodel ).shadow_rank > Global.gfx_shadow_rank_cutoff )
+                    {
+                        --m_renderpass.draw_stats.submodels;
+                        --m_renderpass.draw_stats.drawcalls;
+                        break;
+                    }
                     if (Submodel->m_material < 0)
 					{ // zmienialne skóry
 						Bind_Material_Shadow(Submodel->ReplacableSkinId[-Submodel->m_material]);
@@ -3098,6 +3114,10 @@ void opengl33_renderer::Render(scene::basic_cell::path_sequence::const_iterator 
 				// shadows are only calculated for high enough roads, typically meaning track platforms
 				continue;
 			}
+            if( Material( track->m_material1 ).shadow_rank > Global.gfx_shadow_rank_cutoff ) {
+                // skip if the shadow caster rank is too low for currently set threshold
+                continue;
+            }
 			Bind_Material_Shadow(track->m_material1);
 			draw(std::begin(track->Geometry1), std::end(track->Geometry1));
 			break;
@@ -3149,7 +3169,11 @@ void opengl33_renderer::Render(scene::basic_cell::path_sequence::const_iterator 
 				// shadows are only calculated for high enough trackbeds
 				continue;
 			}
-			Bind_Material_Shadow(track->m_material2);
+            if( Material( track->m_material2 ).shadow_rank > Global.gfx_shadow_rank_cutoff ) {
+                // skip if the shadow caster rank is too low for currently set threshold
+                continue;
+            }
+            Bind_Material_Shadow(track->m_material2);
 			draw(std::begin(track->Geometry2), std::end(track->Geometry2));
 			break;
 		}
@@ -3206,6 +3230,11 @@ void opengl33_renderer::Render(scene::basic_cell::path_sequence::const_iterator 
 				// shadows are only calculated for high enough trackbeds
 				continue;
 			}
+            if( Material( track->SwitchExtension->m_material3 ).shadow_rank > Global.gfx_shadow_rank_cutoff )
+            {
+                // skip if the shadow caster rank is too low for currently set threshold
+                continue;
+            }
 			Bind_Material_Shadow(track->SwitchExtension->m_material3);
 			draw(track->SwitchExtension->Geometry3);
 			break;
@@ -3739,6 +3768,13 @@ void opengl33_renderer::Render_Alpha(TSubModel *Submodel)
 				}
 				case rendermode::shadows:
 				{
+                    // skip if the shadow caster rank is too low for currently set threshold
+                    if( Material( Submodel ).shadow_rank > Global.gfx_shadow_rank_cutoff )
+                    {
+                        --m_renderpass.draw_stats.submodels;
+                        --m_renderpass.draw_stats.drawcalls;
+                        break;
+                    }
 					if (Submodel->m_material < 0)
 					{ // zmienialne skóry
 						Bind_Material_Shadow(Submodel->ReplacableSkinId[-Submodel->m_material]);

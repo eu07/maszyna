@@ -1018,6 +1018,7 @@ whois_event::run_() {
         auto *targetcell { static_cast<TMemCell *>( std::get<scene::basic_node *>( target ) ) };
         if( targetcell == nullptr ) { continue; }
         // event effect code
+        // +40: next station name, unused, stop at next station (duplicate of +0 2nd numeric value)
         // +32: vehicle name
         // +24: vehicle type, consist brake level, obstacle distance
         // +16: load type, load amount, max load amount
@@ -1025,6 +1026,35 @@ whois_event::run_() {
         // +0: train name, station count, stop on next station
         if( m_input.flags & flags::whois_name ) {
             // +32 or +40
+            // next station name
+            if( m_input.flags & flags::mode_alt ) {
+                auto const *owner { (
+                    ( ( m_activator->Mechanik != nullptr ) && ( m_activator->Mechanik->primary() ) ) ?
+                        m_activator->Mechanik :
+                        m_activator->ctOwner ) };
+                auto const nextstop { (
+                    owner != nullptr ?
+                        owner->TrainTimetable().NextStop() :
+                        "none" ) };
+                auto const isstop { (
+                    ( ( owner != nullptr ) && ( owner->IsStop() ) ) ?
+                        1 :
+                        0 ) }; // 1, gdy ma tu zatrzymanie
+
+                targetcell->UpdateValues(
+                    nextstop, // next station name
+                    0, // unused
+                    isstop, // stop at next station or passthrough
+                    m_input.flags & ( flags::text | flags::value1 | flags::value2 ) );
+
+                WriteLog(
+                    "Type: WhoIs (" + to_string( m_input.flags ) + ") - "
+                    + "[next station: " + nextstop + "], "
+                    + "[X], "
+                    + "[stop at next station: " + ( isstop != 0 ? "yes" : "no" ) + "]" );
+            }
+            // vehicle name
+            else {
                 targetcell->UpdateValues(
                     m_activator->asName, // vehicle name
                     0, // unused
@@ -1036,6 +1066,7 @@ whois_event::run_() {
                     + "[name: " + m_activator->asName + "], "
                     + "[X], "
                     + "[X]" );
+            }
         }
         else if( m_input.flags & flags::whois_load ) {
             // +16 or +24
@@ -1106,12 +1137,12 @@ whois_event::run_() {
                     m_activator->Mechanik->IsStop() ?
                         1 :
                         0, // 1, gdy ma tu zatrzymanie
-                    m_input.flags );
+                    m_input.flags & ( flags::text | flags::value1 | flags::value2 ) );
                 WriteLog(
                     "Type: WhoIs (" + to_string( m_input.flags ) + ") - "
                     + "[train: " + m_activator->Mechanik->TrainName() + "], "
                     + "[stations left: " + to_string( m_activator->Mechanik->StationCount() - m_activator->Mechanik->StationIndex() ) + "], "
-                    + "[stop at next: " + ( m_activator->Mechanik->IsStop() ? "yes" : "no") + "]" );
+                    + "[stop at next station: " + ( m_activator->Mechanik->IsStop() ? "yes" : "no") + "]" );
             }
         }
     }
@@ -2331,6 +2362,8 @@ event_manager::AddToQuery( basic_event *Event, TDynamicObject const *Owner ) {
                     + Event->m_delaydeparture;
             }
         }
+        // NOTE: sanity check, as departure-based delay math can potentially produce negative overall delay
+        Event->m_launchtime = std::max( Event->m_launchtime, 0.0 );
         if( QueryRootEvent != nullptr ) {
             basic_event *target { QueryRootEvent };
             basic_event *previous { nullptr };

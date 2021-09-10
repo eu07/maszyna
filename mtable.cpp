@@ -184,10 +184,10 @@ bool TTrainParameters::IsTimeToGo(double hh, double mm)
 // returns: difference between specified time and scheduled departure from current stop, in seconds
 double TTrainParameters::seconds_until_departure( double const Hour, double const Minute ) const {
 
-    if( ( TimeTable[ StationIndex ].Ah < 0 ) ) { // passthrough
+    if( ( TimeTable[ StationStart ].Ah < 0 ) ) { // passthrough
         return 0;
     }
-    return ( 60.0 * CompareTime( Hour, Minute, TimeTable[ StationIndex ].Dh, TimeTable[ StationIndex ].Dm ) );
+    return ( 60.0 * CompareTime( Hour, Minute, TimeTable[ StationStart ].Dh, TimeTable[ StationStart ].Dm ) );
 }
 
 std::string TTrainParameters::ShowRelation() const
@@ -212,6 +212,7 @@ void TTrainParameters::NewName(std::string const &NewTrainName)
     TrainName = NewTrainName;
     StationCount = 0;
     StationIndex = 0;
+    StationStart = 0;
     NextStationName = "nowhere";
     LastStationLatency = 0;
     Direction = 1;
@@ -649,6 +650,7 @@ void TTrainParameters::serialize( dictionary_source *Output ) const {
     Output->insert( "train_stationto", Relation2 );
     Output->insert( "train_stationindex", StationIndex );
     Output->insert( "train_stationcount", StationCount );
+    Output->insert( "train_stationstart", StationStart );
     if( StationCount > 0 ) {
         // timetable stations data, if there's any
         for( auto stationidx = 1; stationidx <= StationCount; ++stationidx ) {

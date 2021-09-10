@@ -123,15 +123,13 @@ class opengl33_renderer : public gfx_renderer {
     std::string const &
         info_stats() const override;
 
-
-
     opengl_material & Material( material_handle const Material );
+    opengl_material const & Material( TSubModel const * Submodel ) const;
     // draws supplied geometry handles
     void Draw_Geometry(std::vector<gfx::geometrybank_handle>::iterator begin, std::vector<gfx::geometrybank_handle>::iterator end);
 	void Draw_Geometry(const gfx::geometrybank_handle &handle);
 	// material methods
     void Bind_Material_Shadow(material_handle const Material);
-	void Update_AnimModel(TAnimModel *model);
 
 	// members
     GLenum static const sunlight{0};

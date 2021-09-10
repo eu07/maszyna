@@ -1111,7 +1111,7 @@ TController::TableUpdateStopPoint( TCommandType &Command, TSpeedPos &Point, doub
             // nastepnie ustawić następną na aktualną tak żeby prawidłowo ją obsłużył w następnym kroku
             if( true == TrainParams.RewindTimeTable( Point.evEvent->input_text() ) ) {
                 asNextStop = TrainParams.NextStop();
-                iStationStart = TrainParams.StationIndex;
+                TrainParams.StationStart = TrainParams.StationIndex;
             }
         }
         else if( Point.fDist < -fLength ) {
@@ -2520,6 +2520,30 @@ bool TController::CheckVehicles(TOrders user)
             = 0;
 		}
 
+        if( OrderCurrentGet() & ( Shunt | Loose_shunt | Obey_train | Bank ) ) {
+            // nastawianie hamulca do jazdy pociągowej
+            AutoRewident();
+/*
+            if( ( true == TestFlag( iDrivigFlags, moveConnect ) )
+                && ( true == TestFlag( OrderCurrentGet(), Connect ) ) ) {
+                iCoupler = 0; // dalsza jazda manewrowa już bez łączenia
+                iDrivigFlags &= ~moveConnect; // zdjęcie flagi doczepiania
+                SetVelocity( 0, 0, stopJoin ); // wyłączyć przyspieszanie
+                JumpToNextOrder(); // wykonanie następnej komendy
+            }
+*/
+        }
+
+        // detect push-pull train configurations and mark them accordingly
+        if( pVehicles[ end::front ]->is_connected( pVehicles[ end::rear ], coupling::control ) ) {
+            // zmiana czoła przez zmianę kabiny
+            iDrivigFlags |= movePushPull;
+        }
+        else {
+            // zmiana czoła przez manewry
+            iDrivigFlags &= ~movePushPull;
+        }
+
         // HACK: ensure vehicle lights are active from the beginning, if it had pre-activated battery
         if( mvOccupied->LightsPosNo > 0 ) {
             pVehicle->SetLights();
@@ -2564,29 +2588,6 @@ bool TController::CheckVehicles(TOrders user)
                             locale::string::driver_hint_consistheatingoff );
                 }
             }
-        }
-        if( OrderCurrentGet() & ( Shunt | Loose_shunt | Obey_train | Bank ) ) {
-            // nastawianie hamulca do jazdy pociągowej
-            AutoRewident();
-/*
-            if( ( true == TestFlag( iDrivigFlags, moveConnect ) )
-                && ( true == TestFlag( OrderCurrentGet(), Connect ) ) ) {
-                iCoupler = 0; // dalsza jazda manewrowa już bez łączenia
-                iDrivigFlags &= ~moveConnect; // zdjęcie flagi doczepiania
-                SetVelocity( 0, 0, stopJoin ); // wyłączyć przyspieszanie
-                JumpToNextOrder(); // wykonanie następnej komendy
-            }
-*/
-        }
-
-        // detect push-pull train configurations and mark them accordingly
-        if( pVehicles[ end::front ]->is_connected( pVehicles[ end::rear ], coupling::control ) ) {
-            // zmiana czoła przez zmianę kabiny
-            iDrivigFlags |= movePushPull;
-        }
-        else {
-            // zmiana czoła przez manewry
-            iDrivigFlags &= ~movePushPull;
         }
 
         if( ( user == Connect )
@@ -2840,10 +2841,12 @@ bool TController::PrepareEngine()
         else {
             // main circuit or engine is on, set up vehicle devices and controls
             if( false == IsAnyConverterOverloadRelayOpen ) {
-                cue_action( locale::string::driver_hint_converteron );
+                if( IsAnyConverterPresent ) {
+                    cue_action( locale::string::driver_hint_converteron );
+                }
                 // w EN57 sprężarka w ra jest zasilana z silnikowego
                 // TODO: change condition to presence of required voltage type
-                if( IsAnyConverterEnabled ) {
+                if( IsAnyCompressorPresent && IsAnyConverterEnabled ) {
                     cue_action( locale::string::driver_hint_compressoron );
                 }
                 if( ( mvControlling->ScndPipePress < 4.5 ) && ( mvControlling->VeselVolume > 0.0 ) ) {
@@ -2881,8 +2884,8 @@ bool TController::PrepareEngine()
         isready = ( false == IsAnyConverterOverloadRelayOpen )
                && ( mvOccupied->DirActive != 0 )
                && ( false == IsAnyLineBreakerOpen )
-               && ( true == IsAnyConverterEnabled )
-               && ( true == IsAnyCompressorEnabled )
+               && ( ( false == IsAnyConverterPresent ) || ( true == IsAnyConverterEnabled ) )
+               && ( ( false == IsAnyCompressorPresent ) || ( true == IsAnyCompressorEnabled ) )
                && ( ( mvControlling->ScndPipePress > 4.5 ) || ( mvControlling->VeselVolume == 0.0 ) )
                && ( ( static_cast<int>( mvOccupied->fBrakeCtrlPos ) == static_cast<int>( mvOccupied->Handle->GetPos( bh_RP ) ) )
                  || ( static_cast<int>( mvOccupied->fBrakeCtrlPos ) != static_cast<int>( mvOccupied->Handle->GetPos( bh_NP ) ) )
@@ -3403,12 +3406,16 @@ bool TController::IncSpeed()
             iDrivigFlags |= moveIncSpeed; // ustawienie flagi jazdy
         return false;
     case TEngineType::ElectricSeriesMotor:
-        if (mvControlling->EnginePowerSource.SourceType == TPowerSource::CurrentCollector) // jeśli pantografujący
+        if (mvPantographUnit->EnginePowerSource.SourceType == TPowerSource::CurrentCollector) // jeśli pantografujący
         {
             if (fOverhead2 >= 0.0) // a jazda bezprądowa ustawiana eventami (albo opuszczenie)
                 return false; // to nici z ruszania
             if (iOverheadZero) // jazda bezprądowa z poziomu toru ustawia bity
                 return false; // to nici z ruszania
+        }
+        // TODO: move all fVoltage assignments to a single, more generic place
+        if( mvControlling->EnginePowerSource.SourceType == TPowerSource::Accumulator ) {
+            fVoltage = mvControlling->BatteryVoltage;
         }
         if ((!IsAnyMotorOverloadRelayOpen)
           &&(!mvControlling->ControlPressureSwitch)) {
@@ -3437,15 +3444,17 @@ bool TController::IncSpeed()
                     auto const sufficientacceleration { AbsAccS >= ( IsHeavyCargoTrain ? 0.03 : IsCargoTrain ? 0.06 : 0.09 ) };
                     auto const seriesmodefieldshunting { ( mvControlling->ScndCtrlPos > 0 ) && ( mvControlling->RList[ mvControlling->MainCtrlPos ].Bn == 1 ) };
                     auto const parallelmodefieldshunting { ( mvControlling->ScndCtrlPos > 0 ) && ( mvControlling->RList[ mvControlling->MainCtrlPos ].Bn > 1 ) };
-                    auto const useseriesmodevoltage {
+                    auto const minvoltage { ( mvPantographUnit->EnginePowerSource.SourceType == TPowerSource::CurrentCollector ? mvPantographUnit->EnginePowerSource.CollectorParameters.MinV : 0.0 ) };
+                    auto const maxvoltage { ( mvPantographUnit->EnginePowerSource.SourceType == TPowerSource::CurrentCollector ? mvPantographUnit->EnginePowerSource.CollectorParameters.MaxV : 0.0 ) };
+                    auto const seriesmodevoltage {
                         interpolate(
-                            mvControlling->EnginePowerSource.CollectorParameters.MinV,
-                            mvControlling->EnginePowerSource.CollectorParameters.MaxV,
+                            minvoltage,
+                            maxvoltage,
                             ( IsHeavyCargoTrain ? 0.35 : 0.40 ) ) };
                     auto const useseriesmode = (
                         ( mvControlling->Imax > mvControlling->ImaxLo )
                      || ( true == usehighoverloadrelaythreshold )
-                     || ( fVoltage < useseriesmodevoltage )
+                     || ( fVoltage < seriesmodevoltage )
                      || ( ( true == sufficientacceleration )
                        && ( true == sufficienttractionforce )
                        && ( mvOccupied->Vel <= ( IsCargoTrain ? 40 : 30 ) + ( seriesmodefieldshunting ? 5 : 0 ) - ( ( fAccGravity < -0.025 ) ? 10 : 0 ) ) ) );
@@ -3501,7 +3510,7 @@ bool TController::IncSpeed()
                         if( usefieldshunting ) {
                             // to dać bocznik
                             // engage the shuntfield only if there's sufficient power margin to draw from
-                            auto const sufficientpowermargin { fVoltage - useseriesmodevoltage > ( IsHeavyCargoTrain ? 100.0 : 75.0 ) * ControlledEnginesCount };
+                            auto const sufficientpowermargin { fVoltage - seriesmodevoltage > ( IsHeavyCargoTrain ? 100.0 : 75.0 ) * ControlledEnginesCount };
 
                             OK = (
                                 sufficientpowermargin ?
@@ -3519,8 +3528,8 @@ bool TController::IncSpeed()
                             auto const sufficientpowermargin {
                                 fVoltage - (
                                     mvControlling->RList[ std::min( mvControlling->MainCtrlPos + 1, mvControlling->MainCtrlPosNo ) ].Bn == 1 ? 
-                                        mvControlling->EnginePowerSource.CollectorParameters.MinV :
-                                        useseriesmodevoltage )
+                                        minvoltage :
+                                        seriesmodevoltage )
                                 > ( IsHeavyCargoTrain ? 100.0 : 75.0 ) * ControlledEnginesCount };
 
                             OK = (
@@ -4517,7 +4526,7 @@ bool TController::PutCommand( std::string NewCommand, double NewValue1, double N
 
                 TrainParams.UpdateMTable( simulation::Time, TrainParams.NextStationName );
                 TrainParams.StationIndexInc(); // przejście do następnej
-                iStationStart = TrainParams.StationIndex;
+                TrainParams.StationStart = TrainParams.StationIndex;
                 asNextStop = TrainParams.NextStop();
                 m_lastannouncement = announcement_t::idle;
                 iDrivigFlags |= movePrimary; // skoro dostał rozkład, to jest teraz głównym
@@ -6063,10 +6072,10 @@ TController::determine_consist_state() {
     IsAnyMotorOverloadRelayOpen = false;
     IsAnyGroundRelayOpen = false;
     IsAnyLineBreakerOpen = false;
-    // HACK: enable a make-believe compressor in all cars
-    // TBD, TODO: replace with a more flexible vehicle readiness check in PrepareEngine()
-    IsAnyCompressorEnabled = is_car();
+    IsAnyCompressorPresent = false;
+    IsAnyCompressorEnabled = false;
     IsAnyCompressorExplicitlyEnabled = false;
+    IsAnyConverterPresent = false;
     IsAnyConverterEnabled = false;
     IsAnyConverterExplicitlyEnabled = false;
 
@@ -6077,8 +6086,10 @@ TController::determine_consist_state() {
             IsAnyConverterOverloadRelayOpen |= vehicle->ConvOvldFlag;
             IsAnyMotorOverloadRelayOpen |= vehicle->FuseFlag;
             IsAnyGroundRelayOpen |= !( vehicle->GroundRelay );
+            IsAnyCompressorPresent |= ( vehicle->CompressorSpeed > 0.0 );
             IsAnyCompressorEnabled |= ( vehicle->CompressorSpeed > 0.0 ? ( vehicle->CompressorAllow || vehicle->CompressorStart == start_t::automatic ) && ( vehicle->CompressorAllowLocal ) : false );
             IsAnyCompressorExplicitlyEnabled |= ( vehicle->CompressorSpeed > 0.0 ? ( vehicle->CompressorAllow && vehicle->CompressorAllowLocal ) : false );
+            IsAnyConverterPresent |= ( vehicle->ConverterStart != start_t::disabled );
             IsAnyConverterEnabled |= ( vehicle->ConverterAllow || vehicle->ConverterStart == start_t::automatic ) && ( vehicle->ConverterAllowLocal );
             IsAnyConverterExplicitlyEnabled |= ( vehicle->ConverterAllow && vehicle->ConverterAllowLocal );
             if( vehicle->Power > 0.01 ) {
@@ -6134,8 +6145,8 @@ TController::determine_consist_state() {
     iEngineActive &=
            ( false == IsAnyConverterOverloadRelayOpen )
         && ( false == IsAnyLineBreakerOpen )
-        && ( true == IsAnyConverterEnabled )
-        && ( true == IsAnyCompressorEnabled );
+        && ( ( false == IsAnyConverterPresent ) || ( true == IsAnyConverterEnabled ) )
+        && ( ( false == IsAnyCompressorPresent ) || ( true == IsAnyCompressorEnabled ) );
 }
 
 void
@@ -6513,7 +6524,7 @@ TController::UpdateNextStop() {
     if( ( fLastStopExpDist > 0.0 )
      && ( mvOccupied->DistCounter > fLastStopExpDist ) ) {
         // zaktualizować wyświetlanie rozkładu
-        iStationStart = TrainParams.StationIndex;
+        TrainParams.StationStart = TrainParams.StationIndex;
         fLastStopExpDist = -1.0; // usunąć licznik
         if( true == m_makenextstopannouncement ) {
             announce( announcement_t::next );
@@ -7901,7 +7912,7 @@ void TController::control_tractive_force() {
     auto const velocity { DirectionalVel() };
     // jeśli przyspieszenie pojazdu jest mniejsze niż żądane oraz...
     if( ( AccDesired > EU07_AI_NOACCELERATION ) // don't add power if not asked for actual speed-up
-     && (( AbsAccS < AccDesired - std::min( 0.05, 0.01 * iDriverFailCount ) ) || (mvOccupied->SpeedCtrlUnit.IsActive && velocity < mvOccupied->SpeedCtrlUnit.FullPowerVelocity))
+     && (( AbsAccS < AccDesired /*- std::min( 0.05, 0.01 * iDriverFailCount )*/ ) || (mvOccupied->SpeedCtrlUnit.IsActive && velocity < mvOccupied->SpeedCtrlUnit.FullPowerVelocity))
      && ( false == TestFlag( iDrivigFlags, movePress ) ) ) {
         // ...jeśli prędkość w kierunku czoła jest mniejsza od dozwolonej o margines...
         if( velocity < (

@@ -171,6 +171,10 @@ double TMoverParameters::Current(double n, double U)
     }
     else {
         Mn = RList[ MainCtrlActualPos ].Mn * RList[ MainCtrlActualPos ].Bn;
+        if( RList[ MainCtrlActualPos ].Bn > 1 ) {
+            Bn = 1;
+            R = CircuitRes;
+        }
     }
 
     if (DynamicBrakeFlag && (!FuseFlag) && (DynamicBrakeType == dbrake_automatic) &&
@@ -1511,13 +1515,14 @@ void TMoverParameters::compute_movement_( double const Deltatime ) {
     PowerCouplersCheck( Deltatime, coupling::power110v );
     PowerCouplersCheck( Deltatime, coupling::power24v );
 
-    Power24vIsAvailable =  ( ( PowerCircuits[ 0 ].first > 0 ) || ( GetTrainsetVoltage( coupling::power24v  ) > 0 ) );
+    Power24vVoltage = std::max( PowerCircuits[ 0 ].first, GetTrainsetVoltage( coupling::power24v ) );
+    Power24vIsAvailable = ( Power24vVoltage > 0 );
     Power110vIsAvailable = ( ( PowerCircuits[ 1 ].first > 0 ) || ( GetTrainsetVoltage( coupling::power110v ) > 0 ) );
 }
 
 void TMoverParameters::MainsCheck( double const Deltatime ) {
 
-    if( MainsInitTime == 0.0 ) { return; }
+//    if( MainsInitTime == 0.0 ) { return; }
 
     // TBD, TODO: move voltage calculation to separate method and use also in power coupler state calculation?
     auto localvoltage { 0.0 };
@@ -1527,6 +1532,13 @@ void TMoverParameters::MainsCheck( double const Deltatime ) {
                 std::max(
                     localvoltage,
                     PantographVoltage );
+            break;
+        }
+        case TPowerSource::Accumulator: {
+            localvoltage =
+                std::max(
+                    localvoltage,
+                    Power24vVoltage );
             break;
         }
         default: {
@@ -1543,6 +1555,13 @@ void TMoverParameters::MainsCheck( double const Deltatime ) {
             // NOTE: we ensure main circuit readiness meets condition MainsInitTimeCountdown < 0
             // this allows for simpler rejection of cases where MainsInitTime == 0
             MainsInitTimeCountdown -= Deltatime;
+        }
+        else {
+            // optional automatic circuit start
+            if( ( MainsStart != start_t::manual )
+             && ( false == ( Mains || dizel_startup ) ) ) {
+                MainSwitch( true );
+            }
         }
     }
     else {
@@ -2039,9 +2058,11 @@ void TMoverParameters::MotorBlowersCheck( double const Timestep ) {
     // activation check
     for( auto &blower : MotorBlowers ) {
 		auto disable = blower.is_disabled;
+        auto const start { ( Vel >= blower.min_start_velocity && Im > 0.5 ) };
+        auto const stop { ( Vel < 0.5 && Im < 0.5 ) };
 		if (blower.min_start_velocity >= 0)
 		{
-			if ( Vel < 0.5 && Im < 0.5 )
+			if ( stop )
 			{
 				blower.stop_timer += Timestep;
 				if (blower.stop_timer > blower.sustain_time)
@@ -2049,7 +2070,7 @@ void TMoverParameters::MotorBlowersCheck( double const Timestep ) {
 					disable = true;
 				}
 			}
-			else if (Vel >= blower.min_start_velocity && Im > 0.5)
+			else if ( start )
 			{
 				blower.stop_timer = 0;
 			}
@@ -2067,9 +2088,10 @@ void TMoverParameters::MotorBlowersCheck( double const Timestep ) {
 //         && ( true == blower.breaker )
          && ( false == disable)
          && ( ( true == blower.is_active )
-           || ( blower.start_type == start_t::manual ?
+           || ( ( blower.stop_timer == 0.f ) // HACK: will be true for blower with exceeded start_velocity, and for one without start_velocity
+             && ( blower.start_type == start_t::manual ?
                     blower.is_enabled :
-                    true ) ) );
+                    true ) ) ) );
     }
     // update
     for( auto &fan : MotorBlowers ) {
@@ -3570,7 +3592,8 @@ bool TMoverParameters::MainSwitchCheck() const {
         }
         case TEngineType::ElectricSeriesMotor:
         case TEngineType::ElectricInductionMotor: {
-            powerisavailable = ( std::max( GetTrainsetHighVoltage(), PantographVoltage ) > 0.5 * EnginePowerSource.MaxVoltage );
+            // TODO: check whether we can simplify this check and skip the outer EngineType switch
+            powerisavailable = ( EnginePowerSourceVoltage() > 0.5 * EnginePowerSource.MaxVoltage );
             break;
         }
         default: {
@@ -3690,6 +3713,15 @@ void TMoverParameters::HeatingSwitch_( bool const State ) {
 
     // TBD, TODO: activation dependencies?
     HeatingAllow = State;
+}
+
+// returns voltage of defined main engine power source
+double TMoverParameters::EnginePowerSourceVoltage() const {
+
+    return (
+        EnginePowerSource.SourceType == TPowerSource::CurrentCollector ? std::max( GetTrainsetHighVoltage(), PantographVoltage ) :
+        EnginePowerSource.SourceType == TPowerSource::Accumulator ? Power24vVoltage :
+        0.0 );
 }
 
 // *************************************************************************************************
@@ -4892,10 +4924,8 @@ void TMoverParameters::ComputeTotalForce(double dt) {
     { // Ra 2014-03: uwzględnienie kierunku jazdy w napięciu na silnikach, a powinien być zdefiniowany nawrotnik
         EngineVoltage = (
             Mains ?
-                std::max(
-                    GetTrainsetHighVoltage(),
-                    PantographVoltage ) :
-                0.00 );
+                EnginePowerSourceVoltage() :
+                0.0 );
         if( CabActive == 0 ) {
             EngineVoltage *= DirActive;
         }
@@ -10360,6 +10390,13 @@ void TMoverParameters::LoadFIZ_Cntrl( std::string const &line ) {
 
     // main circuit
     extract_value( MainsInitTime, "MainInitTime", line, "" );
+    {
+        auto lookup = starts.find( extract_value( "MainStart", line ) );
+        MainsStart =
+            lookup != starts.end() ?
+                lookup->second :
+                start_t::manual;
+    }
     // battery
     {
         auto lookup = starts.find( extract_value( "BatteryStart", line ) );

@@ -2859,7 +2859,7 @@ TDynamicObject::update_load_visibility() {
     auto visiblechunkcount { (
         SectionLoadOrder.empty() ?
             0 :
-            static_cast<int>( std::ceil( loadpercentage * SectionLoadOrder.size() ) ) ) };
+            static_cast<int>( std::ceil( loadpercentage * SectionLoadOrder.size() - 0.001f ) ) ) };
     for( auto *section : SectionLoadOrder ) {
         if( visiblechunkcount == 0 ) { break; }
         section->load_chunks_visible++;
@@ -5621,10 +5621,10 @@ void TDynamicObject::LoadMMediaFile( std::string const &TypeName, std::string co
                     blowertemplate.deserialize( parser, sound_type::single, sound_parameters::range | sound_parameters::amplitude | sound_parameters::frequency );
                     blowertemplate.owner( this );
 
-                    auto const amplitudedivisor = static_cast<float>(
-                        MoverParameters->MotorBlowers[ end::front ].speed > 0.f ?
-                            MoverParameters->MotorBlowers[ end::front ].speed * MoverParameters->nmax * 60 + MoverParameters->Power * 3 :
-                            MoverParameters->MotorBlowers[ end::front ].speed * -1 );
+                    auto const amplitudedivisor { static_cast<float>(
+                        MoverParameters->MotorBlowers[ end::front ].speed > 0 ? MoverParameters->MotorBlowers[ end::front ].speed * MoverParameters->nmax * 60 + MoverParameters->Power * 3 :
+                        blowertemplate.has_bookends() ? 1 : // NOTE: for motorblowers with fixed speed if the sound has defined bookends we skip revolutions-based part of frequency/volume adjustments
+                        MoverParameters->MotorBlowers[ end::front ].speed * -1 ) };
                     blowertemplate.m_amplitudefactor /= amplitudedivisor;
                     blowertemplate.m_frequencyfactor /= amplitudedivisor;
 
@@ -6032,6 +6032,11 @@ void TDynamicObject::LoadMMediaFile( std::string const &TypeName, std::string co
                                     >> soundproofing[ 3 ]
                                     >> soundproofing[ 4 ]
                                     >> soundproofing[ 5 ];
+                                for( auto & soundproofingelement : soundproofing ) {
+                                    if( soundproofingelement != -1.f ) {
+                                        soundproofingelement = std::sqrtf( clamp( soundproofingelement, 0.f, 1.f ) );
+                                    }
+                                }
                                 m_pasystem.soundproofing = soundproofing;
                                 continue;
                             }
@@ -7891,14 +7896,16 @@ TDynamicObject::powertrain_sounds::render( TMoverParameters const &Vehicle, doub
         for( auto &blowersound : motorblowers ) {
             // match the motor blower and the sound source based on whether they're located in the front or the back of the vehicle
             auto const &blower { Vehicle.MotorBlowers[ ( blowersound.offset().z > 0 ? end::front : end::rear ) ] };
+            // TODO: for the sounds with provided bookends invoke stop() when the stop is triggered and revolutions start dropping, instead of after full stop
             if( blower.revolutions > 1 ) {
-
+                // NOTE: for motorblowers with fixed speed if the sound has defined bookends we skip revolutions-based part of frequency/volume adjustments
+                auto const revolutionmodifier { ( Vehicle.MotorBlowers[ end::front ].speed < 0.f ) && ( blowersound.has_bookends() ) ? 1.f : blower.revolutions };
                 blowersound
                     .pitch(
                         true == blowersound.is_combined() ?
                             blower.revolutions * 0.01f :
-                            blowersound.m_frequencyoffset + blowersound.m_frequencyfactor * blower.revolutions )
-                    .gain( blowersound.m_amplitudeoffset + blowersound.m_amplitudefactor * blower.revolutions )
+                            blowersound.m_frequencyoffset + blowersound.m_frequencyfactor * revolutionmodifier )
+                    .gain( blowersound.m_amplitudeoffset + blowersound.m_amplitudefactor * revolutionmodifier )
                     .play( sound_flags::exclusive | sound_flags::looping );
             }
             else {

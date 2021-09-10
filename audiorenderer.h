@@ -197,7 +197,9 @@ openal_source::bind( sound_source *Controller, uint32_sequence Sounds, Iterator_
         ::alSourceQueueBuffers( id, static_cast<ALsizei>( buffers.size() ), buffers.data() );
         ::alSourceRewind( id );
         // sound controller can potentially request playback to start from certain buffer point
-        if( controller->start() == 0.f ) {
+        // for multipart sounds the offset is applied only to last piece during playback
+        // for single sound we also make sure not to apply the offset to optional bookends
+        if( controller->start() == 0.f || is_multipart || controller->is_bookend( buffers.front() ) ) {
             // regular case with no offset, reset bound source just in case
             ::alSourcei( id, AL_SAMPLE_OFFSET, 0 );
         }

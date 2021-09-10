@@ -329,9 +329,10 @@ eu07_application::run() {
 		if (m_network)
 			m_network->update();
 
-		auto frametime = Timer::subsystem.mainloop_total.stop();
-		if (Global.minframetime.count() != 0.0f && (Global.minframetime - frametime).count() > 0.0f)
-			std::this_thread::sleep_for(Global.minframetime - frametime);
+        auto const frametime{ Timer::subsystem.mainloop_total.stop() };
+        if( Global.minframetime.count() != 0.0f && ( Global.minframetime - frametime ).count() > 0.0f ) {
+            std::this_thread::sleep_for( Global.minframetime - frametime );
+        }
     }
 
     return 0;

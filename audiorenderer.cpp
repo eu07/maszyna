@@ -95,15 +95,29 @@ openal_source::update( double const Deltatime, glm::vec3 const &Listenervelocity
 
         sound_change = false;
         ::alGetSourcei( id, AL_BUFFERS_PROCESSED, &sound_index );
-        // for multipart sounds trim away processed sources until only one remains, the last one may be set to looping by the controller
+        // for multipart sounds trim away processed buffers until only one remains, the last one may be set to looping by the controller
         // TBD, TODO: instead of change flag move processed buffer ids to separate queue, for accurate tracking of longer buffer sequences
-        ALuint bufferid;
+        ALuint discard;
         while( ( sound_index > 0 )
             && ( sounds.size() > 1 ) ) {
-            ::alSourceUnqueueBuffers( id, 1, &bufferid );
+            ::alSourceUnqueueBuffers( id, 1, &discard );
             sounds.erase( std::begin( sounds ) );
             --sound_index;
             sound_change = true;
+            // potentially adjust starting point of the last buffer (to reduce chance of reverb effect with multiple, looping copies playing)
+            if( ( controller->start() > 0.f ) && ( sounds.size() == 1 ) ) {
+                ALint bufferid;
+                ::alGetSourcei(
+                    id,
+                    AL_BUFFER,
+                    &bufferid );
+                ALint buffersize;
+                ::alGetBufferi( bufferid, AL_SIZE, &buffersize );
+                ::alSourcei(
+                    id,
+                    AL_SAMPLE_OFFSET,
+                    static_cast<ALint>( controller->start() * ( buffersize / sizeof( std::int16_t ) ) ) );
+            }
         }
 
         int state;

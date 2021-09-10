@@ -74,6 +74,9 @@ bool TTractionPowerSource::Load(cParser *parser) {
 bool TTractionPowerSource::Update(double dt)
 { // powinno być wykonane raz na krok fizyki
   // iloczyn napięcia i admitancji daje prąd
+    if( FastFuse || SlowFuse ) {
+        TotalCurrent = 0.0;
+    }
 	if (TotalCurrent > MaxOutputCurrent) {
 
         FastFuse = true;

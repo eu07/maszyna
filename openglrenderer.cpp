@@ -972,7 +972,7 @@ opengl_renderer::setup_pass( renderpass_config &Config, rendermode const Mode, f
             auto const lightvector =
                 glm::normalize( glm::vec3{
                               m_sunlight.direction.x,
-                    std::min( m_sunlight.direction.y, -0.2f ),
+                    std::min( m_sunlight.direction.y, Global.gfx_shadow_angle_min ),
                               m_sunlight.direction.z } );
             // ...place the light source at the calculated centre and setup world space light view matrix...
             camera.position() = worldview.camera.position() + glm::dvec3{ frustumchunkcentre };
@@ -1024,7 +1024,7 @@ opengl_renderer::setup_pass( renderpass_config &Config, rendermode const Mode, f
             auto const lightvector =
                 glm::normalize( glm::vec3{
                               m_sunlight.direction.x,
-                    std::min( m_sunlight.direction.y, -0.2f ),
+                    std::min( m_sunlight.direction.y, Global.gfx_shadow_angle_min ),
                               m_sunlight.direction.z } );
             camera.position() = Global.pCamera.Pos - glm::dvec3 { lightvector };
             viewmatrix *= glm::lookAt(
@@ -1757,6 +1757,13 @@ opengl_renderer::Material( material_handle const Material ) const {
     return m_materials.material( Material );
 }
 
+opengl_material const &
+opengl_renderer::Material( TSubModel const * Submodel ) const {
+
+    auto const material { Submodel->m_material >= 0 ? Submodel->m_material : Submodel->ReplacableSkinId[ -Submodel->m_material ] };
+    return Material( material );
+}
+
 // shader methods
 std::shared_ptr<gl::program>
 opengl_renderer::Fetch_Shader( std::string const &name ) {
@@ -2285,7 +2292,13 @@ opengl_renderer::Render( scene::shape_node const &Shape, bool const Ignorerange 
             break;
         }
         // pick modes are painted with custom colours, and shadow pass doesn't use any
-        case rendermode::shadows:
+        case rendermode::shadows: {
+            // skip if the shadow caster rank is too low for currently set threshold
+            if( Material( data.material ).shadow_rank > Global.gfx_shadow_rank_cutoff ) {
+                return;
+            }
+        }
+        [[ fallthrough ]];
         case rendermode::cabshadows:
         case rendermode::pickscenery:
         case rendermode::pickcontrols:
@@ -2815,7 +2828,16 @@ opengl_renderer::Render( TSubModel *Submodel ) {
 #endif
                         break;
                     }
-                    case rendermode::shadows:
+                    case rendermode::shadows: {
+                        // skip if the shadow caster rank is too low for currently set threshold
+                        if( Material( Submodel ).shadow_rank > Global.gfx_shadow_rank_cutoff )
+                        {
+                            --m_renderpass.draw_stats.submodels;
+                            --m_renderpass.draw_stats.drawcalls;
+                            break;
+                        }
+                    }
+                    [[fallthrough]];
                     case rendermode::cabshadows:
                     case rendermode::pickscenery: {
                         // scenery picking and shadow both use enforced colour and no frills
@@ -3102,6 +3124,11 @@ opengl_renderer::Render( scene::basic_cell::path_sequence::const_iterator First,
                     // shadows are only calculated for high enough roads, typically meaning track platforms
                     continue;
                 }
+                if( Material( track->m_material1 ).shadow_rank > Global.gfx_shadow_rank_cutoff )
+                {
+                    // skip if the shadow caster rank is too low for currently set threshold
+                    continue;
+                }
                 Bind_Material( track->m_material1 );
                 m_geometry.draw( std::begin( track->Geometry1 ), std::end( track->Geometry1 ) );
                 break;
@@ -3145,6 +3172,11 @@ opengl_renderer::Render( scene::basic_cell::path_sequence::const_iterator First,
                  || ( ( track->iCategoryFlag == 1 )
                    && ( track->eType != tt_Normal ) ) ) {
                     // shadows are only calculated for high enough trackbeds
+                    continue;
+                }
+                if( Material( track->m_material2 ).shadow_rank > Global.gfx_shadow_rank_cutoff )
+                {
+                    // skip if the shadow caster rank is too low for currently set threshold
                     continue;
                 }
                 Bind_Material( track->m_material2 );
@@ -3193,6 +3225,11 @@ opengl_renderer::Render( scene::basic_cell::path_sequence::const_iterator First,
                  || ( ( track->iCategoryFlag == 1 )
                    && ( track->eType != tt_Normal ) ) ) {
                     // shadows are only calculated for high enough trackbeds
+                    continue;
+                }
+                if( Material( track->SwitchExtension->m_material3 ).shadow_rank > Global.gfx_shadow_rank_cutoff )
+                {
+                    // skip if the shadow caster rank is too low for currently set threshold
                     continue;
                 }
                 Bind_Material( track->SwitchExtension->m_material3 );
