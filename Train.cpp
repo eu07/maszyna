@@ -7094,6 +7094,7 @@ bool TTrain::Update( double const Deltatime )
          && ( Global.fCalibrateIn[ 2 ][ 1 ] != 0.0 ) ) {
 
             set_master_controller( Console::AnalogCalibrateGet( 2 ) * mvOccupied->MainCtrlPosNo );
+			mvOccupied->eimic_analog = Console::AnalogCalibrateGet(2);
 		}
 #endif
 

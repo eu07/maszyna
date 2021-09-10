@@ -1585,6 +1585,7 @@ public:
 
     /*- zmienne dla lokomotyw z silnikami indukcyjnymi -*/
 	double eimic = 0; /*aktualna pozycja zintegrowanego sterowania jazda i hamowaniem*/
+	double eimic_analog = 0; /*pozycja zadajnika analogowa*/
 	double eimic_real = 0; /*faktycznie uzywana pozycja zintegrowanego sterowania jazda i hamowaniem*/
 	double eim_localbrake = 0; /*nastawa hamowania dodatkowego pneumatycznego lokomotywy*/
 	int EIMCtrlType = 0; /*rodzaj wariantu zadajnika jazdy*/

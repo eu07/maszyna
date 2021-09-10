@@ -7112,7 +7112,8 @@ void TMoverParameters::CheckEIMIC(double dt)
 	switch (EIMCtrlType)
 	{
 	case 0:
-		eimic = (LocalBrakeRatio() > 0.01 ? -LocalBrakeRatio() : (double)MainCtrlPos / (double)MainCtrlPosNo);
+		eimic = (LocalBrakeRatio() > 0.01 ? -LocalBrakeRatio() :
+			eimic_analog > 0.01 ? eimic_analog : (double)MainCtrlPos / (double)MainCtrlPosNo);
             if (EIMCtrlAdditionalZeros || EIMCtrlEmergency)
 		{
 			if (eimic > 0.001)
