@@ -7170,7 +7170,7 @@ bool TTrain::Update( double const Deltatime )
 				ggBrakeCtrl.UpdateValue(b); // przesów bez zaokrąglenia
 				mvOccupied->BrakeLevelSet(b);
 			}
-            if (mvOccupied->BrakeHandle == TBrakeHandle::FVel6) // może można usunąć ograniczenie do FV4a i FVel6?
+            else if (mvOccupied->BrakeHandle == TBrakeHandle::FVel6) // może można usunąć ograniczenie do FV4a i FVel6?
             {
                 double b = Console::AnalogCalibrateGet(0);
 				b = b * 7.0 - 1.0;
@@ -7178,14 +7178,22 @@ bool TTrain::Update( double const Deltatime )
                 ggBrakeCtrl.UpdateValue(b); // przesów bez zaokrąglenia
                 mvOccupied->BrakeLevelSet(b);
             }
+            else {
+                double b = Console::AnalogCalibrateGet( 0 );
+                b = b * ( mvOccupied->Handle->GetPos( bh_MAX ) - mvOccupied->Handle->GetPos( bh_MIN ) ) + mvOccupied->Handle->GetPos( bh_MIN );
+                b = clamp<double>( b, mvOccupied->Handle->GetPos( bh_MIN ), mvOccupied->Handle->GetPos( bh_MAX ) ); // przycięcie zmiennej do granic
+                ggBrakeCtrl.UpdateValue( b ); // przesów bez zaokrąglenia
+                mvOccupied->BrakeLevelSet( b );
+            }
+        }
+        else
+#endif
+        {
             // else //standardowa prodedura z kranem powiązanym z klawiaturą
             // ggBrakeCtrl.UpdateValue(double(mvOccupied->BrakeCtrlPos));
+            ggBrakeCtrl.UpdateValue( mvOccupied->fBrakeCtrlPos );
+            ggBrakeCtrl.Update();
         }
-#endif
-        // else //standardowa prodedura z kranem powiązanym z klawiaturą
-        // ggBrakeCtrl.UpdateValue(double(mvOccupied->BrakeCtrlPos));
-        ggBrakeCtrl.UpdateValue(mvOccupied->fBrakeCtrlPos);
-        ggBrakeCtrl.Update();
     }
 
     if( ggLocalBrake.SubModel != nullptr ) {
