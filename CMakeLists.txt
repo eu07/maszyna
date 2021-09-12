@@ -43,7 +43,6 @@ file(GLOB HEADERS "*.h"
 
 if (APPLE)
 	set (CMAKE_FIND_FRAMEWORK LAST)
-	set (CMAKE_EXE_LINKER_FLAGS "-pagezero_size 10000 -image_base 100000000")
 endif()
 
 option(USE_IMGUI_GL3 "Use OpenGL3+ imgui implementation" ON)
