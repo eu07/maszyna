@@ -1312,7 +1312,8 @@ public:
 	bool MED_EPVC = 0; // czy korekcja sily hamowania EP, gdy nie ma dostepnego ED
 	double MED_EPVC_Time = 7; // czas korekcji sily hamowania EP, gdy nie ma dostepnego ED
 	bool MED_Ncor = 0; // czy korekcja sily hamowania z uwzglednieniem nacisku
-    double MED_MinBrakeReqED = 0;
+    double MED_MinBrakeReqED = 0; // minimalne zadanie sily hamowania uruchamiajace ED - ponizej tylko EP
+	double MED_FrED_factor = 1; // mnoznik sily hamowania ED do korekty blendingu
 
     int DCEMUED_CC { 0 }; //na którym sprzęgu sprawdzać działanie ED
     double DCEMUED_EP_max_Vel{ 0.0 }; //maksymalna prędkość, przy której działa EP przy włączonym ED w jednostce (dla tocznych)

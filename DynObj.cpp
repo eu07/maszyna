@@ -3205,7 +3205,7 @@ bool TDynamicObject::Update(double dt, double dt1)
 			if ((MoverParameters->BrakeCtrlPos == MoverParameters->Handle->GetPos(bh_EB))
 				&& (MoverParameters->eimc[eimc_p_abed] < 0.001)) 
 				FzadED = 0; //pętla bezpieczeństwa - bez ED
-            auto const FzadPN = Fzad - FrED;
+            auto const FzadPN = Fzad - FrED * MoverParameters->MED_FrED_factor;
             //np = 0;
             // BUG: likely memory leak, allocation per inner loop, deleted only once outside
             // TODO: sort this shit out
