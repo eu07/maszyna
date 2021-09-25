@@ -10533,6 +10533,7 @@ void TMoverParameters::LoadFIZ_Blending(std::string const &line) {
 	extract_value(MED_EPVC, "MED_EPVC", line, "");
 	extract_value(MED_Ncor, "MED_Ncor", line, "");
 	extract_value(MED_MinBrakeReqED, "MED_MinBrakeReqED", line, "");
+	extract_value(MED_FrED_factor, "MED_FrEDFactor", line, "");
 }
 
 void TMoverParameters::LoadFIZ_DCEMUED(std::string const &line) {
