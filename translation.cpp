@@ -403,7 +403,7 @@ init() {
         "Zalaczyc wentylatory tylnych silnikow trakcyjnych",
         "Wylaczyc wentylatory tylnych silnikow trakcyjnych",
         "Zalaczyc hamulec sprezynowy",
-        "Zwolnic hamules sprezynowy",
+        "Zwolnic hamulec sprezynowy",
         "Zalaczyc hamulec reczny",
         "Zwolnic hamulec reczny",
         "Ustawic nastawnik jazdy na pozycje biegu jalowego",
