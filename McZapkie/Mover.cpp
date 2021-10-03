@@ -5385,7 +5385,7 @@ double TMoverParameters::TractionForce( double dt ) {
                                 / 60.0 );
                 }
                 // NOTE: fake dizel_fill calculation for the sake of smoke emitter which uses this parameter to determine smoke opacity
-                dizel_fill = clamp( 0.2 + 0.35 * ( tmp - enrot ), 0.0, 1.0 );
+                dizel_fill = clamp( 0.2 + 0.35 * ( tmp - enrot ) + 0.5 * ( std::abs( Im ) / DElist[ MainCtrlPosNo ].Imax ), 0.05, 1.0 );
             }
             else {
                 tmp = 0.0;

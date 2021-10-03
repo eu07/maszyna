@@ -1103,23 +1103,27 @@ void TTrain::OnCommand_secondcontrollerincrease( TTrain *Train, command_data con
         }
     }
     else {
+        // regular mode
+        // push or pushtoggle control type
         if( Train->ggScndCtrl.is_push() ) {
-            // two-state control, active while the button is down
             if( Command.action == GLFW_PRESS ) {
                 // activate on press
                 Train->mvControlled->IncScndCtrl( 1 );
             }
-            else if( Command.action == GLFW_RELEASE ) {
-                // zero on release
-                Train->mvControlled->DecScndCtrl( 2 );
-            }
         }
+        // toggle control type
         else {
-            // multi-state control
             if( Command.action != GLFW_RELEASE ) {
-                // on press or hold
                 Train->mvControlled->IncScndCtrl( 1 );
             }
+        }
+        // HACK: potentially animate push or pushtoggle control
+        if( Train->ggScndCtrl.is_push() ) {
+            auto const activeposition { Train->ggScndCtrl.is_toggle() ? 1.f : 1.f };
+            auto const neutralposition { Train->ggScndCtrl.is_toggle() ? 0.5f : 0.f };
+            Train->ggScndCtrl.UpdateValue(
+                ( ( Command.action == GLFW_RELEASE ) ? neutralposition : activeposition ),
+                Train->dsbSwitch );
         }
         // potentially animate tempomat button
         if( ( Train->ggScndCtrlButton.is_push() )
@@ -1250,30 +1254,53 @@ void TTrain::OnCommand_mucurrentindicatorothersourceactivate( TTrain *Train, com
 
 void TTrain::OnCommand_secondcontrollerdecrease( TTrain *Train, command_data const &Command ) {
 
-    if( Command.action != GLFW_RELEASE ) {
-        // on press or hold
-        if( ( Train->mvControlled->EngineType == TEngineType::DieselElectric )
-         && ( true == Train->mvControlled->ShuntMode ) ) {
+    if( ( Train->mvControlled->EngineType == TEngineType::DieselElectric )
+     && ( true == Train->mvControlled->ShuntMode ) ) {
+        if( Command.action != GLFW_RELEASE ) {
             Train->mvControlled->AnPos = clamp(
                 Train->mvControlled->AnPos - 0.025,
                 0.0, 1.0 );
         }
-        else {
-            Train->mvControlled->DecScndCtrl( 1 );
-        }
     }
-    // potentially animate tempomat button
-    if( ( Train->ggScndCtrlButton.is_push() )
-     && ( Train->mvControlled->ScndCtrlPos <= 1 ) ) {
-        if( Train->m_controlmapper.contains( "tempomatoff_sw:" ) ) {
-            Train->ggScndCtrlOffButton.UpdateValue(
-                ( ( Command.action == GLFW_RELEASE ) ? 0.f : 1.f ),
+    else {
+        // regular mode
+        // push or pushtoggle control type
+        if( Train->ggScndCtrl.is_push() ) {
+            // basic push control can't decrease state, but pushtoggle can
+            if( true == Train->ggScndCtrl.is_toggle() ) {
+                if( Command.action == GLFW_PRESS ) {
+                    // activate on press
+                    Train->mvControlled->DecScndCtrl( 1 );
+                }
+            }
+        }
+        // toggle control type
+        else {
+            if( Command.action != GLFW_RELEASE ) {
+                Train->mvControlled->DecScndCtrl( 1 );
+            }
+        }
+        // HACK: potentially animate push or pushtoggle control
+        if( Train->ggScndCtrl.is_push() ) {
+            auto const activeposition { Train->ggScndCtrl.is_toggle() ? 0.f : 1.f };
+            auto const neutralposition { Train->ggScndCtrl.is_toggle() ? 0.5f : 0.f };
+            Train->ggScndCtrl.UpdateValue(
+                ( ( Command.action == GLFW_RELEASE ) ? neutralposition : activeposition ),
                 Train->dsbSwitch );
         }
-        else {
-            Train->ggScndCtrlButton.UpdateValue(
-                ( ( Command.action == GLFW_RELEASE ) ? 0.f : 1.f ),
-                Train->dsbSwitch );
+        // potentially animate tempomat button
+        if( ( Train->ggScndCtrlButton.is_push() )
+         && ( Train->mvControlled->ScndCtrlPos <= 1 ) ) {
+            if( Train->m_controlmapper.contains( "tempomatoff_sw:" ) ) {
+                Train->ggScndCtrlOffButton.UpdateValue(
+                    ( ( Command.action == GLFW_RELEASE ) ? 0.f : 1.f ),
+                    Train->dsbSwitch );
+            }
+            else {
+                Train->ggScndCtrlButton.UpdateValue(
+                    ( ( Command.action == GLFW_RELEASE ) ? 0.f : 1.f ),
+                    Train->dsbSwitch );
+            }
         }
     }
 }
@@ -1294,9 +1321,23 @@ void TTrain::OnCommand_secondcontrollerdecreasefast( TTrain *Train, command_data
 
 void TTrain::OnCommand_secondcontrollerset( TTrain *Train, command_data const &Command ) {
 
+    auto const targetposition{ std::min<int>( Command.param1, Train->mvControlled->ScndCtrlPosNo ) };
+    // HACK: potentially animate push or pushtoggle control
+    if( Train->ggScndCtrl.is_push() ) {
+        auto const activeposition {
+            Train->ggScndCtrl.is_toggle() ?
+                ( targetposition < Train->mvControlled->ScndCtrlPos ? 0.f :
+                  targetposition > Train->mvControlled->ScndCtrlPos ? 1.f :
+                  Train->ggScndCtrl.GetDesiredValue() ) : // leave the control in its current position if it hits the limit
+                ( targetposition == 0 ? 0.f : 1.f ) };
+        auto const neutralposition { Train->ggScndCtrl.is_toggle() ? 0.5f : 0.f };
+        Train->ggScndCtrl.UpdateValue(
+            ( ( Command.action == GLFW_RELEASE ) ? neutralposition : activeposition ),
+            Train->dsbSwitch );
+    }
+    // update control value
     if( Command.action != GLFW_RELEASE ) {
         // on press or hold
-        auto const targetposition{ std::min<int>( Command.param1, Train->mvControlled->ScndCtrlPosNo ) };
         while( ( targetposition < Train->mvControlled->ScndCtrlPos )
             && ( true == Train->mvControlled->DecScndCtrl( 1 ) ) ) {
             // all work is done in the header
@@ -7121,10 +7162,12 @@ bool TTrain::Update( double const Deltatime )
     }
     if (ggScndCtrl.SubModel != nullptr ) {
         // Ra: od byte odejmowane boolean i konwertowane potem na double?
-        ggScndCtrl.UpdateValue(
-            double( mvControlled->ScndCtrlPos
-                - ( ( mvControlled->TrainType == dt_ET42 ) && mvControlled->DynamicBrakeFlag ) ),
-            dsbNastawnikBocz );
+        if( false == ggScndCtrl.is_push() ) {
+            ggScndCtrl.UpdateValue(
+                double( mvControlled->ScndCtrlPos
+                    - ( ( mvControlled->TrainType == dt_ET42 ) && mvControlled->DynamicBrakeFlag ) ),
+                dsbNastawnikBocz );
+        }
         ggScndCtrl.Update();
     }
     if( ggScndCtrlButton.SubModel != nullptr ) {
@@ -7171,7 +7214,7 @@ bool TTrain::Update( double const Deltatime )
 				ggBrakeCtrl.UpdateValue(b); // przesów bez zaokrąglenia
 				mvOccupied->BrakeLevelSet(b);
 			}
-            if (mvOccupied->BrakeHandle == TBrakeHandle::FVel6) // może można usunąć ograniczenie do FV4a i FVel6?
+            else if (mvOccupied->BrakeHandle == TBrakeHandle::FVel6) // może można usunąć ograniczenie do FV4a i FVel6?
             {
                 double b = Console::AnalogCalibrateGet(0);
 				b = b * 7.0 - 1.0;
@@ -7179,14 +7222,22 @@ bool TTrain::Update( double const Deltatime )
                 ggBrakeCtrl.UpdateValue(b); // przesów bez zaokrąglenia
                 mvOccupied->BrakeLevelSet(b);
             }
+            else {
+                double b = Console::AnalogCalibrateGet( 0 );
+                b = b * ( mvOccupied->Handle->GetPos( bh_MAX ) - mvOccupied->Handle->GetPos( bh_MIN ) ) + mvOccupied->Handle->GetPos( bh_MIN );
+                b = clamp<double>( b, mvOccupied->Handle->GetPos( bh_MIN ), mvOccupied->Handle->GetPos( bh_MAX ) ); // przycięcie zmiennej do granic
+                ggBrakeCtrl.UpdateValue( b ); // przesów bez zaokrąglenia
+                mvOccupied->BrakeLevelSet( b );
+            }
+        }
+        else
+#endif
+        {
             // else //standardowa prodedura z kranem powiązanym z klawiaturą
             // ggBrakeCtrl.UpdateValue(double(mvOccupied->BrakeCtrlPos));
+            ggBrakeCtrl.UpdateValue( mvOccupied->fBrakeCtrlPos );
+            ggBrakeCtrl.Update();
         }
-#endif
-        // else //standardowa prodedura z kranem powiązanym z klawiaturą
-        // ggBrakeCtrl.UpdateValue(double(mvOccupied->BrakeCtrlPos));
-        ggBrakeCtrl.UpdateValue(mvOccupied->fBrakeCtrlPos);
-        ggBrakeCtrl.Update();
     }
 
     if( ggLocalBrake.SubModel != nullptr ) {
@@ -8776,7 +8827,7 @@ void TTrain::set_cab_controls( int const Cab ) {
     // battery
     ggBatteryButton.PutValue(
         ( ggBatteryButton.type() == TGaugeType::push ? 0.5f :
-          mvOccupied->Battery ? 1.f :
+          mvOccupied->Power24vIsAvailable ? 1.f :
           0.f ) );
     // line breaker
     if( ggMainButton.SubModel != nullptr ) { // instead of single main button there can be on/off pair
@@ -9064,6 +9115,13 @@ void TTrain::set_cab_controls( int const Cab ) {
            || mvControlled->MotorBlowers[ end::front ].is_disabled ) ?
                 1.f :
                 0.f );
+    }
+    // second controller
+    if( ggScndCtrl.is_push() ) {
+        ggScndCtrl.PutValue(
+            ggScndCtrl.is_toggle() ?
+                0.5f : // pushtoggle is two-way control with neutral position in the middle
+                0.f ); // push is on/off control, active while held down, due to legacy use
     }
     // tempomat
     if( false == ggScndCtrlButton.is_push() ) {

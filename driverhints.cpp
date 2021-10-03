@@ -593,7 +593,7 @@ TController::cue_action( locale::string const Action, float const Actionparamete
                 Action,
                 [this](float const Parameter) -> bool {
                     auto const &device { mvControlling->WaterPump };
-                    return ( ( device.start_type != start_t::manual ) || ( ( device.is_enabled == true ) && ( device.is_disabled == false ) ) ); } );
+                    return ( ( device.start_type != start_t::manual ) || ( ( device.is_enabled == true ) && ( device.is_disabled == false ) ) || ( device.is_active == true ) ); } );
             break;
         }
         case locale::string::driver_hint_waterpumpoff: {
@@ -1128,7 +1128,7 @@ TController::cue_action( locale::string const Action, float const Actionparamete
                 Action,
                 [this](float const Parameter) -> bool {
                     auto const &device { mvOccupied->CompartmentLights };
-                    return ( ( Global.fLuminance * ConsistShade > 0.40 ) || ( device.start_type != start_t::manual ) || ( ( device.is_enabled == true ) && ( device.is_disabled == false ) ) ); } );
+                    return ( ( Global.fLuminance * ConsistShade > 0.40 ) || ( device.start_type != start_t::manual ) || ( ( device.is_enabled == true ) && ( device.is_disabled == false ) ) || ( device.is_active == true ) ); } );
             break;
         }
         case locale::string::driver_hint_consistlightsoff: {
