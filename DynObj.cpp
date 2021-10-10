@@ -4189,6 +4189,40 @@ void TDynamicObject::RenderSounds() {
         }
     }
 
+	// epbrake - epcompact
+	if (( MoverParameters->BrakeSystem == TBrakeSystem::ElectroPneumatic ) && ( MoverParameters->LocHandle )) {
+		auto const epbrakepressureratio{ std::max( 0.0, MoverParameters->LocHandle->GetCP() ) / std::max(1.0, MoverParameters->MaxBrakePress[0] ) };
+		if ( m_lastepbrakepressure != -1.f ) {
+			// HACK: potentially reset playback of opening bookend sounds
+			if ( false == m_epbrakepressureincrease.is_playing() ) {
+				m_epbrakepressureincrease.stop();
+			}
+			if ( false == m_epbrakepressuredecrease.is_playing() ) {
+				m_epbrakepressuredecrease.stop();
+			}
+			// actual sound playback
+			auto const epquantizedratio{ static_cast<int>( 50 * epbrakepressureratio) };
+			auto const lastepbrakepressureratio { std::max( 0.f, m_lastepbrakepressure ) / std::max( 1.0, MoverParameters->MaxBrakePress[0] ) };
+			auto const epquantizedratiochange { epquantizedratio - static_cast<int>( 50 * lastepbrakepressureratio ) };
+			if ( epquantizedratiochange > 0 ) {
+				m_epbrakepressureincrease
+					.pitch(
+						true == m_epbrakepressureincrease.is_combined() ?
+						epquantizedratio * 0.01f :
+						m_epbrakepressureincrease.m_frequencyoffset + m_epbrakepressureincrease.m_frequencyfactor * 1.f )
+					.play();
+			}
+			else if ( epquantizedratiochange < 0 ) {
+				m_epbrakepressuredecrease
+					.pitch(true == m_epbrakepressuredecrease.is_combined() ?
+						epquantizedratio * 0.01f :
+						m_epbrakepressuredecrease.m_frequencyoffset + m_epbrakepressuredecrease.m_frequencyfactor * 1.f )
+					.play();
+			}
+		}
+		m_lastepbrakepressure = MoverParameters->LocHandle->GetCP();
+	}
+
     // emergency brake
     if( MoverParameters->EmergencyValveFlow > 0.025 ) {
         // smooth out air flow rate
@@ -5718,6 +5752,18 @@ void TDynamicObject::LoadMMediaFile( std::string const &TypeName, std::string co
                     m_brakecylinderpistonrecede.deserialize( parser, sound_type::single );
                     m_brakecylinderpistonrecede.owner( this );
                 }
+
+				else if (token == "epbrakeinc:") {
+				// brake cylinder pressure increase sounds
+					m_epbrakepressureincrease.deserialize(parser, sound_type::single);
+					m_epbrakepressureincrease.owner(this);
+				}
+
+				else if (token == "epbrakedec:") {
+				// brake cylinder pressure decrease sounds
+					m_epbrakepressuredecrease.deserialize(parser, sound_type::single);
+					m_epbrakepressuredecrease.owner(this);
+				}
 
                 else if( token == "emergencybrake:" ) {
 					// emergency brake sound
