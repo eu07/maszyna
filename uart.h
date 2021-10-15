@@ -64,7 +64,7 @@ private:
 
     using input_pin_t = std::tuple<std::size_t, input_type_t, user_command, user_command>;
     using inputpin_sequence = std::vector<input_pin_t>;
-    
+
     bool setup_port();
 
 // members
@@ -73,7 +73,9 @@ private:
     command_relay relay;
     std::array<std::uint8_t, 16> old_packet; // TBD, TODO: replace with vector of configurable size?
     std::chrono::time_point<std::chrono::high_resolution_clock> last_update;
+    std::chrono::time_point<std::chrono::high_resolution_clock> last_setup;
     conf_t conf;
 	bool data_pending = false;
+    bool error_notified = false;
     std::uint8_t m_trainstatecab { 0 }; // helper, keeps track of last active cab. 0: front cab, 1: rear cab
 };

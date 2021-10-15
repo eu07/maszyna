@@ -12,11 +12,9 @@ uart_input::uart_input()
 {
     conf = Global.uart_conf;
 
-    if (!setup_port())
-      throw std::runtime_error("uart: cannot open port");
-
     old_packet.fill(0);
     last_update = std::chrono::high_resolution_clock::now();
+    last_setup = std::chrono::high_resolution_clock::now();
 }
 
 bool uart_input::setup_port()
@@ -27,13 +25,21 @@ bool uart_input::setup_port()
       port = nullptr;
     }
 
+    last_setup = std::chrono::high_resolution_clock::now();
+
     if (sp_get_port_by_name(conf.port.c_str(), &port) != SP_OK) {
-        ErrorLog("uart: cannot find specified port");
+        if(!error_notified) {
+            ErrorLog("uart: cannot find specified port '"+conf.port+"'");
+        }
+        error_notified = true;
         return false;
     }
 
     if (sp_open(port, (sp_mode)(SP_MODE_READ | SP_MODE_WRITE)) != SP_OK) {
-        ErrorLog("uart: cannot open port");
+        if(!error_notified) {
+            ErrorLog("uart: cannot open port '"+conf.port+"'");
+        }
+        error_notified = true;
         port = nullptr;
         return false;
     }
@@ -47,7 +53,10 @@ bool uart_input::setup_port()
 		sp_set_config_stopbits(config, 1) != SP_OK ||
 		sp_set_config_parity(config, SP_PARITY_NONE) != SP_OK ||
 		sp_set_config(port, config) != SP_OK) {
-        ErrorLog("uart: cannot set config");
+        if(!error_notified) {
+            ErrorLog("uart: cannot set config");
+        }
+        error_notified = true;
         port = nullptr;
         return false;
     }
@@ -55,10 +64,15 @@ bool uart_input::setup_port()
 	sp_free_config(config);
 
     if (sp_flush(port, SP_BUF_BOTH) != SP_OK) {
-        ErrorLog("uart: cannot flush");
+        if(!error_notified) {
+            ErrorLog("uart: cannot flush");
+        }
+        error_notified = true;
         port = nullptr;
         return false;
     }
+
+    error_notified = false;
 
     return true;
 }
@@ -162,6 +176,11 @@ void uart_input::poll()
     if (std::chrono::duration<float>(now - last_update).count() < conf.updatetime)
         return;
     last_update = now;
+
+    /* if connection error occured, slow down reconnection tries */
+    if (!port && error_notified && std::chrono::duration<float>(now - last_setup).count() < 1.0) {
+        return;
+    }
 
     if (!port) {
       setup_port();
