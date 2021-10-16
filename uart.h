@@ -15,6 +15,8 @@ class UartStatus {
         bool is_synced = false;
         unsigned long packets_sent = 0;
         unsigned long packets_received = 0;
+
+        void reset_stats();
 };
 
 class uart_input

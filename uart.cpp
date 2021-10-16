@@ -9,6 +9,11 @@
 #include "simulationtime.h"
 #include "application.h"
 
+void UartStatus::reset_stats() {
+    packets_sent = 0;
+    packets_received = 0;
+}
+
 uart_input::uart_input()
 {
     conf = Global.uart_conf;
@@ -21,6 +26,8 @@ uart_input::uart_input()
     old_packet.fill(0);
     last_update = std::chrono::high_resolution_clock::now();
     last_setup = std::chrono::high_resolution_clock::now();
+
+    enumerate_ports();
 }
 
 void uart_input::enumerate_ports() {
@@ -63,11 +70,6 @@ bool uart_input::setup_port()
     }
 
     last_setup = std::chrono::high_resolution_clock::now();
-
-    if(status->available_ports.size() > 0 && status->selected_port_index >= 0 && status->active_port_index != status->selected_port_index) {
-        status->port_name = status->available_ports[status->selected_port_index];
-        status->active_port_index = status->selected_port_index;
-    }
 
     if (sp_get_port_by_name(status->port_name.c_str(), &port) != SP_OK) {
         if(!error_notified) {
@@ -125,6 +127,7 @@ bool uart_input::setup_port()
     if(error_notified || ! status->is_connected) {
         error_notified = false;
         ErrorLog("uart: connected to '"+status->port_name+"'");
+        status->reset_stats();
         status->is_connected = true;
     }
 
@@ -229,9 +232,11 @@ void uart_input::poll()
     UartStatus *status = &Application.uart_status;
     auto now = std::chrono::high_resolution_clock::now();
 
-
-    if(status->selected_port_index >= 0 && status->active_port_index != status->selected_port_index) {
+    if(status->available_ports.size() > 0 && status->selected_port_index >= 0 && status->active_port_index != status->selected_port_index) {
         status->port_name = status->available_ports[status->selected_port_index];
+        status->active_port_index = status->selected_port_index;
+        status->reset_stats();
+        status->is_connected = false;
         setup_port();
     }
 
