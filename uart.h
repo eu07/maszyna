@@ -5,6 +5,9 @@
 
 class UartStatus {
     public:
+        std::string port_name = "";
+        int baud = 0;
+        bool enabled = false;
         bool is_connected = false;
         bool is_synced = false;
         unsigned long packets_sent = 0;

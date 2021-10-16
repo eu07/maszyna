@@ -12,6 +12,11 @@
 uart_input::uart_input()
 {
     conf = Global.uart_conf;
+    UartStatus *status = &Application.uart_status;
+
+    status->enabled = conf.enable;
+    status->port_name = conf.port;
+    status->baud = conf.baud;
 
     old_packet.fill(0);
     last_update = std::chrono::high_resolution_clock::now();
@@ -27,10 +32,11 @@ bool uart_input::setup_port()
     }
 
     last_setup = std::chrono::high_resolution_clock::now();
+    UartStatus *status = &Application.uart_status;
 
-    if (sp_get_port_by_name(conf.port.c_str(), &port) != SP_OK) {
+    if (sp_get_port_by_name(status->port_name.c_str(), &port) != SP_OK) {
         if(!error_notified) {
-            Application.uart_status.is_connected = false;
+            status->is_connected = false;
             ErrorLog("uart: cannot find specified port '"+conf.port+"'");
         }
         error_notified = true;
@@ -39,8 +45,8 @@ bool uart_input::setup_port()
 
     if (sp_open(port, (sp_mode)(SP_MODE_READ | SP_MODE_WRITE)) != SP_OK) {
         if(!error_notified) {
-            Application.uart_status.is_connected = false;
-            ErrorLog("uart: cannot open port '"+conf.port+"'");
+            status->is_connected = false;
+            ErrorLog("uart: cannot open port '"+status->port_name+"'");
         }
         error_notified = true;
         port = nullptr;
@@ -50,14 +56,14 @@ bool uart_input::setup_port()
 	sp_port_config *config;
 
     if (sp_new_config(&config) != SP_OK ||
-		sp_set_config_baudrate(config, conf.baud) != SP_OK ||
+		sp_set_config_baudrate(config, status->baud) != SP_OK ||
 		sp_set_config_flowcontrol(config, SP_FLOWCONTROL_NONE) != SP_OK ||
 		sp_set_config_bits(config, 8) != SP_OK ||
 		sp_set_config_stopbits(config, 1) != SP_OK ||
 		sp_set_config_parity(config, SP_PARITY_NONE) != SP_OK ||
 		sp_set_config(port, config) != SP_OK) {
         if(!error_notified) {
-            Application.uart_status.is_connected = false;
+            status->is_connected = false;
             ErrorLog("uart: cannot set config");
         }
         error_notified = true;
@@ -69,7 +75,7 @@ bool uart_input::setup_port()
 
     if (sp_flush(port, SP_BUF_BOTH) != SP_OK) {
         if(!error_notified) {
-            Application.uart_status.is_connected = false;
+            status->is_connected = false;
             ErrorLog("uart: cannot flush");
         }
         error_notified = true;
@@ -77,10 +83,10 @@ bool uart_input::setup_port()
         return false;
     }
 
-    if(error_notified || !Application.uart_status.is_connected) {
+    if(error_notified || ! status->is_connected) {
         error_notified = false;
-        ErrorLog("uart: connected to '"+conf.port+"'");
-        Application.uart_status.is_connected = true;
+        ErrorLog("uart: connected to '"+status->port_name+"'");
+        status->is_connected = true;
     }
 
     return true;
@@ -181,6 +187,16 @@ uart_input::recall_bindings() {
 
 void uart_input::poll()
 {
+    if(!Application.uart_status.enabled) {
+        if(port) {
+          sp_close(port);
+          sp_free_port(port);
+          port = nullptr;
+        }
+        Application.uart_status.is_connected = false;
+        return;
+    }
+
     auto now = std::chrono::high_resolution_clock::now();
     if (std::chrono::duration<float>(now - last_update).count() < conf.updatetime)
         return;

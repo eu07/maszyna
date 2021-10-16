@@ -614,7 +614,7 @@ debug_panel::render() {
         render_section_settings();
 #ifdef WITH_UART
         if(true == render_section( "UART", m_uartlines)) {
-            //ImGui::Checkbox("Enabled", &Global.uart_conf.enable);
+            ImGui::Checkbox("Enabled", &Application.uart_status.enabled);
         }
 #endif
         // toggles
@@ -1230,8 +1230,14 @@ debug_panel::update_section_scantable( std::vector<text_line> &Output ) {
 #ifdef WITH_UART
 void
 debug_panel::update_section_uart( std::vector<text_line> &Output ) {
-    Output.emplace_back(("Port: " + Global.uart_conf.port).c_str(), Global.UITextColor);
-    Output.emplace_back(("Baud: " + std::to_string(Global.uart_conf.baud)).c_str(), Global.UITextColor);
+    Output.emplace_back(
+        ("Port: " + Application.uart_status.port_name).c_str(),
+        Global.UITextColor
+    );
+    Output.emplace_back(
+        ("Baud: " + std::to_string(Application.uart_status.baud)).c_str(),
+        Global.UITextColor
+    );
     if(Application.uart_status.is_connected) {
         std::string synctext = Application.uart_status.is_synced ? "SYNCED" : "NOT SYNCED";
         Output.emplace_back(("CONNECTED, " + synctext).c_str(), Global.UITextColor);
