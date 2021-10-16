@@ -548,6 +548,7 @@ debug_panel::update() {
 	m_powergridlines.clear();
 	m_cameralines.clear();
 	m_rendererlines.clear();
+    m_uartlines.clear();
 
 	update_section_vehicle( m_vehiclelines );
 	update_section_engine( m_enginelines );
@@ -558,6 +559,7 @@ debug_panel::update() {
 	update_section_powergrid( m_powergridlines );
 	update_section_camera( m_cameralines );
 	update_section_renderer( m_rendererlines );
+    update_section_uart(m_uartlines);
 }
 
 void
@@ -610,6 +612,11 @@ debug_panel::render() {
         render_section( "Camera", m_cameralines );
         render_section( "Gfx Renderer", m_rendererlines );
         render_section_settings();
+#ifdef WITH_UART
+        if(true == render_section( "UART", m_uartlines)) {
+            //ImGui::Checkbox("Enabled", &Global.uart_conf.enable);
+        }
+#endif
         // toggles
         ImGui::Separator();
         ImGui::Checkbox( "Debug Mode", &DebugModeFlag );
@@ -618,6 +625,13 @@ debug_panel::render() {
     ImGui::End();
     ImGui::PopFont();
 }
+
+#ifdef WITH_UART
+bool
+debug_panel::render_section_uart() {
+    return true;
+};
+#endif
 
 bool
 debug_panel::render_section_scenario() {
@@ -1212,6 +1226,27 @@ debug_panel::update_section_scantable( std::vector<text_line> &Output ) {
 		Output.front().data = "(no points of interest)";
 	}
 }
+
+#ifdef WITH_UART
+void
+debug_panel::update_section_uart( std::vector<text_line> &Output ) {
+    Output.emplace_back(("Port: " + Global.uart_conf.port).c_str(), Global.UITextColor);
+    Output.emplace_back(("Baud: " + std::to_string(Global.uart_conf.baud)).c_str(), Global.UITextColor);
+    if(Application.uart_status.is_connected) {
+        std::string synctext = Application.uart_status.is_synced ? "SYNCED" : "NOT SYNCED";
+        Output.emplace_back(("CONNECTED, " + synctext).c_str(), Global.UITextColor);
+    } else {
+        Output.emplace_back("* NOT CONNECTED *", Global.UITextColor);
+    }
+    Output.emplace_back(
+        (
+            "Packets sent: "+std::to_string(Application.uart_status.packets_sent)
+            +" Packets received: "+std::to_string(Application.uart_status.packets_received)
+        ).c_str(),
+        Global.UITextColor
+    );
+}
+#endif
 
 void
 debug_panel::update_section_scenario( std::vector<text_line> &Output ) {

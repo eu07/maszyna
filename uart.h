@@ -3,6 +3,14 @@
 #include <libserialport.h>
 #include "command.h"
 
+class UartStatus {
+    public:
+        bool is_connected = false;
+        bool is_synced = false;
+        unsigned long packets_sent = 0;
+        unsigned long packets_received = 0;
+};
+
 class uart_input
 {
 public:
@@ -52,6 +60,8 @@ public:
         recall_bindings();
     void
         poll();
+    bool
+        is_connected();
 
 private:
 // types

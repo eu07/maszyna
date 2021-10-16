@@ -89,6 +89,9 @@ private:
     void update_section_powergrid( std::vector<text_line> &Output );
     void update_section_camera( std::vector<text_line> &Output );
     void update_section_renderer( std::vector<text_line> &Output );
+#ifdef WITH_UART
+    void update_section_uart( std::vector<text_line> &Output );
+#endif
     // section update helpers
     std::string update_vehicle_coupler( int const Side );
     std::string update_vehicle_brake() const;
@@ -97,6 +100,9 @@ private:
     bool render_section( std::vector<text_line> const &Lines );
     bool render_section_scenario();
     bool render_section_eventqueue();
+#ifdef WITH_UART
+    bool render_section_uart();
+#endif
     bool render_section_settings();
 // members
     std::array<char, 1024> m_buffer;
@@ -111,7 +117,13 @@ private:
         m_scenariolines,
         m_eventqueuelines,
         m_powergridlines,
+ #ifdef WITH_UART
+        m_rendererlines,
+        m_uartlines;
+ #else
         m_rendererlines;
+ #endif
+
 
 	double last_time = std::numeric_limits<double>::quiet_NaN();
 

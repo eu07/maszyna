@@ -7,6 +7,7 @@
 #include "parser.h"
 #include "Logs.h"
 #include "simulationtime.h"
+#include "application.h"
 
 uart_input::uart_input()
 {
@@ -29,6 +30,7 @@ bool uart_input::setup_port()
 
     if (sp_get_port_by_name(conf.port.c_str(), &port) != SP_OK) {
         if(!error_notified) {
+            Application.uart_status.is_connected = false;
             ErrorLog("uart: cannot find specified port '"+conf.port+"'");
         }
         error_notified = true;
@@ -37,6 +39,7 @@ bool uart_input::setup_port()
 
     if (sp_open(port, (sp_mode)(SP_MODE_READ | SP_MODE_WRITE)) != SP_OK) {
         if(!error_notified) {
+            Application.uart_status.is_connected = false;
             ErrorLog("uart: cannot open port '"+conf.port+"'");
         }
         error_notified = true;
@@ -54,6 +57,7 @@ bool uart_input::setup_port()
 		sp_set_config_parity(config, SP_PARITY_NONE) != SP_OK ||
 		sp_set_config(port, config) != SP_OK) {
         if(!error_notified) {
+            Application.uart_status.is_connected = false;
             ErrorLog("uart: cannot set config");
         }
         error_notified = true;
@@ -65,6 +69,7 @@ bool uart_input::setup_port()
 
     if (sp_flush(port, SP_BUF_BOTH) != SP_OK) {
         if(!error_notified) {
+            Application.uart_status.is_connected = false;
             ErrorLog("uart: cannot flush");
         }
         error_notified = true;
@@ -72,7 +77,11 @@ bool uart_input::setup_port()
         return false;
     }
 
-    error_notified = false;
+    if(error_notified || !Application.uart_status.is_connected) {
+        error_notified = false;
+        ErrorLog("uart: connected to '"+conf.port+"'");
+        Application.uart_status.is_connected = true;
+    }
 
     return true;
 }
@@ -205,11 +214,13 @@ void uart_input::poll()
 
 		bool sync;
 		if (tmp_buffer[0] != 0xEF || tmp_buffer[1] != 0xEF || tmp_buffer[2] != 0xEF || tmp_buffer[3] != 0xEF) {
+            Application.uart_status.is_synced = false;
 			if (conf.debug)
 				WriteLog("uart: bad sync");
 			sync = false;
 		}
 		else {
+            Application.uart_status.is_synced = true;
 			if (conf.debug)
 				WriteLog("uart: sync ok");
 			sync = true;
@@ -253,6 +264,7 @@ void uart_input::poll()
 
 		std::array<uint8_t, 16> buffer;
 		memmove(&buffer[0], &tmp_buffer[4], 16);
+        Application.uart_status.packets_received++;
 
 		if (conf.debug)
 		{
@@ -475,7 +487,12 @@ void uart_input::poll()
         setup_port();
         return;
       }
+        Application.uart_status.packets_sent++;
 
 		data_pending = true;
 	}
+}
+
+bool uart_input::is_connected() {
+    return (port != nullptr);
 }
