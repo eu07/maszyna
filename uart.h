@@ -6,6 +6,9 @@
 class UartStatus {
     public:
         std::string port_name = "";
+        std::vector<std::string> available_ports = {};
+        int selected_port_index = -1;
+        int active_port_index = -1;
         int baud = 0;
         bool enabled = false;
         bool is_connected = false;
@@ -79,6 +82,7 @@ private:
     using inputpin_sequence = std::vector<input_pin_t>;
 
     bool setup_port();
+    void enumerate_ports();
 
 // members
     sp_port *port = nullptr;
@@ -87,6 +91,7 @@ private:
     std::array<std::uint8_t, 16> old_packet; // TBD, TODO: replace with vector of configurable size?
     std::chrono::time_point<std::chrono::high_resolution_clock> last_update;
     std::chrono::time_point<std::chrono::high_resolution_clock> last_setup;
+    std::chrono::time_point<std::chrono::high_resolution_clock> last_enumeration;
     conf_t conf;
 	bool data_pending = false;
     bool error_notified = false;

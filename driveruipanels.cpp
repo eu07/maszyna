@@ -614,6 +614,14 @@ debug_panel::render() {
         render_section_settings();
 #ifdef WITH_UART
         if(true == render_section( "UART", m_uartlines)) {
+            int ports_num = Application.uart_status.available_ports.size();
+            if(ports_num > 0) {
+                char **avlports = new char*[ports_num];
+                for (int i=0; i < ports_num; i++) {
+                    avlports[i] = (char *) Application.uart_status.available_ports[i].c_str();
+                }
+                ImGui::ListBox("Port", &Application.uart_status.selected_port_index, avlports, ports_num);
+            }
             ImGui::Checkbox("Enabled", &Application.uart_status.enabled);
         }
 #endif
@@ -1230,24 +1238,26 @@ debug_panel::update_section_scantable( std::vector<text_line> &Output ) {
 #ifdef WITH_UART
 void
 debug_panel::update_section_uart( std::vector<text_line> &Output ) {
+    UartStatus *status = &Application.uart_status;
+
     Output.emplace_back(
-        ("Port: " + Application.uart_status.port_name).c_str(),
+        ("Port: " + status->port_name).c_str(),
         Global.UITextColor
     );
     Output.emplace_back(
-        ("Baud: " + std::to_string(Application.uart_status.baud)).c_str(),
+        ("Baud: " + std::to_string(status->baud)).c_str(),
         Global.UITextColor
     );
-    if(Application.uart_status.is_connected) {
-        std::string synctext = Application.uart_status.is_synced ? "SYNCED" : "NOT SYNCED";
+    if(status->is_connected) {
+        std::string synctext = status->is_synced ? "SYNCED" : "NOT SYNCED";
         Output.emplace_back(("CONNECTED, " + synctext).c_str(), Global.UITextColor);
     } else {
         Output.emplace_back("* NOT CONNECTED *", Global.UITextColor);
     }
     Output.emplace_back(
         (
-            "Packets sent: "+std::to_string(Application.uart_status.packets_sent)
-            +" Packets received: "+std::to_string(Application.uart_status.packets_received)
+            "Packets sent: "+std::to_string(status->packets_sent)
+            +" Packets received: "+std::to_string(status->packets_received)
         ).c_str(),
         Global.UITextColor
     );

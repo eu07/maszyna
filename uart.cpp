@@ -23,8 +23,39 @@ uart_input::uart_input()
     last_setup = std::chrono::high_resolution_clock::now();
 }
 
+void uart_input::enumerate_ports() {
+    UartStatus *status = &Application.uart_status;
+
+    struct sp_port **ports;
+    if (sp_list_ports(&ports) == SP_OK) {
+        status->available_ports.clear();
+        status->active_port_index = -1;
+        status->selected_port_index = -1;
+        for (int i=0; ports[i]; i++) {
+            std::string newport = std::string(sp_get_port_name(ports[i]));
+            status->available_ports.emplace_back(newport);
+            if(newport == status->port_name) {
+                status->active_port_index = i;
+                status->selected_port_index = i;
+            }
+        }
+        if(status->selected_port_index > status->available_ports.size()) {
+            status->selected_port_index = -1;
+        }
+        sp_free_port_list(ports);
+    } else {
+        WriteLog("uart: cannot enumerate serial ports");
+    }
+    last_enumeration = std::chrono::high_resolution_clock::now();
+}
+
 bool uart_input::setup_port()
 {
+    UartStatus *status = &Application.uart_status;
+
+    if(!port) {
+        enumerate_ports();
+    }
     if (port) {
       sp_close(port);
       sp_free_port(port);
@@ -32,12 +63,17 @@ bool uart_input::setup_port()
     }
 
     last_setup = std::chrono::high_resolution_clock::now();
-    UartStatus *status = &Application.uart_status;
+
+    if(status->available_ports.size() > 0 && status->selected_port_index >= 0 && status->active_port_index != status->selected_port_index) {
+        status->port_name = status->available_ports[status->selected_port_index];
+        status->active_port_index = status->selected_port_index;
+    }
 
     if (sp_get_port_by_name(status->port_name.c_str(), &port) != SP_OK) {
         if(!error_notified) {
             status->is_connected = false;
             ErrorLog("uart: cannot find specified port '"+conf.port+"'");
+            enumerate_ports();
         }
         error_notified = true;
         return false;
@@ -47,6 +83,7 @@ bool uart_input::setup_port()
         if(!error_notified) {
             status->is_connected = false;
             ErrorLog("uart: cannot open port '"+status->port_name+"'");
+            enumerate_ports();
         }
         error_notified = true;
         port = nullptr;
@@ -68,6 +105,7 @@ bool uart_input::setup_port()
         }
         error_notified = true;
         port = nullptr;
+        enumerate_ports();
         return false;
     }
 
@@ -80,6 +118,7 @@ bool uart_input::setup_port()
         }
         error_notified = true;
         port = nullptr;
+        enumerate_ports();
         return false;
     }
 
@@ -187,25 +226,42 @@ uart_input::recall_bindings() {
 
 void uart_input::poll()
 {
-    if(!Application.uart_status.enabled) {
+    UartStatus *status = &Application.uart_status;
+    auto now = std::chrono::high_resolution_clock::now();
+
+
+    if(status->selected_port_index >= 0 && status->active_port_index != status->selected_port_index) {
+        status->port_name = status->available_ports[status->selected_port_index];
+        setup_port();
+    }
+
+    if (
+        (!port && std::chrono::duration<float>(now - last_enumeration).count() > 1.0)
+        || (port && std::chrono::duration<float>(now - last_enumeration).count() > 5.0)
+    ) {
+        enumerate_ports();
+    }
+
+    if(!status->enabled) {
         if(port) {
           sp_close(port);
           sp_free_port(port);
           port = nullptr;
         }
-        Application.uart_status.is_connected = false;
+        status->is_connected = false;
         return;
     }
 
-    auto now = std::chrono::high_resolution_clock::now();
     if (std::chrono::duration<float>(now - last_update).count() < conf.updatetime)
         return;
     last_update = now;
+
 
     /* if connection error occured, slow down reconnection tries */
     if (!port && error_notified && std::chrono::duration<float>(now - last_setup).count() < 1.0) {
         return;
     }
+
 
     if (!port) {
       setup_port();
