@@ -10534,6 +10534,8 @@ void TMoverParameters::LoadFIZ_Blending(std::string const &line) {
 	extract_value(MED_Ncor, "MED_Ncor", line, "");
 	extract_value(MED_MinBrakeReqED, "MED_MinBrakeReqED", line, "");
 	extract_value(MED_FrED_factor, "MED_FrEDFactor", line, "");
+	extract_value(MED_ED_Delay1, "MED_FirstDelayED", line, "");
+	extract_value(MED_ED_Delay2, "MED_ScndDelayED", line, "");
 }
 
 void TMoverParameters::LoadFIZ_DCEMUED(std::string const &line) {

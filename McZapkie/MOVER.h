@@ -1314,6 +1314,8 @@ public:
 	bool MED_Ncor = 0; // czy korekcja sily hamowania z uwzglednieniem nacisku
     double MED_MinBrakeReqED = 0; // minimalne zadanie sily hamowania uruchamiajace ED - ponizej tylko EP
 	double MED_FrED_factor = 1; // mnoznik sily hamowania ED do korekty blendingu
+	double MED_ED_Delay1 = 0; // opoznienie wdrazania hamowania ED (pierwszy raz)
+	double MED_ED_Delay2 = 0; // opoznienie zwiekszania sily hamowania ED (kolejne razy)
 
     int DCEMUED_CC { 0 }; //na którym sprzęgu sprawdzać działanie ED
     double DCEMUED_EP_max_Vel{ 0.0 }; //maksymalna prędkość, przy której działa EP przy włączonym ED w jednostce (dla tocznych)
@@ -1602,6 +1604,7 @@ public:
 	double eimicSpeedCtrlIntegral = 0; /*calkowany blad ustawienia predkosci*/
 	double NewSpeed = 0; /*nowa predkosc do zadania*/
 	double MED_EPVC_CurrentTime = 0; /*aktualny czas licznika czasu korekcji siły EP*/
+	double MED_ED_DelayTimer = 0; /*aktualny czas licznika opoznienia hamowania ED*/
 
 	/*-zmienne dla drezyny*/
 	double PulseForce = 0.0;        /*przylozona sila*/

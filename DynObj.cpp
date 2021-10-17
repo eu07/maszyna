@@ -3198,9 +3198,30 @@ bool TDynamicObject::Update(double dt, double dt1)
                     MoverParameters->EpFuse ) ) {
                 FzadED = std::min( Fzad, FmaxED );
             }
+			/*/ELF - wdrazanie ED po powrocie na utrzymanie hamowania - do usuniecia 
 			if (MoverParameters->EIMCtrlType == 2 && MoverParameters->MainCtrlPos < 2 && MoverParameters->eimic > -0.999)
 			{
 				FzadED = std::min(FzadED, MED_oldFED);
+			} //*/
+			//opoznienie wdrazania ED 
+			if (FzadED > MED_oldFED)
+			{
+				if (MoverParameters->MED_ED_DelayTimer <= 0) {
+					MoverParameters->MED_ED_DelayTimer += dt1;
+					if (MoverParameters->MED_ED_DelayTimer > 0) {
+
+					}
+					else {
+						FzadED = std::min(FzadED, MED_oldFED);
+					}
+				}
+				else
+				{
+					FzadED = std::min(FzadED, MED_oldFED);
+					MoverParameters->MED_ED_DelayTimer = (FrED > 0 ?
+															-MoverParameters->MED_ED_Delay2 :
+															-MoverParameters->MED_ED_Delay1);
+				}
 			}
 			if ((MoverParameters->BrakeCtrlPos == MoverParameters->Handle->GetPos(bh_EB))
 				&& (MoverParameters->eimc[eimc_p_abed] < 0.001)) 
@@ -4191,7 +4212,10 @@ void TDynamicObject::RenderSounds() {
 
 	// epbrake - epcompact
 	if (( MoverParameters->BrakeSystem == TBrakeSystem::ElectroPneumatic ) && ( MoverParameters->LocHandle )) {
-		auto const epbrakepressureratio{ std::max( 0.0, MoverParameters->LocHandle->GetCP() ) / std::max(1.0, MoverParameters->MaxBrakePress[0] ) };
+		auto const epbrakepressureratio{ std::min( std::max( 0.0, MoverParameters->LocHandle->GetCP() ) / std::max( 1.0, MoverParameters->MaxBrakePress[0] ),
+												   m_epbrakepressurechangedectimer > -1.0f ?
+													   std::max( MoverParameters->LocalBrakePosAEIM, MoverParameters->Hamulec->GetEDBCP() / MoverParameters->MaxBrakePress[3]) :
+														1.0 ) };
 		if ( m_lastepbrakepressure != -1.f ) {
 			// HACK: potentially reset playback of opening bookend sounds
 			if ( false == m_epbrakepressureincrease.is_playing() ) {
@@ -4200,27 +4224,33 @@ void TDynamicObject::RenderSounds() {
 			if ( false == m_epbrakepressuredecrease.is_playing() ) {
 				m_epbrakepressuredecrease.stop();
 			}
+			m_epbrakepressurechangeinctimer += dt;
+			m_epbrakepressurechangedectimer += dt;
 			// actual sound playback
 			auto const epquantizedratio{ static_cast<int>( 50 * epbrakepressureratio) };
 			auto const lastepbrakepressureratio { std::max( 0.f, m_lastepbrakepressure ) / std::max( 1.0, MoverParameters->MaxBrakePress[0] ) };
 			auto const epquantizedratiochange { epquantizedratio - static_cast<int>( 50 * lastepbrakepressureratio ) };
-			if ( epquantizedratiochange > 0 ) {
+			if ( epquantizedratiochange > 0 && m_epbrakepressurechangeinctimer > 0.05f) {
 				m_epbrakepressureincrease
 					.pitch(
 						true == m_epbrakepressureincrease.is_combined() ?
 						epquantizedratio * 0.01f :
 						m_epbrakepressureincrease.m_frequencyoffset + m_epbrakepressureincrease.m_frequencyfactor * 1.f )
 					.play();
+				m_epbrakepressurechangeinctimer = 0;
 			}
-			else if ( epquantizedratiochange < 0 ) {
+			else if ( epquantizedratiochange < 0 && m_epbrakepressurechangedectimer > 0.3f) {
 				m_epbrakepressuredecrease
 					.pitch(true == m_epbrakepressuredecrease.is_combined() ?
-						epquantizedratio * 0.01f :
+						-epquantizedratiochange * 0.01f :
 						m_epbrakepressuredecrease.m_frequencyoffset + m_epbrakepressuredecrease.m_frequencyfactor * 1.f )
 					.play();
+				m_epbrakepressurechangedectimer = 0;
 			}
 		}
-		m_lastepbrakepressure = MoverParameters->LocHandle->GetCP();
+		if ( ( m_epbrakepressurechangeinctimer == 0 ) || ( m_epbrakepressurechangedectimer == 0 ) )
+		m_lastepbrakepressure = std::min( MoverParameters->LocHandle->GetCP(),
+										  MoverParameters->LocalBrakePosAEIM * std::max( 1.0, MoverParameters->MaxBrakePress[0] ) );
 	}
 
     // emergency brake

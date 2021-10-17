@@ -503,6 +503,8 @@ private:
 	sound_source m_epbrakepressuredecrease{ sound_placement::external };
 	float m_lastepbrakepressure{ -1.f }; // helper, cached level of pressure in the brake cylinder
 	float m_epbrakepressurechange{ 0.f }; // recent change of pressure in the brake cylinder
+	float m_epbrakepressurechangeinctimer{ 0.f }; // last time of change of pressure in the brake cylinder - increase
+	float m_epbrakepressurechangedectimer{ 0.f }; // last time of change of pressure in the brake cylinder - decrease
     sound_source m_emergencybrake { sound_placement::engine };
     double m_emergencybrakeflow{ 0.f };
     sound_source sReleaser { sound_placement::external };
