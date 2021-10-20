@@ -27,10 +27,10 @@ uart_input::uart_input()
     last_update = std::chrono::high_resolution_clock::now();
     last_setup = std::chrono::high_resolution_clock::now();
 
-    enumerate_ports();
+    find_ports();
 }
 
-void uart_input::enumerate_ports() {
+void uart_input::find_ports() {
     UartStatus *status = &Application.uart_status;
 
     struct sp_port **ports;
@@ -51,9 +51,9 @@ void uart_input::enumerate_ports() {
         }
         sp_free_port_list(ports);
     } else {
-        WriteLog("uart: cannot enumerate serial ports");
+        WriteLog("uart: cannot read serial ports list");
     }
-    last_enumeration = std::chrono::high_resolution_clock::now();
+    last_port_find = std::chrono::high_resolution_clock::now();
 }
 
 bool uart_input::setup_port()
@@ -61,7 +61,7 @@ bool uart_input::setup_port()
     UartStatus *status = &Application.uart_status;
 
     if(!port) {
-        enumerate_ports();
+        find_ports();
     }
     if (port) {
       sp_close(port);
@@ -75,7 +75,7 @@ bool uart_input::setup_port()
         if(!error_notified) {
             status->is_connected = false;
             ErrorLog("uart: cannot find specified port '"+conf.port+"'");
-            enumerate_ports();
+            find_ports();
         }
         error_notified = true;
         return false;
@@ -85,7 +85,7 @@ bool uart_input::setup_port()
         if(!error_notified) {
             status->is_connected = false;
             ErrorLog("uart: cannot open port '"+status->port_name+"'");
-            enumerate_ports();
+            find_ports();
         }
         error_notified = true;
         port = nullptr;
@@ -107,7 +107,7 @@ bool uart_input::setup_port()
         }
         error_notified = true;
         port = nullptr;
-        enumerate_ports();
+        find_ports();
         return false;
     }
 
@@ -120,7 +120,7 @@ bool uart_input::setup_port()
         }
         error_notified = true;
         port = nullptr;
-        enumerate_ports();
+        find_ports();
         return false;
     }
 
@@ -241,10 +241,10 @@ void uart_input::poll()
     }
 
     if (
-        (!port && std::chrono::duration<float>(now - last_enumeration).count() > 1.0)
-        || (port && std::chrono::duration<float>(now - last_enumeration).count() > 5.0)
+        (!port && std::chrono::duration<float>(now - last_port_find).count() > 1.0)
+        || (port && std::chrono::duration<float>(now - last_port_find).count() > 5.0)
     ) {
-        enumerate_ports();
+        find_ports();
     }
 
     if(!status->enabled) {
