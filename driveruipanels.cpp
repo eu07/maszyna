@@ -620,7 +620,7 @@ debug_panel::render() {
                 for (int i=0; i < ports_num; i++) {
                     avlports[i] = (char *) Application.uart_status.available_ports[i].c_str();
                 }
-                ImGui::ListBox("Port", &Application.uart_status.selected_port_index, avlports, ports_num);
+                ImGui::Combo("Port", &Application.uart_status.selected_port_index, avlports, ports_num);
             }
             ImGui::Checkbox("Enabled", &Application.uart_status.enabled);
         }
