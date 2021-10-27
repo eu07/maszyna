@@ -9,6 +9,29 @@
 #include "simulationtime.h"
 #include "application.h"
 
+
+const char* uart_baudrates_list[] = {
+    "300",
+    "1200",
+    "2400",
+    "4800",
+    "9600",
+    "19200",
+    "38400",
+    "57600",
+    "74880",
+    "115200",
+    "230400",
+    "250000",
+    "500000",
+    "1000000",
+    "2000000"
+};
+
+const size_t uart_baudrates_list_num = (
+        sizeof(uart_baudrates_list)/sizeof(uart_baudrates_list[0])
+    );
+
 void UartStatus::reset_stats() {
     packets_sent = 0;
     packets_received = 0;
@@ -22,6 +45,16 @@ uart_input::uart_input()
     status->enabled = conf.enable;
     status->port_name = conf.port;
     status->baud = conf.baud;
+
+    const std::string baudStr = std::to_string(status->baud);
+
+    for(int i=0;i<uart_baudrates_list_num;i++) {
+        if(baudStr == uart_baudrates_list[i]) {
+            status->selected_baud_index = i;
+            status->active_port_index = i;
+            break;
+        }
+    }
 
     old_packet.fill(0);
     last_update = std::chrono::high_resolution_clock::now();
@@ -232,6 +265,16 @@ void uart_input::poll()
     UartStatus *status = &Application.uart_status;
     auto now = std::chrono::high_resolution_clock::now();
 
+    /* handle baud change */
+    if(status->active_baud_index != status->selected_baud_index) {
+        status->baud = std::stoul(uart_baudrates_list[status->selected_baud_index]);
+        status->active_baud_index = status->selected_baud_index;
+        status->reset_stats();
+        status->is_connected = false;
+        setup_port();
+    }
+
+    /* handle port change */
     if(status->available_ports.size() > 0 && status->selected_port_index >= 0 && status->active_port_index != status->selected_port_index) {
         status->port_name = status->available_ports[status->selected_port_index];
         status->active_port_index = status->selected_port_index;

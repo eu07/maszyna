@@ -3,12 +3,17 @@
 #include <libserialport.h>
 #include "command.h"
 
+extern const char* uart_baudrates_list[];
+extern const size_t uart_baudrates_list_num;
+
 class UartStatus {
     public:
         std::string port_name = "";
         std::vector<std::string> available_ports = {};
         int selected_port_index = -1;
+        int selected_baud_index = -1;
         int active_port_index = -1;
+        int active_baud_index = -1;
         int baud = 0;
         bool enabled = false;
         bool is_connected = false;
