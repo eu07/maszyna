@@ -29,7 +29,7 @@ jobs:
     steps:
     - script: |
         sudo apt-get update -y
-        sudo apt-get install -y libglfw3-dev python2.7-dev libpng16-dev libopenal-dev libluajit-5.1-dev libserialport-dev libsndfile1-dev
+        sudo apt-get install -y libglfw3-dev python2.7-dev libpng-dev libopenal-dev libluajit-5.1-dev libserialport-dev libsndfile1-dev
         sudo apt-get install -y gcc-8 g++-8
         sudo update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-8 100
         sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-8 100
