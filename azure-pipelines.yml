@@ -22,13 +22,12 @@ jobs:
         artifactName: shaders
       displayName: 'Publish shaders'
 
-  - job: ubuntu1604
+  - job: ubuntu1804
     pool:
-      vmImage: 'Ubuntu-16.04'
-    displayName: 'Ubuntu 16.04 x86-64'
+      vmImage: 'Ubuntu-18.04'
+    displayName: 'Ubuntu 18.04 x86-64'
     steps:
     - script: |
-        sudo add-apt-repository ppa:ubuntu-toolchain-r/test
         sudo apt-get update -y
         sudo apt-get install -y libglfw3-dev python2.7-dev libpng16-dev libopenal-dev libluajit-5.1-dev libserialport-dev libsndfile1-dev
         sudo apt-get install -y gcc-8 g++-8
