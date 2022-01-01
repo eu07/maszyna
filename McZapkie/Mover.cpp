@@ -4004,17 +4004,16 @@ bool TMoverParameters::UniversalBrakeButton(int button, int state)
 bool TMoverParameters::SwitchEPBrake(int state)
 {
     bool OK;
-    double temp;
 
     OK = false;
     if ((BrakeHandle == TBrakeHandle::St113) && (CabOccupied != 0))
     {
         if (state > 0)
-            temp = Handle->GetEP(); // TODO: przetlumaczyc
+			EpForce = Handle->GetEP(); // TODO: przetlumaczyc
         else
-            temp = 0;
-        Hamulec->SetEPS(temp);
-        SendCtrlToNext("Brake", temp, CabActive);
+			EpForce = 0;
+        Hamulec->SetEPS(EpForce);
+        SendCtrlToNext("Brake", EpForce, CabActive);
     }
     //  OK:=SetFlag(BrakeStatus,((2*State-1)*b_epused));
     //  SendCtrlToNext('Brake',(state*(2*BrakeCtrlPos-1)),CabActive);
@@ -4572,25 +4571,25 @@ void TMoverParameters::UpdatePipePressure(double dt)
          && (DirActive != 0)
          && (EpFuse)) // tu powinien byc jeszcze bezpiecznik EP i baterie -
             // temp = (Handle as TFVel6).GetCP
-            temp = Handle->GetEP();
+			EpForce = Handle->GetEP();
         else
-            temp = 0.0;
+			EpForce = 0.0;
 
         DynamicBrakeEMUStatus = (
-            temp > 0.001 ?
+			EpForce > 0.001 ?
                 Power110vIsAvailable :
                 true );
 
-		double temp1 = temp;
+		double temp1 = EpForce;
 		if ((DCEMUED_EP_max_Vel > 0.001) && (Vel > DCEMUED_EP_max_Vel) && (DynamicBrakeEMUStatus))
 			temp1 = 0;
 		if ((DCEMUED_EP_min_Im > 0.001) && (abs(Im) > DCEMUED_EP_min_Im) && (DynamicBrakeEMUStatus))
 			temp1 = 0;
         Hamulec->SetEPS(temp1);
-		TUHEX_StageActual = temp;
+		TUHEX_StageActual = EpForce;
 		TUHEX_Active = TUHEX_StageActual > 0;
         // Ra 2014-11: na tym się wysypuje, ale nie wiem, w jakich warunkach
-        SendCtrlToNext("Brake", temp, CabActive);
+        SendCtrlToNext("Brake", EpForce, CabActive);
     }
 
     Pipe->Act();

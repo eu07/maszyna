@@ -1051,6 +1051,7 @@ public:
 	bool Battery = false; /*Czy sa zalaczone baterie*/
     start_t BatteryStart = start_t::manual;
 	bool EpFuse = true; /*Czy sa zalavzone baterie*/
+	double EpForce = 0.0; /*Poziom zadanej sily EP*/
 	bool Signalling = false;         /*Czy jest zalaczona sygnalizacja hamowania ostatniego wagonu*/
 	bool Radio = false;         /*Czy jest zalaczony radiotelefon*/
 	float NominalBatteryVoltage = 0.f;        /*Winger - baterie w elektrykach*/
