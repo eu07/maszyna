@@ -774,39 +774,50 @@ dictionary_source *TTrain::GetTrainState( dictionary_source const &Extraparamete
 TTrain::state_t
 TTrain::get_state() const {
 
-    return {
-        btLampkaSHP.GetValue(),
-        btLampkaCzuwaka.GetValue(),
-        btLampkaRadioStop.GetValue(),
-        btLampkaOpory.GetValue(),
-        btLampkaWylSzybki.GetValue(),
-        btLampkaPrzekRozn.GetValue(),
-        btLampkaNadmSil.GetValue(),
-        btLampkaStyczn.GetValue(),
-        btLampkaPoslizg.GetValue(),
-        btLampkaNadmPrzetw.GetValue(),
-        btLampkaPrzetwOff.GetValue(),
-        btLampkaNadmSpr.GetValue(),
-        btLampkaNadmWent.GetValue(),
-        btLampkaWysRozr.GetValue(),
-        btLampkaOgrzewanieSkladu.GetValue(),
-        static_cast<std::uint8_t>( iCabn ),
-        btHaslerBrakes.GetValue(),
-        btHaslerCurrent.GetValue(),
-        mvOccupied->SecuritySystem.is_beeping(),
-        btLampkaHVoltageB.GetValue(),
-        fTachoVelocity,
-        static_cast<float>( mvOccupied->Compressor ),
-        static_cast<float>( mvOccupied->PipePress ),
-        static_cast<float>( mvOccupied->BrakePress ),
-        static_cast<float>( mvPantographUnit->PantPress ),
-        fHVoltage,
-        { fHCurrent[ ( mvControlled->TrainType & dt_EZT ) ? 0 : 1 ], fHCurrent[ 2 ], fHCurrent[ 3 ] },
-        ggLVoltage.GetValue(),
-        mvOccupied->DistCounter,
-        static_cast<std::uint8_t>( RadioChannel() ),
-        btLampkaSpringBrakeActive.GetValue(),
-        btLampkaNapNastHam.GetValue(),
+	return {
+		btLampkaSHP.GetValue(),
+		(TestFlag(mvOccupied->SecuritySystem.Status, s_aware))
+			 || (TestFlag(mvOccupied->SecuritySystem.Status, s_CAtest)),
+		btLampkaRadioStop.GetValue(),
+		btLampkaOpory.GetValue(),
+		btLampkaWylSzybki.GetValue(),
+		btLampkaPrzekRozn.GetValue(),
+		btLampkaNadmSil.GetValue(),
+		btLampkaStyczn.GetValue(),
+		btLampkaPoslizg.GetValue(),
+		btLampkaNadmPrzetw.GetValue(),
+		btLampkaPrzetwOff.GetValue(),
+		btLampkaNadmSpr.GetValue(),
+		btLampkaNadmWent.GetValue(),
+		btLampkaWysRozr.GetValue(),
+		btLampkaOgrzewanieSkladu.GetValue(),
+		static_cast<std::uint8_t>(iCabn),
+		btHaslerBrakes.GetValue(),
+		btHaslerCurrent.GetValue(),
+		mvOccupied->SecuritySystem.is_beeping(),
+		btLampkaHVoltageB.GetValue(),
+		fTachoVelocity,
+		static_cast<float>(mvOccupied->Compressor),
+		static_cast<float>(mvOccupied->PipePress),
+		static_cast<float>(mvOccupied->BrakePress),
+		static_cast<float>(mvPantographUnit->PantPress),
+		fHVoltage,
+		{ fHCurrent[(mvControlled->TrainType & dt_EZT) ? 0 : 1], fHCurrent[2], fHCurrent[3] },
+		ggLVoltage.GetValue(),
+		mvOccupied->DistCounter,
+		static_cast<std::uint8_t>(RadioChannel()),
+		btLampkaSpringBrakeActive.GetValue(),
+		btLampkaNapNastHam.GetValue(),
+		mvOccupied->DirActive > 0,
+		mvOccupied->DirActive < 0,
+		mvOccupied->Doors.instances[mvOccupied->CabOccupied < 0 ? side::right : side::left].open_permit,
+		mvOccupied->Doors.instances[mvOccupied->CabOccupied < 0 ? side::right : side::left].is_open,
+		mvOccupied->Doors.instances[mvOccupied->CabOccupied < 0 ? side::left : side::right].open_permit,
+		mvOccupied->Doors.instances[mvOccupied->CabOccupied < 0 ? side::left : side::right].is_open,
+		mvOccupied->Doors.step_enabled,
+		mvOccupied->Power24vIsAvailable,
+		0,
+		mvOccupied->LockPipe
     };
 }
 
@@ -6766,11 +6777,13 @@ bool TTrain::Update( double const Deltatime )
                 btLampkaCzuwaka.Turn( false );
 
             btLampkaSHP.Turn( TestFlag( mvOccupied->SecuritySystem.Status, s_active ) );
+			btLampkaCzuwakaSHP.Turn( btLampkaSHP.GetValue() || btLampkaCzuwaka.GetValue() );
         }
         else // wylaczone
         {
             btLampkaCzuwaka.Turn( false );
             btLampkaSHP.Turn( false );
+			btLampkaCzuwakaSHP.Turn( false );
         }
 
         btLampkaWylSzybki.Turn(
@@ -6960,6 +6973,7 @@ bool TTrain::Update( double const Deltatime )
         // wylaczone
         btLampkaCzuwaka.Turn( false );
         btLampkaSHP.Turn( false );
+		btLampkaCzuwakaSHP.Turn( false );
         btLampkaWylSzybki.Turn( false );
         btLampkaWylSzybkiOff.Turn( false );
         btLampkaMainBreakerReady.Turn( false );
@@ -7607,7 +7621,7 @@ TTrain::update_sounds( double const Deltatime ) {
         // jesli nie FV4a
         // upuszczanie z PG
         if( rsHiss ) {
-            fPPress = ( 4.0f * fPPress + std::max( mvOccupied->dpLocalValve, mvOccupied->dpMainValve ) ) / ( 4.0f + 1.0f );
+            fPPress = ( 4.0f * fPPress + std::max( 0.0, mvOccupied->dpMainValve ) ) / ( 4.0f + 1.0f );
             volume = (
                 fPPress > 0.0f ?
                     2.0 * rsHiss->m_amplitudefactor * fPPress :
@@ -7622,7 +7636,7 @@ TTrain::update_sounds( double const Deltatime ) {
         }
         // napelnianie PG
         if( rsHissU ) {
-            fNPress = ( 4.0f * fNPress + Min0R( mvOccupied->dpLocalValve, mvOccupied->dpMainValve ) ) / ( 4.0f + 1.0f );
+            fNPress = ( 4.0f * fNPress + Min0R( 0.0, mvOccupied->dpMainValve ) ) / ( 4.0f + 1.0f );
             volume = (
                 fNPress < 0.0f ?
                     -1.0 * rsHissU->m_amplitudefactor * fNPress :
@@ -7958,6 +7972,7 @@ bool TTrain::LoadMMediaFile(std::string const &asFileName)
     }
     // NOTE: since radiosound is an incomplete template not using std::optional it gets a special treatment
     m_radiosound.owner( DynamicObject );
+	CabSoundLocations.clear();
 
     cParser parser( asFileName, cParser::buffer_FILE, DynamicObject->asBaseDir );
     // NOTE: yaml-style comments are disabled until conflict in use of # is resolved
@@ -8019,6 +8034,19 @@ bool TTrain::LoadMMediaFile(std::string const &asFileName)
             rsHuntingNoise->m_frequencyfactor /= (1 + mvOccupied->Vmax);
         }
     }
+	auto const nullvector{ glm::vec3() };
+	std::vector<std::reference_wrapper<std::optional<sound_source>>> sounds = {
+		dsbReverserKey, dsbNastawnikJazdy, dsbNastawnikBocz,
+		dsbSwitch, dsbPneumaticSwitch,
+		rsHiss, rsHissU, rsHissE, rsHissX, rsHissT, rsSBHiss, rsSBHissU,
+		rsFadeSound, rsRunningNoise, rsHuntingNoise,
+		dsbHasler, dsbBuzzer, dsbSlipAlarm, m_distancecounterclear, m_rainsound, m_radiostop
+	};
+	for (auto &sound : sounds) {
+		if (sound.get()) {
+			CabSoundLocations.emplace_back(sound, sound.get()->offset());
+		}
+	}
 
     return true;
 }
@@ -8043,6 +8071,12 @@ bool TTrain::InitializeCab(int NewCabNo, std::string const &asFileName)
         }
     }
     m_radiosound.offset( nullvector );
+	for (auto &sound : CabSoundLocations) {
+		if ((sound.first.get())
+			&& (sound.first.get()->offset() == nullvector)) {
+			sound.first.get()->offset(sound.second);
+		}
+	}
     // reset view angles
     pMechViewAngle = { 0.0, 0.0 };
 
@@ -9188,6 +9222,7 @@ bool TTrain::initialize_button(cParser &Parser, std::string const &Label, int co
         { "i-trainheating:", btLampkaOgrzewanieSkladu },
         { "i-security_aware:", btLampkaCzuwaka },
         { "i-security_cabsignal:", btLampkaSHP },
+		{ "i-security_aware_cabsignal:", btLampkaCzuwakaSHP },
         { "i-door_left:", btLampkaDoorLeft },
         { "i-door_right:", btLampkaDoorRight },
         { "i-departure_signal:", btLampkaDepartureSignal },
@@ -9651,6 +9686,13 @@ bool TTrain::initialize_gauge(cParser &Parser, std::string const &Label, int con
 		auto &gauge = Cabine[Cabindex].Gauge(-1); // pierwsza wolna gałka
 		gauge.Load(Parser, DynamicObject, 0.1);
 		gauge.AssignDouble(&mvOccupied->SpringBrake.SBP);
+	}
+	else if (Label == "epctrlvalue:")
+	{
+		// wskazowka sterowania sila hamulca ep
+		auto &gauge = Cabine[Cabindex].Gauge(-1); // pierwsza wolna gałka
+		gauge.Load(Parser, DynamicObject, 0.1);
+		gauge.AssignDouble(&mvOccupied->EpForce);
 	}
     else if ((Label == "compressor:") || (Label == "compressorb:"))
     {

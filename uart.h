@@ -39,6 +39,8 @@ public:
         bool localenable = true;
 
         bool debug = false;
+
+		bool mainpercentage = false;
     };
 
 // methods

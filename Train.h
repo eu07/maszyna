@@ -112,6 +112,16 @@ class TTrain {
 		std::uint8_t radio_channel;
 		std::uint8_t springbrake_active;
         std::uint8_t epbrake_enabled;
+		std::uint8_t dir_forward;
+		std::uint8_t dir_backward;
+		std::uint8_t doorleftallowed;
+		std::uint8_t doorleftopened;
+		std::uint8_t doorrightallowed;
+		std::uint8_t doorrightopened;
+		std::uint8_t doorstepallowed;
+		std::uint8_t battery;
+		std::uint8_t emergencybrake;
+		std::uint8_t lockpipe;
     };
 
     struct screen_entry {
@@ -671,7 +681,8 @@ public: // reszta może by?publiczna
     TButton btLampkaOgrzewanieSkladu;
     TButton btLampkaSHP;
     TButton btLampkaCzuwaka; // McZapkie-141102
-    TButton btLampkaRezerwa;
+	TButton btLampkaCzuwakaSHP;
+	TButton btLampkaRezerwa;
     // youBy - jakies dodatkowe lampki
     TButton btLampkaNapNastHam;
     TButton btLampkaSprezarka;
@@ -753,6 +764,7 @@ public: // reszta może by?publiczna
         m_rainsound;
     sound_source m_radiosound { sound_placement::internal, 2 * EU07_SOUND_CABCONTROLSCUTOFFRANGE }; // cached template for radio messages
     std::vector<std::pair<int, std::shared_ptr<sound_source>>> m_radiomessages; // list of currently played radio messages
+	std::vector<std::pair<std::reference_wrapper<std::optional<sound_source>>, glm::vec3>> CabSoundLocations; // list of offsets for manually located sounds;
     float m_lastlocalbrakepressure { -1.f }; // helper, cached level of pressure in local brake cylinder
     float m_localbrakepressurechange { 0.f }; // recent change of pressure in local brake cylinder
 /*

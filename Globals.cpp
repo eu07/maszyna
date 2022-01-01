@@ -732,6 +732,12 @@ global_settings::ConfigParse(cParser &Parser) {
             Parser.getTokens(1);
             Parser >> uart_conf.debug;
         }
+		else if (token == "uartmainpercentage")
+		{
+			Parser.getTokens(1);
+			Parser >> uart_conf.mainpercentage;
+		}
+		
 #endif
 #ifdef USE_EXTCAM_CAMERA
         else if (token == "extcam.cmd")
