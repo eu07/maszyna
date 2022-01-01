@@ -2873,6 +2873,8 @@ bool TController::PrepareEngine()
             }
             // set up train brake
             if( mvOccupied->fBrakeCtrlPos != mvOccupied->Handle->GetPos( bh_RP ) ) {
+				if ( ( !mvOccupied->Handle->Time)
+					|| ( mvOccupied->Handle->GetCP() < mvOccupied->HighPipePress - 0.05 ) );
                 cue_action( locale::string::driver_hint_trainbrakerelease );
             }
             // sync spring brake state across consist
@@ -6023,16 +6025,25 @@ TController::determine_consist_state() {
             }
             // Ra: odluźnianie przeładowanych lokomotyw, ciągniętych na zimno - prowizorka...
             if( bp >= 0.4 ) { // wg UIC określone sztywno na 0.04
-                if( AIControllFlag || Global.AITrainman ) {
+                if( AIControllFlag || (Global.AITrainman && mvOccupied->Vel < EU07_AI_NOMOVEMENT  && !is_emu() && !is_dmu())) {
                     if( ( BrakeCtrlPosition == gbh_RP ) // jest pozycja jazdy
                      && ( false == TestFlag( vehicle->Hamulec->GetBrakeStatus(), b_dmg ) ) // brake isn't broken
-                     && ( vehicle->PipePress - 5.0 > -0.1 ) // jeśli ciśnienie jak dla jazdy
+                     && ( vehicle->PipePress - mvOccupied->Handle->GetRP() > -0.1 ) // jeśli ciśnienie jak dla jazdy
                      && ( vehicle->Hamulec->GetCRP() > vehicle->PipePress + 0.12 ) ) { // za dużo w zbiorniku
                         // indywidualne luzowanko
                         vehicle->BrakeReleaser( 1 );
                     }
                 }
             }
+			if (bp < 0.1) {
+				if ( AIControllFlag || Global.AITrainman ) {
+					if (( false == TestFlag( vehicle->Hamulec->GetBrakeStatus(), b_dmg ) ) // brake isn't broken
+						&& ( vehicle->Hamulec->GetCRP() < vehicle->PipePress - 0.1 ) ) { // już nie jest za dużo w zbiorniku
+						   // koniec indywidualnego luzowanka
+						vehicle->BrakeReleaser( 0 );
+					}
+				}
+			}
         }
         fReady = std::max( bp, fReady ); // szukanie najbardziej zahamowanego
         if( ( dy = p->VectorFront().y ) != 0.0 ) {

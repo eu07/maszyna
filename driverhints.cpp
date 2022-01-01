@@ -776,7 +776,8 @@ TController::cue_action( locale::string const Action, float const Actionparamete
             hint(
                 Action,
                 [this](float const Parameter) -> bool {
-                    return ( is_equal(  mvOccupied->fBrakeCtrlPos, mvOccupied->Handle->GetPos( bh_RP ), 0.2 ) ); } );
+                    return ( is_equal(  mvOccupied->fBrakeCtrlPos, mvOccupied->Handle->GetPos( bh_RP ), 0.2 ) 
+							|| ( mvOccupied->Handle->Time && ( mvOccupied->Handle->GetCP() > mvOccupied->HighPipePress - 0.05) ) ); } );
 //                    return ( BrakeCtrlPosition == gbh_RP ); } );
             break;
         }

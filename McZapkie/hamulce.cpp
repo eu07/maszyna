@@ -2287,6 +2287,11 @@ double TDriverHandle::GetEP()
 	return 0;
 }
 
+double TDriverHandle::GetRP()
+{
+	return 0;
+}
+
 double TDriverHandle::GetSound(int i)
 {
     return 0;
@@ -2562,6 +2567,11 @@ double TFV4aM::GetCP()
 	return TP;
 }
 
+double TFV4aM::GetRP()
+{
+	return 5.0 +TP * 0.08 + RedAdj;
+}
+
 double TFV4aM::LPP_RP(double pos) // cisnienie z zaokraglonej pozycji;
 {
     int const i_pos = 2 + std::floor( pos ); // zaokraglone w dol
@@ -2698,6 +2708,11 @@ double TMHZ_EN57::GetCP()
     return RP;
 }
 
+double TMHZ_EN57::GetRP()
+{
+	return 5.0 + RedAdj;
+}
+
 double TMHZ_EN57::GetEP(double pos)
 {
     if (pos < 9.5)
@@ -2760,7 +2775,7 @@ double TMHZ_K5P::GetPF(double i_bcp, double PP, double HP, double dt, double ep)
 	}
 	else
 	{
-		TP = 0;
+		//TP = 0; //tu nie powinno być nic, ciśnienie zostaje jak było
 	}
 	
 	if (EQ(i_bcp, 1)) //odcięcie - nie rób nic
@@ -2846,6 +2861,11 @@ double TMHZ_K5P::GetCP()
 	return CP;
 }
 
+double TMHZ_K5P::GetRP()
+{
+	return 5.0 + TP + RedAdj;
+}
+
 void TMHZ_K5P::SetParams(bool AO, bool MO, double OverP, double, double OMP, double OPD)
 {
 	AutoOvrld = AO;
@@ -2890,7 +2910,7 @@ double TMHZ_6P::GetPF(double i_bcp, double PP, double HP, double dt, double ep) 
 	}
 	else
 	{
-		TP = 0;
+		//TP = 0; //tu nie powinno być nic, ciśnienie zostaje jak było
 	}
 
 	if (EQ(i_bcp, 2)) //odcięcie - nie rób nic
@@ -2982,6 +3002,11 @@ double TMHZ_6P::GetCP()
 	return CP;
 }
 
+double TMHZ_6P::GetRP()
+{
+	return 5.0 + TP + RedAdj;
+} 
+
 void TMHZ_6P::SetParams(bool AO, bool MO, double OverP, double, double OMP, double OPD)
 {
 	AutoOvrld = AO;
@@ -3065,6 +3090,11 @@ double TM394::GetCP()
     return CP;
 }
 
+double TM394::GetRP()
+{
+	return std::max(5.0, CP) + RedAdj;
+}
+
 double TM394::GetPos(int i)
 {
     return pos_table[i];
@@ -3119,6 +3149,11 @@ void TH14K1::SetReductor(double nAdj)
 double TH14K1::GetCP()
 {
     return CP;
+}
+
+double TH14K1::GetRP()
+{
+    return 5.0 + RedAdj;
 }
 
 double TH14K1::GetPos(int i)
@@ -3177,6 +3212,11 @@ double TSt113::GetPF(double i_bcp, double PP, double HP, double dt, double ep)
 double TSt113::GetCP()
 {
     return CP;
+}
+
+double TSt113::GetRP()
+{
+	return 5.0 + RedAdj;
 }
 
 double TSt113::GetEP()
@@ -3351,6 +3391,11 @@ double TFVel6::GetCP()
     return CP;
 }
 
+double TFVel6::GetRP()
+{
+	return 5.0;
+}
+
 double TFVel6::GetEP()
 {
 	return EPS;
@@ -3426,6 +3471,11 @@ double TFVE408::GetCP()
 double TFVE408::GetEP()
 {
 	return EPS;
+}
+
+double TFVE408::GetRP()
+{
+	return 5.0;
 }
 
 double TFVE408::GetPos(int i)
