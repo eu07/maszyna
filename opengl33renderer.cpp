@@ -431,31 +431,36 @@ bool opengl33_renderer::init_viewport(viewport_config &vp)
 		vp.msaa_fb->attach(*vp.msaa_rbc, GL_COLOR_ATTACHMENT0);
 		vp.msaa_fb->attach(*vp.msaa_rbd, GL_DEPTH_ATTACHMENT);
 
+		if (Global.gfx_postfx_chromaticaberration_enabled || Global.gfx_postfx_motionblur_enabled)
+		{
+			vp.main_tex = std::make_unique<opengl_texture>();
+			vp.main_tex->alloc_rendertarget(Global.gfx_format_color, GL_RGB, vp.width, vp.height, 1, 1, GL_CLAMP_TO_EDGE);
+
+			vp.main_texd = std::make_unique<opengl_texture>();
+			vp.main_texd->alloc_rendertarget(Global.gfx_format_depth, GL_DEPTH_COMPONENT, vp.width, vp.height, 1, 1, GL_CLAMP_TO_EDGE);
+
+			vp.main_fb = std::make_unique<gl::framebuffer>();
+			vp.main_fb->attach(*vp.main_tex, GL_COLOR_ATTACHMENT0);
+			vp.main_fb->attach(*vp.main_texd, GL_DEPTH_ATTACHMENT);
+
+			if (Global.gfx_postfx_motionblur_enabled)
+			{
+				vp.main_texv = std::make_unique<opengl_texture>();
+				vp.main_texv->alloc_rendertarget(Global.gfx_postfx_motionblur_format, GL_RG, vp.width, vp.height);
+				vp.main_fb->attach(*vp.main_texv, GL_COLOR_ATTACHMENT1);
+			} else
+
+			if( !vp.main_fb->is_complete() ) {
+				ErrorLog( "main framebuffer setup failed" );
+				return false;
+			}
+		}
+
 		if (Global.gfx_postfx_motionblur_enabled)
 		{
 			vp.msaa_rbv = std::make_unique<gl::renderbuffer>();
 			vp.msaa_rbv->alloc(Global.gfx_postfx_motionblur_format, vp.width, vp.height, samples);
 			vp.msaa_fb->attach(*vp.msaa_rbv, GL_COLOR_ATTACHMENT1);
-
-			vp.main_tex = std::make_unique<opengl_texture>();
-            vp.main_tex->alloc_rendertarget(Global.gfx_format_color, GL_RGB, vp.width, vp.height, 1, 1, GL_CLAMP_TO_EDGE);
-
-            vp.main_texd = std::make_unique<opengl_texture>();
-            vp.main_texd->alloc_rendertarget(Global.gfx_format_depth, GL_DEPTH_COMPONENT, vp.width, vp.height, 1, 1, GL_CLAMP_TO_EDGE);
-
-			vp.main_fb = std::make_unique<gl::framebuffer>();
-			vp.main_fb->attach(*vp.main_tex, GL_COLOR_ATTACHMENT0);
-
-			vp.main_texv = std::make_unique<opengl_texture>();
-            vp.main_texv->alloc_rendertarget(Global.gfx_postfx_motionblur_format, GL_RG, vp.width, vp.height);
-			vp.main_fb->attach(*vp.main_texv, GL_COLOR_ATTACHMENT1);
-            vp.main_fb->attach(*vp.main_texd, GL_DEPTH_ATTACHMENT);
-			vp.main_fb->setup_drawing(2);
-
-            if( !vp.main_fb->is_complete() ) {
-                ErrorLog( "main framebuffer setup failed" );
-                return false;
-            }
 
 			WriteLog("motion blur enabled");
 		}
@@ -537,6 +542,7 @@ bool opengl33_renderer::Render()
     // after potential context switch, reset vao and buffer because we can have invalid bindings cache
     gl::vao::unbind();
 	gl::buffer::unbind();
+	gl::framebuffer::unbind();
 
 	m_current_viewport = &(*m_viewports.front());
 /*
@@ -882,13 +888,14 @@ void opengl33_renderer::Render_pass(viewport_config &vp, rendermode const Mode)
 			if (Global.gfx_postfx_motionblur_enabled)
 			{
 				vp.main_fb->clear(GL_COLOR_BUFFER_BIT);
+                vp.main_fb->setup_drawing(2);
 				vp.msaa_fb->blit_to(vp.main_fb.get(), vp.width, vp.height, GL_COLOR_BUFFER_BIT, GL_COLOR_ATTACHMENT0);
 				vp.msaa_fb->blit_to(vp.main_fb.get(), vp.width, vp.height, GL_COLOR_BUFFER_BIT, GL_COLOR_ATTACHMENT1);
-                vp.msaa_fb->blit_to(vp.main_fb.get(), vp.width, vp.height, GL_DEPTH_BUFFER_BIT, GL_DEPTH_ATTACHMENT);
+				vp.msaa_fb->blit_to(vp.main_fb.get(), vp.width, vp.height, GL_DEPTH_BUFFER_BIT, GL_DEPTH_ATTACHMENT);
 
 				model_ubs.param[0].x = m_framerate / (1.0 / Global.gfx_postfx_motionblur_shutter);
 				model_ubo->update(model_ubs);
-                m_pfx_motionblur->apply({vp.main_tex.get(), vp.main_texv.get(), vp.main_texd.get()}, vp.main2_fb.get());
+				m_pfx_motionblur->apply({vp.main_tex.get(), vp.main_texv.get(), vp.main_texd.get()}, vp.main2_fb.get());
 			}
 			else
 			{
@@ -899,17 +906,20 @@ void opengl33_renderer::Render_pass(viewport_config &vp, rendermode const Mode)
 			if (!Global.gfx_usegles && !Global.gfx_shadergamma)
 				glEnable(GL_FRAMEBUFFER_SRGB);
 
-			glViewport(0, 0, target_size.x, target_size.y);
-
             gl::framebuffer *target = nullptr;
             if (vp.custom_backbuffer)
                 target = vp.backbuffer_fb.get();
 
             if( Global.gfx_postfx_chromaticaberration_enabled ) {
+                glViewport(0, 0, vp.width, vp.height);
+                vp.main_fb->setup_drawing(1);
                 m_pfx_tonemapping->apply( *vp.main2_tex, vp.main_fb.get() );
+
+                glViewport(0, 0, target_size.x, target_size.y);
                 m_pfx_chromaticaberration->apply( *vp.main_tex, target );
             }
             else {
+                glViewport(0, 0, target_size.x, target_size.y);
                 m_pfx_tonemapping->apply( *vp.main2_tex, target );
             }
 
@@ -1257,7 +1267,6 @@ bool opengl33_renderer::Render_reflections(viewport_config &vp)
     }
     m_environmentupdatetime = timestamp;
 	m_environmentupdatelocation = m_renderpass.pass_camera.position();
-
 	glViewport(0, 0, gl::ENVMAP_SIZE, gl::ENVMAP_SIZE);
 	for (m_environmentcubetextureface = 0; m_environmentcubetextureface < 6; ++m_environmentcubetextureface)
 	{
@@ -1493,7 +1502,7 @@ void opengl33_renderer::setup_pass(viewport_config &Viewport, renderpass_config 
 		bounding_box(frustumchunkmin, frustumchunkmax, std::begin(frustumchunkshapepoints), std::end(frustumchunkshapepoints));
 		auto const frustumchunkcentre = (frustumchunkmin + frustumchunkmax) * 0.5f;
 		// ...cap the vertical angle to keep shadows from getting too long...
-		auto const lightvector = glm::normalize(glm::vec3{m_sunlight.direction.x, std::min(m_sunlight.direction.y, -0.2f), m_sunlight.direction.z});
+		auto const lightvector = glm::normalize(glm::vec3{m_sunlight.direction.x, std::min(m_sunlight.direction.y, Global.gfx_shadow_angle_min), m_sunlight.direction.z});
 		// ...place the light source at the calculated centre and setup world space light view matrix...
         camera.position() = pass_camera + glm::dvec3{frustumchunkcentre};
 		viewmatrix *= glm::lookAt(camera.position(), camera.position() + glm::dvec3{lightvector}, glm::dvec3{0.f, 1.f, 0.f});
@@ -2193,6 +2202,12 @@ opengl_material &opengl33_renderer::Material(material_handle const Material)
 	return m_materials.material(Material);
 }
 
+opengl_material const & opengl33_renderer::Material( TSubModel const * Submodel ) const {
+
+    auto const material { Submodel->m_material >= 0 ? Submodel->m_material : Submodel->ReplacableSkinId[ -Submodel->m_material ] };
+    return Material( material );
+}
+
 texture_handle opengl33_renderer::Fetch_Texture(std::string const &Filename, bool const Loadnow, GLint format_hint)
 {
 	return m_textures.create(Filename, Loadnow, format_hint);
@@ -2665,7 +2680,10 @@ void opengl33_renderer::Render(scene::shape_node const &Shape, bool const Ignore
 		Bind_Material(data.material, nullptr, &Shape.data().lighting );
 		break;
 	case rendermode::shadows:
-        Bind_Material_Shadow(data.material);
+		// skip if the shadow caster rank is too low for currently set threshold
+		if( Material( data.material ).shadow_rank > Global.gfx_shadow_rank_cutoff )
+			return;
+		Bind_Material_Shadow(data.material);
 		break;
 	case rendermode::pickscenery:
 	case rendermode::pickcontrols:
@@ -3140,6 +3158,14 @@ void opengl33_renderer::Render(TSubModel *Submodel)
 				}
 				case rendermode::shadows:
 				{
+                    // skip if the shadow caster rank is too low for currently set threshold
+                    if( Material( Submodel ).shadow_rank > Global.gfx_shadow_rank_cutoff )
+                    {
+                        --m_renderpass.draw_stats.submodels;
+                        --m_renderpass.draw_stats.drawcalls;
+                        break;
+                    }
+
                     if (Submodel->m_material < 0)
 					{ // zmienialne skóry
 						Bind_Material_Shadow(Submodel->ReplacableSkinId[-Submodel->m_material]);
@@ -3326,6 +3352,10 @@ void opengl33_renderer::Render(scene::basic_cell::path_sequence::const_iterator 
 				// shadows are only calculated for high enough roads, typically meaning track platforms
 				continue;
 			}
+            if( Material( track->m_material1 ).shadow_rank > Global.gfx_shadow_rank_cutoff ) {
+                // skip if the shadow caster rank is too low for currently set threshold
+                continue;
+            }
 			Bind_Material_Shadow(track->m_material1);
 			draw(std::begin(track->Geometry1), std::end(track->Geometry1));
 			break;
@@ -3377,6 +3407,10 @@ void opengl33_renderer::Render(scene::basic_cell::path_sequence::const_iterator 
 				// shadows are only calculated for high enough trackbeds
 				continue;
 			}
+            if( Material( track->m_material2 ).shadow_rank > Global.gfx_shadow_rank_cutoff ) {
+                // skip if the shadow caster rank is too low for currently set threshold
+                continue;
+            }
 			Bind_Material_Shadow(track->m_material2);
 			draw(std::begin(track->Geometry2), std::end(track->Geometry2));
 			break;
@@ -3434,6 +3468,10 @@ void opengl33_renderer::Render(scene::basic_cell::path_sequence::const_iterator 
 				// shadows are only calculated for high enough trackbeds
 				continue;
 			}
+            if( Material( track->m_material2 ).shadow_rank > Global.gfx_shadow_rank_cutoff ) {
+                // skip if the shadow caster rank is too low for currently set threshold
+                continue;
+            }
 			Bind_Material_Shadow(track->SwitchExtension->m_material3);
 			draw(track->SwitchExtension->Geometry3);
 			break;
@@ -3983,6 +4021,14 @@ void opengl33_renderer::Render_Alpha(TSubModel *Submodel)
 				}
 				case rendermode::shadows:
 				{
+                    // skip if the shadow caster rank is too low for currently set threshold
+                    if( Material( Submodel ).shadow_rank > Global.gfx_shadow_rank_cutoff )
+                    {
+                        --m_renderpass.draw_stats.submodels;
+                        --m_renderpass.draw_stats.drawcalls;
+                        break;
+                    }
+
 					if (Submodel->m_material < 0)
 					{ // zmienialne skóry
 						Bind_Material_Shadow(Submodel->ReplacableSkinId[-Submodel->m_material]);
@@ -4410,7 +4456,17 @@ void opengl33_renderer::Update(double const Deltatime)
 		if (fps_diff > 0.0f)
 			Global.fDistanceFactor = std::max(0.5f, Global.fDistanceFactor - 0.05f);
 		else
-			Global.fDistanceFactor = std::min(3.0f, Global.fDistanceFactor + 0.05f);
+			Global.fDistanceFactor = std::min(Global.gfx_distance_factor_max, Global.fDistanceFactor + 0.05f);
+	}
+	// legacy framerate parameters
+	else if (Global.fFpsAverage != 0.f) {
+		auto const fps_diff = m_framerate - Global.fFpsAverage;
+		if (fps_diff < -Global.fFpsDeviation) {
+			Global.fDistanceFactor = std::min(std::max(1.0f, Global.fDistanceFactor - 0.05f), Global.gfx_distance_factor_max);
+		}
+		else if (fps_diff > Global.fFpsDeviation) {
+			Global.fDistanceFactor = std::min(std::min(3.0f, Global.fDistanceFactor + 0.05f), Global.gfx_distance_factor_max);
+		}
 	}
 
     if( Global.UpdateMaterials ) {
@@ -4739,7 +4795,7 @@ bool opengl33_renderer::Init_caps()
 		m_shadowbuffersize = std::min(m_shadowbuffersize, texturesize);
 		WriteLog("shadows map size capped at " + std::to_string(m_shadowbuffersize) + "p");
 	}
-	Global.DynamicLightCount = std::min(Global.DynamicLightCount, 8);
+	Global.DynamicLightCount = std::min(Global.DynamicLightCount, (int)gl::MAX_LIGHTS - 1); // reserve 1 slot for sun
 
 	if (Global.iMultisampling)
 	{

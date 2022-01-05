@@ -95,7 +95,14 @@ std::string Now();
 double CompareTime( double t1h, double t1m, double t2h, double t2m );
 
 /*funkcje logiczne*/
-inline bool TestFlag( int const Flag, int const Value ) { return ( ( Flag & Value ) == Value ); }
+inline
+bool TestFlag( int const Flag, int const Value ) {
+    return ( ( Flag & Value ) == Value );
+}
+inline
+bool TestFlagAny( int const Flag, int const Value ) {
+    return ( ( Flag & Value ) != 0 );
+}
 bool SetFlag( int &Flag,  int const Value);
 bool ClearFlag(int &Flag, int const Value);
 
@@ -122,8 +129,8 @@ std::string to_string(double Value, int precision, int width);
 std::string to_hex_str( int const Value, int const width = 4 );
 std::string to_minutes_str( float const Minutes, bool const Leadingzero, int const Width );
 
-inline std::string to_string(bool Value) {
-
+inline
+std::string to_string(bool Value) {
 	return ( Value == true ? "true" : "false" );
 }
 
@@ -223,7 +230,12 @@ std::string substr_path( std::string const &Filename );
 std::ptrdiff_t len_common_prefix( std::string const &Left, std::string const &Right );
 
 // returns true if provided string ends with another provided string
-bool ends_with( std::string const &String, std::string const &Suffix );
+bool ends_with( std::string_view String, std::string_view Suffix );
+// returns true if provided string begins with another provided string
+bool starts_with( std::string_view String, std::string_view Prefix );
+// returns true if provided string contains another provided string
+bool contains( std::string_view const String, std::string_view Substring );
+bool contains( std::string_view const String, char Character );
 
 template <typename Type_>
 void SafeDelete( Type_ &Pointer ) {
@@ -235,6 +247,18 @@ template <typename Type_>
 void SafeDeleteArray( Type_ &Pointer ) {
     delete[] Pointer;
     Pointer = nullptr;
+}
+
+template <typename Type_>
+Type_
+is_equal( Type_ const &Left, Type_ const &Right, Type_ const Epsilon = 1e-5 ) {
+
+    if( Epsilon != 0 ) {
+        return glm::epsilonEqual( Left, Right, Epsilon );
+    }
+    else {
+        return ( Left == Right );
+    }
 }
 
 template <typename Type_>

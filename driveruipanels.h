@@ -62,7 +62,8 @@ class debug_panel : public ui_panel {
 
 public:
     debug_panel( std::string const &Name, bool const Isopen )
-        : ui_panel( Name, Isopen ) {}
+        : ui_panel( Name, Isopen ) {
+        m_eventsearch.fill( 0 ); }
 
     void update() override;
 	void render() override;
@@ -93,10 +94,13 @@ private:
     std::string update_vehicle_brake() const;
     // renders provided lines, under specified collapsing header
     bool render_section( std::string const &Header, std::vector<text_line> const &Lines );
+    bool render_section( std::vector<text_line> const &Lines );
     bool render_section_scenario();
+    bool render_section_eventqueue();
     bool render_section_settings();
 // members
     std::array<char, 1024> m_buffer;
+    std::array<char, 128> m_eventsearch;
     input_data m_input;
     std::vector<text_line>
         m_vehiclelines,

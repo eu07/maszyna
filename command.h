@@ -186,6 +186,8 @@ enum class user_command {
     pantographtoggleselected,
     pantographraiseselected,
     pantographlowerselected,
+    pantographvalvesupdate,
+    pantographvalvesoff,
     heatingtoggle,
     heatingenable,
     heatingdisable,

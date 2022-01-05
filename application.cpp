@@ -428,9 +428,10 @@ eu07_application::run() {
 		if (m_network)
 			m_network->update();
 
-		auto frametime = Timer::subsystem.mainloop_total.stop();
-		if (Global.minframetime.count() != 0.0f && (Global.minframetime - frametime).count() > 0.0f)
-			std::this_thread::sleep_for(Global.minframetime - frametime);
+        auto const frametime{ Timer::subsystem.mainloop_total.stop() };
+        if( Global.minframetime.count() != 0.0f && ( Global.minframetime - frametime ).count() > 0.0f ) {
+            std::this_thread::sleep_for( Global.minframetime - frametime );
+        }
     }
 
 	return 0;
@@ -819,14 +820,15 @@ eu07_application::init_glfw() {
 	if (!monitor)
 		monitor = glfwGetPrimaryMonitor();
 
+    auto const uselegacyrenderer { Global.GfxRenderer != "default" };
     glfwWindowHint( GLFW_AUTO_ICONIFY, GLFW_FALSE );
-    if (Global.gfx_skippipeline && Global.iMultisampling > 0) {
+    if ((Global.gfx_skippipeline || uselegacyrenderer) && Global.iMultisampling > 0) {
         glfwWindowHint( GLFW_SAMPLES, 1 << Global.iMultisampling );
     }
 
     crashreport_add_info("gfxrenderer", Global.GfxRenderer);
 
-    if( Global.GfxRenderer == "default" ) {
+    if( false == uselegacyrenderer ) {
         Global.bUseVBO = true;
         // activate core profile for opengl 3.3 renderer
         if( !Global.gfx_usegles ) {

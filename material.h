@@ -27,6 +27,7 @@ struct opengl_material {
     std::optional<float> opacity;
     std::optional<float> selfillum;
     float glossiness { 10.f };
+    int shadow_rank { 0 }; // priority as shadow caster; higher = more likely to be skipped
 
     std::string name;
     glm::vec2 size { -1.f, -1.f }; // 'physical' size of bound texture, in meters

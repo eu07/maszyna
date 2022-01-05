@@ -126,6 +126,7 @@ class opengl33_renderer : public gfx_renderer {
 
 
     opengl_material & Material( material_handle const Material );
+    opengl_material const & Material( TSubModel const * Submodel ) const;
     // draws supplied geometry handles
     void Draw_Geometry(std::vector<gfx::geometrybank_handle>::iterator begin, std::vector<gfx::geometrybank_handle>::iterator end);
 	void Draw_Geometry(const gfx::geometrybank_handle &handle);
@@ -219,7 +220,7 @@ class opengl33_renderer : public gfx_renderer {
         // msaa resolve buffer (when using motion blur)
 		std::unique_ptr<gl::framebuffer> main_fb;
 		std::unique_ptr<opengl_texture> main_texv;
-        std::unique_ptr<opengl_texture> main_texd;
+		std::unique_ptr<opengl_texture> main_texd;
 		std::unique_ptr<opengl_texture> main_tex;
 
         // final HDR buffer (also serving as msaa resolve buffer when not using motion blur)

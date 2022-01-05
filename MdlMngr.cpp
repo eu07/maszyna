@@ -81,7 +81,8 @@ TModelsManager::GetModel(std::string const &Name, bool const Dynamic, bool const
     // - wczytanie modelu animowanego - Init() - sprawdzić
     std::string const buftp { Global.asCurrentTexturePath }; // zapamiętanie aktualnej ścieżki do tekstur,
     std::string filename { Name };
-    if( Name.find( '/' ) != std::string::npos && !Dynamic ) {
+    if( ( false == Dynamic )
+     && ( contains( Name, '/' ) ) ) {
         // pobieranie tekstur z katalogu, w którym jest model
         // when loading vehicles the path is set by the calling routine, so we can skip it here
         Global.asCurrentTexturePath += Name;
@@ -110,7 +111,7 @@ TModelsManager::GetModel(std::string const &Name, bool const Dynamic, bool const
     else {
         // there's nothing matching in the databank nor on the disk, report failure...
         if( Logerrors ) {
-			ErrorLog( "Bad file: failed to locate 3d model file \"" + filename + "\"", logtype::file );
+            ErrorLog( "Bad file: failed to locate 3d model file \"" + filename + "\"", logtype::file );
         }
         // ...and link it with the error model slot
 		m_modelsmap.emplace( filename + postfix, null_handle );

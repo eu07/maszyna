@@ -192,6 +192,8 @@ driverkeyboard_input::default_bindings() {
         { user_command::pantographtoggleselected, GLFW_KEY_O | keymodifier::shift | keymodifier::control },
         // pantographraiseselected,
         // pantographlowerselected,
+        // pantographvalvesupdate,
+        // pantographvalvesoff,
         { user_command::heatingtoggle, GLFW_KEY_H },
         // heatingenable,
         // heatingdisable,

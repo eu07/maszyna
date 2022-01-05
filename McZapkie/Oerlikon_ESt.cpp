@@ -14,6 +14,7 @@ Copyright (C) 2007-2014 Maciej Cierniak
 
 #include "stdafx.h"
 #include "Oerlikon_ESt.h"
+#include "utilities.h"
 
 double d2A( double const d )
 {
@@ -460,7 +461,7 @@ void TNESt3::SetSize( int const size, std::string const &params ) // ustawianie 
     static double const dOO1l = 0.907;
     static double const dOT1l = 0.524;
 
-    if (params.find("ESt3") != std::string::npos)
+    if (contains( params, "ESt3" ) )
     {
         Podskok = 0.7;
         Przekladniki[1] = std::make_shared<TRura>();
@@ -470,32 +471,32 @@ void TNESt3::SetSize( int const size, std::string const &params ) // ustawianie 
     {
         Podskok = -1.0;
         Przekladniki[1] = std::make_shared<TRapid>();
-        if (params.find("-s216") != std::string::npos)
+        if (contains( params, "-s216" ) )
             Przekladniki[1]->SetRapidParams(2, 16);
         else
             Przekladniki[1]->SetRapidParams(2, 0);
         Przekladniki[3] = std::make_shared<TPrzeciwposlizg>();
-        if (params.find("-ED") != std::string::npos)
+        if (contains( params,"-ED") )
         {
             Przekladniki[1]->SetRapidParams(2, 18);
             Przekladniki[3] = std::make_shared<TPrzekED>();
         }
     }
 
-    if (params.find("AL2") != std::string::npos)
+    if (contains(params,"AL2") )
         Przekladniki[2] = std::make_shared<TPrzekCiagly>();
-    else if (params.find("PZZ") != std::string::npos)
+    else if (contains(params,"PZZ") )
         Przekladniki[2] = std::make_shared<TPrzek_PZZ>();
     else
         Przekladniki[2] = std::make_shared<TRura>();
 
-	if( ( params.find( "3d" ) != std::string::npos )
-	 || ( params.find( "4d" ) != std::string::npos ) ) {
+	if( ( contains( params, "3d" ) )
+	 || ( contains( params, "4d" ) ) ) {
         autom = false;
 	}
     else
         autom = true;
-    if ((params.find("HBG300") != std::string::npos))
+    if ((contains( params,"HBG300")))
         HBG300 = 1.0;
     else
         HBG300 = 0.0;

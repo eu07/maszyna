@@ -541,7 +541,8 @@ class TDriverHandle {
     virtual double GetPF(double i_bcp, double PP, double HP, double dt, double ep);
     virtual void Init(double Press);
     virtual double GetCP();
-	virtual double GetEP();
+    virtual double GetEP();
+    virtual double GetRP();
     virtual void SetReductor(double nAdj); //korekcja pozycji reduktora cisnienia
     virtual double GetSound(int i); //pobranie glosnosci wybranego dzwieku
     virtual double GetPos(int i); //pobranie numeru pozycji o zadanym kodzie (funkcji)
@@ -590,6 +591,7 @@ class TFV4aM : public TDriverHandle {
 		double GetSound(int i)/*override*/;
 		double GetPos(int i)/*override*/;
 		double GetCP();
+		double GetRP();
 		inline TFV4aM() :
 			TDriverHandle()
         {}
@@ -618,6 +620,7 @@ class TMHZ_EN57 : public TDriverHandle {
 		double GetSound(int i)/*override*/;
 		double GetPos(int i)/*override*/;
 		double GetCP()/*override*/;
+		double GetRP()/*override*/;
 		double GetEP(double pos);
 		void SetParams(bool AO, bool MO, double OverP, double, double OMP, double OPD);
 		inline TMHZ_EN57(void) :
@@ -647,6 +650,7 @@ public:
 	double GetSound(int i)/*override*/;
 	double GetPos(int i)/*override*/;
 	double GetCP()/*override*/;
+	double GetRP()/*override*/;
 	void SetParams(bool AO, bool MO, double, double, double OMP, double OPD); /*ovveride*/
 
 	inline TMHZ_K5P(void) :
@@ -676,6 +680,7 @@ public:
 	double GetSound(int i)/*override*/;
 	double GetPos(int i)/*override*/;
 	double GetCP()/*override*/;
+	double GetRP()/*override*/;
 	void SetParams(bool AO, bool MO, double, double, double OMP, double OPD); /*ovveride*/
 
 	inline TMHZ_6P(void) :
@@ -725,6 +730,7 @@ class TM394 : public TDriverHandle {
 		void Init(double Press)/*override*/;
 		void SetReductor(double nAdj)/*override*/;
 		double GetCP()/*override*/;
+		double GetRP()/*override*/;
 		double GetPos(int i)/*override*/;
 
 		inline TM394(void) :
@@ -748,6 +754,7 @@ class TH14K1 : public TDriverHandle {
 		void Init(double Press)/*override*/;
 		void SetReductor(double nAdj)/*override*/;
 		double GetCP()/*override*/;
+		double GetRP()/*override*/;
 		double GetPos(int i)/*override*/;
 
 		inline TH14K1(void) :
@@ -767,6 +774,7 @@ class TSt113 : public TH14K1 {
   public:
 		double GetPF(double i_bcp, double PP, double HP, double dt, double ep)/*override*/;
 		double GetCP()/*override*/;
+		double GetRP()/*override*/;
 		double GetEP()/*override*/;
 		double GetPos(int i)/*override*/;
 		void Init(double Press)/*override*/;
@@ -837,6 +845,7 @@ class TFVel6 : public TDriverHandle {
   public:
 		double GetPF(double i_bcp, double PP, double HP, double dt, double ep)/*override*/;
 		double GetCP()/*override*/;
+		double GetRP()/*override*/;
 		double GetEP()/*override*/;
 		double GetPos(int i)/*override*/;
 		double GetSound(int i)/*override*/;
@@ -858,6 +867,7 @@ public:
 	double GetPF(double i_bcp, double PP, double HP, double dt, double ep)/*override*/;
 	double GetCP()/*override*/;
 	double GetEP()/*override*/;
+	double GetRP()/*override*/;
 	double GetPos(int i)/*override*/;
 	double GetSound(int i)/*override*/;
 	void Init(double Press)/*override*/;

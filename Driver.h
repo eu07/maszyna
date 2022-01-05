@@ -15,6 +15,15 @@ http://mozilla.org/MPL/2.0/.
 #include "sound.h"
 #include "DynObj.h"
 #include "mtable.h"
+#include "translation.h"
+#include "driverhints.h"
+
+auto const EU07_AI_ACCELERATION = 0.05;
+auto const EU07_AI_NOACCELERATION = -0.05;
+auto const EU07_AI_BRAKINGTESTACCELERATION = -0.06;
+auto const EU07_AI_NOMOVEMENT = 0.05; // standstill velocity threshold
+auto const EU07_AI_MOVEMENT = 1.0; // deliberate movement velocity threshold
+auto const EU07_AI_SPEEDLIMITEXTENDSBEYONDSCANRANGE = 10000.0;
 
 enum TOrders
 { // rozkazy dla AI
@@ -64,7 +73,7 @@ enum TMovementStatus
     moveVisibility = 0x10000, // jazda na widoczność po przejechaniu S1 na SBL
     moveDoorOpened = 0x20000, // drzwi zostały otwarte - doliczyć czas na zamknięcie
     movePushPull = 0x40000, // zmiana czoła przez zmianę kabiny - nie odczepiać przy zmianie kierunku
-    moveSemaphorFound = 0x80000, // na drodze skanowania został znaleziony semafor
+    moveSignalFound = 0x80000, // na drodze skanowania został znaleziony semafor
     moveStopPointFound = 0x100000 // stop point detected ahead
 /*
     moveSemaphorWasElapsed = 0x100000, // minięty został semafor
@@ -192,6 +201,7 @@ class TController {
     friend class TTrain;
     friend class drivingaid_panel;
     friend class timetable_panel;
+    friend class scenario_panel;
     friend class debug_panel;
     friend class whois_event;
 
@@ -200,48 +210,66 @@ public:
     ~TController();
 
 // ai operations logic
+// types
+    using hintpredicate = std::function<bool(float)>; // returns true if action hint can be removed
+
 // methods
 public:
-    void UpdateSituation( double dt ); // uruchamiac przynajmniej raz na sekundę
+    void Update( double dt ); // uruchamiac przynajmniej raz na sekundę
     void MoveTo( TDynamicObject *to );
     void TakeControl( bool const Aidriver, bool const Forcevehiclecheck = false );
     inline
-        bool primary( bool const Primary ) {
+    bool primary( bool const Primary ) {
         SetFlag( iDrivigFlags, ( Primary ? movePrimary : -movePrimary ) );
-        return primary();
-    }
+        return primary(); }
     inline
-        bool primary() const {
-        return ( ( iDrivigFlags & movePrimary ) != 0 );
-    };
+    bool primary() const {
+        return ( ( iDrivigFlags & movePrimary ) != 0 ); };
     inline
-        TMoverParameters const *Controlling() const {
-        return mvControlling;
-    }
+    TMoverParameters const *Controlling() const {
+        return mvControlling; }
     inline
-        TMoverParameters const *Occupied() const {
-        return mvOccupied;
-    }
+    TMoverParameters const *Occupied() const {
+        return mvOccupied; }
     void DirectionInitial();
     void DirectionChange();
     inline
-        int Direction() const {
-        return iDirection;
-    }
+    int Direction() const {
+        return iDirection; }
     inline
-        TAction & action() {
-        return eAction;
-    }
+    TAction & action() {
+        return eAction; }
     inline
-        TAction const & action() const {
-        return eAction;
+    TAction const & action() const {
+        return eAction; }
+    inline
+    bool is_active() const {
+        return TestFlag( iDrivigFlags, moveActive ); }
+    inline
+    bool is_train() const {
+        return TestFlag( mvOccupied->CategoryFlag, 1 ); }
+    inline
+    bool is_car() const {
+        return TestFlag( mvOccupied->CategoryFlag, 2 ); }
+    inline
+    bool is_emu() const {
+        return ( mvControlling->TrainType == dt_EZT ); }
+    inline
+    bool is_dmu() const {
+        return ( mvControlling->TrainType == dt_DMU ); }
+    inline
+    bool has_diesel_engine() const {
+        return ( ( mvControlling->EngineType == TEngineType::DieselElectric )
+              || ( mvControlling->EngineType == TEngineType::DieselEngine ) );
     }
+    TBrakeSystem consist_brake_system() const;
 private:
     void Activation(); // umieszczenie obsady w odpowiednim członie
     void ControllingSet(); // znajduje człon do sterowania
     void SetDriverPsyche();
     bool IncBrake();
     bool DecBrake();
+    void LapBrake();
     void ZeroLocalBrake();
     bool IncSpeed();
     bool DecSpeed( bool force = false );
@@ -257,7 +285,8 @@ private:
     void SetTimeControllers(); /*setting state of time controllers depending of desired action*/
     void CheckTimeControllers(); /*checking state of time controllers to reset them to stable position*/
     double ESMVelocity( bool Main );
-    bool UpdateHeating();
+    void PrepareDirection();
+    bool PrepareHeating();
     // uaktualnia informacje o prędkości
     void SetVelocity( double NewVel, double NewVelNext, TStopReason r = stopNone );
     int CheckDirection();
@@ -274,17 +303,73 @@ private:
         braking_distance_multiplier( float const Targetvelocity ) const;
     inline
         int DrivigFlags() const {
-        return iDrivigFlags;
-    };
+            return iDrivigFlags; };
+    inline
+        double DirectionalVel() const {
+            return mvOccupied->Vel * sign( iDirection * mvOccupied->V ); }
+
+    void update_timers( double const dt );
+    void update_logs( double const dt );
+    void determine_consist_state();
+    void determine_braking_distance();
+    void determine_proximity_ranges();
+    void scan_route( double const Range );
+    void scan_obstacles( double const Range );
+    void control_wheelslip();
+    void control_pantographs();
+    void control_horns( double const Timedelta );
+    void control_security_system( double const Timedelta );
+    void control_handles();
+    void control_lights();
+    void control_compartment_lights();
+    void control_doors();
+    void UpdateCommand();
+    void handle_engine();
+    void handle_orders();
+    void UpdateNextStop();
+    void check_load_exchange(); // returns: estimated remaining time of load exchange, in seconds
+    void check_departure();
+    void UpdateConnect();
+    void UpdateDisconnect();
+    int unit_count( int const Threshold ) const;
+    void UpdateChangeDirection();
+    void UpdateLooseShunt();
+    void UpdateObeyTrain();
+    void pick_optimal_speed( double const Range );
+    void adjust_desired_speed_for_obstacles();
+    void adjust_desired_speed_for_limits();
+    void adjust_desired_speed_for_target_speed( double const Range );
+    void adjust_desired_speed_for_current_speed();
+    void adjust_desired_speed_for_braking_test();
+    void control_tractive_and_braking_force();
+    void control_releaser();
+    void control_main_pipe();
+    void control_relays();
+    void control_motor_connectors();
+    void control_tractive_force();
+    void increase_tractive_force();
+    void control_braking_force();
+    void apply_independent_brake_only();
+    void check_route_ahead( double const Range );
+    void check_route_behind( double const Range );
+    void UpdateBrakingHelper();
+    void hint( driver_hint const Value, hintpredicate const Predicate, float const Predicateparameter = 0.f );
+    void update_hints();
+    void remove_hint( driver_hint const Value );
+    void remove_train_brake_hints();
+    void remove_master_controller_hints();
+    void remove_reverser_hints();
+    void cue_action( driver_hint const Action, float const Actionparameter = 0.f );
 // members
 public:
     bool AIControllFlag = false; // rzeczywisty/wirtualny maszynista
     int iOverheadZero = 0; // suma bitowa jezdy bezprądowej, bity ustawiane przez pojazdy z podniesionymi pantografami
     int iOverheadDown = 0; // suma bitowa opuszczenia pantografów, bity ustawiane przez pojazdy z podniesionymi pantografami
-    double BrakeCtrlPosition = 0.0; // intermediate position of main brake controller 
+    double BrakeCtrlPosition = 0.0; // intermediate position of main brake controller
     int UniversalBrakeButtons = 0.0; // flag of which universal buttons need to be pressed
     int DizelPercentage = 0; // oczekiwane procenty jazdy/hamowania szynobusem
     int DizelPercentage_Speed = 0; // oczekiwane procenty jazdy/hamowania szynobusem w związku z osiąganiem VelDesired
+	double fMedAmax = 0.8; //maximum decceleration when using ep/med brake
 private:
     bool Psyche = false;
     int HelperState = 0; //stan pomocnika maszynisty
@@ -295,7 +380,7 @@ private:
     std::string VehicleName;
     std::array<int, 2> m_lighthints = { -1, -1 }; // suggested light patterns
     double AccPreferred = 0.0; // preferowane przyspieszenie (wg psychiki kierującego, zmniejszana przy wykryciu kolizji)
-    double AccDesired = AccPreferred; // przyspieszenie, jakie ma utrzymywać (<0:nie przyspieszaj,<-0.1:hamuj)
+    double AccDesired = 0.0; // przyspieszenie, jakie ma utrzymywać (<0:nie przyspieszaj,<-0.1:hamuj)
     double VelDesired = 0.0; // predkość, z jaką ma jechać, wynikająca z analizy tableki; <=VelSignal
     double fAccDesiredAv = 0.0; // uśrednione przyspieszenie z kolejnych przebłysków świadomości, żeby ograniczyć migotanie
     double VelforDriver = -1.0; // prędkość, używana przy zmianie kierunku (ograniczenie przy nieznajmości szlaku?)
@@ -313,12 +398,17 @@ private:
     double SwitchClearDist { 0.0 }; // distance to point after farthest detected switch
     int iDirection = 0; // kierunek jazdy względem sprzęgów pojazdu, w którym siedzi AI (1=przód,-1=tył)
     int iDirectionOrder = 0; //żadany kierunek jazdy (służy do zmiany kierunku)
+    std::optional<int> iDirectionBackup; // consist direction to be restored after coupling/uncoupling and similar direction-changing operations
+    std::optional<std::pair<TDynamicObject*,int>> iCouplingVehicle; // <vehicle, coupler> to be coupled with another consist in current coupling operation
     int iVehicleCount = -2; // wartość neutralna // ilość pojazdów do odłączenia albo zabrania ze składu (-1=wszystkie)
     int iCoupler = 0; // maska sprzęgu, jaką należy użyć przy łączeniu (po osiągnięciu trybu Connect), 0 gdy jazda bez łączenia
     int iDriverFailCount = 0; // licznik błędów AI
     bool Need_TryAgain = false; // true, jeśli druga pozycja w elektryku nie załapała
 //    bool Need_BrakeRelease = true;
+    bool IsHeatingTemperatureOK{ true };
+    bool IsHeatingTemperatureTooLow{ false };
     bool IsAtPassengerStop{ false }; // true if the consist is within acceptable range of w4 post
+    bool IsScheduledPassengerStopVisible{ false };
     double fMinProximityDist = 30.0; // stawanie między 30 a 60 m przed przeszkodą // minimalna oległość do przeszkody, jaką należy zachować
     double fOverhead1 = 3000.0; // informacja o napięciu w sieci trakcyjnej (0=brak drutu, zatrzymaj!)
     double fOverhead2 = -1.0; // informacja o sposobie jazdy (-1=normalnie, 0=bez prądu, >0=z opuszczonym i ograniczeniem prędkości)
@@ -333,7 +423,7 @@ private:
     double IdleTime{}; // keeps track of time spent at a stop
     double fStopTime = 0.0; // czas postoju przed dalszą jazdą (np. na przystanku)
     float ExchangeTime{ 0.0 }; // time needed to finish current load exchange
-    double fShuntVelocity = 40.0; // maksymalna prędkość manewrowania, zależy m.in. od składu // domyślna prędkość manewrowa
+    double fShuntVelocity = 40.0; // prędkość manewrowania, zależy m.in. od składu
     int iDrivigFlags = // flagi bitowe ruchu
         moveStopPoint | // podjedź do W4 możliwie blisko
         moveStopHere | // nie podjeżdżaj do semafora, jeśli droga nie jest wolna
@@ -345,7 +435,7 @@ private:
     double fBrakeReaction = 1.0; //opóźnienie zadziałania hamulca - czas w s / (km/h)
     double fNominalAccThreshold = 0.0; // nominalny próg opóźnienia dla zadziałania hamulca
     double fAccThreshold = 0.0; // aktualny próg opóźnienia dla zadziałania hamulca
-    double AbsAccS_pub = 0.0; // próg opóźnienia dla zadziałania hamulca
+    double AbsAccS = 0.0; // próg opóźnienia dla zadziałania hamulca
     // dla fBrake_aX:
     // indeks [0] - wartości odpowiednie dla aktualnej prędkości
     // a potem jest 20 wartości dla różnych prędkości zmieniających się co 5 % Vmax pojazdu obsadzonego
@@ -356,20 +446,21 @@ private:
     double ReactionTime = 0.0; // czas reakcji Ra: czego i na co? świadomości AI
     double fBrakeTime = 0.0; // wpisana wartość jest zmniejszana do 0, gdy ujemna należy zmienić nastawę hamulca
     double BrakeChargingCooldown{}; // prevents the ai from trying to charge the train brake too frequently
-	TBrakeSystem BrakeSystem = TBrakeSystem::Individual; //type of main brake
-	bool ForcePNBrake = false; //is it necessary to use PN brake instead of EP brake
-	int DynamicBrakeTest = 0; //is it necessary to make brake test while driving
-	double DBT_VelocityBrake = 0;
-	double DBT_VelocityRelease = 0;
-	double DBT_VelocityFinish = 0;
-	double DBT_BrakingTime = 0;
-	double DBT_ReleasingTime = 0;
-	double DBT_MidPointAcc = 0;
-	int StaticBrakeTest = 0; //is it necessary to make brake test while standing
+    TBrakeSystem BrakeSystem = TBrakeSystem::Individual; //type of main brake
+    bool ForcePNBrake = false; //is it necessary to use PN brake instead of EP brake
+    int DynamicBrakeTest = 0; //is it necessary to make brake test while driving
+    double DBT_VelocityBrake = 0;
+    double DBT_VelocityRelease = 0;
+    double DBT_VelocityFinish = 0;
+    double DBT_BrakingTime = 0;
+    double DBT_ReleasingTime = 0;
+    double DBT_MidPointAcc = 0;
+    int StaticBrakeTest = 0; //is it necessary to make brake test while standing
     double LastReactionTime = 0.0;
     double fActionTime = 0.0; // czas używany przy regulacji prędkości i zamykaniu drzwi
     double m_radiocontroltime{ 0.0 }; // timer used to control speed of radio operations
     TAction eAction{ TAction::actUnknown }; // aktualny stan
+    std::list< std::tuple<driver_hint, hintpredicate, float> > m_hints; // queued ai operations
 
 // orders
 // methods
@@ -382,7 +473,7 @@ public:
     std::string OrderCurrent() const;
 private:
     void RecognizeCommand(); // odczytuje komende przekazana lokomotywie
-    void JumpToNextOrder();
+    void JumpToNextOrder( bool const Skipmergedchangedirection = false );
     void JumpToFirstOrder();
     void OrderPush( TOrders NewOrder );
     void OrderNext( TOrders NewOrder );
@@ -415,8 +506,10 @@ private:
     void TableTraceRoute( double fDistance, TDynamicObject *pVehicle );
     void TableCheck( double fDistance );
     TCommandType TableUpdate( double &fVelDes, double &fDist, double &fNext, double &fAcc );
+    bool TableUpdateStopPoint( TCommandType &Command, TSpeedPos &Point, double const Signaldistance );
+    bool TableUpdateEvent( double &Velocity, TCommandType &Command, TSpeedPos &Point, double &Signaldistance, int const Pointindex );
     // returns most recently calculated distance to potential obstacle ahead
-    double TrackBlock() const;
+    double TrackObstacle() const;
     void TablePurger();
     void TableSort();
     inline double MoveDistanceGet() const {
@@ -429,11 +522,11 @@ private:
     void TableClear();
     int TableDirection() { return iTableDirection; }
     // Ra: stare funkcje skanujące, używane do szukania sygnalizatora z tyłu
-    bool IsOccupiedByAnotherConsist( TTrack *Track );
+    bool IsOccupiedByAnotherConsist( TTrack *Track, double const Distance );
     basic_event *CheckTrackEventBackward( double fDirection, TTrack *Track, TDynamicObject *Vehicle, int const Eventdirection = 1, end const End = end::rear );
     TTrack *BackwardTraceRoute( double &fDistance, double &fDirection, TDynamicObject *Vehicle, basic_event *&Event, int const Eventdirection = 1, end const End = end::rear, bool const Untiloccupied = true );
     void SetProximityVelocity( double dist, double vel, glm::dvec3 const *pos );
-    TCommandType BackwardScan();
+    TCommandType BackwardScan( double const Range );
     std::string TableText( std::size_t const Index ) const;
 /*
     void RouteSwitch(int d);
@@ -467,10 +560,10 @@ private:
 // members
     Mtable::TTrainParameters TrainParams; // rozkład jazdy zawsze jest, nawet jeśli pusty
     std::string asNextStop; // nazwa następnego punktu zatrzymania wg rozkładu
-    int iStationStart = 0; // numer pierwszej stacji pokazywanej na podglądzie rozkładu
+//    int iStationStart = 0; // numer pierwszej stacji pokazywanej na podglądzie rozkładu
     std::string m_lastexchangestop; // HACK: safeguard to prevent multiple load exchanges per station
     int m_lastexchangeplatforms { 0 }; // cached station platforms for last exchange
-    int m_lastexchangedirection { 0 }; // 
+    int m_lastexchangedirection { 0 }; //
     double fLastStopExpDist = -1.0; // odległość wygasania ostateniego przystanku
     int iRadioChannel = 1; // numer aktualnego kanału radiowego
     int iGuardRadio = 0; // numer kanału radiowego kierownika (0, gdy nie używa radia)
@@ -490,7 +583,6 @@ private:
     bool doors_open() const;
     bool doors_permit_active() const;
     void AutoRewident(); // ustawia hamulce w składzie
-    void UpdatePantographs();
     void announce( announcement_t const Announcement );
 // members
     double fLength = 0.0; // długość składu (do wyciągania z ograniczeń)
@@ -504,6 +596,7 @@ private:
     bool IsHeavyCargoTrain{ false };
     double fReady = 0.0; // poziom odhamowania wagonów
     bool Ready = false; // ABu: stan gotowosci do odjazdu - sprawdzenie odhamowania wagonow
+    bool IsConsistBraked { false };
     double ConsistShade{ 1.0 }; // averaged amount of sunlight received by the consist
     TDynamicObject *pVehicles[ 2 ]; // skrajne pojazdy w składzie (niekoniecznie bezpośrednio sterowane)
     bool DoesAnyDoorNeedOpening{ false };
@@ -513,7 +606,12 @@ private:
     bool IsAnyConverterOverloadRelayOpen{ false }; // state of converter overload relays in all vehicles under control
     bool IsAnyMotorOverloadRelayOpen{ false }; // state of motor overload relays in all vehicles under control
     bool IsAnyGroundRelayOpen{ false };
+    bool IsAnyCompressorPresent { false };
     bool IsAnyCompressorEnabled{ false };
+    bool IsAnyCompressorExplicitlyEnabled{ false }; // only takes into account manually controlled devices
+    bool IsAnyConverterPresent{ false };
+    bool IsAnyConverterEnabled{ false };
+    bool IsAnyConverterExplicitlyEnabled{ false }; // only takes into account manually controlled devices
     bool IsAnyCouplerStretched{ false }; // whether there's a coupler in the consist stretched above limit
 
 // logs

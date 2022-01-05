@@ -191,6 +191,8 @@ commanddescription_sequence Commands_descriptions = {
     { "pantographtoggleselected", command_target::vehicle, command_mode::oneoff },
     { "pantographraiseselected", command_target::vehicle, command_mode::oneoff },
     { "pantographlowerselected", command_target::vehicle, command_mode::oneoff },
+    { "pantographvalvesupdate", command_target::vehicle, command_mode::oneoff },
+    { "pantographvalvesoff", command_target::vehicle, command_mode::oneoff },
     { "heatingtoggle", command_target::vehicle, command_mode::oneoff },
     { "heatingenable", command_target::vehicle, command_mode::oneoff },
     { "heatingdisable", command_target::vehicle, command_mode::oneoff },

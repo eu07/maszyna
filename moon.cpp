@@ -29,11 +29,12 @@ cMoon::init() {
 }
 
 void
-cMoon::update() {
+cMoon::update( bool const Includephase ) {
 
     m_observer.temp = Global.AirTemperature;
 
     move();
+    if( Includephase ) { phase(); }
     glm::vec3 position( 0.f, 0.f, -1.f );
     position = glm::rotateX( position, glm::radians( static_cast<float>( m_body.elevref ) ) );
     position = glm::rotateY( position, glm::radians( static_cast<float>( -m_body.hrang ) ) );

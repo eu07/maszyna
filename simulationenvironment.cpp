@@ -21,9 +21,7 @@ world_environment Environment;
 } // simulation
 
 void
-world_environment::toggle_daylight() {
-
-    Global.FakeLight = !Global.FakeLight;
+world_environment::on_daylight_change() {
 
     if( Global.FakeLight ) {
         // for fake daylight enter fixed hour
@@ -64,8 +62,10 @@ void
 world_environment::compute_weather() {
 
     Global.Weather = (
-        Global.Overcast <= 0.25 ? "clear:" :
-        Global.Overcast <= 1.0 ? "cloudy:" :
+        Global.Overcast <= 0.10 ? "clear:" :
+        Global.Overcast <= 0.50 ? "scattered:" :
+        Global.Overcast <= 0.90 ? "broken:" :
+        Global.Overcast <= 1.00 ? "overcast:" :
         ( Global.Season != "winter:" ?
             "rain:" :
             "snow:" ) );
@@ -112,7 +112,7 @@ world_environment::update() {
     // twilight factor can be reset later down, so we do it here while it's still reflecting state of the sun
     // turbidity varies from 2-3 during the day based on overcast, 3-4 after sunset to deal with sunlight bleeding too much into the sky from below horizon
     m_skydome.SetTurbidity(
-        2.f
+        2.25f
         + clamp( Global.Overcast, 0.f, 1.f )
         + interpolate( 0.f, 1.f, clamp( twilightfactor * 1.5f, 0.f, 1.f ) ) );
     m_skydome.SetOvercastFactor( Global.Overcast );
@@ -126,7 +126,7 @@ world_environment::update() {
         Global.DayLight.position = m_moon.getDirection();
         Global.DayLight.direction = -1.0f * m_moon.getDirection();
         keylightintensity = moonlightlevel;
-        m_lightintensity = 0.35f;
+        m_lightintensity = moonlightlevel;
         // if the moon is up, it overrides the twilight
         twilightfactor = 0.0f;
         keylightcolor = glm::vec3( 255.0f / 255.0f, 242.0f / 255.0f, 202.0f / 255.0f );
@@ -165,16 +165,18 @@ world_environment::update() {
     // tonal impact of skydome color is inversely proportional to how high the sun is above the horizon
     // (this is pure conjecture, aimed more to 'look right' than be accurate)
     float const ambienttone = clamp( 1.0f - ( Global.SunAngle / 90.0f ), 0.0f, 1.0f );
-    Global.DayLight.ambient[ 0 ] = interpolate( skydomehsv.z, skydomecolour.r, ambienttone );
-    Global.DayLight.ambient[ 1 ] = interpolate( skydomehsv.z, skydomecolour.g, ambienttone );
-    Global.DayLight.ambient[ 2 ] = interpolate( skydomehsv.z, skydomecolour.b, ambienttone );
+    float const ambientintensitynightfactor = 1.f - 0.75f * clamp( -m_sun.getAngle(), 0.0f, 18.0f ) / 18.0f;
+    Global.DayLight.ambient[ 0 ] = interpolate( skydomehsv.z, skydomecolour.r, ambienttone ) * ambientintensitynightfactor;
+    Global.DayLight.ambient[ 1 ] = interpolate( skydomehsv.z, skydomecolour.g, ambienttone ) * ambientintensitynightfactor;
+    Global.DayLight.ambient[ 2 ] = interpolate( skydomehsv.z, skydomecolour.b, ambienttone ) * ambientintensitynightfactor;
 
     Global.fLuminance = intensity;
 
     // update the fog. setting it to match the average colour of the sky dome is cheap
     // but quite effective way to make the distant items blend with background better
-    // NOTE: base brightness calculation provides scaled up value, so we bring it back to 'real' one here
-    Global.FogColor = m_skydome.GetAverageHorizonColor();
+    Global.FogColor =
+        interpolate( m_skydome.GetAverageColor(), m_skydome.GetAverageHorizonColor(), 0.25f )
+        * clamp<float>( Global.fLuminance, 0.25f, 1.f );
 
     // weather-related simulation factors
     Global.FrictionWeatherFactor = (
@@ -207,6 +209,12 @@ void
 world_environment::update_precipitation() {
 
     m_precipitation.update();
+}
+
+void
+world_environment::update_moon() {
+
+    m_moon.update( true );
 }
 
 void

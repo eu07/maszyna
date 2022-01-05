@@ -43,8 +43,8 @@ public:
         *this = TGauge(); }
     void Init(TSubModel *Submodel, TSubModel *Submodelon, TGaugeAnimation Type, float Scale = 1, float Offset = 0, float Friction = 0, float Value = 0, float const Endvalue = -1.0, float const Endscale = -1.0, bool const Interpolate = false );
     void Load(cParser &Parser, TDynamicObject const *Owner, double const mul = 1.0);
-    void UpdateValue( float fNewDesired );
-    void UpdateValue( float fNewDesired, sound_source &Fallbacksound );
+    bool UpdateValue( float fNewDesired );
+    bool UpdateValue( float fNewDesired, std::optional<sound_source> &Fallbacksound );
     void PutValue(float fNewDesired);
     float GetValue() const;
     float GetDesiredValue() const;
@@ -58,17 +58,27 @@ public:
     // returns offset of submodel associated with the button from the model centre
     glm::vec3 model_offset() const;
     TGaugeType type() const;
+    inline
+    bool is_push() const {
+        return ( static_cast<int>( type() ) & static_cast<int>( TGaugeType::push ) ) != 0; }
+    inline
+    bool is_toggle() const {
+        return ( static_cast<int>( type() ) & static_cast<int>( TGaugeType::toggle ) ) != 0; }
+    bool is_delayed() const {
+        return ( static_cast<int>( type() ) & static_cast<int>( TGaugeType::delayed ) ) != 0; }
 // members
     TSubModel *SubModel { nullptr }, // McZapkie-310302: zeby mozna bylo sprawdzac czy zainicjowany poprawnie
               *SubModelOn { nullptr }; // optional submodel visible when the state input is set
 
 private:
+// types
+    struct scratch_data {
+        std::optional< std::array<float, 6> > soundproofing;
+    };
 // methods
-// imports member data pair from the config file
+    // imports member data pair from the config file
     bool
-        Load_mapping( cParser &Input );
-    void
-        UpdateValue( float fNewDesired, sound_source *Fallbacksound );
+        Load_mapping( cParser &Input, TGauge::scratch_data &Scratchpad );
     float
         GetScaledValue() const;
     void

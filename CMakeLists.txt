@@ -68,6 +68,7 @@ set(SOURCES
 "Button.cpp"
 "Camera.cpp"
 "Driver.cpp"
+"driverhints.cpp"
 "dumb3d.cpp"
 "DynObj.cpp"
 "EU07.cpp"

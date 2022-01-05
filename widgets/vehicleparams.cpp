@@ -106,11 +106,11 @@ void ui::vehicleparams_panel::render_contents()
 
 	TTrain *train_ptr = simulation::Trains.find(m_vehicle_name);
 	if (train_ptr) {
-		const TTrain::screen_map &screens = train_ptr->get_screens();
+		const TTrain::screenentry_sequence &screens = train_ptr->get_screens();
 
 		for (const auto &viewport : Global.python_viewports) {
 			for (auto const &entry : screens) {
-                if (entry.rendererpath != viewport.surface)
+                if (entry.script != viewport.surface)
 					continue;
 
 				std::string window_name = STR("Screen") + "##" + viewport.surface;

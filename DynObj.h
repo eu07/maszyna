@@ -139,7 +139,7 @@ public:
     };
     // void _fastcall Update(); //wskaźnik do funkcji aktualizacji animacji
     int iFlags{ 0 }; // flagi animacji
-    float fMaxDist; // do jakiej odległości wykonywana jest animacja
+    float fMaxDist; // do jakiej odległości wykonywana jest animacja NOTE: square of actual distance
     float fSpeed; // parametr szybkości animacji
     int iNumber; // numer kolejny obiektu
 
@@ -358,6 +358,7 @@ private:
         sound_source unlock { sound_placement::general };
         sound_source step_open { sound_placement::general };
         sound_source step_close { sound_placement::general };
+        sound_source permit_granted { sound_placement::general };
         side placement {};
     };
 
@@ -375,7 +376,9 @@ private:
     struct powertrain_sounds {
         sound_source inverter { sound_placement::engine };
         std::vector<sound_source> motorblowers;
-        std::vector<sound_source> motors; // generally traction motor(s)
+        std::vector<sound_source> motors; // generic traction motor sounds
+        std::vector<sound_source> acmotors; // inverter-specific traction motor sounds
+//        bool dcmotors { true }; // traction dc motor(s)
         double motor_volume { 0.0 }; // MC: pomocnicze zeby gladziej silnik buczal
         float motor_momentum { 0.f }; // recent change in motor revolutions
         sound_source motor_relay { sound_placement::engine };
@@ -417,9 +420,16 @@ private:
     // single source per vehicle
     struct pasystem_sounds {
         std::array<sound_source, static_cast<int>( announcement_t::end )> announcements;
+        std::optional< std::array<float, 6> > soundproofing; 
         sound_source announcement;
         std::deque<sound_source> announcement_queue; // fifo queue
     };
+    struct springbrake_sounds {
+        sound_source activate { sound_placement::external };
+        sound_source release { sound_placement::external };
+        bool state { false };
+    };
+
 
 // methods
     void ABuLittleUpdate(double ObjSqrDist);
@@ -477,8 +487,10 @@ private:
     powertrain_sounds m_powertrainsounds;
     sound_source sConverter { sound_placement::engine };
     sound_source sCompressor { sound_placement::engine }; // NBMX wrzesien 2003
+    sound_source sCompressorIdle { sound_placement::engine };
     sound_source sSmallCompressor { sound_placement::engine };
     sound_source sHeater { sound_placement::engine };
+    sound_source m_batterysound { sound_placement::engine };
     // braking sounds
     sound_source dsbPneumaticRelay { sound_placement::external };
     sound_source rsBrake { sound_placement::external, EU07_SOUND_BRAKINGCUTOFFRANGE }; // moved from cab
@@ -490,9 +502,16 @@ private:
     sound_source m_brakecylinderpistonrecede { sound_placement::external };
     float m_lastbrakepressure { -1.f }; // helper, cached level of pressure in the brake cylinder
     float m_brakepressurechange { 0.f }; // recent change of pressure in the brake cylinder
+	sound_source m_epbrakepressureincrease{ sound_placement::external };
+	sound_source m_epbrakepressuredecrease{ sound_placement::external };
+	float m_lastepbrakepressure{ -1.f }; // helper, cached level of pressure in the brake cylinder
+	float m_epbrakepressurechange{ 0.f }; // recent change of pressure in the brake cylinder
+	float m_epbrakepressurechangeinctimer{ 0.f }; // last time of change of pressure in the brake cylinder - increase
+	float m_epbrakepressurechangedectimer{ 0.f }; // last time of change of pressure in the brake cylinder - decrease
     sound_source m_emergencybrake { sound_placement::engine };
     double m_emergencybrakeflow{ 0.f };
     sound_source sReleaser { sound_placement::external };
+    springbrake_sounds m_springbrakesounds;
     sound_source rsSlippery { sound_placement::external, EU07_SOUND_BRAKINGCUTOFFRANGE }; // moved from cab
     sound_source sSand { sound_placement::external };
     // moving part and other external sounds
@@ -712,6 +731,10 @@ private:
     void SetLights();
     void RaLightsSet(int head, int rear);
     int LightList( end const Side ) const { return iInventory[ Side ]; }
+    bool has_signal_pc1_on() const;
+    bool has_signal_pc2_on() const;
+    bool has_signal_pc5_on() const;
+    bool has_signal_on( int const Side, int const Pattern ) const;
     void set_cab_lights( int const Cab, float const Level );
     TDynamicObject * FirstFind(int &coupler_nr, int cf = 1);
     float GetEPP(); // wyliczanie sredniego cisnienia w PG
@@ -731,6 +754,8 @@ private:
     auto find_vehicle( coupling const Coupling, Predicate_ const Predicate ) -> TDynamicObject *;
     TDynamicObject * FindPowered();
     TDynamicObject * FindPantographCarrier();
+    template <typename UnaryFunction_>
+    void for_each( coupling const Coupling, UnaryFunction_ const Function );
     void ParamSet(int what, int into);
     // zapytanie do AI, po którym segmencie skrzyżowania jechać
     int RouteWish(TTrack *tr);
@@ -829,6 +854,21 @@ TDynamicObject::find_vehicle( coupling const Coupling, Predicate_ const Predicat
             return vehicle; } }
     // if we still don't have a match give up
     return nullptr;
+}
+
+template <typename UnaryFunction_>
+void
+TDynamicObject::for_each( coupling const Coupling, UnaryFunction_ const Function ) {
+
+    Function( this );
+    // walk first towards the rear
+    auto *vehicle { this };
+    while( ( vehicle = vehicle->Next( Coupling ) ) != nullptr ) {
+        Function( vehicle ); }
+    // then towards the front
+    vehicle = this;
+    while( ( vehicle = vehicle->Prev( Coupling ) ) != nullptr ) {
+        Function( vehicle ); }
 }
 
 //---------------------------------------------------------------------------

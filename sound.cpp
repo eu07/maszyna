@@ -172,10 +172,28 @@ sound_source::deserialize_mapping( cParser &Input ) {
     else if( key == "soundend:" ) {
         sound( sound_id::end ).buffer = audio::renderer.fetch_buffer( deserialize_random_set( Input, "\n\r\t ,;" ) );
     }
-    else if( key.compare( 0, std::min<std::size_t>( key.size(), 5 ), "sound" ) == 0 ) {
+    else if( key == "soundproofing:" ) {
+        // custom soundproofing in format [ p1, p2, p3, p4, p5, p6 ]
+        Input.getTokens( 6, false, "\n\r\t ,;[]" );
+        std::array<float, 6> soundproofing;
+        Input
+            >> soundproofing[ 0 ]
+            >> soundproofing[ 1 ]
+            >> soundproofing[ 2 ]
+            >> soundproofing[ 3 ]
+            >> soundproofing[ 4 ]
+            >> soundproofing[ 5 ];
+        for( auto & soundproofingelement : soundproofing ) {
+            if( soundproofingelement != -1.f ) {
+                soundproofingelement = std::sqrt( clamp( soundproofingelement, 0.f, 1.f ) );
+            }
+        }
+        m_soundproofing = soundproofing;
+    }
+    else if( starts_with( key, "sound" ) ) {
         // sound chunks, defined with key soundX where X = activation threshold
-        auto const indexstart { key.find_first_of( "1234567890" ) };
-        auto const indexend { key.find_first_not_of( "1234567890", indexstart ) };
+        auto const indexstart { key.find_first_of( "-1234567890" ) };
+        auto const indexend { key.find_first_not_of( "-1234567890", indexstart ) };
         if( indexstart != std::string::npos ) {
             // NOTE: we'll sort the chunks at the end of deserialization
             m_soundchunks.emplace_back(
@@ -203,10 +221,10 @@ sound_source::deserialize_mapping( cParser &Input ) {
                 Input.getToken<float>( false, "\n\r\t ,;" ),
                 0.0f, 1.0f );
     }
-    else if( key.compare( 0, std::min<std::size_t>( key.size(), 5 ), "pitch" ) == 0 ) {
+    else if( starts_with( key, "pitch" ) ) {
         // sound chunk pitch, defined with key pitchX where X = activation threshold
-        auto const indexstart { key.find_first_of( "1234567890" ) };
-        auto const indexend { key.find_first_not_of( "1234567890", indexstart ) };
+        auto const indexstart { key.find_first_of( "-1234567890" ) };
+        auto const indexend { key.find_first_not_of( "-1234567890", indexstart ) };
         if( indexstart != std::string::npos ) {
             auto const index { std::stoi( key.substr( indexstart, indexend - indexstart ) ) };
             auto const pitch { Input.getToken<float>( false, "\n\r\t ,;" ) };
@@ -797,12 +815,15 @@ sound_source::update_crossfade( sound_handle const Chunk ) {
         // chunks other than the first can have fadein
         auto const fadeinwidth { chunkdata.threshold - chunkdata.fadein };
         if( soundpoint < chunkdata.threshold ) {
-            m_properties.gain *=
+            float lineargain =
                 interpolate(
                     0.f, 1.f,
                     clamp(
                         ( soundpoint - chunkdata.fadein ) / fadeinwidth,
                         0.f, 1.f ) );
+            m_properties.gain *=
+                lineargain /
+                (1 + (1 - lineargain) * (-0.57)); // approximation of logarytmic fade in
             return;
         }
     }
@@ -814,12 +835,14 @@ sound_source::update_crossfade( sound_handle const Chunk ) {
         auto const fadeoutwidth { chunkdata.fadeout - m_soundchunks[ chunkindex + 1 ].second.fadein };
         auto const fadeoutstart { chunkdata.fadeout - fadeoutwidth };
         if( soundpoint > fadeoutstart ) {
-            m_properties.gain *=
+			float lineargain =
                 interpolate(
-                    1.f, 0.f,
+                    0.f, 1.f,
                     clamp(
                         ( soundpoint - fadeoutstart ) / fadeoutwidth,
                         0.f, 1.f ) );
+            m_properties.gain *= (-lineargain + 1) /
+                                 (1 + lineargain * (-0.57)); // approximation of logarytmic fade out
             return;
         }
     }
@@ -878,6 +901,20 @@ bool
 sound_source::is_combined() const {
 
     return ( ( !m_soundchunks.empty() ) && ( sound( sound_id::main ).buffer == null_handle ) );
+}
+
+// returns true if specified buffer is one of the optional bookends
+bool
+sound_source::is_bookend( audio::buffer_handle const Buffer ) const {
+
+    return ( ( sound( sound_id::begin ).buffer == Buffer ) || ( sound( sound_id::end ).buffer == Buffer ) );
+}
+
+// returns true if the source has optional bookends
+bool
+sound_source::has_bookends() const {
+
+    return ( ( sound( sound_id::begin ).buffer != null_handle ) && ( sound( sound_id::end ).buffer != null_handle ) );
 }
 
 // returns location of the sound source in simulation region space
@@ -964,12 +1001,14 @@ sound_source::update_soundproofing() {
         auto const isambient { ( ( m_placement == sound_placement::external ) && ( m_owner == nullptr ) && ( m_range < -1 ) ? 1 : 0 ) };
         auto const placement { ( isambient ? sound_placement::external_ambient : m_placement ) };
         if( m_owner != nullptr ) {
-            m_properties.soundproofing =
-                m_owner->soundproofing(
-                    static_cast<int>( placement ),
-                    ( m_owner != listenervehicle ?
-                        4 : // part of two-stage calculation owner->outside->listener, or single stage owner->outside one
-                        occupiedcab ) );
+            auto const listenerlocation { (
+                m_owner != listenervehicle ?
+                    4 : // part of two-stage calculation owner->outside->listener, or single stage owner->outside one
+                    occupiedcab ) };
+            m_properties.soundproofing = (
+                m_soundproofing ? // custom soundproofing has higher priority than that of the owner
+                    m_soundproofing.value()[ listenerlocation + 1 ] : // cab indices start from -1 so we have to account for this
+                    m_owner->soundproofing( static_cast<int>( placement ), listenerlocation ) );
         }
         if( ( listenervehicle ) && ( listenervehicle != m_owner ) ) {
             // if the listener is located in another vehicle, calculate additional proofing of the sound coming from outside

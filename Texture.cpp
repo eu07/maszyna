@@ -1253,8 +1253,9 @@ texture_manager::unit( GLint const Textureunit ) {
 texture_handle
 texture_manager::create( std::string Filename, bool const Loadnow, GLint Formathint ) {
 
-    if( Filename.find( '|' ) != std::string::npos )
+    if( contains( Filename, '|' ) ) {
         Filename.erase( Filename.find( '|' ) ); // po | może być nazwa kolejnej tekstury
+    }
 
     std::pair<std::string, std::string> locator; // resource name, resource type
     std::string traits;
@@ -1292,8 +1293,8 @@ texture_manager::create( std::string Filename, bool const Loadnow, GLint Formath
         // clean up slashes
         erase_leading_slashes( Filename );
         // temporary code for legacy assets -- textures with names beginning with # are to be sharpened
-        if( ( Filename.front() == '#' )
-         || ( Filename.find( "/#" ) != std::string::npos ) ) {
+        if( ( starts_with( Filename, "#" ) )
+         || ( contains( Filename, "/#" ) ) ) {
             traits += '#';
         }
     }
@@ -1318,7 +1319,7 @@ texture_manager::create( std::string Filename, bool const Loadnow, GLint Formath
         locator = find_on_disk( Filename );
         if( true == locator.first.empty() ) {
             // there's nothing matching in the databank nor on the disk, report failure
-			ErrorLog( "Bad file: failed to locate texture file \"" + Filename + "\"", logtype::file );
+            ErrorLog( "Bad file: failed to locate texture file \"" + Filename + "\"", logtype::file );
             return npos;
         }
     }

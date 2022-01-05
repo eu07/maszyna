@@ -57,7 +57,7 @@ itemproperties_panel::update( scene::basic_node const *Node ) {
     }
 */
     textline =
-        "name: " + ( node->name().empty() ? "(none)" : node->name() )
+        "name: " + ( node->name().empty() ? "(none)" : Bezogonkow( node->name() ) )
         + "\nlocation: [" + to_string( node->location().x, 2 ) + ", " + to_string( node->location().y, 2 ) + ", " + to_string( node->location().z, 2 ) + "]"
         + " (distance: " + to_string( glm::length( glm::dvec3{ node->location().x, 0.0, node->location().z } -glm::dvec3{ camera.Pos.x, 0.0, camera.Pos.z } ), 1 ) + " m)";
     text_lines.emplace_back( textline, Global.UITextColor );
@@ -111,7 +111,7 @@ itemproperties_panel::update( scene::basic_node const *Node ) {
         auto const *subnode = static_cast<TTrack const *>( node );
         // basic attributes
         textline =
-            "isolated: " + ( ( subnode->pIsolated != nullptr ) ? subnode->pIsolated->asName : "(none)" )
+            "isolated: " + ( ( subnode->pIsolated != nullptr ) ? Bezogonkow( subnode->pIsolated->asName ) : "(none)" )
             + "\nvelocity: " + to_string( subnode->SwitchExtension ? subnode->SwitchExtension->fVelocity : subnode->fVelocity )
             + "\nwidth: " + to_string( subnode->fTrackWidth ) + " m"
             + "\nfriction: " + to_string( subnode->fFriction, 2 )
@@ -167,7 +167,7 @@ itemproperties_panel::update( scene::basic_node const *Node ) {
                 }
                 textline += (
                     event.second != nullptr ?
-                        event.second->m_name :
+                        Bezogonkow( event.second->m_name ) :
                         event.first + " (missing)" );
             }
             textline += "] ";
@@ -183,7 +183,7 @@ itemproperties_panel::update( scene::basic_node const *Node ) {
             + " [" + to_string( subnode->Value1(), 2 ) + "]"
             + " [" + to_string( subnode->Value2(), 2 ) + "]";
         text_lines.emplace_back( textline, Global.UITextColor );
-        textline = "track: " + ( subnode->asTrackName.empty() ? "(none)" : subnode->asTrackName );
+        textline = "track: " + ( subnode->asTrackName.empty() ? "(none)" : Bezogonkow( subnode->asTrackName ) );
         text_lines.emplace_back( textline, Global.UITextColor );
     }
 
@@ -393,7 +393,7 @@ nodebank_panel::render() {
                         continue;
                     }
                     if( ( false == searchfilter.empty() )
-                     && ( entry.first.find( searchfilter ) == std::string::npos ) ) {
+                     && ( false == contains( entry.first, searchfilter ) ) ) {
                         continue;
                     }
                     auto const label { " " + entry.first + "##" + std::to_string( idx ) };

@@ -324,6 +324,8 @@ void state_manager::process_commands() {
                 // HACK: force re-calculation of precipitation
                 Global.Overcast = clamp( Global.Overcast - 0.0001f, 0.0f, 2.0f );
             }
+
+            simulation::Environment.update_moon();
         }
 
 		if (commanddata.command == user_command::setweather) {

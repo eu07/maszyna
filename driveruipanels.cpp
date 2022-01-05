@@ -31,6 +31,9 @@ http://mozilla.org/MPL/2.0/.
 #include "Logs.h"
 #include "widgets/vehicleparams.h"
 
+#define DRIVER_HINT_CONTENT
+#include "driverhints.h"
+
 void
 drivingaid_panel::update() {
 
@@ -63,21 +66,53 @@ drivingaid_panel::update() {
                 gradetext = m_buffer.data();
             }
             // next speed limit
-            auto const speedlimit { static_cast<int>( std::floor( owner->VelDesired ) ) };
+            auto const speedlimit { static_cast<int>( owner->VelDesired ) };
             auto nextspeedlimit { speedlimit };
-            auto nextspeedlimitdistance { 0.0 };
-            if( speedlimit != 0 ) {
-                // if we aren't allowed to move then any next speed limit is irrelevant
-                if( ( owner->VelLimitLastDist.first > 0.0 ) && ( owner->VelLimitLastDist.second > 0.0 ) ) {
-                    // first take note of any speed change which should occur after passing potential current speed limit
-                    nextspeedlimit = static_cast<int>( std::floor( owner->VelLimitLastDist.first ) );
+            auto nextspeedlimitdistance { std::numeric_limits<double>::max() };
+            if( speedlimit != 0 ) { // if we aren't allowed to move then any next speed limit is irrelevant
+                // nie przekraczać rozkladowej
+                auto const schedulespeedlimit { (
+                    ( ( owner->OrderCurrentGet() & ( Obey_train | Bank ) ) != 0 ) && ( owner->TrainParams.TTVmax > 0.0 ) ? static_cast<int>( owner->TrainParams.TTVmax ) :
+                    ( ( owner->OrderCurrentGet() & ( Obey_train | Bank ) ) == 0 ) ? static_cast<int>( owner->fShuntVelocity ) :
+                        -1 ) };
+                // first take note of any speed change which should occur after passing potential current speed limit
+                if( owner->VelLimitLastDist.second > 0 ) {
+                    nextspeedlimit = min_speed( schedulespeedlimit, static_cast<int>( owner->VelLimitLastDist.first ) );
                     nextspeedlimitdistance = owner->VelLimitLastDist.second;
                 }
-                auto const speedatproximitydistance{ static_cast<int>( std::floor( owner->VelNext ) ) };
-                if( ( speedatproximitydistance != speedlimit ) && ( speedatproximitydistance < nextspeedlimit ) ) {
-                    // if there's speed reduction down the road then it's more important than any potential speedup
+                // then take into account speed change ahead, compare it with speed after potentially clearing last limit
+                // lower of these two takes priority; otherwise limit lasts at least until potential last limit is cleared
+                auto const noactivespeedlimit { owner->VelLimitLastDist.second < 0 };
+                auto const speedatproximitydistance { min_speed( schedulespeedlimit, static_cast<int>( owner->VelNext ) ) };
+                if( speedatproximitydistance == nextspeedlimit ) {
+                    if( noactivespeedlimit ) {
+                        nextspeedlimit = speedatproximitydistance;
+                        nextspeedlimitdistance = owner->ActualProximityDist;
+                    }
+                }
+                else if( speedatproximitydistance < nextspeedlimit ) {
+                    // if the speed limit ahead is more strict than our current limit, it's important enough to report
+                    if( speedatproximitydistance < owner->VelDesired ) {
+                        nextspeedlimit = speedatproximitydistance;
+                        nextspeedlimitdistance = owner->ActualProximityDist;
+                    }
+                    // otherwise report it only if it's located after our current (lower) limit ends
+                    else if( owner->ActualProximityDist > nextspeedlimitdistance ) {
+                        nextspeedlimit = speedatproximitydistance;
+                        nextspeedlimitdistance = owner->ActualProximityDist;
+                    }
+                }
+                else if( noactivespeedlimit ) { // implicit proximity > last, report only if last limit isn't present
                     nextspeedlimit = speedatproximitydistance;
                     nextspeedlimitdistance = owner->ActualProximityDist;
+                }
+                // HACK: if our current speed limit extends beyond our scan range don't display potentially misleading information about its length
+                if( nextspeedlimitdistance >= EU07_AI_SPEEDLIMITEXTENDSBEYONDSCANRANGE ) {
+                    nextspeedlimit = speedlimit;
+                }
+                // HACK: hide next speed limit if the 'limit' is a vehicle in front of us
+                else if( owner->ActualProximityDist == std::abs( owner->TrackObstacle() ) ) {
+                    nextspeedlimit = speedlimit;
                 }
             }
             std::string nextspeedlimittext;
@@ -147,12 +182,12 @@ drivingaid_panel::update() {
                 expandedtext = m_buffer.data();
             }
             else {
-                auto const trackblockdistance{ std::abs( owner->TrackBlock() ) };
-                if( trackblockdistance <= 75.0 ) {
+                auto const trackobstacledistance { std::abs( owner->TrackObstacle() ) };
+                if( trackobstacledistance <= 75.0 ) {
                     std::snprintf(
                         m_buffer.data(), m_buffer.size(),
 					    STR_C(" Another vehicle ahead (distance: %.1f m)"),
-                        trackblockdistance );
+                        trackobstacledistance );
                     expandedtext = m_buffer.data();
                 }
             }
@@ -239,6 +274,21 @@ scenario_panel::render() {
         for( auto const &line : text_lines ) {
             ImGui::TextColored( ImVec4( line.color.r, line.color.g, line.color.b, line.color.a ), line.data.c_str() );
         }
+        // hints
+        if( owner != nullptr ) {
+            if( true == ImGui::CollapsingHeader( STR_C("Hints"), ImGuiTreeNodeFlags_DefaultOpen ) ) {
+                for( auto const &hint : owner->m_hints ) {
+                    auto const isdone { std::get<TController::hintpredicate>( hint )( std::get<float>( hint ) ) };
+                    auto const hintcolor{ (
+                        isdone ?
+                            colors::uitextgreen :
+                            Global.UITextColor ) };
+                    ImGui::PushStyleColor( ImGuiCol_Text, { hintcolor.r, hintcolor.g, hintcolor.b, hintcolor.a } );
+                    ImGui::TextWrapped( Translations.lookup_c(driver_hints_texts[(size_t)std::get<driver_hint>( hint )], true), std::get<float>( hint ) );
+                    ImGui::PopStyleColor();
+                }
+            }
+        }
     }
     ImGui::End();
 }
@@ -306,12 +356,12 @@ timetable_panel::update() {
 
     if( is_expanded ) {
 
-        if( vehicle->MoverParameters->CategoryFlag == 1 ) {
+        if( owner->is_train() ) {
             // consist data
             auto consistmass { owner->fMass };
             auto consistlength { owner->fLength };
-            if( ( owner->mvControlling->TrainType != dt_DMU )
-             && ( owner->mvControlling->TrainType != dt_EZT ) ) {
+            if( ( false == owner->is_dmu() )
+             && ( false == owner->is_emu() ) ) {
 				//odejmij lokomotywy czynne, a przynajmniej aktualną
 				consistmass -= owner->pVehicle->MoverParameters->TotalMass;
 				// subtract potential other half of a two-part vehicle
@@ -334,23 +384,18 @@ timetable_panel::update() {
         if( 0 == table.StationCount ) {
             // only bother if there's stations to list
             text_lines.emplace_back( STR("(no timetable)"), Global.UITextColor );
-        } 
+        }
         else {
-
-            auto const loadingcolor { glm::vec4( 164.0f / 255.0f, 84.0f / 255.0f, 84.0f / 255.0f, 1.f ) };
-            auto const waitcolor { glm::vec4( 164.0f / 255.0f, 132.0f / 255.0f, 84.0f / 255.0f, 1.f ) };
-            auto const readycolor { glm::vec4( 84.0f / 255.0f, 164.0f / 255.0f, 132.0f / 255.0f, 1.f ) };
-
 			// header
             m_tablelines.emplace_back( u8"┌─────┬────────────────────────────────────┬─────────┬─────┐", Global.UITextColor );
 
             TMTableLine const *tableline;
-            for( int i = owner->iStationStart; i <= table.StationCount; ++i ) {
+            for( int i = table.StationStart; i <= table.StationCount; ++i ) {
                 // wyświetlenie pozycji z rozkładu
                 tableline = table.TimeTable + i; // linijka rozkładu
 
                 bool vmaxchange { true };
-                if( i > owner->iStationStart ) {
+                if( i > table.StationStart ) {
                     auto const *previoustableline { tableline - 1 };
                     if( tableline->vmax == previoustableline->vmax ) {
                         vmaxchange = false;
@@ -380,7 +425,7 @@ timetable_panel::update() {
                         to_string( int( 100 + tableline->Dh ) ).substr( 1, 2 ) + ":" + to_minutes_str( tableline->Dm, true, 3 ) :
                         u8"  │   " ) };
                 auto const candepart { (
-                       ( owner->iStationStart < table.StationIndex )
+                       ( table.StationStart < table.StationIndex )
                     && ( i < table.StationIndex )
                     && ( ( tableline->Ah < 0 ) // pass-through, always valid
                       || ( tableline->is_maintenance ) // maintenance stop, always valid
@@ -392,10 +437,10 @@ timetable_panel::update() {
                     tableline->Ah >= 0 ? to_minutes_str( CompareTime( table.TimeTable[ i - 1 ].Dh, table.TimeTable[ i - 1 ].Dm, tableline->Ah, tableline->Am ), false, 3 ) :
                     to_minutes_str( std::max( 0.0, CompareTime( table.TimeTable[ i - 1 ].Dh, table.TimeTable[ i - 1 ].Dm, tableline->Dh, tableline->Dm ) - 0.5 ), false, 3 ) ) };
                 auto const linecolor { (
-                    ( i != owner->iStationStart ) ? Global.UITextColor :
-                    loadchangeinprogress ? loadingcolor :
-                    candepart ? readycolor : // czas minął i odjazd był, to nazwa stacji będzie na zielono
-                    isatpassengerstop ? waitcolor :
+                    ( i != table.StationStart ) ? Global.UITextColor :
+                    loadchangeinprogress ? colors::uitextred :
+                    candepart ? colors::uitextgreen : // czas minął i odjazd był, to nazwa stacji będzie na zielono
+                    isatpassengerstop ? colors::uitextorange :
                     Global.UITextColor ) };
                 auto const trackcount{ ( tableline->TrackNo == 1 ? u8" ┃  " : u8" ║  " ) };
                 m_tablelines.emplace_back(
@@ -557,10 +602,7 @@ debug_panel::render() {
         render_section( "Vehicle AI", m_ailines );
         render_section( "Vehicle Scan Table", m_scantablelines );
         render_section_scenario();
-        if( true == render_section( "Scenario Event Queue", m_eventqueuelines ) ) {
-            // event queue filter
-            ImGui::Checkbox( "By This Vehicle Only", &m_eventqueueactivevehicleonly );
-        }
+        render_section_eventqueue();
         if( true == render_section( "Power Grid", m_powergridlines ) ) {
             // traction state debug
             ImGui::Checkbox( "Debug Traction", &DebugTractionFlag );
@@ -622,26 +664,58 @@ debug_panel::render_section_scenario() {
                 GLFW_PRESS, 0 );
         }
     }
-    // time of day slider
-    {
-        ImGui::PushStyleColor( ImGuiCol_Text, { Global.UITextColor.r, Global.UITextColor.g, Global.UITextColor.b, Global.UITextColor.a } );
-        ImGui::TextUnformatted( "CAUTION: time change will affect simulation state" );
-        ImGui::PopStyleColor();
-        auto time = simulation::Time.data().wHour * 60 + simulation::Time.data().wMinute;
-        auto const timestring{
-            std::string( to_string( int( 100 + simulation::Time.data().wHour ) ).substr( 1, 2 )
-                + ":"
-                + std::string( to_string( int( 100 + simulation::Time.data().wMinute ) ).substr( 1, 2 ) ) ) };
-        if( ImGui::SliderInt( ( timestring + " (" + Global.Period + ")###simulationtime" ).c_str(), &time, 0, 1439, "Time of day" ) ) {
-            command_relay relay;
-            relay.post(
-                user_command::setdatetime,
-                Global.fMoveLight,
-                clamp( time, 0, 1439 ),
-                GLFW_PRESS, 0 );
+    // dynamic material update checkbox
+    ImGui::Checkbox( "Update Item Materials", &Global.UpdateMaterials );
+    if( DebugModeFlag ) {
+        if( ImGui::Checkbox( "Force Daylight", &Global.FakeLight ) ) {
+            simulation::Environment.on_daylight_change();
         }
     }
-    ImGui::Checkbox( "Update Item Materials", &Global.UpdateMaterials );
+    // advanced options, only visible in debug mode
+    if( DebugModeFlag ) {
+        // time of day slider
+        {
+            ImGui::PushStyleColor( ImGuiCol_Text, { Global.UITextColor.r, Global.UITextColor.g, Global.UITextColor.b, Global.UITextColor.a } );
+            ImGui::TextUnformatted( "CAUTION: time change will affect simulation state" );
+            ImGui::PopStyleColor();
+            auto time = simulation::Time.data().wHour * 60 + simulation::Time.data().wMinute;
+            auto const timestring {
+                std::string( to_string( int( 100 + simulation::Time.data().wHour ) ).substr( 1, 2 )
+                    + ":"
+                    + std::string( to_string( int( 100 + simulation::Time.data().wMinute ) ).substr( 1, 2 ) ) ) };
+            if( ImGui::SliderInt( ( timestring + " (" + Global.Period + ")###simulationtime" ).c_str(), &time, 0, 1439, "Time of day" ) ) {
+                command_relay relay;
+                relay.post(
+                    user_command::setdatetime,
+                    Global.fMoveLight,
+                    clamp( time, 0, 1439 ),
+                    GLFW_PRESS, 0 );
+            }
+        }
+        // time acceleration
+        {
+            auto timerate { ( Global.fTimeSpeed == 60 ? 4 : Global.fTimeSpeed == 20 ? 3 : Global.fTimeSpeed == 5 ? 2 : 1 ) };
+            if( ImGui::SliderInt( ( "x " + to_string( Global.fTimeSpeed, 0 ) + "###timeacceleration" ).c_str(), &timerate, 1, 4, "Time acceleration" ) ) {
+                Global.fTimeSpeed = ( timerate == 4 ? 60 : timerate == 3 ? 20 : timerate == 2 ? 5 : 1 );
+            }
+        }
+    }
+
+    return true;
+}
+
+bool
+debug_panel::render_section_eventqueue() {
+
+    if( false == ImGui::CollapsingHeader( "Scenario Event Queue" ) ) { return false; }
+    // event queue name filter
+    ImGui::PushItemWidth( -1 );
+    ImGui::InputTextWithHint( "", "Search event queue", m_eventsearch.data(), m_eventsearch.size() );
+    ImGui::PopItemWidth();
+    // event queue
+    render_section( m_eventqueuelines );
+    // event queue activator filter
+    ImGui::Checkbox( "By This Vehicle Only", &m_eventqueueactivevehicleonly );
 
     return true;
 }
@@ -676,7 +750,7 @@ debug_panel::update_section_vehicle( std::vector<text_line> &Output ) {
 
     std::snprintf(
         m_buffer.data(), m_buffer.size(),
-        STR_C("Devices: %c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%s%s\nPower transfers: %.0f@%.0f%s[%.0f]%s%.0f@%.0f :: %.0f@%.0f%s[%.0f]%s%.0f@%.0f"),
+        STR_C("Devices: %c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%s%s\nPower transfers: %.0f@%.0f%s[%.0f]%s%.0f@%.0f :: %.0f@%.0f%s[%.0f]%s%.0f@%.0f"),
         // devices
         ( mover.Battery ? 'B' : '.' ),
         ( mover.PantsValve.is_active ? '+' : '.' ),
@@ -684,17 +758,18 @@ debug_panel::update_section_vehicle( std::vector<text_line> &Output ) {
         ( mover.Pantographs[ end::front ].valve.is_active ? 'P' : ( mover.Pantographs[ end::front ].valve.is_enabled ? 'p' : '.' ) ),
         ( mover.PantPressLockActive ? '!' : ( mover.PantPressSwitchActive ? '*' : '.' ) ),
         ( mover.WaterPump.is_active ? 'W' : ( false == mover.WaterPump.breaker ? '-' : ( mover.WaterPump.is_enabled ? 'w' : '.' ) ) ),
-        ( true == mover.WaterHeater.is_damaged ? '!' : ( mover.WaterHeater.is_active ? 'H' : ( false == mover.WaterHeater.breaker ? '-' : ( mover.WaterHeater.is_enabled ? 'h' : '.' ) ) ) ),
+        ( mover.WaterHeater.is_damaged ? '!' : ( mover.WaterHeater.is_active ? 'H' : ( false == mover.WaterHeater.breaker ? '-' : ( mover.WaterHeater.is_enabled ? 'h' : '.' ) ) ) ),
         ( mover.FuelPump.is_active ? 'F' : ( mover.FuelPump.is_enabled ? 'f' : '.' ) ),
         ( mover.OilPump.is_active ? 'O' : ( mover.OilPump.is_enabled ? 'o' : '.' ) ),
         ( mover.Mains ? 'M' : '.' ),
         ( mover.FuseFlag ? '!' : '.' ),
-        ( false == mover.ConverterAllowLocal ? '-' : ( mover.ConverterAllow ? ( mover.ConverterFlag ? 'X' : 'x' ) : '.' ) ),
+        ( mover.ConverterFlag ? 'X' : ( false == mover.ConverterAllowLocal ? '-' : ( mover.ConverterAllow ?  'x' : '.' ) ) ),
         ( mover.ConvOvldFlag ? '!' : '.' ),
         ( mover.CompressorFlag ? 'C' : ( false == mover.CompressorAllowLocal ? '-' : ( ( mover.CompressorAllow || ( mover.CompressorStart == start_t::automatic && mover.CompressorSpeed > 0.0 ) ) ? 'c' : '.' ) ) ),
         ( mover.CompressorGovernorLock ? '!' : '.' ),
         ( mover.StLinSwitchOff ? '-' : ( mover.ControlPressureSwitch ? '!' : ( mover.StLinFlag ? '+' : '.' ) ) ),
         ( mover.Heating ? 'H' : ( mover.HeatingAllow ? 'h' : '.' ) ),
+        ( mover.Hamulec->Releaser() ? '^' : '.' ),
         std::string( m_input.mechanik ? STR(" R") + ( mover.Radio ? std::to_string( m_input.mechanik->iRadioChannel ) : "-" ) : "" ).c_str(),
         std::string( isdieselenginepowered ? STR(" oil pressure: ") + to_string( mover.OilPump.pressure, 2 )  : "" ).c_str(),
         // power transfers
@@ -814,9 +889,28 @@ debug_panel::update_section_vehicle( std::vector<text_line> &Output ) {
     Output.emplace_back( m_buffer.data(), Global.UITextColor );
 
     if( mover.EnginePowerSource.SourceType == TPowerSource::CurrentCollector ) {
-        std::snprintf(m_buffer.data(), m_buffer.size(), STR_C("Electricity usage:\n drawn:    %.1f kWh\n returned: %.1f kWh\n balance:  %.1f kWh"),
+        std::snprintf(m_buffer.data(), m_buffer.size(), STR_C("Power use:\n drawn:    %.1f kWh\n returned: %.1f kWh\n balance:  %.1f kWh"),
                       mover.EnergyMeter.first, -mover.EnergyMeter.second, mover.EnergyMeter.first + mover.EnergyMeter.second);
-        Output.emplace_back( m_buffer.data(), Global.UITextColor );
+        textline = m_buffer.data();
+        if( DebugTractionFlag ) {
+            for( int i = 0; i < vehicle.iAnimType[ ANIM_PANTS ]; ++i ) { // pętla po wszystkich pantografach
+                auto const *p { vehicle.pants[ i ].fParamPants };
+                if( p && p->hvPowerWire ) {
+                    auto const *powerwire { p->hvPowerWire };
+                    std::snprintf(
+                        m_buffer.data(), m_buffer.size(),
+                        STR_C("\n pantograph %d: drawing from: [%s, %s] through: [%.2f, %.2f, %.2f]"),
+                        i,
+                        powerwire->psPower[ 0 ] ? powerwire->psPower[ 0 ]->name() : "none",
+                        powerwire->psPower[ 1 ] ? powerwire->psPower[ 1 ]->name() : "none",
+                        powerwire->pPoint1[ 0 ],
+                        powerwire->pPoint1[ 1 ],
+                        powerwire->pPoint1[ 2 ] );
+                    textline += m_buffer.data();
+                }
+            }
+        }
+	Output.emplace_back( textline, Global.UITextColor );
     }
 
 	if (!std::isnan(last_time)) {
@@ -858,7 +952,7 @@ debug_panel::update_vehicle_coupler( int const Side ) {
 	auto const *connected { m_input.vehicle->MoverParameters->Neighbours[ Side ].vehicle };
 
     if( connected == nullptr ) {
-        
+
         return controltype + " " + couplerstatus + " " + adapterstatus;
     }
 
@@ -991,7 +1085,7 @@ debug_panel::update_section_ai( std::vector<text_line> &Output ) {
     // biezaca komenda dla AI
     auto textline =
         "Current order: [" + std::to_string( mechanik.OrderPos ) + "] "
-        + mechanik.OrderCurrent();
+        + mechanik.Order2Str( mechanik.OrderCurrentGet() );
 
     if( mechanik.fStopTime < 0.0 ) {
         textline += "\n stop time: " + to_string( std::abs( mechanik.fStopTime ), 1 );
@@ -1009,6 +1103,15 @@ debug_panel::update_section_ai( std::vector<text_line> &Output ) {
     textline =
         "Distances:\n proximity: " + to_string( mechanik.ActualProximityDist, 0 )
         + ", braking: " + to_string( mechanik.fBrakeDist, 0 );
+    if( mechanik.VelLimitLastDist.second > 0 ) {
+        textline += ", last limit: " + (
+            mechanik.VelLimitLastDist.second < EU07_AI_SPEEDLIMITEXTENDSBEYONDSCANRANGE ?
+                to_string( mechanik.VelLimitLastDist.second, 0 ) :
+                "???" );
+    }
+    if( mechanik.SwitchClearDist > 0 ) {
+        textline += ", switches: " + to_string( mechanik.SwitchClearDist, 0 );
+    }
 
     if( mechanik.Obstacle.distance < 5000 ) {
         textline +=
@@ -1021,7 +1124,8 @@ debug_panel::update_section_ai( std::vector<text_line> &Output ) {
     // velocity factors
     textline =
         "Velocity:\n desired: " + to_string( mechanik.VelDesired, 0 )
-        + ", next: " + to_string( mechanik.VelNext, 0 );
+        + ", next: " + to_string( mechanik.VelNext, 0 )
+        + "\n current: " + to_string( mover.Vel + 0.001f, 2 );
 
     std::vector< std::pair< double, std::string > > const restrictions{
         { mechanik.VelSignalLast, "signal" },
@@ -1051,29 +1155,32 @@ debug_panel::update_section_ai( std::vector<text_line> &Output ) {
     textline =
         "Acceleration:\n desired: " + to_string( mechanik.AccDesired, 2 )
         + ", corrected: " + to_string( mechanik.AccDesired * mechanik.BrakeAccFactor(), 2 )
-        + "\n current: " + to_string( mechanik.AbsAccS_pub + 0.001f, 2 )
+        + "\n current: " + to_string( mechanik.AbsAccS + 0.001f, 2 )
         + ", slope: " + to_string( mechanik.fAccGravity + 0.001f, 2 ) + " (" + ( mechanik.fAccGravity > 0.01 ? "\\" : ( mechanik.fAccGravity < -0.01 ? "/" : "-" ) ) + ")"
-        + "\n brake threshold: " + to_string( mechanik.fAccThreshold, 2 )
-        + ", delays: " + to_string( mechanik.fBrake_a0[ 0 ], 2 )
-        + "+" + to_string( mechanik.fBrake_a1[ 0 ], 2 )
-		+ "\n virtual brake position: " + to_string(mechanik.BrakeCtrlPosition, 2)
 		+ "\n desired diesel percentage: " + to_string(mechanik.DizelPercentage)
 	    + "/" + to_string(mechanik.DizelPercentage_Speed)
 		+ "/" + to_string(100.4*mechanik.mvControlling->eimic_real, 0);
 
 	Output.emplace_back( textline, Global.UITextColor );
 
-	// brakes
-	textline =
-	    "Brakes:\n consist: " + to_string( mechanik.fReady, 2 ) + " or less";
+    // brakes
+    textline =
+        "Brakes:\n highest pressure: " + to_string( mechanik.fReady, 2 ) + ( mechanik.Ready ? " (all brakes released)" : "" )
+        + "\n activation threshold: " + to_string( mechanik.fAccThreshold, 2 )
+        + ", delays: " + to_string( mechanik.fBrake_a0[ 0 ], 2 ) + " + " + to_string( mechanik.fBrake_a1[ 0 ], 2 )
+        + "\n virtual brake position: " + to_string( mechanik.BrakeCtrlPosition, 2 )
+        + "\n test stage: " + to_string( mechanik.DynamicBrakeTest )
+        + ", applied at: " + to_string( mechanik.DBT_VelocityBrake, 0 )
+        + ", release at: " + to_string( mechanik.DBT_VelocityRelease, 0 )
+        + ", done at: " + to_string( mechanik.DBT_VelocityFinish, 0 );
 
 	Output.emplace_back( textline, Global.UITextColor );
 
-	// ai driving flags
-	std::vector<std::string> const drivingflagnames {
-		"StopCloser", "StopPoint", "Active", "Press", "Connect", "Primary", "Late", "StopHere",
-		"StartHorn", "StartHornNow", "StartHornDone", "Oerlikons", "IncSpeed", "TrackEnd", "SwitchFound", "GuardSignal",
-		"Visibility", "DoorOpened", "PushPull", "SemaphorFound", "StopPointFound" /*"SemaphorWasElapsed", "TrainInsideStation", "SpeedLimitFound"*/ };
+    // ai driving flags
+    std::vector<std::string> const drivingflagnames {
+        "StopCloser", "StopPoint", "Active", "Press", "Connect", "Primary", "Late", "StopHere",
+        "StartHorn", "StartHornNow", "StartHornDone", "Oerlikons", "IncSpeed", "TrackEnd", "SwitchFound", "GuardSignal",
+        "Visibility", "DoorOpened", "PushPull", "SignalFound", "StopPointFound" /*"SemaphorWasElapsed", "TrainInsideStation", "SpeedLimitFound"*/ };
 
 	textline = "Driving flags:";
 	for( int idx = 0, flagbit = 1; idx < drivingflagnames.size(); ++idx, flagbit <<= 1 ) {
@@ -1116,7 +1223,6 @@ debug_panel::update_section_scenario( std::vector<text_line> &Output ) {
     Output.emplace_back( textline, Global.UITextColor );
     // current luminance level
     textline = "Light level: " + to_string( Global.fLuminance, 3 ) + ( Global.FakeLight ? "(*)" : "" );
-    if( Global.FakeLight ) { textline += "(*)"; }
     textline +=
         "\nWind: azimuth "
         + to_string( simulation::Environment.wind_azimuth(), 0 ) // ma być azymut, czyli 0 na północy i rośnie na wschód
@@ -1134,9 +1240,10 @@ debug_panel::update_section_eventqueue( std::vector<text_line> &Output ) {
 
 	std::string textline;
 
-	// current event queue
-	auto const time { Timer::GetTime() };
-	auto const *event { simulation::Events.begin() };
+    // current event queue
+    auto const time { Timer::GetTime() };
+    auto const *event { simulation::Events.begin() };
+    auto const searchfilter { std::string( m_eventsearch.data() ) };
 
 	Output.emplace_back( "Delay:   Event:", Global.UITextColor );
 
@@ -1148,19 +1255,31 @@ debug_panel::update_section_eventqueue( std::vector<text_line> &Output ) {
 		 && ( ( false == m_eventqueueactivevehicleonly )
 		   || ( event->m_activator == m_input.vehicle ) ) ) {
 
-			auto const delay { "   " + to_string( std::max( 0.0, event->m_launchtime - time ), 1 ) };
-			textline = delay.substr( delay.length() - 6 )
-			    + "   " + event->m_name
-			    + ( event->m_activator ? " (by: " + event->m_activator->asName + ")" : "" )
-			    + ( event->m_sibling ? " (joint event)" : "" );
+            auto const label { event->m_name + ( event->m_activator ? " (by: " + event->m_activator->asName + ")" : "" ) };
 
-			Output.emplace_back( textline, Global.UITextColor );
-		}
-		event = event->m_next;
-	}
-	if( Output.size() == 1 ) {
-		Output.front().data = "(no queued events)";
-	}
+            if( ( false == searchfilter.empty() )
+             && ( false == contains( label, searchfilter ) ) ) {
+                event = event->m_next;
+                continue;
+            }
+
+            auto const delay { "   " + to_string( std::max( 0.0, event->m_launchtime - time ), 1 ) };
+            textline =
+                delay.substr( delay.length() - 6 )
+                + "   "
+                + label + ( event->m_sibling ? " (joint event)" : "" );
+
+            Output.emplace_back( textline, Global.UITextColor );
+        }
+        event = event->m_next;
+    }
+    if( Output.size() == 1 ) {
+        // event queue can be empty either because no event got through active filters, or because it is genuinely empty
+        Output.front().data = (
+            simulation::Events.begin() == nullptr ?
+                "(no queued events)" :
+                "(no matching events)" );
+    }
 }
 
 void
@@ -1175,7 +1294,8 @@ debug_panel::update_section_powergrid( std::vector<text_line> &Output ) {
 
 	for( auto const *powerstation : simulation::Powergrid.sequence() ) {
 
-		if( true == powerstation->bSection ) { continue; }
+        if( true == powerstation->IsAutogenerated ) { continue; }
+        if( true == powerstation->bSection )        { continue; }
 
 		auto const name { (
 			powerstation->m_name.empty() ?
@@ -1277,10 +1397,16 @@ debug_panel::render_section( std::string const &Header, std::vector<text_line> c
 	if( true == Lines.empty() ) { return false; }
 	if( false == ImGui::CollapsingHeader( Header.c_str() ) ) { return false; }
 
-	for( auto const &line : Lines ) {
-		ImGui::PushStyleColor( ImGuiCol_Text, { line.color.r, line.color.g, line.color.b, line.color.a } );
-		ImGui::TextUnformatted( line.data.c_str() );
-		ImGui::PopStyleColor();
+    return render_section( Lines );
+}
+
+bool
+debug_panel::render_section( std::vector<text_line> const &Lines ) {
+
+    for( auto const &line : Lines ) {
+        ImGui::PushStyleColor( ImGuiCol_Text, { line.color.r, line.color.g, line.color.b, line.color.a } );
+        ImGui::TextUnformatted( line.data.c_str() );
+        ImGui::PopStyleColor();
 //        ImGui::TextColored( ImVec4( line.color.r, line.color.g, line.color.b, line.color.a ), line.data.c_str() );
 	}
 	return true;
@@ -1296,6 +1422,21 @@ debug_panel::render_section_settings() {
     ImGui::PopStyleColor();
     // reflection fidelity
     ImGui::SliderInt( ( to_string( Global.reflectiontune.fidelity ) + "###reflectionfidelity" ).c_str(), &Global.reflectiontune.fidelity, 0, 2, "Reflection fidelity" );
+    ImGui::SliderInt( ( to_string( Global.gfx_shadow_rank_cutoff ) + "###shadowrankcutoff" ).c_str(), &Global.gfx_shadow_rank_cutoff, 1, 3, "Shadow ranks" );
+    if( ImGui::SliderFloat( ( to_string( std::abs( Global.gfx_shadow_angle_min ), 2 ) + "###shadowanglecutoff" ).c_str(), &Global.gfx_shadow_angle_min, -1.0, -0.2, "Shadow angle cutoff" ) ) {
+        Global.gfx_shadow_angle_min = quantize( Global.gfx_shadow_angle_min, 0.05f );
+    };
+    if( DebugModeFlag ) {
+        // sky sliders
+        {
+            ImGui::SliderFloat(
+                ( to_string( Global.m_skysaturationcorrection, 2, 5 ) + "###skysaturation" ).c_str(), &Global.m_skysaturationcorrection, 0.0f, 3.0f, "Sky saturation" );
+        }
+        {
+            ImGui::SliderFloat(
+                ( to_string( Global.m_skyhuecorrection, 2, 5 ) + "###skyhue" ).c_str(), &Global.m_skyhuecorrection, 0.0f, 1.0f, "Sky hue correction" );
+        }
+    }
 
     ImGui::PushStyleColor( ImGuiCol_Text, { Global.UITextColor.r, Global.UITextColor.g, Global.UITextColor.b, Global.UITextColor.a } );
     ImGui::TextUnformatted( "Sound" );

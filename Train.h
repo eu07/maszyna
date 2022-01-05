@@ -18,6 +18,7 @@ http://mozilla.org/MPL/2.0/.
 #include "PyInt.h"
 #include "command.h"
 #include "pythonscreenviewer.h"
+#include "dictionary.h"
 
 #undef snprintf // pyint.h->python
 
@@ -104,6 +105,7 @@ class TTrain {
         float reservoir_pressure;
         float pipe_pressure;
         float brake_pressure;
+        float pantograph_pressure;
         float hv_voltage;
         std::array<float, 3> hv_current;
         float lv_voltage;
@@ -111,16 +113,33 @@ class TTrain {
 		std::uint8_t radio_channel;
 		std::uint8_t springbrake_active;
         std::uint8_t epbrake_enabled;
+		std::uint8_t dir_forward;
+		std::uint8_t dir_backward;
+		std::uint8_t doorleftallowed;
+		std::uint8_t doorleftopened;
+		std::uint8_t doorrightallowed;
+		std::uint8_t doorrightopened;
+		std::uint8_t doorstepallowed;
+		std::uint8_t battery;
+		std::uint8_t emergencybrake;
+		std::uint8_t lockpipe;
     };
 
     struct screen_entry {
-        std::string rendererpath;
+
+        std::string script;
+        std::string target;
         std::shared_ptr<python_rt> rt;
-        std::unique_ptr<python_screen_viewer> viewer;
+        std::shared_ptr<python_screen_viewer> viewer;
         std::shared_ptr<std::vector<glm::vec2>> touch_list;
+
+        dictionary_source parameters; // cached pre-processed optional per-screen parameters
+
+        void deserialize( cParser &Input );
+        bool deserialize_mapping( cParser &Input );
     };
 
-	typedef std::vector<screen_entry> screen_map;
+	typedef std::vector<screen_entry> screenentry_sequence;
 
 // methods
     bool CabChange(int iDirection);
@@ -131,16 +150,23 @@ class TTrain {
     // McZapkie-010302
     bool Init(TDynamicObject *NewDynamicObject, bool e3d = false);
 
-    inline Math3D::vector3 GetDirection() { return DynamicObject->VectorFront(); };
-    inline Math3D::vector3 GetUp() { return DynamicObject->VectorUp(); };
-    inline std::string GetLabel( TSubModel const *Control ) const { return m_controlmapper.find( Control ); }
+    inline
+    Math3D::vector3 GetDirection() const {
+        return DynamicObject->VectorFront(); };
+    inline
+    Math3D::vector3 GetUp() const {
+        return DynamicObject->VectorUp(); };
+    inline
+    std::string GetLabel( TSubModel const *Control ) const {
+        return m_controlmapper.find( Control ); }
     void UpdateCab();
     bool Update( double const Deltatime );
     void add_distance( double const Distance );
     // McZapkie-310302: ladowanie parametrow z pliku
     bool LoadMMediaFile(std::string const &asFileName);
-    dictionary_source *GetTrainState();
+    dictionary_source *GetTrainState( dictionary_source const &Extraparameters );
     state_t get_state() const;
+    // basic_table interface
     inline
     std::string name() const {
         return Dynamic()->name(); }
@@ -175,6 +201,8 @@ class TTrain {
     void set_paired_open_motor_connectors_button( bool const State );
     // helper, common part of pantograph selection methods
     void change_pantograph_selection( int const Change );
+    // helper, common part of pantograh valves state update methods
+    void update_pantograph_valves();
     // update function subroutines
     void update_sounds( double const Deltatime );
     void update_sounds_runningnoise( sound_source &Sound );
@@ -278,6 +306,8 @@ class TTrain {
     static void OnCommand_pantographtoggleselected( TTrain *Train, command_data const &Command );
     static void OnCommand_pantographraiseselected( TTrain *Train, command_data const &Command );
     static void OnCommand_pantographlowerselected( TTrain *Train, command_data const &Command );
+    static void OnCommand_pantographvalvesupdate( TTrain *Train, command_data const &Command );
+    static void OnCommand_pantographvalvesoff( TTrain *Train, command_data const &Command );
     static void OnCommand_linebreakertoggle( TTrain *Train, command_data const &Command );
     static void OnCommand_linebreakeropen( TTrain *Train, command_data const &Command );
     static void OnCommand_linebreakerclose( TTrain *Train, command_data const &Command );
@@ -464,6 +494,7 @@ public: // reszta może by?publiczna
     TGauge ggMainCtrlAct;
     TGauge ggScndCtrl;
     TGauge ggScndCtrlButton;
+    TGauge ggScndCtrlOffButton;
     TGauge ggDirKey;
     TGauge ggDirForwardButton;
     TGauge ggDirNeutralButton;
@@ -572,6 +603,7 @@ public: // reszta może by?publiczna
     TGauge ggDoorAllOnButton;
     TGauge ggDoorAllOffButton;
     TGauge ggDepartureSignalButton;
+    TGauge ggDoorStepButton;
 
     // Winger 160204 - obsluga pantografow - ZROBIC
 /*
@@ -583,7 +615,7 @@ public: // reszta może by?publiczna
     TGauge ggPantAllDownButton;
     TGauge ggPantSelectedButton;
     TGauge ggPantSelectedDownButton;
-    TGauge ggPantSelectButton;
+    TGauge ggPantValvesButton;
     TGauge ggPantCompressorButton;
     TGauge ggPantCompressorValve;
     // Winger 020304 - wlacznik ogrzewania
@@ -650,7 +682,8 @@ public: // reszta może by?publiczna
     TButton btLampkaOgrzewanieSkladu;
     TButton btLampkaSHP;
     TButton btLampkaCzuwaka; // McZapkie-141102
-    TButton btLampkaRezerwa;
+	TButton btLampkaCzuwakaSHP;
+	TButton btLampkaRezerwa;
     // youBy - jakies dodatkowe lampki
     TButton btLampkaNapNastHam;
     TButton btLampkaSprezarka;
@@ -707,35 +740,34 @@ public: // reszta może by?publiczna
     TButton btHaslerBrakes; // ciśnienie w cylindrach
     TButton btHaslerCurrent; // prąd na silnikach
 
-    sound_source dsbReverserKey { sound_placement::internal, EU07_SOUND_CABCONTROLSCUTOFFRANGE }; // hunter-121211
-    sound_source dsbNastawnikJazdy { sound_placement::internal, EU07_SOUND_CABCONTROLSCUTOFFRANGE };
-    sound_source dsbNastawnikBocz { sound_placement::internal, EU07_SOUND_CABCONTROLSCUTOFFRANGE }; // hunter-081211
-    sound_source dsbSwitch { sound_placement::internal, EU07_SOUND_CABCONTROLSCUTOFFRANGE };
-    sound_source dsbPneumaticSwitch { sound_placement::internal, EU07_SOUND_CABCONTROLSCUTOFFRANGE };
-
-    sound_source rsHiss { sound_placement::internal, EU07_SOUND_CABCONTROLSCUTOFFRANGE }; // upuszczanie
-    sound_source rsHissU { sound_placement::internal, EU07_SOUND_CABCONTROLSCUTOFFRANGE }; // napelnianie
-    sound_source rsHissE { sound_placement::internal, EU07_SOUND_CABCONTROLSCUTOFFRANGE }; // nagle
-    sound_source rsHissX { sound_placement::internal, EU07_SOUND_CABCONTROLSCUTOFFRANGE }; // fala
-    sound_source rsHissT { sound_placement::internal, EU07_SOUND_CABCONTROLSCUTOFFRANGE }; // czasowy
-    sound_source rsSBHiss { sound_placement::internal, EU07_SOUND_CABCONTROLSCUTOFFRANGE }; // local 
-    sound_source rsSBHissU { sound_placement::internal, EU07_SOUND_CABCONTROLSCUTOFFRANGE }; // local, engage brakes
-    float m_lastlocalbrakepressure { -1.f }; // helper, cached level of pressure in local brake cylinder
-    float m_localbrakepressurechange { 0.f }; // recent change of pressure in local brake cylinder
-
-    sound_source rsFadeSound { sound_placement::internal, EU07_SOUND_CABCONTROLSCUTOFFRANGE };
-    sound_source rsRunningNoise{ sound_placement::internal, EU07_SOUND_GLOBALRANGE };
-    sound_source rsHuntingNoise{ sound_placement::internal, EU07_SOUND_GLOBALRANGE };
-    sound_source m_rainsound { sound_placement::internal, -1 };
-
-    sound_source dsbHasler { sound_placement::internal, EU07_SOUND_CABCONTROLSCUTOFFRANGE };
-    sound_source dsbBuzzer { sound_placement::internal, EU07_SOUND_CABCONTROLSCUTOFFRANGE };
-	sound_source dsbCabsignalBuzzer { sound_placement::internal, EU07_SOUND_CABCONTROLSCUTOFFRANGE };
-    sound_source dsbSlipAlarm { sound_placement::internal, EU07_SOUND_CABCONTROLSCUTOFFRANGE }; // Bombardier 011010: alarm przy poslizgu dla 181/182
+    std::optional<sound_source>
+        dsbNastawnikJazdy,
+        dsbNastawnikBocz,
+        dsbReverserKey,
+        dsbBuzzer,
+        m_radiostop,
+        dsbSlipAlarm,
+        m_distancecounterclear,
+        dsbHasler,
+        dsbSwitch,
+        dsbPneumaticSwitch,
+        rsHiss,
+        rsHissU,
+        rsHissE,
+        rsHissX,
+        rsHissT,
+        rsSBHiss,
+        rsSBHissU,
+        rsBrake,
+        rsFadeSound,
+        rsRunningNoise,
+        rsHuntingNoise,
+        m_rainsound;
     sound_source m_radiosound { sound_placement::internal, 2 * EU07_SOUND_CABCONTROLSCUTOFFRANGE }; // cached template for radio messages
     std::vector<std::pair<int, std::shared_ptr<sound_source>>> m_radiomessages; // list of currently played radio messages
-    sound_source m_radiostop { sound_placement::internal, EU07_SOUND_CABCONTROLSCUTOFFRANGE };
-    sound_source m_distancecounterclear { sound_placement::internal, EU07_SOUND_CABCONTROLSCUTOFFRANGE }; // distance meter 'good to go' alert
+	std::vector<std::pair<std::reference_wrapper<std::optional<sound_source>>, glm::vec3>> CabSoundLocations; // list of offsets for manually located sounds;
+    float m_lastlocalbrakepressure { -1.f }; // helper, cached level of pressure in local brake cylinder
+    float m_localbrakepressurechange { 0.f }; // recent change of pressure in local brake cylinder
 /*
     int iCabLightFlag; // McZapkie:120503: oswietlenie kabiny (0: wyl, 1: przyciemnione, 2: pelne)
     bool bCabLight; // hunter-091012: czy swiatlo jest zapalone?
@@ -757,6 +789,7 @@ private:
     float fConverterTimer; // hunter-261211: dla przekaznika
     float fMainRelayTimer; // hunter-141211: zalaczanie WSa z opoznieniem
     float fScreenTimer { 0.f };
+    int fScreenUpdateRate { 0 }; // vehicle specific python screen update rate override
 
     // McZapkie-240302 - przyda sie do tachometru
     float fTachoVelocity{ 0.0f };
@@ -786,15 +819,16 @@ private:
     float fPPress, fNPress;
     bool m_mastercontrollerinuse { false };
     float m_mastercontrollerreturndelay { 0.f };
-	screen_map m_screens;
+	screenentry_sequence m_screens;
 	uint16_t vid { 0 }; // train network recipient id
     float m_distancecounter { -1.f }; // distance traveled since meter was activated or -1 if inactive
     double m_brakehandlecp{ 0.0 };
-    int m_pantselection{ 0 };
     bool m_doors{ false }; // helper, true if any door is open
     bool m_dirforward{ false }; // helper, true if direction set to forward
     bool m_dirneutral{ false }; // helper, true if direction set to neutral
     bool m_dirbackward{ false }; // helper, true if direction set to backward
+    bool m_doorpermits{ false }; // helper, true if any door permit is active
+    float m_doorpermittimers[2] = { -1.f, -1.f };
     // ld substitute
     bool m_couplingdisconnect { false };
 
@@ -819,7 +853,7 @@ private:
     // checks whether specified point is within boundaries of the active cab
     bool point_inside( Math3D::vector3 const Point ) const;
     Math3D::vector3 clamp_inside( Math3D::vector3 const &Point ) const;
-    const screen_map & get_screens();
+    const screenentry_sequence & get_screens();
 
 	float get_tacho();
 	float get_tank_pressure();

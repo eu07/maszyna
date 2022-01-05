@@ -103,7 +103,7 @@ struct global_settings {
     bool bRollFix{ true }; // czy wykonać przeliczanie przechyłki
     bool bJoinEvents{ false }; // czy grupować eventy o tych samych nazwach
     int iHiddenEvents{ 1 }; // czy łączyć eventy z torami poprzez nazwę toru
-	bool DynamicBrakeTest { false }; //enable dynamic brake tests made by AI drivers
+    bool AITrainman{ true }; // virtual assistant performing consist coupling/decoupling and other maintenance tasks
     // ui
     int PythonScreenUpdateRate{ 200 }; // delay between python-based screen updates, in milliseconds
     int iTextMode{ 0 }; // tryb pracy wyświetlacza tekstowego
@@ -122,7 +122,7 @@ struct global_settings {
     bool bWireFrame{ false };
     bool bAdjustScreenFreq{ true };
     float BaseDrawRange{ 2500.f };
-    int DynamicLightCount{ 8 };
+    int DynamicLightCount{ 7 };
     bool ScaleSpecularValues{ true };
     std::string GfxRenderer{ "default" };
     bool LegacyRenderer{ false };
@@ -152,8 +152,8 @@ struct global_settings {
     bool ResourceMove{ false }; // gfx resources are moved between cpu and gpu side instead of sending a copy
     bool compress_tex{ true }; // all textures are compressed on gpu side
     std::string asSky{ "1" };
-    double fFpsAverage{ 20.0 }; // oczekiwana wartosć FPS
-    double fFpsDeviation{ 5.0 }; // odchylenie standardowe FPS
+    float fFpsAverage{ 0.f }; // oczekiwana wartosć FPS
+    float fFpsDeviation{ 5.f }; // odchylenie standardowe FPS
     double fFpsMin{ 30.0 }; // dolna granica FPS, przy której promień scenerii będzie zmniejszany
     double fFpsMax{ 65.0 }; // górna granica FPS, przy której promień scenerii będzie zwiększany
     // audio
@@ -255,6 +255,10 @@ struct global_settings {
     bool vr = false;
     std::string vr_backend;
 
+    float gfx_distance_factor_max { 3.f };
+    float gfx_shadow_angle_min { -0.2f };
+    int gfx_shadow_rank_cutoff { 3 };
+
     float ui_fontsize = 13.0f;
     float ui_scale = 1.0f;
 
@@ -308,9 +312,13 @@ struct global_settings {
 
 	std::unordered_map<int, std::string> trainset_overrides;
 
+    float m_skysaturationcorrection{ 1.65f };
+    float m_skyhuecorrection{ 0.5f };
+
 // methods
     void LoadIniFile( std::string asFileName );
     void ConfigParse( cParser &parser );
+    bool ConfigParse_gfx( cParser &parser, std::string_view const Token );
     // sends basic content of the class in legacy (text) format to provided stream
     void
         export_as_text( std::ostream &Output ) const;

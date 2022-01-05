@@ -145,7 +145,7 @@ bool TPoKeys55::Connect()
         DeviceIDFromRegistry = ToLower( DeviceIDFromRegistry );
         DeviceIDToFind = ToLower( DeviceIDToFind );
         // Now check if the hardware ID we are looking at contains the correct VID/PID
-        MatchFound = ( DeviceIDFromRegistry.find( DeviceIDToFind ) != std::string::npos );
+        MatchFound = ( contains( DeviceIDFromRegistry, DeviceIDToFind ) );
         if (MatchFound == true)
         {
             // Device must have been found.  Open read and write handles.  In order to do this,we

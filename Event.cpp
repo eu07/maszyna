@@ -298,8 +298,9 @@ basic_event::deserialize( cParser &Input, scene::scratch_data &Scratchpad ) {
     Input >> token;
     deserialize_targets( token );
 
-    if (m_name.substr(0, 5) == "none_")
+    if( starts_with( m_name, "none_" ) ) {
         m_ignored = true; // Ra: takie są ignorowane
+    }
 
     deserialize_( Input, Scratchpad );
     // subclass method is expected to leave next token past its own data preloaded on its exit
@@ -539,10 +540,10 @@ updatevalues_event::run_() {
         auto const location { targetcell->location() };
         for( auto vehicle : targetcell->Track->Dynamics ) {
             if( vehicle->Mechanik ) {
+                WriteLog( " Vehicle: [" + vehicle->name() + "]" );
                 targetcell->PutCommand(
                     vehicle->Mechanik,
                     &location );
-                WriteLog( " Vehicle: [" + vehicle->name() + "]" );
             }
         }
     }
@@ -715,9 +716,10 @@ putvalues_event::deserialize_( cParser &Input, scene::scratch_data &Scratchpad )
     Input.getTokens( 1, false ); // komendy 'case sensitive'
     Input >> token;
     // command type, previously held in param 6
-    if( token.substr( 0, 19 ) == "PassengerStopPoint:" ) {
-        if( token.find( '#' ) != std::string::npos )
+    if( starts_with( token, "PassengerStopPoint:" ) ) {
+        if( contains( token, '#' ) ) {
             token.erase( token.find( '#' ) ); // obcięcie unikatowości
+        }
         win1250_to_ascii( token ); // get rid of non-ascii chars
         m_input.command_type = TCommandType::cm_PassengerStopPoint;
         // nie do kolejki (dla SetVelocity też, ale jak jest do toru dowiązany)
@@ -742,6 +744,10 @@ putvalues_event::deserialize_( cParser &Input, scene::scratch_data &Scratchpad )
     else if( token == "OutsideStation" ) {
         m_input.command_type = TCommandType::cm_OutsideStation;
         m_passive = true; // ma być skanowny, aby AI nie przekraczało W5
+    }
+    else if( token == "CabSignal" ) {
+        m_input.command_type = TCommandType::cm_SecuritySystemMagnet;
+        m_passive = true;
     }
     else {
         m_input.command_type = TCommandType::cm_Unknown;
@@ -778,10 +784,9 @@ putvalues_event::run_() {
          m_input.location.z,
          m_input.location.y };
 
-    std::string vehiclename;
     if( m_activator->Mechanik ) {
         // przekazanie rozkazu do AI
-        vehiclename = m_activator->Mechanik->Vehicle()->name();
+        WriteLog( " Vehicle: [" + m_activator->Mechanik->Vehicle()->name() + "]" );
         m_activator->Mechanik->PutCommand(
             m_input.data_text,
             m_input.data_value_1,
@@ -793,7 +798,7 @@ putvalues_event::run_() {
         // send the command to consist owner,
         // we're acting on presumption there's hardly ever need to issue command to unmanned vehicle
         // and the intended recipient moved between vehicles after the event was queued
-        vehiclename = m_activator->ctOwner->Vehicle()->name();
+        WriteLog( " Vehicle: [" + m_activator->ctOwner->Vehicle()->name() + "]" );
         m_activator->ctOwner->PutCommand(
             m_input.data_text,
             m_input.data_value_1,
@@ -802,15 +807,13 @@ putvalues_event::run_() {
     }
     else {
         // przekazanie do pojazdu
-        vehiclename = m_activator->name();
+        WriteLog( " Vehicle: [" + m_activator->name() +"]" );
         m_activator->MoverParameters->PutCommand(
             m_input.data_text,
             m_input.data_value_1,
             m_input.data_value_2,
             loc );
     }
-
-    WriteLog( " Vehicle: [" + vehiclename + "]" );
 }
 
 // export_as_text() subclass details
@@ -832,8 +835,8 @@ putvalues_event::export_as_text_( std::ostream &Output ) const {
 bool
 putvalues_event::is_command_for_owner( input_data const &Input ) const {
 
-    if( Input.data_text.rfind( "Load=", 0 ) == std::string::npos ) { return false; }
-    if( Input.data_text.rfind( "UnLoad=", 0 ) == std::string::npos ) { return false; }
+    if( starts_with( Input.data_text, "Load=" ) )   { return false; }
+    if( starts_with( Input.data_text, "UnLoad=" ) ) { return false; }
     // TBD, TODO: add other exceptions
 
     return true;
@@ -947,10 +950,10 @@ copyvalues_event::run_() {
         auto const location { targetcell->location() };
         for( auto vehicle : targetcell->Track->Dynamics ) {
             if( vehicle->Mechanik ) {
+                WriteLog( " Vehicle: [" + vehicle->name() + "]" );
                 targetcell->PutCommand(
                     vehicle->Mechanik,
                     &location );
-                WriteLog( " Vehicle: [" + vehicle->name() + "]" );
             }
         }
     }
@@ -1018,6 +1021,7 @@ whois_event::run_() {
         auto *targetcell { static_cast<TMemCell *>( std::get<scene::basic_node *>( target ) ) };
         if( targetcell == nullptr ) { continue; }
         // event effect code
+        // +40: next station name, unused, stop at next station (duplicate of +0 2nd numeric value)
         // +32: vehicle name
         // +24: vehicle type, consist brake level, obstacle distance
         // +16: load type, load amount, max load amount
@@ -1025,6 +1029,35 @@ whois_event::run_() {
         // +0: train name, station count, stop on next station
         if( m_input.flags & flags::whois_name ) {
             // +32 or +40
+            // next station name
+            if( m_input.flags & flags::mode_alt ) {
+                auto const *owner { (
+                    ( ( m_activator->Mechanik != nullptr ) && ( m_activator->Mechanik->primary() ) ) ?
+                        m_activator->Mechanik :
+                        m_activator->ctOwner ) };
+                auto const nextstop { (
+                    owner != nullptr ?
+                        owner->TrainTimetable().NextStop() :
+                        "none" ) };
+                auto const isstop { (
+                    ( ( owner != nullptr ) && ( owner->IsStop() ) ) ?
+                        1 :
+                        0 ) }; // 1, gdy ma tu zatrzymanie
+
+                targetcell->UpdateValues(
+                    nextstop, // next station name
+                    0, // unused
+                    isstop, // stop at next station or passthrough
+                    m_input.flags & ( flags::text | flags::value1 | flags::value2 ) );
+
+                WriteLog(
+                    "Type: WhoIs (" + to_string( m_input.flags ) + ") - "
+                    + "[next station: " + nextstop + "], "
+                    + "[X], "
+                    + "[stop at next station: " + ( isstop != 0 ? "yes" : "no" ) + "]" );
+            }
+            // vehicle name
+            else {
                 targetcell->UpdateValues(
                     m_activator->asName, // vehicle name
                     0, // unused
@@ -1036,6 +1069,7 @@ whois_event::run_() {
                     + "[name: " + m_activator->asName + "], "
                     + "[X], "
                     + "[X]" );
+            }
         }
         else if( m_input.flags & flags::whois_load ) {
             // +16 or +24
@@ -1053,7 +1087,7 @@ whois_event::run_() {
                         -1.0 ) };
                 auto const collisiondistance { (
                     owner != nullptr ?
-                        owner->TrackBlock() :
+                        owner->TrackObstacle() :
                         -1.0 ) };
 
                 targetcell->UpdateValues(
@@ -1106,12 +1140,12 @@ whois_event::run_() {
                     m_activator->Mechanik->IsStop() ?
                         1 :
                         0, // 1, gdy ma tu zatrzymanie
-                    m_input.flags );
+                    m_input.flags & ( flags::text | flags::value1 | flags::value2 ) );
                 WriteLog(
                     "Type: WhoIs (" + to_string( m_input.flags ) + ") - "
                     + "[train: " + m_activator->Mechanik->TrainName() + "], "
                     + "[stations left: " + to_string( m_activator->Mechanik->StationCount() - m_activator->Mechanik->StationIndex() ) + "], "
-                    + "[stop at next: " + ( m_activator->Mechanik->IsStop() ? "yes" : "no") + "]" );
+                    + "[stop at next station: " + ( m_activator->Mechanik->IsStop() ? "yes" : "no") + "]" );
             }
         }
     }
@@ -1234,12 +1268,12 @@ multi_event::deserialize_( cParser &Input, scene::scratch_data &Scratchpad ) {
         }
         else {
             // potentially valid event name
-            if( token.substr( 0, 5 ) != "none_" ) {
+            if( starts_with( token, "none_" ) ) {
                 // eventy rozpoczynające się od "none_" są ignorowane
-                m_children.emplace_back( token, nullptr, ( m_conditions.has_else == false ) );
+                WriteLog( "Multi-event \"" + m_name + "\" ignored link to event \"" + token + "\"" );
             }
             else {
-                WriteLog( "Multi-event \"" + m_name + "\" ignored link to event \"" + token + "\"" );
+                m_children.emplace_back( token, nullptr, ( m_conditions.has_else == false ) );
             }
         }
     }
@@ -1574,7 +1608,7 @@ animation_event::deserialize_( cParser &Input, scene::scratch_data &Scratchpad )
 
     Input.getTokens();
     Input >> token;
-    if( token.compare( "rotate" ) == 0 ) { // obrót względem osi
+    if( token == "rotate" ) { // obrót względem osi
         Input.getTokens();
         // animation submodel, previously held in param 9
         Input >> m_animationsubmodel;
@@ -1588,7 +1622,7 @@ animation_event::deserialize_( cParser &Input, scene::scratch_data &Scratchpad )
             >> m_animationparams[ 2 ]
             >> m_animationparams[ 3 ];
     }
-    else if( token.compare( "translate" ) == 0 ) { // przesuw o wektor
+    else if( token == "translate" ) { // przesuw o wektor
         Input.getTokens();
         // animation submodel, previously held in param 9
         Input >> m_animationsubmodel;
@@ -1602,7 +1636,7 @@ animation_event::deserialize_( cParser &Input, scene::scratch_data &Scratchpad )
             >> m_animationparams[ 2 ]
             >> m_animationparams[ 3 ];
     }
-    else if( token.compare( "digital" ) == 0 ) { // licznik cyfrowy
+    else if( token == "digital" ) { // licznik cyfrowy
         Input.getTokens();
         // animation submodel, previously held in param 9
         Input >> m_animationsubmodel;
@@ -1616,7 +1650,7 @@ animation_event::deserialize_( cParser &Input, scene::scratch_data &Scratchpad )
             >> m_animationparams[ 2 ]
             >> m_animationparams[ 3 ];
     }
-    else if( token.substr( token.length() - 4, 4 ) == ".vmd" ) // na razie tu, może będzie inaczej
+    else if( ends_with( token, ".vmd" ) ) // na razie tu, może będzie inaczej
     { // animacja z pliku VMD
         {
             m_animationfilename = token;
@@ -2271,18 +2305,15 @@ event_manager::insert( basic_event *Event ) {
             return false;
         }
         // tymczasowo wyjątki:
-        else if( ( size > 8 )
-              && ( Event->m_name.substr( 0, 9 ) == "lineinfo:" ) ) {
+        else if( ends_with( Event->m_name, "lineinfo:" ) ) {
             // tymczasowa utylizacja duplikatów W5
             return false;
         }
-        else if( ( size > 8 )
-              && ( Event->m_name.substr( size - 8 ) == "_warning" ) ) {
+        else if( ends_with( Event->m_name, "_warning" ) ) {
             // tymczasowa utylizacja duplikatu z trąbieniem
             return false;
         }
-        else if( ( size > 4 )
-              && ( Event->m_name.substr( size - 4 ) == "_shp" ) ) {
+        else if( ends_with( Event->m_name, "_shp" ) ) {
             // nie podlegają logowaniu
             // tymczasowa utylizacja duplikatu SHP
             return false;
@@ -2307,7 +2338,7 @@ event_manager::insert( basic_event *Event ) {
         // if it's first event with such name, it's potential candidate for the execution queue
         m_eventmap.emplace( Event->m_name, m_events.size() - 1 );
         if( ( Event->m_ignored != true )
-         && ( Event->m_name.find( "onstart" ) != std::string::npos ) ) {
+         && ( contains( Event->m_name, "onstart" ) ) ) {
             // event uruchamiany automatycznie po starcie
             AddToQuery( Event, nullptr );
         }
@@ -2391,6 +2422,8 @@ event_manager::AddToQuery( basic_event *Event, TDynamicObject const *Owner, doub
                     + Event->m_delaydeparture;
             }
         }
+        // NOTE: sanity check, as departure-based delay math can potentially produce negative overall delay
+        Event->m_launchtime = std::max( Event->m_launchtime, 0.0 );
         if( QueryRootEvent != nullptr ) {
             basic_event *target { QueryRootEvent };
             basic_event *previous { nullptr };

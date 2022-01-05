@@ -11,7 +11,7 @@ public:
 
 // methods:
     void init();
-    void update();
+    void update( bool const Includephase = false );
 	void render();
 	// returns vector pointing at the sun
 	glm::vec3 getDirection();

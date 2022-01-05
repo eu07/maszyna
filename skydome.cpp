@@ -4,6 +4,7 @@
 #include "color.h"
 #include "utilities.h"
 #include "simulationenvironment.h"
+#include "Globals.h"
 
 // sky gradient based on "A practical analytic model for daylight" 
 // by A. J. Preetham Peter Shirley Brian Smits (University of Utah)
@@ -258,10 +259,14 @@ void CSkyDome::RebuildColors() {
 			colorconverter.z = 1.0f - std::exp( -m_expfactor * colorconverter.z );  
 		}
 
-        colorconverter.y = clamp( colorconverter.y * 1.15f, 0.0f, 1.0f );
+        if( colorconverter.z > 0.85f ) {
+            colorconverter.z = 0.85f + ( colorconverter.z - 0.85f ) * 0.35f;
+        }
+
+        colorconverter.y = clamp( colorconverter.y * Global.m_skysaturationcorrection, 0.0f, 1.0f );
         // desaturate sky colour, based on overcast level
         if( colorconverter.y > 0.0f ) {
-            colorconverter.y *= ( 1.0f - m_overcast );
+            colorconverter.y *= ( 1.0f - 0.5f * m_overcast );
         }
 
         // override the hue, based on sun height above the horizon. crude way to deal with model shortcomings
@@ -278,7 +283,7 @@ void CSkyDome::RebuildColors() {
 
 		color = colors::HSVtoRGB(colorconverter);
 
-        color = interpolate( color, shiftedcolor, shiftfactor );
+        color = interpolate( color, shiftedcolor, shiftfactor * Global.m_skyhuecorrection );
 
         // crude correction for the times where the model breaks (late night)
         // TODO: use proper night sky calculation for these times instead
@@ -289,21 +294,22 @@ void CSkyDome::RebuildColors() {
             color.z = 0.75f * std::max( color.z + m_sundirection.y, 0.075f );
             color.x = 0.20f * color.z; 
             color.y = 0.65f * color.z;
-            color = color * ( 1.15f - vertex.y ); // simple gradient, darkening towards the top
         }
+        // simple gradient, darkening towards the top
+        color *= clamp( ( 1.25f - vertex.y ), 0.f, 1.f );
+//        color *= ( 1.25f - vertex.y );
         // gamma correction
         color = glm::pow( color, gammacorrection );
-		// save
         m_colours[ i ] = color;
         averagecolor += color;
-        if( ( m_vertices.size() - i ) <= ( m_tesselation * 2 ) ) {
+        if( ( m_vertices.size() - i ) <= ( m_tesselation * 3 + 3 ) ) {
             // calculate horizon colour from the bottom band of tris
             averagehorizoncolor += color;
         }
 	}
 
     m_averagecolour = glm::max( glm::vec3(), averagecolor / static_cast<float>( m_vertices.size() ) );
-    m_averagehorizoncolour = glm::max( glm::vec3(), averagehorizoncolor / static_cast<float>( m_tesselation * 2 ) );
+    m_averagehorizoncolour = glm::max( glm::vec3(), averagehorizoncolor / static_cast<float>( m_tesselation * 3 + 3 ) );
 
     m_dirty = true;
 }

@@ -248,8 +248,8 @@ std::string cParser::readToken( bool ToLower, const char *Break ) {
         std::string includefile = readToken(ToLower); // nazwa pliku
 		std::replace(includefile.begin(), includefile.end(), '\\', '/');
         if( ( true == LoadTraction )
-         || ( ( includefile.find( "tr/" ) == std::string::npos )
-           && ( includefile.find( "tra/" ) == std::string::npos ) ) ) {
+         || ( ( false == contains( includefile, "tr/" ) )
+           && ( false == contains( includefile, "tra/" ) ) ) ) {
             mIncludeParser = std::make_shared<cParser>( includefile, buffer_FILE, mPath, LoadTraction, readParameters( *this ) );
             mIncludeParser->autoclear( m_autoclear );
             if( mIncludeParser->mSize <= 0 ) {
@@ -268,8 +268,8 @@ std::string cParser::readToken( bool ToLower, const char *Break ) {
         cParser includeparser( token.substr( 7 ) );
         std::string includefile = includeparser.readToken( ToLower ); // nazwa pliku
         if( ( true == LoadTraction )
-         || ( ( includefile.find( "tr/" ) == std::string::npos )
-           && ( includefile.find( "tra/" ) == std::string::npos ) ) ) {
+         || ( ( false == contains( includefile, "tr/" ) )
+           && ( false == contains( includefile, "tra/" ) ) ) ) {
             mIncludeParser = std::make_shared<cParser>( includefile, buffer_FILE, mPath, LoadTraction, readParameters( includeparser ) );
             mIncludeParser->autoclear( m_autoclear );
             if( mIncludeParser->mSize <= 0 ) {

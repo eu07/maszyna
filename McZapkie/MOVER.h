@@ -122,7 +122,6 @@ static int const dtrain_loaddestroyed = 32;/*dla wagonow*/
 static int const dtrain_axle = 64;
 static int const dtrain_out = 128;         /*wykolejenie*/
 static int const dtrain_pantograph = 256;	/*polamanie pantografu*/
-
 										   /*wagi prawdopodobienstwa dla funkcji FuzzyLogic*/
 #define p_elengproblem  (1e-02)
 #define p_elengdamage  (1e-01)
@@ -233,7 +232,7 @@ enum sound {
     parallel = 1 << 4,
     shuntfield = 1 << 5,
     pneumatic = 1 << 6,
-    detachall = 1 << 7,
+    detach = 1 << 7,
     attachcoupler = 1 << 8,
     attachbrakehose = 1 << 9,
     attachmainhose = 1 << 10,
@@ -242,6 +241,7 @@ enum sound {
     attachheating = 1 << 13,
     attachadapter = 1 << 14,
     removeadapter = 1 << 15,
+    doorpermit = 1 << 16,
 };
 
 // customizable reset button
@@ -677,7 +677,11 @@ public:
 	bool is_braking() const;
 	bool is_engine_blocked() const;
 	bool radiostop_available() const;
+	bool system_available() const;
 	void load(std::string const &line, double Vmax);
+
+	bool SHPLock = false;
+	double MagnetLocation;
 };
 
 struct TTransmision
@@ -833,8 +837,11 @@ private:
     struct cooling_fan : public basic_device {
         // config
         float speed { 0.f }; // cooling fan rpm; either fraction of parent rpm, or absolute value if negative
+		float sustain_time { 0.f }; // time of sustaining work of cooling fans after stop
+		float min_start_velocity { -1.f }; // minimal velocity of vehicle, when cooling fans activate
         // ld outputs
         float revolutions { 0.f }; // current fan rpm
+		float stop_timer { 0.f }; // current time, when shut off condition is active
     };
 
     // basic approximation of a fuel pump
@@ -859,7 +866,7 @@ private:
     struct water_pump : public basic_device {
         // ld inputs
         // TODO: move to breaker list in the basic device once implemented
-        bool breaker { true }; // device is allowed to operate
+        bool breaker { false }; // device is allowed to operate
     };
 
     // basic approximation of a solenoid valve
@@ -891,6 +898,7 @@ private:
         // internal data
         float auto_timer { -1.f }; // delay between activation of open state and closing state for automatic doors
         float close_delay { 0.f }; // delay between activation of closing state and actual closing
+        float open_delay { 0.f }; // delay between activation of opening state and actual opening
         float position { 0.f }; // current shift of the door from the closed position
         float step_position { 0.f }; // current shift of the movable step from the retracted position
         // ld outputs
@@ -906,6 +914,7 @@ private:
         // config
         control_t open_control { control_t::passenger };
         float open_rate { 1.f };
+        float open_delay { 0.f };
         control_t close_control { control_t::passenger };
         float close_rate { 1.f };
         float close_delay { 0.f };
@@ -943,7 +952,7 @@ private:
             float temp_max { -1 }; // highest accepted temperature
         } config;
         // ld inputs
-        bool breaker { true }; // device is allowed to operate
+        bool breaker { false }; // device is allowed to operate
         bool is_enabled { false }; // device is requested to operate
         // ld outputs
         bool is_active { false }; // device is working
@@ -1052,9 +1061,10 @@ public:
     double EngineHeatingRPM { 0.0 }; // guaranteed engine revolutions with heating enabled
     double LightPower = 0.0; /*moc pobierana na ogrzewanie/oswietlenie*/
 	double BatteryVoltage = 0.0;        /*Winger - baterie w elektrykach*/
-	bool Battery = false; /*Czy sa zalavzone baterie*/
+	bool Battery = false; /*Czy sa zalaczone baterie*/
     start_t BatteryStart = start_t::manual;
 	bool EpFuse = true; /*Czy sa zalavzone baterie*/
+	double EpForce = 0.0; /*Poziom zadanej sily EP*/
 	bool Signalling = false;         /*Czy jest zalaczona sygnalizacja hamowania ostatniego wagonu*/
 	bool Radio = false;         /*Czy jest zalaczony radiotelefon*/
 	float NominalBatteryVoltage = 0.f;        /*Winger - baterie w elektrykach*/
@@ -1177,6 +1187,7 @@ public:
 	bool UniCtrlIntegratedBrakeCtrl = false; /*zintegrowany nastawnik JH obsluguje hamowanie*/
     bool UniCtrlIntegratedLocalBrakeCtrl = false; /*zintegrowany nastawnik JH obsluguje hamowanie hamulcem pomocniczym*/
     int UniCtrlNoPowerPos{ 0 }; // cached highesr position not generating traction force
+    std::pair<std::string, std::array<int, 2>> PantsPreset { "0132", { 0, 0 } }; // pantograph preset switches; .first holds possible setups as chars, .second holds currently selected preset in each cab
 
 	/*-sekcja parametrow dla lokomotywy elektrycznej*/
 	TSchemeTable RList;     /*lista rezystorow rozruchowych i polaczen silnikow, dla dizla: napelnienia*/
@@ -1196,6 +1207,7 @@ public:
 	int IminLo = 0; int IminHi = 0; /*prady przelacznika automatycznego rozruchu, uzywane tez przez ai_driver*/
 	int ImaxLo = 0; // maksymalny prad niskiego rozruchu
     int ImaxHi = 0; // maksymalny prad wysokiego rozruchu
+    bool MotorOverloadRelayHighThreshold { false };
 	double nmax = 0.0;             /*maksymalna dop. ilosc obrotow /s*/
 	double InitialCtrlDelay = 0.0; double CtrlDelay = 0.0;        /* -//-  -//- miedzy kolejnymi poz.*/
 	double CtrlDownDelay = 0.0;    /* -//-  -//- przy schodzeniu z poz.*/ /*hunter-101012*/
@@ -1245,6 +1257,7 @@ public:
 	double dizel_minVelfullengage = 0.0; /*najmniejsza predkosc przy jezdzie ze sprzeglem bez poslizgu*/
 	double dizel_maxVelANS = 3.0; /*predkosc progowa rozlaczenia przetwornika momentu*/
 	double dizel_AIM = 1.0; /*moment bezwladnosci walu itp*/
+    double dizel_RevolutionsDecreaseRate{ 2.0 };
 	double dizel_NominalFuelConsumptionRate = 250.0; /*jednostkowe zużycie paliwa przy mocy nominalnej, wczytywane z fiz, g/kWh*/
 	double dizel_FuelConsumption = 0.0; /*współczynnik zużycia paliwa przeliczony do jednostek maszynowych, l/obrót*/
 	double dizel_FuelConsumptionActual = 0.0; /*chwilowe spalanie paliwa w l/h*/
@@ -1309,11 +1322,14 @@ public:
 	double MED_Vmax = 0; // predkosc maksymalna dla obliczen chwilowej sily hamowania EP w MED
 	double MED_Vmin = 0; // predkosc minimalna dla obliczen chwilowej sily hamowania EP w MED
 	double MED_Vref = 0; // predkosc referencyjna dla obliczen dostepnej sily hamowania EP w MED
-	double MED_amax = 9.81; // maksymalne opoznienie hamowania sluzbowego MED
+    double MED_amax { 9.81 }; // maksymalne opoznienie hamowania sluzbowego MED
 	bool MED_EPVC = 0; // czy korekcja sily hamowania EP, gdy nie ma dostepnego ED
 	double MED_EPVC_Time = 7; // czas korekcji sily hamowania EP, gdy nie ma dostepnego ED
 	bool MED_Ncor = 0; // czy korekcja sily hamowania z uwzglednieniem nacisku
-    double MED_MinBrakeReqED = 0;
+    double MED_MinBrakeReqED = 0; // minimalne zadanie sily hamowania uruchamiajace ED - ponizej tylko EP
+	double MED_FrED_factor = 1; // mnoznik sily hamowania ED do korekty blendingu
+	double MED_ED_Delay1 = 0; // opoznienie wdrazania hamowania ED (pierwszy raz)
+	double MED_ED_Delay2 = 0; // opoznienie zwiekszania sily hamowania ED (kolejne razy)
 
     int DCEMUED_CC { 0 }; //na którym sprzęgu sprawdzać działanie ED
     double DCEMUED_EP_max_Vel{ 0.0 }; //maksymalna prędkość, przy której działa EP przy włączonym ED w jednostce (dla tocznych)
@@ -1365,12 +1381,13 @@ public:
     std::array<neighbour_data, 2> Neighbours; // potential collision sources
     bool Power110vIsAvailable = false; // cached availability of 110v power
     bool Power24vIsAvailable = false; // cached availability of 110v power
+    double Power24vVoltage { 0.0 }; // cached battery voltage
     bool EventFlag = false;                 /*!o true jesli cos nietypowego sie wydarzy*/
 	int SoundFlag = 0;                    /*!o patrz stale sound_ */
     int AIFlag{ 0 }; // HACK: events of interest for consist owner
 	double DistCounter = 0.0;                  /*! licznik kilometrow */
     std::pair<double, double> EnergyMeter; // energy <drawn, returned> from grid [kWh]
-	double V = 0.0;    //predkosc w [m/s] względem sprzęgów (dodania gdy jedzie w stronę 0)
+    double V = 0.0;    //predkosc w [m/s] względem sprzęgów (dodania gdy jedzie w stronę 0)
 	double Vel = 0.0;  //moduł prędkości w [km/h], używany przez AI
 	double AccS = 0.0; //efektywne przyspieszenie styczne w [m/s^2] (wszystkie siły)
     double AccSVBased {}; // tangential acceleration calculated from velocity change
@@ -1439,6 +1456,7 @@ public:
     heat_data dizel_heat;
     std::array<cooling_fan, 2> MotorBlowers;
     door_data Doors;
+    float DoorsOpenWithPermitAfter { -1.f }; // remote open if permit button is held for specified time. NOTE: separate from door data as its cab control thing
 
     int BrakeCtrlPos = -2;               /*nastawa hamulca zespolonego*/
 	double BrakeCtrlPosR = 0.0;                 /*nastawa hamulca zespolonego - plynna dla FV4a*/
@@ -1489,6 +1507,7 @@ public:
 	bool Mains = false;    /*polozenie glownego wylacznika*/
     double MainsInitTime{ 0.0 }; // config, initialization time (in seconds) of the main circuit after it receives power, before it can be closed
     double MainsInitTimeCountdown{ 0.0 }; // current state of main circuit initialization, remaining time (in seconds) until it's ready
+    start_t MainsStart { start_t::manual };
     bool LineBreakerClosesOnlyAtNoPowerPos{ false };
     bool ControlPressureSwitch{ false }; // activates if the main pipe and/or brake cylinder pressure aren't within operational levels
     bool HasControlPressureSwitch{ true };
@@ -1583,6 +1602,7 @@ public:
 
     /*- zmienne dla lokomotyw z silnikami indukcyjnymi -*/
 	double eimic = 0; /*aktualna pozycja zintegrowanego sterowania jazda i hamowaniem*/
+	double eimic_analog = 0; /*pozycja zadajnika analogowa*/
 	double eimic_real = 0; /*faktycznie uzywana pozycja zintegrowanego sterowania jazda i hamowaniem*/
 	double eim_localbrake = 0; /*nastawa hamowania dodatkowego pneumatycznego lokomotywy*/
 	int EIMCtrlType = 0; /*rodzaj wariantu zadajnika jazdy*/
@@ -1598,6 +1618,7 @@ public:
 	double eimicSpeedCtrlIntegral = 0; /*calkowany blad ustawienia predkosci*/
 	double NewSpeed = 0; /*nowa predkosc do zadania*/
 	double MED_EPVC_CurrentTime = 0; /*aktualny czas licznika czasu korekcji siły EP*/
+	double MED_ED_DelayTimer = 0; /*aktualny czas licznika opoznienia hamowania ED*/
 
 	/*-zmienne dla drezyny*/
 	double PulseForce = 0.0;        /*przylozona sila*/
@@ -1676,6 +1697,7 @@ public:
 	bool DecBrakeLevel();
 	bool ChangeCab(int direction);
 	bool CurrentSwitch(bool const State);
+    bool IsMotorOverloadRelayHighThresholdOn() const;
 	void UpdateBatteryVoltage(double dt);
 	double ComputeMovement(double dt, double dt1, const TTrackShape &Shape, TTrackParam &Track, TTractionParam &ElectricTraction, TLocation const &NewLoc, TRotation const &NewRot); //oblicza przesuniecie pojazdu
 	double FastComputeMovement(double dt, const TTrackShape &Shape, TTrackParam &Track, TLocation const &NewLoc, TRotation const &NewRot); //oblicza przesuniecie pojazdu - wersja zoptymalizowana
@@ -1711,6 +1733,7 @@ public:
 	bool DecMainCtrl(int CtrlSpeed);
     bool IsMainCtrlActualNoPowerPos() const; // whether the master controller is actually set to position which won't generate any extra power
     bool IsMainCtrlNoPowerPos() const; // whether the master controller is set to position which won't generate any extra power
+    bool IsMainCtrlMaxPowerPos() const;
     int MainCtrlNoPowerPos() const; // highest setting of master controller which won't cause engine to generate extra power
     int MainCtrlActualPowerPos() const; // current actual setting of master controller, relative to the highest setting not generating extra power
     int MainCtrlPowerPos() const; // current setting of master controller, relative to the highest setting not generating extra power
@@ -1718,6 +1741,8 @@ public:
 	bool IncScndCtrl(int CtrlSpeed);
 	bool DecScndCtrl(int CtrlSpeed);
 	int GetVirtualScndPos();
+    bool IsScndCtrlNoPowerPos() const;
+    bool IsScndCtrlMaxPowerPos() const;
 
 	bool AddPulseForce(int Multipler);/*dla drezyny*/
 
@@ -1804,8 +1829,11 @@ public:
     bool ConverterSwitch( bool State, range_t const Notify = range_t::consist );/*! wl/wyl przetwornicy*/
     bool CompressorSwitch( bool State, range_t const Notify = range_t::consist );/*! wl/wyl sprezarki*/
     bool ChangeCompressorPreset( int const Change, range_t const Notify = range_t::consist );
+    bool HeatingSwitch( bool const State, range_t const Notify = range_t::consist );
+    void HeatingSwitch_( bool const State );
+    double EnginePowerSourceVoltage() const; // returns voltage of defined main engine power source
 
-									  /*-funkcje typowe dla lokomotywy elektrycznej*/
+    /*-funkcje typowe dla lokomotywy elektrycznej*/
     void LowVoltagePowerCheck( double const Deltatime );
     void MainsCheck( double const Deltatime );
     void PowerCouplersCheck( double const Deltatime, coupling const Coupling );
@@ -1836,7 +1864,7 @@ public:
 
 	bool CutOffEngine(void); //odlaczenie udszkodzonych silnikow
 							 /*funkcje automatycznego rozruchu np EN57*/
-	bool MaxCurrentSwitch(bool State); //przelacznik pradu wysokiego rozruchu
+	bool MaxCurrentSwitch(bool State, range_t const Notify = range_t::consist ); //przelacznik pradu wysokiego rozruchu
 	bool MinCurrentSwitch(bool State); //przelacznik pradu automatycznego rozruchu
 	bool AutoRelaySwitch(bool State); //przelacznik automatycznego rozruchu
 	bool AutoRelayCheck();//symulacja automatycznego rozruchu
@@ -1871,6 +1899,7 @@ public:
     bool AssignLoad( std::string const &Name, float const Amount = 0.f );
 	bool LoadingDone(double LSpeed, std::string const &Loadname);
     bool PermitDoors( side const Door, bool const State = true, range_t const Notify = range_t::consist );
+    void PermitDoors_( side const Door, bool const State = true );
     bool ChangeDoorPermitPreset( int const Change, range_t const Notify = range_t::consist );
     bool PermitDoorStep( bool const State, range_t const Notify = range_t::consist );
     bool ChangeDoorControlMode( bool const State, range_t const Notify = range_t::consist );

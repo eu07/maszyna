@@ -199,7 +199,7 @@ void uart_input::poll()
 		if (!sync) {
 			int sync_cnt = 0;
 			int sync_fail = 0;
-			char sc = 0;
+			unsigned char sc = 0;
 			while ((ret = sp_blocking_read(port, &sc, 1, 10)) >= 0) {
 				if (conf.debug)
 					WriteLog("uart: read byte: " + std::to_string((int)sc));
@@ -277,13 +277,28 @@ void uart_input::poll()
 
         if( true == conf.mainenable ) {
             // master controller
-            relay.post(
-                user_command::mastercontrollerset,
-                buffer[ 6 ],
-                0,
-                GLFW_PRESS,
-                // TODO: pass correct entity id once the missing systems are in place
-			    0 );
+			if (false == conf.mainpercentage) {
+				//old method for direct positions
+				relay.post(
+					user_command::mastercontrollerset,
+					buffer[6],
+					0,
+					GLFW_PRESS,
+					// TODO: pass correct entity id once the missing systems are in place
+					0);
+			}
+			else {
+				auto desiredpercent{ buffer[6] * 0.01 };
+				auto desiredposition{ desiredpercent > 0.01 ? 1 + ((simulation::Train->Occupied()->MainCtrlPosNo - 1) * desiredpercent) : buffer[6] };
+				relay.post(
+					user_command::mastercontrollerset,
+					desiredposition,
+					0,
+					GLFW_PRESS,
+					// TODO: pass correct entity id once the missing systems are in place
+					0);
+				simulation::Train->Occupied()->eimic_analog = desiredpercent;
+			}
         }
         if( true == conf.scndenable ) {
             // second controller
@@ -336,7 +351,8 @@ void uart_input::poll()
 	    uint16_t tank_press = (uint16_t)std::min(conf.tankuart, trainstate.reservoir_pressure * 0.1f / conf.tankmax * conf.tankuart);
 	    uint16_t pipe_press = (uint16_t)std::min(conf.pipeuart, trainstate.pipe_pressure * 0.1f / conf.pipemax * conf.pipeuart);
 	    uint16_t brake_press = (uint16_t)std::min(conf.brakeuart, trainstate.brake_pressure * 0.1f / conf.brakemax * conf.brakeuart);
-	    uint16_t hv_voltage = (uint16_t)std::min(conf.hvuart, trainstate.hv_voltage / conf.hvmax * conf.hvuart);
+        uint16_t pantograph_press = (uint16_t)std::min(conf.pantographuart, trainstate.pantograph_pressure * 0.1f / conf.pantographmax * conf.pantographuart );
+        uint16_t hv_voltage = (uint16_t)std::min(conf.hvuart, trainstate.hv_voltage / conf.hvmax * conf.hvuart);
 	    uint16_t current1 = (uint16_t)std::min(conf.currentuart, trainstate.hv_current[0] / conf.currentmax * conf.currentuart);
 	    uint16_t current2 = (uint16_t)std::min(conf.currentuart, trainstate.hv_current[1] / conf.currentmax * conf.currentuart);
 	    uint16_t current3 = (uint16_t)std::min(conf.currentuart, trainstate.hv_current[2] / conf.currentmax * conf.currentuart);
@@ -356,10 +372,20 @@ void uart_input::poll()
 			(uint8_t)(
                 trainstate.epbrake_enabled << 0
               | trainstate.ventilator_overload << 1
-              | trainstate.motor_overload_threshold << 2),
+              | trainstate.motor_overload_threshold << 2
+			  | trainstate.emergencybrake << 3
+			  | trainstate.lockpipe << 4
+			  | trainstate.dir_forward << 5
+			  | trainstate.dir_backward << 6),
             //byte 3
 			(uint8_t)(
-                trainstate.coupled_hv_voltage_relays << 0),
+                trainstate.coupled_hv_voltage_relays << 0
+			  | trainstate.doorleftallowed << 1
+			  | trainstate.doorleftopened << 2
+			  | trainstate.doorrightallowed << 3
+			  | trainstate.doorrightopened << 4
+			  | trainstate.doorstepallowed << 5
+			  | trainstate.battery << 6),
             //byte 4
 			(uint8_t)(
                 trainstate.train_heating << 0
@@ -409,8 +435,10 @@ void uart_input::poll()
 			SPLIT_INT16(lv_voltage),
 			//byte 33
 			(uint8_t)trainstate.radio_channel,
-			//byte 34-48
-			0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
+            //byte 34-35
+            SPLIT_INT16(pantograph_press),
+			//byte 36-47
+			0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
 	    };
 
 		if (conf.debug)

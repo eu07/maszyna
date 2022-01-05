@@ -80,6 +80,7 @@ enum class TCommandType
     cm_OutsideStation,
 //    cm_Shunt, // unused?
     cm_EmergencyBrake,
+    cm_SecuritySystemMagnet,
     cm_Command // komenda pobierana z komórki
 };
 
