@@ -901,8 +901,8 @@ debug_panel::update_section_vehicle( std::vector<text_line> &Output ) {
                         m_buffer.data(), m_buffer.size(),
                         STR_C("\n pantograph %d: drawing from: [%s, %s] through: [%.2f, %.2f, %.2f]"),
                         i,
-                        powerwire->psPower[ 0 ] ? powerwire->psPower[ 0 ]->name() : "none",
-                        powerwire->psPower[ 1 ] ? powerwire->psPower[ 1 ]->name() : "none",
+                        powerwire->psPower[ 0 ] ? powerwire->psPower[ 0 ]->name().c_str() : "none",
+                        powerwire->psPower[ 1 ] ? powerwire->psPower[ 1 ]->name().c_str() : "none",
                         powerwire->pPoint1[ 0 ],
                         powerwire->pPoint1[ 1 ],
                         powerwire->pPoint1[ 2 ] );
