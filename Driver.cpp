@@ -881,7 +881,7 @@ TCommandType TController::TableUpdate(double &fVelDes, double &fDist, double &fN
     eSignNext = nullptr;
     IsAtPassengerStop = false;
     IsScheduledPassengerStopVisible = false;
-    mvOccupied->SecuritySystem.SHPLock = false;
+    mvOccupied->SecuritySystem.set_cabsignal_lock(false);
     // te flagi są ustawiane tutaj, w razie potrzeby
     iDrivigFlags &= ~(moveTrackEnd | moveSwitchFound | moveSignalFound | /*moveSpeedLimitFound*/ moveStopPointFound );
 
@@ -1424,7 +1424,7 @@ TController::TableUpdateEvent( double &Velocity, TCommandType &Command, TSpeedPo
                     // thus we're doing a more precise check in such situation (we presume direction change takes place only if the vehicle is standing still)
                     if( ( mvOccupied->Vel > EU07_AI_NOMOVEMENT )
                      || ( false == ismagnetpassed ) ) {
-                        mvOccupied->SecuritySystem.SHPLock |= ( !AIControllFlag ); // don't make life difficult for the ai, but a human driver is a fair game
+                        mvOccupied->SecuritySystem.set_cabsignal_lock(!AIControllFlag); // don't make life difficult for the ai, but a human driver is a fair game
                         PutCommand(
                             Point.evEvent->input_text(),
                             Point.evEvent->input_value( 1 ),
@@ -1434,7 +1434,7 @@ TController::TableUpdateEvent( double &Velocity, TCommandType &Command, TSpeedPo
                 }
                 if( ismagnetpassed ) {
                     Point.Clear();
-                    mvOccupied->SecuritySystem.SHPLock = false;
+                    mvOccupied->SecuritySystem.set_cabsignal_lock(false);
                 }
                 return true;
             }

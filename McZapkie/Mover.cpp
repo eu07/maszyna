@@ -95,7 +95,7 @@ void TSecuritySystem::acknowledge_press() {
 	}
 	vigilance_timer = 0.0;
 
-	if (!separate_acknowledge && cabsignal_active) {
+	if (!separate_acknowledge && cabsignal_active && !cabsignal_lock) {
 		cabsignal_active = false;
 		alert_timer = 0.0;
 	}
@@ -110,7 +110,7 @@ void TSecuritySystem::acknowledge_release() {
 }
 
 void TSecuritySystem::cabsignal_reset() {
-	if (cabsignal_active) {
+	if (cabsignal_active && !cabsignal_lock) {
 		cabsignal_active = false;
 		alert_timer = 0.0;
 	}
@@ -192,11 +192,11 @@ bool TSecuritySystem::is_cabsignal_beeping() const {
 }
 
 bool TSecuritySystem::is_braking() const {
+    if (!power && (vigilance_enabled || cabsignal_enabled || radiostop_enabled))
+        return true;
+
     if (!enabled)
         return false;
-
-    if (!power && (vigilance_enabled || cabsignal_enabled))
-        return true;
 
     return alert_timer > SoundSignalDelay + EmergencyBrakeDelay;
 }
@@ -205,8 +205,8 @@ bool TSecuritySystem::radiostop_available() const {
 	return radiostop_enabled;
 }
 
-bool TSecuritySystem::system_available() const {
-	return vigilance_enabled || cabsignal_enabled;
+void TSecuritySystem::set_cabsignal_lock(bool v) {
+	cabsignal_lock = v;
 }
 
 bool TSecuritySystem::is_engine_blocked() const {
@@ -234,6 +234,7 @@ void TSecuritySystem::load(std::string const &line, double Vmax) {
 	extract_value( EmergencyBrakeDelay, "EmergencyBrakeDelay", line, "" );
 	extract_value( MaxHoldTime, "MaxHoldTime", line, "" );
 	extract_value( radiostop_enabled, "RadioStop", line, "" );
+	extract_value( MagnetLocation, "MagnetLocation", line, "" );
 }
 
 double TableInterpolation(std::map<double, double> &Map,  double Parameter)
@@ -4450,7 +4451,6 @@ void TMoverParameters::UpdatePipePressure(double dt)
     // ulepszony hamulec bezp.
     EmergencyValveFlow = 0.0;
 
-    auto const securitysystempresent { SecuritySystem.radiostop_available() || SecuritySystem.system_available() };
     auto const lowvoltagepower { Power24vIsAvailable || Power110vIsAvailable };
 
     if( (( true == RadioStopFlag )
@@ -4468,9 +4468,7 @@ void TMoverParameters::UpdatePipePressure(double dt)
 */
 	 || ( ( SpringBrakeDriveEmergencyVel >= 0 )
 	   && ( Vel > SpringBrakeDriveEmergencyVel ) 
-	   && ( SpringBrake.IsActive ) )
-     || ( ( true == securitysystempresent )
-       && ( false == lowvoltagepower ) ) ) {
+	   && ( SpringBrake.IsActive ) ) ) {
         EmergencyValveFlow = PF( 0, PipePress, 0.15 ) * dt;
     }
     dpMainValve += EmergencyValveFlow;

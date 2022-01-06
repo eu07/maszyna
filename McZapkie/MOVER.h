@@ -648,6 +648,7 @@ class TSecuritySystem
 	bool enabled = false;
 	bool is_sifa = false; // Sifa-like pedal device, with inverted input for convenient keyboard usage
 	bool separate_acknowledge = false; // cabsignal reset button is separate from vigilance
+	bool cabsignal_lock = false;
 
 	double vigilance_timer = 0.0;
 	double alert_timer = 0.0;
@@ -669,6 +670,7 @@ public:
 	void cabsignal_reset();
 	void update(double dt, double Vel, bool pwr);
 	void set_cabsignal();
+	void set_cabsignal_lock(bool);
 	bool is_blinking() const;
 	bool is_vigilance_blinking() const;
 	bool is_cabsignal_blinking() const;
@@ -677,11 +679,9 @@ public:
 	bool is_braking() const;
 	bool is_engine_blocked() const;
 	bool radiostop_available() const;
-	bool system_available() const;
 	void load(std::string const &line, double Vmax);
 
-	bool SHPLock = false;
-	double MagnetLocation;
+	double MagnetLocation = 0.0;
 };
 
 struct TTransmision

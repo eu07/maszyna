@@ -789,7 +789,7 @@ private:
     float fConverterTimer; // hunter-261211: dla przekaznika
     float fMainRelayTimer; // hunter-141211: zalaczanie WSa z opoznieniem
     float fScreenTimer { 0.f };
-    int fScreenUpdateRate { 0 }; // vehicle specific python screen update rate override
+    int ScreenUpdateRate { 0 }; // vehicle specific python screen update rate override
 
     // McZapkie-240302 - przyda sie do tachometru
     float fTachoVelocity{ 0.0f };

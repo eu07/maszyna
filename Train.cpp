@@ -7873,7 +7873,7 @@ void TTrain::update_sounds_radio() {
 }
 
 void TTrain::update_screens() {
-    if (fScreenTimer > Global.PythonScreenUpdateRate * 0.001f) {
+    if (fScreenTimer > std::max(Global.PythonScreenUpdateRate, ScreenUpdateRate) * 0.001f) {
         fScreenTimer = 0.f;
         for (auto const &screen : m_screens) {
             auto state_dict = GetTrainState(screen.parameters);
@@ -8282,7 +8282,7 @@ bool TTrain::InitializeCab(int NewCabNo, std::string const &asFileName)
             }
             else if (token == "pyscreenupdatetime:") {
                 parser.getTokens();
-                parser >> fScreenUpdateRate;
+                parser >> ScreenUpdateRate;
             }
             // btLampkaUnknown.Init("unknown",mdKabina,false);
         } while ( ( token != "" )
