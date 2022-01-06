@@ -6752,19 +6752,14 @@ bool TTrain::Update( double const Deltatime )
                 fBlinkTimer += Deltatime;
 
             btLampkaCzuwaka.Turn( fBlinkTimer > 0 );
-            btLampkaSHP.Turn(mvOccupied->SecuritySystem.is_cabsignal_blinking());
-            btLampkaCzuwakaSHP.Turn( btLampkaSHP.GetValue() || btLampkaCzuwaka.GetValue() );
         }
         else {
+            fBlinkTimer = 0.0;
             btLampkaCzuwaka.Turn( false );
-            btLampkaSHP.Turn( false );
-            btLampkaCzuwakaSHP.Turn( false );
         }
 
-        if (mvOccupied->SecuritySystem.is_cabsignal_blinking())
-            btLampkaSHP.Turn( true );
-        else
-            btLampkaSHP.Turn( false );
+        btLampkaSHP.Turn(mvOccupied->SecuritySystem.is_cabsignal_blinking());
+        btLampkaCzuwakaSHP.Turn( btLampkaSHP.GetValue() || btLampkaCzuwaka.GetValue() );
 
         btLampkaWylSzybki.Turn(
             ( ( (m_linebreakerstate == 2)
