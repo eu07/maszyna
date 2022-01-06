@@ -7731,7 +7731,7 @@ TTrain::update_sounds( double const Deltatime ) {
     if( mvOccupied->Power24vIsAvailable || mvOccupied->Power110vIsAvailable ) {
         // McZapkie-141102: SHP i czuwak, TODO: sygnalizacja kabinowa
             // hunter-091012: rozdzielenie alarmow
-        if (mvOccupied->SecuritySystem.is_beeping()) {
+        if (dsbBuzzer && mvOccupied->SecuritySystem.is_beeping()) {
 
             if( false == dsbBuzzer->is_playing() ) {
                 dsbBuzzer->pitch( dsbBuzzer->m_frequencyoffset + dsbBuzzer->m_frequencyfactor );
