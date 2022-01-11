@@ -639,6 +639,7 @@ private:
 	double UnbrakeOverPressure = 0.0;
 	double OverloadMaxPressure = 1.0; //maksymalne zwiekszenie cisnienia przy asymilacji
 	double OverloadPressureDecrease = 0.002; //predkosc spadku cisnienia przy asymilacji
+	double FillingStrokeFactor = 1.0; //mnożnik otwarcia zaworu przy uderzeniowym (bez fali)
 	static double const pos_table[11]; //= { -2, 10, -1, 0, 0, 2, 9, 10, 0, 0, 0 };
 
 	bool EQ(double pos, double i_pos);
@@ -669,6 +670,7 @@ private:
 	double UnbrakeOverPressure = 0.0; //wartosc napelniania uderzeniowego
 	double OverloadMaxPressure = 1.0; //maksymalne zwiekszenie cisnienia przy asymilacji
 	double OverloadPressureDecrease = 0.002; //predkosc spadku cisnienia przy asymilacji
+	double FillingStrokeFactor = 1.0; //mnożnik otwarcia zaworu przy uderzeniowym (bez fali)
 	static double const pos_table[11]; //= { -2, 10, -1, 0, 0, 2, 9, 10, 0, 0, 0 };
 
 	bool EQ(double pos, double i_pos);

@@ -2800,6 +2800,19 @@ double TMHZ_K5P::GetPF(double i_bcp, double PP, double HP, double dt, double ep)
 
 	dpPipe = Min0R(HP, CP + TP + RedAdj);
 
+	if (EQ(i_bcp, -1))
+	{
+		if (Fala)
+		{
+			dpPipe = 5.0 + TP + RedAdj + uop;
+			ActFlowSpeed = 12;
+		}
+		else
+		{
+			ActFlowSpeed *= FillingStrokeFactor;
+		}
+	}
+
 	if (dpPipe > PP)
 		dpMainValve = -PFVa(HP, PP, ActFlowSpeed / LBDelay, dpPipe, 0.4);
 	else
@@ -2866,7 +2879,7 @@ double TMHZ_K5P::GetRP()
 	return 5.0 + TP + RedAdj;
 }
 
-void TMHZ_K5P::SetParams(bool AO, bool MO, double OverP, double, double OMP, double OPD)
+void TMHZ_K5P::SetParams(bool AO, bool MO, double OverP, double FSF, double OMP, double OPD)
 {
 	AutoOvrld = AO;
 	ManualOvrld = MO;
@@ -2874,6 +2887,7 @@ void TMHZ_K5P::SetParams(bool AO, bool MO, double OverP, double, double OMP, dou
 	Fala = (OverP > 0.01);
 	OverloadMaxPressure = OMP;
 	OverloadPressureDecrease = OPD;
+	FillingStrokeFactor = 1 + FSF;
 	
 }
 
@@ -2935,10 +2949,17 @@ double TMHZ_6P::GetPF(double i_bcp, double PP, double HP, double dt, double ep) 
 	if (ManualOvrld && !ManualOvrldActive) //no overpressure for not pressed button if it does not exists
 		uop = 0;
 
-	if (Fala && EQ(i_bcp, -1))
+	if (EQ(i_bcp, -1))
 	{
-		dpPipe = 5.0 + TP + RedAdj + uop;
-		ActFlowSpeed = 12;
+		if (Fala)
+		{
+			dpPipe = 5.0 + TP + RedAdj + uop;
+			ActFlowSpeed = 12;
+		}
+		else
+		{
+			ActFlowSpeed *= FillingStrokeFactor;
+		}
 	}
 
 	if (dpPipe > PP)
@@ -3007,7 +3028,7 @@ double TMHZ_6P::GetRP()
 	return 5.0 + TP + RedAdj;
 } 
 
-void TMHZ_6P::SetParams(bool AO, bool MO, double OverP, double, double OMP, double OPD)
+void TMHZ_6P::SetParams(bool AO, bool MO, double OverP, double FSF, double OMP, double OPD)
 {
 	AutoOvrld = AO;
 	ManualOvrld = MO;
@@ -3015,6 +3036,7 @@ void TMHZ_6P::SetParams(bool AO, bool MO, double OverP, double, double OMP, doub
 	Fala = (OverP > 0.01);
 	OverloadMaxPressure = OMP;
 	OverloadPressureDecrease = OPD;
+	FillingStrokeFactor = 1 + FSF;
 
 }
 
