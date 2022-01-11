@@ -7558,7 +7558,7 @@ TTrain::update_sounds( double const Deltatime ) {
             fPPress = interpolate( fPPress, static_cast<float>( mvOccupied->Handle->GetSound( s_fv4a_b ) ), 0.05f );
             volume = (
                 fPPress > 0 ?
-                    rsHiss->m_amplitudefactor * fPPress * 0.25 :
+                    rsHiss->m_amplitudefactor * fPPress * 0.25 + rsHiss->m_amplitudeoffset :
                     0 );
             if( volume * brakevolumescale > 0.05 ) {
                 rsHiss->gain( volume * brakevolumescale );
@@ -7573,7 +7573,7 @@ TTrain::update_sounds( double const Deltatime ) {
             fNPress = interpolate( fNPress, static_cast<float>( mvOccupied->Handle->GetSound( s_fv4a_u ) ), 0.25f );
             volume = (
                 fNPress > 0 ?
-                    rsHissU->m_amplitudefactor * fNPress :
+                    rsHissU->m_amplitudefactor * fNPress + rsHissU->m_amplitudeoffset :
                     0 );
             if( volume * brakevolumescale > 0.05 ) {
                 rsHissU->gain( volume * brakevolumescale );
@@ -7585,7 +7585,7 @@ TTrain::update_sounds( double const Deltatime ) {
         }
         // upuszczanie przy naglym
         if( rsHissE ) {
-            volume = mvOccupied->Handle->GetSound( s_fv4a_e ) * rsHissE->m_amplitudefactor;
+            volume = mvOccupied->Handle->GetSound( s_fv4a_e ) * rsHissE->m_amplitudefactor + rsHissE->m_amplitudeoffset;
             if( volume * brakevolumescale > 0.05 ) {
                 rsHissE->gain( volume * brakevolumescale );
                 rsHissE->play( sound_flags::exclusive | sound_flags::looping );
@@ -7596,7 +7596,7 @@ TTrain::update_sounds( double const Deltatime ) {
         }
         // upuszczanie sterujacego fala
         if( rsHissX ) {
-            volume = mvOccupied->Handle->GetSound( s_fv4a_x ) * rsHissX->m_amplitudefactor;
+            volume = mvOccupied->Handle->GetSound( s_fv4a_x ) * rsHissX->m_amplitudefactor + rsHissX->m_amplitudeoffset;
             if( volume * brakevolumescale > 0.05 ) {
                 rsHissX->gain( volume * brakevolumescale );
                 rsHissX->play( sound_flags::exclusive | sound_flags::looping );
@@ -7607,7 +7607,7 @@ TTrain::update_sounds( double const Deltatime ) {
         }
         // upuszczanie z czasowego 
         if( rsHissT ) {
-            volume = mvOccupied->Handle->GetSound( s_fv4a_t ) * rsHissT->m_amplitudefactor;
+            volume = mvOccupied->Handle->GetSound( s_fv4a_t ) * rsHissT->m_amplitudefactor + +rsHissT->m_amplitudeoffset;
             if( volume * brakevolumescale > 0.05 ) {
                 rsHissT->gain( volume * brakevolumescale );
                 rsHissT->play( sound_flags::exclusive | sound_flags::looping );
@@ -7624,7 +7624,7 @@ TTrain::update_sounds( double const Deltatime ) {
             fPPress = ( 4.0f * fPPress + std::max( 0.0, mvOccupied->dpMainValve ) ) / ( 4.0f + 1.0f );
             volume = (
                 fPPress > 0.0f ?
-                    2.0 * rsHiss->m_amplitudefactor * fPPress :
+                    2.0 * rsHiss->m_amplitudefactor * fPPress + rsHiss->m_amplitudeoffset :
                     0.0 );
             if( volume > 0.05 ) {
                 rsHiss->gain( volume );
@@ -7639,7 +7639,7 @@ TTrain::update_sounds( double const Deltatime ) {
             fNPress = ( 4.0f * fNPress + Min0R( 0.0, mvOccupied->dpMainValve ) ) / ( 4.0f + 1.0f );
             volume = (
                 fNPress < 0.0f ?
-                    -1.0 * rsHissU->m_amplitudefactor * fNPress :
+                    -1.0 * rsHissU->m_amplitudefactor * fNPress + rsHissU->m_amplitudeoffset :
                      0.0 );
             if( volume > 0.01 ) {
                 rsHissU->gain( volume );
