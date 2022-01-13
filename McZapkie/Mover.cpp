@@ -2058,8 +2058,8 @@ void TMoverParameters::MotorBlowersCheck( double const Timestep ) {
     // activation check
     for( auto &blower : MotorBlowers ) {
 		auto disable = blower.is_disabled;
-        auto const start { ( Vel >= blower.min_start_velocity && Im > 0.5 ) };
-        auto const stop { ( Vel < 0.5 && Im < 0.5 ) };
+        auto const start { ( Vel >= blower.min_start_velocity && std::abs(Im) > 0.5 ) };
+        auto const stop { ( Vel < 0.5 && std::abs(Im) < 0.5 ) };
 		if (blower.min_start_velocity >= 0)
 		{
 			if ( stop )
