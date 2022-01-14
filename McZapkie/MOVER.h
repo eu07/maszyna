@@ -661,7 +661,7 @@ class TSecuritySystem
 	double AwareMinSpeed = 0.0;
 	double SoundSignalDelay = 5.0;
 	double EmergencyBrakeDelay = 5.0;
-	double MaxHoldTime = 5.0;
+	double MaxHoldTime = 1.5;
 
 public:
 	void set_enabled(bool e);
