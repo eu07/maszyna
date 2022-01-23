@@ -645,6 +645,11 @@ dictionary_source *TTrain::GetTrainState( dictionary_source const &Extraparamete
     dict->insert( "distance_counter", m_distancecounter );
     dict->insert( "pantpress", std::abs( mvPantographUnit->PantPress ) );
     dict->insert( "universal3", InstrumentLightActive );
+	for (auto idx = 0; idx < ggUniversals.size(); idx++) {
+		if (idx != 3) {
+			dict->insert("universal" + std::to_string(idx), (ggUniversals[idx].GetValue() > 0.5));
+		}
+	}
     dict->insert( "radio", mvOccupied->Radio );
     dict->insert( "radio_channel", RadioChannel() );
 	dict->insert( "radio_volume", Global.RadioVolume );
