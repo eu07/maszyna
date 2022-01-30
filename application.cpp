@@ -31,6 +31,7 @@ http://mozilla.org/MPL/2.0/.
 #include "version_info.h"
 #include "scripts/DefaultScript.h"
 
+
 #ifdef _WIN32
 #pragma comment (lib, "dsound.lib")
 #pragma comment (lib, "winmm.lib")
@@ -696,6 +697,12 @@ eu07_application::init_locale() {
     return 0;
 }
 
+static void glfwError(int id, const char *description) //Error callbacks from GLFW
+{
+	std::string ERR = "Uwu, GLFW made a fucky wucky: ";
+	Error(ERR+description, TRUE);
+}
+
 int
 eu07_application::init_glfw() {
     {
@@ -724,6 +731,9 @@ eu07_application::init_glfw() {
     }
 #endif
 
+
+
+    glfwSetErrorCallback(&glfwError);
     if( glfwInit() == GLFW_FALSE ) {
         ErrorLog( "Bad init: failed to initialize glfw" );
         return -1;
