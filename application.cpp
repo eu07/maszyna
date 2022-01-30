@@ -29,6 +29,7 @@ http://mozilla.org/MPL/2.0/.
 #include "Timer.h"
 #include "dictionary.h"
 #include "version_info.h"
+#include "scripts/DefaultScript.h"
 
 #ifdef _WIN32
 #pragma comment (lib, "dsound.lib")
@@ -196,6 +197,7 @@ eu07_application::is_client() const {
 int
 eu07_application::run() {
     auto frame{ 0 };
+	Start(); //Script system start
     // main application loop
     while (!glfwWindowShouldClose( m_windows.front() ) && !m_modestack.empty())
     {
@@ -206,6 +208,8 @@ eu07_application::run() {
             m_headtrack->update();
 
 		begin_ui_frame();
+
+        Update(); //Script Update
 
 		// -------------------------------------------------------------------
 		// multiplayer command relaying logic can seem a bit complex

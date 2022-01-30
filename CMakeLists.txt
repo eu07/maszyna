@@ -39,7 +39,8 @@ file(GLOB HEADERS "*.h"
 "network/backend/*.h"
 "widgets/*.h"
 "launcher/*.h"
-"extras/*.h")
+"extras/*.h"
+"Scripts/*.h")
 
 if (APPLE)
 	set (CMAKE_FIND_FRAMEWORK LAST)
@@ -196,6 +197,7 @@ set(SOURCES
 "launcher/scenery_scanner.cpp"
 
 "vr/vr_interface.cpp"
+"Scripts/DefaultScript.cpp"
 )
 
 if (USE_IMGUI_GL3)
