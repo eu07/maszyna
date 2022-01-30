@@ -280,6 +280,7 @@ set (PREFIX "")
 
 set(OPENVR_LIBRARY "openvr_api")
 set(OPENVR_INCLUDE_DIR "")
+set(ASIO_ROOT "${DEPS_DIR}/asio-1.20.0")
 
 if (WIN32)
 	add_definitions(-DHAVE_ROUND) # to make pymath to not redefine round
