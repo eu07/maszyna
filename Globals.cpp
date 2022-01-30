@@ -1376,7 +1376,7 @@ global_settings::export_as_text( std::ostream &Output ) const {
             << "network.server "
             << server.first << " " << server.second << "\n";
     }
-    if( false == network_client->first.empty() ) {
+    if(network_client) {
         Output
             << "network.client "
             << network_client->first << " " << network_client->second << "\n";
