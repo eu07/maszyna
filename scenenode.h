@@ -107,6 +107,10 @@ public:
     };
 
 // methods
+	void setMesh(shapenode_data mesh)
+	{
+		m_data = mesh;
+	}
     // sends content of the class to provided stream
     void
         serialize( std::ostream &Output ) const;

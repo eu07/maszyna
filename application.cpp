@@ -29,7 +29,7 @@ http://mozilla.org/MPL/2.0/.
 #include "Timer.h"
 #include "dictionary.h"
 #include "version_info.h"
-#include "scripts/DefaultScript.h"
+#include <scripts/DefaultScript.h>
 
 
 #ifdef _WIN32
@@ -198,7 +198,7 @@ eu07_application::is_client() const {
 int
 eu07_application::run() {
     auto frame{ 0 };
-	Start(); //Script system start
+	
     // main application loop
     while (!glfwWindowShouldClose( m_windows.front() ) && !m_modestack.empty())
     {
@@ -210,7 +210,7 @@ eu07_application::run() {
 
 		begin_ui_frame();
 
-        Update(); //Script Update
+        
 
 		// -------------------------------------------------------------------
 		// multiplayer command relaying logic can seem a bit complex
@@ -225,6 +225,8 @@ eu07_application::run() {
 
 		if (m_modes[m_modestack.top()]->is_command_processor()) {
 			// active mode is doing real calculations (e.g. drivermode)
+			Start(); // Script system start
+			Update(); // Script Update
 			int loop_remaining = MAX_NETWORK_PER_FRAME;
 			while (--loop_remaining > 0)
 			{
