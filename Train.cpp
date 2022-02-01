@@ -90,6 +90,9 @@ bool TTrain::screen_entry::deserialize_mapping( cParser &Input ) {
     else if( key == "target:" ) {
         target = Input.getToken<std::string>();
     }
+	else if (key == "updatetime:") {
+		updatetime = Input.getToken<int>();
+	}
     else if( key == "parameters:" ) {
         parameters = dictionary_source( Input.getToken<std::string>() );
     }
@@ -450,6 +453,42 @@ TTrain::commandhandler_map const TTrain::m_commandhandlers = {
 	{ user_command::speedcontrolbutton7, &TTrain::OnCommand_speedcontrolbutton },
 	{ user_command::speedcontrolbutton8, &TTrain::OnCommand_speedcontrolbutton },
 	{ user_command::speedcontrolbutton9, &TTrain::OnCommand_speedcontrolbutton },
+	{ user_command::inverterenable1, &TTrain::OnCommand_inverterenable },
+	{ user_command::inverterenable2, &TTrain::OnCommand_inverterenable },
+	{ user_command::inverterenable3, &TTrain::OnCommand_inverterenable },
+	{ user_command::inverterenable4, &TTrain::OnCommand_inverterenable },
+	{ user_command::inverterenable5, &TTrain::OnCommand_inverterenable },
+	{ user_command::inverterenable6, &TTrain::OnCommand_inverterenable },
+	{ user_command::inverterenable7, &TTrain::OnCommand_inverterenable },
+	{ user_command::inverterenable8, &TTrain::OnCommand_inverterenable },
+	{ user_command::inverterenable9, &TTrain::OnCommand_inverterenable },
+	{ user_command::inverterenable10, &TTrain::OnCommand_inverterenable },
+	{ user_command::inverterenable11, &TTrain::OnCommand_inverterenable },
+	{ user_command::inverterenable12, &TTrain::OnCommand_inverterenable },
+	{ user_command::inverterdisable1, &TTrain::OnCommand_inverterdisable },
+	{ user_command::inverterdisable2, &TTrain::OnCommand_inverterdisable },
+	{ user_command::inverterdisable3, &TTrain::OnCommand_inverterdisable },
+	{ user_command::inverterdisable4, &TTrain::OnCommand_inverterdisable },
+	{ user_command::inverterdisable5, &TTrain::OnCommand_inverterdisable },
+	{ user_command::inverterdisable6, &TTrain::OnCommand_inverterdisable },
+	{ user_command::inverterdisable7, &TTrain::OnCommand_inverterdisable },
+	{ user_command::inverterdisable8, &TTrain::OnCommand_inverterdisable },
+	{ user_command::inverterdisable9, &TTrain::OnCommand_inverterdisable },
+	{ user_command::inverterdisable10, &TTrain::OnCommand_inverterdisable },
+	{ user_command::inverterdisable11, &TTrain::OnCommand_inverterdisable },
+	{ user_command::inverterdisable12, &TTrain::OnCommand_inverterdisable },
+	{ user_command::invertertoggle1, &TTrain::OnCommand_invertertoggle },
+	{ user_command::invertertoggle2, &TTrain::OnCommand_invertertoggle },
+	{ user_command::invertertoggle3, &TTrain::OnCommand_invertertoggle },
+	{ user_command::invertertoggle4, &TTrain::OnCommand_invertertoggle },
+	{ user_command::invertertoggle5, &TTrain::OnCommand_invertertoggle },
+	{ user_command::invertertoggle6, &TTrain::OnCommand_invertertoggle },
+	{ user_command::invertertoggle7, &TTrain::OnCommand_invertertoggle },
+	{ user_command::invertertoggle8, &TTrain::OnCommand_invertertoggle },
+	{ user_command::invertertoggle9, &TTrain::OnCommand_invertertoggle },
+	{ user_command::invertertoggle10, &TTrain::OnCommand_invertertoggle },
+	{ user_command::invertertoggle11, &TTrain::OnCommand_invertertoggle },
+	{ user_command::invertertoggle12, &TTrain::OnCommand_invertertoggle },
 };
 
 std::vector<std::string> const TTrain::fPress_labels = {
@@ -499,7 +538,7 @@ TTrain::TTrain() {
 
 	for ( int i = 0; i < 20; ++i )
 	{
-		for ( int j = 0; j < 4; ++j )
+		for ( int j = 0; j < 6; ++j )
 			fPress[i][j] = 0.0;
 		bBrakes[i][0] = bBrakes[i][1] = false;
 	}
@@ -671,7 +710,7 @@ dictionary_source *TTrain::GetTrainState( dictionary_source const &Extraparamete
     char const *TXTT[ 10 ] = { "fd", "fdt", "fdb", "pd", "pdt", "pdb", "itothv", "1", "2", "3" };
     char const *TXTC[ 10 ] = { "fr", "frt", "frb", "pr", "prt", "prb", "im", "vm", "ihv", "uhv" };
 	char const *TXTD[ 10 ] = { "enrot", "nrot", "fill_des", "fill_real", "clutch_des", "clutch_real", "water_temp", "oil_press", "engine_temp", "retarder_fill" };
-    char const *TXTP[ 4 ] = { "bc", "bp", "sp", "cp" };
+    char const *TXTP[ 6 ] = { "bc", "bp", "sp", "cp", "rp", "mass" };
 	char const *TXTB[ 2 ] = { "spring_active", "spring_shutoff" };
     for( int j = 0; j < 10; ++j )
         dict->insert( ( "eimp_t_" + std::string( TXTT[ j ] ) ), fEIMParams[ 0 ][ j ] );
@@ -724,7 +763,7 @@ dictionary_source *TTrain::GetTrainState( dictionary_source const &Extraparamete
 		p = (kier ? p->NextC(4) : p->PrevC(4));
 	}
     for( int i = 0; i < 20; ++i ) {
-        for( int j = 0; j < 4; ++j ) {
+        for( int j = 0; j < 6; ++j ) {
             dict->insert( ( "eimp_pn" + std::to_string( i + 1 ) + "_" + TXTP[ j ] ), fPress[ i ][ j ] );
         }
 		for ( int j = 0; j < 2; ++j)  {
@@ -5150,7 +5189,115 @@ void TTrain::OnCommand_speedcontrolbutton(TTrain *Train, command_data const &Com
 	}
 };
 
-void TTrain::OnCommand_doorlocktoggle( TTrain *Train, command_data const &Command ) {
+void TTrain::OnCommand_inverterenable(TTrain *Train, command_data const &Command) {
+
+	auto itemindex = static_cast<int>(Command.command) - static_cast<int>(user_command::inverterenable1);
+	auto &item = Train->ggInverterEnableButtons[itemindex];
+
+	if (Command.action == GLFW_PRESS) {
+		// only reacting to press, so the switch doesn't flip back and forth if key is held down
+		bool kier = (Train->DynamicObject->DirectionGet() * Train->mvOccupied->CabOccupied > 0);
+		TDynamicObject *p = Train->DynamicObject->GetFirstDynamic(Train->mvOccupied->CabOccupied < 0 ? end::rear : end::front, 4);
+		while (p)
+		{
+			if (p->MoverParameters->eimc[eimc_p_Pmax] > 1)
+			{
+				if (itemindex < p->MoverParameters->InvertersNo)
+				{
+					p->MoverParameters->Inverters[itemindex].Activate = true;
+					break;
+				}
+				else
+				{
+					itemindex -= p->MoverParameters->InvertersNo;
+				}
+			
+			}
+			p = (kier ? p->NextC(4) : p->PrevC(4));
+		}
+		// visual feedback
+		Train->ggInverterEnableButtons[itemindex].UpdateValue(1.0, Train->dsbSwitch);
+	}
+	else if (Command.action == GLFW_RELEASE) {
+		// release
+		// visual feedback
+		Train->ggInverterEnableButtons[itemindex].UpdateValue(0.0, Train->dsbSwitch);
+	}
+};
+
+void TTrain::OnCommand_inverterdisable(TTrain *Train, command_data const &Command) {
+
+	auto itemindex = static_cast<int>(Command.command) - static_cast<int>(user_command::inverterdisable1);
+	auto &item = Train->ggInverterDisableButtons[itemindex];
+
+	if (Command.action == GLFW_PRESS) {
+		// only reacting to press, so the switch doesn't flip back and forth if key is held down
+		bool kier = (Train->DynamicObject->DirectionGet() * Train->mvOccupied->CabOccupied > 0);
+		TDynamicObject *p = Train->DynamicObject->GetFirstDynamic(Train->mvOccupied->CabOccupied < 0 ? end::rear : end::front, 4);
+		while (p)
+		{
+			if (p->MoverParameters->eimc[eimc_p_Pmax] > 1)
+			{
+				if (itemindex < p->MoverParameters->InvertersNo)
+				{
+					p->MoverParameters->Inverters[itemindex].Activate = false;
+					break;
+				}
+				else
+				{
+					itemindex -= p->MoverParameters->InvertersNo;
+				}
+
+			}
+			p = (kier ? p->NextC(4) : p->PrevC(4));
+		}
+		// visual feedback
+		Train->ggInverterDisableButtons[itemindex].UpdateValue(1.0, Train->dsbSwitch);
+	}
+	else if (Command.action == GLFW_RELEASE) {
+		// release
+		// visual feedback
+		Train->ggInverterDisableButtons[itemindex].UpdateValue(0.0, Train->dsbSwitch);
+	}
+};
+
+void TTrain::OnCommand_invertertoggle(TTrain *Train, command_data const &Command) {
+
+	auto itemindex = static_cast<int>(Command.command) - static_cast<int>(user_command::invertertoggle1);
+	auto &item = Train->ggInverterToggleButtons[itemindex];
+
+	if (Command.action == GLFW_PRESS) {
+		// only reacting to press, so the switch doesn't flip back and forth if key is held down
+		bool kier = (Train->DynamicObject->DirectionGet() * Train->mvOccupied->CabOccupied > 0);
+		TDynamicObject *p = Train->DynamicObject->GetFirstDynamic(Train->mvOccupied->CabOccupied < 0 ? end::rear : end::front, 4);
+		while (p)
+		{
+			if (p->MoverParameters->eimc[eimc_p_Pmax] > 1)
+			{
+				if (itemindex < p->MoverParameters->InvertersNo)
+				{
+					p->MoverParameters->Inverters[itemindex].Activate = !p->MoverParameters->Inverters[itemindex].Activate;
+					break;
+				}
+				else
+				{
+					itemindex -= p->MoverParameters->InvertersNo;
+				}
+
+			}
+			p = (kier ? p->NextC(4) : p->PrevC(4));
+		}
+		// visual feedback
+		Train->ggInverterToggleButtons[itemindex].UpdateValue(1.0, Train->dsbSwitch);
+	}
+	else if (Command.action == GLFW_RELEASE) {
+		// release
+		// visual feedback
+		Train->ggInverterToggleButtons[itemindex].UpdateValue(0.0, Train->dsbSwitch);
+	}
+};
+
+void TTrain::OnCommand_doorlocktoggle(TTrain *Train, command_data const &Command) {
 
     if( Train->ggDoorSignallingButton.SubModel == nullptr ) {
         if( Command.action == GLFW_PRESS ) {
@@ -6425,6 +6572,8 @@ bool TTrain::Update( double const Deltatime )
             fPress[i][1] = p->MoverParameters->PipePress;
             fPress[i][2] = p->MoverParameters->ScndPipePress;
 			fPress[i][3] = p->MoverParameters->CntrlPipePress;
+			fPress[i][4] = p->MoverParameters->Hamulec->GetBRP();
+			fPress[i][5] = (p->MoverParameters->TotalMass - p->MoverParameters->Mred) * 0.001;
 			bBrakes[i][0] = p->MoverParameters->SpringBrake.IsActive;
 			bBrakes[i][1] = p->MoverParameters->SpringBrake.ShuttOff;
             bDoors[i][1] = ( p->MoverParameters->Doors.instances[ side::left ].position > 0.f );
@@ -6513,6 +6662,8 @@ bool TTrain::Update( double const Deltatime )
             = fPress[i][1]
             = fPress[i][2]
 			= fPress[i][3]
+			= fPress[i][4]
+			= fPress[i][5]
             = 0;
             bDoors[i][0]
             = bDoors[i][1]
@@ -7488,19 +7639,26 @@ bool TTrain::Update( double const Deltatime )
         }
     }
     // screens
-    fScreenTimer += Deltatime;
+//    fScreenTimer += Deltatime;
     if( ( this == simulation::Train ) // no point in drawing screens for vehicles other than our own
      && ( Global.PythonScreenUpdateRate > 0 )
-     && ( fScreenTimer > std::max( fScreenUpdateRate, Global.PythonScreenUpdateRate ) * 0.001f )
      && ( false == FreeFlyModeFlag ) ) { // don't bother if we're outside
-        fScreenTimer = 0.f;
+//        fScreenTimer = 0.f;
         for( auto &screen : m_screens ) {
-            auto *state_dict = GetTrainState( screen.parameters );
-/*
-            state_dict->insert("touches", *screen.touch_list);
-            screen.touch_list->clear();
-*/
-            Application.request( { screen.script, state_dict, screen.rt } );
+			if (screen.updatetimecounter >= 0)
+			{
+				screen.updatetimecounter += Deltatime;
+			}
+			if (screen.updatetimecounter > screen.updatetime)
+			{
+				auto *state_dict = GetTrainState(screen.parameters);
+				/*
+							state_dict->insert("touches", *screen.touch_list);
+							screen.touch_list->clear();
+				*/
+				Application.request({ screen.script, state_dict, screen.rt });
+				screen.updatetimecounter = screen.updatetime > 0 ? 0 : -1;
+			}
         }
     }
     // sounds
@@ -8306,6 +8464,18 @@ bool TTrain::InitializeCab(int NewCabNo, std::string const &asFileName)
 //               && ( token != "cab1definition:" )
 //               && ( token != "cab2definition:" )
                && ( token != "cab0definition:" ) );
+		for (auto &screen : m_screens)
+		{
+			if (screen.updatetime > 0) {
+				screen.updatetime = std::max((int)screen.updatetime, Global.PythonScreenUpdateRate) * 0.001;
+			}
+			if (screen.updatetime == 0) {
+				screen.updatetime = std::max(Global.PythonScreenUpdateRate, fScreenUpdateRate) * 0.001;
+			}
+			if (screen.updatetime < -1) {
+				screen.updatetime = -screen.updatetime * 0.001;
+			}
+		}
     }
     else
     {
@@ -9474,7 +9644,43 @@ bool TTrain::initialize_gauge(cParser &Parser, std::string const &Label, int con
         { "universal6:", ggUniversals[ 6 ] },
         { "universal7:", ggUniversals[ 7 ] },
         { "universal8:", ggUniversals[ 8 ] },
-        { "universal9:", ggUniversals[ 9 ] }
+        { "universal9:", ggUniversals[ 9 ] },
+		{ "inverterenable1_bt:", ggInverterEnableButtons[0] },
+		{ "inverterenable2_bt:", ggInverterEnableButtons[1] },
+		{ "inverterenable3_bt:", ggInverterEnableButtons[2] },
+		{ "inverterenable4_bt:", ggInverterEnableButtons[3] },
+		{ "inverterenable5_bt:", ggInverterEnableButtons[4] },
+		{ "inverterenable6_bt:", ggInverterEnableButtons[5] },
+		{ "inverterenable7_bt:", ggInverterEnableButtons[6] },
+		{ "inverterenable8_bt:", ggInverterEnableButtons[7] },
+		{ "inverterenable9_bt:", ggInverterEnableButtons[8] },
+		{ "inverterenable10_bt:", ggInverterEnableButtons[9] },
+		{ "inverterenable11_bt:", ggInverterEnableButtons[10] },
+		{ "inverterenable12_bt:", ggInverterEnableButtons[11] },
+		{ "inverterdisable1_bt:", ggInverterDisableButtons[0] },
+		{ "inverterdisable2_bt:", ggInverterDisableButtons[1] },
+		{ "inverterdisable3_bt:", ggInverterDisableButtons[2] },
+		{ "inverterdisable4_bt:", ggInverterDisableButtons[3] },
+		{ "inverterdisable5_bt:", ggInverterDisableButtons[4] },
+		{ "inverterdisable6_bt:", ggInverterDisableButtons[5] },
+		{ "inverterdisable7_bt:", ggInverterDisableButtons[6] },
+		{ "inverterdisable8_bt:", ggInverterDisableButtons[7] },
+		{ "inverterdisable9_bt:", ggInverterDisableButtons[8] },
+		{ "inverterdisable10_bt:", ggInverterDisableButtons[9] },
+		{ "inverterdisable11_bt:", ggInverterDisableButtons[10] },
+		{ "inverterdisable12_bt:", ggInverterDisableButtons[11] },
+		{ "invertertoggle1_bt:", ggInverterToggleButtons[0] },
+		{ "invertertoggle2_bt:", ggInverterToggleButtons[1] },
+		{ "invertertoggle3_bt:", ggInverterToggleButtons[2] },
+		{ "invertertoggle4_bt:", ggInverterToggleButtons[3] },
+		{ "invertertoggle5_bt:", ggInverterToggleButtons[4] },
+		{ "invertertoggle6_bt:", ggInverterToggleButtons[5] },
+		{ "invertertoggle7_bt:", ggInverterToggleButtons[6] },
+		{ "invertertoggle8_bt:", ggInverterToggleButtons[7] },
+		{ "invertertoggle9_bt:", ggInverterToggleButtons[8] },
+		{ "invertertoggle10_bt:", ggInverterToggleButtons[9] },
+		{ "invertertoggle11_bt:", ggInverterToggleButtons[10] },
+		{ "invertertoggle12_bt:", ggInverterToggleButtons[11] },
     };
     {
         auto const lookup { gauges.find( Label ) };

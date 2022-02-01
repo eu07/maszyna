@@ -64,7 +64,8 @@ enum TMovementStatus
     moveDoorOpened = 0x20000, // drzwi zostały otwarte - doliczyć czas na zamknięcie
     movePushPull = 0x40000, // zmiana czoła przez zmianę kabiny - nie odczepiać przy zmianie kierunku
     moveSignalFound = 0x80000, // na drodze skanowania został znaleziony semafor
-    moveStopPointFound = 0x100000 // stop point detected ahead
+    moveStopPointFound = 0x100000, // stop point detected ahead
+	moveGuardOpenDoor = 0x200000 // time for opening a door before departure
 /*
     moveSemaphorWasElapsed = 0x100000, // minięty został semafor
     moveTrainInsideStation = 0x200000, // pociąg między semaforem a rozjazdami lub następnym semaforem
@@ -325,6 +326,7 @@ private:
     void UpdateChangeDirection();
     void UpdateLooseShunt();
     void UpdateObeyTrain();
+	void GuardOpenDoor();
     void pick_optimal_speed( double const Range );
     void adjust_desired_speed_for_obstacles();
     void adjust_desired_speed_for_limits();

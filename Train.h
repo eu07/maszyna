@@ -128,6 +128,8 @@ class TTrain {
 
         std::string script;
         std::string target;
+		double updatetime = 0;
+		double updatetimecounter = 0;
         std::shared_ptr<python_rt> rt;
 /*
         std::unique_ptr<python_screen_viewer> viewer;
@@ -453,6 +455,9 @@ class TTrain {
 	static void OnCommand_speedcontrolpowerincrease(TTrain *Train, command_data const &Command);
 	static void OnCommand_speedcontrolpowerdecrease(TTrain *Train, command_data const &Command);
 	static void OnCommand_speedcontrolbutton(TTrain *Train, command_data const &Command);
+	static void OnCommand_inverterenable(TTrain *Train, command_data const &Command);
+	static void OnCommand_inverterdisable(TTrain *Train, command_data const &Command);
+	static void OnCommand_invertertoggle(TTrain *Train, command_data const &Command);
 
 
 
@@ -575,6 +580,9 @@ public: // reszta może by?publiczna
 
    std::array<TGauge, 10> ggUniversals; // NOTE: temporary arrangement until we have dynamically built control table
    std::array<TGauge, 3> ggRelayResetButtons; // NOTE: temporary arrangement until we have dynamically built control table
+   std::array<TGauge, 12> ggInverterEnableButtons; // NOTE: temporary arrangement until we have dynamically built control table
+   std::array<TGauge, 12> ggInverterDisableButtons; // NOTE: temporary arrangement until we have dynamically built control table
+   std::array<TGauge, 12> ggInverterToggleButtons; // NOTE: temporary arrangement until we have dynamically built control table
 
     TGauge ggInstrumentLightButton;
     TGauge ggDashboardLightButton;
@@ -788,7 +796,7 @@ private:
     float fConverterTimer; // hunter-261211: dla przekaznika
     float fMainRelayTimer; // hunter-141211: zalaczanie WSa z opoznieniem
     float fCzuwakTestTimer; // hunter-091012: do testu czuwaka
-    float fScreenTimer { 0.f };
+//    float fScreenTimer { 0.f };
     int fScreenUpdateRate { 0 }; // vehicle specific python screen update rate override
 
     bool CAflag { false }; // hunter-131211: dla osobnego zbijania CA i SHP
@@ -835,7 +843,7 @@ private:
     bool m_couplingdisconnect { false };
 
   public:
-    float fPress[20][4]; // cisnienia dla wszystkich czlonow
+    float fPress[20][6]; // cisnienia dla wszystkich czlonow
 	bool bBrakes[20][2]; // zalaczenie i dzialanie hamulcow
     static std::vector<std::string> const fPress_labels;
     float fEIMParams[9][10]; // parametry dla silnikow asynchronicznych

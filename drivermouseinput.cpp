@@ -954,6 +954,115 @@ drivermouse_input::default_bindings() {
 		{ "speedbutton9:",{
 			user_command::speedcontrolbutton9,
 			user_command::none } },
+		{ "inverterenable1_bt:",{
+			user_command::inverterenable1,
+			user_command::none } },
+		{ "inverterenable2_bt:",{
+			user_command::inverterenable2,
+			user_command::none } },
+		{ "inverterenable3_bt:",{
+			user_command::inverterenable3,
+			user_command::none } },
+		{ "inverterenable4_bt:",{
+			user_command::inverterenable4,
+			user_command::none } },
+		{ "inverterenable5_bt:",{
+			user_command::inverterenable5,
+			user_command::none } },
+		{ "inverterenable6_bt:",{
+			user_command::inverterenable6,
+			user_command::none } },
+		{ "inverterenable7_bt:",{
+			user_command::inverterenable7,
+			user_command::none } },
+		{ "inverterenable8_bt:",{
+			user_command::inverterenable8,
+			user_command::none } },
+		{ "inverterenable9_bt:",{
+			user_command::inverterenable9,
+			user_command::none } },
+		{ "inverterenable10_bt:",{
+			user_command::inverterenable10,
+			user_command::none } },
+		{ "inverterenable11_bt:",{
+			user_command::inverterenable11,
+			user_command::none } },
+		{ "inverterenable12_bt:",{
+			user_command::inverterenable12,
+			user_command::none } },
+		{ "inverterdisable1_bt:",{
+			user_command::inverterdisable1,
+			user_command::none } },
+		{ "inverterdisable2_bt:",{
+			user_command::inverterdisable2,
+			user_command::none } },
+		{ "inverterdisable3_bt:",{
+			user_command::inverterdisable3,
+			user_command::none } },
+		{ "inverterdisable4_bt:",{
+			user_command::inverterdisable4,
+			user_command::none } },
+		{ "inverterdisable5_bt:",{
+			user_command::inverterdisable5,
+			user_command::none } },
+		{ "inverterdisable6_bt:",{
+			user_command::inverterdisable6,
+			user_command::none } },
+		{ "inverterdisable7_bt:",{
+			user_command::inverterdisable7,
+			user_command::none } },
+		{ "inverterdisable8_bt:",{
+			user_command::inverterdisable8,
+			user_command::none } },
+		{ "inverterdisable9_bt:",{
+			user_command::inverterdisable9,
+			user_command::none } },
+		{ "inverterdisable10_bt:",{
+			user_command::inverterdisable10,
+			user_command::none } },
+		{ "inverterdisable11_bt:",{
+			user_command::inverterdisable11,
+			user_command::none } },
+		{ "inverterdisable12_bt:",{
+			user_command::inverterdisable12,
+			user_command::none } },
+		{ "invertertoggle1_bt:",{
+			user_command::invertertoggle1,
+			user_command::none } },
+		{ "invertertoggle2_bt:",{
+			user_command::invertertoggle2,
+			user_command::none } },
+		{ "invertertoggle3_bt:",{
+			user_command::invertertoggle3,
+			user_command::none } },
+		{ "invertertoggle4_bt:",{
+			user_command::invertertoggle4,
+			user_command::none } },
+		{ "invertertoggle5_bt:",{
+			user_command::invertertoggle5,
+			user_command::none } },
+		{ "invertertoggle6_bt:",{
+			user_command::invertertoggle6,
+			user_command::none } },
+		{ "invertertoggle7_bt:",{
+			user_command::invertertoggle7,
+			user_command::none } },
+		{ "invertertoggle8_bt:",{
+			user_command::invertertoggle8,
+			user_command::none } },
+		{ "invertertoggle9_bt:",{
+			user_command::invertertoggle9,
+			user_command::none } },
+		{ "invertertoggle10_bt:",{
+			user_command::invertertoggle10,
+			user_command::none } },
+		{ "invertertoggle11_bt:",{
+			user_command::invertertoggle11,
+			user_command::none } },
+		{ "invertertoggle12_bt:",{
+			user_command::invertertoggle12,
+			user_command::none } },
+
     };
 }
 
