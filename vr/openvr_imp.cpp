@@ -291,7 +291,6 @@ texture_done:
             if (control != nullptr) {
                 if (control->screen_touch_list) {
                     control->screen_touch_list->emplace_back(pos);
-                    return;
                 }
 
                 auto it = m_buttonbindings.find(simulation::Train->GetLabel(control));

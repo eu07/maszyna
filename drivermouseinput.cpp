@@ -378,7 +378,6 @@ drivermouse_input::button( int const Button, int const Action ) {
                             && control && control->screen_touch_list) {
 
                         control->screen_touch_list->emplace_back(pos);
-                        return;
                     }
 
                     auto const controlbindings { bindings( simulation::Train->GetLabel( control ) ) };
