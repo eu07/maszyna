@@ -1095,7 +1095,7 @@ TCommandType TController::TableUpdate(double &fVelDes, double &fDist, double &fN
 bool
 TController::TableUpdateStopPoint( TCommandType &Command, TSpeedPos &Point, double const Signaldistance ) {
     // stop points are irrelevant when not in one of the basic modes
-    if( ( OrderCurrentGet() & ( /*Shunt | Loose_shunt |*/ Obey_train | Bank ) ) == 0 ) { return true; }
+    if( ( OrderCurrentGet() & ( Shunt | Loose_shunt | Obey_train | Bank ) ) == 0 ) { return true; }
     // jeśli przystanek, trzeba obsłużyć wg rozkładu
     iDrivigFlags |= moveStopPointFound;
     // first 19 chars of the command is expected to be "PassengerStopPoint:" so we skip them
@@ -1338,9 +1338,13 @@ TController::TableUpdateStopPoint( TCommandType &Command, TSpeedPos &Point, doub
                         }
                         return true; // nie analizować prędkości
                     } // koniec startu z zatrzymania
-                    else {
-                        cue_action( driver_hint::waitdeparturetime );
-                    }
+					else {
+						cue_action(driver_hint::waitdeparturetime);
+						if (TrainParams.IsTimeToGo(simulation::Time.data().wHour, simulation::Time.data().wMinute + simulation::Time.data().wSecond*0.0167 + 0.1)) { //if is less than 6 sec to departure
+							iDrivigFlags |= moveGuardOpenDoor;
+							GuardOpenDoor();
+						}
+					}
                 } // koniec obsługi początkowych stacji
                 else {
                     // jeśli dojechaliśmy do końca rozkładu
@@ -6918,6 +6922,7 @@ TController::UpdateObeyTrain() {
      && ( VelDesired > 0.0 ) ) {
         // komunikat od kierownika tu, bo musi być wolna droga i odczekany czas stania
         iDrivigFlags &= ~moveGuardSignal; // tylko raz nadać
+		iDrivigFlags &= ~moveGuardOpenDoor; // nie trzeba już otwierać drzwi
         if( false == tsGuardSignal.empty() ) {
             tsGuardSignal.stop();
             // w zasadzie to powinien mieć flagę, czy jest dźwiękiem radiowym, czy bezpośrednim
@@ -7009,6 +7014,29 @@ TController::UpdateConnect() {
             }
         }
     }
+}
+
+void
+TController::GuardOpenDoor() {
+	if ((iDrivigFlags & moveGuardOpenDoor) != 0) {
+		auto *vehicle{ pVehicles[end::front] };
+		while (vehicle != nullptr && vehicle->MoverParameters->Doors.range == 0) {
+			vehicle = vehicle->Next();
+		}
+		if (vehicle->MoverParameters->Doors.range > 0) {
+			auto const lewe = (vehicle->DirectionGet() > 0) ? 1 : 2;
+			auto const prawe = 3 - lewe;
+			if (m_lastexchangeplatforms & lewe) {
+				vehicle->MoverParameters->OperateDoors(side::left, true, range_t::local);
+			}
+			if (m_lastexchangeplatforms & prawe) {
+				vehicle->MoverParameters->OperateDoors(side::right, true, range_t::local);
+			}
+		}
+		else {
+			iDrivigFlags &= ~moveGuardOpenDoor;
+		}
+	}
 }
 
 int

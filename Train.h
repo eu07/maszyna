@@ -129,6 +129,8 @@ class TTrain {
 
         std::string script;
         std::string target;
+		double updatetime = 0;
+		double updatetimecounter = 0;
         std::shared_ptr<python_rt> rt;
         std::shared_ptr<python_screen_viewer> viewer;
         std::shared_ptr<std::vector<glm::vec2>> touch_list;
@@ -216,7 +218,7 @@ class TTrain {
     inline
     end cab_to_end() const {
         return cab_to_end( iCabn ); }
-	void update_screens();
+	void update_screens(double dt);
 
     // command handlers
     // NOTE: we're currently using universal handlers and static handler map but it may be beneficial to have these implemented on individual class instance basis
@@ -455,6 +457,9 @@ class TTrain {
 	static void OnCommand_speedcontrolpowerincrease(TTrain *Train, command_data const &Command);
 	static void OnCommand_speedcontrolpowerdecrease(TTrain *Train, command_data const &Command);
 	static void OnCommand_speedcontrolbutton(TTrain *Train, command_data const &Command);
+	static void OnCommand_inverterenable(TTrain *Train, command_data const &Command);
+	static void OnCommand_inverterdisable(TTrain *Train, command_data const &Command);
+	static void OnCommand_invertertoggle(TTrain *Train, command_data const &Command);
 
 
 // members
@@ -576,6 +581,9 @@ public: // reszta może by?publiczna
 
    std::array<TGauge, 10> ggUniversals; // NOTE: temporary arrangement until we have dynamically built control table
    std::array<TGauge, 3> ggRelayResetButtons; // NOTE: temporary arrangement until we have dynamically built control table
+   std::array<TGauge, 12> ggInverterEnableButtons; // NOTE: temporary arrangement until we have dynamically built control table
+   std::array<TGauge, 12> ggInverterDisableButtons; // NOTE: temporary arrangement until we have dynamically built control table
+   std::array<TGauge, 12> ggInverterToggleButtons; // NOTE: temporary arrangement until we have dynamically built control table
 
     TGauge ggInstrumentLightButton;
     TGauge ggDashboardLightButton;
@@ -788,7 +796,6 @@ private:
     float fHaslerTimer;
     float fConverterTimer; // hunter-261211: dla przekaznika
     float fMainRelayTimer; // hunter-141211: zalaczanie WSa z opoznieniem
-    float fScreenTimer { 0.f };
     int ScreenUpdateRate { 0 }; // vehicle specific python screen update rate override
 
     // McZapkie-240302 - przyda sie do tachometru
@@ -833,7 +840,7 @@ private:
     bool m_couplingdisconnect { false };
 
   public:
-    float fPress[20][4]; // cisnienia dla wszystkich czlonow
+    float fPress[20][6]; // cisnienia dla wszystkich czlonow
 	bool bBrakes[20][2]; // zalaczenie i dzialanie hamulcow
     static std::vector<std::string> const fPress_labels;
     float fEIMParams[9][10]; // parametry dla silnikow asynchronicznych
