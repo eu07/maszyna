@@ -1305,6 +1305,7 @@ public:
 	int InvertersNo = 0; // number of inverters
 	double InvertersRatio = 0.0;
 	std::vector<inverter> Inverters; //all inverters
+	int InverterControlCouplerFlag = 4; //which coupling flag is necessary to controll inverters
 	/* -dla pojazdów z blendingiem EP/ED (MED) */
 	double MED_Vmax = 0; // predkosc maksymalna dla obliczen chwilowej sily hamowania EP w MED
 	double MED_Vmin = 0; // predkosc minimalna dla obliczen chwilowej sily hamowania EP w MED

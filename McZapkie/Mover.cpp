@@ -10835,7 +10835,8 @@ void TMoverParameters::LoadFIZ_Engine( std::string const &Input ) {
             extract_value( eimc[ eimc_p_abed ], "abed", Input, "" );
             extract_value( eimc[ eimc_p_eped ], "edep", Input, "" );
 			extract_value( EIMCLogForce, "eimclf", Input, "" );
-			extract_value( InvertersNo, "InvNo", Input, "");
+			extract_value( InvertersNo, "InvNo", Input, "" );
+			extract_value( InverterControlCouplerFlag, "InvCtrCplFlag", Input, "" );
 
 			extract_value( Flat, "Flat", Input, "");
 

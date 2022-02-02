@@ -5197,7 +5197,8 @@ void TTrain::OnCommand_inverterenable(TTrain *Train, command_data const &Command
 	if (Command.action == GLFW_PRESS) {
 		// only reacting to press, so the switch doesn't flip back and forth if key is held down
 		bool kier = (Train->DynamicObject->DirectionGet() * Train->mvOccupied->CabOccupied > 0);
-		TDynamicObject *p = Train->DynamicObject->GetFirstDynamic(Train->mvOccupied->CabOccupied < 0 ? end::rear : end::front, 4);
+		int flag = Train->DynamicObject->MoverParameters->InverterControlCouplerFlag;
+		TDynamicObject *p = Train->DynamicObject->GetFirstDynamic(Train->mvOccupied->CabOccupied < 0 ? end::rear : end::front, flag);
 		while (p)
 		{
 			if (p->MoverParameters->eimc[eimc_p_Pmax] > 1)
@@ -5213,7 +5214,7 @@ void TTrain::OnCommand_inverterenable(TTrain *Train, command_data const &Command
 				}
 			
 			}
-			p = (kier ? p->NextC(4) : p->PrevC(4));
+			p = (kier ? p->NextC(flag) : p->PrevC(flag));
 		}
 		// visual feedback
 		Train->ggInverterEnableButtons[itemindex].UpdateValue(1.0, Train->dsbSwitch);
@@ -5233,7 +5234,8 @@ void TTrain::OnCommand_inverterdisable(TTrain *Train, command_data const &Comman
 	if (Command.action == GLFW_PRESS) {
 		// only reacting to press, so the switch doesn't flip back and forth if key is held down
 		bool kier = (Train->DynamicObject->DirectionGet() * Train->mvOccupied->CabOccupied > 0);
-		TDynamicObject *p = Train->DynamicObject->GetFirstDynamic(Train->mvOccupied->CabOccupied < 0 ? end::rear : end::front, 4);
+		int flag = Train->DynamicObject->MoverParameters->InverterControlCouplerFlag;
+		TDynamicObject *p = Train->DynamicObject->GetFirstDynamic(Train->mvOccupied->CabOccupied < 0 ? end::rear : end::front, flag);
 		while (p)
 		{
 			if (p->MoverParameters->eimc[eimc_p_Pmax] > 1)
@@ -5249,7 +5251,7 @@ void TTrain::OnCommand_inverterdisable(TTrain *Train, command_data const &Comman
 				}
 
 			}
-			p = (kier ? p->NextC(4) : p->PrevC(4));
+			p = (kier ? p->NextC(flag) : p->PrevC(flag));
 		}
 		// visual feedback
 		Train->ggInverterDisableButtons[itemindex].UpdateValue(1.0, Train->dsbSwitch);
@@ -5269,7 +5271,8 @@ void TTrain::OnCommand_invertertoggle(TTrain *Train, command_data const &Command
 	if (Command.action == GLFW_PRESS) {
 		// only reacting to press, so the switch doesn't flip back and forth if key is held down
 		bool kier = (Train->DynamicObject->DirectionGet() * Train->mvOccupied->CabOccupied > 0);
-		TDynamicObject *p = Train->DynamicObject->GetFirstDynamic(Train->mvOccupied->CabOccupied < 0 ? end::rear : end::front, 4);
+		int flag = Train->DynamicObject->MoverParameters->InverterControlCouplerFlag;
+		TDynamicObject *p = Train->DynamicObject->GetFirstDynamic(Train->mvOccupied->CabOccupied < 0 ? end::rear : end::front, flag);
 		while (p)
 		{
 			if (p->MoverParameters->eimc[eimc_p_Pmax] > 1)
@@ -5277,6 +5280,8 @@ void TTrain::OnCommand_invertertoggle(TTrain *Train, command_data const &Command
 				if (itemindex < p->MoverParameters->InvertersNo)
 				{
 					p->MoverParameters->Inverters[itemindex].Activate = !p->MoverParameters->Inverters[itemindex].Activate;
+					// visual feedback
+					Train->ggInverterToggleButtons[itemindex].UpdateValue(p->MoverParameters->Inverters[itemindex].Activate ? 1.0 : 0.0, Train->dsbSwitch);
 					break;
 				}
 				else
@@ -5285,15 +5290,8 @@ void TTrain::OnCommand_invertertoggle(TTrain *Train, command_data const &Command
 				}
 
 			}
-			p = (kier ? p->NextC(4) : p->PrevC(4));
+			p = (kier ? p->NextC(flag) : p->PrevC(flag));
 		}
-		// visual feedback
-		Train->ggInverterToggleButtons[itemindex].UpdateValue(1.0, Train->dsbSwitch);
-	}
-	else if (Command.action == GLFW_RELEASE) {
-		// release
-		// visual feedback
-		Train->ggInverterToggleButtons[itemindex].UpdateValue(0.0, Train->dsbSwitch);
 	}
 };
 
@@ -7576,6 +7574,15 @@ bool TTrain::Update( double const Deltatime )
     for( auto &universal : ggUniversals ) {
         universal.Update();
     }
+	for (auto &item : ggInverterEnableButtons) {
+		item.Update();
+	}
+	for (auto &item : ggInverterDisableButtons) {
+		item.Update();
+	}
+	for (auto &item : ggInverterToggleButtons) {
+		item.Update();
+	}
     for( auto &relayresetbutton : ggRelayResetButtons ) {
         relayresetbutton.Update();
     }
@@ -8849,6 +8856,15 @@ void TTrain::clear_cab_controls()
     for( auto &universal : ggUniversals ) {
         universal.Clear();
     }
+	for (auto &item : ggInverterEnableButtons) {
+		item.Clear();
+	}
+	for (auto &item : ggInverterDisableButtons) {
+		item.Clear();
+	}
+	for (auto &item : ggInverterToggleButtons) {
+		item.Clear();
+	}
     for( auto &relayresetbutton : ggRelayResetButtons ) {
         relayresetbutton.Clear();
     }
@@ -9348,6 +9364,35 @@ void TTrain::set_cab_controls( int const Cab ) {
      }
     // radio
     ggRadioVolumeSelector.PutValue( Global.RadioVolume );
+
+	//finding each inverter - not so optimal, but action ins performed only during changing cabin
+	bool kier = (DynamicObject->DirectionGet() * mvOccupied->CabOccupied > 0);
+	int flag = DynamicObject->MoverParameters->InverterControlCouplerFlag;
+	int itemstart = 0;
+	for (auto &item : ggInverterToggleButtons) //for each button
+	{
+		int itemindex = itemstart;
+		itemstart++;
+		TDynamicObject *p = DynamicObject->GetFirstDynamic(mvOccupied->CabOccupied < 0 ? end::rear : end::front, flag);
+		while (p)
+		{
+			if (p->MoverParameters->eimc[eimc_p_Pmax] > 1)
+			{
+				if (itemindex < p->MoverParameters->InvertersNo)
+				{
+					// visual feedback
+					ggInverterToggleButtons[itemindex].PutValue(p->MoverParameters->Inverters[itemindex].Activate ? 1.0 : 0.0);
+					break;
+				}
+				else
+				{
+					itemindex -= p->MoverParameters->InvertersNo;
+				}
+
+			}
+			p = (kier ? p->NextC(flag) : p->PrevC(flag));
+		}
+	}
        
     // we reset all indicators, as they're set during the update pass
     // TODO: when cleaning up break setting indicator state into a separate function, so we can reuse it
