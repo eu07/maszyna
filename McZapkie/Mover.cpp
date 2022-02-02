@@ -123,7 +123,7 @@ void TSecuritySystem::update(double dt, double vel, bool pwr) {
     if (!enabled)
         power = pwr;
 
-	if (!enabled || !pwr) {
+	if (!enabled || !pwr || DebugModeFlag) {
 		cabsignal_active = false;
 		vigilance_timer = 0.0;
 		alert_timer = 0.0;
