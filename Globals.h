@@ -196,6 +196,7 @@ struct global_settings {
 #endif
     // multiplayer
     int iMultiplayer{ 0 }; // blokada działania niektórych eventów na rzecz kominikacji
+	bool bIsolatedTrainName{ false }; //wysyłanie zajęcia odcinka izolowanego z nazwą pociągu
     // other
     std::string AppName{ "EU07" };
     std::string asVersion{ "UNKNOWN" }; // z opisem
