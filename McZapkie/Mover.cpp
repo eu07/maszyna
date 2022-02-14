@@ -6780,7 +6780,7 @@ bool TMoverParameters::AutoRelayCheck(void)
             else
             { // zmieniaj mainctrlactualpos
                 if( ( DirActive < 0 ) && ( TrainType != dt_PseudoDiesel ) ) {
-                    if( RList[ MainCtrlActualPos + 1 ].Bn > 1 ) {
+                    if( RList[ MainCtrlActualPos + 1 ].Bn > BackwardsBranchesAllowed) {
                         return false; // nie poprawiamy przy konwersji
                         // return ARC;// bbylo exit; //Ra: to powoduje, że EN57 nie wyłącza się przy IminLo
                     }
@@ -10372,6 +10372,7 @@ void TMoverParameters::LoadFIZ_Cntrl( std::string const &line ) {
         ( ToLower( extract_value( "FSCircuit", line ) ) == "yes" ) ?
             1 :
             0;
+	extract_value( BackwardsBranchesAllowed, "BackwardsBranchesAllowed", line, "" );
 
     extract_value( StopBrakeDecc, "SBD", line, "" );
     extract_value( ReleaseParkingBySpringBrake, "ReleaseParkingBySpringBrake", line, "" );
