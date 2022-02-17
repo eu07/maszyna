@@ -1212,6 +1212,7 @@ public:
 	double InitialCtrlDelay = 0.0; double CtrlDelay = 0.0;        /* -//-  -//- miedzy kolejnymi poz.*/
 	double CtrlDownDelay = 0.0;    /* -//-  -//- przy schodzeniu z poz.*/ /*hunter-101012*/
 	int FastSerialCircuit = 0;/*0 - po kolei zamyka styczniki az do osiagniecia szeregowej, 1 - natychmiastowe wejscie na szeregowa*/ /*hunter-111012*/
+	int BackwardsBranchesAllowed = 1;
 	int AutoRelayType = 0;    /*0 -brak, 1 - jest, 2 - opcja*/
 	bool CoupledCtrl = false;   /*czy mainctrl i scndctrl sa sprzezone*/
     bool HasCamshaft { false };

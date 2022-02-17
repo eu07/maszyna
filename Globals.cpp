@@ -309,6 +309,11 @@ global_settings::ConfigParse(cParser &Parser) {
             Parser.getTokens(1, false);
             Parser >> iMultiplayer;
         }
+		else if (token == "isolatedtrainnumber")
+		{
+		Parser.getTokens(1, false);
+		Parser >> bIsolatedTrainName;
+		}
         else if (token == "maxtexturesize")
         {
             // wymuszenie przeskalowania tekstur
@@ -1226,6 +1231,7 @@ global_settings::export_as_text( std::ostream &Output ) const {
     export_as_text( Output, "feedbackmode", iFeedbackMode );
     export_as_text( Output, "feedbackport", iFeedbackPort );
     export_as_text( Output, "multiplayer", iMultiplayer );
+	export_as_text( Output, "isolatedtrainnumber", bIsolatedTrainName);
     export_as_text( Output, "maxtexturesize", iMaxTextureSize );
     export_as_text( Output, "maxcabtexturesize", iMaxCabTextureSize );
     export_as_text( Output, "movelight", fMoveLight );

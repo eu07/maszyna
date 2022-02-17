@@ -21,6 +21,7 @@ http://mozilla.org/MPL/2.0/.
 #include "MemCell.h"
 #include "messaging.h"
 #include "DynObj.h"
+#include "Driver.h"
 #include "AnimModel.h"
 #include "Track.h"
 #include "Timer.h"
@@ -125,8 +126,8 @@ void TIsolated::Modify(int i, TDynamicObject *o)
         { // jeśli po zmianie nie ma żadnej osi na odcinku izolowanym
             if (evFree)
                 simulation::Events.AddToQuery(evFree, o); // dodanie zwolnienia do kolejki
-            if (Global.iMultiplayer) // jeśli multiplayer
-                multiplayer::WyslijString(asName, 10); // wysłanie pakietu o zwolnieniu
+			if (Global.iMultiplayer) // jeśli multiplayer
+				multiplayer::WyslijString(asName, 10); // wysłanie pakietu o zwolnieniu
             if (pMemCell) // w powiązanej komórce
                 pMemCell->UpdateValues( "", 0, int( pMemCell->Value2() ) & ~0xFF,
                 basic_event::flags::value2 ); //"zerujemy" ostatnią wartość
@@ -139,8 +140,21 @@ void TIsolated::Modify(int i, TDynamicObject *o)
         {
             if (evBusy)
                 simulation::Events.AddToQuery(evBusy, o); // dodanie zajętości do kolejki
-            if (Global.iMultiplayer) // jeśli multiplayer
-                multiplayer::WyslijString(asName, 11); // wysłanie pakietu o zajęciu
+			if (Global.iMultiplayer) // jeśli multiplayer
+			{
+				auto const *owner = (
+					((o->Mechanik != nullptr) && (o->Mechanik->primary())) ?
+					o->Mechanik :
+					o->ctOwner);
+				auto textline = owner != nullptr ? Bezogonkow(owner->TrainName(), true) : "none";
+				if ("none" != textline && Global.bIsolatedTrainName) {
+					textline = ":" + Bezogonkow(owner->TrainName(), true);
+				}
+				else {
+					textline = "";
+				}
+				multiplayer::WyslijString(asName+textline, 11); // wysłanie pakietu o zajęciu
+			}
             if (pMemCell) // w powiązanej komórce
                 pMemCell->UpdateValues( "", 0, int( pMemCell->Value2() ) | 1, basic_event::flags::value2 ); // zmieniamy ostatnią wartość na nieparzystą
         }
