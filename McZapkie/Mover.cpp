@@ -11913,6 +11913,7 @@ bool TMoverParameters::RunCommand( std::string Command, double CValue1, double C
             }
 		}
 		DirAbsolute = DirActive * CabActive;
+		CabMaster = false;
         OK = SendCtrlToNext( Command, CValue1, CValue2, Couplertype );
 	}
 	else if (Command == "AutoRelaySwitch")

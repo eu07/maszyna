@@ -2388,7 +2388,9 @@ void TTrain::OnCommand_cabactivationenable(TTrain *Train, command_data const &Co
 
 	if (Command.action == GLFW_PRESS) {
 		// visual feedback
-		Train->ggCabActivationButton.UpdateValue(1.0f, Train->dsbSwitch);
+		if (Train->ggCabActivationButton.type() == TGaugeType::push) {
+			Train->ggCabActivationButton.UpdateValue(1.0f, Train->dsbSwitch);
+		}
 
 		Train->mvOccupied->CabActivisation();
 
@@ -2409,7 +2411,9 @@ void TTrain::OnCommand_cabactivationdisable(TTrain *Train, command_data const &C
 	// TBD, TODO: ewentualnie zablokować z FIZ, np. w samochodach się nie odłącza akumulatora
 	if (Command.action == GLFW_PRESS) {
 		// visual feedback
-		Train->ggCabActivationButton.UpdateValue(0.0f, Train->dsbSwitch);
+		if (Train->ggCabActivationButton.type() == TGaugeType::push) {
+			Train->ggCabActivationButton.UpdateValue(0.0f, Train->dsbSwitch);
+		}
 
 		Train->mvOccupied->CabDeactivisation();
 	}
@@ -7680,6 +7684,10 @@ bool TTrain::Update( double const Deltatime )
     ggBatteryButton.Update();
     ggBatteryOnButton.Update();
     ggBatteryOffButton.Update();
+	if ((ggCabActivationButton.SubModel != nullptr) && (ggCabActivationButton.type() != TGaugeType::push))
+	{
+		ggCabActivationButton.UpdateValue((mvOccupied->CabMaster) && (mvOccupied->CabOccupied == mvOccupied->CabActive) ? 1.0 : 0.0);
+	}
 	ggCabActivationButton.Update();
 
     ggWaterPumpBreakerButton.Update();
@@ -9142,7 +9150,7 @@ void TTrain::set_cab_controls( int const Cab ) {
 	// battery
 	ggCabActivationButton.PutValue(
 		(ggCabActivationButton.type() == TGaugeType::push ? 0.5f :
-			mvOccupied->CabActive == mvOccupied->CabOccupied ? 1.f :
+			(mvOccupied->CabActive == mvOccupied->CabOccupied) && mvOccupied->CabMaster ? 1.f :
 			0.f));
     // line breaker
     if( ggMainButton.SubModel != nullptr ) { // instead of single main button there can be on/off pair

@@ -48,6 +48,8 @@ enum string {
     driver_hint_header,
     driver_hint_batteryon,
     driver_hint_batteryoff,
+	driver_hint_cabactivation,
+	driver_hint_cabdeactivation,
     driver_hint_radioon,
     driver_hint_radiooff,
     driver_hint_radiochannel,

@@ -2765,6 +2765,7 @@ bool TController::PrepareEngine()
     ReactionTime = ( mvOccupied->Vel < 5 ? PrepareTime : EasyReactionTime ); // react faster with rolling start
 
     cue_action( locale::string::driver_hint_batteryon );
+	cue_action( locale::string::driver_hint_cabactivation );
     cue_action( locale::string::driver_hint_radioon );
 
     if( has_diesel_engine() ) {
@@ -5994,9 +5995,13 @@ TController::determine_consist_state() {
     // ABu-160305 testowanie gotowości do jazdy
     // Ra: przeniesione z DynObj, skład użytkownika też jest testowany, żeby mu przekazać, że ma odhamować
 
-	if ((mvOccupied->CabActive == 0) || (mvOccupied->CabActive == mvOccupied->CabOccupied))
+	if (mvOccupied->CabActive == 0)
 	{
-		mvOccupied->CabActivisation(true);
+		cue_action( locale::string::driver_hint_cabactivation );
+	}
+	else if ((mvOccupied->CabActive == -mvOccupied->CabOccupied) || (!mvOccupied->CabMaster))
+	{
+		cue_action( locale::string::driver_hint_cabdeactivation );
 	}
 
 	int index = double(BrakeAccTableSize) * (mvOccupied->Vel / mvOccupied->Vmax);
