@@ -2611,7 +2611,7 @@ void TController::Lights(int head, int rear)
 
 void TController::DirectionInitial()
 { // ustawienie kierunku po wczytaniu trainset (może jechać na wstecznym
-    mvOccupied->CabActivisation(); // załączenie rozrządu (wirtualne kabiny)
+    mvOccupied->CabActivisationAuto(); // załączenie rozrządu (wirtualne kabiny)
     if (mvOccupied->Vel > EU07_AI_NOMOVEMENT)
     { // jeśli na starcie jedzie
         iDirection = iDirectionOrder =
@@ -5690,6 +5690,7 @@ void TController::TakeControl( bool const Aidriver, bool const Forcevehiclecheck
     { // teraz AI prowadzi
         AIControllFlag = AIdriver;
         pVehicle->Controller = AIdriver;
+		mvOccupied->CabActivisation(true);
         iDirection = 0; // kierunek jazdy trzeba dopiero zgadnąć
         TableClear(); // ponowne utworzenie tabelki, bo człowiek mógł pojechać niezgodnie z sygnałami
         if( action() != TAction::actSleep ) {
@@ -5992,6 +5993,12 @@ void
 TController::determine_consist_state() {
     // ABu-160305 testowanie gotowości do jazdy
     // Ra: przeniesione z DynObj, skład użytkownika też jest testowany, żeby mu przekazać, że ma odhamować
+
+	if ((mvOccupied->CabActive == 0) || (mvOccupied->CabActive == mvOccupied->CabOccupied))
+	{
+		mvOccupied->CabActivisation(true);
+	}
+
 	int index = double(BrakeAccTableSize) * (mvOccupied->Vel / mvOccupied->Vmax);
 	index = std::min(BrakeAccTableSize, std::max(1, index));
 	fBrake_a0[0] = fBrake_a0[index];

@@ -290,6 +290,9 @@ class TTrain {
     static void OnCommand_batterytoggle( TTrain *Train, command_data const &Command );
     static void OnCommand_batteryenable( TTrain *Train, command_data const &Command );
     static void OnCommand_batterydisable( TTrain *Train, command_data const &Command );
+	static void OnCommand_cabactivationtoggle(TTrain *Train, command_data const &Command);
+	static void OnCommand_cabactivationenable(TTrain *Train, command_data const &Command);
+	static void OnCommand_cabactivationdisable(TTrain *Train, command_data const &Command);
     static void OnCommand_pantographcompressorvalvetoggle( TTrain *Train, command_data const &Command );
     static void OnCommand_pantographcompressorvalveenable( TTrain *Train, command_data const &Command );
     static void OnCommand_pantographcompressorvalvedisable( TTrain *Train, command_data const &Command );
@@ -424,6 +427,7 @@ class TTrain {
     static void OnCommand_nearestcarcoupleradapterattach( TTrain *Train, command_data const &Command );
     static void OnCommand_nearestcarcoupleradapterremove( TTrain *Train, command_data const &Command );
     static void OnCommand_occupiedcarcouplingdisconnect( TTrain *Train, command_data const &Command );
+	static void OnCommand_occupiedcarcouplingdisconnectback( TTrain *Train, command_data const &Command );
     static void OnCommand_departureannounce( TTrain *Train, command_data const &Command );
     static void OnCommand_hornlowactivate( TTrain *Train, command_data const &Command );
     static void OnCommand_hornhighactivate( TTrain *Train, command_data const &Command );
@@ -596,6 +600,7 @@ public: // reszta może by?publiczna
     TGauge ggBatteryButton; // Stele 161228 hebelek baterii
     TGauge ggBatteryOnButton;
     TGauge ggBatteryOffButton;
+	TGauge ggCabActivationButton; // Stele 161228 hebelek baterii
 
     // NBMX wrzesien 2003 - obsluga drzwi
     TGauge ggDoorLeftPermitButton;
@@ -841,6 +846,7 @@ private:
     float m_doorpermittimers[2] = { -1.f, -1.f };
     // ld substitute
     bool m_couplingdisconnect { false };
+	bool m_couplingdisconnectback { false };
 
   public:
     float fPress[20][6]; // cisnienia dla wszystkich czlonow

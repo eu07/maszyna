@@ -272,6 +272,9 @@ TTrain::commandhandler_map const TTrain::m_commandhandlers = {
     { user_command::batterytoggle, &TTrain::OnCommand_batterytoggle },
     { user_command::batteryenable, &TTrain::OnCommand_batteryenable },
     { user_command::batterydisable, &TTrain::OnCommand_batterydisable },
+	{ user_command::cabactivationtoggle, &TTrain::OnCommand_cabactivationtoggle },
+	{ user_command::cabactivationenable, &TTrain::OnCommand_cabactivationenable },
+	{ user_command::cabactivationdisable, &TTrain::OnCommand_cabactivationdisable },
     { user_command::pantographcompressorvalvetoggle, &TTrain::OnCommand_pantographcompressorvalvetoggle },
     { user_command::pantographcompressorvalveenable, &TTrain::OnCommand_pantographcompressorvalveenable },
     { user_command::pantographcompressorvalvedisable, &TTrain::OnCommand_pantographcompressorvalvedisable },
@@ -619,6 +622,8 @@ dictionary_source *TTrain::GetTrainState( dictionary_source const &Extraparamete
 
     dict->insert( "name", DynamicObject->asName );
     dict->insert( "cab", mvOccupied->CabOccupied );
+	dict->insert( "cabactive", mvOccupied->CabActive );
+	dict->insert( "master", mvOccupied->CabMaster );
     // basic systems state data
     dict->insert( "battery", mvOccupied->Power24vIsAvailable );
     dict->insert( "linebreaker", mvControlled->Mains );
@@ -694,6 +699,8 @@ dictionary_source *TTrain::GetTrainState( dictionary_source const &Extraparamete
 	dict->insert( "radio_volume", Global.RadioVolume );
     dict->insert( "door_lock", mvOccupied->Doors.lock_enabled );
 	dict->insert( "door_step", mvOccupied->Doors.step_enabled );
+	dict->insert( "door_permit_left", mvOccupied->Doors.instances[side::left].open_permit );
+	dict->insert( "door_permit_right", mvOccupied->Doors.instances[side::right].open_permit );
     // movement data
     dict->insert( "velocity", std::abs( mvOccupied->Vel ) );
     dict->insert( "tractionforce", std::abs( mvOccupied->Ft ) );
@@ -2360,6 +2367,58 @@ void TTrain::OnCommand_batterydisable( TTrain *Train, command_data const &Comman
         }
         Train->ggBatteryOffButton.UpdateValue( 0.0f, Train->dsbSwitch );
     }
+}
+
+void TTrain::OnCommand_cabactivationtoggle(TTrain *Train, command_data const &Command) {
+
+	if (Command.action != GLFW_REPEAT) {
+		// keep the switch from flipping back and forth if key is held down
+		if (0 == Train->mvOccupied->CabActive) {
+			// turn on
+			OnCommand_cabactivationenable(Train, Command);
+		}
+		else {
+			//turn off
+			OnCommand_cabactivationdisable(Train, Command);
+		}
+	}
+}
+
+void TTrain::OnCommand_cabactivationenable(TTrain *Train, command_data const &Command) {
+
+	if (Command.action == GLFW_PRESS) {
+		// visual feedback
+		Train->ggCabActivationButton.UpdateValue(1.0f, Train->dsbSwitch);
+
+		Train->mvOccupied->CabActivisation();
+
+		// side-effects
+		if (Train->mvOccupied->LightsPosNo > 0) {
+			Train->Dynamic()->SetLights();
+		}
+	}
+	else if (Command.action == GLFW_RELEASE) {
+		if (Train->ggCabActivationButton.type() == TGaugeType::push) {
+			// return the switch to neutral position
+			Train->ggCabActivationButton.UpdateValue(0.5f);
+		}
+	}
+}
+
+void TTrain::OnCommand_cabactivationdisable(TTrain *Train, command_data const &Command) {
+	// TBD, TODO: ewentualnie zablokować z FIZ, np. w samochodach się nie odłącza akumulatora
+	if (Command.action == GLFW_PRESS) {
+		// visual feedback
+		Train->ggCabActivationButton.UpdateValue(0.0f, Train->dsbSwitch);
+
+		Train->mvOccupied->CabDeactivisation();
+	}
+	else if (Command.action == GLFW_RELEASE) {
+		if (Train->ggCabActivationButton.type() == TGaugeType::push) {
+			// return the switch to neutral position
+			Train->ggCabActivationButton.UpdateValue(0.5f);
+		}
+	}
 }
 
 void TTrain::OnCommand_pantographtogglefront( TTrain *Train, command_data const &Command ) {
@@ -5217,12 +5276,12 @@ void TTrain::OnCommand_inverterenable(TTrain *Train, command_data const &Command
 			p = (kier ? p->NextC(flag) : p->PrevC(flag));
 		}
 		// visual feedback
-		Train->ggInverterEnableButtons[itemindex].UpdateValue(1.0, Train->dsbSwitch);
+		item.UpdateValue(1.0, Train->dsbSwitch);
 	}
 	else if (Command.action == GLFW_RELEASE) {
 		// release
 		// visual feedback
-		Train->ggInverterEnableButtons[itemindex].UpdateValue(0.0, Train->dsbSwitch);
+		item.UpdateValue(0.0, Train->dsbSwitch);
 	}
 };
 
@@ -5254,12 +5313,12 @@ void TTrain::OnCommand_inverterdisable(TTrain *Train, command_data const &Comman
 			p = (kier ? p->NextC(flag) : p->PrevC(flag));
 		}
 		// visual feedback
-		Train->ggInverterDisableButtons[itemindex].UpdateValue(1.0, Train->dsbSwitch);
+		item.UpdateValue(1.0, Train->dsbSwitch);
 	}
 	else if (Command.action == GLFW_RELEASE) {
 		// release
 		// visual feedback
-		Train->ggInverterDisableButtons[itemindex].UpdateValue(0.0, Train->dsbSwitch);
+		item.UpdateValue(0.0, Train->dsbSwitch);
 	}
 };
 
@@ -5281,7 +5340,7 @@ void TTrain::OnCommand_invertertoggle(TTrain *Train, command_data const &Command
 				{
 					p->MoverParameters->Inverters[itemindex].Activate = !p->MoverParameters->Inverters[itemindex].Activate;
 					// visual feedback
-					Train->ggInverterToggleButtons[itemindex].UpdateValue(p->MoverParameters->Inverters[itemindex].Activate ? 1.0 : 0.0, Train->dsbSwitch);
+					item.UpdateValue(p->MoverParameters->Inverters[itemindex].Activate ? 1.0 : 0.0, Train->dsbSwitch);
 					break;
 				}
 				else
@@ -5962,6 +6021,30 @@ void TTrain::OnCommand_occupiedcarcouplingdisconnect( TTrain *Train, command_dat
         // visual feedback
         Train->m_couplingdisconnect = false;
     }
+}
+
+void TTrain::OnCommand_occupiedcarcouplingdisconnectback(TTrain *Train, command_data const &Command) {
+
+	//    if( false == Train->m_controlmapper.contains( "couplingdisconnect_sw:" ) ) { return; }
+
+	if (Command.action == GLFW_PRESS) {
+		// visual feedback
+		Train->m_couplingdisconnectback = true;
+
+		if (Train->iCabn == 0) { return; }
+
+		if (Train->DynamicObject) {
+			Train->DynamicObject->uncouple( 1 - Train->cab_to_end() );
+			if (Train->DynamicObject->Mechanik) {
+				// aktualizacja flag kierunku w składzie
+				Train->DynamicObject->Mechanik->CheckVehicles(Disconnect);
+			}
+		}
+	}
+	else if (Command.action == GLFW_RELEASE) {
+		// visual feedback
+		Train->m_couplingdisconnectback = false;
+	}
 }
 
 void TTrain::OnCommand_departureannounce( TTrain *Train, command_data const &Command ) {
@@ -7597,6 +7680,7 @@ bool TTrain::Update( double const Deltatime )
     ggBatteryButton.Update();
     ggBatteryOnButton.Update();
     ggBatteryOffButton.Update();
+	ggCabActivationButton.Update();
 
     ggWaterPumpBreakerButton.Update();
     ggWaterPumpButton.Update();
@@ -8090,17 +8174,17 @@ bool TTrain::CabChange(int iDirection)
     }
     else
     { // jeśli pojazd prowadzony ręcznie albo wcale (wagon)
-        mvOccupied->CabDeactivisation();
+        mvOccupied->CabDeactivisationAuto();
         if( mvOccupied->ChangeCab( iDirection ) ) {
             if( InitializeCab( mvOccupied->CabOccupied, mvOccupied->TypeName + ".mmd" ) ) {
                 // zmiana kabiny w ramach tego samego pojazdu
-                mvOccupied->CabActivisation(); // załączenie rozrządu (wirtualne kabiny)
+                mvOccupied->CabActivisationAuto(); // załączenie rozrządu (wirtualne kabiny)
                 DynamicObject->Mechanik->DirectionChange();
                 return true; // udało się zmienić kabinę
             }
         }
         // aktywizacja poprzedniej, bo jeszcze nie wiadomo, czy jakiś pojazd jest
-        mvOccupied->CabActivisation();
+        mvOccupied->CabActivisationAuto();
     }
     return false; // ewentualna zmiana pojazdu
 }
@@ -8645,7 +8729,7 @@ TTrain::MoveToVehicle(TDynamicObject *target) {
             }
 
 			target_train->Occupied()->LimPipePress = target_train->Occupied()->PipePress;
-			target_train->Occupied()->CabActivisation( true ); // załączenie rozrządu (wirtualne kabiny)
+			target_train->Occupied()->CabActivisationAuto( true ); // załączenie rozrządu (wirtualne kabiny)
 			target_train->Dynamic()->MechInside = true;
             if( target_train->Dynamic()->Mechanik ) {
                 target_train->Dynamic()->Controller = target_train->Dynamic()->Mechanik->AIControllFlag;
@@ -8707,7 +8791,7 @@ TTrain::MoveToVehicle(TDynamicObject *target) {
             }
 
 			Occupied()->LimPipePress = Occupied()->PipePress;
-			Occupied()->CabActivisation( true ); // załączenie rozrządu (wirtualne kabiny)
+			Occupied()->CabActivisationAuto( true ); // załączenie rozrządu (wirtualne kabiny)
 		} else {
 			Dynamic()->bDisplayCab = false;
 			Dynamic()->ABuSetModelShake( {} );
@@ -8879,6 +8963,7 @@ void TTrain::clear_cab_controls()
     ggBatteryButton.Clear();
     ggBatteryOnButton.Clear();
     ggBatteryOffButton.Clear();
+	ggCabActivationButton.Clear();
     //-------
     ggFuseButton.Clear();
     ggConverterFuseButton.Clear();
@@ -9054,6 +9139,11 @@ void TTrain::set_cab_controls( int const Cab ) {
         ( ggBatteryButton.type() == TGaugeType::push ? 0.5f :
           mvOccupied->Power24vIsAvailable ? 1.f :
           0.f ) );
+	// battery
+	ggCabActivationButton.PutValue(
+		(ggCabActivationButton.type() == TGaugeType::push ? 0.5f :
+			mvOccupied->CabActive == mvOccupied->CabOccupied ? 1.f :
+			0.f));
     // line breaker
     if( ggMainButton.SubModel != nullptr ) { // instead of single main button there can be on/off pair
         ggMainButton.PutValue(
@@ -9381,7 +9471,7 @@ void TTrain::set_cab_controls( int const Cab ) {
 				if (itemindex < p->MoverParameters->InvertersNo)
 				{
 					// visual feedback
-					ggInverterToggleButtons[itemindex].PutValue(p->MoverParameters->Inverters[itemindex].Activate ? 1.0 : 0.0);
+					ggInverterToggleButtons[itemstart-1].PutValue(p->MoverParameters->Inverters[itemindex].Activate ? 1.0 : 0.0);
 					break;
 				}
 				else
@@ -9676,6 +9766,7 @@ bool TTrain::initialize_gauge(cParser &Parser, std::string const &Label, int con
         { "battery_sw:", ggBatteryButton },
         { "batteryon_sw:", ggBatteryOnButton },
         { "batteryoff_sw:", ggBatteryOffButton },
+		{ "cabactivation_sw:", ggCabActivationButton },
         { "distancecounter_sw:", ggDistanceCounterButton },
         { "relayreset1_bt:", ggRelayResetButtons[ 0 ] },
         { "relayreset2_bt:", ggRelayResetButtons[ 1 ] },
@@ -9785,6 +9876,8 @@ bool TTrain::initialize_gauge(cParser &Parser, std::string const &Label, int con
         { "cablight_sw:", &Cabine[ iCabn ].bLight },
         { "springbraketoggle_bt:", &mvOccupied->SpringBrake.Activate },
         { "couplingdisconnect_sw:", &m_couplingdisconnect },
+		{ "couplingdisconnectback_sw:", &m_couplingdisconnectback },
+
     };
     {
         auto lookup = autoboolgauges.find( Label );

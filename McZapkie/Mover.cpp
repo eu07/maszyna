@@ -2686,10 +2686,17 @@ bool TMoverParameters::CabActivisation( bool const Enforce )
     {
         CabActive = CabOccupied; // sterowanie jest z kabiny z obsadą
         DirAbsolute = DirActive * CabActive;
+		CabMaster = true;
         SecuritySystem.Status |= s_waiting; // activate the alerter TODO: make it part of control based cab selection
         SendCtrlToNext("CabActivisation", 1, CabActive);
     }
     return OK;
+}
+
+bool TMoverParameters::CabActivisationAuto(bool const Enforce)
+{
+	bool OK = AutomaticCabActivation ? CabActivisation(Enforce) : false;
+	return OK;
 }
 
 // *************************************************************************************************
@@ -2700,11 +2707,12 @@ bool TMoverParameters::CabDeactivisation( bool const Enforce )
 {
     bool OK = false;
 
-    OK = Enforce || (CabActive == CabOccupied); // o ile obsada jest w kabinie ze sterowaniem
+    OK = Enforce || ((CabActive == CabOccupied) && CabMaster); // o ile obsada jest w kabinie ze sterowaniem
     if (OK)
     {
         CabActive = 0;
         DirAbsolute = DirActive * CabActive;
+		CabMaster = false;
         DepartureSignal = false; // nie buczeć z nieaktywnej kabiny
         SecuritySystem.Status = s_off; // deactivate alerter TODO: make it part of control based cab selection
         SecuritySystem.SHPLock = false;
@@ -2712,6 +2720,12 @@ bool TMoverParameters::CabDeactivisation( bool const Enforce )
         SendCtrlToNext("CabActivisation", 0, CabOccupied); // CabActive==0!
     }
     return OK;
+}
+
+bool TMoverParameters::CabDeactivisationAuto(bool const Enforce)
+{
+	bool OK = AutomaticCabActivation ? CabDeactivisation(Enforce) : false;
+	return OK;
 }
 
 // *************************************************************************************************
@@ -4441,6 +4455,7 @@ void TMoverParameters::UpdatePipePressure(double dt)
      || ( true == TestFlag( EngDmgFlag, 32 ) )
 */
      || ( true == s_CAtestebrake )
+	 || ( ( 0 == CabActive ) && InactivaCabEmergencyBrake )
 	 || ( ( SpringBrakeDriveEmergencyVel >= 0 )
 	   && ( Vel > SpringBrakeDriveEmergencyVel ) 
 	   && ( SpringBrake.IsActive ) )
@@ -10373,6 +10388,9 @@ void TMoverParameters::LoadFIZ_Cntrl( std::string const &line ) {
             1 :
             0;
 	extract_value( BackwardsBranchesAllowed, "BackwardsBranchesAllowed", line, "" );
+
+	extract_value( AutomaticCabActivation, "AutomaticCabActivation", line, "" );
+	extract_value( InactivaCabEmergencyBrake, "InactivaCabEmergencyBrake", line, "" );
 
     extract_value( StopBrakeDecc, "SBD", line, "" );
     extract_value( ReleaseParkingBySpringBrake, "ReleaseParkingBySpringBrake", line, "" );

@@ -1510,6 +1510,9 @@ public:
     int MainCtrlMaxDirChangePos { 0 }; // can't change reverser state with master controller set above this position
 	int CabActive = 0; //numer kabiny, z której jest sterowanie: 1 lub -1; w przeciwnym razie brak sterowania - rozrzad
 	int CabOccupied = 0; //numer kabiny, w ktorej jest obsada (zwykle jedna na skład) // TODO: move to TController
+	bool CabMaster = false; //czy pojazd jest nadrzędny w składzie
+	bool AutomaticCabActivation = true; //czy zmostkowany rozrzad przelacza sie sam przy zmianie kabiny
+	bool InactivaCabEmergencyBrake = false; //czy bez aktywacji włącza się nagłe
 	double LastSwitchingTime = 0.0; /*czas ostatniego przelaczania czegos*/
     int WarningSignal = 0; // 0: nie trabi, 1,2,4: trabi
 	bool DepartureSignal = false; /*sygnal odjazdu*/
@@ -1715,6 +1718,8 @@ public:
 	void PutCommand(std::string NewCommand, double NewValue1, double NewValue2, const TLocation &NewLocation);
 	bool CabActivisation( bool const Enforce = false );
 	bool CabDeactivisation( bool const Enforce = false );
+	bool CabActivisationAuto( bool const Enforce = false );
+	bool CabDeactivisationAuto( bool const Enforce = false );
 
 	/*! funkcje zwiekszajace/zmniejszajace nastawniki*/
 	/*! glowny nastawnik:*/
