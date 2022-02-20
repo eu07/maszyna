@@ -7171,6 +7171,7 @@ bool TTrain::Update( double const Deltatime )
         btLampkaMaxSila.Turn(abs(mvControlled->Im) >= 350);
         btLampkaPrzekrMaxSila.Turn(abs(mvControlled->Im) >= 450);
         btLampkaRadio.Turn(mvOccupied->Radio);
+		btLampkaRadioMessage.Turn(radio_message_played);
         btLampkaRadioStop.Turn( mvOccupied->Radio && mvOccupied->RadioStopFlag );
         btLampkaHamulecReczny.Turn(mvOccupied->ManualBrakePos > 0);
         // NBMX wrzesien 2003 - drzwi oraz sygnał odjazdu
@@ -7247,6 +7248,7 @@ bool TTrain::Update( double const Deltatime )
         btLampkaMaxSila.Turn( false );
         btLampkaPrzekrMaxSila.Turn( false );
         btLampkaRadio.Turn( false );
+		btLampkaRadioMessage.Turn( false );
         btLampkaRadioStop.Turn( false );
         btLampkaHamulecReczny.Turn( false );
         btLampkaDoorLeft.Turn( false );
@@ -8133,6 +8135,7 @@ void TTrain::update_sounds_runningnoise( sound_source &Sound ) {
 
 void TTrain::update_sounds_radio() {
 
+	radio_message_played = false;
     if( false == m_radiomessages.empty() ) {
         // erase completed radio messages from the list
         m_radiomessages.erase(
@@ -8152,17 +8155,23 @@ void TTrain::update_sounds_radio() {
                 Global.RadioVolume :
                 0.0 };
         message.second->gain( volume );
+		radio_message_played |= (true == radioenabled) && (Dynamic()->Mechanik != nullptr) && (message.first == RadioChannel());
     }
     // radiostop
     if( m_radiostop ) {
         if( ( true == radioenabled )
          && ( true == mvOccupied->RadioStopFlag ) ) {
             m_radiostop->play( sound_flags::exclusive | sound_flags::looping );
+			radio_message_played |= true;
         }
         else {
             m_radiostop->stop();
         }
     }
+	if (radio_message_played)
+	{
+		btLampkaRadioMessage.gain(Global.RadioVolume);
+	}
 }
 
 void TTrain::add_distance( double const Distance ) {
@@ -9065,6 +9074,7 @@ void TTrain::clear_cab_controls()
     btLampkaMaxSila.Clear();
     btLampkaPrzekrMaxSila.Clear();
     btLampkaRadio.Clear();
+	btLampkaRadioMessage.Clear();
     btLampkaRadioStop.Clear();
     btLampkaHamulecReczny.Clear();
     btLampkaBlokadaDrzwi.Clear();
@@ -9507,6 +9517,7 @@ bool TTrain::initialize_button(cParser &Parser, std::string const &Label, int co
         { "i-maxft:", btLampkaMaxSila },
         { "i-maxftt:", btLampkaPrzekrMaxSila },
         { "i-radio:", btLampkaRadio },
+		{ "i-radiomessage:", btLampkaRadioMessage },
         { "i-radiostop:", btLampkaRadioStop },
         { "i-manual_brake:", btLampkaHamulecReczny },
         { "i-door_blocked:", btLampkaBlokadaDrzwi },

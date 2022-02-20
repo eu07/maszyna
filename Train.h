@@ -677,6 +677,7 @@ public: // reszta może by?publiczna
     TButton btLampkaUkrotnienie;
     TButton btLampkaHamPosp;
     TButton btLampkaRadio;
+	TButton btLampkaRadioMessage;
     TButton btLampkaRadioStop;
     TButton btLampkaHamowanie1zes;
     TButton btLampkaHamowanie2zes;
@@ -855,6 +856,7 @@ private:
     float fEIMParams[9][10]; // parametry dla silnikow asynchronicznych
 	float fDieselParams[9][10]; // parametry dla silnikow asynchronicznych
     // plays provided sound from position of the radio
+	bool radio_message_played;
     void radio_message( sound_source *Message, int const Channel );
     inline auto const RadioChannel() const { return ( Dynamic()->Mechanik ? Dynamic()->Mechanik->iRadioChannel : 1 ); }
     inline auto &RadioChannel() { return Dynamic()->Mechanik->iRadioChannel; }
