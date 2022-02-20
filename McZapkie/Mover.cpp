@@ -2689,6 +2689,10 @@ bool TMoverParameters::CabActivisation( bool const Enforce )
 		CabMaster = true;
         SecuritySystem.Status |= s_waiting; // activate the alerter TODO: make it part of control based cab selection
         SendCtrlToNext("CabActivisation", 1, CabActive);
+		if (InactiveCabFlag & activation::springbrakeoff)
+		{
+			SpringBrakeActivate(false);
+		}
     }
     return OK;
 }
@@ -2710,6 +2714,20 @@ bool TMoverParameters::CabDeactivisation( bool const Enforce )
     OK = Enforce || ((CabActive == CabOccupied) && CabMaster); // o ile obsada jest w kabinie ze sterowaniem
     if (OK)
     {
+		if (InactiveCabFlag & activation::springbrakeon)
+		{
+			SpringBrakeActivate(true);
+		}
+		if (InactiveCabFlag & activation::pantographsup)
+		{
+			InactiveCabPantsCheck = true;
+		}
+		if (InactiveCabFlag & activation::doorpermition)
+		{
+			PermitDoors(side::right, true, range_t::consist);
+			PermitDoors(side::left, true, range_t::consist);
+		}
+
         CabActive = 0;
         DirAbsolute = DirActive * CabActive;
 		CabMaster = false;
@@ -4455,7 +4473,8 @@ void TMoverParameters::UpdatePipePressure(double dt)
      || ( true == TestFlag( EngDmgFlag, 32 ) )
 */
      || ( true == s_CAtestebrake )
-	 || ( ( 0 == CabActive ) && InactivaCabEmergencyBrake )
+	 || ( ( 0 == CabActive )
+	   && ( InactiveCabFlag & activation::emergencybrake ) )
 	 || ( ( SpringBrakeDriveEmergencyVel >= 0 )
 	   && ( Vel > SpringBrakeDriveEmergencyVel ) 
 	   && ( SpringBrake.IsActive ) )
@@ -10390,7 +10409,7 @@ void TMoverParameters::LoadFIZ_Cntrl( std::string const &line ) {
 	extract_value( BackwardsBranchesAllowed, "BackwardsBranchesAllowed", line, "" );
 
 	extract_value( AutomaticCabActivation, "AutomaticCabActivation", line, "" );
-	extract_value( InactivaCabEmergencyBrake, "InactivaCabEmergencyBrake", line, "" );
+	extract_value( InactiveCabFlag, "InactiveCabFlag", line, "" );
 
     extract_value( StopBrakeDecc, "SBD", line, "" );
     extract_value( ReleaseParkingBySpringBrake, "ReleaseParkingBySpringBrake", line, "" );

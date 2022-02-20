@@ -2416,6 +2416,9 @@ void TTrain::OnCommand_cabactivationdisable(TTrain *Train, command_data const &C
 		}
 
 		Train->mvOccupied->CabDeactivisation();
+		if ((Train->mvOccupied->LightsPosNo > 0) && (Train->mvOccupied->InactiveCabFlag & activation::redmarkers)) {
+			Train->Dynamic()->SetLights();
+		}
 	}
 	else if (Command.action == GLFW_RELEASE) {
 		if (Train->ggCabActivationButton.type() == TGaugeType::push) {

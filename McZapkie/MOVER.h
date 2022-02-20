@@ -267,6 +267,17 @@ enum relay_t {
     electrodynamicbrakesoverload = 1 << 7,
 };
 
+// functions during activation/deactivation
+enum activation {
+	emergencybrake = 1 << 0,
+	mirrors = 1 << 1,
+	pantographsup = 1 << 2,
+	redmarkers = 1 << 3,
+	doorpermition = 1 << 4,
+	springbrakeon = 1 << 5,
+	springbrakeoff = 1 << 6,
+};
+
 //szczególne typy pojazdów (inna obsługa) dla zmiennej TrainType
 //zamienione na flagi bitowe, aby szybko wybierać grupę (np. EZT+SZT)
 // TODO: convert to enums, they're used as specific checks anyway
@@ -1512,7 +1523,8 @@ public:
 	int CabOccupied = 0; //numer kabiny, w ktorej jest obsada (zwykle jedna na skład) // TODO: move to TController
 	bool CabMaster = false; //czy pojazd jest nadrzędny w składzie
 	bool AutomaticCabActivation = true; //czy zmostkowany rozrzad przelacza sie sam przy zmianie kabiny
-	bool InactivaCabEmergencyBrake = false; //czy bez aktywacji włącza się nagłe
+	int InactiveCabFlag = 0; //co sie dzieje przy dezaktywacji kabiny
+	bool InactiveCabPantsCheck = false; //niech DynamicObject sprawdzi pantografy
 	double LastSwitchingTime = 0.0; /*czas ostatniego przelaczania czegos*/
     int WarningSignal = 0; // 0: nie trabi, 1,2,4: trabi
 	bool DepartureSignal = false; /*sygnal odjazdu*/
