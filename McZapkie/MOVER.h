@@ -901,6 +901,7 @@ private:
         float step_position { 0.f }; // current shift of the movable step from the retracted position
         // ld outputs
         bool is_closed { true }; // the door is fully closed
+		bool is_door_closed { true }; // the door is fully closed, step doesn't matter
         bool is_closing { false }; // the door is currently closing
         bool is_opening { false }; // the door is currently opening
         bool is_open { false }; // the door is fully open
@@ -1457,6 +1458,7 @@ public:
     std::array<cooling_fan, 2> MotorBlowers;
     door_data Doors;
     float DoorsOpenWithPermitAfter { -1.f }; // remote open if permit button is held for specified time. NOTE: separate from door data as its cab control thing
+	int DoorsPermitLightBlinking { 0 }; //when the doors permit signal light is blinking
 
     int BrakeCtrlPos = -2;               /*nastawa hamulca zespolonego*/
 	double BrakeCtrlPosR = 0.0;                 /*nastawa hamulca zespolonego - plynna dla FV4a*/

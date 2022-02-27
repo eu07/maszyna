@@ -6514,6 +6514,20 @@ bool TTrain::Update( double const Deltatime )
         m_doorpermits = (
             DynamicObject->Mechanik->IsAnyDoorPermitActive[ side::right ]
          || DynamicObject->Mechanik->IsAnyDoorPermitActive[ side::left ] );
+		m_doorspermitleft = mvOccupied->Doors.instances[(cab_to_end() == end::front ? side::left : side::right)].open_permit
+							&& ((simulation::Time.data().wSecond % 2 < 1)
+								|| (mvOccupied->DoorsPermitLightBlinking < 1)
+								|| ((mvOccupied->DoorsPermitLightBlinking < 2)
+									&& (DynamicObject->Mechanik->IsAnyDoorOpen[(cab_to_end() == end::front ? side::left : side::right)])
+								|| ((mvOccupied->DoorsPermitLightBlinking < 3)
+									&& DynamicObject->Mechanik->IsAnyDoorOnlyOpen[(cab_to_end() == end::front ? side::left : side::right)])));
+		m_doorspermitright = mvOccupied->Doors.instances[(cab_to_end() == end::front ? side::right : side::left)].open_permit
+							&& ((simulation::Time.data().wSecond % 2 < 1)
+								|| (mvOccupied->DoorsPermitLightBlinking < 1)
+								|| ((mvOccupied->DoorsPermitLightBlinking < 2)
+									&& (DynamicObject->Mechanik->IsAnyDoorOpen[(cab_to_end() == end::front ? side::right : side::left)])
+								|| ((mvOccupied->DoorsPermitLightBlinking < 3)
+									&& DynamicObject->Mechanik->IsAnyDoorOnlyOpen[(cab_to_end() == end::front ? side::right : side::left)])));
     }
 	m_dirforward = ( mvControlled->DirActive > 0 );
 	m_dirneutral = ( mvControlled->DirActive == 0 );
@@ -9621,8 +9635,8 @@ bool TTrain::initialize_button(cParser &Parser, std::string const &Label, int co
     // TODO: move viable dedicated lights to the automatic light array
     std::unordered_map<std::string, bool const *> const autolights = {
         { "i-doors:", &m_doors },
-        { "i-doorpermit_left:",  &mvOccupied->Doors.instances[ ( cab_to_end() == end::front ? side::left : side::right ) ].open_permit },
-        { "i-doorpermit_right:", &mvOccupied->Doors.instances[ ( cab_to_end() == end::front ? side::right : side::left ) ].open_permit },
+        { "i-doorpermit_left:",  &m_doorspermitleft },
+        { "i-doorpermit_right:", &m_doorspermitright },
         { "i-doorpermit_any:", &m_doorpermits },
         { "i-doorstep:", &mvOccupied->Doors.step_enabled },
         { "i-mainpipelock:", &mvOccupied->LockPipe },
@@ -9868,8 +9882,8 @@ bool TTrain::initialize_gauge(cParser &Parser, std::string const &Label, int con
 		{ "speedbutton7:", { ggSpeedCtrlButtons[ 7 ], &mvOccupied->SpeedCtrlUnit.IsActive } },
 		{ "speedbutton8:", { ggSpeedCtrlButtons[ 8 ], &mvOccupied->SpeedCtrlUnit.IsActive } },
 		{ "speedbutton9:", { ggSpeedCtrlButtons[ 9 ], &mvOccupied->SpeedCtrlUnit.IsActive } },
-        { "doorleftpermit_sw:", { ggDoorLeftPermitButton, &mvOccupied->Doors.instances[ ( cab_to_end() == end::front ? side::left : side::right ) ].open_permit } },
-        { "doorrightpermit_sw:", { ggDoorRightPermitButton, &mvOccupied->Doors.instances[ ( cab_to_end() == end::front ? side::right : side::left ) ].open_permit } },
+        { "doorleftpermit_sw:", { ggDoorLeftPermitButton, &m_doorspermitleft } },
+        { "doorrightpermit_sw:", { ggDoorRightPermitButton, &m_doorspermitright } },
         { "dooralloff_sw:", { ggDoorAllOffButton, &m_doors } },
         { "doorstep_sw:", { ggDoorStepButton, &mvOccupied->Doors.step_enabled } },
         { "dirforward_bt:", { ggDirForwardButton, &m_dirforward } },

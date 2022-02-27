@@ -5995,11 +5995,11 @@ TController::determine_consist_state() {
     // ABu-160305 testowanie gotowości do jazdy
     // Ra: przeniesione z DynObj, skład użytkownika też jest testowany, żeby mu przekazać, że ma odhamować
 
-	if (mvOccupied->CabActive == 0)
+	if (mvOccupied->CabActive == 0 && mvOccupied->Power24vIsAvailable)
 	{
 		cue_action( locale::string::driver_hint_cabactivation );
 	}
-	else if ((mvOccupied->CabActive == -mvOccupied->CabOccupied) || (!mvOccupied->CabMaster))
+	else if ((mvOccupied->CabActive == -mvOccupied->CabOccupied) || (!mvOccupied->CabMaster) || (!mvOccupied->Power24vIsAvailable))
 	{
 		cue_action( locale::string::driver_hint_cabdeactivation );
 	}
@@ -6022,7 +6022,8 @@ TController::determine_consist_state() {
             mvOccupied->PipePress < std::max( 3.9, mvOccupied->BrakePressureActual.PipePressureVal ) + 0.1 );
     fAccGravity = 0.0; // przyspieszenie wynikające z pochylenia
     IsAnyCouplerStretched = false;
-    IsAnyDoorOpen[ side::right ] = IsAnyDoorOpen[ side::left ] = false;
+    IsAnyDoorOnlyOpen[ side::right ] = IsAnyDoorOnlyOpen[ side::left ] = false;
+	IsAnyDoorOpen[ side::right ] = IsAnyDoorOpen[ side::left ] = false;
     IsAnyDoorPermitActive[ side::right ] = IsAnyDoorPermitActive[ side::left ] = false;
     ConsistShade = 0.0;
     auto *p { pVehicles[ end::front ] }; // pojazd na czole składu
@@ -6081,6 +6082,10 @@ TController::determine_consist_state() {
                 IsAnyDoorOpen[ side::right ] |= ( false == rightdoor.is_closed );
                 IsAnyDoorOpen[ side::left  ] |= ( false == leftdoor.is_closed );
             }
+			if (vehicle->Doors.close_control != control_t::autonomous) {
+				IsAnyDoorOnlyOpen[ side::right ] |= ( false == rightdoor.is_door_closed );
+				IsAnyDoorOnlyOpen[ side::left  ] |= ( false == leftdoor.is_door_closed );
+			}
             if( vehicle->Doors.permit_needed ) {
                 IsAnyDoorPermitActive[ side::right ] |= rightdoor.open_permit;
                 IsAnyDoorPermitActive[ side::left  ] |= leftdoor.open_permit;

@@ -102,8 +102,9 @@ TController::cue_action( locale::string const Action, float const Actionparamete
         }
 		// battery
 		case locale::string::driver_hint_cabactivation: {
-			if (AIControllFlag) {
+			if (AIControllFlag && mvOccupied->Power24vIsAvailable) {
 				mvOccupied->CabActivisation();
+				CheckVehicles();
 			}
 			remove_hint( locale::string::driver_hint_cabdeactivation );
 			hint(
