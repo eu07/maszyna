@@ -8539,6 +8539,7 @@ TMoverParameters::update_doors( double const Deltatime ) {
         door.is_closed =
             ( door.position <= 0.f )
          && ( door.step_position <= 0.f );
+		door.is_door_closed = (door.position <= 0.f);
 
         door.local_open  = door.local_open  && ( false == door.is_open ) && ( ( false == Doors.permit_needed ) || door.open_permit );
         door.remote_open = ( door.remote_open || Doors.remote_only ) && ( false == door.is_open ) && ( ( false == Doors.permit_needed ) || door.open_permit );
@@ -10133,6 +10134,7 @@ void TMoverParameters::LoadFIZ_Doors( std::string const &line ) {
 	extract_value( MirrorVelClose, "MirrorVelClose", line, "");
 
     extract_value( DoorsOpenWithPermitAfter, "DoorOpenWithPermit", line, "" );
+	extract_value( DoorsPermitLightBlinking, "DoorsPermitLightBlinking", line, "" );
 }
 
 void TMoverParameters::LoadFIZ_BuffCoupl( std::string const &line, int const Index ) {

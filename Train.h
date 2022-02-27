@@ -840,6 +840,8 @@ private:
     float m_distancecounter { -1.f }; // distance traveled since meter was activated or -1 if inactive
     double m_brakehandlecp{ 0.0 };
     bool m_doors{ false }; // helper, true if any door is open
+	bool m_doorspermitleft{ false }; // helper, true if door is open, blinking if door is pemitted
+	bool m_doorspermitright{ false }; // helper, true if door is open, blinking if door is pemitted
     bool m_dirforward{ false }; // helper, true if direction set to forward
     bool m_dirneutral{ false }; // helper, true if direction set to neutral
     bool m_dirbackward{ false }; // helper, true if direction set to backward
