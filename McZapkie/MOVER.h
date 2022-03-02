@@ -276,6 +276,7 @@ enum activation {
 	doorpermition = 1 << 4,
 	springbrakeon = 1 << 5,
 	springbrakeoff = 1 << 6,
+	neutraldirection = 1 << 7,
 };
 
 //szczególne typy pojazdów (inna obsługa) dla zmiennej TrainType
@@ -1524,6 +1525,7 @@ public:
 	int CabActive = 0; //numer kabiny, z której jest sterowanie: 1 lub -1; w przeciwnym razie brak sterowania - rozrzad
 	int CabOccupied = 0; //numer kabiny, w ktorej jest obsada (zwykle jedna na skład) // TODO: move to TController
 	bool CabMaster = false; //czy pojazd jest nadrzędny w składzie
+	inline bool IsCabMaster() { return ((CabActive == CabOccupied) && CabMaster); } //czy aktualna kabina jest na pewno tą, z której można sterować
 	bool AutomaticCabActivation = true; //czy zmostkowany rozrzad przelacza sie sam przy zmianie kabiny
 	int InactiveCabFlag = 0; //co sie dzieje przy dezaktywacji kabiny
 	bool InactiveCabPantsCheck = false; //niech DynamicObject sprawdzi pantografy

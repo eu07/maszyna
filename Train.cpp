@@ -7705,7 +7705,7 @@ bool TTrain::Update( double const Deltatime )
     ggBatteryOffButton.Update();
 	if ((ggCabActivationButton.SubModel != nullptr) && (ggCabActivationButton.type() != TGaugeType::push))
 	{
-		ggCabActivationButton.UpdateValue((mvOccupied->CabMaster) && (mvOccupied->CabOccupied == mvOccupied->CabActive) ? 1.0 : 0.0);
+		ggCabActivationButton.UpdateValue(mvOccupied->IsCabMaster() ? 1.0 : 0.0);
 	}
 	ggCabActivationButton.Update();
 
@@ -9174,10 +9174,10 @@ void TTrain::set_cab_controls( int const Cab ) {
         ( ggBatteryButton.type() == TGaugeType::push ? 0.5f :
           mvOccupied->Power24vIsAvailable ? 1.f :
           0.f ) );
-	// battery
+	// activation
 	ggCabActivationButton.PutValue(
 		(ggCabActivationButton.type() == TGaugeType::push ? 0.5f :
-			(mvOccupied->CabActive == mvOccupied->CabOccupied) && mvOccupied->CabMaster ? 1.f :
+			mvOccupied->IsCabMaster() ? 1.f :
 			0.f));
     // line breaker
     if( ggMainButton.SubModel != nullptr ) { // instead of single main button there can be on/off pair

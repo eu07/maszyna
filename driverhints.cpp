@@ -110,7 +110,7 @@ TController::cue_action( locale::string const Action, float const Actionparamete
 			hint(
 				Action,
 				[this](float const Parameter) -> bool {
-				return ( ( mvOccupied->AutomaticCabActivation ) || ( ( mvOccupied->CabMaster == true ) && ( mvOccupied->CabActive == mvOccupied->CabOccupied ) ) ); } );
+				return ( ( mvOccupied->AutomaticCabActivation ) || (  mvOccupied->IsCabMaster() ) ); } );
 			break;
 		}
 		case locale::string::driver_hint_cabdeactivation: {

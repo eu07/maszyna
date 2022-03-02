@@ -554,7 +554,9 @@ bool TMoverParameters::DirectionForward()
 {
     if( false == EIMDirectionChangeAllow() ) { return false; }
 
-    if ((MainCtrlPosNo > 0) && (DirActive < 1))
+    if ((MainCtrlPosNo > 0)
+		&& (DirActive < 1)
+		&& ( (CabActive != 0) || ( (InactiveCabFlag & activation::neutraldirection) == 0) ) )
     {
         ++DirActive;
         DirAbsolute = DirActive * CabActive;
@@ -2689,6 +2691,7 @@ bool TMoverParameters::CabActivisation( bool const Enforce )
 		CabMaster = true;
         SecuritySystem.Status |= s_waiting; // activate the alerter TODO: make it part of control based cab selection
         SendCtrlToNext("CabActivisation", 1, CabActive);
+		SendCtrlToNext("Direction", DirAbsolute, CabActive);
 		if (InactiveCabFlag & activation::springbrakeoff)
 		{
 			SpringBrakeActivate(false);
@@ -2711,7 +2714,7 @@ bool TMoverParameters::CabDeactivisation( bool const Enforce )
 {
     bool OK = false;
 
-    OK = Enforce || ((CabActive == CabOccupied) && CabMaster); // o ile obsada jest w kabinie ze sterowaniem
+    OK = Enforce || IsCabMaster(); // o ile obsada jest w kabinie ze sterowaniem
     if (OK)
     {
 		if (InactiveCabFlag & activation::springbrakeon)
@@ -2726,6 +2729,11 @@ bool TMoverParameters::CabDeactivisation( bool const Enforce )
 		{
 			PermitDoors(side::right, true, range_t::consist);
 			PermitDoors(side::left, true, range_t::consist);
+		}
+		if (InactiveCabFlag & activation::neutraldirection)
+		{
+			DirActive = 0;
+			SendCtrlToNext("Direction", 0, CabActive);
 		}
 
         CabActive = 0;
@@ -3160,7 +3168,9 @@ bool TMoverParameters::DirectionBackward(void)
         {
             return true;
         }
-    if ((MainCtrlPosNo > 0) && (DirActive > -1))
+    if ((MainCtrlPosNo > 0)
+		&& (DirActive > -1)
+		&& ( (CabActive != 0) || ( (InactiveCabFlag & activation::neutraldirection) == 0) ) )
     {
         if (EngineType == TEngineType::WheelsDriven)
             --CabActive;
@@ -7277,7 +7287,8 @@ void TMoverParameters::CheckEIMIC(double dt)
     auto const eimicpowerenabled {
         ( ( true == Mains ) || ( Power == 0.0 ) )
 	   && ( !SpringBrake.IsActive || !SpringBrakeCutsOffDrive )
-	   && ( !LockPipe ) };
+	   && ( !LockPipe ) 
+	   && ( DirAbsolute != 0 ) };
 	auto const eimicdoorenabled {
 		(SpringBrake.IsActive && ReleaseParkingBySpringBrakeWhenDoorIsOpen) 
 	};
