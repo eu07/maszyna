@@ -422,6 +422,7 @@ class TTrain {
     static void OnCommand_doorcloseall( TTrain *Train, command_data const &Command );
     static void OnCommand_doorsteptoggle( TTrain *Train, command_data const &Command );
     static void OnCommand_doormodetoggle( TTrain *Train, command_data const &Command );
+	static void OnCommand_mirrorstoggle( TTrain *Train, command_data const &Command );
     static void OnCommand_nearestcarcouplingincrease( TTrain *Train, command_data const &Command );
     static void OnCommand_nearestcarcouplingdisconnect( TTrain *Train, command_data const &Command );
     static void OnCommand_nearestcarcoupleradapterattach( TTrain *Train, command_data const &Command );

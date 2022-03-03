@@ -708,6 +708,9 @@ drivermouse_input::default_bindings() {
         { "doormode_sw:", {
             user_command::doormodetoggle,
             user_command::none } },
+		{ "mirrors_sw:", {
+			user_command::mirrorstoggle,
+			user_command::none } },
         { "departure_signal_bt:", {
             user_command::departureannounce,
             user_command::none } },

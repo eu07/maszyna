@@ -402,6 +402,7 @@ TTrain::commandhandler_map const TTrain::m_commandhandlers = {
     { user_command::doorcloseall, &TTrain::OnCommand_doorcloseall },
     { user_command::doorsteptoggle, &TTrain::OnCommand_doorsteptoggle },
     { user_command::doormodetoggle, &TTrain::OnCommand_doormodetoggle },
+	{ user_command::mirrorstoggle, &TTrain::OnCommand_mirrorstoggle },
     { user_command::nearestcarcouplingincrease, &TTrain::OnCommand_nearestcarcouplingincrease },
     { user_command::nearestcarcouplingdisconnect, &TTrain::OnCommand_nearestcarcouplingdisconnect },
     { user_command::nearestcarcoupleradapterattach, &TTrain::OnCommand_nearestcarcoupleradapterattach },
@@ -5928,6 +5929,21 @@ void TTrain::OnCommand_doormodetoggle( TTrain *Train, command_data const &Comman
     }
 }
 
+void TTrain::OnCommand_mirrorstoggle(TTrain *Train, command_data const &Command) {
+
+	if (Command.action != GLFW_PRESS) { return; }
+
+// only reacting to press, so the sound can loop uninterrupted
+	if (false == Train->mvOccupied->MirrorForbidden) {
+		// turn on
+		Train->mvOccupied->MirrorForbidden = true;
+	}
+	else {
+		// turn off
+		Train->mvOccupied->MirrorForbidden = false;
+	}
+}
+
 void TTrain::OnCommand_nearestcarcouplingincrease( TTrain *Train, command_data const &Command ) {
 
     if( ( true == FreeFlyModeFlag )
@@ -9913,7 +9929,7 @@ bool TTrain::initialize_gauge(cParser &Parser, std::string const &Label, int con
         { "springbraketoggle_bt:", &mvOccupied->SpringBrake.Activate },
         { "couplingdisconnect_sw:", &m_couplingdisconnect },
 		{ "couplingdisconnectback_sw:", &m_couplingdisconnectback },
-
+		{ "mirrors_sw:", &mvOccupied->MirrorForbidden },
     };
     {
         auto lookup = autoboolgauges.find( Label );

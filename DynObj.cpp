@@ -3910,7 +3910,9 @@ bool TDynamicObject::Update(double dt, double dt1)
         }
 
     // mirrors
-    if( MoverParameters->Vel > MoverParameters->MirrorVelClose ) {
+    if( (MoverParameters->Vel > MoverParameters->MirrorVelClose)
+		|| (MoverParameters->CabActive == 0) && (activation::mirrors)
+		|| (MoverParameters->MirrorForbidden) ) {
         // automatically fold mirrors when above velocity threshold
         if( dMirrorMoveL > 0.0 ) {
             dMirrorMoveL = std::max(

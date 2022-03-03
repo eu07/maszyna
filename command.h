@@ -167,6 +167,7 @@ enum class user_command {
     doorcloseall,
     doorsteptoggle,
     doormodetoggle,
+	mirrorstoggle,
     departureannounce,
     doorlocktoggle,
     pantographcompressorvalvetoggle,

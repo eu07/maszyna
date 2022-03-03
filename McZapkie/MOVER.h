@@ -1367,6 +1367,7 @@ public:
 #endif
     double MirrorMaxShift { 90.0 };
 	double MirrorVelClose { 5.0 };
+	bool MirrorForbidden{ false }; /*czy jest pozwolenie na otworzenie lusterek (przycisk)*/
 	bool ScndS = false; /*Czy jest bocznikowanie na szeregowej*/
 	bool SpeedCtrl = false; /*czy jest tempomat*/
 	speed_control SpeedCtrlUnit; /*parametry tempomatu*/
