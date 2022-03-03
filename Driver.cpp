@@ -6075,7 +6075,7 @@ TController::determine_consist_state() {
             || ( vehicle->Couplers[ end::rear  ].stretch_duration > 0.0 );
         // check door state
         {
-            auto const switchsides { p->DirectionGet() != iDirection };
+			auto const switchsides{ p->DirectionGet() != (iDirection == 0 ? mvOccupied->CabOccupied : iDirection) };
             auto const &rightdoor { vehicle->Doors.instances[ ( switchsides ? side::left : side::right ) ] };
             auto const &leftdoor { vehicle->Doors.instances[ ( switchsides ? side::right : side::left ) ] };
             if( vehicle->Doors.close_control != control_t::autonomous ) {
