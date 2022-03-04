@@ -52,6 +52,8 @@ python_screen_viewer::python_screen_viewer(std::shared_ptr<python_rt> rt, std::s
                 int w, h;
                 glfwGetWindowSize(conf->window, &w, &h);
                 conf->window_size = glm::ivec2(w, h);
+                glfwGetFramebufferSize(conf->window, &w, &h);
+                conf->fb_size = glm::ivec2(w, h);
             }
 
 			glfwSetWindowUserPointer(conf->window, this);
