@@ -43,12 +43,11 @@ namespace gl
         glm::mat4 projection;
         glm::mat4 inv_view;
         glm::mat4 lightview[MAX_CASCADES];
-        glm::vec4 cascade_end;
+        glm::vec3 cascade_end;
         float time;
-        UBS_PAD(12);
     };
 
-    static_assert(sizeof(scene_ubs) == 352, "bad size of ubs");
+    static_assert(sizeof(scene_ubs) == 336, "bad size of ubs");
 
     const size_t MAX_PARAMS = 3;
 
