@@ -1185,6 +1185,7 @@ TController::TableUpdateStopPoint( TCommandType &Command, TSpeedPos &Point, doub
 					L = std::max(0.0, std::min(L, std::abs(Par2) - fMinProximityDist - fLength));
 					Point.UpdateDistance(L);
 					Point.bMoved = true;
+					Point.fMoved = L;
                 }
                 else {
 					Point.iFlags = 0;
@@ -1192,7 +1193,7 @@ TController::TableUpdateStopPoint( TCommandType &Command, TSpeedPos &Point, doub
             }
             // for human-driven vehicles discard the stop point if they leave it far enough behind
             if( ( false == AIControllFlag )
-             && ( Point.fDist < -1 * std::max( fLength + 100, 250.0 ) ) ) {
+             && ( Point.fDist < -1 * std::max( fLength + 100, 250.0 ) - Point.fMoved ) ) {
                 Point.iFlags = 0; // nie liczy się już zupełnie (nie wyśle SetVelocity)
                 Point.fVelNext = -1; // można jechać za W4
                 if( ( Point.fDist <= 0.0 ) && ( eSignNext == Point.evEvent ) ) {
@@ -1209,7 +1210,7 @@ TController::TableUpdateStopPoint( TCommandType &Command, TSpeedPos &Point, doub
                 // jeśli długość peronu ((sSpeedTable[i].evEvent->ValueGet(2)) nie podana,
                 // przyjąć odległość fMinProximityDist
              && ( ( iDrivigFlags & moveStopCloser ) != 0 ?
-                    Point.fDist + fLength <=
+                    Point.fDist + fLength + (Point.fMoved - fMinProximityDist * 0.5f) <=
                     std::max(
                         std::abs( Point.evEvent->input_value( 2 ) ),
                         2.0 * fMaxProximityDist + fLength ) : // fmaxproximitydist typically equals ~50 m

@@ -144,6 +144,7 @@ class TSpeedPos
     double fSectionVelocityDist{ 0.0 }; // długość ograniczenia prędkości
     int iFlags{ spNone }; // flagi typu wpisu do tabelki
 	bool bMoved{ false }; // czy przesunięty (dotyczy punktu zatrzymania w peronie)
+	double fMoved{ 0.0 }; // ile przesunięty (dotyczy punktu zatrzymania w peronie) 
     Math3D::vector3 vPos; // współrzędne XYZ do liczenia odległości
     struct
     {
