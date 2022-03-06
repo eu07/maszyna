@@ -246,7 +246,7 @@ std::string cParser::readToken( bool ToLower, const char *Break ) {
     // NOTE: parameter collecting uses default set of token separators.
 	if( expandIncludes && token == "include" ) {
         std::string includefile = readToken(ToLower); // nazwa pliku
-		std::replace(includefile.begin(), includefile.end(), '\\', '/');
+		replace_slashes(includefile);
         if( ( true == LoadTraction )
          || ( ( false == contains( includefile, "tr/" ) )
            && ( false == contains( includefile, "tra/" ) ) ) ) {
@@ -269,6 +269,7 @@ std::string cParser::readToken( bool ToLower, const char *Break ) {
         // HACK: if the parser reads full lines we expect this line to contain entire include directive, to make parsing easier
         cParser includeparser( token.substr( 7 ) );
         std::string includefile = includeparser.readToken( ToLower ); // nazwa pliku
+        replace_slashes(includefile);
         if( ( true == LoadTraction )
          || ( ( false == contains( includefile, "tr/" ) )
            && ( false == contains( includefile, "tra/" ) ) ) ) {
