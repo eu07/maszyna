@@ -37,22 +37,20 @@ int main(int argc, char *argv[])
         int flags = std::stoi(std::string(argv[4]));
         int dynamic = std::stoi(std::string(argv[5]));
         export_e3d_standalone(in, out, flags, dynamic);
-        std::_Exit(0);
-    }
-
-    try
-	{
-        auto result { Application.init( argc, argv ) };
-        if( result == 0 ) {
-            result = Application.run();
-            Application.exit();
+    } else {
+        try {
+            auto result { Application.init( argc, argv ) };
+            if( result == 0 ) {
+                result = Application.run();
+                Application.exit();
+            }
+        } catch( std::bad_alloc const &Error ) {
+            ErrorLog( "Critical error, memory allocation failure: " + std::string( Error.what() ) );
         }
-		std::_Exit(0); // skip destructors, there are ordering errors which causes segfaults
-        return result;
     }
-    catch( std::bad_alloc const &Error )
-	{
-        ErrorLog( "Critical error, memory allocation failure: " + std::string( Error.what() ) );
-    }
+#ifndef _WIN32
+    fflush(stdout);
+    fflush(stderr);
+#endif
 	std::_Exit(0); // skip destructors, there are ordering errors which causes segfaults
 }

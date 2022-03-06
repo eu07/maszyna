@@ -83,8 +83,8 @@ void WriteLog( const char *str, logtype const Type ) {
             output.open( filename, std::ios::trunc );
         }
         output << str << "\n";
+        output.flush();
     }
-	output.flush();
 
     log_scrollback.emplace_back(std::string(str));
     if (log_scrollback.size() > 200)
