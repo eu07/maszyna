@@ -75,6 +75,7 @@ struct global_settings {
     int iWriteLogEnabled{ 3 }; // maska bitowa: 1-zapis do pliku, 2-okienko, 4-nazwy torów
     bool MultipleLogs{ false };
     unsigned int DisabledLogTypes{ 0 };
+    bool ParserLogIncludes{ false };
     // simulation
     bool RealisticControlMode{ false }; // controls ability to steer the vehicle from outside views
     bool bEnableTraction{ true };

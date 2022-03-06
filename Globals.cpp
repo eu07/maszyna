@@ -487,8 +487,6 @@ global_settings::ConfigParse(cParser &Parser) {
             // tworzenie plików binarnych
             Parser.getTokens(1, false);
             Parser >> iConvertModels;
-            // temporary override, to prevent generation of .e3d not compatible with old exe
-            iConvertModels = (iConvertModels > 128 ? iConvertModels - 128 : 0);
         }
         else if (token == "file.binary.terrain")
         {
@@ -1266,7 +1264,7 @@ global_settings::export_as_text( std::ostream &Output ) const {
     export_as_text( Output, "timespeed", fTimeSpeed );
     export_as_text( Output, "multisampling", iMultisampling );
     export_as_text( Output, "latitude", fLatitudeDeg );
-    export_as_text( Output, "convertmodels", iConvertModels + ( iConvertModels > 0 ? 128 : 0 ) );
+    export_as_text( Output, "convertmodels", iConvertModels );
     export_as_text( Output, "file.binary.terrain", file_binary_terrain );
     export_as_text( Output, "inactivepause", bInactivePause );
     export_as_text( Output, "slowmotion", iSlowMotionMask );

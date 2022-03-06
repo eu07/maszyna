@@ -103,11 +103,13 @@ void WriteLog( const char *str, logtype const Type ) {
     }
 }
 
-// Ra: bezwarunkowa rejestracja poważnych błędów
 void ErrorLog( const char *str, logtype const Type ) {
 
     if( str == nullptr ) { return; }
     if( true == TestFlag( Global.DisabledLogTypes, static_cast<unsigned int>( Type ) ) ) { return; }
+
+    if (!(Global.iWriteLogEnabled & 1))
+        return;
 
     if (!errors.is_open()) {
 

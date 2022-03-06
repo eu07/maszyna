@@ -2277,7 +2277,7 @@ void TModel3d::Init()
             Root->m_boundingradius = std::max( Root->m_boundingradius, root->m_boundingradius );
         }
 
-        if( ( Global.iConvertModels > 0 )
+        if( ( Global.iConvertModels & 1 )
          && ( false == asBinary.empty() ) ) {
             SaveToBinFile( asBinary );
             asBinary = ""; // zablokowanie powtórnego zapisu

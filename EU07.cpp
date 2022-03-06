@@ -22,13 +22,24 @@ Stele, firleju, szociu, hunter, ZiomalCl, OLI_EU and others
 #include "Logs.h"
 #include <cstdlib>
 
-#ifdef _MSC_VER 
-#pragma comment(linker, "/subsystem:windows /ENTRY:mainCRTStartup") 
-#endif 
+#ifdef _MSC_VER
+#pragma comment(linker, "/subsystem:windows /ENTRY:mainCRTStartup")
+#endif
 
+void export_e3d_standalone(std::string in, std::string out, int flags, bool dynamic);
 
-int main( int argc, char *argv[] )
+int main(int argc, char *argv[])
 {
+    // quick short-circuit for standalone e3d export
+    if (argc == 6 && std::string(argv[1]) == "-e3d") {
+        std::string in(argv[2]);
+        std::string out(argv[3]);
+        int flags = std::stoi(std::string(argv[4]));
+        int dynamic = std::stoi(std::string(argv[5]));
+        export_e3d_standalone(in, out, flags, dynamic);
+        std::_Exit(0);
+    }
+
     try
 	{
         auto result { Application.init( argc, argv ) };

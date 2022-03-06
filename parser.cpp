@@ -7,6 +7,7 @@ obtain one at
 http://mozilla.org/MPL/2.0/.
 */
 
+#include "Globals.h"
 #include "stdafx.h"
 #include "parser.h"
 #include "utilities.h"
@@ -250,6 +251,8 @@ std::string cParser::readToken( bool ToLower, const char *Break ) {
         if( ( true == LoadTraction )
          || ( ( false == contains( includefile, "tr/" ) )
            && ( false == contains( includefile, "tra/" ) ) ) ) {
+            if (Global.ParserLogIncludes)
+                WriteLog("including: " + includefile);
             mIncludeParser = std::make_shared<cParser>( includefile, buffer_FILE, mPath, LoadTraction, readParameters( *this ) );
             mIncludeParser->autoclear( m_autoclear );
             if( mIncludeParser->mSize <= 0 ) {
@@ -270,6 +273,8 @@ std::string cParser::readToken( bool ToLower, const char *Break ) {
         if( ( true == LoadTraction )
          || ( ( false == contains( includefile, "tr/" ) )
            && ( false == contains( includefile, "tra/" ) ) ) ) {
+            if (Global.ParserLogIncludes)
+                WriteLog("including: " + includefile);
             mIncludeParser = std::make_shared<cParser>( includefile, buffer_FILE, mPath, LoadTraction, readParameters( includeparser ) );
             mIncludeParser->autoclear( m_autoclear );
             if( mIncludeParser->mSize <= 0 ) {
