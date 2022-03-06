@@ -7,7 +7,6 @@ obtain one at
 http://mozilla.org/MPL/2.0/.
 */
 
-#include "Globals.h"
 #include "stdafx.h"
 #include "parser.h"
 #include "utilities.h"
