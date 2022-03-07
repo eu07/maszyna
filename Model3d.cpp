@@ -422,7 +422,7 @@ std::pair<int, int> TSubModel::Load( cParser &parser, bool dynamic )
     {
         const opengl_material &mat = GfxRenderer->Material(m_material);
 
-        // if material have opacity set, replace submodel opacity with it
+        // if material does have opacity set, replace submodel opacity with it
         if (mat.opacity)
         {
             iFlags &= ~0x30;
@@ -579,7 +579,7 @@ std::pair<int, int> TSubModel::Load( cParser &parser, bool dynamic )
                             >> vertex->texture.s
                             >> vertex->texture.t;
 
-					    if (idx % 3 == 2) { 
+					    if (idx % 3 == 2) {
                             // jeżeli wczytano 3 punkty
                             if( true == degenerate( vertex->position, (vertex - 1)->position, (vertex - 2)->position ) ) {
                                 // jeżeli punkty się nakładają na siebie
@@ -618,7 +618,7 @@ std::pair<int, int> TSubModel::Load( cParser &parser, bool dynamic )
                                 glm::vec3() );
                     }
 				    glm::vec3 vertexnormal; // roboczy wektor normalny
-				    for (int vertexidx = 0; vertexidx < m_geometry.vertex_count; ++vertexidx) { 
+				    for (int vertexidx = 0; vertexidx < m_geometry.vertex_count; ++vertexidx) {
                         // pętla po wierzchołkach trójkątów
                         auto vertex { vertices + vertexidx };
                         if( wsp[ vertexidx ] >= 0 ) {
@@ -1357,7 +1357,7 @@ void TSubModel::ParentMatrix( float4x4 *m ) const {
 			*m = *sm->Parent->GetMatrix() * *m;
 		sm = sm->Parent;
 	}
-*/	
+*/
 };
 
 void TSubModel::ReplaceMatrix(const glm::mat4 &mat)
@@ -2051,10 +2051,20 @@ void TSubModel::BinInit(TSubModel *s, float4x4 *m, std::vector<std::string> *t, 
                 else
                     iFlags |= 0x10; // opaque
             }
-            
+
             if ( m_material != null_handle )
             {
                 opengl_material const &mat = GfxRenderer->Material(m_material);
+
+                // if material does have opacity set, replace submodel opacity with it
+                if (mat.opacity)
+                {
+                    iFlags &= ~0x30;
+                    if (*mat.opacity == 0.0f)
+                        iFlags |= 0x20; // translucent
+                    else
+                        iFlags |= 0x10; // opaque
+                }
 
                 // replace submodel selfillum with material one
                 if( mat.selfillum ) {
@@ -2124,7 +2134,7 @@ void TSubModel::BinInit(TSubModel *s, float4x4 *m, std::vector<std::string> *t, 
 void TModel3d::LoadFromBinFile(std::string const &FileName, bool dynamic)
 { // wczytanie modelu z pliku binarnego
     WriteLog( "Loading binary format 3d model data from \"" + FileName + "\"...", logtype::model );
-	
+
 	std::ifstream file(FileName, std::ios::binary);
 
 	uint32_t type = sn_utils::ld_uint32(file);
@@ -2191,7 +2201,7 @@ void TModel3d::LoadFromTextFile(std::string const &FileName, bool dynamic)
             m_vertexcount += result.second;
         }
         // będzie potrzebne do wyliczenia pozycji, np. pantografu
-		SubModel->Parent = AddToNamed(parent.c_str(), SubModel); 
+		SubModel->Parent = AddToNamed(parent.c_str(), SubModel);
 
 		parser.getTokens();
 		parser >> token;
