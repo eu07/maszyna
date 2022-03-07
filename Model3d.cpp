@@ -421,7 +421,7 @@ std::pair<int, int> TSubModel::Load( cParser &parser, bool dynamic )
     if (m_material > 0)
     {
         const opengl_material &mat = GfxRenderer->Material(m_material);
-
+/*
         // if material does have opacity set, replace submodel opacity with it
         if (mat.opacity)
         {
@@ -431,7 +431,7 @@ std::pair<int, int> TSubModel::Load( cParser &parser, bool dynamic )
             else
                 iFlags |= 0x10; // opaque
         }
-
+*/
         // and same thing with selfillum
         if (mat.selfillum)
             fLight = *mat.selfillum;
@@ -2055,7 +2055,7 @@ void TSubModel::BinInit(TSubModel *s, float4x4 *m, std::vector<std::string> *t, 
             if ( m_material != null_handle )
             {
                 opengl_material const &mat = GfxRenderer->Material(m_material);
-
+/*
                 // if material does have opacity set, replace submodel opacity with it
                 if (mat.opacity)
                 {
@@ -2065,7 +2065,7 @@ void TSubModel::BinInit(TSubModel *s, float4x4 *m, std::vector<std::string> *t, 
                     else
                         iFlags |= 0x10; // opaque
                 }
-
+*/
                 // replace submodel selfillum with material one
                 if( mat.selfillum ) {
                     fLight = mat.selfillum.value();
