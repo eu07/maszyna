@@ -41,6 +41,7 @@ struct opengl_material {
     void finalize(bool Loadnow);
     bool update();
     float get_or_guess_opacity() const;
+    bool is_translucent() const;
 // members
     static struct path_data {
         std::unordered_map<std::string, int> index_map;
