@@ -60,7 +60,7 @@ GetSubmodelFromName( TModel3d * const Model, std::string const Name ) {
 // Ra 2015-01: sprawdzenie dostępności tekstury o podanej nazwie
 std::string
 TextureTest( std::string const &Name ) {
-    
+
     auto const lookup {
         FileExists(
             { Global.asCurrentTexturePath + Name, Name, szTexturePath + Name },
@@ -206,19 +206,21 @@ material_data::assign( std::string const &Replacableskin ) {
         replacable_skins[ 1 ] = GfxRenderer->Fetch_Material( Replacableskin );
     }
 
+    // BUGS! it's not entierly designed whether opacity is property of material or submodel,
+    // and code does confusing things with this in various places
     textures_alpha = (
-        GfxRenderer->Material( replacable_skins[ 1 ] ).is_translucent() ?
+        GfxRenderer->Material( replacable_skins[ 1 ] ).get_or_guess_opacity() == 0.0f ?
             0x31310031 :  // tekstura -1 z kanałem alfa - nie renderować w cyklu nieprzezroczystych
             0x30300030 ); // wszystkie tekstury nieprzezroczyste - nie renderować w cyklu przezroczystych
-    if( GfxRenderer->Material( replacable_skins[ 2 ] ).is_translucent() ) {
+    if( GfxRenderer->Material( replacable_skins[ 2 ] ).get_or_guess_opacity() == 0.0f ) {
         // tekstura -2 z kanałem alfa - nie renderować w cyklu nieprzezroczystych
         textures_alpha |= 0x02020002;
     }
-    if( GfxRenderer->Material( replacable_skins[ 3 ] ).is_translucent() ) {
+    if( GfxRenderer->Material( replacable_skins[ 3 ] ).get_or_guess_opacity() == 0.0f ) {
         // tekstura -3 z kanałem alfa - nie renderować w cyklu nieprzezroczystych
         textures_alpha |= 0x04040004;
     }
-    if( GfxRenderer->Material( replacable_skins[ 4 ] ).is_translucent() ) {
+    if( GfxRenderer->Material( replacable_skins[ 4 ] ).get_or_guess_opacity() == 0.0f ) {
         // tekstura -4 z kanałem alfa - nie renderować w cyklu nieprzezroczystych
         textures_alpha |= 0x08080008;
     }
@@ -489,7 +491,7 @@ void TDynamicObject::UpdateAxle(TAnim *pAnim)
 };
 
 // animacja drzwi - przesuw
-void TDynamicObject::UpdateDoorTranslate(TAnim *pAnim) { 
+void TDynamicObject::UpdateDoorTranslate(TAnim *pAnim) {
     if( pAnim->smAnimated == nullptr ) { return; }
 
     auto const &door { MoverParameters->Doors.instances[ (
@@ -505,7 +507,7 @@ void TDynamicObject::UpdateDoorTranslate(TAnim *pAnim) {
 };
 
 // animacja drzwi - obrót
-void TDynamicObject::UpdateDoorRotate(TAnim *pAnim) { 
+void TDynamicObject::UpdateDoorRotate(TAnim *pAnim) {
 
     if( pAnim->smAnimated == nullptr ) { return; }
 
@@ -520,7 +522,7 @@ void TDynamicObject::UpdateDoorRotate(TAnim *pAnim) {
 };
 
 // animacja drzwi - obrót
-void TDynamicObject::UpdateDoorFold(TAnim *pAnim) { 
+void TDynamicObject::UpdateDoorFold(TAnim *pAnim) {
 
     if( pAnim->smAnimated == nullptr ) { return; }
 
@@ -737,7 +739,7 @@ void TDynamicObject::ABuLittleUpdate(double ObjSqrDist)
                 animation.yUpdate( &animation );
             }
         }
-        
+
         if( ( mdModel != nullptr )
          && ( ObjSqrDist < ( 50 * 50 ) ) ) {
             // gdy bliżej niż 50m
@@ -1045,7 +1047,7 @@ void TDynamicObject::ABuLittleUpdate(double ObjSqrDist)
             btShutters2.Turn( true );
             btnOn = true;
         }
-        
+
 		if( ( false == bDisplayCab ) // edge case, lowpoly may act as a stand-in for the hi-fi cab, so make sure not to show the driver when inside
          && ( Mechanik != nullptr )
          && ( ( Mechanik->action() != TAction::actSleep )
@@ -1822,7 +1824,7 @@ TDynamicObject::Init(std::string Name, // nazwa pojazdu, np. "EU07-424"
     else if (DriverType == "2") // od tyłu składu
         Cab = -1; // iDirection?-1:1;
 /*
-    // NOTE: leave passenger in the middle section, this is most likely to be 'passenger' section in MU trains 
+    // NOTE: leave passenger in the middle section, this is most likely to be 'passenger' section in MU trains
     else if (DriverType == "p")
     {
         if (Random(6) < 3)
@@ -2253,7 +2255,7 @@ TDynamicObject::Init(std::string Name, // nazwa pojazdu, np. "EU07-424"
             init_sections( mdLowPolyInt, nameprefix, MoverParameters->CompartmentLights.start_type == start_t::manual );
         }
     }
-    // destination sign 
+    // destination sign
     if( mdModel ) {
         init_destination( mdModel );
     }
@@ -2882,7 +2884,7 @@ TDynamicObject::update_load_offset() {
     LoadOffset = interpolate( MoverParameters->LoadType.offset_min, 0.f, clamp( 0.0, 1.0, loadpercentage * 0.01 ) );
 }
 
-void 
+void
 TDynamicObject::shuffle_load_order() {
 
     std::shuffle( std::begin( SectionLoadOrder ), std::end( SectionLoadOrder ), Global.random_engine );
@@ -3018,7 +3020,7 @@ bool TDynamicObject::Update(double dt, double dt1)
                     if( MoverParameters->Pantographs[end::front].is_active
                      || MoverParameters->Pantographs[end::rear].is_active ) {
                         if( ( MoverParameters->Mains ) // Ra 15-01: logować tylko, jeśli WS załączony
-                         && ( MoverParameters->GetTrainsetHighVoltage() < 0.1f ) ) { // yB 16-03: i nie jest to asynchron zasilany z daleka 
+                         && ( MoverParameters->GetTrainsetHighVoltage() < 0.1f ) ) { // yB 16-03: i nie jest to asynchron zasilany z daleka
                             // Ra 15-01: bezwzględne współrzędne pantografu nie są dostępne więc lepiej się tego nie zaloguje
                             ErrorLog(
                                 "Bad traction: " + MoverParameters->Name
@@ -3071,7 +3073,7 @@ bool TDynamicObject::Update(double dt, double dt1)
 			auto FmaxED { 0.0 };
             auto Frj { 0.0 };
             auto osie { 0 };
-			// 0a. ustal aktualna nastawe zadania sily napedowej i hamowania 
+			// 0a. ustal aktualna nastawe zadania sily napedowej i hamowania
 			if( ( MoverParameters->Power < 1 )
              && ( ctOwner != nullptr ) ) {
 				MoverParameters->MainCtrlPos = ctOwner->Controlling()->MainCtrlPos*MoverParameters->MainCtrlPosNo / std::max(1, ctOwner->Controlling()->MainCtrlPosNo);
@@ -3201,12 +3203,12 @@ bool TDynamicObject::Update(double dt, double dt1)
                     MoverParameters->EpFuse ) ) {
                 FzadED = std::min( Fzad, FmaxED );
             }
-			/*/ELF - wdrazanie ED po powrocie na utrzymanie hamowania - do usuniecia 
+			/*/ELF - wdrazanie ED po powrocie na utrzymanie hamowania - do usuniecia
 			if (MoverParameters->EIMCtrlType == 2 && MoverParameters->MainCtrlPos < 2 && MoverParameters->eimic > -0.999)
 			{
 				FzadED = std::min(FzadED, MED_oldFED);
 			} //*/
-			//opoznienie wdrazania ED 
+			//opoznienie wdrazania ED
 			if (FzadED > MED_oldFED)
 			{
 				if (MoverParameters->MED_ED_DelayTimer <= 0) {
@@ -3227,7 +3229,7 @@ bool TDynamicObject::Update(double dt, double dt1)
 				}
 			}
 			if ((MoverParameters->BrakeCtrlPos == MoverParameters->Handle->GetPos(bh_EB))
-				&& (MoverParameters->eimc[eimc_p_abed] < 0.001)) 
+				&& (MoverParameters->eimc[eimc_p_abed] < 0.001))
 				FzadED = 0; //pętla bezpieczeństwa - bez ED
             auto const FzadPN = Fzad - FrED * MoverParameters->MED_FrED_factor;
             //np = 0;
@@ -3332,7 +3334,7 @@ bool TDynamicObject::Update(double dt, double dt1)
 					p->MoverParameters->MED_EPVC_CurrentTime += dt1;
 				bool EPVC = ((p->MoverParameters->MED_EPVC) && ((p->MoverParameters->MED_EPVC_Time < 0) || (p->MoverParameters->MED_EPVC_CurrentTime < p->MoverParameters->MED_EPVC_Time)));
 				float VelC = (EPVC ? clamp(p->MoverParameters->Vel, p->MoverParameters->MED_Vmin, p->MoverParameters->MED_Vmax) : p->MoverParameters->MED_Vref);//korekcja EP po prędkości
-                float FmaxPoj = Nmax * 
+                float FmaxPoj = Nmax *
 					p->MoverParameters->Hamulec->GetFC(
 						Nmax / (p->MoverParameters->NAxles * p->MoverParameters->NBpA), VelC) *
 					1000; // sila hamowania pn
@@ -3576,7 +3578,7 @@ bool TDynamicObject::Update(double dt, double dt1)
         dWheelAngle[2] += 114.59155902616464175359630962821 * MoverParameters->V * dt1 /
                           MoverParameters->WheelDiameterT; // tylne toczne
 
- 
+
 		m_future_wheels_angle = (glm::dvec3(dWheelAngle[0], dWheelAngle[1], dWheelAngle[2]) - old_wheels) / dt1 * Timer::GetDeltaRenderTime();
 
         dWheelAngle[0] = clamp_circular( dWheelAngle[0] );
@@ -7066,13 +7068,13 @@ TDynamicObject::is_connected( TDynamicObject const *Vehicle, coupling const Coup
 // ustalenie następnego (1) albo poprzedniego (0) w składzie bez względu na prawidłowość iDirection
 TDynamicObject *
 TDynamicObject::Neighbour(int &dir) {
-    
+
     auto *neighbour { (
         MoverParameters->Couplers[ dir ].CouplingFlag != coupling::faux ?
             MoverParameters->Neighbours[ dir ].vehicle :
             nullptr ) };
     // nowa wartość
-    dir = 1 - MoverParameters->Neighbours[ dir ].vehicle_end; 
+    dir = 1 - MoverParameters->Neighbours[ dir ].vehicle_end;
 
     return neighbour;
 };
@@ -7408,7 +7410,7 @@ void TDynamicObject::announce( announcement_t const Announcement, bool const Chi
 
     if( m_doorspeakers.empty() ) { return; }
 
-    auto const *driver { ( 
+    auto const *driver { (
         ctOwner != nullptr ?
             ctOwner :
             Mechanik ) };
@@ -7449,7 +7451,7 @@ void TDynamicObject::announce( announcement_t const Announcement, bool const Chi
         if( ( true == playchime )
          && ( false == announcements[ static_cast<int>( announcement_t::chime ) ].empty() ) ) {
             m_pasystem.announcement_queue.emplace_back( announcements[ static_cast<int>( announcement_t::chime ) ] );
-            playchime = false; 
+            playchime = false;
         }
         // ...then play the announcement itself
         m_pasystem.announcement_queue.emplace_back( announcements[ static_cast<int>( Announcement ) ] );
@@ -7663,7 +7665,7 @@ TDynamicObject::powertrain_sounds::render( TMoverParameters const &Vehicle, doub
                 .pitch( engine_ignition.m_frequencyoffset + engine_ignition.m_frequencyfactor * 1.f )
                 .gain( engine_ignition.m_amplitudeoffset + engine_ignition.m_amplitudefactor * 1.f )
                 .play( sound_flags::exclusive );
-            // main circuit activation 
+            // main circuit activation
             linebreaker_close
                 .pitch( linebreaker_close.m_frequencyoffset + linebreaker_close.m_frequencyfactor * 1.f )
                 .gain( linebreaker_close.m_amplitudeoffset + linebreaker_close.m_amplitudefactor * 1.f )
@@ -7867,7 +7869,7 @@ TDynamicObject::powertrain_sounds::render( TMoverParameters const &Vehicle, doub
 		retarder
 			.pitch(retarder.m_frequencyoffset + speed * retarder.m_frequencyfactor)
 			.gain(retarder.m_amplitudeoffset + Vehicle.hydro_R_Fill * retarder.m_amplitudefactor);
-	
+
 		if ((retarder.gain() > 0.01)&&(speed > 1)&&(Vehicle.hydro_R_ClutchActive)) {
 			retarder.play(sound_flags::exclusive | sound_flags::looping);
 		}
@@ -7970,7 +7972,7 @@ TDynamicObject::powertrain_sounds::render( TMoverParameters const &Vehicle, doub
     }
     // inverter-specific traction motor sounds
     if( false == acmotors.empty() ) {
-            
+
         if( Vehicle.EngineType == TEngineType::ElectricInductionMotor ) {
             if( Vehicle.InverterFrequency > 0.001 ) {
 

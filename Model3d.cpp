@@ -420,39 +420,6 @@ std::pair<int, int> TSubModel::Load( cParser &parser, bool dynamic )
 
     if (m_material > 0)
     {
-        opengl_material const &mat = GfxRenderer->Material(m_material);
-        /*
-        if( eType == TP_FREESPOTLIGHT ) {
-            iFlags &= ~0x30;
-            iFlags |= 0x20;
-        }
-        else
-        */
-        {
-            // if material has opacity set, replace submodel opacity with it
-            // NOTE: reverted to use base opacity, this allows to define opacity threshold in material
-            // without it causing the translucent models to become opaque
-            auto const opacity { (
-/*
-                false == std::isnan( mat.opacity ) ?
-                    mat.opacity :
-*/
-                    Opacity ) };
-            iFlags &= ~0x30;
-            iFlags |= (
-                ( ( opacity < 0.01f )
-               && ( GfxRenderer->Material( m_material ).is_translucent() ) ) ?
-                    0x20 :
-                    0x10 ); // 0x10-nieprzezroczysta, 0x20-przezroczysta
-        }
-        // and same thing with selfillum
-        if( mat.selfillum ) {
-            fLight = mat.selfillum.value();
-        }
-    }
-
-    if (m_material > 0)
-    {
         const opengl_material &mat = GfxRenderer->Material(m_material);
 
         // if material have opacity set, replace submodel opacity with it
@@ -1624,7 +1591,10 @@ void TSubModel::serialize(std::ostream &s,
 		sn_utils::ls_int32(s, (int32_t)get_container_pos(names, pName));
 	sn_utils::ls_int32(s, (int)b_Anim);
 
-	sn_utils::ls_uint32(s, iFlags);
+    uint32_t flags = iFlags;
+    if (m_material > 0 && (Global.iConvertModels & 16))
+        flags &= ~0x30; // don't save phase information, will be guessed on binary load from material
+	sn_utils::ls_uint32(s, flags);
 	sn_utils::ls_int32(s, (int32_t)get_container_pos(transforms, *fMatrix));
 
     sn_utils::ls_int32( s, m_geometry.vertex_count );
@@ -2073,12 +2043,7 @@ void TSubModel::BinInit(TSubModel *s, float4x4 *m, std::vector<std::string> *t, 
             if (!(iFlags & 0x30) && m_material != null_handle)
             {
                 const opengl_material &mat = GfxRenderer->Material(m_material);
-                float opacity;
-                if (mat.opacity)
-                    opacity = *mat.opacity;
-                // if material don't have opacity set, try to guess it
-                else
-                    opacity = mat.get_or_guess_opacity();
+                float opacity = mat.get_or_guess_opacity();
 
                 // set phase flag based on material opacity
                 if (opacity == 0.0f)

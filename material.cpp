@@ -443,16 +443,7 @@ float opengl_material::get_or_guess_opacity() const {
             return 0.5f;
     }
 
-    return 0.0f;
-}
-
-bool
-opengl_material::is_translucent() const {
-
-    return (
-        textures[ 0 ] != null_handle ?
-            GfxRenderer->Texture( textures[ 0 ] ).has_alpha :
-            false );
+    return 0.5f;
 }
 
 // create material object from data stored in specified file.
