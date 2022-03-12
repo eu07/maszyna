@@ -488,6 +488,11 @@ global_settings::ConfigParse(cParser &Parser) {
             Parser.getTokens(1, false);
             Parser >> iConvertModels;
         }
+        else if (token == "convertindexrange")
+        {
+            Parser.getTokens(1, false);
+            Parser >> iConvertIndexRange;
+        }
         else if (token == "file.binary.terrain")
         {
             // binary terrain (de)serialization

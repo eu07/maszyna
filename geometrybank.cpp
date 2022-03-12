@@ -202,7 +202,7 @@ void calculate_indices( index_array &Indices, vertex_array &Vertices, float tole
         // if found, remap these to use our current vertex instead
         auto vertex { Vertices[ idx ] };
         auto matchiter { std::cbegin( Vertices ) + idx };
-        for( auto matchidx = idx + 1; matchidx < Indices.size() && matchidx < idx + 1000; ++matchidx ) {
+        for( auto matchidx = idx + 1; matchidx < Indices.size() && matchidx < idx + Global.iConvertIndexRange; ++matchidx ) {
             ++matchiter;
             if( ( glm::all( glm::epsilonEqual( vertex.position, matchiter->position, matchtolerance ) ) )
              && ( glm::all( glm::epsilonEqual( vertex.normal,   matchiter->normal, matchtolerance ) ) )

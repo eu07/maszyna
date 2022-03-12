@@ -455,7 +455,8 @@ std::pair<int, int> TSubModel::Load( cParser &parser, bool dynamic )
     // transformation matrix
 	fMatrix = new float4x4();
 	readMatrix(parser, *fMatrix); // wczytanie transform
-    float transformscale = 1.0f;
+    if (Parent != nullptr)
+        transformscalestack = Parent->transformscalestack;
     if( !fMatrix->IdentityIs() ) {
         iFlags |= 0x8000; // transform niejedynkowy - trzeba go przechować
         // check the scaling
@@ -473,7 +474,7 @@ std::pair<int, int> TSubModel::Load( cParser &parser, bool dynamic )
                     rescale :
                     normalize );
         }
-        transformscale = (scale.x + scale.y + scale.z) / 3.0f;
+        transformscalestack *= (scale.x + scale.y + scale.z) / 3.0f;
     }
 	if (eType < TP_ROTATOR)
 	{ // wczytywanie wierzchołków
@@ -655,7 +656,7 @@ std::pair<int, int> TSubModel::Load( cParser &parser, bool dynamic )
 					    }
                     }
                     Vertices.resize( m_geometry.vertex_count ); // in case we had some degenerate triangles along the way
-                    gfx::calculate_indices( Indices, Vertices, transformscale );
+                    gfx::calculate_indices( Indices, Vertices, transformscalestack );
                     gfx::calculate_tangents( Vertices, Indices, GL_TRIANGLES );
                     // update values potentially changed by indexing
                     m_geometry.index_count = Indices.size();
@@ -2195,13 +2196,17 @@ void TModel3d::LoadFromTextFile(std::string const &FileName, bool dynamic)
             break;
         }
 		SubModel = new TSubModel();
+        SubModel->Parent = GetFromName(parent);
+        if (SubModel->Parent == nullptr && parent != "none")
+            ErrorLog("Bad model: parent for sub-model \"" + SubModel->pName +"\" doesn't exist or is located later in the model data", logtype::model);
+
         {
             auto const result { SubModel->Load( parser, dynamic ) };
             m_indexcount += result.first;
             m_vertexcount += result.second;
         }
-        // będzie potrzebne do wyliczenia pozycji, np. pantografu
-		SubModel->Parent = AddToNamed(parent.c_str(), SubModel);
+
+        AddTo(SubModel->Parent, SubModel);
 
 		parser.getTokens();
 		parser >> token;

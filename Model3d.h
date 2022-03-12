@@ -105,6 +105,7 @@ private:
 		float4x4 *fMatrix = nullptr; // pojedyncza precyzja wystarcza
 		int iMatrix; // w pliku binarnym jest numer matrycy
 	};
+	float transformscalestack { 1.0f }; // tolerancescale used in calculate_indices for whole matrix chain
     int iTexture { 0 }; // numer nazwy tekstury, -1 wymienna, 0 brak
     float fLight { -1.0f }; // próg jasności światła do zadziałania selfillum
 	glm::vec4
