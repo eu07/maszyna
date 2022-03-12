@@ -4048,7 +4048,7 @@ void TController::SpeedCntrl(double DesiredSpeed)
 void TController::SetTimeControllers()
 {
     // TBD, TODO: rework this method to use hint system and regardless of driver type
-    if( false == AIControllFlag ) { return; }
+    if( false == AIControllFlag || 0 == mvOccupied->CabActive ) { return; }
 
 	//1. Check the type of Main Brake Handle
     if( BrakeSystem == TBrakeSystem::Pneumatic || ForcePNBrake )
@@ -4261,7 +4261,7 @@ void TController::SetTimeControllers()
 void TController::CheckTimeControllers()
 {
     // TODO: rework this method to use hint system and regardless of driver type
-    if( false == AIControllFlag ) { return; }
+    if( false == AIControllFlag || 0 == mvControlling->CabActive ) { return; }
 
 	//1. Check the type of Main Brake Handle
     if( BrakeSystem == TBrakeSystem::ElectroPneumatic && mvOccupied->Handle->TimeEP && !ForcePNBrake )
