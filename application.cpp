@@ -911,14 +911,6 @@ eu07_application::init_glfw() {
     ::SetWindowPos( Hwnd, HWND_NOTOPMOST, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE );
 #endif
 
-	if (Global.captureonstart)
-	{
-		Global.ControlPicking = false;
-        glfwSetInputMode(mainwindow, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
-	}
-	else
-		Global.ControlPicking = true;
-
     return 0;
 }
 
@@ -1042,6 +1034,14 @@ eu07_application::init_modes() {
 		push_mode( mode::launcher );
 	else
 		push_mode( mode::scenarioloader );
+
+	if (Global.captureonstart)
+	{
+		Global.ControlPicking = false;
+        glfwSetInputMode(m_windows.front(), GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+	}
+	else
+		Global.ControlPicking = true;
 
     return 0;
 }

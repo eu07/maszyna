@@ -1193,10 +1193,10 @@ int TSubModel::index_size() const {
     }
     if( ( size < 4 ) && ( m_geometry.handle != null_handle ) ) {
         auto const indexcount { GfxRenderer->Indices( m_geometry.handle ).size() };
-        size = (
+        size = std::max( size, (
             indexcount >= ( 1 << 16 ) ? 4 :
             indexcount >= ( 1 <<  8 ) ? 2 :
-                                        1 );
+                                        1 ) );
     }
     if( ( size < 4 ) && ( Next ) ) {
         size = std::max( size, Next->index_size() );
@@ -2197,8 +2197,6 @@ void TModel3d::LoadFromTextFile(std::string const &FileName, bool dynamic)
         }
 		SubModel = new TSubModel();
         SubModel->Parent = GetFromName(parent);
-        if (SubModel->Parent == nullptr && parent != "none")
-            ErrorLog("Bad model: parent for sub-model \"" + SubModel->pName +"\" doesn't exist or is located later in the model data", logtype::model);
 
         {
             auto const result { SubModel->Load( parser, dynamic ) };
@@ -2206,6 +2204,8 @@ void TModel3d::LoadFromTextFile(std::string const &FileName, bool dynamic)
             m_vertexcount += result.second;
         }
 
+        if (SubModel->Parent == nullptr && parent != "none")
+            ErrorLog("Bad model: parent for sub-model \"" + SubModel->pName +"\" doesn't exist or is located later in the model data", logtype::model);
         AddTo(SubModel->Parent, SubModel);
 
 		parser.getTokens();
