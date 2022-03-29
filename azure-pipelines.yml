@@ -134,8 +134,8 @@ jobs:
 
   - job: windows_x64
     pool:
-      vmImage: 'vs2017-win2016'
-    displayName: 'Windows VS2017 x86-64'
+      vmImage: 'windows-2019'
+    displayName: 'Windows VS2019 x86-64'
     steps:
     - script: |
         cd ref
@@ -165,8 +165,8 @@ jobs:
 
   - job: windows_x64_dbg
     pool:
-      vmImage: 'vs2017-win2016'
-    displayName: 'Windows VS2017 Debug'
+      vmImage: 'windows-2019'
+    displayName: 'Windows VS2019 Debug'
     steps:
     - script: |
         cd ref
@@ -181,8 +181,8 @@ jobs:
 
   - job: windows_x32
     pool:
-      vmImage: 'vs2017-win2016'
-    displayName: 'Windows VS2017 x86'
+      vmImage: 'windows-2019'
+    displayName: 'Windows VS2019 x86'
     steps:
     - script: |
         cd ref
