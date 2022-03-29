@@ -6769,28 +6769,30 @@ TDynamicObject::LoadMMediaFile_mdload( std::string const &Name ) const {
     TModel3d *loadmodel { nullptr };
 
     // check if we don't have model override for this load type
+    if ( loadmodel == nullptr )
     {
         auto const lookup { LoadModelOverrides.find( loadname ) };
         if( lookup != LoadModelOverrides.end() ) {
             loadmodel = TModelsManager::GetModel( asBaseDir + lookup->second, true );
-            // if the override was succesfully loaded call it a day
-            if( loadmodel != nullptr ) { return loadmodel; }
         }
     }
     // regular routine if there's no override or it couldn't be loaded
     // try first specialized version of the load model, vehiclename_loadname
+    if ( loadmodel == nullptr )
     {
         auto const specializedloadfilename { asBaseDir + MoverParameters->TypeName + "_" + loadname };
         loadmodel = TModelsManager::GetModel( specializedloadfilename, true, false );
-        if( loadmodel != nullptr ) { return loadmodel; }
     }
     // try generic version of the load model next, loadname
+    if ( loadmodel == nullptr )
     {
         auto const genericloadfilename { asBaseDir + loadname };
         loadmodel = TModelsManager::GetModel( genericloadfilename, true, false );
-        if( loadmodel != nullptr ) { return loadmodel; }
     }
-    // if we're still here, give up
+
+    if ( loadmodel != nullptr )
+        loadmodel->GetSMRoot()->WillBeAnimated();
+
     return loadmodel;
 }
 
