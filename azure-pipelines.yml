@@ -67,7 +67,7 @@ jobs:
     - script: |
         mkdir build
         cd build
-        cmake .. -DCMAKE_BUILD_TYPE=Release -DCMAKE_OSX_ARCHITECTURES=x86_64 -DCMAKE_TOOLCHAIN_FILE=/tmp/vcpkg/scripts/buildsystems/vcpkg.cmake -DVCPKG_TARGET_TRIPLET=x64-osx -DWITH_ZMQ=OFF -DWITH_OPENVR=OFF -DWITH_UART=OFF -DUSE_LTO=ON
+        cmake .. -DCMAKE_BUILD_TYPE=Release -DCMAKE_OSX_ARCHITECTURES=x86_64 -DCMAKE_TOOLCHAIN_FILE=/tmp/vcpkg/scripts/buildsystems/vcpkg.cmake -DVCPKG_TARGET_TRIPLET=x64-osx -DWITH_ZMQ=OFF -DWITH_OPENVR=OFF -DWITH_UART=OFF -DUSE_LTO=ON -DWITH_LUA=OFF
         cmake --build .
       displayName: 'Build'
     - task: PublishBuildArtifacts@1
@@ -95,7 +95,7 @@ jobs:
     - script: |
         mkdir build
         cd build
-        cmake .. -DCMAKE_BUILD_TYPE=Release -DCMAKE_OSX_ARCHITECTURES=x86_64 -DCMAKE_TOOLCHAIN_FILE=/tmp/vcpkg/scripts/buildsystems/vcpkg.cmake -DVCPKG_TARGET_TRIPLET=x64-osx -DWITH_ZMQ=OFF -DWITH_OPENVR=OFF -DWITH_UART=OFF -DUSE_IMGUI_GL3=OFF -DUSE_LTO=ON
+        cmake .. -DCMAKE_BUILD_TYPE=Release -DCMAKE_OSX_ARCHITECTURES=x86_64 -DCMAKE_TOOLCHAIN_FILE=/tmp/vcpkg/scripts/buildsystems/vcpkg.cmake -DVCPKG_TARGET_TRIPLET=x64-osx -DWITH_ZMQ=OFF -DWITH_OPENVR=OFF -DWITH_UART=OFF -DUSE_IMGUI_GL3=OFF -DUSE_LTO=ON -DWITH_LUA=OFF
         cmake --build .
       displayName: 'Build'
     - task: PublishBuildArtifacts@1
@@ -123,7 +123,7 @@ jobs:
     - script: |
         mkdir build
         cd build
-        cmake .. -DCMAKE_BUILD_TYPE=Release -DCMAKE_OSX_ARCHITECTURES=arm64 -DCMAKE_TOOLCHAIN_FILE=/tmp/vcpkg/scripts/buildsystems/vcpkg.cmake -DVCPKG_TARGET_TRIPLET=arm64-osx -DWITH_ZMQ=OFF -DWITH_OPENVR=OFF -DWITH_UART=OFF -DUSE_LTO=ON
+        cmake .. -DCMAKE_BUILD_TYPE=Release -DCMAKE_OSX_ARCHITECTURES=arm64 -DCMAKE_TOOLCHAIN_FILE=/tmp/vcpkg/scripts/buildsystems/vcpkg.cmake -DVCPKG_TARGET_TRIPLET=arm64-osx -DWITH_ZMQ=OFF -DWITH_OPENVR=OFF -DWITH_UART=OFF -DUSE_LTO=ON -DWITH_LUA=OFF
         cmake --build .
       displayName: 'Build'
     - task: PublishBuildArtifacts@1
