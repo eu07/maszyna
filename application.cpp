@@ -1035,14 +1035,6 @@ eu07_application::init_modes() {
 	else
 		push_mode( mode::scenarioloader );
 
-	if (Global.captureonstart)
-	{
-		Global.ControlPicking = false;
-        glfwSetInputMode(m_windows.front(), GLFW_CURSOR, GLFW_CURSOR_DISABLED);
-	}
-	else
-		Global.ControlPicking = true;
-
     return 0;
 }
 

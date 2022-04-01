@@ -421,7 +421,7 @@ driver_mode::enter() {
 
 	Timer::ResetTimers();
 
-    set_picking( Global.ControlPicking );
+    set_picking( !Global.captureonstart );
 }
 
 // maintenance method, called when the mode is deactivated
