@@ -278,8 +278,8 @@ TAnimModel::is_keyword( std::string const &Token ) const {
 
 bool TAnimModel::Load(cParser *parser, bool ter)
 { // rozpoznanie wpisu modelu i ustawienie świateł
-	std::string name = ToLower(parser->getToken<std::string>());
-	std::string texture = ToLower(parser->getToken<std::string>());
+	std::string name = parser->getToken<std::string>();
+	std::string texture = parser->getToken<std::string>(false);
     replace_slashes( name );
     replace_slashes( texture );
     if (!Init( name, texture ))
