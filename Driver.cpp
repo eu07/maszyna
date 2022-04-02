@@ -7023,7 +7023,7 @@ TController::GuardOpenDoor() {
 		while (vehicle != nullptr && vehicle->MoverParameters->Doors.range == 0) {
 			vehicle = vehicle->Next();
 		}
-		if (vehicle->MoverParameters->Doors.range > 0) {
+		if (vehicle != nullptr && vehicle->MoverParameters->Doors.range > 0) {
 			auto const lewe = (vehicle->DirectionGet() > 0) ? 1 : 2;
 			auto const prawe = 3 - lewe;
 			if (m_lastexchangeplatforms & lewe) {
