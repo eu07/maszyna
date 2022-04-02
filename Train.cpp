@@ -7889,9 +7889,8 @@ TTrain::update_sounds( double const Deltatime ) {
     if( mvOccupied->Power24vIsAvailable || mvOccupied->Power110vIsAvailable ) {
         // McZapkie-141102: SHP i czuwak, TODO: sygnalizacja kabinowa
             // hunter-091012: rozdzielenie alarmow
-        if (dsbBuzzer && mvOccupied->SecuritySystem.is_beeping()) {
-
-            if( false == dsbBuzzer->is_playing() ) {
+        if( mvOccupied->SecuritySystem.is_beeping() ) {
+            if( dsbBuzzer && false == dsbBuzzer->is_playing() ) {
                 dsbBuzzer->pitch( dsbBuzzer->m_frequencyoffset + dsbBuzzer->m_frequencyfactor );
                 dsbBuzzer->gain( dsbBuzzer->m_amplitudeoffset + dsbBuzzer->m_amplitudefactor );
                 dsbBuzzer->play( sound_flags::looping );
@@ -7901,7 +7900,7 @@ TTrain::update_sounds( double const Deltatime ) {
             }
 	    }
         else {
-            if( true == dsbBuzzer->is_playing() ) {
+            if( dsbBuzzer && true == dsbBuzzer->is_playing() ) {
                 dsbBuzzer->stop();
 #ifdef _WIN32
                 Console::BitsClear( 1 << 14 ); // ustawienie bitu 16 na PoKeys
