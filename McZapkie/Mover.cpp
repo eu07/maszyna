@@ -7235,8 +7235,11 @@ void TMoverParameters::CheckEIMIC(double dt)
 					BrakeLevelSet(UniCtrlList[MainCtrlPosNo].mode); //bottom clamping
 				if (BrakeCtrlPos > UniCtrlList[0].mode)
 					BrakeLevelSet(UniCtrlList[0].mode); //top clamping
-				while (BrakeCtrlPos > UniCtrlList[MainCtrlPos].mode) DecMainCtrl(1); //find nearest position
-				while (BrakeCtrlPos < UniCtrlList[MainCtrlPos].mode) IncMainCtrl(1); //find nearest position
+				if (IsCabMaster())
+				{
+					while (BrakeCtrlPos > UniCtrlList[MainCtrlPos].mode) DecMainCtrl(1); //find nearest position
+					while (BrakeCtrlPos < UniCtrlList[MainCtrlPos].mode) IncMainCtrl(1); //find nearest position
+				}
 			}
 			else //controller was moved
 				BrakeLevelSet(UniCtrlList[MainCtrlPos].mode);
