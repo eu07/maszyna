@@ -727,7 +727,7 @@ global_settings::ConfigParse(cParser &Parser) {
         }
         else if (token == "uarttune")
         {
-            Parser.getTokens(16);
+            Parser.getTokens(18);
             Parser
                 >> uart_conf.mainbrakemin >> uart_conf.mainbrakemax
                 >> uart_conf.localbrakemin >> uart_conf.localbrakemax
