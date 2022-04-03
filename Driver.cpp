@@ -6000,7 +6000,8 @@ TController::determine_consist_state() {
 	{
 		cue_action( locale::string::driver_hint_cabactivation );
 	}
-	else if ((mvOccupied->CabActive == -mvOccupied->CabOccupied) || (!mvOccupied->CabMaster) || (!mvOccupied->Power24vIsAvailable))
+	else if (!mvOccupied->AutomaticCabActivation
+			 && ( (mvOccupied->CabActive == -mvOccupied->CabOccupied) || (!mvOccupied->CabMaster) || (!mvOccupied->Power24vIsAvailable) ) )
 	{
 		cue_action( locale::string::driver_hint_cabdeactivation );
 	}
