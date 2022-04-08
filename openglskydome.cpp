@@ -96,6 +96,7 @@ void opengl_skydome::render() {
     // ...indices
     ::glBindBuffer( GL_ELEMENT_ARRAY_BUFFER, m_indexbuffer );
     // draw
+    ::glDisableClientState( GL_TEXTURE_COORD_ARRAY );
     ::glDrawElements( GL_TRIANGLES, static_cast<GLsizei>( m_indexcount ), GL_UNSIGNED_SHORT, reinterpret_cast<void const*>( 0 ) );
     // cleanup
     ::glPopClientAttrib();
