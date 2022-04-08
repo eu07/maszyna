@@ -3579,7 +3579,8 @@ void opengl33_renderer::Render_precipitation()
 	{
 		auto const forward{glm::normalize(velocity)};
 		auto left{glm::cross(forward, {0.0, 1.0, 0.0})};
-		auto const rotationangle{std::min(45.0, (FreeFlyModeFlag ? 5 * glm::length(velocity) : simulation::Train->Dynamic()->GetVelocity() * 0.2))};
+		auto const rotationangle{std::min(45.0, ((FreeFlyModeFlag || simulation::Train == nullptr) ?
+			5 * glm::length(velocity) : simulation::Train->Dynamic()->GetVelocity() * 0.2))};
 		::glRotated(rotationangle, left.x, 0.0, left.z);
 	}
 	if (false == FreeFlyModeFlag)
