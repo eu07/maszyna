@@ -14,9 +14,9 @@ http://mozilla.org/MPL/2.0/.
 
 opengl_skydome::~opengl_skydome() {
 
-    if( m_vertexbuffer != 0 )  { ::glDeleteBuffers( 1, &m_vertexbuffer ); }
-    if( m_indexbuffer != 0 )   { ::glDeleteBuffers( 1, &m_indexbuffer ); }
-    if( m_coloursbuffer != 0 ) { ::glDeleteBuffers( 1, &m_coloursbuffer ); }
+    if( m_vertexbuffer != -1 )  { ::glDeleteBuffers( 1, &m_vertexbuffer ); }
+    if( m_indexbuffer != -1 )   { ::glDeleteBuffers( 1, &m_indexbuffer ); }
+    if( m_coloursbuffer != -1 ) { ::glDeleteBuffers( 1, &m_coloursbuffer ); }
 }
 
 void opengl_skydome::update() {
@@ -78,9 +78,9 @@ void opengl_skydome::update() {
 // render skydome to screen
 void opengl_skydome::render() {
 
-    if( ( m_indexbuffer   == 0 ) || ( m_indexbuffer   == (GLuint)-1 )
-     || ( m_vertexbuffer  == 0 ) || ( m_vertexbuffer  == (GLuint)-1 )
-     || ( m_coloursbuffer == 0 ) || ( m_coloursbuffer == (GLuint)-1 ) ) {
+    if( ( m_indexbuffer   == (GLuint)-1 )
+     || ( m_vertexbuffer  == (GLuint)-1 )
+     || ( m_coloursbuffer == (GLuint)-1 ) ) {
         return;
     }
     // setup:

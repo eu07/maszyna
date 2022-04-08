@@ -18,7 +18,7 @@ public:
     opengl_particles() = default;
 // destructor
     ~opengl_particles() {
-        if( m_buffer != 0 ) {
+        if( m_buffer != -1 ) {
             ::glDeleteBuffers( 1, &m_buffer ); } }
 // methods
     void

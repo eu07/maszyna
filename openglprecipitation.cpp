@@ -16,9 +16,9 @@ http://mozilla.org/MPL/2.0/.
 
 opengl_precipitation::~opengl_precipitation() {
 
-    if( m_vertexbuffer != 0 ) { ::glDeleteBuffers( 1, &m_vertexbuffer ); }
-    if( m_indexbuffer  != 0 ) { ::glDeleteBuffers( 1, &m_indexbuffer ); }
-    if( m_uvbuffer     != 0 ) { ::glDeleteBuffers( 1, &m_uvbuffer ); }
+    if( m_vertexbuffer != -1 ) { ::glDeleteBuffers( 1, &m_vertexbuffer ); }
+    if( m_indexbuffer  != -1 ) { ::glDeleteBuffers( 1, &m_indexbuffer ); }
+    if( m_uvbuffer     != -1 ) { ::glDeleteBuffers( 1, &m_uvbuffer ); }
 }
 
 void
