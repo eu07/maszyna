@@ -258,13 +258,15 @@ void state_manager::process_commands() {
                 // TODO: support for primary mode request passed as commanddata.param1
                 if( !sameconsist && isincharge ) {
                     // oddajemy dotychczasowy AI
-                    currentvehicle->Mechanik->TakeControl( true );
+                    if (currentvehicle->Mechanik != nullptr)
+                        currentvehicle->Mechanik->TakeControl( true );
                 }
 
                 if( sameconsist && !aidriveractive ) {
                     // since we're consist owner we can simply move to the destination vehicle
                     senderlocaltrain->MoveToVehicle( targetvehicle );
-                    senderlocaltrain->Dynamic()->Mechanik->TakeControl( false, true );
+                    if (senderlocaltrain->Dynamic()->Mechanik != nullptr)
+                        senderlocaltrain->Dynamic()->Mechanik->TakeControl( false, true );
                 }
             }
 
