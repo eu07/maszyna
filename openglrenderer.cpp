@@ -1159,10 +1159,12 @@ opengl_renderer::setup_drawing( bool const Alpha ) {
 
             break;
         }
-        case rendermode::shadows:
-        case rendermode::cabshadows:
         case rendermode::pickcontrols:
-        case rendermode::pickscenery: {
+        case rendermode::pickscenery:
+            ::glAlphaFunc( GL_ALWAYS, 0.0f );
+			[[ fallthrough ]];
+        case rendermode::shadows:
+        case rendermode::cabshadows: {
             ::glColor4fv( glm::value_ptr( colors::white ) );
             ::glDisable( GL_LIGHTING );
             ::glShadeModel( GL_FLAT );
