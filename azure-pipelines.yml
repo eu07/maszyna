@@ -162,6 +162,11 @@ jobs:
         pathtoPublish: 'build/bin'
         artifactName: binaries_win64
       displayName: 'Publish binaries'
+    - task: PublishBuildArtifacts@1
+      inputs:
+        pathtoPublish: 'build/package.zip'
+        artifactName: symbols_win64
+      displayName: 'Publish symbols'
 
   - job: windows_x64_dbg
     pool:
@@ -209,3 +214,8 @@ jobs:
         pathtoPublish: 'build/bin'
         artifactName: binaries_win32
       displayName: 'Publish binaries'
+    - task: PublishBuildArtifacts@1
+      inputs:
+        pathtoPublish: 'build/package.zip'
+        artifactName: symbols_win32
+      displayName: 'Publish symbols'
