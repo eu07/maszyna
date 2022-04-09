@@ -102,23 +102,23 @@ TController::cue_action( driver_hint const Action, float const Actionparameter )
             break;
         }
 		// battery
-		case locale::string::driver_hint_cabactivation: {
+		case driver_hint::cabactivation: {
 			if (AIControllFlag && mvOccupied->Power24vIsAvailable) {
 				mvOccupied->CabActivisation();
 				CheckVehicles();
 			}
-			remove_hint( locale::string::driver_hint_cabdeactivation );
+			remove_hint( driver_hint::cabdeactivation );
 			hint(
 				Action,
 				[this](float const Parameter) -> bool {
 				return ( ( mvOccupied->AutomaticCabActivation ) || (  mvOccupied->IsCabMaster() ) ); } );
 			break;
 		}
-		case locale::string::driver_hint_cabdeactivation: {
+		case driver_hint::cabdeactivation: {
 			if (AIControllFlag) {
 				mvOccupied->CabDeactivisation();
 			}
-			remove_hint( locale::string::driver_hint_cabactivation );
+			remove_hint( driver_hint::cabactivation );
 			hint(
 				Action,
 				[this](float const Parameter) -> bool {

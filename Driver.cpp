@@ -6008,12 +6008,12 @@ TController::determine_consist_state() {
 
 	if (mvOccupied->CabActive == 0 && mvOccupied->Power24vIsAvailable)
 	{
-		cue_action( locale::string::driver_hint_cabactivation );
+		cue_action( driver_hint::cabactivation );
 	}
 	else if (!mvOccupied->AutomaticCabActivation
 			 && ( (mvOccupied->CabActive == -mvOccupied->CabOccupied) || (!mvOccupied->CabMaster) || (!mvOccupied->Power24vIsAvailable) ) )
 	{
-		cue_action( locale::string::driver_hint_cabdeactivation );
+		cue_action( driver_hint::cabdeactivation );
 	}
 
 	int index = double(BrakeAccTableSize) * (mvOccupied->Vel / mvOccupied->Vmax);
