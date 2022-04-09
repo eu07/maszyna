@@ -292,6 +292,9 @@ class TTrain {
     static void OnCommand_batterytoggle( TTrain *Train, command_data const &Command );
     static void OnCommand_batteryenable( TTrain *Train, command_data const &Command );
     static void OnCommand_batterydisable( TTrain *Train, command_data const &Command );
+	static void OnCommand_cabactivationtoggle(TTrain *Train, command_data const &Command);
+	static void OnCommand_cabactivationenable(TTrain *Train, command_data const &Command);
+	static void OnCommand_cabactivationdisable(TTrain *Train, command_data const &Command);
     static void OnCommand_pantographcompressorvalvetoggle( TTrain *Train, command_data const &Command );
     static void OnCommand_pantographcompressorvalveenable( TTrain *Train, command_data const &Command );
     static void OnCommand_pantographcompressorvalvedisable( TTrain *Train, command_data const &Command );
@@ -421,11 +424,13 @@ class TTrain {
     static void OnCommand_doorcloseall( TTrain *Train, command_data const &Command );
     static void OnCommand_doorsteptoggle( TTrain *Train, command_data const &Command );
     static void OnCommand_doormodetoggle( TTrain *Train, command_data const &Command );
+	static void OnCommand_mirrorstoggle( TTrain *Train, command_data const &Command );
     static void OnCommand_nearestcarcouplingincrease( TTrain *Train, command_data const &Command );
     static void OnCommand_nearestcarcouplingdisconnect( TTrain *Train, command_data const &Command );
     static void OnCommand_nearestcarcoupleradapterattach( TTrain *Train, command_data const &Command );
     static void OnCommand_nearestcarcoupleradapterremove( TTrain *Train, command_data const &Command );
     static void OnCommand_occupiedcarcouplingdisconnect( TTrain *Train, command_data const &Command );
+	static void OnCommand_occupiedcarcouplingdisconnectback( TTrain *Train, command_data const &Command );
     static void OnCommand_departureannounce( TTrain *Train, command_data const &Command );
     static void OnCommand_hornlowactivate( TTrain *Train, command_data const &Command );
     static void OnCommand_hornhighactivate( TTrain *Train, command_data const &Command );
@@ -597,6 +602,7 @@ public: // reszta może by?publiczna
     TGauge ggBatteryButton; // Stele 161228 hebelek baterii
     TGauge ggBatteryOnButton;
     TGauge ggBatteryOffButton;
+	TGauge ggCabActivationButton; // Stele 161228 hebelek baterii
 
     // NBMX wrzesien 2003 - obsluga drzwi
     TGauge ggDoorLeftPermitButton;
@@ -673,6 +679,7 @@ public: // reszta może by?publiczna
     TButton btLampkaUkrotnienie;
     TButton btLampkaHamPosp;
     TButton btLampkaRadio;
+	TButton btLampkaRadioMessage;
     TButton btLampkaRadioStop;
     TButton btLampkaHamowanie1zes;
     TButton btLampkaHamowanie2zes;
@@ -831,6 +838,8 @@ private:
     float m_distancecounter { -1.f }; // distance traveled since meter was activated or -1 if inactive
     double m_brakehandlecp{ 0.0 };
     bool m_doors{ false }; // helper, true if any door is open
+	bool m_doorspermitleft{ false }; // helper, true if door is open, blinking if door is pemitted
+	bool m_doorspermitright{ false }; // helper, true if door is open, blinking if door is pemitted
     bool m_dirforward{ false }; // helper, true if direction set to forward
     bool m_dirneutral{ false }; // helper, true if direction set to neutral
     bool m_dirbackward{ false }; // helper, true if direction set to backward
@@ -838,6 +847,7 @@ private:
     float m_doorpermittimers[2] = { -1.f, -1.f };
     // ld substitute
     bool m_couplingdisconnect { false };
+	bool m_couplingdisconnectback { false };
 
   public:
     float fPress[20][6]; // cisnienia dla wszystkich czlonow
@@ -846,6 +856,7 @@ private:
     float fEIMParams[9][10]; // parametry dla silnikow asynchronicznych
 	float fDieselParams[9][10]; // parametry dla silnikow asynchronicznych
     // plays provided sound from position of the radio
+	bool radio_message_played;
     void radio_message( sound_source *Message, int const Channel );
     inline auto const RadioChannel() const { return ( Dynamic()->Mechanik ? Dynamic()->Mechanik->iRadioChannel : 1 ); }
     inline auto &RadioChannel() { return Dynamic()->Mechanik->iRadioChannel; }

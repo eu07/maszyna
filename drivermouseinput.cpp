@@ -704,6 +704,9 @@ drivermouse_input::default_bindings() {
         { "doormode_sw:", {
             user_command::doormodetoggle,
             user_command::none } },
+		{ "mirrors_sw:", {
+			user_command::mirrorstoggle,
+			user_command::none } },
         { "departure_signal_bt:", {
             user_command::departureannounce,
             user_command::none } },
@@ -875,8 +878,14 @@ drivermouse_input::default_bindings() {
         { "batteryoff_sw:", {
             user_command::batterydisable,
             user_command::none } },
+		{ "cabactivation_sw:", {
+			user_command::cabactivationtoggle,
+			user_command::none } },
         { "couplingdisconnect_sw:",{
 			user_command::occupiedcarcouplingdisconnect,
+			user_command::none } },
+		{ "couplingdisconnectback_sw:",{
+			user_command::occupiedcarcouplingdisconnectback,
 			user_command::none } },
         { "universal0:", {
             user_command::generictoggle0,

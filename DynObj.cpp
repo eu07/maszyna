@@ -3922,7 +3922,9 @@ bool TDynamicObject::Update(double dt, double dt1)
 	}
 
     // mirrors
-    if( MoverParameters->Vel > MoverParameters->MirrorVelClose ) {
+    if( (MoverParameters->Vel > MoverParameters->MirrorVelClose)
+		|| (MoverParameters->CabActive == 0) && (activation::mirrors)
+		|| (MoverParameters->MirrorForbidden) ) {
         // automatically fold mirrors when above velocity threshold
         if( dMirrorMoveL > 0.0 ) {
             dMirrorMoveL = std::max(
@@ -3958,6 +3960,26 @@ bool TDynamicObject::Update(double dt, double dt1)
           SectionLightsActive ) ) { // without controller switch the lights off
         toggle_lights();
     }
+
+	if (MoverParameters->InactiveCabPantsCheck)
+	{
+		auto p = FindPantographCarrier();
+		bool isAnyPantUp = false;
+		if (p)
+		{
+			for each (auto item in p->MoverParameters->Pantographs)
+			{
+				isAnyPantUp |= item.is_active;
+			}
+			if (isAnyPantUp)
+			{
+				MoverParameters->OperatePantographValve(end::front, operation_t::enable);
+				MoverParameters->OperatePantographValve(end::rear, operation_t::enable);
+			}
+		}
+		MoverParameters->InactiveCabPantsCheck = false;
+	}
+
 
     if (MoverParameters->DerailReason > 0)
     {
@@ -6893,11 +6915,13 @@ void TDynamicObject::Damage(char flag)
 void TDynamicObject::SetLights() {
 
     auto const isfrontcaboccupied { MoverParameters->CabOccupied * DirectionGet() >= 0 };
+	int const automaticmarkers { MoverParameters->CabActive == 0 && ( MoverParameters->InactiveCabFlag & activation::redmarkers )
+								? light::redmarker_left + light::redmarker_right : 0 };
     int const front { ( isfrontcaboccupied ? end::front : end::rear ) };
     int const rear { 1 - front };
     auto const lightpos { MoverParameters->LightsPos - 1 };
-    auto const frontlights { MoverParameters->Lights[ front ][ lightpos ] };
-    auto const rearlights { MoverParameters->Lights[ rear ][ lightpos ] };
+    auto const frontlights { automaticmarkers > 0 ? automaticmarkers : MoverParameters->Lights[ front ][ lightpos ] };
+    auto const rearlights { automaticmarkers > 0 ? automaticmarkers : MoverParameters->Lights[ rear ][ lightpos ] };
     auto *vehicle { GetFirstDynamic( MoverParameters->CabOccupied >= 0 ? end::front : end::rear, coupling::control ) };
     while( vehicle != nullptr ) {
         // set lights on given side if there's no coupling with another vehicle, turn them off otherwise

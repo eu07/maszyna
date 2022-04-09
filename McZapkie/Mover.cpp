@@ -697,7 +697,9 @@ bool TMoverParameters::DirectionForward()
 {
     if( false == EIMDirectionChangeAllow() ) { return false; }
 
-    if ((MainCtrlPosNo > 0) && (DirActive < 1))
+    if ((MainCtrlPosNo > 0)
+		&& (DirActive < 1)
+		&& ( (CabActive != 0) || ( (InactiveCabFlag & activation::neutraldirection) == 0) ) )
     {
         ++DirActive;
         DirAbsolute = DirActive * CabActive;
@@ -2848,10 +2850,22 @@ bool TMoverParameters::CabActivisation( bool const Enforce )
     {
         CabActive = CabOccupied; // sterowanie jest z kabiny z obsadą
         DirAbsolute = DirActive * CabActive;
+		CabMaster = true;
         SecuritySystem.set_enabled(true); // activate the alerter TODO: make it part of control based cab selection
         SendCtrlToNext("CabActivisation", 1, CabActive);
+		SendCtrlToNext("Direction", DirAbsolute, CabActive);
+		if (InactiveCabFlag & activation::springbrakeoff)
+		{
+			SpringBrakeActivate(false);
+		}
     }
     return OK;
+}
+
+bool TMoverParameters::CabActivisationAuto(bool const Enforce)
+{
+	bool OK = AutomaticCabActivation ? CabActivisation(Enforce) : false;
+	return OK;
 }
 
 // *************************************************************************************************
@@ -2862,17 +2876,43 @@ bool TMoverParameters::CabDeactivisation( bool const Enforce )
 {
     bool OK = false;
 
-    OK = Enforce || (CabActive == CabOccupied); // o ile obsada jest w kabinie ze sterowaniem
+    OK = Enforce || IsCabMaster(); // o ile obsada jest w kabinie ze sterowaniem
     if (OK)
     {
+		if (InactiveCabFlag & activation::springbrakeon)
+		{
+			SpringBrakeActivate(true);
+		}
+		if (InactiveCabFlag & activation::pantographsup)
+		{
+			InactiveCabPantsCheck = true;
+		}
+		if (InactiveCabFlag & activation::doorpermition)
+		{
+			PermitDoors(side::right, true, range_t::consist);
+			PermitDoors(side::left, true, range_t::consist);
+		}
+		if (InactiveCabFlag & activation::neutraldirection)
+		{
+			DirActive = 0;
+			SendCtrlToNext("Direction", 0, CabActive);
+		}
+
         CabActive = 0;
         DirAbsolute = DirActive * CabActive;
+		CabMaster = false;
         DepartureSignal = false; // nie buczeć z nieaktywnej kabiny
         SecuritySystem.set_enabled(false); // deactivate alerter TODO: make it part of control based cab selection
 
         SendCtrlToNext("CabActivisation", 0, CabOccupied); // CabActive==0!
     }
     return OK;
+}
+
+bool TMoverParameters::CabDeactivisationAuto(bool const Enforce)
+{
+	bool OK = AutomaticCabActivation ? CabDeactivisation(Enforce) : false;
+	return OK;
 }
 
 // *************************************************************************************************
@@ -3155,7 +3195,9 @@ bool TMoverParameters::DirectionBackward(void)
         {
             return true;
         }
-    if ((MainCtrlPosNo > 0) && (DirActive > -1))
+    if ((MainCtrlPosNo > 0)
+		&& (DirActive > -1)
+		&& ( (CabActive != 0) || ( (InactiveCabFlag & activation::neutraldirection) == 0) ) )
     {
         if (EngineType == TEngineType::WheelsDriven)
             --CabActive;
@@ -4466,6 +4508,8 @@ void TMoverParameters::UpdatePipePressure(double dt)
     // (if it's supposed to be broken coupler, such event sets alarmchainflag instead when appropriate)
      || ( true == TestFlag( EngDmgFlag, 32 ) )
 */
+	 || ( ( 0 == CabActive )
+	   && ( InactiveCabFlag & activation::emergencybrake ) )
 	 || ( ( SpringBrakeDriveEmergencyVel >= 0 )
 	   && ( Vel > SpringBrakeDriveEmergencyVel ) 
 	   && ( SpringBrake.IsActive ) ) ) {
@@ -7214,8 +7258,11 @@ void TMoverParameters::CheckEIMIC(double dt)
 					BrakeLevelSet(UniCtrlList[MainCtrlPosNo].mode); //bottom clamping
 				if (BrakeCtrlPos > UniCtrlList[0].mode)
 					BrakeLevelSet(UniCtrlList[0].mode); //top clamping
-				while (BrakeCtrlPos > UniCtrlList[MainCtrlPos].mode) DecMainCtrl(1); //find nearest position
-				while (BrakeCtrlPos < UniCtrlList[MainCtrlPos].mode) IncMainCtrl(1); //find nearest position
+				if (IsCabMaster())
+				{
+					while (BrakeCtrlPos > UniCtrlList[MainCtrlPos].mode) DecMainCtrl(1); //find nearest position
+					while (BrakeCtrlPos < UniCtrlList[MainCtrlPos].mode) IncMainCtrl(1); //find nearest position
+				}
 			}
 			else //controller was moved
 				BrakeLevelSet(UniCtrlList[MainCtrlPos].mode);
@@ -7266,7 +7313,8 @@ void TMoverParameters::CheckEIMIC(double dt)
     auto const eimicpowerenabled {
         ( ( true == Mains ) || ( Power == 0.0 ) )
 	   && ( !SpringBrake.IsActive || !SpringBrakeCutsOffDrive )
-	   && ( !LockPipe ) };
+	   && ( !LockPipe ) 
+	   && ( DirAbsolute != 0 ) };
 	auto const eimicdoorenabled {
 		(SpringBrake.IsActive && ReleaseParkingBySpringBrakeWhenDoorIsOpen) 
 	};
@@ -8538,6 +8586,7 @@ TMoverParameters::update_doors( double const Deltatime ) {
         door.is_closed =
             ( door.position <= 0.f )
          && ( door.step_position <= 0.f );
+		door.is_door_closed = (door.position <= 0.f);
 
         door.local_open  = door.local_open  && ( false == door.is_open ) && ( ( false == Doors.permit_needed ) || door.open_permit );
         door.remote_open = ( door.remote_open || Doors.remote_only ) && ( false == door.is_open ) && ( ( false == Doors.permit_needed ) || door.open_permit );
@@ -10138,6 +10187,7 @@ void TMoverParameters::LoadFIZ_Doors( std::string const &line ) {
 	extract_value( MirrorVelClose, "MirrorVelClose", line, "");
 
     extract_value( DoorsOpenWithPermitAfter, "DoorOpenWithPermit", line, "" );
+	extract_value( DoorsPermitLightBlinking, "DoorsPermitLightBlinking", line, "" );
 }
 
 void TMoverParameters::LoadFIZ_BuffCoupl( std::string const &line, int const Index ) {
@@ -10412,6 +10462,9 @@ void TMoverParameters::LoadFIZ_Cntrl( std::string const &line ) {
             1 :
             0;
 	extract_value( BackwardsBranchesAllowed, "BackwardsBranchesAllowed", line, "" );
+
+	extract_value( AutomaticCabActivation, "AutomaticCabActivation", line, "" );
+	extract_value( InactiveCabFlag, "InactiveCabFlag", line, "" );
 
     extract_value( StopBrakeDecc, "SBD", line, "" );
     extract_value( ReleaseParkingBySpringBrake, "ReleaseParkingBySpringBrake", line, "" );
@@ -11917,6 +11970,7 @@ bool TMoverParameters::RunCommand( std::string Command, double CValue1, double C
             }
 		}
 		DirAbsolute = DirActive * CabActive;
+		CabMaster = false;
         OK = SendCtrlToNext( Command, CValue1, CValue2, Couplertype );
 	}
 	else if (Command == "AutoRelaySwitch")

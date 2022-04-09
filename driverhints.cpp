@@ -101,6 +101,30 @@ TController::cue_action( driver_hint const Action, float const Actionparameter )
                     return ( ( mvOccupied->BatteryStart != start_t::manual ) || ( mvOccupied->Power24vIsAvailable == false ) ); } );
             break;
         }
+		// battery
+		case locale::string::driver_hint_cabactivation: {
+			if (AIControllFlag && mvOccupied->Power24vIsAvailable) {
+				mvOccupied->CabActivisation();
+				CheckVehicles();
+			}
+			remove_hint( locale::string::driver_hint_cabdeactivation );
+			hint(
+				Action,
+				[this](float const Parameter) -> bool {
+				return ( ( mvOccupied->AutomaticCabActivation ) || (  mvOccupied->IsCabMaster() ) ); } );
+			break;
+		}
+		case locale::string::driver_hint_cabdeactivation: {
+			if (AIControllFlag) {
+				mvOccupied->CabDeactivisation();
+			}
+			remove_hint( locale::string::driver_hint_cabactivation );
+			hint(
+				Action,
+				[this](float const Parameter) -> bool {
+				return ( ( mvOccupied->AutomaticCabActivation ) || ( ( mvOccupied->CabMaster == false ) && ( mvOccupied->CabActive == 0 ) ) ); } );
+			break;
+		}
         // radio
         case driver_hint::radioon: {
             if( AIControllFlag ) {

@@ -1183,6 +1183,7 @@ TController::TableUpdateStopPoint( TCommandType &Command, TSpeedPos &Point, doub
 					L = std::max(0.0, std::min(L, std::abs(Par2) - fMinProximityDist - fLength));
 					Point.UpdateDistance(L);
 					Point.bMoved = true;
+					Point.fMoved = L;
                 }
                 else {
 					Point.iFlags = 0;
@@ -1190,7 +1191,7 @@ TController::TableUpdateStopPoint( TCommandType &Command, TSpeedPos &Point, doub
             }
             // for human-driven vehicles discard the stop point if they leave it far enough behind
             if( ( false == AIControllFlag )
-             && ( Point.fDist < -1 * std::max( fLength + 100, 250.0 ) ) ) {
+             && ( Point.fDist < -1 * std::max( fLength + 100, 250.0 ) - Point.fMoved ) ) {
                 Point.iFlags = 0; // nie liczy się już zupełnie (nie wyśle SetVelocity)
                 Point.fVelNext = -1; // można jechać za W4
                 if( ( Point.fDist <= 0.0 ) && ( eSignNext == Point.evEvent ) ) {
@@ -1207,7 +1208,7 @@ TController::TableUpdateStopPoint( TCommandType &Command, TSpeedPos &Point, doub
                 // jeśli długość peronu ((sSpeedTable[i].evEvent->ValueGet(2)) nie podana,
                 // przyjąć odległość fMinProximityDist
              && ( ( iDrivigFlags & moveStopCloser ) != 0 ?
-                    Point.fDist + fLength <=
+                    Point.fDist + fLength + (Point.fMoved - fMinProximityDist * 0.5f) <=
                     std::max(
                         std::abs( Point.evEvent->input_value( 2 ) ),
                         2.0 * fMaxProximityDist + fLength ) : // fmaxproximitydist typically equals ~50 m
@@ -2608,7 +2609,7 @@ void TController::Lights(int head, int rear)
 
 void TController::DirectionInitial()
 { // ustawienie kierunku po wczytaniu trainset (może jechać na wstecznym
-    mvOccupied->CabActivisation(); // załączenie rozrządu (wirtualne kabiny)
+    mvOccupied->CabActivisationAuto(); // załączenie rozrządu (wirtualne kabiny)
     if (mvOccupied->Vel > EU07_AI_NOMOVEMENT)
     { // jeśli na starcie jedzie
         iDirection = iDirectionOrder =
@@ -2762,6 +2763,7 @@ bool TController::PrepareEngine()
     ReactionTime = ( mvOccupied->Vel < 5 ? PrepareTime : EasyReactionTime ); // react faster with rolling start
 
     cue_action( driver_hint::batteryon );
+	cue_action( driver_hint::cabactivation);
     cue_action( driver_hint::radioon );
 
     if( has_diesel_engine() ) {
@@ -4043,7 +4045,7 @@ void TController::SpeedCntrl(double DesiredSpeed)
 void TController::SetTimeControllers()
 {
     // TBD, TODO: rework this method to use hint system and regardless of driver type
-    if( false == AIControllFlag ) { return; }
+    if( false == AIControllFlag || 0 == mvOccupied->CabActive ) { return; }
 
 	//1. Check the type of Main Brake Handle
     if( BrakeSystem == TBrakeSystem::Pneumatic || ForcePNBrake )
@@ -4256,7 +4258,7 @@ void TController::SetTimeControllers()
 void TController::CheckTimeControllers()
 {
     // TODO: rework this method to use hint system and regardless of driver type
-    if( false == AIControllFlag ) { return; }
+    if( false == AIControllFlag || 0 == mvControlling->CabActive ) { return; }
 
 	//1. Check the type of Main Brake Handle
     if( BrakeSystem == TBrakeSystem::ElectroPneumatic && mvOccupied->Handle->TimeEP && !ForcePNBrake )
@@ -5699,6 +5701,7 @@ void TController::TakeControl( bool const Aidriver, bool const Forcevehiclecheck
     { // teraz AI prowadzi
         AIControllFlag = AIdriver;
         pVehicle->Controller = AIdriver;
+		mvOccupied->CabActivisation(true);
         iDirection = 0; // kierunek jazdy trzeba dopiero zgadnąć
         TableClear(); // ponowne utworzenie tabelki, bo człowiek mógł pojechać niezgodnie z sygnałami
         if( action() != TAction::actSleep ) {
@@ -6002,6 +6005,17 @@ void
 TController::determine_consist_state() {
     // ABu-160305 testowanie gotowości do jazdy
     // Ra: przeniesione z DynObj, skład użytkownika też jest testowany, żeby mu przekazać, że ma odhamować
+
+	if (mvOccupied->CabActive == 0 && mvOccupied->Power24vIsAvailable)
+	{
+		cue_action( locale::string::driver_hint_cabactivation );
+	}
+	else if (!mvOccupied->AutomaticCabActivation
+			 && ( (mvOccupied->CabActive == -mvOccupied->CabOccupied) || (!mvOccupied->CabMaster) || (!mvOccupied->Power24vIsAvailable) ) )
+	{
+		cue_action( locale::string::driver_hint_cabdeactivation );
+	}
+
 	int index = double(BrakeAccTableSize) * (mvOccupied->Vel / mvOccupied->Vmax);
 	index = std::min(BrakeAccTableSize, std::max(1, index));
 	fBrake_a0[0] = fBrake_a0[index];
@@ -6020,7 +6034,8 @@ TController::determine_consist_state() {
             mvOccupied->PipePress < std::max( 3.9, mvOccupied->BrakePressureActual.PipePressureVal ) + 0.1 );
     fAccGravity = 0.0; // przyspieszenie wynikające z pochylenia
     IsAnyCouplerStretched = false;
-    IsAnyDoorOpen[ side::right ] = IsAnyDoorOpen[ side::left ] = false;
+    IsAnyDoorOnlyOpen[ side::right ] = IsAnyDoorOnlyOpen[ side::left ] = false;
+	IsAnyDoorOpen[ side::right ] = IsAnyDoorOpen[ side::left ] = false;
     IsAnyDoorPermitActive[ side::right ] = IsAnyDoorPermitActive[ side::left ] = false;
     ConsistShade = 0.0;
     auto *p { pVehicles[ end::front ] }; // pojazd na czole składu
@@ -6072,13 +6087,17 @@ TController::determine_consist_state() {
             || ( vehicle->Couplers[ end::rear  ].stretch_duration > 0.0 );
         // check door state
         {
-            auto const switchsides { p->DirectionGet() != iDirection };
+			auto const switchsides{ p->DirectionGet() != (iDirection == 0 ? mvOccupied->CabOccupied : iDirection) };
             auto const &rightdoor { vehicle->Doors.instances[ ( switchsides ? side::left : side::right ) ] };
             auto const &leftdoor { vehicle->Doors.instances[ ( switchsides ? side::right : side::left ) ] };
             if( vehicle->Doors.close_control != control_t::autonomous ) {
                 IsAnyDoorOpen[ side::right ] |= ( false == rightdoor.is_closed );
                 IsAnyDoorOpen[ side::left  ] |= ( false == leftdoor.is_closed );
             }
+			if (vehicle->Doors.close_control != control_t::autonomous) {
+				IsAnyDoorOnlyOpen[ side::right ] |= ( false == rightdoor.is_door_closed );
+				IsAnyDoorOnlyOpen[ side::left  ] |= ( false == leftdoor.is_door_closed );
+			}
             if( vehicle->Doors.permit_needed ) {
                 IsAnyDoorPermitActive[ side::right ] |= rightdoor.open_permit;
                 IsAnyDoorPermitActive[ side::left  ] |= leftdoor.open_permit;

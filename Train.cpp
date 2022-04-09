@@ -273,6 +273,9 @@ TTrain::commandhandler_map const TTrain::m_commandhandlers = {
     { user_command::batterytoggle, &TTrain::OnCommand_batterytoggle },
     { user_command::batteryenable, &TTrain::OnCommand_batteryenable },
     { user_command::batterydisable, &TTrain::OnCommand_batterydisable },
+	{ user_command::cabactivationtoggle, &TTrain::OnCommand_cabactivationtoggle },
+	{ user_command::cabactivationenable, &TTrain::OnCommand_cabactivationenable },
+	{ user_command::cabactivationdisable, &TTrain::OnCommand_cabactivationdisable },
     { user_command::pantographcompressorvalvetoggle, &TTrain::OnCommand_pantographcompressorvalvetoggle },
     { user_command::pantographcompressorvalveenable, &TTrain::OnCommand_pantographcompressorvalveenable },
     { user_command::pantographcompressorvalvedisable, &TTrain::OnCommand_pantographcompressorvalvedisable },
@@ -400,6 +403,7 @@ TTrain::commandhandler_map const TTrain::m_commandhandlers = {
     { user_command::doorcloseall, &TTrain::OnCommand_doorcloseall },
     { user_command::doorsteptoggle, &TTrain::OnCommand_doorsteptoggle },
     { user_command::doormodetoggle, &TTrain::OnCommand_doormodetoggle },
+	{ user_command::mirrorstoggle, &TTrain::OnCommand_mirrorstoggle },
     { user_command::nearestcarcouplingincrease, &TTrain::OnCommand_nearestcarcouplingincrease },
     { user_command::nearestcarcouplingdisconnect, &TTrain::OnCommand_nearestcarcouplingdisconnect },
     { user_command::nearestcarcoupleradapterattach, &TTrain::OnCommand_nearestcarcoupleradapterattach },
@@ -624,6 +628,8 @@ dictionary_source *TTrain::GetTrainState( dictionary_source const &Extraparamete
 
     dict->insert( "name", DynamicObject->asName );
     dict->insert( "cab", mvOccupied->CabOccupied );
+	dict->insert( "cabactive", mvOccupied->CabActive );
+	dict->insert( "master", mvOccupied->CabMaster );
     // basic systems state data
     dict->insert( "battery", mvOccupied->Power24vIsAvailable );
     dict->insert( "linebreaker", mvControlled->Mains );
@@ -699,6 +705,8 @@ dictionary_source *TTrain::GetTrainState( dictionary_source const &Extraparamete
 	dict->insert( "radio_volume", Global.RadioVolume );
     dict->insert( "door_lock", mvOccupied->Doors.lock_enabled );
 	dict->insert( "door_step", mvOccupied->Doors.step_enabled );
+	dict->insert( "door_permit_left", mvOccupied->Doors.instances[side::left].open_permit );
+	dict->insert( "door_permit_right", mvOccupied->Doors.instances[side::right].open_permit );
     // movement data
     dict->insert( "velocity", std::abs( mvOccupied->Vel ) );
     dict->insert( "tractionforce", std::abs( mvOccupied->Ft ) );
@@ -2352,6 +2360,65 @@ void TTrain::OnCommand_batterydisable( TTrain *Train, command_data const &Comman
         }
         Train->ggBatteryOffButton.UpdateValue( 0.0f, Train->dsbSwitch );
     }
+}
+
+void TTrain::OnCommand_cabactivationtoggle(TTrain *Train, command_data const &Command) {
+
+	if (Command.action != GLFW_REPEAT) {
+		// keep the switch from flipping back and forth if key is held down
+		if (0 == Train->mvOccupied->CabActive) {
+			// turn on
+			OnCommand_cabactivationenable(Train, Command);
+		}
+		else {
+			//turn off
+			OnCommand_cabactivationdisable(Train, Command);
+		}
+	}
+}
+
+void TTrain::OnCommand_cabactivationenable(TTrain *Train, command_data const &Command) {
+
+	if (Command.action == GLFW_PRESS) {
+		// visual feedback
+		if (Train->ggCabActivationButton.type() == TGaugeType::push) {
+			Train->ggCabActivationButton.UpdateValue(1.0f, Train->dsbSwitch);
+		}
+
+		Train->mvOccupied->CabActivisation();
+
+		// side-effects
+		if (Train->mvOccupied->LightsPosNo > 0) {
+			Train->Dynamic()->SetLights();
+		}
+	}
+	else if (Command.action == GLFW_RELEASE) {
+		if (Train->ggCabActivationButton.type() == TGaugeType::push) {
+			// return the switch to neutral position
+			Train->ggCabActivationButton.UpdateValue(0.5f);
+		}
+	}
+}
+
+void TTrain::OnCommand_cabactivationdisable(TTrain *Train, command_data const &Command) {
+	// TBD, TODO: ewentualnie zablokować z FIZ, np. w samochodach się nie odłącza akumulatora
+	if (Command.action == GLFW_PRESS) {
+		// visual feedback
+		if (Train->ggCabActivationButton.type() == TGaugeType::push) {
+			Train->ggCabActivationButton.UpdateValue(0.0f, Train->dsbSwitch);
+		}
+
+		Train->mvOccupied->CabDeactivisation();
+		if ((Train->mvOccupied->LightsPosNo > 0) && (Train->mvOccupied->InactiveCabFlag & activation::redmarkers)) {
+			Train->Dynamic()->SetLights();
+		}
+	}
+	else if (Command.action == GLFW_RELEASE) {
+		if (Train->ggCabActivationButton.type() == TGaugeType::push) {
+			// return the switch to neutral position
+			Train->ggCabActivationButton.UpdateValue(0.5f);
+		}
+	}
 }
 
 void TTrain::OnCommand_pantographtogglefront( TTrain *Train, command_data const &Command ) {
@@ -5209,12 +5276,12 @@ void TTrain::OnCommand_inverterenable(TTrain *Train, command_data const &Command
 			p = (kier ? p->Next(flag) : p->Prev(flag));
 		}
 		// visual feedback
-		Train->ggInverterEnableButtons[itemindex].UpdateValue(1.0, Train->dsbSwitch);
+		item.UpdateValue(1.0, Train->dsbSwitch);
 	}
 	else if (Command.action == GLFW_RELEASE) {
 		// release
 		// visual feedback
-		Train->ggInverterEnableButtons[itemindex].UpdateValue(0.0, Train->dsbSwitch);
+		item.UpdateValue(0.0, Train->dsbSwitch);
 	}
 };
 
@@ -5246,12 +5313,12 @@ void TTrain::OnCommand_inverterdisable(TTrain *Train, command_data const &Comman
 			p = (kier ? p->Next(flag) : p->Prev(flag));
 		}
 		// visual feedback
-		Train->ggInverterDisableButtons[itemindex].UpdateValue(1.0, Train->dsbSwitch);
+		item.UpdateValue(1.0, Train->dsbSwitch);
 	}
 	else if (Command.action == GLFW_RELEASE) {
 		// release
 		// visual feedback
-		Train->ggInverterDisableButtons[itemindex].UpdateValue(0.0, Train->dsbSwitch);
+		item.UpdateValue(0.0, Train->dsbSwitch);
 	}
 };
 
@@ -5273,7 +5340,7 @@ void TTrain::OnCommand_invertertoggle(TTrain *Train, command_data const &Command
 				{
 					p->MoverParameters->Inverters[itemindex].Activate = !p->MoverParameters->Inverters[itemindex].Activate;
 					// visual feedback
-					Train->ggInverterToggleButtons[itemindex].UpdateValue(p->MoverParameters->Inverters[itemindex].Activate ? 1.0 : 0.0, Train->dsbSwitch);
+					item.UpdateValue(p->MoverParameters->Inverters[itemindex].Activate ? 1.0 : 0.0, Train->dsbSwitch);
 					break;
 				}
 				else
@@ -5854,6 +5921,21 @@ void TTrain::OnCommand_doormodetoggle( TTrain *Train, command_data const &Comman
     }
 }
 
+void TTrain::OnCommand_mirrorstoggle(TTrain *Train, command_data const &Command) {
+
+	if (Command.action != GLFW_PRESS) { return; }
+
+// only reacting to press, so the sound can loop uninterrupted
+	if (false == Train->mvOccupied->MirrorForbidden) {
+		// turn on
+		Train->mvOccupied->MirrorForbidden = true;
+	}
+	else {
+		// turn off
+		Train->mvOccupied->MirrorForbidden = false;
+	}
+}
+
 void TTrain::OnCommand_nearestcarcouplingincrease( TTrain *Train, command_data const &Command ) {
 
 	if( ( true == Command.freefly )
@@ -5954,6 +6036,30 @@ void TTrain::OnCommand_occupiedcarcouplingdisconnect( TTrain *Train, command_dat
         // visual feedback
         Train->m_couplingdisconnect = false;
     }
+}
+
+void TTrain::OnCommand_occupiedcarcouplingdisconnectback(TTrain *Train, command_data const &Command) {
+
+	//    if( false == Train->m_controlmapper.contains( "couplingdisconnect_sw:" ) ) { return; }
+
+	if (Command.action == GLFW_PRESS) {
+		// visual feedback
+		Train->m_couplingdisconnectback = true;
+
+		if (Train->iCabn == 0) { return; }
+
+		if (Train->DynamicObject) {
+			Train->DynamicObject->uncouple( 1 - Train->cab_to_end() );
+			if (Train->DynamicObject->Mechanik) {
+				// aktualizacja flag kierunku w składzie
+				Train->DynamicObject->Mechanik->CheckVehicles(Disconnect);
+			}
+		}
+	}
+	else if (Command.action == GLFW_RELEASE) {
+		// visual feedback
+		Train->m_couplingdisconnectback = false;
+	}
 }
 
 void TTrain::OnCommand_departureannounce( TTrain *Train, command_data const &Command ) {
@@ -6417,6 +6523,20 @@ bool TTrain::Update( double const Deltatime )
         m_doorpermits = (
             DynamicObject->Mechanik->IsAnyDoorPermitActive[ side::right ]
          || DynamicObject->Mechanik->IsAnyDoorPermitActive[ side::left ] );
+		m_doorspermitleft = mvOccupied->Doors.instances[(cab_to_end() == end::front ? side::left : side::right)].open_permit
+							&& ((simulation::Time.data().wSecond % 2 < 1)
+								|| (mvOccupied->DoorsPermitLightBlinking < 1)
+								|| ((mvOccupied->DoorsPermitLightBlinking < 2)
+									&& (DynamicObject->Mechanik->IsAnyDoorOpen[(cab_to_end() == end::front ? side::left : side::right)])
+								|| ((mvOccupied->DoorsPermitLightBlinking < 3)
+									&& DynamicObject->Mechanik->IsAnyDoorOnlyOpen[(cab_to_end() == end::front ? side::left : side::right)])));
+		m_doorspermitright = mvOccupied->Doors.instances[(cab_to_end() == end::front ? side::right : side::left)].open_permit
+							&& ((simulation::Time.data().wSecond % 2 < 1)
+								|| (mvOccupied->DoorsPermitLightBlinking < 1)
+								|| ((mvOccupied->DoorsPermitLightBlinking < 2)
+									&& (DynamicObject->Mechanik->IsAnyDoorOpen[(cab_to_end() == end::front ? side::right : side::left)])
+								|| ((mvOccupied->DoorsPermitLightBlinking < 3)
+									&& DynamicObject->Mechanik->IsAnyDoorOnlyOpen[(cab_to_end() == end::front ? side::right : side::left)])));
     }
 	m_dirforward = ( mvControlled->DirActive > 0 );
 	m_dirneutral = ( mvControlled->DirActive == 0 );
@@ -7056,6 +7176,7 @@ bool TTrain::Update( double const Deltatime )
         btLampkaMaxSila.Turn(abs(mvControlled->Im) >= 350);
         btLampkaPrzekrMaxSila.Turn(abs(mvControlled->Im) >= 450);
         btLampkaRadio.Turn(mvOccupied->Radio);
+		btLampkaRadioMessage.Turn(radio_message_played);
         btLampkaRadioStop.Turn( mvOccupied->Radio && mvOccupied->RadioStopFlag );
         btLampkaHamulecReczny.Turn(mvOccupied->ManualBrakePos > 0);
         // NBMX wrzesien 2003 - drzwi oraz sygnał odjazdu
@@ -7132,6 +7253,7 @@ bool TTrain::Update( double const Deltatime )
         btLampkaMaxSila.Turn( false );
         btLampkaPrzekrMaxSila.Turn( false );
         btLampkaRadio.Turn( false );
+		btLampkaRadioMessage.Turn( false );
         btLampkaRadioStop.Turn( false );
         btLampkaHamulecReczny.Turn( false );
         btLampkaDoorLeft.Turn( false );
@@ -7572,6 +7694,11 @@ bool TTrain::Update( double const Deltatime )
     ggBatteryButton.Update();
     ggBatteryOnButton.Update();
     ggBatteryOffButton.Update();
+	if ((ggCabActivationButton.SubModel != nullptr) && (ggCabActivationButton.type() != TGaugeType::push))
+	{
+		ggCabActivationButton.UpdateValue(mvOccupied->IsCabMaster() ? 1.0 : 0.0);
+	}
+	ggCabActivationButton.Update();
 
     ggWaterPumpBreakerButton.Update();
     ggWaterPumpButton.Update();
@@ -7997,6 +8124,7 @@ void TTrain::update_sounds_runningnoise( sound_source &Sound ) {
 
 void TTrain::update_sounds_radio() {
 
+	radio_message_played = false;
     if( false == m_radiomessages.empty() ) {
         // erase completed radio messages from the list
         m_radiomessages.erase(
@@ -8016,17 +8144,23 @@ void TTrain::update_sounds_radio() {
                 Global.RadioVolume :
                 0.0 };
         message.second->gain( volume );
+		radio_message_played |= (true == radioenabled) && (Dynamic()->Mechanik != nullptr) && (message.first == RadioChannel());
     }
     // radiostop
     if( m_radiostop ) {
         if( ( true == radioenabled )
          && ( true == mvOccupied->RadioStopFlag ) ) {
             m_radiostop->play( sound_flags::exclusive | sound_flags::looping );
+			radio_message_played |= true;
         }
         else {
             m_radiostop->stop();
         }
     }
+	if (radio_message_played)
+	{
+		btLampkaRadioMessage.gain(Global.RadioVolume);
+	}
 }
 
 void TTrain::update_screens(double dt) {
@@ -8068,17 +8202,17 @@ bool TTrain::CabChange(int iDirection)
     }
     else
     { // jeśli pojazd prowadzony ręcznie albo wcale (wagon)
-        mvOccupied->CabDeactivisation();
+        mvOccupied->CabDeactivisationAuto();
         if( mvOccupied->ChangeCab( iDirection ) ) {
             if( InitializeCab( mvOccupied->CabOccupied, mvOccupied->TypeName + ".mmd" ) ) {
                 // zmiana kabiny w ramach tego samego pojazdu
-                mvOccupied->CabActivisation(); // załączenie rozrządu (wirtualne kabiny)
+                mvOccupied->CabActivisationAuto(); // załączenie rozrządu (wirtualne kabiny)
                 DynamicObject->Mechanik->DirectionChange();
                 return true; // udało się zmienić kabinę
             }
         }
         // aktywizacja poprzedniej, bo jeszcze nie wiadomo, czy jakiś pojazd jest
-        mvOccupied->CabActivisation();
+        mvOccupied->CabActivisationAuto();
     }
     return false; // ewentualna zmiana pojazdu
 }
@@ -8625,7 +8759,7 @@ TTrain::MoveToVehicle(TDynamicObject *target) {
                 Dynamic()->Mechanik->MoveTo( target );
 
 			target_train->Occupied()->LimPipePress = target_train->Occupied()->PipePress;
-			target_train->Occupied()->CabActivisation( true ); // załączenie rozrządu (wirtualne kabiny)
+			target_train->Occupied()->CabActivisationAuto( true ); // załączenie rozrządu (wirtualne kabiny)
 			target_train->Dynamic()->MechInside = true;
             if( target_train->Dynamic()->Mechanik ) {
                 target_train->Dynamic()->Controller = target_train->Dynamic()->Mechanik->AIControllFlag;
@@ -8686,7 +8820,7 @@ TTrain::MoveToVehicle(TDynamicObject *target) {
             }
 
 			Occupied()->LimPipePress = Occupied()->PipePress;
-			Occupied()->CabActivisation( true ); // załączenie rozrządu (wirtualne kabiny)
+			Occupied()->CabActivisationAuto( true ); // załączenie rozrządu (wirtualne kabiny)
 		} else {
 			Dynamic()->bDisplayCab = false;
 			Dynamic()->ABuSetModelShake( {} );
@@ -8862,6 +8996,7 @@ void TTrain::clear_cab_controls()
     ggBatteryButton.Clear();
     ggBatteryOnButton.Clear();
     ggBatteryOffButton.Clear();
+	ggCabActivationButton.Clear();
     //-------
     ggFuseButton.Clear();
     ggConverterFuseButton.Clear();
@@ -8952,6 +9087,7 @@ void TTrain::clear_cab_controls()
     btLampkaMaxSila.Clear();
     btLampkaPrzekrMaxSila.Clear();
     btLampkaRadio.Clear();
+	btLampkaRadioMessage.Clear();
     btLampkaRadioStop.Clear();
     btLampkaHamulecReczny.Clear();
     btLampkaBlokadaDrzwi.Clear();
@@ -9037,6 +9173,11 @@ void TTrain::set_cab_controls( int const Cab ) {
         ( ggBatteryButton.type() == TGaugeType::push ? 0.5f :
           mvOccupied->Power24vIsAvailable ? 1.f :
           0.f ) );
+	// activation
+	ggCabActivationButton.PutValue(
+		(ggCabActivationButton.type() == TGaugeType::push ? 0.5f :
+			mvOccupied->IsCabMaster() ? 1.f :
+			0.f));
     // line breaker
     if( ggMainButton.SubModel != nullptr ) { // instead of single main button there can be on/off pair
         ggMainButton.PutValue(
@@ -9364,7 +9505,7 @@ void TTrain::set_cab_controls( int const Cab ) {
 				if (itemindex < p->MoverParameters->InvertersNo)
 				{
 					// visual feedback
-					ggInverterToggleButtons[itemindex].PutValue(p->MoverParameters->Inverters[itemindex].Activate ? 1.0 : 0.0);
+					ggInverterToggleButtons[itemstart-1].PutValue(p->MoverParameters->Inverters[itemindex].Activate ? 1.0 : 0.0);
 					break;
 				}
 				else
@@ -9389,6 +9530,7 @@ bool TTrain::initialize_button(cParser &Parser, std::string const &Label, int co
         { "i-maxft:", btLampkaMaxSila },
         { "i-maxftt:", btLampkaPrzekrMaxSila },
         { "i-radio:", btLampkaRadio },
+		{ "i-radiomessage:", btLampkaRadioMessage },
         { "i-radiostop:", btLampkaRadioStop },
         { "i-manual_brake:", btLampkaHamulecReczny },
         { "i-door_blocked:", btLampkaBlokadaDrzwi },
@@ -9492,8 +9634,8 @@ bool TTrain::initialize_button(cParser &Parser, std::string const &Label, int co
     // TODO: move viable dedicated lights to the automatic light array
     std::unordered_map<std::string, bool const *> const autolights = {
         { "i-doors:", &m_doors },
-        { "i-doorpermit_left:",  &mvOccupied->Doors.instances[ ( cab_to_end() == end::front ? side::left : side::right ) ].open_permit },
-        { "i-doorpermit_right:", &mvOccupied->Doors.instances[ ( cab_to_end() == end::front ? side::right : side::left ) ].open_permit },
+        { "i-doorpermit_left:",  &m_doorspermitleft },
+        { "i-doorpermit_right:", &m_doorspermitright },
         { "i-doorpermit_any:", &m_doorpermits },
         { "i-doorstep:", &mvOccupied->Doors.step_enabled },
         { "i-mainpipelock:", &mvOccupied->LockPipe },
@@ -9659,6 +9801,7 @@ bool TTrain::initialize_gauge(cParser &Parser, std::string const &Label, int con
         { "battery_sw:", ggBatteryButton },
         { "batteryon_sw:", ggBatteryOnButton },
         { "batteryoff_sw:", ggBatteryOffButton },
+		{ "cabactivation_sw:", ggCabActivationButton },
         { "distancecounter_sw:", ggDistanceCounterButton },
         { "relayreset1_bt:", ggRelayResetButtons[ 0 ] },
         { "relayreset2_bt:", ggRelayResetButtons[ 1 ] },
@@ -9738,8 +9881,8 @@ bool TTrain::initialize_gauge(cParser &Parser, std::string const &Label, int con
 		{ "speedbutton7:", { ggSpeedCtrlButtons[ 7 ], &mvOccupied->SpeedCtrlUnit.IsActive } },
 		{ "speedbutton8:", { ggSpeedCtrlButtons[ 8 ], &mvOccupied->SpeedCtrlUnit.IsActive } },
 		{ "speedbutton9:", { ggSpeedCtrlButtons[ 9 ], &mvOccupied->SpeedCtrlUnit.IsActive } },
-        { "doorleftpermit_sw:", { ggDoorLeftPermitButton, &mvOccupied->Doors.instances[ ( cab_to_end() == end::front ? side::left : side::right ) ].open_permit } },
-        { "doorrightpermit_sw:", { ggDoorRightPermitButton, &mvOccupied->Doors.instances[ ( cab_to_end() == end::front ? side::right : side::left ) ].open_permit } },
+        { "doorleftpermit_sw:", { ggDoorLeftPermitButton, &m_doorspermitleft } },
+        { "doorrightpermit_sw:", { ggDoorRightPermitButton, &m_doorspermitright } },
         { "dooralloff_sw:", { ggDoorAllOffButton, &m_doors } },
         { "doorstep_sw:", { ggDoorStepButton, &mvOccupied->Doors.step_enabled } },
         { "dirforward_bt:", { ggDirForwardButton, &m_dirforward } },
@@ -9768,6 +9911,8 @@ bool TTrain::initialize_gauge(cParser &Parser, std::string const &Label, int con
         { "cablight_sw:", &Cabine[ iCabn ].bLight },
         { "springbraketoggle_bt:", &mvOccupied->SpringBrake.Activate },
         { "couplingdisconnect_sw:", &m_couplingdisconnect },
+		{ "couplingdisconnectback_sw:", &m_couplingdisconnectback },
+		{ "mirrors_sw:", &mvOccupied->MirrorForbidden },
     };
     {
         auto lookup = autoboolgauges.find( Label );

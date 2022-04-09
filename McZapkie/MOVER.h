@@ -256,6 +256,18 @@ enum relay_t {
     electrodynamicbrakesoverload = 1 << 7,
 };
 
+// functions during activation/deactivation
+enum activation {
+	emergencybrake = 1 << 0,
+	mirrors = 1 << 1,
+	pantographsup = 1 << 2,
+	redmarkers = 1 << 3,
+	doorpermition = 1 << 4,
+	springbrakeon = 1 << 5,
+	springbrakeoff = 1 << 6,
+	neutraldirection = 1 << 7,
+};
+
 //szczególne typy pojazdów (inna obsługa) dla zmiennej TrainType
 //zamienione na flagi bitowe, aby szybko wybierać grupę (np. EZT+SZT)
 // TODO: convert to enums, they're used as specific checks anyway
@@ -903,6 +915,7 @@ private:
         float step_position { 0.f }; // current shift of the movable step from the retracted position
         // ld outputs
         bool is_closed { true }; // the door is fully closed
+		bool is_door_closed { true }; // the door is fully closed, step doesn't matter
         bool is_closing { false }; // the door is currently closing
         bool is_opening { false }; // the door is currently opening
         bool is_open { false }; // the door is fully open
@@ -1367,6 +1380,7 @@ public:
 #endif
     double MirrorMaxShift { 90.0 };
 	double MirrorVelClose { 5.0 };
+	bool MirrorForbidden{ false }; /*czy jest pozwolenie na otworzenie lusterek (przycisk)*/
 	bool ScndS = false; /*Czy jest bocznikowanie na szeregowej*/
 	bool SpeedCtrl = false; /*czy jest tempomat*/
 	speed_control SpeedCtrlUnit; /*parametry tempomatu*/
@@ -1459,6 +1473,7 @@ public:
     std::array<cooling_fan, 2> MotorBlowers;
     door_data Doors;
     float DoorsOpenWithPermitAfter { -1.f }; // remote open if permit button is held for specified time. NOTE: separate from door data as its cab control thing
+	int DoorsPermitLightBlinking { 0 }; //when the doors permit signal light is blinking
 
     int BrakeCtrlPos = -2;               /*nastawa hamulca zespolonego*/
 	double BrakeCtrlPosR = 0.0;                 /*nastawa hamulca zespolonego - plynna dla FV4a*/
@@ -1523,6 +1538,11 @@ public:
     int MainCtrlMaxDirChangePos { 0 }; // can't change reverser state with master controller set above this position
 	int CabActive = 0; //numer kabiny, z której jest sterowanie: 1 lub -1; w przeciwnym razie brak sterowania - rozrzad
 	int CabOccupied = 0; //numer kabiny, w ktorej jest obsada (zwykle jedna na skład) // TODO: move to TController
+	bool CabMaster = false; //czy pojazd jest nadrzędny w składzie
+	inline bool IsCabMaster() { return ((CabActive == CabOccupied) && CabMaster); } //czy aktualna kabina jest na pewno tą, z której można sterować
+	bool AutomaticCabActivation = true; //czy zmostkowany rozrzad przelacza sie sam przy zmianie kabiny
+	int InactiveCabFlag = 0; //co sie dzieje przy dezaktywacji kabiny
+	bool InactiveCabPantsCheck = false; //niech DynamicObject sprawdzi pantografy
 	double LastSwitchingTime = 0.0; /*czas ostatniego przelaczania czegos*/
     int WarningSignal = 0; // 0: nie trabi, 1,2,4: trabi
 	bool DepartureSignal = false; /*sygnal odjazdu*/
@@ -1728,6 +1748,8 @@ public:
 	void PutCommand(std::string NewCommand, double NewValue1, double NewValue2, const TLocation &NewLocation);
 	bool CabActivisation( bool const Enforce = false );
 	bool CabDeactivisation( bool const Enforce = false );
+	bool CabActivisationAuto( bool const Enforce = false );
+	bool CabDeactivisationAuto( bool const Enforce = false );
 
 	/*! funkcje zwiekszajace/zmniejszajace nastawniki*/
 	/*! glowny nastawnik:*/

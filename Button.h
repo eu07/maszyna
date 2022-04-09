@@ -36,6 +36,7 @@ public:
     void AssignBool(bool const *bValue);
     // returns offset of submodel associated with the button from the model centre
     glm::vec3 model_offset() const;
+	void gain(float new_volume);
 	inline uint8_t b() { return m_state ? 1 : 0; };
 
 private:
