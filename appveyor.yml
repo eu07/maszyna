@@ -59,13 +59,6 @@ build_script:
     
     7z a eu07_x64_bin.zip ./x64/bin/RelWithDebInfo/*.exe
     
-    7z a package86.zip ./x86/pdb/RelWithDebInfo/*.pdb
-    
-    7z a package64.zip ./x64/bin/RelWithDebInfo/*.exe ./x64/pdb/RelWithDebInfo/*.pdb
-    
-    curl -Infile "package86.zip" -ContentType "application/octet-stream" -Method Post -uri "https://eu07.sp.backtrace.io:6098/post?format=symbols&token=4eeba9395fae661927e23679fc36f2237416ec056ef75399e894d597ad518c6c"
-    
-    curl -Infile "package64.zip" -ContentType "application/octet-stream" -Method Post -uri "https://eu07.sp.backtrace.io:6098/post?format=symbols&token=4eeba9395fae661927e23679fc36f2237416ec056ef75399e894d597ad518c6c"
 test: off
 deploy: off
 artifacts:
