@@ -345,6 +345,10 @@ endif()
 add_executable(${PROJECT_NAME} ${SOURCES} ${HEADERS})
 
 if (${CMAKE_CXX_COMPILER_ID} STREQUAL MSVC)
+	# override cmake defaults
+	set(CMAKE_CXX_FLAGS_RELWITHDEBINFO " /MD /Zi /O2 /DNDEBUG")
+	set(CMAKE_EXE_LINKER_FLAGS_RELWITHDEBINFO " /DEBUG /INCREMENTAL:NO /OPT:REF /OPT:ICF")
+
 	# /wd4996: disable "deprecation" warnings
 	# /wd4244: disable warnings for conversion with possible loss of data
 	# /wd5033: disable because it is all over Python headers
