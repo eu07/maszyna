@@ -3967,7 +3967,7 @@ bool TDynamicObject::Update(double dt, double dt1)
 		bool isAnyPantUp = false;
 		if (p)
 		{
-			for each (auto item in p->MoverParameters->Pantographs)
+			for (auto &item : p->MoverParameters->Pantographs)
 			{
 				isAnyPantUp |= item.is_active;
 			}
