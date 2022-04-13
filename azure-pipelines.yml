@@ -76,34 +76,6 @@ jobs:
         artifactName: binaries_macos
       displayName: 'Publish binaries'
 
-  - job: macos1015_imgui_gl2
-    pool:
-      vmImage: 'macOS-10.15'
-    displayName: 'MacOS 10.15 x86-64 ImGui GL2'
-    steps:
-    - script: |
-        sudo xcode-select -s /Applications/Xcode_12.3.app
-      displayName: 'Setup Xcode'
-    - script: |
-        cd /tmp
-        wget https://s2.milek7.pl/macos_vcpkg_cache_x64.tar.gz
-        tar -xf macos_vcpkg_cache_x64.tar.gz
-        mv tmp/vcpkg vcpkg
-        rmdir tmp
-        rm macos_vcpkg_cache_x64.tar.gz
-      displayName: 'Install dependencies'
-    - script: |
-        mkdir build
-        cd build
-        cmake .. -DCMAKE_BUILD_TYPE=Release -DCMAKE_OSX_ARCHITECTURES=x86_64 -DCMAKE_TOOLCHAIN_FILE=/tmp/vcpkg/scripts/buildsystems/vcpkg.cmake -DVCPKG_TARGET_TRIPLET=x64-osx -DWITH_ZMQ=OFF -DWITH_OPENVR=OFF -DWITH_UART=OFF -DUSE_IMGUI_GL3=OFF -DUSE_LTO=ON -DWITH_LUA=OFF
-        cmake --build .
-      displayName: 'Build'
-    - task: PublishBuildArtifacts@1
-      inputs:
-        pathtoPublish: 'build/bin'
-        artifactName: binaries_macos_imgui_gl2
-      displayName: 'Publish binaries'
-
   - job: macos11_arm64
     pool:
       vmImage: 'macOS-10.15'
