@@ -820,32 +820,23 @@ eu07_application::init_glfw() {
 	if (!monitor)
 		monitor = glfwGetPrimaryMonitor();
 
-    auto const uselegacyrenderer { Global.GfxRenderer != "default" };
     glfwWindowHint( GLFW_AUTO_ICONIFY, GLFW_FALSE );
-    if ((Global.gfx_skippipeline || uselegacyrenderer) && Global.iMultisampling > 0) {
+    if ((Global.gfx_skippipeline || Global.LegacyRenderer) && Global.iMultisampling > 0) {
         glfwWindowHint( GLFW_SAMPLES, 1 << Global.iMultisampling );
     }
 
     crashreport_add_info("gfxrenderer", Global.GfxRenderer);
 
-    if( false == uselegacyrenderer ) {
+    if( !Global.LegacyRenderer ) {
         Global.bUseVBO = true;
         // activate core profile for opengl 3.3 renderer
         if( !Global.gfx_usegles ) {
-#ifndef EU07_USEIMGUIIMPLOPENGL2
             glfwWindowHint( GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE );
             glfwWindowHint( GLFW_OPENGL_FORWARD_COMPAT, GLFW_TRUE );
-#else
-            glfwWindowHint( GLFW_OPENGL_PROFILE, GLFW_OPENGL_COMPAT_PROFILE );
-#endif
             glfwWindowHint( GLFW_CONTEXT_VERSION_MAJOR, 3 );
             glfwWindowHint( GLFW_CONTEXT_VERSION_MINOR, 3 );
         }
         else {
-#ifdef EU07_USEIMGUIIMPLOPENGL2
-            ErrorLog("gles not supported in imgui gl2 build");
-            return -1;
-#endif
 #ifdef GLFW_CONTEXT_CREATION_API
             if (m_glfwversion >= 30200)
                 glfwWindowHint( GLFW_CONTEXT_CREATION_API, GLFW_EGL_CONTEXT_API );
@@ -861,13 +852,8 @@ eu07_application::init_glfw() {
         }
         Global.gfx_shadergamma = false;
         glfwWindowHint( GLFW_OPENGL_PROFILE, GLFW_OPENGL_ANY_PROFILE );
-#ifndef EU07_USEIMGUIIMPLOPENGL2
-        glfwWindowHint( GLFW_CONTEXT_VERSION_MAJOR, 3 );
-        glfwWindowHint( GLFW_CONTEXT_VERSION_MINOR, 0 );
-#else
         glfwWindowHint( GLFW_CONTEXT_VERSION_MAJOR, 2 );
         glfwWindowHint( GLFW_CONTEXT_VERSION_MINOR, 1 );
-#endif
     }
 
     if (Global.gfx_gldebug)

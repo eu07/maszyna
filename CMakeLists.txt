@@ -45,7 +45,6 @@ if (APPLE)
 	set (CMAKE_FIND_FRAMEWORK LAST)
 endif()
 
-option(USE_IMGUI_GL3 "Use OpenGL3+ imgui implementation" ON)
 option(WITH_OPENGL_MODERN "Compile with OpenGL modern renderer" ON)
 option(WITH_OPENGL_LEGACY "Compile with OpenGL legacy renderer" ON)
 option(WITH_UART "Compile with libserialport" ON)
@@ -201,13 +200,10 @@ set(SOURCES
 "vr/vr_interface.cpp"
 )
 
-if (USE_IMGUI_GL3)
-	set(SOURCES ${SOURCES} "imgui/imgui_impl_opengl3.cpp")
-else()
-	add_definitions(-DEU07_USEIMGUIIMPLOPENGL2)
-	set(SOURCES ${SOURCES} "imgui/imgui_impl_opengl2.cpp")
-	set_source_files_properties("imgui/imgui_impl_opengl2.cpp" PROPERTIES SKIP_PRECOMPILE_HEADERS TRUE)
-endif()
+set(SOURCES ${SOURCES} "imgui/imgui_impl_opengl3.cpp")
+set(SOURCES ${SOURCES} "imgui/imgui_impl_opengl2.cpp")
+set_source_files_properties("imgui/imgui_impl_opengl3.cpp" PROPERTIES SKIP_PRECOMPILE_HEADERS TRUE)
+set_source_files_properties("imgui/imgui_impl_opengl2.cpp" PROPERTIES SKIP_PRECOMPILE_HEADERS TRUE)
 
 if (WITH_CRASHPAD)
 	add_definitions(-DWITH_CRASHPAD)

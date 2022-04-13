@@ -25,7 +25,6 @@ http://mozilla.org/MPL/2.0/.
 //#define EU07_USE_DEBUG_CABSHADOWMAP
 //#define EU07_USE_DEBUG_CAMERA
 //#define EU07_USE_DEBUG_SOUNDEMITTERS
-//#define EU07_USEIMGUIIMPLOPENGL2
 //#define EU07_DISABLECABREFLECTIONS
 
 // bare-bones render controller, in lack of anything better yet

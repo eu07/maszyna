@@ -19,11 +19,8 @@ http://mozilla.org/MPL/2.0/.
 #include "application.h"
 
 #include "imgui/imgui_impl_glfw.h"
-#ifdef EU07_USEIMGUIIMPLOPENGL2
 #include "imgui/imgui_impl_opengl2.h"
-#else
 #include "imgui/imgui_impl_opengl3.h"
-#endif
 
 GLFWwindow *ui_layer::m_window{nullptr};
 ImGuiIO *ui_layer::m_imguiio{nullptr};
@@ -241,16 +238,16 @@ bool ui_layer::init(GLFWwindow *Window)
 	imgui_style();
 
     ImGui_ImplGlfw_InitForOpenGL(m_window, false);
-#ifdef EU07_USEIMGUIIMPLOPENGL2
-	crashreport_add_info("imgui_ver", "gl2");
-	ImGui_ImplOpenGL2_Init();
-#else
-    crashreport_add_info("imgui_ver", "gl3");
-    if (Global.gfx_usegles)
-        ImGui_ImplOpenGL3_Init("#version 300 es\nprecision highp float;");
-    else
-        ImGui_ImplOpenGL3_Init("#version 330 core");
-#endif
+	if (Global.LegacyRenderer) {
+		crashreport_add_info("imgui_ver", "gl2");
+		ImGui_ImplOpenGL2_Init();
+	} else {
+	    crashreport_add_info("imgui_ver", "gl3");
+	    if (Global.gfx_usegles)
+	        ImGui_ImplOpenGL3_Init("#version 300 es\nprecision highp float;");
+	    else
+	        ImGui_ImplOpenGL3_Init("#version 330 core");
+	}
 
     return true;
 }
@@ -259,11 +256,10 @@ void ui_layer::shutdown()
 {
     ImGui::EndFrame();
 
-#ifdef EU07_USEIMGUIIMPLOPENGL2
-    ImGui_ImplOpenGL2_Shutdown();
-#else
-    ImGui_ImplOpenGL3_Shutdown();
-#endif
+    if (Global.LegacyRenderer)
+        ImGui_ImplOpenGL2_Shutdown();
+    else
+        ImGui_ImplOpenGL3_Shutdown();
     ImGui_ImplGlfw_Shutdown();
     ImGui::DestroyContext();
 }
@@ -344,11 +340,10 @@ void ui_layer::render_internal()
 {
     ImGui::Render();
 
-#ifdef EU07_USEIMGUIIMPLOPENGL2
-    ImGui_ImplOpenGL2_RenderDrawData(ImGui::GetDrawData());
-#else
-    ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
-#endif
+    if (Global.LegacyRenderer)
+        ImGui_ImplOpenGL2_RenderDrawData(ImGui::GetDrawData());
+    else
+        ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
 }
 
 void ui_layer::begin_ui_frame()
@@ -358,11 +353,10 @@ void ui_layer::begin_ui_frame()
 
 void ui_layer::begin_ui_frame_internal()
 {
-#ifdef EU07_USEIMGUIIMPLOPENGL2
-	ImGui_ImplOpenGL2_NewFrame();
-#else
-	ImGui_ImplOpenGL3_NewFrame();
-#endif
+	if (Global.LegacyRenderer)
+		ImGui_ImplOpenGL2_NewFrame();
+	else
+		ImGui_ImplOpenGL3_NewFrame();
 	ImGui_ImplGlfw_NewFrame();
 	ImGui::NewFrame();
 }

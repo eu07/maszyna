@@ -4392,17 +4392,10 @@ opengl_renderer::Init_caps() {
         + " Vendor: " + gl_vendor
         + " OpenGL Version: " + gl_version );
 
-#ifdef EU07_USEIMGUIIMPLOPENGL2
-    if( !GLAD_GL_VERSION_1_5 ) {
-        ErrorLog( "Requires openGL >= 1.5" );
+    if( !GLAD_GL_VERSION_2_1 ) {
+        ErrorLog( "Requires openGL >= 2.1" );
         return false;
     }
-#else
-    if( !GLAD_GL_VERSION_3_0 ) {
-        ErrorLog( "Requires openGL >= 3.0" );
-        return false;
-    }
-#endif
 
     char* extensions = (char*)glGetString( GL_EXTENSIONS );
     if (extensions)
