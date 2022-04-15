@@ -9,7 +9,6 @@
 #include "simulationtime.h"
 #include "application.h"
 
-
 const char* uart_baudrates_list[] = {
     "300",
     "1200",
@@ -32,15 +31,17 @@ const size_t uart_baudrates_list_num = (
         sizeof(uart_baudrates_list)/sizeof(uart_baudrates_list[0])
     );
 
-void UartStatus::reset_stats() {
+void uart_status::reset_stats() {
     packets_sent = 0;
     packets_received = 0;
 }
 
+uart_status UartStatus;
+
 uart_input::uart_input()
 {
     conf = Global.uart_conf;
-    UartStatus *status = &Application.uart_status;
+    uart_status *status = &UartStatus;
 
     status->enabled = conf.enable;
     status->port_name = conf.port;
@@ -64,7 +65,7 @@ uart_input::uart_input()
 }
 
 void uart_input::find_ports() {
-    UartStatus *status = &Application.uart_status;
+    uart_status *status = &UartStatus;
 
     struct sp_port **ports;
     if (sp_list_ports(&ports) == SP_OK) {
@@ -91,7 +92,7 @@ void uart_input::find_ports() {
 
 bool uart_input::setup_port()
 {
-    UartStatus *status = &Application.uart_status;
+    uart_status *status = &UartStatus;
 
     if(!port) {
         find_ports();
@@ -162,6 +163,7 @@ bool uart_input::setup_port()
         ErrorLog("uart: connected to '"+status->port_name+"'");
         status->reset_stats();
         status->is_connected = true;
+        data_pending = false;
     }
 
     return true;
@@ -262,7 +264,7 @@ uart_input::recall_bindings() {
 
 void uart_input::poll()
 {
-    UartStatus *status = &Application.uart_status;
+    uart_status *status = &UartStatus;
     auto now = std::chrono::high_resolution_clock::now();
 
     /* handle baud change */
@@ -334,13 +336,13 @@ void uart_input::poll()
 
 		bool sync;
 		if (tmp_buffer[0] != 0xEF || tmp_buffer[1] != 0xEF || tmp_buffer[2] != 0xEF || tmp_buffer[3] != 0xEF) {
-            Application.uart_status.is_synced = false;
+            UartStatus.is_synced = false;
 			if (conf.debug)
 				WriteLog("uart: bad sync");
 			sync = false;
 		}
 		else {
-            Application.uart_status.is_synced = true;
+            UartStatus.is_synced = true;
 			if (conf.debug)
 				WriteLog("uart: sync ok");
 			sync = true;
@@ -384,7 +386,7 @@ void uart_input::poll()
 
 		std::array<uint8_t, 16> buffer;
 		memmove(&buffer[0], &tmp_buffer[4], 16);
-        Application.uart_status.packets_received++;
+        UartStatus.packets_received++;
 
 		if (conf.debug)
 		{
@@ -607,7 +609,7 @@ void uart_input::poll()
         setup_port();
         return;
       }
-        Application.uart_status.packets_sent++;
+        UartStatus.packets_sent++;
 
 		data_pending = true;
 	}

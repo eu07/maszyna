@@ -40,9 +40,6 @@ driver_ui::driver_ui() {
 
     m_aidpanel.title = STR("Driving Aid");
 
-    m_scenariopanel.size_min = { 435, 50 };
-    m_scenariopanel.size_max = { Global.fb_size.x * 0.95f, Global.fb_size.y * 0.95 };
-
     m_scenariopanel.title = STR("Scenario");
     m_scenariopanel.size_min = { 435, 85 };
     m_scenariopanel.size_max = { Global.fb_size.x * 0.95f, Global.fb_size.y * 0.95 };

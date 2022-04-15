@@ -117,13 +117,8 @@ private:
         m_scenariolines,
         m_eventqueuelines,
         m_powergridlines,
- #ifdef WITH_UART
         m_rendererlines,
         m_uartlines;
- #else
-        m_rendererlines;
- #endif
-
 
 	double last_time = std::numeric_limits<double>::quiet_NaN();
 

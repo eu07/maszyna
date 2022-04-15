@@ -94,9 +94,6 @@ public:
         is_server() const;
     bool
         is_client() const;
-#ifdef WITH_UART
-    UartStatus uart_status;
-#endif
 
 private:
 // types

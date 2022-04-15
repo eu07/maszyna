@@ -6,7 +6,7 @@
 extern const char* uart_baudrates_list[];
 extern const size_t uart_baudrates_list_num;
 
-class UartStatus {
+class uart_status {
     public:
         std::string port_name = "";
         std::vector<std::string> available_ports = {};
@@ -104,3 +104,5 @@ private:
     bool error_notified = false;
     std::uint8_t m_trainstatecab { 0 }; // helper, keeps track of last active cab. 0: front cab, 1: rear cab
 };
+
+extern uart_status UartStatus;

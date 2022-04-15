@@ -622,14 +622,14 @@ debug_panel::render() {
         render_section_settings();
 #ifdef WITH_UART
         if(true == render_section( "UART", m_uartlines)) {
-            int ports_num = Application.uart_status.available_ports.size();
+            int ports_num = UartStatus.available_ports.size();
             char **avlports = new char*[ports_num];
             for (int i=0; i < ports_num; i++) {
-                avlports[i] = (char *) Application.uart_status.available_ports[i].c_str();
+                avlports[i] = (char *) UartStatus.available_ports[i].c_str();
             }
-            ImGui::Combo("Port", &Application.uart_status.selected_port_index, avlports, ports_num);
-            ImGui::Combo("Baud", &Application.uart_status.selected_baud_index, uart_baudrates_list, uart_baudrates_list_num);
-            ImGui::Checkbox("Enabled", &Application.uart_status.enabled);
+            ImGui::Combo("Port", &UartStatus.selected_port_index, avlports, ports_num);
+            ImGui::Combo("Baud", &UartStatus.selected_baud_index, uart_baudrates_list, uart_baudrates_list_num);
+            ImGui::Checkbox("Enabled", &UartStatus.enabled);
         }
 #endif
         // toggles
@@ -640,13 +640,6 @@ debug_panel::render() {
     ImGui::End();
     ImGui::PopFont();
 }
-
-#ifdef WITH_UART
-bool
-debug_panel::render_section_uart() {
-    return true;
-};
-#endif
 
 bool
 debug_panel::render_section_scenario() {
@@ -1245,7 +1238,7 @@ debug_panel::update_section_scantable( std::vector<text_line> &Output ) {
 #ifdef WITH_UART
 void
 debug_panel::update_section_uart( std::vector<text_line> &Output ) {
-    UartStatus *status = &Application.uart_status;
+    uart_status *status = &UartStatus;
 
     Output.emplace_back(
         ("Port: " + status->port_name).c_str(),
