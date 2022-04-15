@@ -623,14 +623,12 @@ debug_panel::render() {
 #ifdef WITH_UART
         if(true == render_section( "UART", m_uartlines)) {
             int ports_num = Application.uart_status.available_ports.size();
-            if(ports_num > 0) {
-                char **avlports = new char*[ports_num];
-                for (int i=0; i < ports_num; i++) {
-                    avlports[i] = (char *) Application.uart_status.available_ports[i].c_str();
-                }
-                ImGui::Combo("Port", &Application.uart_status.selected_port_index, avlports, ports_num);
-                ImGui::Combo("Baud", &Application.uart_status.selected_baud_index, uart_baudrates_list, uart_baudrates_list_num);
+            char **avlports = new char*[ports_num];
+            for (int i=0; i < ports_num; i++) {
+                avlports[i] = (char *) Application.uart_status.available_ports[i].c_str();
             }
+            ImGui::Combo("Port", &Application.uart_status.selected_port_index, avlports, ports_num);
+            ImGui::Combo("Baud", &Application.uart_status.selected_baud_index, uart_baudrates_list, uart_baudrates_list_num);
             ImGui::Checkbox("Enabled", &Application.uart_status.enabled);
         }
 #endif
