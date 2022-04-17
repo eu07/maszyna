@@ -116,7 +116,7 @@ void TSecuritySystem::cabsignal_reset() {
 	}
 }
 
-void TSecuritySystem::update(double dt, double vel, bool pwr) {
+void TSecuritySystem::update(double dt, double vel, bool pwr, int cab) {
     if (!pwr)
         power = false;
 
@@ -128,16 +128,22 @@ void TSecuritySystem::update(double dt, double vel, bool pwr) {
 		vigilance_timer = 0.0;
 		alert_timer = 0.0;
 		press_timer = 0.0;
+		if (!DebugModeFlag)
+			cabactive = 0;
 		return;
 	}
+	
+	bool is_powered = !power && pwr;
+	bool is_cabactived = CabDependent && (cabactive != cab);
 
-	if (!power && pwr && cabsignal_enabled) {
+	if (cabsignal_enabled && (is_powered || is_cabactived)) {
 		cabsignal_active = true;
 		alert_timer = SoundSignalDelay;
 	}
 
 	power = pwr;
 	velocity = vel;
+	cabactive = cab;
 
 	if (vigilance_enabled && velocity > AwareMinSpeed)
 		vigilance_timer += dt;
@@ -235,6 +241,7 @@ void TSecuritySystem::load(std::string const &line, double Vmax) {
 	extract_value( MaxHoldTime, "MaxHoldTime", line, "" );
 	extract_value( radiostop_enabled, "RadioStop", line, "" );
 	extract_value( MagnetLocation, "MagnetLocation", line, "" );
+	extract_value( CabDependent, "CabDependent", line, "" );
 }
 
 double TableInterpolation(std::map<double, double> &Map,  double Parameter)
@@ -3080,7 +3087,8 @@ void TMoverParameters::SecuritySystemReset(void) // zbijanie czuwaka/SHP
 // *************************************************************************************************
 void TMoverParameters::SecuritySystemCheck(double dt)
 {
-    SecuritySystem.update(dt, Vel, Power24vIsAvailable || Power110vIsAvailable);
+	bool isPower = Power24vIsAvailable || Power110vIsAvailable;
+    SecuritySystem.update(dt, Vel, isPower, CabActive);
 
     if (!Battery || !Radio)
     { // wyłączenie baterii deaktywuje sprzęt

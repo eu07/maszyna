@@ -668,19 +668,21 @@ class TSecuritySystem
 
 	double velocity = 0.0;
 	bool power = false;
+	int cabactive = 0;
 
 	double AwareDelay = 30.0;
 	double AwareMinSpeed = 0.0;
 	double SoundSignalDelay = 5.0;
 	double EmergencyBrakeDelay = 5.0;
 	double MaxHoldTime = 1.5;
+	bool CabDependent = false;
 
 public:
 	void set_enabled(bool e);
 	void acknowledge_press();
 	void acknowledge_release();
 	void cabsignal_reset();
-	void update(double dt, double Vel, bool pwr);
+	void update(double dt, double Vel, bool pwr, int cab);
 	void set_cabsignal();
 	void set_cabsignal_lock(bool);
 	bool is_blinking() const;
