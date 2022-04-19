@@ -116,7 +116,7 @@ driver_ui::on_key( int const Key, int const Action ) {
     }
 
     switch (Key) {
-            
+
 	    case GLFW_KEY_TAB: {
 		    m_mappanel.is_open = !m_mappanel.is_open;
 
@@ -130,7 +130,7 @@ driver_ui::on_key( int const Key, int const Action ) {
                 ( m_aidpanel.is_expanded == false ) ? 1 :
                 2 );
             state = clamp_circular( ++state, 3 );
-            
+
             m_aidpanel.is_open = ( state > 0 );
             m_aidpanel.is_expanded = ( state > 1 );
 
@@ -144,7 +144,7 @@ driver_ui::on_key( int const Key, int const Action ) {
                 ( m_timetablepanel.is_expanded == false ) ? 1 :
                 2 );
             state = clamp_circular( ++state, 3 );
-            
+
             m_timetablepanel.is_open = ( state > 0 );
             m_timetablepanel.is_expanded = ( state > 1 );
 

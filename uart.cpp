@@ -7,33 +7,121 @@
 #include "parser.h"
 #include "Logs.h"
 #include "simulationtime.h"
+#include "application.h"
+
+const char* uart_baudrates_list[] = {
+    "300",
+    "1200",
+    "2400",
+    "4800",
+    "9600",
+    "19200",
+    "38400",
+    "57600",
+    "74880",
+    "115200",
+    "230400",
+    "250000",
+    "500000",
+    "1000000",
+    "2000000"
+};
+
+const size_t uart_baudrates_list_num = (
+        sizeof(uart_baudrates_list)/sizeof(uart_baudrates_list[0])
+    );
+
+void uart_status::reset_stats() {
+    packets_sent = 0;
+    packets_received = 0;
+}
+
+uart_status UartStatus;
 
 uart_input::uart_input()
 {
     conf = Global.uart_conf;
+    uart_status *status = &UartStatus;
 
-    if (!setup_port())
-      throw std::runtime_error("uart: cannot open port");
+    status->enabled = conf.enable;
+    status->port_name = conf.port;
+    status->baud = conf.baud;
+
+    const std::string baudStr = std::to_string(status->baud);
+
+    for(int i=0;i<uart_baudrates_list_num;i++) {
+        if(baudStr == uart_baudrates_list[i]) {
+            status->selected_baud_index = i;
+            status->active_port_index = i;
+            break;
+        }
+    }
 
     old_packet.fill(0);
     last_update = std::chrono::high_resolution_clock::now();
+    last_setup = std::chrono::high_resolution_clock::now();
+
+    find_ports();
+}
+
+void uart_input::find_ports() {
+    uart_status *status = &UartStatus;
+
+    struct sp_port **ports;
+    if (sp_list_ports(&ports) == SP_OK) {
+        status->available_ports.clear();
+        status->active_port_index = -1;
+        status->selected_port_index = -1;
+        for (int i=0; ports[i]; i++) {
+            std::string newport = std::string(sp_get_port_name(ports[i]));
+            status->available_ports.emplace_back(newport);
+            if(newport == status->port_name) {
+                status->active_port_index = i;
+                status->selected_port_index = i;
+            }
+        }
+        if(status->selected_port_index > status->available_ports.size()) {
+            status->selected_port_index = -1;
+        }
+        sp_free_port_list(ports);
+    } else {
+        WriteLog("uart: cannot read serial ports list");
+    }
+    last_port_find = std::chrono::high_resolution_clock::now();
 }
 
 bool uart_input::setup_port()
 {
+    uart_status *status = &UartStatus;
+
+    if(!port) {
+        find_ports();
+    }
     if (port) {
       sp_close(port);
       sp_free_port(port);
       port = nullptr;
     }
 
-    if (sp_get_port_by_name(conf.port.c_str(), &port) != SP_OK) {
-        ErrorLog("uart: cannot find specified port");
+    last_setup = std::chrono::high_resolution_clock::now();
+
+    if (sp_get_port_by_name(status->port_name.c_str(), &port) != SP_OK) {
+        if(!error_notified) {
+            status->is_connected = false;
+            ErrorLog("uart: cannot find specified port '"+conf.port+"'");
+            find_ports();
+        }
+        error_notified = true;
         return false;
     }
 
     if (sp_open(port, (sp_mode)(SP_MODE_READ | SP_MODE_WRITE)) != SP_OK) {
-        ErrorLog("uart: cannot open port");
+        if(!error_notified) {
+            status->is_connected = false;
+            ErrorLog("uart: cannot open port '"+status->port_name+"'");
+            find_ports();
+        }
+        error_notified = true;
         port = nullptr;
         return false;
     }
@@ -41,25 +129,43 @@ bool uart_input::setup_port()
 	sp_port_config *config;
 
     if (sp_new_config(&config) != SP_OK ||
-		sp_set_config_baudrate(config, conf.baud) != SP_OK ||
+		sp_set_config_baudrate(config, status->baud) != SP_OK ||
 		sp_set_config_flowcontrol(config, SP_FLOWCONTROL_NONE) != SP_OK ||
 		sp_set_config_bits(config, 8) != SP_OK ||
 		sp_set_config_stopbits(config, 1) != SP_OK ||
 		sp_set_config_parity(config, SP_PARITY_NONE) != SP_OK ||
 		sp_set_config(port, config) != SP_OK) {
-        ErrorLog("uart: cannot set config");
+        if(!error_notified) {
+            status->is_connected = false;
+            ErrorLog("uart: cannot set config");
+        }
+        error_notified = true;
         port = nullptr;
+        find_ports();
         return false;
     }
 
 	sp_free_config(config);
 
     if (sp_flush(port, SP_BUF_BOTH) != SP_OK) {
-        ErrorLog("uart: cannot flush");
+        if(!error_notified) {
+            status->is_connected = false;
+            ErrorLog("uart: cannot flush");
+        }
+        error_notified = true;
         port = nullptr;
+        find_ports();
         return false;
     }
-    
+
+    if(error_notified || ! status->is_connected) {
+        error_notified = false;
+        ErrorLog("uart: connected to '"+status->port_name+"'");
+        status->reset_stats();
+        status->is_connected = true;
+        data_pending = false;
+    }
+
     return true;
 }
 
@@ -158,10 +264,54 @@ uart_input::recall_bindings() {
 
 void uart_input::poll()
 {
+    uart_status *status = &UartStatus;
     auto now = std::chrono::high_resolution_clock::now();
+
+    /* handle baud change */
+    if(status->active_baud_index != status->selected_baud_index) {
+        status->baud = std::stoul(uart_baudrates_list[status->selected_baud_index]);
+        status->active_baud_index = status->selected_baud_index;
+        status->reset_stats();
+        status->is_connected = false;
+        setup_port();
+    }
+
+    /* handle port change */
+    if(status->available_ports.size() > 0 && status->selected_port_index >= 0 && status->active_port_index != status->selected_port_index) {
+        status->port_name = status->available_ports[status->selected_port_index];
+        status->active_port_index = status->selected_port_index;
+        status->reset_stats();
+        status->is_connected = false;
+        setup_port();
+    }
+
+    if (
+        (!port && std::chrono::duration<float>(now - last_port_find).count() > 1.0)
+        || (port && std::chrono::duration<float>(now - last_port_find).count() > 5.0)
+    ) {
+        find_ports();
+    }
+
+    if(!status->enabled) {
+        if(port) {
+          sp_close(port);
+          sp_free_port(port);
+          port = nullptr;
+        }
+        status->is_connected = false;
+        return;
+    }
+
     if (std::chrono::duration<float>(now - last_update).count() < conf.updatetime)
         return;
     last_update = now;
+
+
+    /* if connection error occured, slow down reconnection tries */
+    if (!port && error_notified && std::chrono::duration<float>(now - last_setup).count() < 1.0) {
+        return;
+    }
+
 
     if (!port) {
       setup_port();
@@ -173,29 +323,31 @@ void uart_input::poll()
 		return;
 
     sp_return ret;
-	
+
     if ((ret = sp_input_waiting(port)) >= 20)
     {
         std::array<uint8_t, 20> tmp_buffer; // TBD, TODO: replace with vector of configurable size?
         ret = sp_blocking_read(port, (void*)tmp_buffer.data(), tmp_buffer.size(), 0);
-		
+
         if (ret < 0) {
           setup_port();
           return;
         }
-		
+
 		bool sync;
 		if (tmp_buffer[0] != 0xEF || tmp_buffer[1] != 0xEF || tmp_buffer[2] != 0xEF || tmp_buffer[3] != 0xEF) {
+            UartStatus.is_synced = false;
 			if (conf.debug)
 				WriteLog("uart: bad sync");
 			sync = false;
 		}
 		else {
+            UartStatus.is_synced = true;
 			if (conf.debug)
 				WriteLog("uart: sync ok");
 			sync = true;
 		}
-		
+
 		if (!sync) {
 			int sync_cnt = 0;
 			int sync_fail = 0;
@@ -231,9 +383,10 @@ void uart_input::poll()
       }
 			return;
 		}
-		
+
 		std::array<uint8_t, 16> buffer;
 		memmove(&buffer[0], &tmp_buffer[4], 16);
+        UartStatus.packets_received++;
 
 		if (conf.debug)
 		{
@@ -456,7 +609,12 @@ void uart_input::poll()
         setup_port();
         return;
       }
+        UartStatus.packets_sent++;
 
 		data_pending = true;
 	}
+}
+
+bool uart_input::is_connected() {
+    return (port != nullptr);
 }

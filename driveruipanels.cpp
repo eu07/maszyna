@@ -34,6 +34,10 @@ http://mozilla.org/MPL/2.0/.
 #define DRIVER_HINT_CONTENT
 #include "driverhints.h"
 
+#ifdef WITH_UART
+#include "uart.h"
+#endif
+
 void
 drivingaid_panel::update() {
 
@@ -548,6 +552,9 @@ debug_panel::update() {
 	m_powergridlines.clear();
 	m_cameralines.clear();
 	m_rendererlines.clear();
+#ifdef WITH_UART
+    m_uartlines.clear();
+#endif
 
 	update_section_vehicle( m_vehiclelines );
 	update_section_engine( m_enginelines );
@@ -558,6 +565,9 @@ debug_panel::update() {
 	update_section_powergrid( m_powergridlines );
 	update_section_camera( m_cameralines );
 	update_section_renderer( m_rendererlines );
+#ifdef WITH_UART
+    update_section_uart(m_uartlines);
+#endif
 }
 
 void
@@ -610,6 +620,18 @@ debug_panel::render() {
         render_section( "Camera", m_cameralines );
         render_section( "Gfx Renderer", m_rendererlines );
         render_section_settings();
+#ifdef WITH_UART
+        if(true == render_section( "UART", m_uartlines)) {
+            int ports_num = UartStatus.available_ports.size();
+            char **avlports = new char*[ports_num];
+            for (int i=0; i < ports_num; i++) {
+                avlports[i] = (char *) UartStatus.available_ports[i].c_str();
+            }
+            ImGui::Combo("Port", &UartStatus.selected_port_index, avlports, ports_num);
+            ImGui::Combo("Baud", &UartStatus.selected_baud_index, uart_baudrates_list, uart_baudrates_list_num);
+            ImGui::Checkbox("Enabled", &UartStatus.enabled);
+        }
+#endif
         // toggles
         ImGui::Separator();
         ImGui::Checkbox( "Debug Mode", &DebugModeFlag );
@@ -1212,6 +1234,35 @@ debug_panel::update_section_scantable( std::vector<text_line> &Output ) {
 		Output.front().data = "(no points of interest)";
 	}
 }
+
+#ifdef WITH_UART
+void
+debug_panel::update_section_uart( std::vector<text_line> &Output ) {
+    uart_status *status = &UartStatus;
+
+    Output.emplace_back(
+        ("Port: " + status->port_name).c_str(),
+        Global.UITextColor
+    );
+    Output.emplace_back(
+        ("Baud: " + std::to_string(status->baud)).c_str(),
+        Global.UITextColor
+    );
+    if(status->is_connected) {
+        std::string synctext = status->is_synced ? "SYNCED" : "NOT SYNCED";
+        Output.emplace_back(("CONNECTED, " + synctext).c_str(), Global.UITextColor);
+    } else {
+        Output.emplace_back("* NOT CONNECTED *", Global.UITextColor);
+    }
+    Output.emplace_back(
+        (
+            "Packets sent: "+std::to_string(status->packets_sent)
+            +" Packets received: "+std::to_string(status->packets_received)
+        ).c_str(),
+        Global.UITextColor
+    );
+}
+#endif
 
 void
 debug_panel::update_section_scenario( std::vector<text_line> &Output ) {
