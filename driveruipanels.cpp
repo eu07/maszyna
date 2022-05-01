@@ -721,6 +721,15 @@ debug_panel::render_section_scenario() {
                 Global.fTimeSpeed = ( timerate == 4 ? 60 : timerate == 3 ? 20 : timerate == 2 ? 5 : 1 );
             }
         }
+		// base draw range slider
+		{
+			ImGui::TextUnformatted("CAUTION: drawing range change can affect FPS badly");
+			auto drawrange = std::log(Global.BaseDrawRange);
+			if (ImGui::SliderFloat(
+				(to_string(std::exp(drawrange), 0, 5) + " m###drawrange").c_str(), &drawrange, std::log(100.0f), std::log(50000.0f), "Base drawing range")) {
+				Global.BaseDrawRange = clamp(std::exp(drawrange), 100.0f, 50000.0f);
+			}
+		}
     }
 
     return true;
