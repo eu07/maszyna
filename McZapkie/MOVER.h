@@ -693,6 +693,7 @@ public:
 	bool is_braking() const;
 	bool is_engine_blocked() const;
 	bool radiostop_available() const;
+	bool has_separate_acknowledge() const;
 	void load(std::string const &line, double Vmax);
 
 	double MagnetLocation = 0.0;

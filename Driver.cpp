@@ -6376,6 +6376,19 @@ TController::control_horns( double const Timedelta ) {
 
 void
 TController::control_security_system( double const Timedelta ) {
+    if( mvOccupied->SecuritySystem.is_cabsignal_blinking() && mvOccupied->SecuritySystem.has_separate_acknowledge()) {
+        // jak zadziałało SHP
+        if( ( false == is_emu() )
+         && ( mvOccupied->DirActive == 0 ) ) {
+            cue_action( driver_hint::directionforward );
+        }
+        cue_action( driver_hint::shpsystemreset ); // to skasuj
+        if( BrakeCtrlPosition == 0 // TODO: verify whether it's 0 in all vehicle types
+         && AccDesired > 0.0
+         && mvOccupied->SecuritySystem.is_braking() ) {
+            cue_action( driver_hint::trainbrakerelease );
+        }
+    }
 
     if( mvOccupied->SecuritySystem.is_blinking() ) {
         // jak zadziałało CA/SHP

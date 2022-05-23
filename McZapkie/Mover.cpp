@@ -132,10 +132,11 @@ void TSecuritySystem::update(double dt, double vel, bool pwr, int cab) {
 		press_timer = 0.0;
 		return;
 	}
-	
+
 	bool just_powered_on = !power && pwr;
 	bool just_activated = CabDependent && (cabactive != cab);
 
+    /* enabling battery */
 	if (!DebugModeFlag && cabsignal_enabled && (just_powered_on || just_activated)) {
 		cabsignal_active = true;
 		alert_timer = SoundSignalDelay;
@@ -160,6 +161,10 @@ void TSecuritySystem::update(double dt, double vel, bool pwr, int cab) {
 void TSecuritySystem::set_cabsignal() {
     if (cabsignal_enabled && power)
 		cabsignal_active = true;
+}
+
+bool TSecuritySystem::has_separate_acknowledge() const {
+	return separate_acknowledge;
 }
 
 bool TSecuritySystem::is_blinking() const {

@@ -220,6 +220,7 @@ std::string locale::label_cab_control(std::string const &Label)
 	    { "main_off_bt:", STRN("line breaker") },
 	    { "main_on_bt:", STRN("line breaker") },
 	    { "security_reset_bt:", STRN("alerter") },
+	    { "shp_reset_bt:", STRN("shp") },
 	    { "releaser_bt:", STRN("independent brake releaser") },
 	    { "sand_bt:", STRN("sandbox") },
 	    { "antislip_bt:", STRN("wheelspin brake") },

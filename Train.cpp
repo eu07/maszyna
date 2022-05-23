@@ -712,7 +712,7 @@ dictionary_source *TTrain::GetTrainState( dictionary_source const &Extraparamete
 	dict->insert( "brake_delay_flag", mvOccupied->BrakeDelayFlag );
 	dict->insert( "brake_op_mode_flag", mvOccupied->BrakeOpModeFlag );
     // other controls
-    dict->insert( "ca", mvOccupied->SecuritySystem.is_blinking());
+    dict->insert( "ca", mvOccupied->SecuritySystem.is_vigilance_blinking());
     dict->insert( "shp", mvOccupied->SecuritySystem.is_cabsignal_blinking());
     dict->insert( "distance_counter", m_distancecounter );
     dict->insert( "pantpress", std::abs( mvPantographUnit->PantPress ) );
@@ -2341,8 +2341,13 @@ void TTrain::OnCommand_alerteracknowledge( TTrain *Train, command_data const &Co
 void TTrain::OnCommand_cabsignalacknowledge( TTrain *Train, command_data const &Command ) {
 	// TODO: visual feedback
 	if( Command.action == GLFW_PRESS ) {
-		Train->mvOccupied->SecuritySystem.cabsignal_reset();
-	}
+        if(Train->mvOccupied->SecuritySystem.has_separate_acknowledge()) {
+            Train->mvOccupied->SecuritySystem.cabsignal_reset();
+            Train->ggSHPResetButton.UpdateValue( 1.0, Train->dsbSwitch );
+        }
+	} else if( Command.action == GLFW_RELEASE ) {
+        Train->ggSHPResetButton.UpdateValue( 0.0 );
+    }
 }
 
 void TTrain::OnCommand_batterytoggle( TTrain *Train, command_data const &Command )
@@ -7906,6 +7911,7 @@ bool TTrain::Update( double const Deltatime )
     ggMainOnButton.Update();
     ggMainButton.Update();
     ggSecurityResetButton.Update();
+    ggSHPResetButton.Update();
     ggReleaserButton.Update();
 	ggSpringBrakeOnButton.Update();
 	ggSpringBrakeOffButton.Update();
@@ -9258,6 +9264,7 @@ void TTrain::clear_cab_controls()
     ggMainOffButton.Clear();
     ggMainOnButton.Clear();
     ggSecurityResetButton.Clear();
+    ggSHPResetButton.Clear();
     ggReleaserButton.Clear();
 	ggSpringBrakeOnButton.Clear();
 	ggSpringBrakeOffButton.Clear();
@@ -10019,6 +10026,7 @@ bool TTrain::initialize_gauge(cParser &Parser, std::string const &Label, int con
         { "main_off_bt:", ggMainOffButton },
         { "main_on_bt:", ggMainOnButton },
         { "security_reset_bt:", ggSecurityResetButton },
+        { "shp_reset_bt:", ggSHPResetButton },
         { "releaser_bt:", ggReleaserButton },
 		{ "springbrakeon_bt:", ggSpringBrakeOnButton },
 		{ "springbrakeoff_bt:", ggSpringBrakeOffButton },
