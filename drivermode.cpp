@@ -866,6 +866,12 @@ driver_mode::OnKeyDown(int cKey) {
             }
             break;
         }
+        case GLFW_KEY_F12: {
+          if ((Global.shiftState == true) && (Global.ctrlState == false)) {
+	    Application.queue_screenshot();
+	    break;
+	  }
+	}
         default: {
             break;
         }
