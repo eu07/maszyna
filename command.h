@@ -339,6 +339,7 @@ enum class user_command {
     spawntrainset,
     destroytrainset,
     quitsimulation,
+    screenshot,
 
     none = -1
 };
