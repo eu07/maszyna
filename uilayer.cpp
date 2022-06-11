@@ -272,11 +272,6 @@ bool ui_layer::on_key(int const Key, int const Action)
 {
     if (Action == GLFW_PRESS)
     {
-        if (Key == GLFW_KEY_PRINT_SCREEN) {
-            Application.queue_screenshot();
-            return true;
-        }
-
         if (Key == GLFW_KEY_F9) {
             m_logpanel.is_open = !m_logpanel.is_open;
             return true;
