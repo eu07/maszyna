@@ -344,6 +344,7 @@ commanddescription_sequence Commands_descriptions = {
     { "spawntrainset", command_target::simulation, command_mode::oneoff },
     { "destroytrainset", command_target::simulation, command_mode::oneoff },
     { "quitsimulation", command_target::simulation, command_mode::oneoff },
+    { "screenshot", command_target::simulation, command_mode::oneoff },
 };
 
 } // simulation

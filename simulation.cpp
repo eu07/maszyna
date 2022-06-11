@@ -478,6 +478,9 @@ void state_manager::process_commands() {
 			}
 		}
 	}
+	if (commanddata.command == user_command::screenshot && commanddata.action == GLFW_PRESS) {
+		Application.queue_screenshot();
+	}
 }
 
 TAnimModel * state_manager::create_model(const std::string &src, const std::string &name, const glm::dvec3 &position) {
