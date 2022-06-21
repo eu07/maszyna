@@ -303,6 +303,9 @@ public:
         for (TIsolated *iso : Isolated)
             iso->Modify(i, o); }; // dodanie lub odjęcie osi
     std::string RemoteIsolatedName();
+    void AddIsolated(TIsolated *iso) {
+        Isolated.push_back(iso);
+    }
     double WidthTotal();
     bool IsGroupable();
     int TestPoint( Math3D::vector3 *Point);

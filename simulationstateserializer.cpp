@@ -68,6 +68,7 @@ state_serializer::deserialize_begin( std::string const &Scenariofile ) {
 	        std::string,
 	        deserializefunction> > functionlist = {
 	            { "area",        &state_serializer::deserialize_area },
+	            { "isolated",    &state_serializer::deserialize_isolated },
 	            { "assignment",  &state_serializer::deserialize_assignment },
 	            { "atmo",        &state_serializer::deserialize_atmo },
 	            { "camera",      &state_serializer::deserialize_camera },
@@ -147,6 +148,22 @@ state_serializer::deserialize_continue(std::shared_ptr<deserializer_state> state
 	}
 
 	return false;
+}
+
+void
+state_serializer::deserialize_isolated( cParser &Input, scene::scratch_data &Scratchpad ) {
+    // first parameter specifies name of parent piece...
+    auto token { Input.getToken<std::string>() };
+    auto *groupowner { TIsolated::Find( token ) };
+    // ...followed by list of its tracks
+    while( ( false == ( token = Input.getToken<std::string>() ).empty() )
+        && ( token != "endisolated" ) ) {
+        auto *track { simulation::Paths.find( token ) };
+        if( track != nullptr )
+            track->AddIsolated( groupowner );
+        else
+            ErrorLog( "Bad scenario: track \"" + token + "\" not found" );
+    }
 }
 
 void
