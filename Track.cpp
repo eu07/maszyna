@@ -853,7 +853,7 @@ void TTrack::Load(cParser *parser, glm::dvec3 const &pOrigin)
         { // obwód izolowany, do którego tor należy
             parser->getTokens();
             *parser >> token;
-            pIsolated = TIsolated::Find(token);
+            Isolated.push_back(TIsolated::Find(token));
         }
         else if (str == "angle1")
         { // kąt ścięcia końca od strony 1
@@ -922,13 +922,11 @@ void TTrack::Load(cParser *parser, glm::dvec3 const &pOrigin)
 		str = token;
     }
     // alternatywny zapis nazwy odcinka izolowanego - po znaku "@" w nazwie toru
-    if (!pIsolated)
-        if ((i = m_name.find("@")) != std::string::npos)
-            if (i < m_name.length()) // nie może być puste
-            {
-                pIsolated = TIsolated::Find(m_name.substr(i + 1, m_name.length()));
-                m_name = m_name.substr(0, i - 1); // usunięcie z nazwy
-            }
+    if ((i = m_name.find("@")) != std::string::npos && i < m_name.length())
+    {
+        Isolated.push_back(TIsolated::Find(m_name.substr(i + 1, m_name.length())));
+        m_name = m_name.substr(0, i - 1); // usunięcie z nazwy
+    }
 
     // calculate path location
     location( (
@@ -1010,11 +1008,11 @@ void TTrack::QueueEvents( event_sequence const &Events, TDynamicObject const *Ow
     }
 }
 
-std::string TTrack::IsolatedName()
+std::string TTrack::RemoteIsolatedName()
 { // podaje nazwę odcinka izolowanego, jesli nie ma on jeszcze przypisanych zdarzeń
-    if (pIsolated)
-        if (!pIsolated->evBusy && !pIsolated->evFree)
-            return pIsolated->asName;
+    for (const TIsolated *iso : Isolated)
+        if (!iso->evBusy && !iso->evFree)
+            return iso->asName;
     return "";
 };
 
@@ -2333,8 +2331,8 @@ TTrack::export_as_text_( std::ostream &Output ) const {
             Output << "velocity " << fVelocity << ' ';
         }
     }
-    if( pIsolated ) {
-        Output << "isolated " << pIsolated->asName << ' ';
+    for( const TIsolated *iso : Isolated ) {
+        Output << "isolated " << iso->asName << ' ';
     }
     if( fOverhead != -1.0 ) {
         Output << "overhead " << fOverhead << ' ';

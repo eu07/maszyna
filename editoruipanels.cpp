@@ -109,9 +109,17 @@ itemproperties_panel::update( scene::basic_node const *Node ) {
     else if( typeid( *node ) == typeid( TTrack ) ) {
 
         auto const *subnode = static_cast<TTrack const *>( node );
+
+        std::string isolatedlist;
+        for (const TIsolated *iso : subnode->Isolated) {
+            if (!isolatedlist.empty())
+                isolatedlist += ", ";
+            isolatedlist += iso->asName;
+        }
+
         // basic attributes
         textline =
-            "isolated: " + ( ( subnode->pIsolated != nullptr ) ? Bezogonkow( subnode->pIsolated->asName ) : "(none)" )
+            "isolated: " + ( !isolatedlist.empty() ? isolatedlist : "(none)" )
             + "\nvelocity: " + to_string( subnode->SwitchExtension ? subnode->SwitchExtension->fVelocity : subnode->fVelocity )
             + "\nwidth: " + to_string( subnode->fTrackWidth ) + " m"
             + "\nfriction: " + to_string( subnode->fFriction, 2 )

@@ -153,7 +153,7 @@ class TTrack : public scene::basic_node
     friend itemproperties_panel;
 
 private:
-    TIsolated * pIsolated = nullptr; // obwód izolowany obsługujący zajęcia/zwolnienia grupy torów
+    std::vector<TIsolated*> Isolated; // obwód izolowany obsługujący zajęcia/zwolnienia grupy torów
 	std::shared_ptr<TSwitchExtension> SwitchExtension; // dodatkowe dane do toru, który jest zwrotnicą
     std::shared_ptr<TSegment> Segment;
     TTrack * trNext = nullptr; // odcinek od strony punktu 2 - to powinno być w segmencie
@@ -300,9 +300,9 @@ public:
 
     void RadioStop();
     void AxleCounter(int i, TDynamicObject *o) {
-        if (pIsolated)
-            pIsolated->Modify(i, o); }; // dodanie lub odjęcie osi
-    std::string IsolatedName();
+        for (TIsolated *iso : Isolated)
+            iso->Modify(i, o); }; // dodanie lub odjęcie osi
+    std::string RemoteIsolatedName();
     double WidthTotal();
     bool IsGroupable();
     int TestPoint( Math3D::vector3 *Point);
