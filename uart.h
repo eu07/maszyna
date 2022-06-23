@@ -3,6 +3,27 @@
 #include <libserialport.h>
 #include "command.h"
 
+extern const char* uart_baudrates_list[];
+extern const size_t uart_baudrates_list_num;
+
+class uart_status {
+    public:
+        std::string port_name = "";
+        std::vector<std::string> available_ports = {};
+        int selected_port_index = -1;
+        int selected_baud_index = -1;
+        int active_port_index = -1;
+        int active_baud_index = -1;
+        int baud = 0;
+        bool enabled = false;
+        bool is_connected = false;
+        bool is_synced = false;
+        unsigned long packets_sent = 0;
+        unsigned long packets_received = 0;
+
+        void reset_stats();
+};
+
 class uart_input
 {
 public:
@@ -52,6 +73,8 @@ public:
         recall_bindings();
     void
         poll();
+    bool
+        is_connected();
 
 private:
 // types
@@ -64,8 +87,9 @@ private:
 
     using input_pin_t = std::tuple<std::size_t, input_type_t, user_command, user_command>;
     using inputpin_sequence = std::vector<input_pin_t>;
-    
+
     bool setup_port();
+    void find_ports();
 
 // members
     sp_port *port = nullptr;
@@ -73,7 +97,12 @@ private:
     command_relay relay;
     std::array<std::uint8_t, 16> old_packet; // TBD, TODO: replace with vector of configurable size?
     std::chrono::time_point<std::chrono::high_resolution_clock> last_update;
+    std::chrono::time_point<std::chrono::high_resolution_clock> last_setup;
+    std::chrono::time_point<std::chrono::high_resolution_clock> last_port_find;
     conf_t conf;
 	bool data_pending = false;
+    bool error_notified = false;
     std::uint8_t m_trainstatecab { 0 }; // helper, keeps track of last active cab. 0: front cab, 1: rear cab
 };
+
+extern uart_status UartStatus;
