@@ -998,6 +998,10 @@ global_settings::ConfigParse(cParser &Parser) {
     if (iPause)
         iTextMode = GLFW_KEY_F1; // jak pauza, to pokazać zegar
 
+#ifndef WITH_PYTHON
+	python_enabled = false;
+#endif
+
 #ifdef _WIN32
 		    Console::ModeSet(iFeedbackMode, iFeedbackPort); // tryb pracy konsoli sterowniczej
 #endif

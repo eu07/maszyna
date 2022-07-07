@@ -47,6 +47,7 @@ endif()
 
 option(WITH_OPENGL_MODERN "Compile with OpenGL modern renderer" ON)
 option(WITH_OPENGL_LEGACY "Compile with OpenGL legacy renderer" ON)
+option(WITH_PYTHON "Compile with python2" ON)
 option(WITH_UART "Compile with libserialport" ON)
 option(WITH_LUA "Compile with lua scripting support" ON)
 option(WITH_OPENVR "Compile with OpenVR" ON)
@@ -89,7 +90,6 @@ set(SOURCES
 "parser.cpp"
 "nullrenderer.cpp"
 "renderer.cpp"
-"PyInt.cpp"
 "ResourceManager.cpp"
 "sn_utils.cpp"
 "Segment.cpp"
@@ -213,6 +213,13 @@ if (WITH_CRASHPAD)
 	else()
 		include_directories("ref/crashpad/crashpad" "ref/crashpad/crashpad/third_party/mini_chromium/mini_chromium")
 	endif()
+endif()
+
+if (WITH_PYTHON)
+	add_definitions(-DWITH_PYTHON)
+	set(SOURCES ${SOURCES} "PyInt.cpp")
+else()
+	set(SOURCES ${SOURCES} "PyIntStub.cpp")
 endif()
 
 if (WITH_UART)
@@ -402,9 +409,11 @@ endif()
 find_package(glfw3 REQUIRED)
 target_link_libraries(${PROJECT_NAME} glfw)
 
-find_package(PythonLibs 2 REQUIRED)
-include_directories(${PYTHON_INCLUDE_DIRS})
-target_link_libraries(${PROJECT_NAME} ${PYTHON_LIBRARIES})
+if (WITH_PYTHON)
+	find_package(PythonLibs 2 REQUIRED)
+	include_directories(${PYTHON_INCLUDE_DIRS})
+	target_link_libraries(${PROJECT_NAME} ${PYTHON_LIBRARIES})
+endif()
 
 if (NOT WIN32)
 	find_package(PNG 1.6 REQUIRED)
