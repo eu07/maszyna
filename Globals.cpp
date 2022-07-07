@@ -351,7 +351,7 @@ global_settings::ConfigParse(cParser &Parser) {
             // clamp the light number
             // max 8 lights per opengl specs, minus one used for sun. at least one light for
             // controlled vehicle
-            DynamicLightCount = clamp(DynamicLightCount, 1, 7);
+            DynamicLightCount = clamp(DynamicLightCount, 0, 7);
         }
         else if (token == "scenario.time.override")
         {
