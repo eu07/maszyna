@@ -118,8 +118,7 @@ double PFVd( double PH, double PL, double const S, double LIM, double const DP )
         LIM = LIM + 1;
         PH = PH + 1.0; // wyzsze cisnienie absolutne
         PL = PL + 1.0; // nizsze cisnienie absolutne
-        assert( PH != PL );
-        double sg = PL / PH; // bezwymiarowy stosunek cisnien
+        double sg = std::min( 1.0, PL / PH ); // bezwymiarowy stosunek cisnien
         double FM = PH * 197.0 * S; // najwyzszy mozliwy przeplyw, wraz z kierunkiem
         if ((PH - LIM) < 0.1)
             FM = FM * (PH - LIM) / DP; // jesli jestesmy przy nastawieniu, to zawor sie przymyka
