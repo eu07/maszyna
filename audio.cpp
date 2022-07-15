@@ -69,7 +69,7 @@ openal_buffer::openal_buffer( std::string const &Filename ) :
 	}
 	else {
 		id = null_resource;
-		ErrorLog("sound: failed to create AL buffer");
+		ErrorLog("sound: failed to create AL buffer: " + std::string(alGetString(alGetError())));
 	}
 
 	delete[] buf;
