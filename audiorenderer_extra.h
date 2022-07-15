@@ -17,7 +17,7 @@ openal_source::bind( sound_source *Controller, uint32_sequence Sounds, Iterator_
 
     is_multipart = ( buffers.size() > 1 );
 
-    if( id != audio::null_resource ) {
+    if( id != audio::null_resource && !buffers.empty()) {
         ::alSourceQueueBuffers( id, static_cast<ALsizei>( buffers.size() ), buffers.data() );
         ::alSourceRewind( id );
         // sound controller can potentially request playback to start from certain buffer point
