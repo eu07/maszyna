@@ -4851,7 +4851,7 @@ void TMoverParameters::ComputeConstans(void)
     double Curvature; // Ra 2014-07: odwrotność promienia
 
     TotalMassxg = TotalMass * g; // TotalMass*g
-    BearingF = 2.0 * (DamageFlag && dtrain_bearing);
+    BearingF = DamageFlag & dtrain_bearing > 0 ? 2.0 : 0;
 
     HideModifier = 0; // int(Couplers[0].CouplingFlag>0)+int(Couplers[1].CouplingFlag>0);
 
@@ -7778,15 +7778,26 @@ double TMoverParameters::dizel_fillcheck(int mcp, double dt)
 					else
 						dizel_nreg_min = dizel_nmin;
 				}
+				if (dizel_vel2nmax_Table.size() > 0 && !hydro_TC_Lockup)
+				{
+					dizel_nreg_max = std::min(std::min(dizel_nreg_max, enrot) + dizel_nreg_acc * dt, TableInterpolation(dizel_vel2nmax_Table, Vel));
+				}
+				else
+				{
+					dizel_nreg_max = dizel_nmax;
+				}
 			}
 			else
+			{
+				dizel_nreg_max = dizel_nmax;
 				realfill = RList[mcp].R;
+			}
         }
         if (dizel_nmax_cutoff > 0)
         {
             auto nreg { 0.0 };
 			if (EIMCtrlType > 0)
-				nreg = (eimic_real > 0.005 ? dizel_nmax : dizel_nmin);
+				nreg = (eimic_real > 0.005 ? dizel_nreg_max : dizel_nmin);
 			else
             switch (RList[MainCtrlPos].Mn)
             {
@@ -7796,13 +7807,13 @@ double TMoverParameters::dizel_fillcheck(int mcp, double dt)
 				break;
             case 2:
                 if ((dizel_automaticgearstatus == 0)&&(true/*(!hydro_TC) || (dizel_engage>dizel_fill)*/))
-                    nreg = dizel_nmax;
+                    nreg = dizel_nreg_max;
                 else
                     nreg = dizel_nmin;
 				break;
 			case 3:
 				if ((dizel_automaticgearstatus == 0) && (Vel > dizel_minVelfullengage))
-					nreg = dizel_nmax;
+					nreg = dizel_nreg_max;
 				else
 					nreg = dizel_nmin;
 				break;
@@ -7810,13 +7821,13 @@ double TMoverParameters::dizel_fillcheck(int mcp, double dt)
 				if ((dizel_automaticgearstatus == 0) && (Vel > dizel_minVelfullengage))
 					nreg = dizel_nmax;
 				else
-					nreg = dizel_nmin * 0.75 + dizel_nmax * 0.25;
+					nreg = dizel_nmin * 0.75 + dizel_nreg_max * 0.25;
 				break;
 			case 5:
 				if (Vel > dizel_minVelfullengage)
-					nreg = dizel_nmax;
+					nreg = dizel_nreg_max;
 				else
-					nreg = dizel_nmin + 0.8 * (dizel_nmax - dizel_nmin) * RList[mcp].R;
+					nreg = dizel_nmin + 0.8 * (dizel_nreg_max - dizel_nmin) * RList[mcp].R;
 				break;
             default:
                 realfill = 0; // sluczaj
@@ -8127,9 +8138,9 @@ void TMoverParameters::dizel_Heat( double const dt ) {
     dizel_heat.PA = ( /* ( ( !zamkniecie or niedomkniecie ) and !WBD ) || */ PPT /* || nurnik || ( woda < 7 ) */ ) /* && ( !PAp ) */;
 
     // engine heat transfers
-    auto const Ge { engineon * ( 0.21 * EnginePower + 12 ) / 3600 };
+    auto const Ge { engineon * ( 0.21 * dizel_heat.powerfactor * EnginePower + 12 ) / 3600 };
     // TODO: replace fixed heating power cost with more accurate calculation
-    auto const obciazenie { engineon * ( ( EnginePower / 950 ) + ( Heating ? HeatingPower : 0 ) + 70 ) };
+    auto const obciazenie { engineon * ( ( dizel_heat.powerfactor * EnginePower / 950 ) + ( Heating ? HeatingPower : 0 ) + 70 ) };
     auto const Qd { qs * Ge - obciazenie };
     // silnik oddaje czesc ciepla do wody chlodzacej, a takze pewna niewielka czesc do otoczenia, modyfikowane przez okienko
     auto const Qs { ( Qd - ( dizel_heat.kfs * ( dizel_heat.Ts - dizel_heat.Tsr ) ) - ( dizel_heat.kfe * /* ( 0.3 + 0.7 * ( dizel_heat.okienko ? 1 : 0 ) ) * */ ( dizel_heat.Ts - dizel_heat.Te ) ) ) };
@@ -8884,7 +8895,7 @@ bool TMoverParameters::switch_physics(bool const State) // DO PRZETLUMACZENIA NA
 bool startBPT;
 bool startMPT, startMPT0;
 bool startRLIST, startUCLIST;
-bool startDIZELMOMENTUMLIST, startHYDROTCLIST;
+bool startDIZELMOMENTUMLIST, startDIZELV2NMAXLIST, startHYDROTCLIST;
 bool startDLIST, startFFLIST, startWWLIST;
 bool startLIGHTSLIST;
 bool startCOMPRESSORLIST;
@@ -9158,6 +9169,26 @@ bool TMoverParameters::readDMList(std::string const &line) {
 	return true;
 }
 
+bool TMoverParameters::readV2NMAXList(std::string const &line) {
+
+	cParser parser(line);
+	if (false == parser.getTokens(2, false)) {
+
+		WriteLog("Read V2nmaxList: arguments missing in line " + std::to_string(LISTLINE + 1));
+		return false;
+	}
+	auto idx = LISTLINE++;
+	double x = 0.0;
+	double y = 0.0;
+	parser
+		>> x
+		>> y;
+
+	dizel_vel2nmax_Table.emplace(x, y / 60.0);
+
+	return true;
+}
+
 bool TMoverParameters::readHTCList(std::string const &line) {
 
 	cParser parser(line);
@@ -9375,6 +9406,7 @@ bool TMoverParameters::LoadFIZ(std::string chkpath)
 	startUCLIST = false;
     startDLIST = false;
 	startDIZELMOMENTUMLIST = false;
+	startDIZELV2NMAXLIST = false;
 	startHYDROTCLIST = false;
     startFFLIST = false;
     startWWLIST = false;
@@ -9456,6 +9488,11 @@ bool TMoverParameters::LoadFIZ(std::string chkpath)
 		if (issection("END-DML", inputline)) {
 			startBPT = false;
 			startDIZELMOMENTUMLIST = false;
+			continue;
+		}
+		if (issection("END-V2NL", inputline)) {
+			startBPT = false;
+			startDIZELV2NMAXLIST = false;
 			continue;
 		}
 		if (issection("END-HTCL", inputline)) {
@@ -9724,6 +9761,14 @@ bool TMoverParameters::LoadFIZ(std::string chkpath)
 			continue;
 		}
 
+		if (issection("V2NList:", inputline))
+		{
+			startBPT = false;
+			fizlines.emplace("V2NList", inputline);
+			startDIZELV2NMAXLIST = true; LISTLINE = 0;
+			continue;
+		}
+
         if( issection( "ffList:", inputline ) ) {
 			startBPT = false;
             startFFLIST = true; LISTLINE = 0;
@@ -9782,6 +9827,10 @@ bool TMoverParameters::LoadFIZ(std::string chkpath)
         }
 		if (true == startDIZELMOMENTUMLIST) {
 			readDMList(inputline);
+			continue;
+		}
+		if (true == startDIZELV2NMAXLIST) {
+			readV2NMAXList(inputline);
 			continue;
 		}
 		if (true == startHYDROTCLIST) {
@@ -10814,6 +10863,8 @@ void TMoverParameters::LoadFIZ_Engine( std::string const &Input ) {
             nmax /= 60.0; 
             extract_value( dizel_nmax_cutoff, "nmax_cutoff", Input, "0.0" );
             dizel_nmax_cutoff /= 60.0;
+			extract_value( dizel_nreg_acc, "nreg_acc", Input, "");
+			dizel_nreg_acc /= 60.0;
             extract_value( dizel_AIM, "AIM", Input, "1.0" );
             extract_value( dizel_RevolutionsDecreaseRate, "RPMDecRate", Input, "" );
 			
@@ -10965,6 +11016,9 @@ void TMoverParameters::LoadFIZ_Engine( std::string const &Input ) {
         // water heater
         extract_value( WaterHeater.config.temp_min, "HeaterMinTemperature", Input, "" );
         extract_value( WaterHeater.config.temp_max, "HeaterMaxTemperature", Input, "" );
+		float pf;
+		extract_value( pf, "NominalCoolingPower", Input, "1235");
+		dizel_heat.powerfactor = 1235 / pf;
     }
 
     // traction motors

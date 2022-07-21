@@ -1024,6 +1024,7 @@ private:
         float Twy2 { 40.0 }; // secondary circuit water temperature
         float temperatura1 { 50.0 };
         float temperatura2 { 40.0 };
+		float powerfactor { 1.0 }; // coefficient of heat generation for engines other than su45
     };
 
 	struct spring_brake {
@@ -1262,6 +1263,7 @@ public:
     double dizel_nmax = 2.0;
     double dizel_nominalfill = 0.0;
 	std::map<double, double> dizel_Momentum_Table;
+	std::map<double, double> dizel_vel2nmax_Table;
 	/*parametry aproksymacji silnika spalinowego*/
 	double dizel_Mstand = 0.0; /*moment oporow ruchu silnika dla enrot=0*/
 						 /*                dizel_auto_min, dizel_auto_max: real; {predkosc obrotowa przelaczania automatycznej skrzyni biegow*/
@@ -1270,6 +1272,7 @@ public:
 	double dizel_nmin_hdrive = 0.0; /*najmniejsza dopuszczalna predkosc obrotowa w czasie jazdy na hydro */
 	double dizel_nmin_hdrive_factor = 0.0; /*wspolczynnik wzrostu obrotow minimalnych hydro zaleznosci od zadanego procentu*/
 	double dizel_nmin_retarder = 0.0; /*obroty pracy podczas hamowania retarderem*/
+	double dizel_nreg_acc = 999.0; /*tempo zwiększania prędkości przez regulator dizla */
 	double dizel_minVelfullengage = 0.0; /*najmniejsza predkosc przy jezdzie ze sprzeglem bez poslizgu*/
 	double dizel_maxVelANS = 3.0; /*predkosc progowa rozlaczenia przetwornika momentu*/
 	double dizel_AIM = 1.0; /*moment bezwladnosci walu itp*/
@@ -1606,6 +1609,7 @@ public:
 	double dizel_Torque = 0.0; /*aktualny moment obrotowy silnika spalinowego*/
 	double dizel_Power = 0.0; /*aktualna moc silnika spalinowego*/
 	double dizel_nreg_min = 0.0; /*predkosc regulatora minimalna, zmienna w hydro*/
+	double dizel_nreg_max = 0.0; /*predkosc regulatora maksymalna, zmienna w hydro*/
 
 	/* - zmienne dla przetowrnika momentu */
 	double hydro_TC_Fill = 0.0; /*napelnienie*/
@@ -1983,6 +1987,7 @@ private:
 	bool readUCList(std::string const &Input);
     bool readDList( std::string const &line );
 	bool readDMList(std::string const &line);
+	bool readV2NMAXList(std::string const &line);
 	bool readHTCList(std::string const &line);
     bool readFFList( std::string const &line );
     bool readWWList( std::string const &line );
