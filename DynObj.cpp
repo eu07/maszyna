@@ -4333,7 +4333,7 @@ void TDynamicObject::RenderSounds() {
     }
     m_lastbrakepressure = MoverParameters->BrakePress;
     // ensure some basic level of volume and scale it up depending on pressure in the cylinder; scale this by the air release rate
-    volume = 20 * m_brakepressurechange * ( 0.25 + 0.75 * brakepressureratio );
+    volume = rsUnbrake.m_amplitudefactor * m_brakepressurechange * ( 0.25 + 0.75 * brakepressureratio );
     if( ( m_brakepressurechange > 0.05 ) && ( brakepressureratio > 0.05 ) ) {
         rsUnbrake
             .gain( volume )
@@ -5791,8 +5791,8 @@ void TDynamicObject::LoadMMediaFile( std::string const &TypeName, std::string co
 
                 else if( token == "radiatorfan2" ) {
                     // auxiliary circuit radiator fan
-                    m_powertrainsounds.radiator_fan.deserialize( parser, sound_type::single );
-                    m_powertrainsounds.radiator_fan.owner( this );
+                    m_powertrainsounds.radiator_fan_aux.deserialize( parser, sound_type::single );
+                    m_powertrainsounds.radiator_fan_aux.owner( this );
                 }
 
 				else if( token == "transmission:" ) {
@@ -5869,6 +5869,7 @@ void TDynamicObject::LoadMMediaFile( std::string const &TypeName, std::string co
 
 				else if( token == "unbrake:" ) {
 					// plik z piskiem hamulca, mnozniki i ofsety amplitudy.
+					rsUnbrake.m_amplitudefactor = 20.0f;
                     rsUnbrake.deserialize( parser, sound_type::single, sound_parameters::range );
                     rsUnbrake.owner( this );
                 }
@@ -7836,8 +7837,8 @@ TDynamicObject::powertrain_sounds::render( TMoverParameters const &Vehicle, doub
     // youBy - przenioslem, bo diesel tez moze miec turbo
     if( Vehicle.TurboTest > 0 ) {
         // udawanie turbo:
-		auto const pitch_diesel { Vehicle.EngineType == TEngineType::DieselEngine ? Vehicle.enrot / Vehicle.dizel_nmax : 1 };
-        auto const goalpitch { std::max( 0.025, ( engine_volume * pitch_diesel + engine_turbo.m_frequencyoffset ) * engine_turbo.m_frequencyfactor ) };
+		auto const pitch_diesel { Vehicle.EngineType == TEngineType::DieselEngine ? Vehicle.enrot / Vehicle.dizel_nmax * Vehicle.dizel_fill : 1 };
+        auto const goalpitch { std::max( 0.025, ( /*engine_volume **/ pitch_diesel + engine_turbo.m_frequencyoffset ) * engine_turbo.m_frequencyfactor ) };
         auto const goalvolume { (
             ( ( Vehicle.MainCtrlPos >= Vehicle.TurboTest ) && ( Vehicle.enrot > 0.1 ) ) ?
                 std::max( 0.0, ( engine_turbo_pitch + engine_turbo.m_amplitudeoffset ) * engine_turbo.m_amplitudefactor ) :
