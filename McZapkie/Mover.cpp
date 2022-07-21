@@ -83,6 +83,8 @@ int DirF(int CouplerN)
 void TSecuritySystem::set_enabled(bool e) {
 	if (vigilance_enabled || cabsignal_enabled)
 		enabled = e;
+	if (CabDependent)
+		cabactive = 0;
 }
 
 void TSecuritySystem::acknowledge_press() {
