@@ -728,6 +728,7 @@ private:
     bool remove_coupler_adapter( int const Side );
     void RadioStop();
 	void Damage(char flag);
+	void pants_up();
     void SetLights();
     void RaLightsSet(int head, int rear);
     int LightList( end const Side ) const { return iInventory[ Side ]; }

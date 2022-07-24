@@ -3963,20 +3963,7 @@ bool TDynamicObject::Update(double dt, double dt1)
 
 	if (MoverParameters->InactiveCabPantsCheck)
 	{
-		auto p = FindPantographCarrier();
-		bool isAnyPantUp = false;
-		if (p)
-		{
-			for (auto &item : p->MoverParameters->Pantographs)
-			{
-				isAnyPantUp |= item.is_active;
-			}
-			if (isAnyPantUp)
-			{
-				MoverParameters->OperatePantographValve(end::front, operation_t::enable);
-				MoverParameters->OperatePantographValve(end::rear, operation_t::enable);
-			}
-		}
+		pants_up();
 		MoverParameters->InactiveCabPantsCheck = false;
 	}
 
@@ -4007,6 +3994,42 @@ bool TDynamicObject::Update(double dt, double dt1)
     update_exchange( dt );
 
 	return true; // Ra: chyba tak?
+}
+
+void TDynamicObject::pants_up()
+{
+	TDynamicObject *d = this;
+	bool isAnyPantUp = false;
+	while (d) {
+		for (auto &item : d->MoverParameters->Pantographs)
+		{
+			isAnyPantUp |= item.is_active;
+		}
+		d = d->Next(4); // pozostałe też
+	}
+	d = Prev(4);
+	while (d) {
+		for (auto &item : d->MoverParameters->Pantographs)
+		{
+			isAnyPantUp |= item.is_active;
+		}
+		d = d->Prev(4); // w drugą stronę też
+	}
+	if (isAnyPantUp)
+	{
+		d = this;
+		while (d) {
+			d->MoverParameters->OperatePantographValve(end::front, operation_t::enable, range_t::local);
+			d->MoverParameters->OperatePantographValve(end::rear, operation_t::enable, range_t::local);
+			d = d->Next(4); // pozostałe też
+		}
+		d = Prev(4);
+		while (d) {
+			d->MoverParameters->OperatePantographValve(end::front, operation_t::enable, range_t::local);
+			d->MoverParameters->OperatePantographValve(end::rear, operation_t::enable, range_t::local);
+			d = d->Prev(4); // w drugą stronę też
+		}
+	}
 }
 
 glm::dvec3 TDynamicObject::get_future_movement() const

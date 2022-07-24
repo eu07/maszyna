@@ -3109,14 +3109,22 @@ bool TMoverParameters::BatterySwitch( bool State, range_t const Notify )
         Battery = State;
     }
 
+	//switching batteries does not require activation
     if( Notify != range_t::local ) {
         SendCtrlToNext(
             "BatterySwitch",
             ( State ? 1 : 0 ),
-            CabActive,
+            1,
             ( Notify == range_t::unit ?
                 coupling::control | coupling::permanent :
                 coupling::control ) );
+		SendCtrlToNext(
+			"BatterySwitch",
+			(State ? 1 : 0),
+			-1,
+			(Notify == range_t::unit ?
+				coupling::control | coupling::permanent :
+				coupling::control));
     }
 
     return ( Battery != initialstate );
