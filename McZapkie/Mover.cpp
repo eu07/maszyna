@@ -7210,25 +7210,25 @@ void TMoverParameters::CheckEIMIC(double dt)
 		switch (MainCtrlPos)
 		{
 		case 0: //B+
-		  	eimic -= clamp(1.0 + eimic, 0.0, dt*0.3); //odejmuj do -1
+		  	eimic -= clamp(1.0 + eimic, 0.0, dt*0.14); //odejmuj do -1
 			break;
 		case 1: //B
-			eimic -= clamp(0.0 + eimic, 0.0, dt*0.3); //odejmuj do 0
+			eimic -= clamp(0.0 + eimic, 0.0, dt*0.14); //odejmuj do 0
 			break;
 		case 2: //B-
 		case 3: //0
 		case 4: //T-
-			eimic -= clamp(0.0 + eimic, 0.0, dt*0.3); //odejmuj do 0			
-			eimic += clamp(0.0 - eimic, 0.0, dt*0.3); //dodawaj do 0
+			eimic -= clamp(0.0 + eimic, 0.0, dt*0.14); //odejmuj do 0			
+			eimic += clamp(0.0 - eimic, 0.0, dt*0.14); //dodawaj do 0
 			break;
 		case 5: //T
-			eimic += clamp(0.0 - eimic, 0.0, dt*0.3); //dodawaj do 0
+			eimic += clamp(0.0 - eimic, 0.0, dt*0.14); //dodawaj do 0
 			break;
 		case 6: //T+
-			eimic += clamp(1.0 - eimic, 0.0, dt*0.3); //dodawaj do 1
+			eimic += clamp(1.0 - eimic, 0.0, dt*0.14); //dodawaj do 1
 			break;
 		case 7: //TMax
-			eimic += clamp(1.0 - eimic, 0.0, dt*0.3); //dodawaj do 1, max
+			eimic += clamp(1.0 - eimic, 0.0, dt*0.14); //dodawaj do 1, max
 			break;
 		}
 		if (MainCtrlPos >= 3 && eimic < 0) eimic = 0;
