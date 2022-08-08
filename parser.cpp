@@ -245,7 +245,7 @@ std::string cParser::readToken( bool ToLower, const char *Break ) {
     // launch child parser if include directive found.
     // NOTE: parameter collecting uses default set of token separators.
 	if( expandIncludes && token == "include" ) {
-        std::string includefile = readToken(ToLower); // nazwa pliku
+		std::string includefile = deserialize_random_set(*this); //readToken(ToLower); // nazwa pliku
 		replace_slashes(includefile);
         if( ( true == LoadTraction )
          || ( ( false == contains( includefile, "tr/" ) )
@@ -268,7 +268,7 @@ std::string cParser::readToken( bool ToLower, const char *Break ) {
     else if( ( std::strcmp( Break, "\n\r" ) == 0 ) && ( token.compare( 0, 7, "include" ) == 0 ) ) {
         // HACK: if the parser reads full lines we expect this line to contain entire include directive, to make parsing easier
         cParser includeparser( token.substr( 7 ) );
-        std::string includefile = includeparser.readToken( ToLower ); // nazwa pliku
+		std::string includefile = deserialize_random_set(includeparser);//includeparser.readToken( ToLower ); // nazwa pliku
         replace_slashes(includefile);
         if( ( true == LoadTraction )
          || ( ( false == contains( includefile, "tr/" ) )
