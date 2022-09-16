@@ -245,7 +245,7 @@ std::string cParser::readToken( bool ToLower, const char *Break ) {
     // launch child parser if include directive found.
     // NOTE: parameter collecting uses default set of token separators.
 	if( expandIncludes && token == "include" ) {
-		std::string includefile = deserialize_random_set(*this); //readToken(ToLower); // nazwa pliku
+		std::string includefile = allowRandomIncludes ? deserialize_random_set(*this) : readToken(ToLower); // nazwa pliku
 		replace_slashes(includefile);
         if( ( true == LoadTraction )
          || ( ( false == contains( includefile, "tr/" ) )
@@ -253,6 +253,7 @@ std::string cParser::readToken( bool ToLower, const char *Break ) {
             if (Global.ParserLogIncludes)
                 WriteLog("including: " + includefile);
             mIncludeParser = std::make_shared<cParser>( includefile, buffer_FILE, mPath, LoadTraction, readParameters( *this ) );
+			mIncludeParser->allowRandomIncludes = allowRandomIncludes;
             mIncludeParser->autoclear( m_autoclear );
             if( mIncludeParser->mSize <= 0 ) {
                 ErrorLog( "Bad include: can't open file \"" + includefile + "\"" );
@@ -268,7 +269,8 @@ std::string cParser::readToken( bool ToLower, const char *Break ) {
     else if( ( std::strcmp( Break, "\n\r" ) == 0 ) && ( token.compare( 0, 7, "include" ) == 0 ) ) {
         // HACK: if the parser reads full lines we expect this line to contain entire include directive, to make parsing easier
         cParser includeparser( token.substr( 7 ) );
-		std::string includefile = deserialize_random_set(includeparser);//includeparser.readToken( ToLower ); // nazwa pliku
+		includeparser.allowRandomIncludes = allowRandomIncludes;
+		std::string includefile = allowRandomIncludes ? deserialize_random_set( includeparser ) : includeparser.readToken( ToLower ); // nazwa pliku
         replace_slashes(includefile);
         if( ( true == LoadTraction )
          || ( ( false == contains( includefile, "tr/" ) )
@@ -276,6 +278,7 @@ std::string cParser::readToken( bool ToLower, const char *Break ) {
             if (Global.ParserLogIncludes)
                 WriteLog("including: " + includefile);
             mIncludeParser = std::make_shared<cParser>( includefile, buffer_FILE, mPath, LoadTraction, readParameters( includeparser ) );
+			mIncludeParser->allowRandomIncludes = allowRandomIncludes;
             mIncludeParser->autoclear( m_autoclear );
             if( mIncludeParser->mSize <= 0 ) {
                 ErrorLog( "Bad include: can't open file \"" + includefile + "\"" );
@@ -382,6 +385,7 @@ void cParser::injectString(const std::string &str)
 	}
 	else {
 		mIncludeParser = std::make_shared<cParser>( str, buffer_TEXT, "", LoadTraction );
+		mIncludeParser->allowRandomIncludes = allowRandomIncludes;
 		mIncludeParser->autoclear( m_autoclear );
 	}
 }

@@ -8671,6 +8671,7 @@ bool TTrain::InitializeCab(int NewCabNo, std::string const &asFileName)
     std::string cabstr("cab" + std::to_string(cabindex) + "definition:");
 
     cParser parser( asFileName, cParser::buffer_FILE, DynamicObject->asBaseDir );
+	parser.allowRandomIncludes = true;
     // NOTE: yaml-style comments are disabled until conflict in use of # is resolved
     // parser.addCommentStyle( "#", "\n" );
     std::string token;

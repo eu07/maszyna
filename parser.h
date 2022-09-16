@@ -91,6 +91,7 @@ class cParser //: public std::stringstream
 	// returns number of currently processed line in main file, -1 if inside include
 	int LineMain() const;
 	bool expandIncludes = true;
+	bool allowRandomIncludes = false;
 
   private:
     // methods:

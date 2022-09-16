@@ -4970,6 +4970,7 @@ void TDynamicObject::LoadMMediaFile( std::string const &TypeName, std::string co
         + " end",
         cParser::buffer_TEXT,
         asBaseDir );
+	parser.allowRandomIncludes = true;
 	std::string token;
     do {
 		token = "";
