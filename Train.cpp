@@ -563,7 +563,7 @@ TTrain::TTrain() {
 
 	for ( int i = 0; i < 20; ++i )
 	{
-		for ( int j = 0; j < 6; ++j )
+		for ( int j = 0; j < 7; ++j )
 			fPress[i][j] = 0.0;
 		bBrakes[i][0] = bBrakes[i][1] = false;
 	}
@@ -743,7 +743,7 @@ dictionary_source *TTrain::GetTrainState( dictionary_source const &Extraparamete
     char const *TXTT[ 10 ] = { "fd", "fdt", "fdb", "pd", "pdt", "pdb", "itothv", "1", "2", "3" };
     char const *TXTC[ 10 ] = { "fr", "frt", "frb", "pr", "prt", "prb", "im", "vm", "ihv", "uhv" };
 	char const *TXTD[ 10 ] = { "enrot", "nrot", "fill_des", "fill_real", "clutch_des", "clutch_real", "water_temp", "oil_press", "engine_temp", "retarder_fill" };
-    char const *TXTP[ 6 ] = { "bc", "bp", "sp", "cp", "rp", "mass" };
+    char const *TXTP[ 7 ] = { "bc", "bp", "sp", "cp", "rp", "mass", "spring" };
 	char const *TXTB[ 2 ] = { "spring_active", "spring_shutoff" };
     for( int j = 0; j < 10; ++j )
         dict->insert( ( "eimp_t_" + std::string( TXTT[ j ] ) ), fEIMParams[ 0 ][ j ] );
@@ -796,7 +796,7 @@ dictionary_source *TTrain::GetTrainState( dictionary_source const &Extraparamete
 		p = (kier ? p->Next(4) : p->Prev(4));
 	}
     for( int i = 0; i < 20; ++i ) {
-        for( int j = 0; j < 6; ++j ) {
+        for( int j = 0; j < 7; ++j ) {
             dict->insert( ( "eimp_pn" + std::to_string( i + 1 ) + "_" + TXTP[ j ] ), fPress[ i ][ j ] );
         }
 		for ( int j = 0; j < 2; ++j)  {
@@ -6970,6 +6970,7 @@ bool TTrain::Update( double const Deltatime )
 			fPress[i][3] = p->MoverParameters->CntrlPipePress;
 			fPress[i][4] = p->MoverParameters->Hamulec->GetBRP();
 			fPress[i][5] = (p->MoverParameters->TotalMass - p->MoverParameters->Mred) * 0.001;
+			fPress[i][6] = p->MoverParameters->SpringBrake.SBP;
 			bBrakes[i][0] = p->MoverParameters->SpringBrake.IsActive;
 			bBrakes[i][1] = p->MoverParameters->SpringBrake.ShuttOff;
             bDoors[i][1] = ( p->MoverParameters->Doors.instances[ side::left ].position > 0.f );
