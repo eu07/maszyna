@@ -216,10 +216,20 @@ driverkeyboard_input::default_bindings() {
         // redmarkerenableright,
         // redmarkerdisableright,
         { user_command::headlighttogglerearleft, GLFW_KEY_Y | keymodifier::control },
+        // headlightenablerearleft
+        // headlightdisablerearleft
         { user_command::headlighttogglerearright, GLFW_KEY_I | keymodifier::control },
+        // headlightenablerearright
+        // headlightdisablerearright
         { user_command::headlighttogglerearupper, GLFW_KEY_U | keymodifier::control },
+        // headlightenablerearupper
+        // headlightdisablerearupper
         { user_command::redmarkertogglerearleft, GLFW_KEY_Y | keymodifier::control | keymodifier::shift },
+        // redmarkerenablerearleft
+        // redmarkerdisablerearleft
         { user_command::redmarkertogglerearright, GLFW_KEY_I | keymodifier::control | keymodifier::shift },
+        // redmarkerenablerearright
+        // redmarkerdisablerearright
         { user_command::redmarkerstoggle, GLFW_KEY_E | keymodifier::shift },
         { user_command::endsignalstoggle, GLFW_KEY_E },
         { user_command::headlightsdimtoggle, GLFW_KEY_L | keymodifier::control },

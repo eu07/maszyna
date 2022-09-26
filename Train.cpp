@@ -365,10 +365,20 @@ TTrain::commandhandler_map const TTrain::m_commandhandlers = {
     { user_command::redmarkerenableright, &TTrain::OnCommand_redmarkerenableright },
     { user_command::redmarkerdisableright, &TTrain::OnCommand_redmarkerdisableright },
     { user_command::headlighttogglerearleft, &TTrain::OnCommand_headlighttogglerearleft },
+    { user_command::headlightenablerearleft, &TTrain::OnCommand_headlightenablerearleft },
+    { user_command::headlightdisablerearleft, &TTrain::OnCommand_headlightdisablerearleft },
     { user_command::headlighttogglerearright, &TTrain::OnCommand_headlighttogglerearright },
+    { user_command::headlightenablerearright, &TTrain::OnCommand_headlightenablerearright },
+    { user_command::headlightdisablerearright, &TTrain::OnCommand_headlightdisablerearright },
     { user_command::headlighttogglerearupper, &TTrain::OnCommand_headlighttogglerearupper },
+    { user_command::headlightenablerearupper, &TTrain::OnCommand_headlightenablerearupper },
+    { user_command::headlightdisablerearupper, &TTrain::OnCommand_headlightdisablerearupper },
     { user_command::redmarkertogglerearleft, &TTrain::OnCommand_redmarkertogglerearleft },
+    { user_command::redmarkerenablerearleft, &TTrain::OnCommand_redmarkerenablerearleft },
+    { user_command::redmarkerdisablerearleft, &TTrain::OnCommand_redmarkerdisablerearleft },
     { user_command::redmarkertogglerearright, &TTrain::OnCommand_redmarkertogglerearright },
+    { user_command::redmarkerenablerearright, &TTrain::OnCommand_redmarkerenablerearright },
+    { user_command::redmarkerdisablerearright, &TTrain::OnCommand_redmarkerdisablerearright },
     { user_command::redmarkerstoggle, &TTrain::OnCommand_redmarkerstoggle },
     { user_command::endsignalstoggle, &TTrain::OnCommand_endsignalstoggle },
     { user_command::headlightsdimtoggle, &TTrain::OnCommand_headlightsdimtoggle },
@@ -4444,22 +4454,73 @@ void TTrain::OnCommand_headlighttogglerearleft( TTrain *Train, command_data cons
                 end::front ) };
         // only reacting to press, so the switch doesn't flip back and forth if key is held down
         if( ( Train->mvOccupied->iLights[ vehicleotherend ] & light::headlight_right ) == 0 ) {
+            OnCommand_headlightenablerearleft(Train, Command);
+        }
+        else {
+            OnCommand_headlightdisablerearleft(Train, Command);
+        }
+    }
+}
+
+void TTrain::OnCommand_headlightenablerearleft( TTrain *Train, command_data const &Command ) {
+    if( Train->mvOccupied->LightsPosNo > 0 ) {
+        // lights are controlled by preset selector
+        return;
+    }
+
+    if( Command.action == GLFW_PRESS ) {
+        auto const vehicleotherend { (
+            Train->cab_to_end() == end::front ?
+                end::rear :
+                end::front ) };
+        // already enabled
+        if( ( Train->mvOccupied->iLights[ vehicleotherend ] & light::headlight_right ) == 0 ) {
             // turn on
             Train->mvOccupied->iLights[ vehicleotherend ] ^= light::headlight_right;
             // visual feedback
             Train->ggRearLeftLightButton.UpdateValue( 1.0, Train->dsbSwitch );
         }
-        else {
-            //turn off
-            Train->mvOccupied->iLights[ vehicleotherend ] ^= light::headlight_right;
-            // visual feedback
-            Train->ggRearLeftLightButton.UpdateValue( 0.0, Train->dsbSwitch );
-        }
+    }
+}
+
+void TTrain::OnCommand_headlightdisablerearleft( TTrain *Train, command_data const &Command ) {
+    if( Train->mvOccupied->LightsPosNo > 0 ) {
+        // lights are controlled by preset selector
+        return;
+    }
+    if( Command.action == GLFW_PRESS ) {
+        auto const vehicleotherend { (
+            Train->cab_to_end() == end::front ?
+                end::rear :
+                end::front ) };
+        // already disabled
+        if( ( Train->mvOccupied->iLights[ vehicleotherend ] & light::headlight_right ) == 0 ) {return;}
+
+        //turn off
+        Train->mvOccupied->iLights[ vehicleotherend ] ^= light::headlight_right;
+        // visual feedback
+        Train->ggRearLeftLightButton.UpdateValue( 0.0, Train->dsbSwitch );
     }
 }
 
 void TTrain::OnCommand_headlighttogglerearright( TTrain *Train, command_data const &Command ) {
+    if( Command.action == GLFW_PRESS ) {
+        // NOTE: we toggle the light on opposite side, as 'rear right' is 'front left' on the rear end etc
+        auto const vehicleotherend { (
+            Train->cab_to_end() == end::front ?
+                end::rear :
+                end::front ) };
+        // only reacting to press, so the switch doesn't flip back and forth if key is held down
+        if( ( Train->mvOccupied->iLights[ vehicleotherend ] & light::headlight_left ) == 0 ) {
+            OnCommand_headlightenablerearright(Train, Command);
+        }
+        else {
+            OnCommand_headlightdisablerearright(Train, Command);
+        }
+    }
+}
 
+void TTrain::OnCommand_headlightenablerearright( TTrain *Train, command_data const &Command ) {
     if( Train->mvOccupied->LightsPosNo > 0 ) {
         // lights are controlled by preset selector
         return;
@@ -4471,23 +4532,61 @@ void TTrain::OnCommand_headlighttogglerearright( TTrain *Train, command_data con
             Train->cab_to_end() == end::front ?
                 end::rear :
                 end::front ) };
-        // only reacting to press, so the switch doesn't flip back and forth if key is held down
+
         if( ( Train->mvOccupied->iLights[ vehicleotherend ] & light::headlight_left ) == 0 ) {
             // turn on
             Train->mvOccupied->iLights[ vehicleotherend ] ^= light::headlight_left;
             // visual feedback
             Train->ggRearRightLightButton.UpdateValue( 1.0, Train->dsbSwitch );
         }
-        else {
-            //turn off
-            Train->mvOccupied->iLights[ vehicleotherend ] ^= light::headlight_left;
-            // visual feedback
-            Train->ggRearRightLightButton.UpdateValue( 0.0, Train->dsbSwitch );
-        }
+    }
+}
+
+void TTrain::OnCommand_headlightdisablerearright( TTrain *Train, command_data const &Command ) {
+    if( Train->mvOccupied->LightsPosNo > 0 ) {
+        // lights are controlled by preset selector
+        return;
+    }
+
+    if( Command.action == GLFW_PRESS ) {
+        // NOTE: we toggle the light on opposite side, as 'rear right' is 'front left' on the rear end etc
+        auto const vehicleotherend { (
+            Train->cab_to_end() == end::front ?
+                end::rear :
+                end::front ) };
+        // already disabled
+        if( ( Train->mvOccupied->iLights[ vehicleotherend ] & light::headlight_left ) == 0 ) { return; }
+
+        //turn off
+        Train->mvOccupied->iLights[ vehicleotherend ] ^= light::headlight_left;
+        // visual feedback
+        Train->ggRearRightLightButton.UpdateValue( 0.0, Train->dsbSwitch );
     }
 }
 
 void TTrain::OnCommand_headlighttogglerearupper( TTrain *Train, command_data const &Command ) {
+
+    if( Train->mvOccupied->LightsPosNo > 0 ) {
+        // lights are controlled by preset selector
+        return;
+    }
+
+    if( Command.action == GLFW_PRESS ) {
+        // only reacting to press, so the switch doesn't flip back and forth if key is held down
+        auto const vehicleotherend { (
+            Train->cab_to_end() == end::front ?
+                end::rear :
+                end::front ) };
+        if( ( Train->mvOccupied->iLights[ vehicleotherend ] & light::headlight_upper ) == 0 ) {
+            OnCommand_headlightenablerearupper(Train, Command);
+        }
+        else {
+            OnCommand_headlightdisablerearupper(Train, Command);
+        }
+    }
+}
+
+void TTrain::OnCommand_headlightenablerearupper( TTrain *Train, command_data const &Command ) {
 
     if( Train->mvOccupied->LightsPosNo > 0 ) {
         // lights are controlled by preset selector
@@ -4506,16 +4605,50 @@ void TTrain::OnCommand_headlighttogglerearupper( TTrain *Train, command_data con
             // visual feedback
             Train->ggRearUpperLightButton.UpdateValue( 1.0, Train->dsbSwitch );
         }
-        else {
-            //turn off
-            Train->mvOccupied->iLights[ vehicleotherend ] ^= light::headlight_upper;
-            // visual feedback
-            Train->ggRearUpperLightButton.UpdateValue( 0.0, Train->dsbSwitch );
-        }
+    }
+}
+
+void TTrain::OnCommand_headlightdisablerearupper( TTrain *Train, command_data const &Command ) {
+
+    if( Train->mvOccupied->LightsPosNo > 0 ) {
+        // lights are controlled by preset selector
+        return;
+    }
+
+    if( Command.action == GLFW_PRESS ) {
+        // only reacting to press, so the switch doesn't flip back and forth if key is held down
+        auto const vehicleotherend { (
+            Train->cab_to_end() == end::front ?
+                end::rear :
+                end::front ) };
+        // already disabled?
+        if( ( Train->mvOccupied->iLights[ vehicleotherend ] & light::headlight_upper ) == 0 ) { return ; }
+
+        //turn off
+        Train->mvOccupied->iLights[ vehicleotherend ] ^= light::headlight_upper;
+        // visual feedback
+        Train->ggRearUpperLightButton.UpdateValue( 0.0, Train->dsbSwitch );
     }
 }
 
 void TTrain::OnCommand_redmarkertogglerearleft( TTrain *Train, command_data const &Command ) {
+    if( Command.action == GLFW_PRESS ) {
+        // NOTE: we toggle the light on opposite side, as 'rear right' is 'front left' on the rear end etc
+        auto const vehicleotherend { (
+            Train->cab_to_end() == end::front ?
+                end::rear :
+                end::front ) };
+        // only reacting to press, so the switch doesn't flip back and forth if key is held down
+        if( ( Train->mvOccupied->iLights[ vehicleotherend ] & light::redmarker_right ) == 0 ) {
+            OnCommand_redmarkerenablerearleft(Train, Command);
+        }
+        else {
+            OnCommand_redmarkerdisablerearleft(Train, Command);
+        }
+    }
+}
+
+void TTrain::OnCommand_redmarkerenablerearleft( TTrain *Train, command_data const &Command ) {
 
     if( Train->mvOccupied->LightsPosNo > 0 ) {
         // lights are controlled by preset selector
@@ -4528,19 +4661,33 @@ void TTrain::OnCommand_redmarkertogglerearleft( TTrain *Train, command_data cons
             Train->cab_to_end() == end::front ?
                 end::rear :
                 end::front ) };
-        // only reacting to press, so the switch doesn't flip back and forth if key is held down
         if( ( Train->mvOccupied->iLights[ vehicleotherend ] & light::redmarker_right ) == 0 ) {
             // turn on
             Train->mvOccupied->iLights[ vehicleotherend ] ^= light::redmarker_right;
             // visual feedback
             Train->ggRearLeftEndLightButton.UpdateValue( 1.0, Train->dsbSwitch );
         }
-        else {
-            //turn off
-            Train->mvOccupied->iLights[ vehicleotherend ] ^= light::redmarker_right;
-            // visual feedback
-            Train->ggRearLeftEndLightButton.UpdateValue( 0.0, Train->dsbSwitch );
-        }
+    }
+}
+
+void TTrain::OnCommand_redmarkerdisablerearleft( TTrain *Train, command_data const &Command ) {
+
+    if( Train->mvOccupied->LightsPosNo > 0 ) {
+        // lights are controlled by preset selector
+        return;
+    }
+
+    if( Command.action == GLFW_PRESS ) {
+        // NOTE: we toggle the light on opposite side, as 'rear right' is 'front left' on the rear end etc
+        auto const vehicleotherend { (
+            Train->cab_to_end() == end::front ?
+                end::rear :
+                end::front ) };
+        if( ( Train->mvOccupied->iLights[ vehicleotherend ] & light::redmarker_right ) == 0 ) { return; }
+        //turn off
+        Train->mvOccupied->iLights[ vehicleotherend ] ^= light::redmarker_right;
+        // visual feedback
+        Train->ggRearLeftEndLightButton.UpdateValue( 0.0, Train->dsbSwitch );
     }
 }
 
@@ -4559,17 +4706,54 @@ void TTrain::OnCommand_redmarkertogglerearright( TTrain *Train, command_data con
                 end::front ) };
         // only reacting to press, so the switch doesn't flip back and forth if key is held down
         if( ( Train->mvOccupied->iLights[ vehicleotherend ] & light::redmarker_left ) == 0 ) {
+            OnCommand_redmarkerenablerearright(Train, Command);
+        }
+        else {
+            OnCommand_redmarkerdisablerearright(Train, Command);
+        }
+    }
+}
+
+void TTrain::OnCommand_redmarkerenablerearright( TTrain *Train, command_data const &Command ) {
+
+    if( Train->mvOccupied->LightsPosNo > 0 ) {
+        // lights are controlled by preset selector
+        return;
+    }
+
+    if( Command.action == GLFW_PRESS ) {
+        // NOTE: we toggle the light on opposite side, as 'rear right' is 'front left' on the rear end etc
+        auto const vehicleotherend { (
+            Train->cab_to_end() == end::front ?
+                end::rear :
+                end::front ) };
+        if( ( Train->mvOccupied->iLights[ vehicleotherend ] & light::redmarker_left ) == 0 ) {
             // turn on
             Train->mvOccupied->iLights[ vehicleotherend ] ^= light::redmarker_left;
             // visual feedback
             Train->ggRearRightEndLightButton.UpdateValue( 1.0, Train->dsbSwitch );
         }
-        else {
-            //turn off
-            Train->mvOccupied->iLights[ vehicleotherend ] ^= light::redmarker_left;
-            // visual feedback
-            Train->ggRearRightEndLightButton.UpdateValue( 0.0, Train->dsbSwitch );
-        }
+    }
+}
+
+void TTrain::OnCommand_redmarkerdisablerearright( TTrain *Train, command_data const &Command ) {
+
+    if( Train->mvOccupied->LightsPosNo > 0 ) {
+        // lights are controlled by preset selector
+        return;
+    }
+
+    if( Command.action == GLFW_PRESS ) {
+        // NOTE: we toggle the light on opposite side, as 'rear right' is 'front left' on the rear end etc
+        auto const vehicleotherend { (
+            Train->cab_to_end() == end::front ?
+                end::rear :
+                end::front ) };
+        if( ( Train->mvOccupied->iLights[ vehicleotherend ] & light::redmarker_left ) == 0 ) { return; }
+        //turn off
+        Train->mvOccupied->iLights[ vehicleotherend ] ^= light::redmarker_left;
+        // visual feedback
+        Train->ggRearRightEndLightButton.UpdateValue( 0.0, Train->dsbSwitch );
     }
 }
 
