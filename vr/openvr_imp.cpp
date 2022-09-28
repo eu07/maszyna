@@ -747,6 +747,12 @@ std::unordered_map<std::string, vr_openvr::button_bindings> vr_openvr::m_buttonb
     { "dashboardlight_sw:", {
         user_command::dashboardlighttoggle,
         user_command::none } },
+    { "dashboardlighton_sw:", {
+        user_command::dashboardlightenable,
+        user_command::none } },
+    { "dashboardlightoff_sw:", {
+        user_command::dashboardlightdisable,
+        user_command::none } },
     { "timetablelight_sw:", {
         user_command::timetablelighttoggle,
         user_command::none } },

@@ -869,6 +869,12 @@ drivermouse_input::default_bindings() {
         { "dashboardlight_sw:", {
             user_command::dashboardlighttoggle,
             user_command::none } },
+        { "dashboardlighton_sw:", {
+            user_command::dashboardlightenable,
+            user_command::none } },
+        { "dashboardlightoff_sw:", {
+            user_command::dashboardlightdisable,
+            user_command::none } },
         { "timetablelight_sw:", {
             user_command::timetablelighttoggle,
             user_command::none } },

@@ -252,6 +252,8 @@ enum class user_command {
     instrumentlightenable,
     instrumentlightdisable,
     dashboardlighttoggle,
+    dashboardlightenable,
+    dashboardlightdisable,
     timetablelighttoggle,
     timetablelightenable,
     timetablelightdisable,

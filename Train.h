@@ -420,6 +420,8 @@ class TTrain {
     static void OnCommand_instrumentlightenable( TTrain *Train, command_data const &Command );
     static void OnCommand_instrumentlightdisable( TTrain *Train, command_data const &Command );
     static void OnCommand_dashboardlighttoggle( TTrain *Train, command_data const &Command );
+    static void OnCommand_dashboardlightenable( TTrain *Train, command_data const &Command );
+    static void OnCommand_dashboardlightdisable( TTrain *Train, command_data const &Command );
     static void OnCommand_timetablelighttoggle( TTrain *Train, command_data const &Command );
     static void OnCommand_timetablelightenable( TTrain *Train, command_data const &Command );
     static void OnCommand_timetablelightdisable( TTrain *Train, command_data const &Command );

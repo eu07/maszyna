@@ -399,6 +399,8 @@ TTrain::commandhandler_map const TTrain::m_commandhandlers = {
     { user_command::instrumentlightenable, &TTrain::OnCommand_instrumentlightenable },
     { user_command::instrumentlightdisable, &TTrain::OnCommand_instrumentlightdisable },
     { user_command::dashboardlighttoggle, &TTrain::OnCommand_dashboardlighttoggle },
+    { user_command::dashboardlightenable, &TTrain::OnCommand_dashboardlightenable },
+    { user_command::dashboardlightdisable, &TTrain::OnCommand_dashboardlightdisable },
     { user_command::timetablelighttoggle, &TTrain::OnCommand_timetablelighttoggle },
     { user_command::timetablelightenable, &TTrain::OnCommand_timetablelightenable },
     { user_command::timetablelightdisable, &TTrain::OnCommand_timetablelightdisable },
@@ -5146,6 +5148,15 @@ void TTrain::OnCommand_instrumentlightdisable( TTrain *Train, command_data const
 }
 
 void TTrain::OnCommand_dashboardlighttoggle( TTrain *Train, command_data const &Command ) {
+    if( false == Train->DashboardLightActive ) {
+        OnCommand_dashboardlightenable(Train, Command);
+    }
+    else {
+        OnCommand_dashboardlightdisable(Train, Command);
+    }
+}
+
+void TTrain::OnCommand_dashboardlightenable( TTrain *Train, command_data const &Command ) {
     // only reacting to press, so the switch doesn't flip back and forth if key is held down
     if( Command.action != GLFW_PRESS ) { return; }
 
@@ -5161,7 +5172,19 @@ void TTrain::OnCommand_dashboardlighttoggle( TTrain *Train, command_data const &
         // visual feedback
         Train->ggDashboardLightButton.UpdateValue( 1.0, Train->dsbSwitch );
     }
-    else {
+}
+
+void TTrain::OnCommand_dashboardlightdisable( TTrain *Train, command_data const &Command ) {
+    // only reacting to press, so the switch doesn't flip back and forth if key is held down
+    if( Command.action != GLFW_PRESS ) { return; }
+
+    if( Train->ggDashboardLightButton.SubModel == nullptr ) {
+        // TODO: proper control deviced definition for the interiors, that doesn't hinge of presence of 3d submodels
+        WriteLog( "Dashboard Light switch is missing, or wasn't defined" );
+        return;
+    }
+
+    if( Train->DashboardLightActive ) {
         //turn off
         Train->DashboardLightActive = false;
         // visual feedback
