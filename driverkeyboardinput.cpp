@@ -258,6 +258,8 @@ driverkeyboard_input::default_bindings() {
         // instrumentlightdisable,
         { user_command::dashboardlighttoggle, GLFW_KEY_SEMICOLON | keymodifier::shift },
         { user_command::timetablelighttoggle, GLFW_KEY_APOSTROPHE | keymodifier::shift },
+        // timetablelightenable
+        // timetablelightdisable
         { user_command::generictoggle0, GLFW_KEY_0 },
         { user_command::generictoggle1, GLFW_KEY_1 },
         { user_command::generictoggle2, GLFW_KEY_2 },

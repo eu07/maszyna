@@ -872,6 +872,12 @@ drivermouse_input::default_bindings() {
         { "timetablelight_sw:", {
             user_command::timetablelighttoggle,
             user_command::none } },
+        { "timetablelighton_sw:", {
+            user_command::timetablelightenable,
+            user_command::none } },
+        { "timetablelightoff_sw:", {
+            user_command::timetablelightdisable,
+            user_command::none } },
         { "cablight_sw:", {
             user_command::interiorlighttoggle,
             user_command::none } },

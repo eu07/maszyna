@@ -400,6 +400,8 @@ TTrain::commandhandler_map const TTrain::m_commandhandlers = {
     { user_command::instrumentlightdisable, &TTrain::OnCommand_instrumentlightdisable },
     { user_command::dashboardlighttoggle, &TTrain::OnCommand_dashboardlighttoggle },
     { user_command::timetablelighttoggle, &TTrain::OnCommand_timetablelighttoggle },
+    { user_command::timetablelightenable, &TTrain::OnCommand_timetablelightenable },
+    { user_command::timetablelightdisable, &TTrain::OnCommand_timetablelightdisable },
     { user_command::doorlocktoggle, &TTrain::OnCommand_doorlocktoggle },
     { user_command::doortoggleleft, &TTrain::OnCommand_doortoggleleft },
     { user_command::doortoggleright, &TTrain::OnCommand_doortoggleright },
@@ -5171,6 +5173,18 @@ void TTrain::OnCommand_timetablelighttoggle( TTrain *Train, command_data const &
     // only reacting to press, so the switch doesn't flip back and forth if key is held down
     if( Command.action != GLFW_PRESS ) { return; }
 
+    if( false == Train->TimetableLightActive ) {
+        OnCommand_timetablelightenable(Train, Command);
+    }
+    else {
+        OnCommand_timetablelightdisable(Train, Command);
+    }
+}
+
+void TTrain::OnCommand_timetablelightenable( TTrain *Train, command_data const &Command ) {
+    // only reacting to press, so the switch doesn't flip back and forth if key is held down
+    if( Command.action != GLFW_PRESS ) { return; }
+
     if( Train->ggTimetableLightButton.SubModel == nullptr ) {
         // TODO: proper control deviced definition for the interiors, that doesn't hinge of presence of 3d submodels
         WriteLog( "Timetable Light switch is missing, or wasn't defined" );
@@ -5183,7 +5197,18 @@ void TTrain::OnCommand_timetablelighttoggle( TTrain *Train, command_data const &
         // visual feedback
         Train->ggTimetableLightButton.UpdateValue( 1.0, Train->dsbSwitch );
     }
-    else {
+}
+
+void TTrain::OnCommand_timetablelightdisable( TTrain *Train, command_data const &Command ) {
+    // only reacting to press, so the switch doesn't flip back and forth if key is held down
+    if( Command.action != GLFW_PRESS ) { return; }
+
+    if( Train->ggTimetableLightButton.SubModel == nullptr ) {
+        // TODO: proper control deviced definition for the interiors, that doesn't hinge of presence of 3d submodels
+        WriteLog( "Timetable Light switch is missing, or wasn't defined" );
+        return;
+    }
+    if( Train->TimetableLightActive ) {
         //turn off
         Train->TimetableLightActive = false;
         // visual feedback
