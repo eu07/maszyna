@@ -794,6 +794,12 @@ drivermouse_input::default_bindings() {
         { "radiostop_sw:", {
             user_command::radiostopsend,
             user_command::none } },
+        { "radiostopon_sw:", {
+            user_command::radiostopenable,
+            user_command::none } },
+        { "radiostopoff_sw:", {
+            user_command::radiostopdisable,
+            user_command::none } },
         { "radiotest_sw:", {
             user_command::radiostoptest,
             user_command::none } },

@@ -141,6 +141,8 @@ commanddescription_sequence Commands_descriptions = {
 	{ "radiochannelincrease", command_target::vehicle, command_mode::oneoff },
 	{ "radiochanneldecrease", command_target::vehicle, command_mode::oneoff },
 	{ "radiostopsend", command_target::vehicle, command_mode::oneoff },
+	{ "radiostopenable", command_target::vehicle, command_mode::oneoff },
+	{ "radiostopdisable", command_target::vehicle, command_mode::oneoff },
 	{ "radiostoptest", command_target::vehicle, command_mode::oneoff },
 	{ "radiocall3send", command_target::vehicle, command_mode::oneoff },
 	{ "radiovolumeincrease", command_target::vehicle, command_mode::oneoff },

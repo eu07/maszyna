@@ -431,6 +431,8 @@ TTrain::commandhandler_map const TTrain::m_commandhandlers = {
     { user_command::radiochannelincrease, &TTrain::OnCommand_radiochannelincrease },
     { user_command::radiochanneldecrease, &TTrain::OnCommand_radiochanneldecrease },
     { user_command::radiostopsend, &TTrain::OnCommand_radiostopsend },
+    { user_command::radiostopenable, &TTrain::OnCommand_radiostopenable },
+    { user_command::radiostopdisable, &TTrain::OnCommand_radiostopdisable },
     { user_command::radiostoptest, &TTrain::OnCommand_radiostoptest },
     { user_command::radiocall3send, &TTrain::OnCommand_radiocall3send },
 	{ user_command::radiovolumeincrease, &TTrain::OnCommand_radiovolumeincrease },
@@ -6471,6 +6473,24 @@ void TTrain::OnCommand_radiostopsend( TTrain *Train, command_data const &Command
         Train->ggRadioStop.UpdateValue( 1.0 );
     }
     else if( Command.action == GLFW_RELEASE ) {
+        // visual feedback
+        Train->ggRadioStop.UpdateValue( 0.0 );
+    }
+}
+
+void TTrain::OnCommand_radiostopenable( TTrain *Train, command_data const &Command ) {
+    if( Command.action == GLFW_PRESS && Train->ggRadioStop.GetValue() == 0 ) {
+        if( ( true == Train->mvOccupied->Radio )
+         && ( Train->mvOccupied->Power24vIsAvailable || Train->mvOccupied->Power110vIsAvailable ) ) {
+            simulation::Region->RadioStop( Train->Dynamic()->GetPosition() );
+        }
+        // visual feedback
+        Train->ggRadioStop.UpdateValue( 1.0 );
+    }
+}
+
+void TTrain::OnCommand_radiostopdisable( TTrain *Train, command_data const &Command ) {
+    if( Command.action == GLFW_PRESS && Train->ggRadioStop.GetValue() > 0 ) {
         // visual feedback
         Train->ggRadioStop.UpdateValue( 0.0 );
     }

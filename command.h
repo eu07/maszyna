@@ -134,6 +134,8 @@ enum class user_command {
     radiochannelincrease,
     radiochanneldecrease,
     radiostopsend,
+    radiostopenable,
+    radiostopdisable,
     radiostoptest,
     radiocall3send,
 	radiovolumeincrease,

@@ -675,6 +675,12 @@ std::unordered_map<std::string, vr_openvr::button_bindings> vr_openvr::m_buttonb
     { "radiostop_sw:", {
         user_command::radiostopsend,
         user_command::none } },
+    { "radiostopon_sw:", {
+        user_command::radiostopenable,
+        user_command::none } },
+    { "radiostopoff_sw:", {
+        user_command::radiostopdisable,
+        user_command::none } },
     { "radiotest_sw:", {
         user_command::radiostoptest,
         user_command::none } },
