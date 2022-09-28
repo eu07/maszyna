@@ -64,7 +64,7 @@ mouse_slider::bind( user_command const &Command ) {
             auto const brakerangemultiplier { powerrange / LocalBrakePosNo };
 
             m_valuerange = 1.0;
-            m_value = 
+            m_value =
                 0.5
                 + 0.5 * ( vehicle->CoupledCtrl ?
                         vehicle->MainCtrlPos + vehicle->ScndCtrlPos :
@@ -550,6 +550,12 @@ drivermouse_input::default_bindings() {
         { "alarmchain:", {
             user_command::alarmchaintoggle,
             user_command::none } },
+        { "alarmchainon:", {
+            user_command::alarmchainenable,
+            user_command::none} },
+        { "alarmchainoff:", {
+            user_command::alarmchainenable,
+            user_command::none} },
         { "brakeprofile_sw:", {
             user_command::brakeactingspeedincrease,
             user_command::brakeactingspeeddecrease } },

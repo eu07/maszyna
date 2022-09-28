@@ -265,6 +265,8 @@ class TTrain {
     static void OnCommand_manualbrakeincrease( TTrain *Train, command_data const &Command );
     static void OnCommand_manualbrakedecrease( TTrain *Train, command_data const &Command );
     static void OnCommand_alarmchaintoggle( TTrain *Train, command_data const &Command );
+    static void OnCommand_alarmchainenable(TTrain *Train, command_data const &Command);
+    static void OnCommand_alarmchaindisable(TTrain *Train, command_data const &Command);
     static void OnCommand_wheelspinbrakeactivate( TTrain *Train, command_data const &Command );
     static void OnCommand_sandboxactivate( TTrain *Train, command_data const &Command );
 	static void OnCommand_autosandboxtoggle(TTrain *Train, command_data const &Command);

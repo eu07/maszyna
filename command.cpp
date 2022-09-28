@@ -62,6 +62,8 @@ commanddescription_sequence Commands_descriptions = {
 	{ "manualbrakeincrease", command_target::vehicle, command_mode::oneoff },
 	{ "manualbrakedecrease", command_target::vehicle, command_mode::oneoff },
 	{ "alarmchaintoggle", command_target::vehicle, command_mode::oneoff },
+    { "alarmchainenable", command_target::vehicle, command_mode::oneoff},
+    { "alarmchaindisable", command_target::vehicle, command_mode::oneoff},
 	{ "wheelspinbrakeactivate", command_target::vehicle, command_mode::oneoff },
 	{ "sandboxactivate", command_target::vehicle, command_mode::oneoff },
 	{ "autosandboxtoggle", command_target::vehicle, command_mode::oneoff },

@@ -434,6 +434,12 @@ std::unordered_map<std::string, vr_openvr::button_bindings> vr_openvr::m_buttonb
     { "alarmchain:", {
         user_command::alarmchaintoggle,
         user_command::none } },
+    { "alarmchainon:", {
+        user_command::alarmchainenable,
+        user_command::none} },
+    { "alarmchainoff:", {
+        user_command::alarmchainenable,
+        user_command::none} },
     { "brakeprofile_sw:", {
         user_command::brakeactingspeedincrease,
         user_command::brakeactingspeeddecrease } },
@@ -942,4 +948,3 @@ std::unordered_map<std::string, vr_openvr::button_bindings> vr_openvr::m_buttonb
 };
 
 bool vr_openvr::backend_register = vr_interface_factory::get_instance()->register_backend("openvr", vr_openvr::create_func);
-

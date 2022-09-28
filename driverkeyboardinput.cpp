@@ -64,6 +64,8 @@ driverkeyboard_input::default_bindings() {
         { user_command::manualbrakeincrease, GLFW_KEY_KP_1 | keymodifier::control },
         { user_command::manualbrakedecrease, GLFW_KEY_KP_7 | keymodifier::control },
         { user_command::alarmchaintoggle, GLFW_KEY_B | keymodifier::shift | keymodifier::control },
+        // alarmchainenable,
+        // alarmchaindisable,
         { user_command::wheelspinbrakeactivate, GLFW_KEY_KP_ENTER },
         { user_command::sandboxactivate, GLFW_KEY_S | keymodifier::shift },
         // autosandboxtoggle,
