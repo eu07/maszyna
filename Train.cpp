@@ -426,6 +426,8 @@ TTrain::commandhandler_map const TTrain::m_commandhandlers = {
     { user_command::hornhighactivate, &TTrain::OnCommand_hornhighactivate },
     { user_command::whistleactivate, &TTrain::OnCommand_whistleactivate },
     { user_command::radiotoggle, &TTrain::OnCommand_radiotoggle },
+    { user_command::radioenable, &TTrain::OnCommand_radioenable },
+    { user_command::radiodisable, &TTrain::OnCommand_radiodisable },
     { user_command::radiochannelincrease, &TTrain::OnCommand_radiochannelincrease },
     { user_command::radiochanneldecrease, &TTrain::OnCommand_radiochanneldecrease },
     { user_command::radiostopsend, &TTrain::OnCommand_radiostopsend },
@@ -6395,7 +6397,6 @@ void TTrain::OnCommand_whistleactivate( TTrain *Train, command_data const &Comma
 }
 
 void TTrain::OnCommand_radiotoggle( TTrain *Train, command_data const &Command ) {
-
     if( Command.action != GLFW_PRESS ) { return; }
 
     // NOTE: we ignore the lack of 3d model to allow system reset after receiving radio-stop signal
@@ -6407,10 +6408,26 @@ void TTrain::OnCommand_radiotoggle( TTrain *Train, command_data const &Command )
     // only reacting to press, so the sound can loop uninterrupted
     if( false == Train->mvOccupied->Radio ) {
         // turn on
-        Train->mvOccupied->Radio = true;
+        OnCommand_radioenable(Train, Command);
     }
     else {
         // turn off
+        OnCommand_radiodisable(Train, Command);
+    }
+}
+
+void TTrain::OnCommand_radioenable( TTrain *Train, command_data const &Command ) {
+    if( Command.action != GLFW_PRESS ) { return; }
+
+    if( false == Train->mvOccupied->Radio ) {
+        Train->mvOccupied->Radio = true;
+    }
+}
+
+void TTrain::OnCommand_radiodisable( TTrain *Train, command_data const &Command ) {
+    if( Command.action != GLFW_PRESS ) { return; }
+
+    if(Train->mvOccupied->Radio ) {
         Train->mvOccupied->Radio = false;
     }
 }

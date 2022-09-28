@@ -448,6 +448,8 @@ class TTrain {
     static void OnCommand_hornhighactivate( TTrain *Train, command_data const &Command );
     static void OnCommand_whistleactivate( TTrain *Train, command_data const &Command );
     static void OnCommand_radiotoggle( TTrain *Train, command_data const &Command );
+    static void OnCommand_radioenable( TTrain *Train, command_data const &Command );
+    static void OnCommand_radiodisable( TTrain *Train, command_data const &Command );
     static void OnCommand_radiochannelincrease( TTrain *Train, command_data const &Command );
     static void OnCommand_radiochanneldecrease( TTrain *Train, command_data const &Command );
     static void OnCommand_radiostopsend( TTrain *Train, command_data const &Command );

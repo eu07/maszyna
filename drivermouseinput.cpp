@@ -776,6 +776,12 @@ drivermouse_input::default_bindings() {
         { "radio_sw:", {
             user_command::radiotoggle,
             user_command::none } },
+        { "radioon_sw:", {
+            user_command::radioenable,
+            user_command::none } },
+        { "radiooff_sw:", {
+            user_command::radiodisable,
+            user_command::none } },
         { "radiochannel_sw:", {
             user_command::radiochannelincrease,
             user_command::radiochanneldecrease } },

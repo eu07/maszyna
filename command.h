@@ -129,6 +129,8 @@ enum class user_command {
     hornhighactivate,
     whistleactivate,
     radiotoggle,
+    radioenable,
+    radiodisable,
     radiochannelincrease,
     radiochanneldecrease,
     radiostopsend,

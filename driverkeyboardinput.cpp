@@ -137,6 +137,8 @@ driverkeyboard_input::default_bindings() {
         { user_command::hornhighactivate, GLFW_KEY_S },
         { user_command::whistleactivate, GLFW_KEY_Z },
         { user_command::radiotoggle, GLFW_KEY_R | keymodifier::control },
+        // radioenable
+        // radiodisable
         { user_command::radiochannelincrease, GLFW_KEY_EQUAL },
         { user_command::radiochanneldecrease, GLFW_KEY_MINUS },
         { user_command::radiostopsend, GLFW_KEY_PAUSE | keymodifier::shift | keymodifier::control },

@@ -136,6 +136,8 @@ commanddescription_sequence Commands_descriptions = {
 	{ "hornhighactivate", command_target::vehicle, command_mode::oneoff },
 	{ "whistleactivate", command_target::vehicle, command_mode::oneoff },
 	{ "radiotoggle", command_target::vehicle, command_mode::oneoff },
+	{ "radioenable", command_target::vehicle, command_mode::oneoff },
+	{ "radiodisable", command_target::vehicle, command_mode::oneoff },
 	{ "radiochannelincrease", command_target::vehicle, command_mode::oneoff },
 	{ "radiochanneldecrease", command_target::vehicle, command_mode::oneoff },
 	{ "radiostopsend", command_target::vehicle, command_mode::oneoff },
