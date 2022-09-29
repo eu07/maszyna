@@ -557,7 +557,8 @@ void uart_input::poll()
 			  | trainstate.doorrightallowed << 3
 			  | trainstate.doorrightopened << 4
 			  | trainstate.doorstepallowed << 5
-			  | trainstate.battery << 6),
+			  | trainstate.battery << 6
+			  | trainstate.radiomessageindicator << 7),
             //byte 4
 			(uint8_t)(
                 trainstate.train_heating << 0

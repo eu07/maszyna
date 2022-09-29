@@ -895,7 +895,8 @@ TTrain::get_state() const {
 		mvOccupied->Doors.step_enabled,
 		mvOccupied->Power24vIsAvailable,
 		0,
-		mvOccupied->LockPipe
+		mvOccupied->LockPipe,
+		btLampkaRadioMessage.GetValue(),
     };
 }
 

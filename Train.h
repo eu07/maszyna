@@ -123,6 +123,7 @@ class TTrain {
 		std::uint8_t battery;
 		std::uint8_t emergencybrake;
 		std::uint8_t lockpipe;
+		bool radiomessageindicator;
     };
 
     struct screen_entry {
