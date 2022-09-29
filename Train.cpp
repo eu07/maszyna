@@ -434,6 +434,7 @@ TTrain::commandhandler_map const TTrain::m_commandhandlers = {
     { user_command::radiodisable, &TTrain::OnCommand_radiodisable },
     { user_command::radiochannelincrease, &TTrain::OnCommand_radiochannelincrease },
     { user_command::radiochanneldecrease, &TTrain::OnCommand_radiochanneldecrease },
+    { user_command::radiochannelset, &TTrain::OnCommand_radiochannelset },
     { user_command::radiostopsend, &TTrain::OnCommand_radiostopsend },
     { user_command::radiostopenable, &TTrain::OnCommand_radiostopenable },
     { user_command::radiostopdisable, &TTrain::OnCommand_radiostopdisable },
@@ -441,6 +442,7 @@ TTrain::commandhandler_map const TTrain::m_commandhandlers = {
     { user_command::radiocall3send, &TTrain::OnCommand_radiocall3send },
 	{ user_command::radiovolumeincrease, &TTrain::OnCommand_radiovolumeincrease },
 	{ user_command::radiovolumedecrease, &TTrain::OnCommand_radiovolumedecrease },
+	{ user_command::radiovolumeset, &TTrain::OnCommand_radiovolumeset },
     { user_command::cabchangeforward, &TTrain::OnCommand_cabchangeforward },
     { user_command::cabchangebackward, &TTrain::OnCommand_cabchangebackward },
     { user_command::generictoggle0, &TTrain::OnCommand_generictoggle },
@@ -6485,9 +6487,10 @@ void TTrain::OnCommand_radiodisable( TTrain *Train, command_data const &Command 
 void TTrain::OnCommand_radiochannelincrease( TTrain *Train, command_data const &Command ) {
 
     if( Command.action == GLFW_PRESS ) {
-        Train->RadioChannel() = clamp( Train->RadioChannel() + 1, 1, 10 );
-        // visual feedback
-        Train->ggRadioChannelSelector.UpdateValue( Train->RadioChannel() - 1 );
+        command_data newCommand = Command;
+        newCommand.param1 = Train->RadioChannel() + 1;
+        OnCommand_radiochannelset(Train, newCommand);
+
         Train->ggRadioChannelNext.UpdateValue( 1.0 );
     }
     else if( Command.action == GLFW_RELEASE ) {
@@ -6499,9 +6502,10 @@ void TTrain::OnCommand_radiochannelincrease( TTrain *Train, command_data const &
 void TTrain::OnCommand_radiochanneldecrease( TTrain *Train, command_data const &Command ) {
 
     if( Command.action == GLFW_PRESS ) {
-        Train->RadioChannel() = clamp( Train->RadioChannel() - 1, 1, 10 );
-        // visual feedback
-        Train->ggRadioChannelSelector.UpdateValue( Train->RadioChannel() - 1 );
+        command_data newCommand = Command;
+        newCommand.param1 = Train->RadioChannel() - 1;
+        OnCommand_radiochannelset(Train, newCommand);
+
         Train->ggRadioChannelPrevious.UpdateValue( 1.0 );
     }
     else if( Command.action == GLFW_RELEASE ) {
@@ -6509,6 +6513,15 @@ void TTrain::OnCommand_radiochanneldecrease( TTrain *Train, command_data const &
         Train->ggRadioChannelPrevious.UpdateValue( 0.0 );
     }
 }
+
+void TTrain::OnCommand_radiochannelset(TTrain *Train, command_data const &Command) {
+    if( Command.action != GLFW_RELEASE ) {
+        // on press or hold
+        Train->RadioChannel() = clamp((int) Command.param1, 1, 10);
+        Train->ggRadioChannelSelector.UpdateValue( Train->RadioChannel() - 1 );
+    }
+}
+
 
 void TTrain::OnCommand_radiostopsend( TTrain *Train, command_data const &Command ) {
 
@@ -6581,9 +6594,9 @@ void TTrain::OnCommand_radiocall3send( TTrain *Train, command_data const &Comman
 void TTrain::OnCommand_radiovolumeincrease(TTrain *Train, command_data const &Command) {
 
 	if (Command.action == GLFW_PRESS) {
-		Global.RadioVolume = clamp(Global.RadioVolume + 0.125, 0.0, 1.0);
-		// visual feedback
-		Train->ggRadioVolumeSelector.UpdateValue(Global.RadioVolume);
+        command_data newCommand = Command;
+        newCommand.param1 = Global.RadioVolume + 0.125;
+        OnCommand_radiovolumeset(Train, newCommand);
 		Train->ggRadioVolumeNext.UpdateValue(1.0);
 	}
 	else if (Command.action == GLFW_RELEASE) {
@@ -6595,15 +6608,23 @@ void TTrain::OnCommand_radiovolumeincrease(TTrain *Train, command_data const &Co
 void TTrain::OnCommand_radiovolumedecrease(TTrain *Train, command_data const &Command) {
 
 	if (Command.action == GLFW_PRESS) {
-		Global.RadioVolume = clamp(Global.RadioVolume - 0.125, 0.0, 1.0);
-		// visual feedback
-		Train->ggRadioVolumeSelector.UpdateValue(Global.RadioVolume);
+        command_data newCommand = Command;
+        newCommand.param1 = Global.RadioVolume - 0.125;
+        OnCommand_radiovolumeset(Train, newCommand);
 		Train->ggRadioVolumePrevious.UpdateValue(1.0);
 	}
 	else if (Command.action == GLFW_RELEASE) {
 		// visual feedback
 		Train->ggRadioVolumePrevious.UpdateValue(0.0);
 	}
+}
+
+void TTrain::OnCommand_radiovolumeset(TTrain *Train, command_data const &Command) {
+    if( Command.action != GLFW_RELEASE ) {
+        // on press or hold
+        Global.RadioVolume = clamp(Command.param1, 0.0, 1.0);
+        Train->ggRadioVolumeSelector.UpdateValue(Global.RadioVolume);
+    }
 }
 
 

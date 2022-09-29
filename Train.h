@@ -456,6 +456,7 @@ class TTrain {
     static void OnCommand_radiodisable( TTrain *Train, command_data const &Command );
     static void OnCommand_radiochannelincrease( TTrain *Train, command_data const &Command );
     static void OnCommand_radiochanneldecrease( TTrain *Train, command_data const &Command );
+    static void OnCommand_radiochannelset( TTrain *Train, command_data const &Command );
     static void OnCommand_radiostopsend( TTrain *Train, command_data const &Command );
     static void OnCommand_radiostopenable( TTrain *Train, command_data const &Command );
     static void OnCommand_radiostopdisable( TTrain *Train, command_data const &Command );
@@ -463,6 +464,7 @@ class TTrain {
     static void OnCommand_radiocall3send( TTrain *Train, command_data const &Command );
 	static void OnCommand_radiovolumeincrease(TTrain *Train, command_data const &Command);
 	static void OnCommand_radiovolumedecrease(TTrain *Train, command_data const &Command);
+	static void OnCommand_radiovolumeset(TTrain *Train, command_data const &Command);
     static void OnCommand_cabchangeforward( TTrain *Train, command_data const &Command );
     static void OnCommand_cabchangebackward( TTrain *Train, command_data const &Command );
     static void OnCommand_generictoggle( TTrain *Train, command_data const &Command );

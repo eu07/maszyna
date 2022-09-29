@@ -133,6 +133,7 @@ enum class user_command {
     radiodisable,
     radiochannelincrease,
     radiochanneldecrease,
+    radiochannelset,
     radiostopsend,
     radiostopenable,
     radiostopdisable,
@@ -140,6 +141,7 @@ enum class user_command {
     radiocall3send,
 	radiovolumeincrease,
 	radiovolumedecrease,
+	radiovolumeset,
     cabchangeforward,
     cabchangebackward,
 

@@ -485,6 +485,25 @@ void uart_input::poll()
                 // TODO: pass correct entity id once the missing systems are in place
 			    0 );
         }
+        if( true == conf.radiochannelenable ) {
+            relay.post(
+                user_command::radiochannelset,
+                static_cast<int8_t>(buffer[12] & 0xF),
+                0,
+                GLFW_PRESS,
+                0
+            );
+        }
+        if( true == conf.radiovolumeenable ) {
+            int8_t requested_volume = static_cast<int8_t>((buffer[12] & 0xF0) >> 4);
+            relay.post(
+                user_command::radiovolumeset,
+                requested_volume == 0xF ? 1.0 : requested_volume * (1.0 / 15.0),
+                0,
+                GLFW_PRESS,
+                0
+            );
+        }
 
         old_packet = buffer;
     }

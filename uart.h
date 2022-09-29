@@ -58,6 +58,8 @@ public:
         bool scndenable = true;
         bool trainenable = true;
         bool localenable = true;
+        bool radiovolumeenable = false;
+        bool radiochannelenable = false;
 
         bool debug = false;
 

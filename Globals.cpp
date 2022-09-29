@@ -753,7 +753,9 @@ global_settings::ConfigParse(cParser &Parser) {
                 {"main", &uart_conf.mainenable},
                 {"scnd", &uart_conf.scndenable},
                 {"train", &uart_conf.trainenable},
-                {"local", &uart_conf.localenable}
+                {"local", &uart_conf.localenable},
+                {"radiovolume", &uart_conf.radiovolumeenable},
+                {"radiochannel", &uart_conf.radiochannelenable}
             };
 
             if(firstToken.find('|') != std::string::npos || features_map.count(firstToken)) {

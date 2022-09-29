@@ -141,6 +141,7 @@ driverkeyboard_input::default_bindings() {
         // radiodisable
         { user_command::radiochannelincrease, GLFW_KEY_EQUAL },
         { user_command::radiochanneldecrease, GLFW_KEY_MINUS },
+        // radiochannelset
         { user_command::radiostopsend, GLFW_KEY_PAUSE | keymodifier::shift | keymodifier::control },
         // radiostopenable
         // radiostopdisable
@@ -148,6 +149,7 @@ driverkeyboard_input::default_bindings() {
         { user_command::radiocall3send, GLFW_KEY_BACKSPACE },
         // radiovolumeincrease,
         // radiovolumedecrease,
+        // radiovolumeset,
         { user_command::cabchangeforward, GLFW_KEY_HOME },
         { user_command::cabchangebackward, GLFW_KEY_END },
         // viewturn,
