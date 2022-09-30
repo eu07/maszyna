@@ -64,7 +64,7 @@ mouse_slider::bind( user_command const &Command ) {
             auto const brakerangemultiplier { powerrange / LocalBrakePosNo };
 
             m_valuerange = 1.0;
-            m_value = 
+            m_value =
                 0.5
                 + 0.5 * ( vehicle->CoupledCtrl ?
                         vehicle->MainCtrlPos + vehicle->ScndCtrlPos :
@@ -550,6 +550,12 @@ drivermouse_input::default_bindings() {
         { "alarmchain:", {
             user_command::alarmchaintoggle,
             user_command::none } },
+        { "alarmchainon:", {
+            user_command::alarmchainenable,
+            user_command::none} },
+        { "alarmchainoff:", {
+            user_command::alarmchainenable,
+            user_command::none} },
         { "brakeprofile_sw:", {
             user_command::brakeactingspeedincrease,
             user_command::brakeactingspeeddecrease } },
@@ -770,6 +776,12 @@ drivermouse_input::default_bindings() {
         { "radio_sw:", {
             user_command::radiotoggle,
             user_command::none } },
+        { "radioon_sw:", {
+            user_command::radioenable,
+            user_command::none } },
+        { "radiooff_sw:", {
+            user_command::radiodisable,
+            user_command::none } },
         { "radiochannel_sw:", {
             user_command::radiochannelincrease,
             user_command::radiochanneldecrease } },
@@ -781,6 +793,12 @@ drivermouse_input::default_bindings() {
             user_command::none } },
         { "radiostop_sw:", {
             user_command::radiostopsend,
+            user_command::none } },
+        { "radiostopon_sw:", {
+            user_command::radiostopenable,
+            user_command::none } },
+        { "radiostopoff_sw:", {
+            user_command::radiostopdisable,
             user_command::none } },
         { "radiotest_sw:", {
             user_command::radiostoptest,
@@ -851,8 +869,20 @@ drivermouse_input::default_bindings() {
         { "dashboardlight_sw:", {
             user_command::dashboardlighttoggle,
             user_command::none } },
+        { "dashboardlighton_sw:", {
+            user_command::dashboardlightenable,
+            user_command::none } },
+        { "dashboardlightoff_sw:", {
+            user_command::dashboardlightdisable,
+            user_command::none } },
         { "timetablelight_sw:", {
             user_command::timetablelighttoggle,
+            user_command::none } },
+        { "timetablelighton_sw:", {
+            user_command::timetablelightenable,
+            user_command::none } },
+        { "timetablelightoff_sw:", {
+            user_command::timetablelightdisable,
             user_command::none } },
         { "cablight_sw:", {
             user_command::interiorlighttoggle,

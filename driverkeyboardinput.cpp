@@ -64,6 +64,8 @@ driverkeyboard_input::default_bindings() {
         { user_command::manualbrakeincrease, GLFW_KEY_KP_1 | keymodifier::control },
         { user_command::manualbrakedecrease, GLFW_KEY_KP_7 | keymodifier::control },
         { user_command::alarmchaintoggle, GLFW_KEY_B | keymodifier::shift | keymodifier::control },
+        // alarmchainenable,
+        // alarmchaindisable,
         { user_command::wheelspinbrakeactivate, GLFW_KEY_KP_ENTER },
         { user_command::sandboxactivate, GLFW_KEY_S | keymodifier::shift },
         // autosandboxtoggle,
@@ -135,9 +137,13 @@ driverkeyboard_input::default_bindings() {
         { user_command::hornhighactivate, GLFW_KEY_S },
         { user_command::whistleactivate, GLFW_KEY_Z },
         { user_command::radiotoggle, GLFW_KEY_R | keymodifier::control },
+        // radioenable
+        // radiodisable
         { user_command::radiochannelincrease, GLFW_KEY_EQUAL },
         { user_command::radiochanneldecrease, GLFW_KEY_MINUS },
         { user_command::radiostopsend, GLFW_KEY_PAUSE | keymodifier::shift | keymodifier::control },
+        // radiostopenable
+        // radiostopdisable
         { user_command::radiostoptest, GLFW_KEY_R | keymodifier::shift | keymodifier::control },
         { user_command::radiocall3send, GLFW_KEY_BACKSPACE },
         // radiovolumeincrease,
@@ -216,10 +222,20 @@ driverkeyboard_input::default_bindings() {
         // redmarkerenableright,
         // redmarkerdisableright,
         { user_command::headlighttogglerearleft, GLFW_KEY_Y | keymodifier::control },
+        // headlightenablerearleft
+        // headlightdisablerearleft
         { user_command::headlighttogglerearright, GLFW_KEY_I | keymodifier::control },
+        // headlightenablerearright
+        // headlightdisablerearright
         { user_command::headlighttogglerearupper, GLFW_KEY_U | keymodifier::control },
+        // headlightenablerearupper
+        // headlightdisablerearupper
         { user_command::redmarkertogglerearleft, GLFW_KEY_Y | keymodifier::control | keymodifier::shift },
+        // redmarkerenablerearleft
+        // redmarkerdisablerearleft
         { user_command::redmarkertogglerearright, GLFW_KEY_I | keymodifier::control | keymodifier::shift },
+        // redmarkerenablerearright
+        // redmarkerdisablerearright
         { user_command::redmarkerstoggle, GLFW_KEY_E | keymodifier::shift },
         { user_command::endsignalstoggle, GLFW_KEY_E },
         { user_command::headlightsdimtoggle, GLFW_KEY_L | keymodifier::control },
@@ -241,7 +257,11 @@ driverkeyboard_input::default_bindings() {
         // instrumentlightenable,
         // instrumentlightdisable,
         { user_command::dashboardlighttoggle, GLFW_KEY_SEMICOLON | keymodifier::shift },
+        // dashboardlightenable
+        // dashboardlightdisable
         { user_command::timetablelighttoggle, GLFW_KEY_APOSTROPHE | keymodifier::shift },
+        // timetablelightenable
+        // timetablelightdisable
         { user_command::generictoggle0, GLFW_KEY_0 },
         { user_command::generictoggle1, GLFW_KEY_1 },
         { user_command::generictoggle2, GLFW_KEY_2 },

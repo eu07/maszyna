@@ -434,6 +434,12 @@ std::unordered_map<std::string, vr_openvr::button_bindings> vr_openvr::m_buttonb
     { "alarmchain:", {
         user_command::alarmchaintoggle,
         user_command::none } },
+    { "alarmchainon:", {
+        user_command::alarmchainenable,
+        user_command::none} },
+    { "alarmchainoff:", {
+        user_command::alarmchainenable,
+        user_command::none} },
     { "brakeprofile_sw:", {
         user_command::brakeactingspeedincrease,
         user_command::brakeactingspeeddecrease } },
@@ -651,6 +657,12 @@ std::unordered_map<std::string, vr_openvr::button_bindings> vr_openvr::m_buttonb
     { "radio_sw:", {
         user_command::radiotoggle,
         user_command::none } },
+    { "radioon_sw:", {
+        user_command::radioenable,
+        user_command::none } },
+    { "radiooff_sw:", {
+        user_command::radiodisable,
+        user_command::none } },
     { "radiochannel_sw:", {
         user_command::radiochannelincrease,
         user_command::radiochanneldecrease } },
@@ -662,6 +674,12 @@ std::unordered_map<std::string, vr_openvr::button_bindings> vr_openvr::m_buttonb
         user_command::none } },
     { "radiostop_sw:", {
         user_command::radiostopsend,
+        user_command::none } },
+    { "radiostopon_sw:", {
+        user_command::radiostopenable,
+        user_command::none } },
+    { "radiostopoff_sw:", {
+        user_command::radiostopdisable,
         user_command::none } },
     { "radiotest_sw:", {
         user_command::radiostoptest,
@@ -729,8 +747,20 @@ std::unordered_map<std::string, vr_openvr::button_bindings> vr_openvr::m_buttonb
     { "dashboardlight_sw:", {
         user_command::dashboardlighttoggle,
         user_command::none } },
+    { "dashboardlighton_sw:", {
+        user_command::dashboardlightenable,
+        user_command::none } },
+    { "dashboardlightoff_sw:", {
+        user_command::dashboardlightdisable,
+        user_command::none } },
     { "timetablelight_sw:", {
         user_command::timetablelighttoggle,
+        user_command::none } },
+    { "timetablelighton_sw:", {
+        user_command::timetablelightenable,
+        user_command::none } },
+    { "timetablelightoff_sw:", {
+        user_command::timetablelightdisable,
         user_command::none } },
     { "cablight_sw:", {
         user_command::interiorlighttoggle,
@@ -942,4 +972,3 @@ std::unordered_map<std::string, vr_openvr::button_bindings> vr_openvr::m_buttonb
 };
 
 bool vr_openvr::backend_register = vr_interface_factory::get_instance()->register_backend("openvr", vr_openvr::create_func);
-
