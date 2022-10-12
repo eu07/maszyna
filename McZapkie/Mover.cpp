@@ -6159,6 +6159,10 @@ double TMoverParameters::TractionForce( double dt ) {
 						ActiveInverters += 1.0;
 				}
 				InvertersRatio = ActiveInverters / (double)InvertersNo;
+				if (EIM_Pmax_Table.size() > 1)
+				{
+					eimc[eimc_p_Pmax] = TableInterpolation(EIM_Pmax_Table, Vel);
+				}
 				//tempomat
 				if (ScndCtrlPosNo == 4 && SpeedCtrlTypeTime)
 				{
@@ -8905,7 +8909,7 @@ bool TMoverParameters::switch_physics(bool const State) // DO PRZETLUMACZENIA NA
 bool startBPT;
 bool startMPT, startMPT0;
 bool startRLIST, startUCLIST;
-bool startDIZELMOMENTUMLIST, startDIZELV2NMAXLIST, startHYDROTCLIST;
+bool startDIZELMOMENTUMLIST, startDIZELV2NMAXLIST, startHYDROTCLIST, startPMAXLIST;
 bool startDLIST, startFFLIST, startWWLIST;
 bool startLIGHTSLIST;
 bool startCOMPRESSORLIST;
@@ -9219,6 +9223,26 @@ bool TMoverParameters::readHTCList(std::string const &line) {
 	return true;
 }
 
+bool TMoverParameters::readPmaxList(std::string const &line) {
+
+	cParser parser(line);
+	if (false == parser.getTokens(2, false)) {
+
+		WriteLog("Read PmaxList: arguments missing in line " + std::to_string(LISTLINE + 1));
+		return false;
+	}
+	auto idx = LISTLINE++;
+	double x = 0.0;
+	double y = 0.0;
+	parser
+		>> x
+		>> y;
+
+	EIM_Pmax_Table.emplace(x, y);
+
+	return true;
+}
+
 bool TMoverParameters::readFFList( std::string const &line ) {
 
     cParser parser( line );
@@ -9418,7 +9442,8 @@ bool TMoverParameters::LoadFIZ(std::string chkpath)
 	startDIZELMOMENTUMLIST = false;
 	startDIZELV2NMAXLIST = false;
 	startHYDROTCLIST = false;
-    startFFLIST = false;
+	startPMAXLIST = false;
+	startFFLIST = false;
     startWWLIST = false;
     startLIGHTSLIST = false;
 	startCOMPRESSORLIST = false;
@@ -9508,6 +9533,11 @@ bool TMoverParameters::LoadFIZ(std::string chkpath)
 		if (issection("END-HTCL", inputline)) {
 			startBPT = false;
 			startHYDROTCLIST = false;
+			continue;
+		}
+		if (issection("END-PML", inputline)) {
+			startBPT = false;
+			startPMAXLIST = false;
 			continue;
 		}
         if( issection( "endff", inputline ) ) {
@@ -9771,6 +9801,14 @@ bool TMoverParameters::LoadFIZ(std::string chkpath)
 			continue;
 		}
 
+		if (issection("PmaxList:", inputline))
+		{
+			startBPT = false;
+			fizlines.emplace("PmaxList", inputline);
+			startPMAXLIST = true; LISTLINE = 0;
+			continue;
+		}
+
 		if (issection("V2NList:", inputline))
 		{
 			startBPT = false;
@@ -9845,6 +9883,10 @@ bool TMoverParameters::LoadFIZ(std::string chkpath)
 		}
 		if (true == startHYDROTCLIST) {
 			readHTCList(inputline);
+			continue;
+		}
+		if (true == startPMAXLIST) {
+			readPmaxList(inputline);
 			continue;
 		}
         if( true == startFFLIST ) {

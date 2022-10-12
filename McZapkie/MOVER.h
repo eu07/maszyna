@@ -1338,6 +1338,7 @@ public:
 	double InvertersRatio = 0.0;
 	std::vector<inverter> Inverters; //all inverters
 	int InverterControlCouplerFlag = 4; //which coupling flag is necessary to controll inverters
+	std::map<double, double> EIM_Pmax_Table; /*tablica mocy maksymalnej od predkosci*/
 	/* -dla pojazdów z blendingiem EP/ED (MED) */
 	double MED_Vmax = 0; // predkosc maksymalna dla obliczen chwilowej sily hamowania EP w MED
 	double MED_Vmin = 0; // predkosc minimalna dla obliczen chwilowej sily hamowania EP w MED
@@ -1989,6 +1990,7 @@ private:
 	bool readDMList(std::string const &line);
 	bool readV2NMAXList(std::string const &line);
 	bool readHTCList(std::string const &line);
+	bool readPmaxList(std::string const &line);
     bool readFFList( std::string const &line );
     bool readWWList( std::string const &line );
     bool readLightsList( std::string const &Input );
