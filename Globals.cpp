@@ -746,12 +746,48 @@ global_settings::ConfigParse(cParser &Parser) {
         }
         else if (token == "uartfeature")
         {
-            Parser.getTokens(4);
-            Parser
-                >> uart_conf.mainenable
-                >> uart_conf.scndenable
-                >> uart_conf.trainenable
-                >> uart_conf.localenable;
+            Parser.getTokens(1);
+            std::string firstToken = Parser.peek();
+
+            std::map<std::string, bool*> features_map = {
+                {"main", &uart_conf.mainenable},
+                {"scnd", &uart_conf.scndenable},
+                {"train", &uart_conf.trainenable},
+                {"local", &uart_conf.localenable}
+            };
+
+            if(firstToken.find('|') != std::string::npos || features_map.count(firstToken)) {
+                // new format (features delimited by pipe)
+
+                // all settings should be disabled initially
+                for(auto const &x : features_map) {
+                    *(x.second) = false;
+                }
+
+                // and only defined should be enabled
+                std::string key;
+                std::stringstream firstTokenStream = std::stringstream(firstToken);
+
+                while(!firstTokenStream.eof()) {
+                    std::getline(firstTokenStream, key, '|');
+
+                    if(features_map.count(key)) {
+                        *(features_map[key]) = true;
+                    }
+                }
+            } else {
+                // legacy format
+
+                // first token is already parsed
+                Parser >> uart_conf.mainenable;
+
+                // the rest tokens must be fetched
+                Parser.getTokens(3);
+                Parser
+                    >> uart_conf.scndenable
+                    >> uart_conf.trainenable
+                    >> uart_conf.localenable;
+            }
         }
         else if( token == "uartdebug" ) {
             Parser.getTokens( 1 );
