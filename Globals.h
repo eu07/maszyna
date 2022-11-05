@@ -200,6 +200,14 @@ struct global_settings {
     int iPoKeysPWM[ 7 ] = { 0, 1, 2, 3, 4, 5, 6 }; // numery wejść dla PWM
 #ifdef WITH_UART
     uart_input::conf_t uart_conf;
+    std::map<std::string, bool *> uartfeatures_map = {
+        {"main", &uart_conf.mainenable},
+        {"scnd", &uart_conf.scndenable},
+        {"train", &uart_conf.trainenable},
+        {"local", &uart_conf.localenable},
+        {"radiovolume", &uart_conf.radiovolumeenable},
+        {"radiochannel", &uart_conf.radiochannelenable}
+    };
 #endif
 #ifdef WITH_ZMQ
     std::string zmq_address;

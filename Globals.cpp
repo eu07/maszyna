@@ -749,20 +749,11 @@ global_settings::ConfigParse(cParser &Parser) {
             Parser.getTokens(1);
             std::string firstToken = Parser.peek();
 
-            std::map<std::string, bool*> features_map = {
-                {"main", &uart_conf.mainenable},
-                {"scnd", &uart_conf.scndenable},
-                {"train", &uart_conf.trainenable},
-                {"local", &uart_conf.localenable},
-                {"radiovolume", &uart_conf.radiovolumeenable},
-                {"radiochannel", &uart_conf.radiochannelenable}
-            };
-
-            if(firstToken.find('|') != std::string::npos || features_map.count(firstToken)) {
+            if(firstToken.find('|') != std::string::npos || firstToken == "none" || uartfeatures_map.count(firstToken)) {
                 // new format (features delimited by pipe)
 
                 // all settings should be disabled initially
-                for(auto const &x : features_map) {
+                for(auto const &x : uartfeatures_map) {
                     *(x.second) = false;
                 }
 
@@ -773,8 +764,8 @@ global_settings::ConfigParse(cParser &Parser) {
                 while(!firstTokenStream.eof()) {
                     std::getline(firstTokenStream, key, '|');
 
-                    if(features_map.count(key)) {
-                        *(features_map[key]) = true;
+                    if(uartfeatures_map.count(key)) {
+                        *(uartfeatures_map[key]) = true;
                     }
                 }
             } else {
@@ -1399,12 +1390,25 @@ global_settings::export_as_text( std::ostream &Output ) const {
         << uart_conf.lvmax << " "
         << uart_conf.lvuart << "\n";
     export_as_text( Output, "uarttachoscale", uart_conf.tachoscale );
-    Output
-        << "uartfeature "
-        << uart_conf.mainenable << " "
-        << uart_conf.scndenable << " "
-        << uart_conf.trainenable << " "
-        << uart_conf.localenable << "\n";
+
+    std::vector<std::string> enabled_uartfeatures;
+    for(auto const &x : uartfeatures_map) {
+        if(*(x.second)) {
+            enabled_uartfeatures.push_back(x.first);
+        }
+    }
+    Output << "uartfeature ";
+    if(enabled_uartfeatures.empty()) {
+        Output << "none\n";
+    } else {
+        for(auto const &feature : enabled_uartfeatures) {
+            Output << feature;
+            if(&feature != &enabled_uartfeatures.back()) {
+                Output << "|";
+            }
+        }
+        Output << "\n";
+    }
     export_as_text( Output, "uartdebug", uart_conf.debug );
 #endif
 
