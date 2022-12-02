@@ -412,6 +412,27 @@ int TBrake::GetSoundFlag()
     return result;
 }
 
+std::string TBrake::GetBrakeStatusStr() 
+{
+    std::string ret = std::string();
+    bool empty = true;
+
+    if (BrakeStatus & b_chrg        ) {if (!empty) {ret.append(", ");} ret.append("b_chrg"       ); empty = false;}
+    if (BrakeStatus & b_ctrl        ) {if (!empty) {ret.append(", ");} ret.append("b_ctrl"       ); empty = false;}
+    if (BrakeStatus & b_off         ) {if (!empty) {ret.append(", ");} ret.append("b_off"        ); empty = false;}
+    if (BrakeStatus & b_hld         ) {if (!empty) {ret.append(", ");} ret.append("b_hld"        ); empty = false;}
+    if (BrakeStatus & b_on          ) {if (!empty) {ret.append(", ");} ret.append("b_on"         ); empty = false;}
+    if (BrakeStatus & b_rfl         ) {if (!empty) {ret.append(", ");} ret.append("b_rfl"        ); empty = false;}
+    if (BrakeStatus & b_rls         ) {if (!empty) {ret.append(", ");} ret.append("b_rls"        ); empty = false;}
+    if (BrakeStatus & b_ep          ) {if (!empty) {ret.append(", ");} ret.append("b_ep"         ); empty = false;}
+    if (BrakeStatus & b_asb         ) {if (!empty) {ret.append(", ");} ret.append("b_asb"        ); empty = false;}
+    if (BrakeStatus & b_asb_unbrake ) {if (!empty) {ret.append(", ");} ret.append("b_asb_unbrake"); empty = false;}
+    if (BrakeStatus & b_dmg         ) {if (!empty) {ret.append(", ");} ret.append("b_dmg"        ); empty = false;}
+    
+
+    return ret;
+}
+
 void TBrake::SetASBP( double const Press )
 {
     ASBP = Press;
@@ -465,15 +486,15 @@ double TWest::GetPF( double const PP, double const dt, double const Vel )
 
     if ((BrakeStatus & b_hld) == b_hld)
         if ((VVP + 0.03 < BVP))
-            BrakeStatus |= b_on;
+            BrakeStatus |= (b_on | b_ctrl);
         else if ((VVP > BVP + 0.1))
-            BrakeStatus &= ~(b_on | b_hld);
+            BrakeStatus &= ~(b_on | b_hld | b_ctrl);
         else if ((VVP > BVP))
             BrakeStatus &= ~b_on;
         else
             ;
     else if ((VVP + 0.25 < BVP))
-        BrakeStatus |= (b_on | b_hld);
+        BrakeStatus |= (b_on | b_hld | b_ctrl);
 
     if (((BrakeStatus & b_hld) == b_off) && (!DCV))
         dv = PF(0, CVP, 0.0068 * SizeBC) * dt;
@@ -534,6 +555,9 @@ double TWest::GetPF( double const PP, double const dt, double const Vel )
     ValveRes->Act();
     BrakeCyl->Act();
     BrakeRes->Act();
+
+    if (BVP < VVP - 0.08) BrakeStatus |= b_chrg; else BrakeStatus &=~b_chrg;
+
     return dv - dV1;
 }
 
@@ -596,7 +620,7 @@ void TESt::CheckReleaser( double const dt )
     // odluzniacz
     if ((BrakeStatus & b_rls) == b_rls)
         if ((CVP - VVP < 0))
-            BrakeStatus &= ~b_rls;
+            BrakeStatus &= ~(b_rls | b_ctrl);
         else
         {
             CntrlRes->Flow(+PF(CVP, 0, 0.1) * dt);
@@ -616,7 +640,7 @@ void TESt::CheckState( double const BCP, double &dV1 ) {
 
             if( ( VVP + 0.003 + BCP / BVM ) < CVP ) {
                 // hamowanie stopniowe
-                BrakeStatus |= b_on;
+                BrakeStatus |= (b_on | b_ctrl);
             }
             else {
                 if( ( VVP + BCP / BVM ) > CVP ) {
@@ -625,7 +649,7 @@ void TESt::CheckState( double const BCP, double &dV1 ) {
                 }
                 if( ( VVP - 0.003 + ( BCP - 0.1 ) / BVM ) > CVP ) {
                     // luzowanie
-                    BrakeStatus &= ~( b_on | b_hld );
+                    BrakeStatus &= ~( b_on | b_hld | b_ctrl);
                 }
             }
         }
@@ -648,13 +672,17 @@ void TESt::CheckState( double const BCP, double &dV1 ) {
                 SoundFlag |= sf_Acc;
                 ValveRes->Act();
             }
-            BrakeStatus |= ( b_on | b_hld );
+            BrakeStatus |= ( b_on | b_hld | b_ctrl);
         }
     }
+
+    if ((VVP > CVP) && ~(BrakeStatus & (b_on | b_hld))) BrakeStatus &= ~b_ctrl;
 
     if( ( BrakeStatus & b_hld ) == 0 ) {
         SoundFlag |= sf_CylU;
     }
+
+    if (BVP < VVP - 0.08) BrakeStatus |= b_chrg; else BrakeStatus &=~b_chrg;
 }
 
 double TESt::CVs( double const BP )
@@ -1088,7 +1116,7 @@ double TESt4R::GetPF( double const PP, double const dt, double const Vel )
     ImplsRes->Flow(-dv);
     // przeplyw ZP <-> rozdzielacz
     temp = BVs(BCP);
-    if ((BVP < VVP - 0.05)) // or((PP<CVP)and(CVP<PP-0.1)
+    if ((BVP < VVP - 0.08)) // or((PP<CVP)and(CVP<PP-0.1)
         dv = PF(BVP, VVP, 0.02 * SizeBR * temp / 1.87) * dt;
     else
         dv = 0;
@@ -1276,11 +1304,11 @@ double TLSt::GetPF( double const PP, double const dt, double const Vel )
     if( ( ( BrakeStatus & b_hld ) == b_hld ) && ( BCP > 0.25 ) ) {
         if( ( VVP + 0.003 + BCP / BVM < CVP ) ) {
             // hamowanie stopniowe
-            BrakeStatus |= b_on;
+            BrakeStatus |= (b_on | b_ctrl);
         }
         else if( ( VVP - 0.003 + ( BCP - 0.1 ) / BVM > CVP ) ) {
             // luzowanie
-            BrakeStatus &= ~( b_on | b_hld );
+            BrakeStatus &= ~( b_on | b_hld | b_ctrl);
         }
         else if( ( VVP + BCP / BVM > CVP ) ) {
             // zatrzymanie napelaniania
@@ -1293,7 +1321,7 @@ double TLSt::GetPF( double const PP, double const dt, double const Vel )
         {
             SoundFlag |= sf_Acc;
         }
-        BrakeStatus |= (b_on | b_hld);
+        BrakeStatus |= (b_on | b_hld | b_ctrl);
     }
     else if( ( VVP + ( BCP - 0.1 ) / BVM < CVP )
           && ( ( CVP - VVP ) * BVM > 0.25 )
@@ -1410,6 +1438,10 @@ double TLSt::GetPF( double const PP, double const dt, double const Vel )
     CntrlRes->Act();
     //  LBP:=ValveRes->P();
     //  ValveRes.CreatePress(ImplsRes->P());
+
+    if (BVP < VVP - 0.08) BrakeStatus |= b_chrg; else BrakeStatus &=~b_chrg;
+    if ((VVP > CVP) && ~(BrakeStatus & (b_on | b_hld))) BrakeStatus &= ~b_ctrl;
+
     return result;
 }
 
@@ -1704,20 +1736,23 @@ void TCV1::CheckState( double const BCP, double &dV1 )
     // sprawdzanie stanu
     if ((BrakeStatus & b_hld) == b_hld)
         if ((VVP + 0.003 + BCP / BVM < CVP))
-            BrakeStatus |= b_on; // hamowanie stopniowe;
+            BrakeStatus |= (b_on | b_ctrl); // hamowanie stopniowe;
         else if ((VVP - 0.003 + BCP * 1.0 / BVM > CVP))
-            BrakeStatus &= ~( b_on | b_hld ); // luzowanie;
+            BrakeStatus &= ~( b_on | b_hld | b_ctrl); // luzowanie;
         else if ((VVP + BCP * 1.0 / BVM > CVP))
             BrakeStatus &= ~b_on; // zatrzymanie napelaniania;
         else
             ;
     else if ((VVP + 0.10 < CVP) && (BCP < 0.1)) // poczatek hamowania
     {
-        BrakeStatus |= ( b_on | b_hld );
+        BrakeStatus |= ( b_on | b_hld | b_ctrl);
         dV1 = 1.25;
     }
     else if ((VVP + BCP / BVM < CVP) && (BCP > 0.25)) // zatrzymanie luzowanie
         BrakeStatus |= b_hld;
+
+    if (BVP < VVP - 0.08) BrakeStatus |= b_chrg; else BrakeStatus &=~b_chrg;
+    if ((VVP > CVP) && ~(BrakeStatus & (b_on | b_hld))) BrakeStatus &= ~b_ctrl;
 }
 
 double TCV1::CVs(double const BP)
@@ -1990,7 +2025,7 @@ void TKE::CheckState( double const BCP, double &dV1 )
 
             if( ( VVP + 0.003 + BCP / BVM ) < CVP ) {
                 // hamowanie stopniowe;
-                BrakeStatus |= b_on;
+                BrakeStatus |= (b_on | b_ctrl);
             }
             else {
                 if( ( VVP + BCP / BVM ) > CVP ) {
@@ -2022,9 +2057,13 @@ void TKE::CheckState( double const BCP, double &dV1 )
                 SoundFlag |= sf_Acc;
                 ValveRes->Act();
             }
-            BrakeStatus |= ( b_on | b_hld );
+            BrakeStatus |= ( b_on | b_hld | b_ctrl);
         }
     }
+
+    if (BVP < VVP - 0.08) BrakeStatus |= b_chrg; else BrakeStatus &=~b_chrg;
+    if ((VVP > CVP) && ~(BrakeStatus & (b_on | b_hld))) BrakeStatus &= ~b_ctrl;
+    
 
     if( ( BrakeStatus & b_hld ) == 0 ) {
         SoundFlag |= sf_CylU;

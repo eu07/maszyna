@@ -85,7 +85,7 @@ void ui::scenerylist_panel::draw_scenery_image()
 		tex.create();
 
 		if (tex.is_ready) {
-			float avail_width = ImGui::GetContentRegionAvailWidth();
+			float avail_width = ImGui::GetContentRegionAvail().x;
 			float height = avail_width / tex.width() * tex.height();
 
 			ImGui::Image(reinterpret_cast<void *>(tex.id), ImVec2(avail_width, height), ImVec2(0, 1), ImVec2(1, 0));

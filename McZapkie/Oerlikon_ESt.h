@@ -221,6 +221,7 @@ class TNESt3 : public TBrake {
     void SetLP(double const TM, double const LM, double const TBP); // parametry przystawki wazacej
     virtual void ForceEmptiness() /*override*/; // wymuszenie bycia pustym
     void SetLBP(double const P); // cisnienie z hamulca pomocniczego
+    char* GetKindCStr() override {return "TNESt3";}
 };
 
 extern double d2A( double const d );

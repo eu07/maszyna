@@ -752,9 +752,14 @@ private:
     // locates potential vehicle connected with specific coupling type and satisfying supplied predicate
     template <typename Predicate_>
     auto find_vehicle( coupling const Coupling, Predicate_ const Predicate ) -> TDynamicObject *;
+    
     TDynamicObject * FindPowered();
     TDynamicObject * FindPantographCarrier();
-    template <typename UnaryFunction_>
+    
+    template <typename UnaryFunction_> 
+    void for_each_from_first( coupling const Coupling, UnaryFunction_ const Function );
+
+    template <typename UnaryFunction_> 
     void for_each( coupling const Coupling, UnaryFunction_ const Function );
     void ParamSet(int what, int into);
     // zapytanie do AI, po którym segmencie skrzyżowania jechać
@@ -854,6 +859,20 @@ TDynamicObject::find_vehicle( coupling const Coupling, Predicate_ const Predicat
             return vehicle; } }
     // if we still don't have a match give up
     return nullptr;
+}
+
+template <typename UnaryFunction_>
+void
+TDynamicObject::for_each_from_first( coupling const Coupling, UnaryFunction_ const Function ) {
+    auto *vehicle { this };
+
+    //first the most previous vehicle.
+    while (vehicle->Prev(Coupling) != nullptr) {vehicle = vehicle->Prev(Coupling);}
+
+    //Apply the fn from the front to back.
+    Function(vehicle);
+    while((vehicle = vehicle->Next(Coupling)) != nullptr) {Function( vehicle );}
+    
 }
 
 template <typename UnaryFunction_>

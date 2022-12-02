@@ -56,6 +56,8 @@ static int const b_ep = 16;   //elektropneumatyczny
 static int const b_asb = 32;   //przeciwposlizg-wstrzymanie
 static int const b_asb_unbrake = 64; //przeciwposlizg-luzowanie
 static int const b_dmg = 128;   //wylaczony z dzialania
+static int const b_ctrl= 256;   //control valve locked?
+static int const b_chrg= 512;   //aux < pipe
 
 /*uszkodzenia hamulca*/
 static int const df_on = 1;  //napelnianie
@@ -224,11 +226,13 @@ class TBrake {
 		void ASB(int state); //hamulec przeciwposlizgowy
 		int GetStatus(); //flaga statusu, moze sie przydac do odglosow
         void SetASBP( double const Press ); //ustalenie cisnienia pp
+		virtual char* GetKindCStr() {return "TBrake";}
     virtual void ForceEmptiness();
     // removes specified amount of air from the reservoirs
     virtual void ForceLeak( double const Amount );
     int GetSoundFlag();
     int GetBrakeStatus() const { return BrakeStatus; }
+	std::string GetBrakeStatusStr();
     void SetBrakeStatus( int const Status ) { BrakeStatus = Status; }
     virtual void SetED( double const EDstate ) {}; //stan hamulca ED do luzowania
 	virtual void SetUniversalFlag(int flag) { UniversalFlag = flag; } //przycisk uniwersalny
@@ -253,6 +257,7 @@ class TWest : public TBrake {
 		void PLC(double const mass);  //wspolczynnik cisnienia przystawki wazacej
         void SetEPS( double const nEPS )/*override*/;  //stan hamulca EP
 		void SetLP(double const TM, double const LM, double const TBP);  //parametry przystawki wazacej
+		char* GetKindCStr() override {return "TWest";}
 
 		inline TWest(double i_mbp, double i_bcr, double i_bcd, double i_brc, int i_bcn, int i_BD, int i_mat, int i_ba, int i_nbpa) :
               TBrake(       i_mbp,        i_bcr,        i_bcd,        i_brc,     i_bcn,     i_BD,     i_mat,     i_ba,     i_nbpa)
@@ -277,6 +282,7 @@ class TESt : public TBrake {
 		double CVs(double BP);      //napelniacz sterujacego
 		double BVs(double BCP);     //napelniacz pomocniczego
         void ForceEmptiness() /*override*/; // wymuszenie bycia pustym
+		char* GetKindCStr() override {return "TESt";}
 
 		inline TESt(double i_mbp, double i_bcr, double i_bcd, double i_brc, int i_bcn, int i_BD, int i_mat, int i_ba, int i_nbpa) :
              TBrake(       i_mbp,        i_bcr,        i_bcd,        i_brc,     i_bcn,     i_BD,     i_mat,     i_ba,     i_nbpa)
@@ -292,6 +298,7 @@ class TESt3 : public TESt {
 
   public:
       double GetPF( double const PP, double const dt, double const Vel )/*override*/;      //przeplyw miedzy komora wstepna i PG
+	  char* GetKindCStr() override {return "TESt3";}
 
 		inline TESt3(double i_mbp, double i_bcr, double i_bcd, double i_brc, int i_bcn, int i_BD, int i_mat, int i_ba, int i_nbpa) :
                 TESt(       i_mbp,        i_bcr,        i_bcd,        i_brc,     i_bcn,     i_BD,     i_mat,     i_ba,     i_nbpa)
@@ -312,6 +319,7 @@ class TESt3AL2 : public TESt3 {
       double GetPF( double const PP, double const dt, double const Vel )/*override*/;      //przeplyw miedzy komora wstepna i PG
 		void PLC(double const mass);  //wspolczynnik cisnienia przystawki wazacej
 		void SetLP(double const TM, double const LM, double const TBP);  //parametry przystawki wazacej
+		char* GetKindCStr() override {return "TESt3AL2";}
 
 		inline TESt3AL2(double i_mbp, double i_bcr, double i_bcd, double i_brc, int i_bcn, int i_BD, int i_mat, int i_ba, int i_nbpa) :
                   TESt3(       i_mbp,        i_bcr,        i_bcd,        i_brc,     i_bcn,     i_BD,     i_mat,     i_ba,     i_nbpa)
@@ -332,6 +340,7 @@ class TESt4R : public TESt {
   public:
       void Init( double const PP, double const HPP, double const LPP, double const BP, int const BDF )/*override*/;
       double GetPF( double const PP, double const dt, double const Vel )/*override*/;      //przeplyw miedzy komora wstepna i PG
+	  char* GetKindCStr() override {return "TESt4R";}
 
 		inline TESt4R(double i_mbp, double i_bcr, double i_bcd, double i_brc, int i_bcn, int i_BD, int i_mat, int i_ba, int i_nbpa) :
                  TESt(       i_mbp,        i_bcr,        i_bcd,        i_brc,     i_bcn,     i_BD,     i_mat,     i_ba,     i_nbpa)
@@ -358,6 +367,7 @@ class TLSt : public TESt4R {
         double GetHPFlow( double const HP, double const dt )/*override*/;  //przeplyw - 8 bar
 		virtual double GetEDBCP();    //cisnienie tylko z hamulca zasadniczego, uzywane do hamulca ED w EP09
         virtual void SetED( double const EDstate ); //stan hamulca ED do luzowania
+		char* GetKindCStr() override {return "TLSt";}
 
 		inline TLSt(double i_mbp, double i_bcr, double i_bcd, double i_brc, int i_bcn, int i_BD, int i_mat, int i_ba, int i_nbpa) :
              TESt4R(       i_mbp,        i_bcr,        i_bcd,        i_brc,     i_bcn,     i_BD,     i_mat,     i_ba,     i_nbpa)
@@ -383,6 +393,7 @@ class TEStED : public TLSt {  //zawor z EP09 - Est4 z oddzielnym przekladnikiem,
 		double GetEDBCP()/*override*/;    //cisnienie tylko z hamulca zasadniczego, uzywane do hamulca ED
 		void PLC(double const mass);  //wspolczynnik cisnienia przystawki wazacej
         void SetLP( double const TM, double const LM, double const TBP );  //parametry przystawki wazacej        
+		char* GetKindCStr() override {return "TEStED";}
 
 		inline TEStED(double i_mbp, double i_bcr, double i_bcd, double i_brc, int i_bcn, int i_BD, int i_mat, int i_ba, int i_nbpa) :
                  TLSt(       i_mbp,        i_bcr,        i_bcd,        i_brc,     i_bcn,     i_BD,     i_mat,     i_ba,     i_nbpa)
@@ -407,6 +418,7 @@ public:
     void SetEPS( double const nEPS )/*override*/;  //stan hamulca EP
     void SetLP( double const TM, double const LM, double const TBP );  //parametry przystawki wazacej
 	void virtual EPCalc(double dt);
+	char* GetKindCStr() override {return "TEStEP2";}
 
 		inline TEStEP2(double i_mbp, double i_bcr, double i_bcd, double i_brc, int i_bcn, int i_BD, int i_mat, int i_ba, int i_nbpa) :
                TLSt(          i_mbp,        i_bcr,        i_bcd,        i_brc,     i_bcn,     i_BD,     i_mat,     i_ba,     i_nbpa)
@@ -418,6 +430,7 @@ class TEStEP1 : public TEStEP2 {
 public:
 	void EPCalc(double dt);
     void SetEPS( double const nEPS ) override;  //stan hamulca EP
+	char* GetKindCStr() override {return "TEStEP1";}
 
 	inline TEStEP1(double i_mbp, double i_bcr, double i_bcd, double i_brc, int i_bcn, int i_BD, int i_mat, int i_ba, int i_nbpa) :
 		TEStEP2(i_mbp, i_bcr, i_bcd, i_brc, i_bcn, i_BD, i_mat, i_ba, i_nbpa)
@@ -440,6 +453,7 @@ public:
     double CVs( double const BP );
     double BVs( double const BCP );
     void ForceEmptiness() /*override*/; // wymuszenie bycia pustym
+	char* GetKindCStr() override {return "TCV1";}
 
 		inline TCV1(double i_mbp, double i_bcr, double i_bcd, double i_brc, int i_bcn, int i_BD, int i_mat, int i_ba, int i_nbpa) :
              TBrake(       i_mbp,        i_bcr,        i_bcd,        i_brc,     i_bcn,     i_BD,     i_mat,     i_ba,     i_nbpa)
@@ -476,6 +490,7 @@ public:
     double GetPF( double const PP, double const dt, double const Vel )/*override*/;      //przeplyw miedzy komora wstepna i PG
     void SetLBP( double const P );   //cisnienie z hamulca pomocniczego
     double GetHPFlow( double const HP, double const dt )/*override*/;  //przeplyw - 8 bar
+	char* GetKindCStr() override {return "TCV1L_TR";}
 
     inline TCV1L_TR(double i_mbp, double i_bcr, double i_bcd, double i_brc, int i_bcn, int i_BD, int i_mat, int i_ba, int i_nbpa) :
                TCV1(       i_mbp,        i_bcr,        i_bcd,        i_brc,     i_bcn,     i_BD,     i_mat,     i_ba,     i_nbpa)
@@ -513,6 +528,7 @@ class TKE : public TBrake { //Knorr Einheitsbauart — jeden do wszystkiego
         void SetLP( double const TM, double const LM, double const TBP );  //parametry przystawki wazacej
         void SetLBP( double const P );   //cisnienie z hamulca pomocniczego
         void ForceEmptiness() /*override*/; // wymuszenie bycia pustym
+		char* GetKindCStr() override {return "TKE";}
 
 		inline TKE(double i_mbp, double i_bcr, double i_bcd, double i_brc, int i_bcn, int i_BD, int i_mat, int i_ba, int i_nbpa) :
             TBrake(       i_mbp,        i_bcr,        i_bcd,        i_brc,     i_bcn,     i_BD,     i_mat,     i_ba,     i_nbpa)

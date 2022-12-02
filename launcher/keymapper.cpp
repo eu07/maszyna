@@ -72,7 +72,7 @@ void ui::keymapper_panel::render()
 
 			label += "##" + std::to_string((int)binding.first);
 
-			ImGui::SameLine(ImGui::GetContentRegionAvailWidth() - 150);
+			ImGui::SameLine(ImGui::GetContentRegionAvail().x - 150);
 			if (ImGui::Button(label.c_str(), ImVec2(150, 0))) {
 				if (bind_active == binding.first)
 					bind_active = user_command::none;
