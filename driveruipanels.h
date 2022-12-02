@@ -12,6 +12,7 @@ http://mozilla.org/MPL/2.0/.
 #include "uilayer.h"
 #include "Classes.h"
 
+
 class drivingaid_panel : public ui_expandable_panel {
 
 public:
@@ -85,6 +86,7 @@ private:
     void update_section_ai( std::vector<text_line> &Output );
     void update_section_scantable( std::vector<text_line> &Output );
     void update_section_scenario( std::vector<text_line> &Output );
+    void update_section_graphs( std::vector<text_line> &Output );
     void update_section_eventqueue( std::vector<text_line> &Output );
     void update_section_powergrid( std::vector<text_line> &Output );
     void update_section_camera( std::vector<text_line> &Output );
@@ -95,6 +97,10 @@ private:
     // renders provided lines, under specified collapsing header
     bool render_section( std::string const &Header, std::vector<text_line> const &Lines );
     bool render_section( std::vector<text_line> const &Lines );
+    void render_ctrl_chrg();
+    void render_bpipe_bcyl();
+    void render_coupler_forces();
+    bool render_section_couplers();
     bool render_section_scenario();
     bool render_section_eventqueue();
     bool render_section_settings();
@@ -108,6 +114,7 @@ private:
         m_ailines,
         m_scantablelines,
         m_cameralines,
+        m_graphslines,
         m_scenariolines,
         m_eventqueuelines,
         m_powergridlines,

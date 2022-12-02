@@ -30,9 +30,13 @@ http://mozilla.org/MPL/2.0/.
 #include "utilities.h"
 #include "Logs.h"
 #include "widgets/vehicleparams.h"
-
 #define DRIVER_HINT_CONTENT
 #include "driverhints.h"
+
+
+
+
+#include "imgui/implot.h"
 
 void
 drivingaid_panel::update() {
@@ -543,6 +547,7 @@ debug_panel::update() {
 	m_enginelines.clear();
 	m_ailines.clear();
 	m_scantablelines.clear();
+    m_graphslines.clear();
 	m_scenariolines.clear();
 	m_eventqueuelines.clear();
 	m_powergridlines.clear();
@@ -554,6 +559,7 @@ debug_panel::update() {
 	update_section_ai( m_ailines );
 	update_section_scantable( m_scantablelines );
 	update_section_scenario( m_scenariolines );
+    update_section_graphs( m_graphslines );
 	update_section_eventqueue( m_eventqueuelines );
 	update_section_powergrid( m_powergridlines );
 	update_section_camera( m_cameralines );
@@ -601,6 +607,7 @@ debug_panel::render() {
         render_section( "Vehicle Engine", m_enginelines );
         render_section( "Vehicle AI", m_ailines );
         render_section( "Vehicle Scan Table", m_scantablelines );
+        render_section_couplers();
         render_section_scenario();
         render_section_eventqueue();
         if( true == render_section( "Power Grid", m_powergridlines ) ) {
@@ -617,6 +624,185 @@ debug_panel::render() {
 
     ImGui::End();
     ImGui::PopFont();
+}
+
+
+
+void 
+debug_panel::render_ctrl_chrg() {
+    static const char*  ilabels[]   = {"Locked", "Charging"};
+
+    static ImU32 data[2];
+    std::fill_n(data, 2, 0);
+
+    
+
+    if (m_input.vehicle == NULL) return;
+
+    size_t veh_idx = 0;
+
+    TDynamicObject* v = const_cast<TDynamicObject*>(m_input.vehicle );
+
+    v->for_each(coupling::coupler, [&veh_idx]( TDynamicObject * Vehicle ){
+        auto const *mover { Vehicle->MoverParameters };
+        if (mover->Hamulec->GetBrakeStatus() & b_ctrl) data[0]++;
+        if (mover->Hamulec->GetBrakeStatus() & b_chrg) data[1]++;
+
+        double brp = mover->Hamulec->GetBRP();
+
+        veh_idx++;
+    });
+
+    veh_idx *= 1000;
+    data[0] *= 1000;
+    data[1] *= 1000;
+
+    
+    
+    if (ImGui::TreeNode("Brake distributor")) {
+        if (ImPlot::BeginPlot("")) {
+            ImPlot::SetupLegend(ImPlotLocation_SouthEast);
+
+            ImPlot::SetupAxes("Wagon","Status",ImPlotAxisFlags_Lock,ImPlotAxisFlags_Lock);
+            ImPlot::SetupAxisScale(ImAxis_X1, ImPlotScale_Linear);
+            ImPlot::SetupAxisLimits(ImAxis_X1, 0, veh_idx , ImGuiCond_Always);
+
+            ImPlot::SetupAxisScale(ImAxis_Y1, ImPlotScale_Linear);
+            ImPlot::SetupAxisLimits(ImAxis_Y1, 0, 1, ImGuiCond_Always);
+
+            ImPlot::PlotBarGroups(ilabels,data,2,1,1.0,0.5,ImPlotBarGroupsFlags_Horizontal);
+
+            ImPlot::EndPlot();
+        }
+    }
+    
+}
+
+
+
+
+void 
+debug_panel::render_bpipe_bcyl() {
+    //tweakables
+    const size_t veh_lim = 50;
+    const size_t items = 4;
+    const char*  ilabels[items]   = {"Ctrl", "Pipe", "Aux", "Cyl"};
+    const float group_width = 0.7f;
+
+    const size_t data_sz = veh_lim * items;
+    static ImU32 data[data_sz];
+    std::fill_n(data, data_sz, 0);
+
+
+    if (m_input.vehicle == NULL) return;
+    TDynamicObject* v = const_cast<TDynamicObject*>(m_input.vehicle );
+
+    size_t veh_idx = 0;
+
+
+    v->for_each_from_first(coupling::coupler, [&veh_idx, &veh_lim]( TDynamicObject * Vehicle ){
+        if (veh_idx <= veh_lim) {
+            auto const *mover { Vehicle->MoverParameters };
+            if (mover != NULL) {
+                //brake cylinder pressure is inverted so it can fit on 3.5-5.0 bar range.
+                auto max_brake_press = 5.0 - std::max(mover->LocBrakePress, mover->BrakePress);
+                data[veh_idx + (0 * veh_lim)] = (int)(1000.0* mover->Hamulec->GetCRP());
+                data[veh_idx + (1 * veh_lim)] = (int)(1000.0* mover->PipePress);
+                data[veh_idx + (2 * veh_lim)] = (int)(1000.0* mover->Hamulec->GetBRP());
+                data[veh_idx + (3 * veh_lim)] = (int)(1000.0*max_brake_press);
+                
+                veh_idx += 1;
+            }
+        }
+    });
+    
+    
+    if (ImGui::TreeNode("Brake pressure")) {
+        // Whether to display all pressures or just useful pressures.
+        static bool full_range_state = false;
+        ImGui::Checkbox( "0 - 5.5bar", &full_range_state);
+        int min_y = 3800;
+        int max_y = 5200;
+        if (full_range_state) {
+            min_y = 0;
+            max_y = 5500;
+        }
+
+
+        if (ImPlot::BeginPlot("")) {
+            ImPlot::SetupLegend(ImPlotLocation_SouthEast);
+    
+            ImPlot::SetupAxes("Wagon","Pressure",ImPlotAxisFlags_Lock,ImPlotAxisFlags_Lock);
+
+            ImPlot::SetupAxisScale(ImAxis_X1, ImPlotScale_Linear);
+            ImPlot::SetupAxisLimits(ImAxis_X1, -1, veh_idx);
+
+            ImPlot::SetupAxisScale(ImAxis_Y1, ImPlotScale_Linear);
+            ImPlot::SetupAxisLimits(ImAxis_Y1, min_y, max_y, ImGuiCond_Always);
+        
+            ImPlot::PlotBarGroups(ilabels,data,items,veh_lim,group_width,0,0);
+
+            ImPlot::EndPlot();
+        }
+    }
+}
+
+
+void 
+debug_panel::render_coupler_forces() {
+    const size_t veh_lim = 50;
+
+    static ImS32  coupler_forces[veh_lim] = {0};
+    std::fill_n(coupler_forces, veh_lim, 0);
+        
+    size_t graph_idx = 0;
+    size_t veh_idx = 0;
+
+    if (m_input.vehicle == NULL) return;
+    TDynamicObject* v = const_cast<TDynamicObject*>(m_input.vehicle );
+
+    v->for_each_from_first(coupling::coupler, [&graph_idx, &veh_idx]( TDynamicObject * Vehicle ){
+        if (veh_idx <= 99) {
+            auto const *mover { Vehicle->MoverParameters };
+            if (mover != NULL) {
+                coupler_forces[graph_idx] = mover->Couplers[0].CForce;
+                graph_idx += 1;
+                veh_idx += 1;
+            }
+        }
+    });
+        
+
+    if (ImGui::TreeNode("Coupler force")) {
+        if (ImPlot::BeginPlot("")) {
+            ImPlot::SetupLegend(ImPlotLocation_SouthEast);
+
+            ImPlot::SetupAxes("Wagon","Force",ImPlotAxisFlags_Lock,ImPlotAxisFlags_Lock);
+            ImPlot::SetupAxisScale(ImAxis_X1, ImPlotScale_Linear);
+            ImPlot::SetupAxisLimits(ImAxis_X1, 0, veh_idx, ImGuiCond_Always);
+
+            ImPlot::SetupAxisScale(ImAxis_Y1, ImPlotScale_Linear);
+            ImPlot::SetupAxisLimits(ImAxis_Y1, -650000, 650000);
+
+            ImPlot::PlotBars("Force",coupler_forces,50,0.7,1);
+            ImPlot::EndPlot();
+        }
+    }
+}
+
+
+
+bool
+debug_panel::render_section_couplers() {
+    
+    if( false == render_section( "Graphs", m_graphslines) ) { return false; }
+
+    render_ctrl_chrg();
+    render_bpipe_bcyl();
+    render_coupler_forces();
+    
+   
+    return true;
 }
 
 bool
@@ -829,8 +1015,9 @@ debug_panel::update_section_vehicle( std::vector<text_line> &Output ) {
 
     std::snprintf(
         m_buffer.data(), m_buffer.size(),
-        STR_C("Brakes:\n train: %.2f (mode: %d, delay: %s, load flag: %d)\n independent: %.2f (%.2f), manual: %.2f, spring: %.2f\nBrake cylinder pressures:\n train: %.2f, independent: %.2f, status: 0x%.2x\nPipe pressures:\n brake: %.2f (hat: %.2f), main: %.2f, control: %.2f\nTank pressures:\n auxiliary: %.2f, main: %.2f, control: %.2f"),
+        STR_C("Brakes:\n valve: %s\n train: %.2f (mode: %d, delay: %s, load flag: %d)\n independent: %.2f (%.2f), manual: %.2f, spring: %.2f\nBrake cylinder pressures:\n train: %.2f, independent: %.2f, status: %s\nPipe pressures:\n brake: %.2f (hat: %.2f), main: %.2f, control: %.2f\nTank pressures:\n auxiliary: %.2f, main: %.2f, control: %.2f"),
         // brakes
+        mover.Hamulec->GetKindCStr(),
         mover.fBrakeCtrlPos,
         mover.BrakeOpModeFlag,
         update_vehicle_brake().c_str(),
@@ -842,7 +1029,7 @@ debug_panel::update_section_vehicle( std::vector<text_line> &Output ) {
         // cylinders
         mover.BrakePress,
         mover.LocBrakePress,
-        mover.Hamulec->GetBrakeStatus(),
+        mover.Hamulec->GetBrakeStatusStr().c_str(),
         // pipes
         mover.PipePress,
         mover.BrakeCtrlPos2,
@@ -1213,6 +1400,9 @@ debug_panel::update_section_scantable( std::vector<text_line> &Output ) {
 	}
 }
 
+
+
+
 void
 debug_panel::update_section_scenario( std::vector<text_line> &Output ) {
 
@@ -1233,6 +1423,12 @@ debug_panel::update_section_scenario( std::vector<text_line> &Output ) {
     textline += "\nAir temperature: " + to_string( Global.AirTemperature, 1 ) + " deg C";
 
     Output.emplace_back( textline, Global.UITextColor );
+}
+
+void
+debug_panel::update_section_graphs( std::vector<text_line> &Output ) {
+    auto textline = to_string("couplers: ");
+    Output.emplace_back( textline, Global.UITextColor );    
 }
 
 void

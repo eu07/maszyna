@@ -349,13 +349,16 @@ void TNESt3::CheckState(double const BCP, double &dV1) // glowny przyrzad rozrza
     // sprawdzanie stanu
     // if ((BrakeStatus and 1)=1)and(BCP>0.25)then
     if (((VVP + 0.01 + BCP / BVM) < (CVP - 0.05)) && (Przys_blok))
-        BrakeStatus |= ( b_on | b_hld ); // hamowanie stopniowe;
+        BrakeStatus |= ( b_on | b_hld | b_ctrl ); // hamowanie stopniowe;
     else if ((VVP - 0.01 + (BCP - 0.1) / BVM) > (CVP - 0.05))
         BrakeStatus &= ~( b_on | b_hld ); // luzowanie;
     else if ((VVP + BCP / BVM) > (CVP - 0.05))
         BrakeStatus &= ~b_on; // zatrzymanie napelaniania;
     else if (((VVP + (BCP - 0.1) / BVM) < (CVP - 0.05)) && (BCP > 0.25)) // zatrzymanie luzowania
         BrakeStatus |= b_hld;
+
+    if (VVP > CVP) 
+        BrakeStatus &= ~b_ctrl;
 
     if( ( BrakeStatus & b_hld ) == 0 )
         SoundFlag |= sf_CylU;
@@ -373,6 +376,9 @@ void TNESt3::CheckState(double const BCP, double &dV1) // glowny przyrzad rozrza
         Zamykajacy = true;
     else if ((VVP - 0.6) < MPP)
         Zamykajacy = false;
+
+    if (BVP < VVP - 0.08) BrakeStatus |= b_chrg; else BrakeStatus &=~b_chrg;
+    
 }
 
 void TNESt3::CheckReleaser(double const dt) // odluzniacz

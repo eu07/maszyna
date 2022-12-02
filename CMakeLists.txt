@@ -21,6 +21,8 @@ project("eu07")
 #set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=address -fsanitize=undefined -Wformat")
 #set(CMAKE_LD_FLAGS "${CMAKE_LD_FLAGS} -fsanitize=address -fsanitize=undefined")
 
+
+
 set(CMAKE_CXX_STANDARD 17)
 include_directories("."
 "Console"
@@ -39,6 +41,19 @@ file(GLOB HEADERS "*.h"
 "network/backend/*.h"
 "widgets/*.h"
 "launcher/*.h"
+
+"imgui/imconfig.h"
+"imgui/imgui.h"
+"imgui/imgui_impl_glfw.h"
+"imgui/imgui_impl_opengl3.h"
+"imgui/imgui_impl_opengl3_loader.h"
+"imgui/imgui_internal.h"
+"imgui/implot.h"
+"imgui/implot_internal.h"
+"imgui/imstb_rectpack.h"
+"imgui/imstb_textedit.h"
+"imgui/imstb_truetype.h"
+
 "extras/*.h")
 
 if (APPLE)
@@ -182,11 +197,14 @@ set(SOURCES
 "gl/pbo.cpp"
 "gl/query.cpp"
 
+"imgui/imgui_tables.cpp"
 "imgui/imgui.cpp"
 "imgui/imgui_demo.cpp"
 "imgui/imgui_draw.cpp"
 "imgui/imgui_widgets.cpp"
 "imgui/imgui_impl_glfw.cpp"
+"imgui/implot_items.cpp"
+"imgui/implot.cpp"
 
 "stb/stb_image.c"
 
@@ -373,7 +391,7 @@ if(NOT ${CMAKE_VERSION} VERSION_LESS "3.16.0")
 	if (USE_PCH)
 		target_precompile_headers(${PROJECT_NAME} PRIVATE "$<$<COMPILE_LANGUAGE:CXX>:${CMAKE_CURRENT_SOURCE_DIR}/stdafx.h>")
 		set_source_files_properties("ref/glad/src/glad.c" "ref/dds-ktx/src/dds-ktx.c" "stb/stb_image.c"
-			"imgui/imgui.cpp" "imgui/imgui_demo.cpp" "imgui/imgui_draw.cpp" "imgui/imgui_widgets.cpp" "imgui/imgui_impl_glfw.cpp"
+			"imgui/imgui.cpp" "imgui/imgui_demo.cpp" "imgui/imgui_draw.cpp" "imgui/imgui_widgets.cpp" "imgui/imgui_impl_glfw.cpp" "imgui/implot_items.cpp" "imgui/implot.cpp"
 			PROPERTIES SKIP_PRECOMPILE_HEADERS TRUE)
 	endif()
 endif()
