@@ -167,13 +167,9 @@ void TCamera::Update()
         Angle.y += 2 * M_PI;
     }
 
-    Angle.x -= m_rotationoffsets.x * rotationfactor;
+    // Limit the camera pitch to +/- 90°.
+    Angle.x = clamp(Angle.x - (m_rotationoffsets.x * rotationfactor), -M_PI_2, M_PI_2);
     m_rotationoffsets.x *= ( 1.0 - rotationfactor );
-
-    if( m_owner != nullptr ) {
-        // jeżeli jazda z pojazdem ograniczenie kąta spoglądania w dół i w górę
-        Angle.x = clamp( Angle.x, -M_PI_4, M_PI_4 );
-    }
 
     // update position
     if( ( m_owner == nullptr )
