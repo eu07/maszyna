@@ -281,8 +281,8 @@ drivermouse_input::move( double Mousex, double Mousey ) {
 void
 drivermouse_input::scroll( double const Xoffset, double const Yoffset ) {
 
-    if( Global.ctrlState ) {
-        // ctrl + scroll wheel adjusts fov
+    if( Global.ctrlState || m_buttons[1] == GLFW_PRESS ) {
+        // ctrl + scroll wheel or holding right mouse button + scroll wheel adjusts fov
 		Global.FieldOfView = clamp( static_cast<float>( Global.FieldOfView - Yoffset * 20.0 / Timer::subsystem.mainloop_total.average() ), 15.0f, 75.0f );
     }
     else {
