@@ -228,7 +228,9 @@ driver_ui::render_() {
 
 	ImGui::SetNextWindowSize(ImVec2(-1, -1));
 	if( ImGui::BeginPopupModal( popupheader, nullptr, 0 ) ) {
-		if( ImGui::Button( STR_C("Resume"), ImVec2( 150, 0 ) ) ) {
+		if( ( ImGui::Button( STR_C("Resume"), ImVec2( 150, 0 ) ) )
+		 || ( ImGui::IsKeyReleased( ImGui::GetKeyIndex( ImGuiKey_Escape ) ) ) )
+		{
 			m_relay.post(user_command::pausetoggle, 0.0, 0.0, GLFW_PRESS, 0);
         }
         if( ImGui::Button( STR_C("Quit"), ImVec2( 150, 0 ) ) ) {
