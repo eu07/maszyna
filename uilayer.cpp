@@ -515,15 +515,24 @@ void ui_layer::render_background()
     if (m_background == 0)
         return;
 
-    ImVec2 size = ImGui::GetIO().DisplaySize;
+    ImVec2 display_size = ImGui::GetIO().DisplaySize;
+    ImVec2 image_size;
+    ImVec2 start_position;
+    ImVec2 end_position;
+
     opengl_texture &tex = GfxRenderer->Texture(m_background);
     tex.create();
 
-    ImGui::SetNextWindowPos(ImVec2(0, 0));
-    ImGui::SetNextWindowSize(size);
-    ImGui::Begin("Logo", nullptr,
-                 ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse |
-                     ImGuiWindowFlags_NoBringToFrontOnFocus);
-    ImGui::Image(reinterpret_cast<void *>(tex.id), size, ImVec2(0, 1), ImVec2(1, 0));
-    ImGui::End();
+    // Get the scaling factor based on the image aspect ratio vs. the display aspect ratio.
+    float scale_factor = (tex.width() / tex.height()) > (display_size.x / display_size.y)
+        ? display_size.y / tex.height()
+        : display_size.x / tex.width();
+    
+    // Resize the image to fill the display. This will zoom in on the image on ultrawide monitors.
+    image_size = ImVec2((int)(tex.width() * scale_factor), (int)(tex.height() * scale_factor));
+    // Center the image on the display.
+    start_position = ImVec2((display_size.x - image_size.x) / 2, (display_size.y - image_size.y) / 2);
+    end_position = ImVec2(image_size.x + start_position.x, image_size.y + start_position.y);
+    // The image is flipped upside-down, we'll use the UV parameters to draw it from bottom up to un-flip it.
+    ImGui::GetBackgroundDrawList()->AddImage((ImTextureID)tex.id, start_position, end_position, ImVec2(0, 1), ImVec2(1, 0));
 }
