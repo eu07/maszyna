@@ -200,7 +200,7 @@ void TCamera::Update()
             m_owner->Mechanik ?
                 m_owner->Mechanik :
                 m_owner->ctOwner ) };
-        if( ( owner )
+        if( ( owner && owner->Occupied() )
          && ( owner->Occupied()->CabOccupied < 0 ) ) { 
             movement *= -1.f;
             movement.y = -movement.y;
