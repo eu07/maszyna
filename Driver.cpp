@@ -2398,7 +2398,10 @@ bool TController::CheckVehicles(TOrders user)
     iVehicles = 0; // ilość pojazdów w składzie
     auto d = CheckDirection();
     d = d >= 0 ? 0 : 1; // kierunek szukania czoła (numer sprzęgu)
-    pVehicles[end::front] = p = pVehicle->FirstFind(d); // pojazd na czele składu
+    p = pVehicle->FirstFind(d); // pojazd na czele składu
+    if (!p)
+        p = pVehicle;
+    pVehicles[end::front] = p;
     // liczenie pojazdów w składzie i ustalenie parametrów
     auto dir = d = 1 - d; // a dalej będziemy zliczać od czoła do tyłu
     fLength = 0.0; // długość składu do badania wyjechania za ograniczenie
