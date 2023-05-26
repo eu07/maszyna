@@ -1572,6 +1572,7 @@ opengl_renderer::Render( world_environment *Environment ) {
         glm::vec3( 235.0f / 255.0f, 140.0f / 255.0f, 36.0f / 255.0f ),
         duskfactor );
     // sun
+    if (!m_isATI)
     {
         Bind_Texture( m_suntexture );
         ::glColor4f( suncolor.x, suncolor.y, suncolor.z, clamp( 1.5f - Global.Overcast, 0.f, 1.f ) * fogfactor );
@@ -1596,6 +1597,7 @@ opengl_renderer::Render( world_environment *Environment ) {
         ::glPopMatrix();
     }
     // moon
+    if (!m_isATI)
     {
         Bind_Texture( m_moontexture );
         glm::vec3 mooncolor( 255.0f / 255.0f, 242.0f / 255.0f, 231.0f / 255.0f );
@@ -4396,6 +4398,8 @@ opengl_renderer::Init_caps() {
         ErrorLog( "Requires openGL >= 2.1" );
         return false;
     }
+
+    m_isATI = (gl_vendor.find("ATI") != -1);
 
     char* extensions = (char*)glGetString( GL_EXTENSIONS );
     if (extensions)

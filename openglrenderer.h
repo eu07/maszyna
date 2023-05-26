@@ -366,6 +366,7 @@ private:
 #ifdef EU07_USE_DEBUG_CAMERA
     renderpass_config m_worldcamera; // debug item
 #endif
+    bool m_isATI;
 
     static bool renderer_register;
 };
