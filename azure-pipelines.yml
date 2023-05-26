@@ -51,7 +51,7 @@ jobs:
     displayName: 'MacOS 11 x86-64'
     steps:
     - script: |
-        sudo xcode-select -s /Applications/Xcode_12.3.app
+        sudo xcode-select -s /Applications/Xcode_12.4.app
       displayName: 'Setup Xcode'
     - script: |
         cd /tmp
@@ -79,7 +79,7 @@ jobs:
     displayName: 'MacOS 11 ARM64'
     steps:
     - script: |
-        sudo xcode-select -s /Applications/Xcode_12.3.app
+        sudo xcode-select -s /Applications/Xcode_12.4.app
       displayName: 'Setup Xcode'
     - script: |
         cd /tmp
