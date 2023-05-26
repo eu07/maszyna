@@ -45,10 +45,10 @@ jobs:
         artifactName: binaries_linux
       displayName: 'Publish binaries'
 
-  - job: macos1015
+  - job: macos11
     pool:
-      vmImage: 'macOS-10.15'
-    displayName: 'MacOS 10.15 x86-64'
+      vmImage: 'macOS-11'
+    displayName: 'MacOS 11 x86-64'
     steps:
     - script: |
         sudo xcode-select -s /Applications/Xcode_12.3.app
@@ -75,8 +75,8 @@ jobs:
 
   - job: macos11_arm64
     pool:
-      vmImage: 'macOS-10.15'
-    displayName: 'MacOS 11.1 ARM64'
+      vmImage: 'macOS-11'
+    displayName: 'MacOS 11 ARM64'
     steps:
     - script: |
         sudo xcode-select -s /Applications/Xcode_12.3.app
