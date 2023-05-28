@@ -81,7 +81,7 @@ int DirF(int CouplerN)
 }
 
 void TSecuritySystem::set_enabled(bool e) {
-	if (vigilance_enabled || cabsignal_enabled)
+	if (vigilance_enabled || cabsignal_enabled || radiostop_enabled)
 		enabled = e;
 	if (CabDependent)
 		cabactive = 0;
@@ -119,13 +119,8 @@ void TSecuritySystem::cabsignal_reset() {
 }
 
 void TSecuritySystem::update(double dt, double vel, bool pwr, int cab) {
-    if (!pwr)
-        power = false;
-
-    if (!enabled)
-        power = pwr;
-
 	if (!enabled || !pwr || DebugModeFlag) {
+		power = pwr;
 		cabsignal_active = false;
 		vigilance_timer = 0.0;
 		alert_timer = 0.0;
@@ -137,7 +132,7 @@ void TSecuritySystem::update(double dt, double vel, bool pwr, int cab) {
 	bool just_activated = CabDependent && (cabactive != cab);
 
     /* enabling battery */
-	if (!DebugModeFlag && cabsignal_enabled && (just_powered_on || just_activated)) {
+	if (cabsignal_enabled && (just_powered_on || just_activated)) {
 		cabsignal_active = true;
 		alert_timer = SoundSignalDelay;
 	}
@@ -203,11 +198,8 @@ bool TSecuritySystem::is_cabsignal_beeping() const {
 }
 
 bool TSecuritySystem::is_braking() const {
-    if (!power && (vigilance_enabled || cabsignal_enabled || radiostop_enabled))
+    if (!power && enabled)
         return true;
-
-    if (!enabled)
-        return false;
 
     return alert_timer > SoundSignalDelay + EmergencyBrakeDelay;
 }
