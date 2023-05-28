@@ -534,5 +534,5 @@ void ui_layer::render_background()
     start_position = ImVec2((display_size.x - image_size.x) / 2, (display_size.y - image_size.y) / 2);
     end_position = ImVec2(image_size.x + start_position.x, image_size.y + start_position.y);
     // The image is flipped upside-down, we'll use the UV parameters to draw it from bottom up to un-flip it.
-    ImGui::GetBackgroundDrawList()->AddImage((ImTextureID)tex.id, start_position, end_position, ImVec2(0, 1), ImVec2(1, 0));
+    ImGui::GetBackgroundDrawList()->AddImage((ImTextureID)((size_t)tex.id), start_position, end_position, ImVec2(0, 1), ImVec2(1, 0));
 }
