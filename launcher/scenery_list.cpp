@@ -216,14 +216,17 @@ void ui::scenerylist_panel::render_contents()
 
 void ui::scenerylist_panel::draw_summary_tooltip(const dynamic_desc &dyn_desc)
 {
-	std::string name = (dyn_desc.vehicle->path.parent_path() / dyn_desc.vehicle->path.stem()).string();
-	std::string skin = dyn_desc.skin->skin;
-	ImGui::Text(STR_C("ID: %s"), dyn_desc.name.c_str());
-	ImGui::NewLine();
+	if (dyn_desc.vehicle && dyn_desc.skin)
+	{
+		std::string name = (dyn_desc.vehicle->path.parent_path() / dyn_desc.vehicle->path.stem()).string();
+		std::string skin = dyn_desc.skin->skin;
+		ImGui::Text(STR_C("ID: %s"), dyn_desc.name.c_str());
+		ImGui::NewLine();
 
-	ImGui::Text(STR_C("Type: %s"), name.c_str());
-	ImGui::Text(STR_C("Skin: %s"), skin.c_str());
-	ImGui::NewLine();
+		ImGui::Text(STR_C("Type: %s"), name.c_str());
+		ImGui::Text(STR_C("Skin: %s"), skin.c_str());
+		ImGui::NewLine();
+	}
 
 	if (dyn_desc.drivertype != "nobody")
 		ImGui::Text(STR_C("Occupied: %s"), dyn_desc.drivertype.c_str());
@@ -366,24 +369,26 @@ void ui::dynamic_edit_popup::render_content()
 	    STRN("nobody")
 	};
 
-	std::string name = (dynamic.vehicle->path.parent_path() / dynamic.vehicle->path.stem()).string();
-
-	ImGui::Text(STR_C("Type: %s"), name.c_str());
-	ImGui::NewLine();
-
 	if (ImGui::InputText(STR_C("Name"), name_buf.data(), name_buf.size()))
 		dynamic.name = name_buf.data();
 
-	if (ImGui::BeginCombo(STR_C("Skin"), dynamic.skin->skin.c_str(), ImGuiComboFlags_HeightLargest))
+	if (dynamic.vehicle && dynamic.skin)
 	{
-		for (auto const &skin : dynamic.vehicle->matching_skinsets) {
-			bool is_selected = (skin == dynamic.skin);
-			if (ImGui::Selectable(skin->skin.c_str(), is_selected))
-				dynamic.skin = skin;
-			if (is_selected)
-				ImGui::SetItemDefaultFocus();
+		std::string name = (dynamic.vehicle->path.parent_path() / dynamic.vehicle->path.stem()).string();
+
+		ImGui::Text(STR_C("Type: %s"), name.c_str());
+
+		if (ImGui::BeginCombo(STR_C("Skin"), dynamic.skin->skin.c_str(), ImGuiComboFlags_HeightLargest))
+		{
+			for (auto const &skin : dynamic.vehicle->matching_skinsets) {
+				bool is_selected = (skin == dynamic.skin);
+				if (ImGui::Selectable(skin->skin.c_str(), is_selected))
+					dynamic.skin = skin;
+				if (is_selected)
+					ImGui::SetItemDefaultFocus();
+			}
+			ImGui::EndCombo();
 		}
-		ImGui::EndCombo();
 	}
 
 	if (ImGui::BeginCombo(STR_C("Occupancy"), Translations.lookup_c(dynamic.drivertype.c_str())))
