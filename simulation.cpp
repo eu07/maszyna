@@ -197,21 +197,21 @@ void state_manager::process_commands() {
 			}
 		}
 
-		if (commanddata.action == GLFW_RELEASE)
+		if (commanddata.action == GLFW_RELEASE) {
+			if (commanddata.command == user_command::debugtoggle)
+				DebugModeFlag = !DebugModeFlag;
+
+			if (commanddata.command == user_command::pausetoggle) {
+				if( Global.iPause & 1 ) {
+					// jeśli pauza startowa
+					// odpauzowanie, gdy po wczytaniu miało nie startować
+					Global.iPause ^= 1;
+				}
+				else {
+					Global.iPause ^= 2; // zmiana stanu zapauzowania
+				}
+			}
 			continue;
-
-		if (commanddata.command == user_command::debugtoggle)
-			DebugModeFlag = !DebugModeFlag;
-
-		if (commanddata.command == user_command::pausetoggle) {
-			if( Global.iPause & 1 ) {
-				// jeśli pauza startowa
-				// odpauzowanie, gdy po wczytaniu miało nie startować
-				Global.iPause ^= 1;
-			}
-			else {
-				Global.iPause ^= 2; // zmiana stanu zapauzowania
-			}
 		}
 
 		if (commanddata.command == user_command::focuspauseset) {

@@ -231,21 +231,15 @@ driver_ui::render_() {
 		if( ( ImGui::Button( STR_C("Resume"), ImVec2( 150, 0 ) ) )
 		 || ( ImGui::IsKeyReleased( ImGui::GetKeyIndex( ImGuiKey_Escape ) ) ) )
 		{
-			m_relay.post(user_command::pausetoggle, 0.0, 0.0, GLFW_PRESS, 0);
+			m_relay.post(user_command::pausetoggle, 0.0, 0.0, GLFW_RELEASE, 0);
         }
         if( ImGui::Button( STR_C("Quit"), ImVec2( 150, 0 ) ) ) {
             Application.queue_quit(false);
         }
 		if (!m_paused)
-		{
-			m_pause_modal_opened = false;
 			ImGui::CloseCurrentPopup();
-		}
-        ImGui::EndPopup();
-    }
-	if (m_paused && !m_pause_modal_opened)
-	{
-		m_pause_modal_opened = true;
+		ImGui::EndPopup();
+	} else if (m_paused) {
 		ImGui::OpenPopup(popupheader);
 	}
 

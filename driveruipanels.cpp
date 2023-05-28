@@ -634,7 +634,11 @@ debug_panel::render() {
 #endif
         // toggles
         ImGui::Separator();
-        ImGui::Checkbox( "Debug Mode", &DebugModeFlag );
+        bool flag = DebugModeFlag;
+        if (ImGui::Checkbox("Debug Mode", &flag)) {
+            command_relay relay;
+            relay.post(user_command::debugtoggle, 0.0, 0.0, GLFW_RELEASE, 0);
+        }
     }
 
     ImGui::End();

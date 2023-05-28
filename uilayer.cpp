@@ -465,7 +465,11 @@ void ui_layer::render_menu_contents()
 {
 	if (ImGui::BeginMenu(STR_C("General")))
     {
-        ImGui::MenuItem(STR_C("Debug mode"), nullptr, &DebugModeFlag);
+        bool flag = DebugModeFlag;
+        if (ImGui::MenuItem(STR_C("Debug mode"), nullptr, &flag)) {
+            command_relay relay;
+            relay.post(user_command::debugtoggle, 0.0, 0.0, GLFW_RELEASE, 0);
+        }
         ImGui::MenuItem(STR_C("Quit"), "F10", &m_quit_active);
         ImGui::EndMenu();
     }
