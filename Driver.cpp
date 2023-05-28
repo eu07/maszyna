@@ -7844,6 +7844,7 @@ TController::adjust_desired_speed_for_braking_test() {
 //    if( false == Global.DynamicBrakeTest ) { return; }
     if( DynamicBrakeTest >= 5 ) { return; } // all done
     if( false == is_train() ) { return; } // not applicable
+    if( mvOccupied->BrakeHandle == TBrakeHandle::FVel6 ) { return; } // leads to bugs in DecBrake, disable for now
     if( false == TestFlag( OrderCurrentGet(), Obey_train ) ) { return; } // not applicable
     if( false == AIControllFlag ) { return; } // TBD: add notification about braking test and enable it for human driver as well?
 
