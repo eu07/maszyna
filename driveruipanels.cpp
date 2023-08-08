@@ -1516,6 +1516,13 @@ debug_panel::render_section_settings() {
     if( ImGui::SliderFloat( ( to_string( static_cast<int>( Global.EnvironmentAmbientVolume * 100 ) ) + "%###volumeambient" ).c_str(), &Global.EnvironmentAmbientVolume, 0.0f, 1.0f, "Ambient sounds" ) ) {
         audio::event_volume_change = true;
     }
+    if (simulation::Train) {
+        float val = simulation::Train->get_radiovolume();
+        if( ImGui::SliderFloat( ( to_string( static_cast<int>( val * 100 ) ) + "%###volumeradio" ).c_str(), &val, 0.0f, 1.0f, "Vehicle radio volume" ) ) {
+            command_relay relay;
+            relay.post(user_command::radiovolumeset, val, 0.0, GLFW_PRESS, 0);
+        }
+    }
 
     return true;
 }

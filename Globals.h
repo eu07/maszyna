@@ -161,7 +161,7 @@ struct global_settings {
     // audio
     bool bSoundEnabled{ true };
     float AudioVolume{ 1.f };
-    float RadioVolume{ 0.75f };
+    float DefaultRadioVolume{ 0.75f };
     float VehicleVolume{ 1.0f };
     float EnvironmentPositionalVolume{ 1.0f };
     float EnvironmentAmbientVolume{ 1.0f };

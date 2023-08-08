@@ -724,7 +724,7 @@ dictionary_source *TTrain::GetTrainState( dictionary_source const &Extraparamete
 	}
     dict->insert( "radio", mvOccupied->Radio );
     dict->insert( "radio_channel", RadioChannel() );
-	dict->insert( "radio_volume", Global.RadioVolume );
+	dict->insert( "radio_volume", m_radiovolume );
     dict->insert( "door_lock", mvOccupied->Doors.lock_enabled );
 	dict->insert( "door_step", mvOccupied->Doors.step_enabled );
 	dict->insert( "door_permit_left", mvOccupied->Doors.instances[side::left].open_permit );
@@ -6601,7 +6601,7 @@ void TTrain::OnCommand_radiovolumeincrease(TTrain *Train, command_data const &Co
 
 	if (Command.action == GLFW_PRESS) {
         command_data newCommand = Command;
-        newCommand.param1 = Global.RadioVolume + 0.125;
+        newCommand.param1 = Train->m_radiovolume + 0.125;
         OnCommand_radiovolumeset(Train, newCommand);
 		Train->ggRadioVolumeNext.UpdateValue(1.0);
 	}
@@ -6615,7 +6615,7 @@ void TTrain::OnCommand_radiovolumedecrease(TTrain *Train, command_data const &Co
 
 	if (Command.action == GLFW_PRESS) {
         command_data newCommand = Command;
-        newCommand.param1 = Global.RadioVolume - 0.125;
+        newCommand.param1 = Train->m_radiovolume - 0.125;
         OnCommand_radiovolumeset(Train, newCommand);
 		Train->ggRadioVolumePrevious.UpdateValue(1.0);
 	}
@@ -6628,8 +6628,9 @@ void TTrain::OnCommand_radiovolumedecrease(TTrain *Train, command_data const &Co
 void TTrain::OnCommand_radiovolumeset(TTrain *Train, command_data const &Command) {
     if( Command.action != GLFW_RELEASE ) {
         // on press or hold
-        Global.RadioVolume = clamp(Command.param1, 0.0, 1.0);
-        Train->ggRadioVolumeSelector.UpdateValue(Global.RadioVolume);
+        Train->m_radiovolume = clamp(Command.param1, 0.0, 1.0);
+        Train->ggRadioVolumeSelector.UpdateValue(Train->m_radiovolume);
+        audio::event_volume_change = true;
     }
 }
 
@@ -8457,7 +8458,7 @@ void TTrain::update_sounds_radio() {
             ( true == radioenabled )
          && ( Dynamic()->Mechanik != nullptr )
          && ( message.first == RadioChannel() ) ?
-                Global.RadioVolume :
+                m_radiovolume :
                 0.0 };
         message.second->gain( volume );
 		radio_message_played |= (true == radioenabled) && (Dynamic()->Mechanik != nullptr) && (message.first == RadioChannel());
@@ -8475,7 +8476,7 @@ void TTrain::update_sounds_radio() {
     }
 	if (radio_message_played)
 	{
-		btLampkaRadioMessage.gain(Global.RadioVolume);
+		btLampkaRadioMessage.gain(m_radiovolume);
 	}
 }
 
@@ -9805,7 +9806,7 @@ void TTrain::set_cab_controls( int const Cab ) {
                 0.f );
      }
     // radio
-    ggRadioVolumeSelector.PutValue( Global.RadioVolume );
+    ggRadioVolumeSelector.PutValue( m_radiovolume );
 
 	//finding each inverter - not so optimal, but action ins performed only during changing cabin
 	bool kier = (DynamicObject->DirectionGet() * mvOccupied->CabOccupied > 0);

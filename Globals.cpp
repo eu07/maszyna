@@ -154,8 +154,8 @@ global_settings::ConfigParse(cParser &Parser) {
         {
             // selected device for audio renderer
             Parser.getTokens();
-            Parser >> RadioVolume;
-            RadioVolume = clamp(RadioVolume, 0.f, 1.f);
+            Parser >> DefaultRadioVolume;
+            DefaultRadioVolume = clamp(DefaultRadioVolume, 0.f, 1.f);
         }
 		else if (token == "sound.maxsources") {
 			Parser.getTokens();
@@ -1241,7 +1241,7 @@ global_settings::export_as_text( std::ostream &Output ) const {
     export_as_text( Output, "soundenabled", bSoundEnabled );
     export_as_text( Output, "sound.openal.renderer", AudioRenderer );
     export_as_text( Output, "sound.volume", AudioVolume );
-    export_as_text( Output, "sound.volume.radio", RadioVolume );
+    export_as_text( Output, "sound.volume.radio", DefaultRadioVolume );
     export_as_text( Output, "sound.volume.vehicle", VehicleVolume );
     export_as_text( Output, "sound.volume.positional", EnvironmentPositionalVolume );
     export_as_text( Output, "sound.volume.ambient", EnvironmentAmbientVolume );

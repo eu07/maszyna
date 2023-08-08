@@ -169,6 +169,7 @@ class TTrain {
     bool LoadMMediaFile(std::string const &asFileName);
     dictionary_source *GetTrainState( dictionary_source const &Extraparameters );
     state_t get_state() const;
+	inline float get_radiovolume() const { return m_radiovolume; }
     // basic_table interface
     inline
     std::string name() const {
@@ -872,6 +873,7 @@ private:
     // ld substitute
     bool m_couplingdisconnect { false };
 	bool m_couplingdisconnectback { false };
+    float m_radiovolume { Global.DefaultRadioVolume };
 
   public:
     float fPress[20][7]; // cisnienia dla wszystkich czlonow
@@ -896,20 +898,6 @@ private:
     bool point_inside( Math3D::vector3 const Point ) const;
     Math3D::vector3 clamp_inside( Math3D::vector3 const &Point ) const;
     const screenentry_sequence & get_screens();
-
-	float get_tacho();
-	float get_tank_pressure();
-	float get_pipe_pressure();
-	float get_brake_pressure();
-	float get_hv_voltage();
-	std::array<float, 3> get_current();
-	bool get_alarm();
-	int get_drive_direction();
-
-    void set_mainctrl(int);
-    void set_scndctrl(int);
-    void set_trainbrake(float);
-    void set_localbrake(float);
 
 	uint16_t id();
 	bool pending_delete = false;
