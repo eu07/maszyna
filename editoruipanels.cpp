@@ -68,8 +68,10 @@ itemproperties_panel::update( scene::basic_node const *Node ) {
 
         auto const *subnode = static_cast<TAnimModel const *>( node );
 
-        textline = "angle: " + to_string( clamp_circular( subnode->vAngle.y, 360.f ), 2 ) + " deg";
-        textline += "; lights: ";
+        textline = "angle_x: " + to_string(clamp_circular(subnode->vAngle.x, 360.f), 2) + " deg, " +
+		           "angle_y: " + to_string(clamp_circular(subnode->vAngle.y, 360.f), 2) + " deg, " +
+		           "angle_z: " + to_string(clamp_circular(subnode->vAngle.z, 360.f), 2) + " deg";
+        textline += ";\nlights: ";
         if( subnode->iNumLights > 0 ) {
             textline += '[';
             for( int lightidx = 0; lightidx < subnode->iNumLights; ++lightidx ) {
@@ -150,7 +152,7 @@ itemproperties_panel::update( scene::basic_node const *Node ) {
                 + to_string( path.points[ segment_data::point::start ].x, 3 ) + ", "
                 + to_string( path.points[ segment_data::point::start ].y, 3 ) + ", "
                 + to_string( path.points[ segment_data::point::start ].z, 3 ) + "]->"
-                + "["
+                + " ["
                 + to_string( path.points[ segment_data::point::end ].x, 3 ) + ", "
                 + to_string( path.points[ segment_data::point::end ].y, 3 ) + ", "
                 + to_string( path.points[ segment_data::point::end ].z, 3 ) + "] ";
@@ -353,6 +355,42 @@ nodebank_panel::nodebank_panel( std::string const &Name, bool const Isopen ) : u
                 return ( Left.first < Right.first ); } );
     }
 }
+void
+nodebank_panel::nodebank_reload(){
+	m_nodebank.clear();
+	std::ifstream file;
+	file.open("nodebank.txt", std::ios_base::in | std::ios_base::binary);
+	std::string line;
+	while (std::getline(file, line))
+	{
+		if (line.size() < 4)
+		{
+			continue;
+		}
+		auto const labelend{line.find("node")};
+		auto const nodedata{
+		    (labelend == std::string::npos ? "" : labelend == 0 ? line : line.substr(labelend))};
+		auto const label{
+		    (labelend == std::string::npos ?
+		         line :
+		         labelend == 0 ? generate_node_label(nodedata) : line.substr(0, labelend))};
+
+		m_nodebank.push_back({label, std::make_shared<std::string>(nodedata)});
+	}
+	// sort alphabetically content of each group
+	auto groupbegin{m_nodebank.begin()};
+	auto groupend{groupbegin};
+	while (groupbegin != m_nodebank.end())
+	{
+		groupbegin = std::find_if(groupend, m_nodebank.end(), [](auto const &Entry) {
+			return (false == Entry.second->empty());
+		});
+		groupend = std::find_if(groupbegin, m_nodebank.end(),
+		                        [](auto const &Entry) { return (Entry.second->empty()); });
+		std::sort(groupbegin, groupend,
+		          [](auto const &Left, auto const &Right) { return (Left.first < Right.first); });
+	}
+}
 
 void
 nodebank_panel::render() {
@@ -378,11 +416,19 @@ nodebank_panel::render() {
 
     if( true == ImGui::Begin( panelname.c_str(), nullptr, flags ) ) {
 
-	    ImGui::RadioButton("modify node", (int*)&mode, MODIFY);
+	    ImGui::RadioButton("Modify node", (int*)&mode, MODIFY);
         ImGui::SameLine();
-	    ImGui::RadioButton("insert from bank", (int*)&mode, ADD);
+	    ImGui::RadioButton("Insert from bank", (int*)&mode, ADD);
+		ImGui::SameLine();
+		ImGui::RadioButton("Brush", (int*)&mode, BRUSH);
         ImGui::SameLine();
-        ImGui::RadioButton( "copy to bank", (int*)&mode, COPY );
+        ImGui::RadioButton( "Copy to bank", (int*)&mode, COPY );
+		ImGui::SameLine();
+		if (ImGui::Button("Reload Nodebank"))
+		{
+			nodebank_reload();
+        }
+		
 
         ImGui::PushItemWidth(-1);
         ImGui::InputTextWithHint( "Search", "Search node bank", m_nodesearch, IM_ARRAYSIZE( m_nodesearch ) );

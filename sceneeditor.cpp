@@ -137,7 +137,7 @@ basic_editor::translate_memorycell( TMemCell *Memorycell, float const Offset ) {
 void
 basic_editor::rotate( scene::basic_node *Node, glm::vec3 const &Angle, float const Quantization ) {
 
-    glm::vec3 rotation { 0, Angle.y, 0 };
+    glm::vec3 rotation{Angle.x, Angle.y, Angle.z};
 
     // quantize resulting angle if requested and type of the node allows it
     // TBD, TODO: angle quantization for types other than instanced models
