@@ -54,13 +54,13 @@ public:
 	enum edit_mode {
 		MODIFY,
 		COPY,
-		ADD
+		ADD,
+        BRUSH
 	};
-
 	edit_mode mode = MODIFY;
 
 	nodebank_panel( std::string const &Name, bool const Isopen );
-
+	void nodebank_reload();
 	void render() override;
 	void add_template(const std::string &desc);
 	const std::string* get_active_template();
