@@ -447,6 +447,10 @@ void TTrack::Load(cParser *parser, glm::dvec3 const &pOrigin)
         >> fTrackWidth
         >> fFriction
         >> fSoundDistance;
+	if (eType == tt_Switch)
+	{
+		fSoundDistance = 10.0f;
+	}
     fTrackWidth2 = fTrackWidth; // rozstaw/szerokość w punkcie 2, na razie taka sama
     parser->getTokens(2);
     *parser

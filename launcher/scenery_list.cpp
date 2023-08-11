@@ -100,6 +100,7 @@ void ui::scenerylist_panel::draw_launch_box()
 	ImGui::TextWrapped(selected_trainset->description.c_str());
 
 	if (ImGui::Button(STR_C("Launch"), ImVec2(-1, 0))) {
+		Global.loading_log = !Global.loading_log;
 		if (!launch_simulation())
 			ImGui::OpenPopup("missing_driver");
 	}

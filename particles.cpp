@@ -170,15 +170,46 @@ smoke_source::update( double const Timedelta, bool const Onlydespawn ) {
                 m_max_particles ) );
     // consider special spawn rate cases
     if( m_ownertype == owner_type::vehicle ) {
-        // HACK: don't spawn particles in tunnels, to prevent smoke clipping through 'terrain' outside
-        if( m_owner.vehicle->RaTrackGet()->eEnvironment == e_tunnel ) {
-            m_spawncount = 0.f;
-        }
-        if( false == m_owner.vehicle->bEnabled ) {
-            // don't spawn particles for vehicles which left the scenario
-            m_spawncount = 0.f;
-        }
-    }
+
+		if (Global.AirTemperature <= 5.f || m_owner.vehicle->MoverParameters->dizel_heat.Ts < 45.f)
+		{
+			m_emitter.color == glm::vec3{128, 128, 128};
+		}
+
+		if (m_owner.vehicle->MoverParameters->dizel_spinup == true)
+		{
+			m_spawncount =
+			    ((false == Global.Smoke) || (true == Onlydespawn)) ?
+			        0.f :
+			        std::min<float>(
+			            // m_spawncount + ( m_spawnrate * Timedelta * Global.SmokeFidelity ),
+			   m_spawncount +(m_spawnrate * Timedelta * Global.SmokeFidelity * (((m_owner.vehicle->MoverParameters->enrot) / 4 ) * 0.01)), m_max_particles);
+		}
+		else
+		{
+			if (m_owner.vehicle->MoverParameters->DirAbsolute == 0 ||
+			    m_owner.vehicle->MoverParameters->Im == 0)
+			{
+				m_spawncount =
+				    ((false == Global.Smoke) || (true == Onlydespawn)) ?
+				        0.f :
+				        std::min<float>(
+				            // m_spawncount + ( m_spawnrate * Timedelta * Global.SmokeFidelity ),
+				            m_spawncount + (m_spawnrate * Timedelta * Global.SmokeFidelity * ((((m_owner.vehicle->MoverParameters->DElist[m_owner.vehicle->MoverParameters->MainCtrlPosNo].RPM -m_owner.vehicle->MoverParameters->enrot) /60) *0.02) *(m_owner.vehicle->MoverParameters->EnginePower * 0.005))), m_max_particles);
+			}
+			else
+			{
+
+				m_spawncount =
+				    ((false == Global.Smoke) || (true == Onlydespawn)) ?
+				        0.f :
+				        std::min<float>(
+				            // m_spawncount + ( m_spawnrate * Timedelta * Global.SmokeFidelity ),
+				            m_spawncount + (m_spawnrate * Timedelta * Global.SmokeFidelity * ((((m_owner.vehicle->MoverParameters->DElist[m_owner.vehicle->MoverParameters->MainCtrlPosNo].RPM -m_owner.vehicle->MoverParameters->enrot) /60) * (sqrt(m_owner.vehicle->MoverParameters->Im) * 0.01) * 0.02) *(m_owner.vehicle->MoverParameters->EnginePower * 0.005))), m_max_particles);
+			}
+		}
+	}
+    
     // update spawned particles
     for( auto particleiterator { std::begin( m_particles ) }; particleiterator != std::end( m_particles ); ++particleiterator ) {
 
@@ -301,14 +332,21 @@ smoke_source::initialize( smoke_particle &Particle ) {
 
     if( m_ownertype == owner_type::vehicle ) {
         Particle.opacity *= m_owner.vehicle->MoverParameters->dizel_fill;
-        auto const enginerevolutionsfactor { 0.5f }; // high engine revolutions increase initial particle velocity
+        auto const enginerevolutionsfactor { 1.5f }; // high engine revolutions increase initial particle velocity
         switch( m_owner.vehicle->MoverParameters->EngineType ) {
-            case TEngineType::DieselElectric: {
-                Particle.velocity *= 1.0 + enginerevolutionsfactor * m_owner.vehicle->MoverParameters->enrot / ( m_owner.vehicle->MoverParameters->DElist[ m_owner.vehicle->MoverParameters->MainCtrlPosNo ].RPM / 60.0 );
-                break;
-            }
-            case TEngineType::DieselEngine: {
-                Particle.velocity *= 1.0 + enginerevolutionsfactor * m_owner.vehicle->MoverParameters->enrot / m_owner.vehicle->MoverParameters->nmax;
+        case TEngineType::DieselElectric: {
+                if (m_owner.vehicle->MoverParameters->dizel_spinup == true)
+                {
+                Particle.velocity *= 0.38*(((m_owner.vehicle->MoverParameters->enrot)/2)*0.5);  // / m_owner.vehicle->MoverParameters->dizel_fill *0.01)) ; 
+                
+                }
+                else 
+                {
+              
+                Particle.velocity *= ((((m_owner.vehicle->MoverParameters->enrot)/60)*0.6) * (m_owner.vehicle->MoverParameters->EnginePower *0.03));  // / m_owner.vehicle->MoverParameters->dizel_fill *0.01)) ; 
+                //Particle.velocity *= m_owner.vehicle->GetVelocity();  // / m_owner.vehicle->MoverParameters->dizel_fill *0.01)) ; 
+                }
+
                 break;
             }
             default: {
@@ -330,10 +368,23 @@ smoke_source::update( smoke_particle &Particle, bounding_box &Boundingbox, doubl
 
     // crude smoke dispersion simulation
     // http://www.auburn.edu/academic/forestry_wildlife/fire/smoke_guide/smoke_dispersion.htm
-    Particle.velocity.y += ( 0.005 * Particle.velocity.y ) * std::min( 0.f, Global.AirTemperature - 10 ) * Timedelta; // decelerate faster in cold weather
+	switch (m_ownertype)
+	{
+	case owner_type::vehicle:
+	{
+    Particle.velocity.y += ( 0.025 * Particle.velocity.y ) * std::min( 0.f, Global.AirTemperature - 90 ) * Timedelta; // decelerate faster in cold weather
+	Particle.velocity.y -= ( (0.05 * (pow(m_owner.vehicle->GetVelocity()*1,0.4))) * Particle.velocity.y ) * Global.Overcast * Timedelta; // decelerate faster with high air humidity and/or precipitation
+	break;
+    }
+	default:
+	{
+	Particle.velocity.y += ( 0.005 * Particle.velocity.y ) * std::min( 0.f, Global.AirTemperature - 10 ) * Timedelta; // decelerate faster in cold weather
     Particle.velocity.y -= ( 0.050 * Particle.velocity.y ) * Global.Overcast * Timedelta; // decelerate faster with high air humidity and/or precipitation
     Particle.velocity.y = std::max<float>( 0.25 * ( 2.f - Global.Overcast ), Particle.velocity.y ); // put a cap on deceleration
-
+	break;
+    }
+    }
+    
     Particle.position += Particle.velocity * static_cast<float>( Timedelta );
     Particle.position += 0.1f * Particle.age * simulation::Environment.wind() * static_cast<float>( Timedelta );
 //    m_velocitymodifier.update( Particle.velocity, Timedelta );
@@ -423,8 +474,7 @@ particle_manager::find( std::string const &Template ) {
     }
     // ... and if it fails try to add the template to the database from a data file
     smoke_source source;
-    cParser sound_parser( templatepath + templatename + ".txt", cParser::buffer_FILE );
-    if( source.deserialize( sound_parser ) ) {
+    if( source.deserialize( cParser( templatepath + templatename + ".txt", cParser::buffer_FILE ) ) ) {
         // if deserialization didn't fail finish source setup...
         source.m_opacitymodifier.bind( &Global.SmokeFidelity );
         // ...then cache the source as template for future instances
