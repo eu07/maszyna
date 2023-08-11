@@ -1158,6 +1158,7 @@ basic_region::deserialize( std::string const &Scenariofile ) {
     filename += EU07_FILEEXTENSION_REGION;
 
     if( false == FileExists( filename ) ) {
+		Global.file_binary_terrain_state = false;
         return false;
     }
     // region file version 1
