@@ -3491,17 +3491,17 @@ bool TDynamicObject::Update(double dt, double dt1)
                     interpolate(
                         0.8, 1.2,
                         clamp(
-                            MyTrack->iQualityFlag / 20.0,
-                            0.0, 1.0 ) );
+                            MyTrack->iQualityFlag / 10.0,
+                            0.0, 1.5 ) );
                 switch( MyTrack->eEnvironment ) {
                     case e_tunnel: {
-                        volume *= 1.1;
+                        volume *= 1.3;
                         break;
                     }
                     case  e_bridge: {
-                        volume *= 1.2;
-                        break;
-                    }
+                        volume *= 1.5;
+                        break; 
+                    } 
                     default: {
                         break;
                     }
@@ -3530,15 +3530,28 @@ bool TDynamicObject::Update(double dt, double dt1)
                                     .gain( volume )
                                     .play();
                                 // crude bump simulation, drop down on even axles, move back up on the odd ones
-                                MoverParameters->AccVert +=
-                                    interpolate(
-                                        0.01, 0.05,
-                                        clamp(
-                                            GetVelocity() / ( 1 + MoverParameters->Vmax ),
-                                            0.0, 1.0 ) )
-                                    * ( ( axleindex % 2 ) != 0 ?
-                                         1 :
-                                        -1 );
+								//MoverParameters->AccVert += (MoverParameters->Vel*0.1f) *
+								MoverParameters->AccVert +=
+								   clamp(-1.0, 1.0, (MoverParameters->Vel / ( 1 + MoverParameters->Vmax )) * MyTrack->iDamageFlag * ((axleindex % 2) != 0 ? 1 : -1));
+                                     
+								if (MyTrack->eType == tt_Switch){
+									MoverParameters->AccSVBased += clamp(
+									    -1.0, 1.0,
+									    (MoverParameters->Vel / (1 + MoverParameters->Vmax)) *
+									        MyTrack->iDamageFlag * ((axleindex % 2) != 0 ? 1 : -1));
+									MoverParameters->AccS += clamp(
+									    -1.0, 1.0,
+									    (MoverParameters->Vel / (1 + MoverParameters->Vmax)) *
+									        MyTrack->iDamageFlag * ((axleindex % 2) != 0 ? 1 : -1));
+									MoverParameters->AccN += clamp(
+									    -1.0, 1.0,
+									    (MoverParameters->Vel / (1 + MoverParameters->Vmax)) *
+									        MyTrack->iDamageFlag * ((axleindex % 2) != 0 ? 1 : -1));
+									MoverParameters->AccVert += clamp(
+									    -1.0, 1.0,
+									    (MoverParameters->Vel / (1 + MoverParameters->Vmax)) *
+									        MyTrack->iDamageFlag * ((axleindex % 2) != 0 ? 1 : -1));
+                                    }
                             }
                         }
                         ++axleindex;
@@ -4694,6 +4707,19 @@ void TDynamicObject::RenderSounds() {
                         MoverParameters->Vel / 40.0,
                         0.0, 1.0 ) );
         }
+                        switch( MyTrack->eEnvironment ) {
+                    case e_tunnel: {
+                        volume *= 1.3;
+                        break;
+                    }
+                    case  e_bridge: {
+                        volume *= 1.5;
+                        break; 
+                    } 
+                    default: {
+                        break;
+                    }
+                }
 
         if( volume > 0.05 ) {
             // apply calculated parameters to all motor instances
@@ -7622,7 +7648,7 @@ TDynamicObject::update_shake( double const Timedelta ) {
             shakevector += Math3D::vector3(
                 -MoverParameters->AccN * Timedelta * 5.0, // highlight side sway
                 -MoverParameters->AccVert * Timedelta,
-                -MoverParameters->AccSVBased * Timedelta * 1.25 ); // accent acceleration/deceleration
+                -MoverParameters->AccSVBased * Timedelta * 1.5); // accent acceleration/deceleration
         }
 
         auto shake { 1.25 * ShakeSpring.ComputateForces( shakevector, ShakeState.offset ) };

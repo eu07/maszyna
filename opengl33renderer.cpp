@@ -984,13 +984,17 @@ void opengl33_renderer::Render_pass(viewport_config &vp, rendermode const Mode)
         setup_drawing( false );
 
 		glViewport(0, 0, m_shadowbuffersize, m_shadowbuffersize);
-
-        float csmstageboundaries[] = { 0.0f, 5.0f, 25.0f, 1.0f };
+		float csmstageboundaries[] = {0.0f,
+		                               Global.shadowtune.range / 32,
+		                              Global.shadowtune.range / 8,
+		                              Global.shadowtune.range};
         if( Global.shadowtune.map_size > 2048 ) {
             // increase coverage if our shadow map is large enough to produce decent results
-            csmstageboundaries[ 1 ] *= Global.shadowtune.map_size / 2048;
-            csmstageboundaries[ 2 ] *= Global.shadowtune.map_size / 2048;
+			csmstageboundaries[1] *= Global.shadowtune.map_size / 2048;
+			csmstageboundaries[2] *= Global.shadowtune.map_size / 2048;
+			csmstageboundaries[3] *= Global.shadowtune.map_size / 2048;
         }
+
 
         for( auto idx = 0; idx < m_shadowpass.size(); ++idx ) {
 
@@ -1003,7 +1007,7 @@ void opengl33_renderer::Render_pass(viewport_config &vp, rendermode const Mode)
             setup_matrices();
             scene_ubs.projection = OpenGLMatrices.data( GL_PROJECTION );
             auto const csmstagezfar {
-                ( csmstageboundaries[ idx + 1 ] > 1.f ? csmstageboundaries[ idx + 1 ] : Global.shadowtune.range )
+                (csmstageboundaries[ idx + 1 ])
               + ( m_shadowpass.size() - idx ) }; // we can fairly safely add some extra padding in the early stages
             scene_ubs.cascade_end[ idx ] = csmstagezfar * csmstagezfar; // store squared to allow semi-optimized length2 comparisons in the shader
             scene_ubo->update( scene_ubs );

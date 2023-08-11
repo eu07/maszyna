@@ -790,7 +790,7 @@ public:
     struct baseshake_config {
         Math3D::vector3 angle_scale { 0.05, 0.0, 0.1 }; // roll, yaw, pitch
         Math3D::vector3 jolt_scale { 0.2, 0.2, 0.1 };
-        double jolt_limit { 0.15 };
+        double jolt_limit { 2.0f };
     } BaseShake;
     struct engineshake_config {
         float scale { 2.f };

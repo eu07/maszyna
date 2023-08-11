@@ -519,6 +519,7 @@ eu07_application::push_mode( eu07_application::mode const Mode ) {
 
 	if (!m_modes[Mode]) {
 		if (Mode == mode::launcher)
+			Global.loading_log = false;
 			m_modes[Mode] = std::make_shared<launcher_mode>();
 		if (Mode == mode::scenarioloader)
 			m_modes[Mode] = std::make_shared<scenarioloader_mode>();

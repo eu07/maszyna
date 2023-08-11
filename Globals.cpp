@@ -320,7 +320,7 @@ global_settings::ConfigParse(cParser &Parser) {
             Parser.getTokens(1, false);
             int size;
             Parser >> size;
-            iMaxTextureSize = clamp_power_of_two(size, 512, 8192);
+            iMaxTextureSize = clamp_power_of_two(size, 64, 8192);
         }
         else if (token == "maxcabtexturesize")
         {
