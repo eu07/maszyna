@@ -86,6 +86,7 @@ struct global_settings {
     float Overcast{ 0.1f }; // NOTE: all this weather stuff should be moved elsewhere
     glm::vec3 FogColor = { 0.6f, 0.7f, 0.8f };
     float fFogEnd{ 7500 };
+    float fTurbidity{ 128 };
     std::string Season{}; // season of the year, based on simulation date
     std::string Weather{ "cloudy:" }; // current weather
     std::string Period{}; // time of the day, based on sun position

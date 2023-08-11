@@ -66,9 +66,23 @@ world_environment::compute_weather() {
         Global.Overcast <= 0.50 ? "scattered:" :
         Global.Overcast <= 0.90 ? "broken:" :
         Global.Overcast <= 1.00 ? "overcast:" :
-        ( Global.Season != "winter:" ?
-            "rain:" :
+        
+            (Global.AirTemperature > 1 ? "rain:" :
             "snow:" ) );
+
+    Global.fTurbidity = (
+        Global.Overcast <= 0.10 ? 3 :
+        Global.Overcast <= 0.20 ? 4 :
+        Global.Overcast <= 0.30 ? 5 :
+        Global.Overcast <= 0.40 ? 5 :
+        Global.Overcast <= 0.50 ? 5 :
+        Global.Overcast <= 0.60 ? 5 :
+        Global.Overcast <= 0.70 ? 6 :
+        Global.Overcast <= 0.80 ? 7 :
+        Global.Overcast <= 0.90 ? 8 :
+        Global.Overcast > 0.90 ? 9 :
+        9
+        );
 }
 
 void
@@ -120,7 +134,9 @@ world_environment::update() {
 
     float keylightintensity;
     glm::vec3 keylightcolor;
-    if( moonlightlevel > sunlightlevel ) {
+	Global.SunAngle = m_sun.getAngle();
+	if ((moonlightlevel > sunlightlevel) && (Global.SunAngle <(-20)))
+	{
         // rare situations when the moon is brighter than the sun, typically at night
         Global.SunAngle = m_moon.getAngle();
         Global.DayLight.position = m_moon.getDirection();
@@ -139,10 +155,10 @@ world_environment::update() {
         keylightintensity = sunlightlevel;
         m_lightintensity = 1.0f;
         // include 'golden hour' effect in twilight lighting
-        float const duskfactor = 1.0f - clamp( Global.SunAngle, 0.0f, 18.0f ) / 18.0f;
+        float const duskfactor = 1.25f - clamp( Global.SunAngle, 0.0f, 18.0f ) / 18.0f;
         keylightcolor = interpolate(
             glm::vec3( 255.0f / 255.0f, 242.0f / 255.0f, 231.0f / 255.0f ),
-            glm::vec3( 235.0f / 255.0f, 140.0f / 255.0f, 36.0f / 255.0f ),
+            glm::vec3( 235.0f / 255.0f, 120.0f / 255.0f, 36.0f / 255.0f ),
             duskfactor );
     }
     // ...retrieve current sky colour and brightness...
@@ -174,9 +190,9 @@ world_environment::update() {
 
     // update the fog. setting it to match the average colour of the sky dome is cheap
     // but quite effective way to make the distant items blend with background better
-    Global.FogColor =
-        interpolate( m_skydome.GetAverageColor(), m_skydome.GetAverageHorizonColor(), 0.25f )
-        * clamp<float>( Global.fLuminance, 0.25f, 1.f );
+    Global.FogColor = ((m_skydome.GetAverageHorizonColor()) * keylightcolor) *
+	                  clamp<float>(Global.fLuminance, 0.0f, 1.f);
+	
 
     // weather-related simulation factors
     Global.FrictionWeatherFactor = (

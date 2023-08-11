@@ -388,10 +388,7 @@ global_settings::ConfigParse(cParser &Parser) {
             // selected device for audio renderer
             Parser.getTokens();
             Parser >> AirTemperature;
-            if (false == DebugModeFlag)
-            {
-                AirTemperature = clamp(AirTemperature, -15.f, 45.f);
-            }
+            AirTemperature = clamp(AirTemperature, -15.f, 45.f);
         }
         else if (token == "scalespeculars")
         {
