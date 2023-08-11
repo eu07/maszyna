@@ -55,6 +55,16 @@ state_serializer::deserialize_begin( std::string const &Scenariofile ) {
 		state->scratchpad.binary.terrain = Region->is_scene( Scenariofile ) ;
     }
 
+	if (false != state->scratchpad.binary.terrain)
+	{
+		Global.file_binary_terrain_state = true;
+		WriteLog("SBT present");
+    }
+	else
+	{
+		Global.file_binary_terrain_state = false;
+		WriteLog("SBT absent");
+    }
     scene::Groups.create();
 
 	if( false == state->input.ok() )

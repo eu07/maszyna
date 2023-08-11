@@ -247,17 +247,41 @@ std::string cParser::readToken( bool ToLower, const char *Break ) {
 	if( expandIncludes && token == "include" ) {
 		std::string includefile = allowRandomIncludes ? deserialize_random_set(*this) : readToken(ToLower); // nazwa pliku
 		replace_slashes(includefile);
-        if( ( true == LoadTraction )
-         || ( ( false == contains( includefile, "tr/" ) )
-           && ( false == contains( includefile, "tra/" ) ) ) ) {
-            if (Global.ParserLogIncludes)
-                WriteLog("including: " + includefile);
+		if ((true == LoadTraction) ||
+		    ((false == contains(includefile, "tr/")) && (false == contains(includefile, "tra/"))))
+		{
+			if (false == contains(includefile, "_ter.scm"))
+			{
+			if (Global.ParserLogIncludes)
+            WriteLog("including: " + includefile);
             mIncludeParser = std::make_shared<cParser>( includefile, buffer_FILE, mPath, LoadTraction, readParameters( *this ) );
 			mIncludeParser->allowRandomIncludes = allowRandomIncludes;
             mIncludeParser->autoclear( m_autoclear );
             if( mIncludeParser->mSize <= 0 ) {
                 ErrorLog( "Bad include: can't open file \"" + includefile + "\"" );
             }
+			}
+			else
+			{				
+				if(true == Global.file_binary_terrain_state)
+				{
+					WriteLog("SBT found, ignoring: " + includefile);
+					readParameters(*this);
+				}
+				else
+				{
+					if (Global.ParserLogIncludes)
+						WriteLog("including terrain: " + includefile);
+					mIncludeParser = std::make_shared<cParser>(includefile, buffer_FILE, mPath,
+					                                           LoadTraction, readParameters(*this));
+					mIncludeParser->allowRandomIncludes = allowRandomIncludes;
+					mIncludeParser->autoclear(m_autoclear);
+					if (mIncludeParser->mSize <= 0)
+					{
+						ErrorLog("Bad include: can't open file \"" + includefile + "\"");
+					}
+				}
+			}
         }
         else {
             while( token != "end" ) {
@@ -272,18 +296,46 @@ std::string cParser::readToken( bool ToLower, const char *Break ) {
 		includeparser.allowRandomIncludes = allowRandomIncludes;
 		std::string includefile = allowRandomIncludes ? deserialize_random_set( includeparser ) : includeparser.readToken( ToLower ); // nazwa pliku
         replace_slashes(includefile);
-        if( ( true == LoadTraction )
-         || ( ( false == contains( includefile, "tr/" ) )
-           && ( false == contains( includefile, "tra/" ) ) ) ) {
-            if (Global.ParserLogIncludes)
-                WriteLog("including: " + includefile);
-            mIncludeParser = std::make_shared<cParser>( includefile, buffer_FILE, mPath, LoadTraction, readParameters( includeparser ) );
-			mIncludeParser->allowRandomIncludes = allowRandomIncludes;
-            mIncludeParser->autoclear( m_autoclear );
-            if( mIncludeParser->mSize <= 0 ) {
-                ErrorLog( "Bad include: can't open file \"" + includefile + "\"" );
-            }
-        }
+		if ((true == LoadTraction) ||
+		    ((false == contains(includefile, "tr/")) && (false == contains(includefile, "tra/"))))
+		{
+			if (false == contains(includefile, "_ter.scm"))
+			{
+				if (Global.ParserLogIncludes)
+					WriteLog("including: " + includefile);
+				mIncludeParser = std::make_shared<cParser>(
+				    includefile, buffer_FILE, mPath, LoadTraction, readParameters(includeparser));
+				mIncludeParser->allowRandomIncludes = allowRandomIncludes;
+				mIncludeParser->autoclear(m_autoclear);
+				if (mIncludeParser->mSize <= 0)
+				{
+					ErrorLog("Bad include: can't open file \"" + includefile + "\"");
+				}
+			}
+			else
+			{
+				if (true == Global.file_binary_terrain_state)
+				{
+					WriteLog("SBT found, ignoring: " + includefile);
+					readParameters(includeparser);
+				}
+				else
+				{
+					 if (Global.ParserLogIncludes)
+					WriteLog("including terrain: " + includefile);
+					mIncludeParser =
+					    std::make_shared<cParser>(includefile, buffer_FILE, mPath, LoadTraction,
+					                              readParameters(includeparser));
+					mIncludeParser->allowRandomIncludes = allowRandomIncludes;
+					mIncludeParser->autoclear(m_autoclear);
+					if (mIncludeParser->mSize <= 0)
+					{
+						ErrorLog("Bad include: can't open file \"" + includefile + "\"");
+					}
+                
+                }
+			}
+		}
         token = readToken( ToLower, Break );
     }
     // all done
