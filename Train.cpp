@@ -8573,7 +8573,7 @@ bool TTrain::LoadMMediaFile(std::string const &asFileName)
     m_radiosound.owner( DynamicObject );
 	CabSoundLocations.clear();
 
-    cParser parser( asFileName, cParser::buffer_FILE, DynamicObject->asBaseDir );
+    cParser parser( asFileName, cParser::buffer_FILE, DynamicObject->asBaseDir, true, std::vector<std::string>(), true );
     // NOTE: yaml-style comments are disabled until conflict in use of # is resolved
     // parser.addCommentStyle( "#", "\n" );
     std::string token;
@@ -8700,8 +8700,7 @@ bool TTrain::InitializeCab(int NewCabNo, std::string const &asFileName)
 
     std::string cabstr("cab" + std::to_string(cabindex) + "definition:");
 
-    cParser parser( asFileName, cParser::buffer_FILE, DynamicObject->asBaseDir );
-	parser.allowRandomIncludes = true;
+    cParser parser( asFileName, cParser::buffer_FILE, DynamicObject->asBaseDir, true, std::vector<std::string>(), true );
     // NOTE: yaml-style comments are disabled until conflict in use of # is resolved
     // parser.addCommentStyle( "#", "\n" );
     std::string token;

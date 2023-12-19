@@ -24,9 +24,10 @@ http://mozilla.org/MPL/2.0/.
 // cParser -- generic class for parsing text data.
 
 // constructors
-cParser::cParser( std::string const &Stream, buffertype const Type, std::string Path, bool const Loadtraction, std::vector<std::string> Parameters ) :
+cParser::cParser( std::string const &Stream, buffertype const Type, std::string Path, bool const Loadtraction, std::vector<std::string> Parameters, bool allowRandom ) :
     mPath(Path),
-    LoadTraction( Loadtraction ) {
+    LoadTraction( Loadtraction ),
+    allowRandomIncludes(allowRandom) {
     // store to calculate sub-sequent includes from relative path
     if( Type == buffertype::buffer_FILE ) {
         mFile = Stream;
@@ -252,8 +253,7 @@ std::string cParser::readToken( bool ToLower, const char *Break ) {
            && ( false == contains( includefile, "tra/" ) ) ) ) {
             if (Global.ParserLogIncludes)
                 WriteLog("including: " + includefile);
-            mIncludeParser = std::make_shared<cParser>( includefile, buffer_FILE, mPath, LoadTraction, readParameters( *this ) );
-			mIncludeParser->allowRandomIncludes = allowRandomIncludes;
+            mIncludeParser = std::make_shared<cParser>( includefile, buffer_FILE, mPath, LoadTraction, readParameters( *this ), allowRandomIncludes );
             mIncludeParser->autoclear( m_autoclear );
             if( mIncludeParser->mSize <= 0 ) {
                 ErrorLog( "Bad include: can't open file \"" + includefile + "\"" );
@@ -269,7 +269,6 @@ std::string cParser::readToken( bool ToLower, const char *Break ) {
     else if( ( std::strcmp( Break, "\n\r" ) == 0 ) && ( token.compare( 0, 7, "include" ) == 0 ) ) {
         // HACK: if the parser reads full lines we expect this line to contain entire include directive, to make parsing easier
         cParser includeparser( token.substr( 7 ) );
-		includeparser.allowRandomIncludes = allowRandomIncludes;
 		std::string includefile = allowRandomIncludes ? deserialize_random_set( includeparser ) : includeparser.readToken( ToLower ); // nazwa pliku
         replace_slashes(includefile);
         if( ( true == LoadTraction )
@@ -277,8 +276,7 @@ std::string cParser::readToken( bool ToLower, const char *Break ) {
            && ( false == contains( includefile, "tra/" ) ) ) ) {
             if (Global.ParserLogIncludes)
                 WriteLog("including: " + includefile);
-            mIncludeParser = std::make_shared<cParser>( includefile, buffer_FILE, mPath, LoadTraction, readParameters( includeparser ) );
-			mIncludeParser->allowRandomIncludes = allowRandomIncludes;
+            mIncludeParser = std::make_shared<cParser>( includefile, buffer_FILE, mPath, LoadTraction, readParameters( includeparser ), allowRandomIncludes );
             mIncludeParser->autoclear( m_autoclear );
             if( mIncludeParser->mSize <= 0 ) {
                 ErrorLog( "Bad include: can't open file \"" + includefile + "\"" );
@@ -384,8 +382,7 @@ void cParser::injectString(const std::string &str)
 		mIncludeParser->injectString(str);
 	}
 	else {
-		mIncludeParser = std::make_shared<cParser>( str, buffer_TEXT, "", LoadTraction );
-		mIncludeParser->allowRandomIncludes = allowRandomIncludes;
+		mIncludeParser = std::make_shared<cParser>( str, buffer_TEXT, "", LoadTraction, std::vector<std::string>(), allowRandomIncludes );
 		mIncludeParser->autoclear( m_autoclear );
 	}
 }

@@ -28,7 +28,7 @@ class cParser //: public std::stringstream
         buffer_TEXT
     };
     // constructors:
-    cParser(std::string const &Stream, buffertype const Type = buffer_TEXT, std::string Path = "", bool const Loadtraction = true, std::vector<std::string> Parameters = std::vector<std::string>() );
+    cParser(std::string const &Stream, buffertype const Type = buffer_TEXT, std::string Path = "", bool const Loadtraction = true, std::vector<std::string> Parameters = std::vector<std::string>(), bool allowRandom = false );
     // destructor:
     virtual ~cParser();
     // methods:
@@ -91,7 +91,6 @@ class cParser //: public std::stringstream
 	// returns number of currently processed line in main file, -1 if inside include
 	int LineMain() const;
 	bool expandIncludes = true;
-	bool allowRandomIncludes = false;
 
   private:
     // methods:
@@ -119,6 +118,7 @@ class cParser //: public std::stringstream
     std::shared_ptr<cParser> mIncludeParser; // child class to handle include directives.
     std::vector<std::string> parameters; // parameter list for included file.
     std::deque<std::string> tokens;
+	bool allowRandomIncludes = false;
 };
 
 
