@@ -480,6 +480,7 @@ void TTrack::Load(cParser *parser, glm::dvec3 const &pOrigin)
     {
         parser->getTokens();
         *parser >> str; // railtex
+        replace_slashes(str);
         m_material1 = (
             str == "none" ?
                 null_handle :
@@ -490,6 +491,7 @@ void TTrack::Load(cParser *parser, glm::dvec3 const &pOrigin)
             fTexLength = 4; // Ra: zabezpiecznie przed zawieszeniem
         parser->getTokens();
         *parser >> str; // sub || railtex
+        replace_slashes(str);
         m_material2 = (
             str == "none" ?
                 null_handle :
