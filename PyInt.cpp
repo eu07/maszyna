@@ -155,11 +155,6 @@ auto python_taskqueue::init() -> bool {
 		Py_SetPythonHome("python64");
 	else
 		Py_SetPythonHome("python");
-#elif __linux__
-	if (sizeof(void*) == 8)
-		Py_SetPythonHome("linuxpython64");
-	else
-		Py_SetPythonHome("linuxpython");
 #elif __APPLE__
 	if (sizeof(void*) == 8)
 		Py_SetPythonHome("macpython64");
