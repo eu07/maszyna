@@ -1205,6 +1205,7 @@ public:
     bool UniCtrlIntegratedLocalBrakeCtrl = false; /*zintegrowany nastawnik JH obsluguje hamowanie hamulcem pomocniczym*/
     int UniCtrlNoPowerPos{ 0 }; // cached highesr position not generating traction force
     std::pair<std::string, std::array<int, 2>> PantsPreset { "0132", { 0, 0 } }; // pantograph preset switches; .first holds possible setups as chars, .second holds currently selected preset in each cab
+	int PantsPresetDefault = 0; // default pantograph preset, this is not updated during simulation
 
 	/*-sekcja parametrow dla lokomotywy elektrycznej*/
 	TSchemeTable RList;     /*lista rezystorow rozruchowych i polaczen silnikow, dla dizla: napelnienia*/

@@ -637,6 +637,12 @@ bool TTrain::Init(TDynamicObject *NewDynamicObject, bool e3d)
         DynamicObject->Mechanik->sync_consist_reversers();
     }
 
+    // Set the default pantograph preset and update pantographs' valves accordingly.
+    change_pantograph_selection(mvOccupied->PantsPresetDefault);
+    // Avoid double update if the default is other than 0.
+    if (mvOccupied->PantsPresetDefault == 0)
+        update_pantograph_valves();
+
     return true;
 }
 
