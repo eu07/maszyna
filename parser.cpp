@@ -202,7 +202,7 @@ std::string cParser::readToken( bool ToLower, const char *Break ) {
                 token += c;
                 if( findQuotes( token ) ) // do glue together words enclosed in quotes
                     continue;
-                if( trimComments( token ) ) // don't glue together words separated with comment
+                if( skipComments && trimComments( token ) ) // don't glue together words separated with comment
                     break;
             }
             if( c == '\n' ) {

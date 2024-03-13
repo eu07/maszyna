@@ -31,7 +31,7 @@ class keyboard_input {
 
 public:
 // types
-    using bindingsetup_sequence = std::map<user_command, int>;
+    using bindingsetup_sequence = std::map<user_command, std::tuple<int, std::string>>;
 
 	enum keymodifier : int {
 
