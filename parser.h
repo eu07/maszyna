@@ -92,6 +92,7 @@ class cParser //: public std::stringstream
 	int LineMain() const;
 	bool expandIncludes = true;
 	bool allowRandomIncludes = false;
+    bool skipComments = true;
 
   private:
     // methods:

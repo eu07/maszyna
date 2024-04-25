@@ -95,7 +95,7 @@ void ui::vehicles_bank::parse_category_entry(const std::string &param)
 	std::string mini;
 	std::getline(stream, mini, ',');
 
-	category_icons.emplace(ctx_type, "textures/mini/" + ToLower(mini));
+	category_icons.emplace(ctx_type, "textures/mini/" + ToLower(mini) + ".bmp");
 }
 
 void ui::vehicles_bank::parse_controllable_entry(const std::string &target, const std::string &param)
@@ -122,12 +122,12 @@ void ui::vehicles_bank::parse_texture_info(const std::string &target, const std:
 	set.meta = meta;
 
 	if (!mini.empty())
-		group_icons.emplace(mini, std::move(deferred_image("textures/mini/" + ToLower(mini))));
+		group_icons.emplace(mini, std::move(deferred_image("textures/mini/" + ToLower(mini) + ".bmp")));
 
 	if (!miniplus.empty())
-		set.mini = std::move(deferred_image("textures/mini/" + ToLower(miniplus)));
+		set.mini = std::move(deferred_image("textures/mini/" + ToLower(miniplus) + ".bmp"));
 	else if (!mini.empty())
-		set.mini = std::move(deferred_image("textures/mini/" + ToLower(mini)));
+		set.mini = std::move(deferred_image("textures/mini/" + ToLower(mini) + ".bmp"));
 
 	set.skin = ToLower(target);
 	erase_extension(set.skin);
