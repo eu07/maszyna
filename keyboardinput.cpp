@@ -173,7 +173,6 @@ keyboard_input::recall_bindings() {
                     // This can't be done now as by default this would destroy all command descriptions,
                     // which are used by Starter.
                     // Do this when szczawik's Starter becomes deprecated or implements command descriptions in some other way.
-                    WriteLog("got: \"" + bindingkeyname + "\"");
                     if (descriptionStarted) {
                         if (description.size() > 0) {
                             description += " ";
