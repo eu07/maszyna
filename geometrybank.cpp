@@ -9,6 +9,7 @@ http://mozilla.org/MPL/2.0/.
 
 #include "stdafx.h"
 #include "geometrybank.h"
+#include "vertex.h"
 
 #include "sn_utils.h"
 #include "Logs.h"
@@ -16,8 +17,30 @@ http://mozilla.org/MPL/2.0/.
 
 namespace gfx {
 
+basic_vertex basic_vertex::convert(world_vertex const &world, glm::dvec3 const& origin)
+{
+	basic_vertex vertex{};
+	vertex.position = static_cast<glm::vec3>(world.position - origin);
+	vertex.normal = world.normal;
+	vertex.texture = world.texture;
+	vertex.user_data = world.user_data;
+	return vertex;
+}
+
+world_vertex basic_vertex::to_world(const glm::dvec3 &origin) const
+{
+	world_vertex vertex{};
+
+	vertex.position = static_cast<glm::dvec3>(position) + origin;
+	vertex.normal = normal;
+	vertex.texture = texture;
+	vertex.user_data = user_data;
+
+	return vertex;
+}
+
 void
-basic_vertex::serialize( std::ostream &s, bool const Tangent ) const {
+basic_vertex::serialize( std::ostream &s, bool const Tangent, bool const UserData ) const {
 
     sn_utils::s_vec3( s, position );
     sn_utils::s_vec3( s, normal );
@@ -26,10 +49,13 @@ basic_vertex::serialize( std::ostream &s, bool const Tangent ) const {
     if( Tangent ) {
         sn_utils::s_vec4( s, tangent );
     }
+	if( UserData ) {
+		sn_utils::s_vec4( s, user_data );
+	}
 }
 
 void
-basic_vertex::deserialize( std::istream &s, bool const Tangent ) {
+basic_vertex::deserialize( std::istream &s, bool const Tangent, bool const UserData ) {
 
     position = sn_utils::d_vec3( s );
     normal = sn_utils::d_vec3( s );
@@ -38,10 +64,13 @@ basic_vertex::deserialize( std::istream &s, bool const Tangent ) {
     if( Tangent ) {
         tangent = sn_utils::d_vec4( s );
     }
+	if( UserData ) {
+		user_data = sn_utils::d_vec4( s );
+	}
 }
 
 void
-basic_vertex::serialize_packed( std::ostream &s, bool const Tangent ) const {
+basic_vertex::serialize_packed( std::ostream &s, bool const Tangent, bool const UserData ) const {
 
     sn_utils::ls_uint64( s, glm::packHalf4x16( { position, 0.f } ) );
     sn_utils::ls_uint32( s, glm::packSnorm3x10_1x2( { normal, 0.f } ) );
@@ -50,10 +79,13 @@ basic_vertex::serialize_packed( std::ostream &s, bool const Tangent ) const {
     if( Tangent ) {
         sn_utils::ls_uint32( s, glm::packSnorm3x10_1x2( tangent ) );
     }
+	if( UserData ) {
+		sn_utils::ls_uint64( s, glm::packHalf4x16( user_data ));
+	}
 }
 
 void
-basic_vertex::deserialize_packed( std::istream &s, bool const Tangent ) {
+basic_vertex::deserialize_packed( std::istream &s, bool const Tangent, bool const UserData ) {
 
     position = glm::unpackHalf4x16( sn_utils::ld_uint64( s ) );
     normal = glm::unpackSnorm3x10_1x2( sn_utils::ld_uint32( s ) );
@@ -62,6 +94,9 @@ basic_vertex::deserialize_packed( std::istream &s, bool const Tangent ) {
     if( Tangent ) {
         tangent = glm::unpackSnorm3x10_1x2( sn_utils::ld_uint32( s ) );
     }
+	if( UserData ) {
+		user_data = glm::unpackHalf4x16( sn_utils::ld_uint64( s ) );
+	}
 }
 
 // based on

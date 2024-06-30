@@ -26,7 +26,7 @@ namespace scene {
 
 std::string const EU07_FILEEXTENSION_REGION { ".sbt" };
 std::uint32_t const EU07_FILEHEADER { MAKE_ID4( 'E','U','0','7' ) };
-std::uint32_t const EU07_FILEVERSION_REGION { MAKE_ID4( 'S', 'B', 'T', 1 ) };
+std::uint32_t const EU07_FILEVERSION_REGION { MAKE_ID4( 'S', 'B', 'T', '2' ) };
 
 // potentially activates event handler with the same name as provided node, and within handler activation range
 void

@@ -11,6 +11,8 @@ http://mozilla.org/MPL/2.0/.
 
 #include "ResourceManager.h"
 
+struct world_vertex;
+
 namespace gfx {
 
 struct basic_vertex {
@@ -19,15 +21,18 @@ struct basic_vertex {
     glm::vec3 normal; // 3d space
     glm::vec2 texture; // uv space
     glm::vec4 tangent; // xyz - tangent, w - handedness
+	glm::vec4 user_data; // user data (for color or additional uv channels, not subject to post-processing)
 
     basic_vertex() = default;
     basic_vertex( glm::vec3 Position,  glm::vec3 Normal,  glm::vec2 Texture ) :
                   position( Position ),  normal( Normal ), texture( Texture )
     {}
-    void serialize( std::ostream&, bool const Tangent = false ) const;
-    void deserialize( std::istream&, bool const Tangent = false );
-    void serialize_packed( std::ostream&, bool const Tangent = false ) const;
-    void deserialize_packed( std::istream&, bool const Tangent = false );
+	static basic_vertex convert(world_vertex const &world, glm::dvec3 const &origin);
+	world_vertex to_world(glm::dvec3 const &origin = glm::dvec3(0.)) const;
+	void serialize( std::ostream&, bool const Tangent = false, bool const UserData = false ) const;
+    void deserialize( std::istream&, bool const Tangent = false, bool const UserData = false );
+    void serialize_packed( std::ostream&, bool const Tangent = false, bool const UserData = false ) const;
+    void deserialize_packed( std::istream&, bool const Tangent = false, bool const UserData = false );
 };
 
 // data streams carried in a vertex
