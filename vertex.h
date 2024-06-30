@@ -18,6 +18,7 @@ struct world_vertex {
     glm::dvec3 position;
     glm::vec3 normal;
     glm::vec2 texture;
+	glm::vec4 user_data;
 
 // overloads
     // operator+

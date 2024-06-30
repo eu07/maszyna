@@ -209,6 +209,21 @@ inline void readMatrix(cParser &parser, float4x4 &matrix)
 			parser >> matrix(x)[y];
 };
 
+template <typename T> void UserdataParse(cParser &parser, gfx::basic_vertex &vertex)
+{
+	parser.getTokens(4);
+	union
+	{
+		T InType;
+		float FloatType;
+	} buf{};
+	for (int i = 0; i < 4; ++i)
+	{
+		parser >> buf.InType;
+		vertex.user_data[i] = buf.FloatType;
+	}
+}
+
 std::pair<int, int> TSubModel::Load( cParser &parser, bool dynamic )
 { // Ra: VBO tworzone na poziomie modelu, a nie submodeli
     auto token { parser.getToken<std::string>() };
@@ -478,8 +493,32 @@ std::pair<int, int> TSubModel::Load( cParser &parser, bool dynamic )
     }
 	if (eType < TP_ROTATOR)
 	{ // wczytywanie wierzchołków
-        token = parser.getToken<std::string>();
-        if( token == "numindices:" ) // optional block, potentially preceeding vertex list
+		token = parser.getToken<std::string>();
+		enum class UserDataType
+		{
+			None,
+			Float,
+			Int,
+			UInt,
+			Count
+		} user_data = UserDataType::None;
+		if (token == "userdata:")
+		{
+			const static std::map<std::string, UserDataType> type_mapping{{"float", UserDataType::Float}, {"int", UserDataType::Int}, {"uint", UserDataType::UInt}};
+			const std::string type = parser.getToken<std::string>();
+
+			if (auto it = type_mapping.find(type); it != type_mapping.end())
+			{
+				user_data = it->second;
+			}
+			else
+			{
+				user_data = UserDataType::None;
+			}
+
+			token = parser.getToken<std::string>();
+		}
+		if( token == "numindices:" ) // optional block, potentially preceeding vertex list
         {
             m_geometry.index_count = parser.getToken<int>( false );
             Indices.resize( m_geometry.index_count );
@@ -662,7 +701,17 @@ std::pair<int, int> TSubModel::Load( cParser &parser, bool dynamic )
                     m_geometry.index_count = Indices.size();
                     m_geometry.vertex_count = Vertices.size();
                 }
-            }
+				if (user_data != UserDataType::None)
+				{
+					const static std::array<void (*)(cParser &, gfx::basic_vertex &), static_cast<size_t>(UserDataType::Count)> parsers{nullptr, &UserdataParse<float>, &UserdataParse<int32_t>,
+					                                                                                                       &UserdataParse<uint32_t>};
+					auto vertices { std::begin( Vertices ) };
+					for( auto idx = 0; idx < m_geometry.vertex_count; ++idx ) {
+						auto vertex { vertices + idx };
+						parsers[static_cast<size_t>(user_data)](parser, *vertex);
+					}
+				}
+			}
 			else // gdy brak wierzchołków
 			{
 				eType = TP_ROTATOR; // submodel pomocniczy, ma tylko macierz przekształcenia
@@ -1163,25 +1212,25 @@ void TSubModel::RaAnimation(glm::mat4 &m, TAnimType a)
 
 //---------------------------------------------------------------------------
 
-void TSubModel::serialize_geometry( std::ostream &Output, bool const Packed, bool const Indexed ) const {
+void TSubModel::serialize_geometry( std::ostream &Output, bool const Packed, bool const Indexed, bool const UserData ) const {
 
     if( Child ) {
-        Child->serialize_geometry( Output, Packed, Indexed );
+        Child->serialize_geometry( Output, Packed, Indexed, UserData );
     }
     if( m_geometry.handle != null_handle ) {
         if( Packed ) {
             for( auto const &vertex : GfxRenderer->Vertices( m_geometry.handle ) ) {
-                vertex.serialize_packed( Output, Indexed );
+                vertex.serialize_packed( Output, Indexed, UserData );
             }
         }
         else {
             for( auto const &vertex : GfxRenderer->Vertices( m_geometry.handle ) ) {
-                vertex.serialize( Output, Indexed );
+                vertex.serialize( Output, Indexed, UserData );
             }
         }
     }
     if( Next ) {
-        Next->serialize_geometry( Output, Packed, Indexed );
+        Next->serialize_geometry( Output, Packed, Indexed, UserData );
     }
 };
 
@@ -1682,20 +1731,20 @@ void TModel3d::SaveToBinFile(std::string const &FileName)
         Root->serialize_indices( s, indexsize );
 
         if (!(Global.iConvertModels & 8)) {
-            sn_utils::ls_uint32( s, MAKE_ID4( 'V', 'N', 'T', '1' ) );
+            sn_utils::ls_uint32( s, MAKE_ID4( 'V', 'N', 'T', '1' + 4 ) );
             sn_utils::ls_uint32( s, 8 + m_vertexcount * 20 );
-            Root->serialize_geometry( s, true, true );
+            Root->serialize_geometry( s, true, true, true );
         }
         else {
-            sn_utils::ls_uint32( s, MAKE_ID4( 'V', 'N', 'T', '2' ) );
+            sn_utils::ls_uint32( s, MAKE_ID4( 'V', 'N', 'T', '2' + 4 ) );
             sn_utils::ls_uint32( s, 8 + m_vertexcount * 48 );
-            Root->serialize_geometry( s, false, true );
+            Root->serialize_geometry( s, false, true, true );
         }
     }
     else {
-        sn_utils::ls_uint32( s, MAKE_ID4( 'V', 'N', 'T', '0' ) );
+        sn_utils::ls_uint32( s, MAKE_ID4( 'V', 'N', 'T', '0' + 4 ) );
         sn_utils::ls_uint32( s, 8 + m_vertexcount * 32 );
-        Root->serialize_geometry( s, false, false );
+        Root->serialize_geometry( s, false, false, true );
     }
 
 	if (textures.size())
@@ -1785,6 +1834,7 @@ void TModel3d::deserialize(std::istream &s, size_t size, bool dynamic)
 
 	std::streampos end = s.tellg() + (std::streampos)size;
     bool hastangents { false };
+	bool hasuserdata {false};
 
 	while (s.tellg() < end)
 	{
@@ -1828,17 +1878,18 @@ void TModel3d::deserialize(std::istream &s, size_t size, bool dynamic)
                     return (Left.first) < (Right.first); } );
             // once sorted we can grab geometry as it comes, and assign it to the chunks it belongs to
             size_t const vertextype { ( ( ( type & 0xFF000000 ) >> 24 ) - '0' ) };
-            hastangents = ( vertextype > 0 );
+            hastangents = ( (vertextype & 3) > 0 );
+			hasuserdata = (vertextype & 4);
             for( auto const &submodeloffset : submodeloffsets ) {
                 auto &submodel { Root[ submodeloffset.second ] };
                 auto const &submodelgeometry { submodel.m_geometry };
                 submodel.Vertices.resize( submodelgeometry.vertex_count );
                 m_vertexcount += submodelgeometry.vertex_count;
-                switch( vertextype ) {
+                switch( vertextype & 3 ) {
                     case 0: {
                         // legacy vnt0 format
                         for( auto &vertex : submodel.Vertices ) {
-                            vertex.deserialize( s, hastangents );
+                            vertex.deserialize( s, hastangents, hasuserdata );
                             if( submodel.eType < TP_ROTATOR ) {
                                 // normal vectors debug routine
                                 if( ( false == submodel.m_normalizenormals )
@@ -1853,14 +1904,14 @@ void TModel3d::deserialize(std::istream &s, size_t size, bool dynamic)
                     case 1: {
                         // expanded chunk formats
                         for( auto &vertex : submodel.Vertices ) {
-                            vertex.deserialize_packed( s, hastangents );
+                            vertex.deserialize_packed( s, hastangents, hasuserdata );
                         }
                         break;
                     }
                     case 2: {
                         // expanded chunk formats
                         for( auto &vertex : submodel.Vertices ) {
-                            vertex.deserialize( s, hastangents );
+                            vertex.deserialize( s, hastangents, hasuserdata );
                         }
                         break;
                     }

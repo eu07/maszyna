@@ -243,7 +243,7 @@ public:
 		std::vector<std::string>&,
 		std::vector<std::string>&,
 		std::vector<float4x4>&);
-    void serialize_geometry( std::ostream &Output, bool const Packed, bool const Indexed ) const;
+    void serialize_geometry( std::ostream &Output, bool const Packed, bool const Indexed, bool const UserData ) const;
     int index_size() const;
     void serialize_indices( std::ostream &Output, int const Size ) const;
     // places contained geometry in provided ground node
