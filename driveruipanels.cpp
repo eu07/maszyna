@@ -485,11 +485,13 @@ timetable_panel::render() {
         | ImGuiWindowFlags_NoCollapse
         | ( size.x > 0 ? ImGuiWindowFlags_NoResize : 0 );
 
+    // HACK: Make sure the timetable window is of correct width when using a larger font size.
+    float horizontalScale = Global.ui_fontsize / 13;
     if( size.x > 0 ) {
-        ImGui::SetNextWindowSize( ImVec2S( size.x, size.y ) );
+        ImGui::SetNextWindowSize( ImVec2S( size.x * horizontalScale, size.y ) );
     }
     if( size_min.x > 0 ) {
-        ImGui::SetNextWindowSizeConstraints( ImVec2S( size_min.x, size_min.y ), ImVec2S( size_max.x, size_max.y ) );
+        ImGui::SetNextWindowSizeConstraints( ImVec2S( size_min.x * horizontalScale, size_min.y ), ImVec2S( size_max.x * horizontalScale, size_max.y ) );
     }
     auto const panelname { (
         title.empty() ?
