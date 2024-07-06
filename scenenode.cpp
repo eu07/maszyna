@@ -62,12 +62,14 @@ void
 shape_node::shapenode_data::serialize( std::ostream &Output ) const {
     // bounding area
     area.serialize( Output );
+	bool has_userdata = !userdata.empty();
     // visibility
     sn_utils::ls_float64( Output, rangesquared_min );
     sn_utils::ls_float64( Output, rangesquared_max );
     sn_utils::s_bool( Output, visible );
     // material
     sn_utils::s_bool( Output, translucent );
+	sn_utils::s_bool( Output, has_userdata );
     // NOTE: material handle is created dynamically on load
     sn_utils::s_str(
         Output,
@@ -80,9 +82,12 @@ shape_node::shapenode_data::serialize( std::ostream &Output ) const {
     // NOTE: geometry handle is created dynamically on load
     // vertex count, followed by vertex data
     sn_utils::ls_uint32( Output, vertices.size() );
-    for( auto const &vertex : vertices ) {
-        gfx::basic_vertex::convert(vertex, origin)
-                .serialize( Output, false, true );
+    for( int i = 0; i < vertices.size(); ++i ) {
+        gfx::basic_vertex::convert(vertices[i], origin)
+                .serialize( Output, false );
+		if(has_userdata){
+			userdata[i].serialize(Output);
+		}
     }
 }
 
@@ -97,6 +102,7 @@ shape_node::shapenode_data::deserialize( std::istream &Input ) {
     visible = sn_utils::d_bool( Input );
     // material
     translucent = sn_utils::d_bool( Input );
+	bool has_userdata = sn_utils::d_bool( Input );
     auto const materialname { sn_utils::d_str( Input ) };
     if( false == materialname.empty() ) {
         material = GfxRenderer->Fetch_Material( materialname );
@@ -107,10 +113,14 @@ shape_node::shapenode_data::deserialize( std::istream &Input ) {
     // NOTE: geometry handle is acquired during geometry creation
     // vertex data
     vertices.resize( sn_utils::ld_uint32( Input ) );
+	if(has_userdata)
+		userdata.resize(vertices.size());
     gfx::basic_vertex localvertex;
-    for( auto &vertex : vertices ) {
-        localvertex.deserialize( Input, false, true );
-		vertex = localvertex.to_world(origin);
+    for( int i = 0; i < vertices.size(); ++i ) {
+        localvertex.deserialize( Input, false );
+		vertices[i] = localvertex.to_world(origin);
+		if(has_userdata)
+			userdata[i].deserialize( Input );
     }
 }
 
@@ -347,24 +357,40 @@ shape_node::convert( TSubModel const *Submodel ) {
 
     int vertexcount { 0 };
     std::vector<world_vertex> importedvertices;
-    world_vertex vertex, vertex1, vertex2;
+	gfx::userdata_array importeduserdata;
 	if(!GfxRenderer->Indices(Submodel->m_geometry.handle).empty()){
 		const auto& vertices = GfxRenderer->Vertices(Submodel->m_geometry.handle);
+		const auto& userdatas = GfxRenderer->UserData(Submodel->m_geometry.handle);
+		bool has_userdata = !userdatas.empty();
+		world_vertex vertex;
 		for(const auto index : GfxRenderer->Indices(Submodel->m_geometry.handle)){
 			vertex = vertices[index].to_world();
 			importedvertices.emplace_back(vertex);
+			if (has_userdata)
+				importeduserdata.emplace_back(userdatas[index]);
 		}
 	}
 	else{
-		for( auto const &sourcevertex : GfxRenderer->Vertices( Submodel->m_geometry.handle ) ) {
-			vertex = sourcevertex.to_world();
-			if( vertexcount == 0 ) { vertex1 = vertex; }
-			else if( vertexcount == 1 ) { vertex2 = vertex; }
+		world_vertex vertex, vertex1, vertex2;
+		gfx::vertex_userdata userdata, userdata1, userdata2;
+		const auto& vertices = GfxRenderer->Vertices(Submodel->m_geometry.handle);
+		const auto& userdatas = GfxRenderer->UserData(Submodel->m_geometry.handle);
+		bool has_userdata = !userdatas.empty();
+		for( int i = 0; i < vertices.size(); ++i ) {
+			vertex = vertices[i].to_world();
+			if( has_userdata ) userdata = userdatas[i];
+			if( vertexcount == 0 ) { vertex1 = vertex; userdata1 = userdata; }
+			else if( vertexcount == 1 ) { vertex2 = vertex; userdata2 = userdata; }
 			else if( vertexcount >= 2 ) {
-				if( false == degenerate( vertex1.position, vertex2.position, vertex.position ) ) {
+				if( !degenerate( vertex1.position, vertex2.position, vertex.position ) ) {
 					importedvertices.emplace_back( vertex1 );
 					importedvertices.emplace_back( vertex2 );
 					importedvertices.emplace_back( vertex );
+					if( has_userdata ) {
+						importeduserdata.emplace_back( userdata1 );
+						importeduserdata.emplace_back( userdata2 );
+						importeduserdata.emplace_back( userdata );
+					}
 				}
 				// start a new triangle
 				vertexcount = -1;
@@ -377,6 +403,7 @@ shape_node::convert( TSubModel const *Submodel ) {
 
     // assign imported geometry to the node...
     m_data.vertices.swap( importedvertices );
+	m_data.userdata.swap( importeduserdata );
     // ...and calculate center...
     for( auto const &vertex : m_data.vertices ) {
         m_data.area.center += vertex.position;
@@ -427,7 +454,7 @@ shape_node::create_geometry( gfx::geometrybank_handle const &Bank ) {
     for( auto const &vertex : m_data.vertices ) {
         vertices.emplace_back(gfx::basic_vertex::convert(vertex, m_data.origin));
     }
-    m_data.geometry = GfxRenderer->Insert( vertices, Bank, GL_TRIANGLES );
+    m_data.geometry = GfxRenderer->Insert(vertices, m_data.userdata, Bank, GL_TRIANGLES);
     std::vector<world_vertex>().swap( m_data.vertices ); // hipster shrink_to_fit
 }
 
@@ -656,7 +683,7 @@ lines_node::create_geometry( gfx::geometrybank_handle const &Bank ) {
             vertex.normal,
             vertex.texture );
     }
-    m_data.geometry = GfxRenderer->Insert( vertices, Bank, GL_LINES );
+    m_data.geometry = GfxRenderer->Insert( vertices, m_data.userdata, Bank, GL_LINES );
     std::vector<world_vertex>().swap( m_data.vertices ); // hipster shrink_to_fit
 }
 

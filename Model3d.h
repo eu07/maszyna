@@ -85,6 +85,8 @@ private:
 public: // chwilowo
     TAnimType b_Anim{ TAnimType::at_None };
 
+	bool HasAnyVertexUserData() const;
+
 private:
     uint32_t iFlags{ 0x0200 }; // bit 9=1: submodel został utworzony a nie ustawiony na wczytany plik
                 // flagi informacyjne:
@@ -144,6 +146,7 @@ public: // chwilowo
     float3 v_TransVector { 0.0f, 0.0f, 0.0f };
     geometry_data m_geometry { /*this,*/ { 0, 0 }, 0, 0, 0, 0 };
     gfx::vertex_array Vertices;
+	gfx::userdata_array Userdata;
     gfx::index_array Indices;
     float m_boundingradius { 0 };
     std::uintptr_t iAnimOwner{ 0 }; // roboczy numer egzemplarza, który ustawił animację

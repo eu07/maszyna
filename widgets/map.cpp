@@ -621,7 +621,8 @@ void ui::obstacle_insert_window::render_content()
 
 			std::vector<gfx::basic_vertex> vertices;
 			vertices.emplace_back(std::move(obstacle->vertex()));
-            GfxRenderer->Append(vertices, simulation::Region->get_map_poi_geometry(), GL_POINTS);
+			gfx::userdata_array userdata{};
+			GfxRenderer->Append(vertices, userdata, simulation::Region->get_map_poi_geometry(), GL_POINTS);
 
 			map::Objects.entries.push_back(std::move(obstacle));
 
