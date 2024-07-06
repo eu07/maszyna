@@ -1735,24 +1735,39 @@ void TModel3d::SaveToBinFile(std::string const &FileName)
 
         if (!(Global.iConvertModels & 8)) {
 			int modeltype = 1;
-			if(has_any_userdata) modeltype |= 4;
-            sn_utils::ls_uint32( s, MAKE_ID4( 'V', 'N', 'T', '0' + modeltype ) );
-            sn_utils::ls_uint32( s, 8 + m_vertexcount * 20 );
+			int vertexsize = 20;
+			if(has_any_userdata)
+			{
+				modeltype |= 4;
+				vertexsize += 8;
+			}
+			sn_utils::ls_uint32( s, MAKE_ID4( 'V', 'N', 'T', '0' + modeltype ) );
+            sn_utils::ls_uint32( s, 8 + m_vertexcount * vertexsize );
             Root->serialize_geometry( s, true, true, has_any_userdata );
         }
         else {
 			int modeltype = 2;
-			if(has_any_userdata) modeltype |= 4;
-            sn_utils::ls_uint32( s, MAKE_ID4( 'V', 'N', 'T', '0' + modeltype ) );
-            sn_utils::ls_uint32( s, 8 + m_vertexcount * 48 );
+			int vertexsize = 48;
+			if(has_any_userdata)
+			{
+				modeltype |= 4;
+				vertexsize += 16;
+			}
+			sn_utils::ls_uint32( s, MAKE_ID4( 'V', 'N', 'T', '0' + modeltype ) );
+            sn_utils::ls_uint32( s, 8 + m_vertexcount * vertexsize );
             Root->serialize_geometry( s, false, true, has_any_userdata );
         }
     }
     else {
 		int modeltype = 0;
-		if(has_any_userdata) modeltype |= 4;
-        sn_utils::ls_uint32( s, MAKE_ID4( 'V', 'N', 'T', '0' + modeltype ) );
-        sn_utils::ls_uint32( s, 8 + m_vertexcount * 32 );
+		int vertexsize = 32;
+		if(has_any_userdata)
+		{
+			modeltype |= 4;
+			vertexsize += 16;
+		}
+		sn_utils::ls_uint32( s, MAKE_ID4( 'V', 'N', 'T', '0' + modeltype ) );
+        sn_utils::ls_uint32( s, 8 + m_vertexcount * vertexsize );
         Root->serialize_geometry( s, false, false, has_any_userdata );
     }
 
@@ -2202,8 +2217,20 @@ void TSubModel::BinInit(TSubModel *s, float4x4 *m, std::vector<std::string> *t, 
 
 bool TSubModel::HasAnyVertexUserData() const
 {
-	for(const TSubModel* sm = this; sm; sm = sm->Next){
-		if(!sm->Userdata.empty() || (sm->Child && sm->Child->HasAnyVertexUserData())) return true;
+	for (const TSubModel *sm = this; sm; sm = sm->Next)
+	{
+		if (m_geometry.handle)
+		{
+			if (!GfxRenderer->UserData(m_geometry.handle).empty())
+				return true;
+		}
+		else
+		{
+			if (!sm->Userdata.empty())
+				return true;
+		}
+		if (sm->Child && sm->Child->HasAnyVertexUserData())
+			return true;
 	}
 	return false;
 };
