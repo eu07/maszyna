@@ -19,7 +19,7 @@ private:
 	std::shared_ptr<const vehicle_desc> selected_vehicle;
 	const std::string *selected_group = nullptr;
 	const skin_set *selected_skinset = nullptr;
-	bool display_by_groups = false;
+	bool display_by_groups = true;
 	deferred_image placeholder_mini;
 	std::array<char, 128> search_query = { 0 };
 
