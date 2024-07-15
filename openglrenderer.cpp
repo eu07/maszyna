@@ -306,7 +306,8 @@ opengl_renderer::Init( GLFWwindow *Window ) {
         { {  size,  size, 0.f }, glm::vec3(), { 0.f, 1.f } },
         { { -size, -size, 0.f }, glm::vec3(), { 1.f, 0.f } },
         { {  size, -size, 0.f }, glm::vec3(), { 0.f, 0.f } } };
-    m_billboardgeometry = m_geometry.create_chunk(billboard_array, geometrybank, GL_TRIANGLE_STRIP);
+	gfx::userdata_array userdata{};
+    m_billboardgeometry = m_geometry.create_chunk(billboard_array, userdata, geometrybank, GL_TRIANGLE_STRIP);
     // prepare debug mode objects
     //m_quadric = ::gluNewQuadric();
     //::gluQuadricNormals( m_quadric, GLU_FLAT );
@@ -1689,31 +1690,31 @@ opengl_renderer::Create_Bank() {
 }
 
 // creates a new indexed geometry chunk of specified type from supplied data, in specified bank. returns: handle to the chunk or NULL
-gfx::geometry_handle
-opengl_renderer::Insert( gfx::index_array &Indices, gfx::vertex_array &Vertices, gfx::geometrybank_handle const &Geometry, int const Type ) {
+gfx::geometry_handle opengl_renderer::Insert(gfx::index_array &Indices, gfx::vertex_array &Vertices, gfx::userdata_array &Userdata, gfx::geometrybank_handle const &Geometry, int const Type)
+{
 
-    return m_geometry.create_chunk( Indices, Vertices, Geometry, Type );
+    return m_geometry.create_chunk( Indices, Vertices, Userdata, Geometry, Type );
 }
 
 // creates a new geometry chunk of specified type from supplied data, in specified bank. returns: handle to the chunk or NULL
-gfx::geometry_handle
-opengl_renderer::Insert( gfx::vertex_array &Vertices, gfx::geometrybank_handle const &Geometry, int const Type ) {
+gfx::geometry_handle opengl_renderer::Insert(gfx::vertex_array &Vertices, gfx::userdata_array &Userdata, gfx::geometrybank_handle const &Geometry, int const Type)
+{
 
-    return m_geometry.create_chunk( Vertices, Geometry, Type );
+    return m_geometry.create_chunk( Vertices, Userdata, Geometry, Type );
 }
 
 // replaces data of specified chunk with the supplied vertex data, starting from specified offset
-bool
-opengl_renderer::Replace( gfx::vertex_array &Vertices, gfx::geometry_handle const &Geometry, int const Type, std::size_t const Offset ) {
+bool opengl_renderer::Replace(gfx::vertex_array &Vertices, gfx::userdata_array &Userdata, gfx::geometry_handle const &Geometry, int const Type, const std::size_t Offset)
+{
 
-    return m_geometry.replace( Vertices, Geometry, Offset );
+    return m_geometry.replace( Vertices, Userdata, Geometry, Offset );
 }
 
 // adds supplied vertex data at the end of specified chunk
-bool
-opengl_renderer::Append( gfx::vertex_array &Vertices, gfx::geometry_handle const &Geometry, int const Type ) {
+bool opengl_renderer::Append(gfx::vertex_array &Vertices, gfx::userdata_array &Userdata, gfx::geometry_handle const &Geometry, int const Type)
+{
 
-    return m_geometry.append( Vertices, Geometry );
+    return m_geometry.append( Vertices, Userdata, Geometry );
 }
 
 // provides direct access to vertex data of specfied chunk
@@ -1728,6 +1729,11 @@ gfx::vertex_array const &
 opengl_renderer::Vertices( gfx::geometry_handle const &Geometry ) const {
 
     return m_geometry.vertices( Geometry );
+}
+
+gfx::userdata_array const &opengl_renderer::UserData(const gfx::geometry_handle &Geometry) const
+{
+	return m_geometry.userdata( Geometry );
 }
 
 // material methods
@@ -4510,3 +4516,4 @@ std::unique_ptr<gfx_renderer> opengl_renderer::create_func()
 }
 
 bool opengl_renderer::renderer_register = gfx_renderer_factory::get_instance()->register_backend("legacy", opengl_renderer::create_func);
+

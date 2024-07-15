@@ -2,6 +2,7 @@ layout(location = 0) in vec3 v_vert;
 layout(location = 1) in vec3 v_normal;
 layout(location = 2) in vec2 v_coord;
 layout(location = 3) in vec4 v_tangent;
+layout(location = 4) in vec4 v_userdata;
 
 #include <common>
 
@@ -18,6 +19,7 @@ out vec4 f_clip_future_pos;
 //out vec3 TangentLightPos;
 //out vec3 TangentViewPos;
 out vec3 TangentFragPos;
+out vec4 UserData;
 
 void main()
 {
@@ -43,4 +45,5 @@ void main()
 //	TangentLightPos = TBN * f_light_pos.xyz;
 //	TangentViewPos = TBN * vec3(0.0, 0.0, 0.0);
 	TangentFragPos = TBN * f_pos.xyz;
+	UserData = v_userdata;
 }

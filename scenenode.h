@@ -97,6 +97,7 @@ public:
         glm::dvec3 origin; // world position of the relative coordinate system origin
         gfx::geometry_handle geometry { 0, 0 }; // relative origin-centered chunk of geometry held by gfx renderer
         std::vector<world_vertex> vertices; // world space source data of the geometry
+		gfx::userdata_array userdata;
     // methods:
         // sends content of the struct to provided stream
         void
@@ -192,6 +193,7 @@ public:
         glm::dvec3 origin; // world position of the relative coordinate system origin
         gfx::geometry_handle geometry { 0, 0 }; // relative origin-centered chunk of geometry held by gfx renderer
         std::vector<world_vertex> vertices; // world space source data of the geometry
+		gfx::userdata_array userdata;
     // methods:
         // sends content of the struct to provided stream
         void

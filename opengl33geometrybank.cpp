@@ -53,6 +53,7 @@ void opengl33_vaogeometrybank::setup_buffer()
         vertexcount{ 0 },
         indexcount{ 0 };
     auto chunkiterator = m_chunks.cbegin();
+	bool has_userdata{ false };
     for( auto &chunkrecord : m_chunkrecords ) {
         // fill records for all chunks, based on the chunk data
         chunkrecord.is_good = false; // if we're re-creating buffer, chunks might've been uploaded in the old one
@@ -61,7 +62,9 @@ void opengl33_vaogeometrybank::setup_buffer()
         vertexcount += chunkrecord.vertex_count;
         chunkrecord.index_offset = indexcount;
         chunkrecord.index_count = chunkiterator->indices.size();
+		chunkrecord.has_userdata = !chunkiterator->userdata.empty();
         indexcount += chunkrecord.index_count;
+		has_userdata |= chunkrecord.has_userdata;
         ++chunkiterator;
     }
     // the odds for all created chunks to get replaced with empty ones are quite low, but the possibility does exist
@@ -89,24 +92,32 @@ void opengl33_vaogeometrybank::setup_buffer()
 	m_vertexbuffer.emplace();
     // NOTE: we're using static_draw since it's generally true for all we have implemented at the moment
     // TODO: allow to specify usage hint at the object creation, and pass it here
-    m_vertexbuffer->allocate( gl::buffer::ARRAY_BUFFER, vertexcount * sizeof( gfx::basic_vertex ), GL_STATIC_DRAW );
+	const int vertex_size = has_userdata ? sizeof( gfx::basic_vertex ) + sizeof(gfx::vertex_userdata) : sizeof(gfx::basic_vertex);
+    m_vertexbuffer->allocate( gl::buffer::ARRAY_BUFFER, static_cast<int>(vertexcount * vertex_size), GL_STATIC_DRAW );
     if( ::glGetError() == GL_OUT_OF_MEMORY ) {
         ErrorLog( "openGL error: out of memory; failed to create a geometry buffer" );
         throw std::bad_alloc();
     }
+	m_vertex_count = static_cast<int>(vertexcount);
 
     setup_attrib();
+	if(has_userdata)
+		setup_userdata();
 }
 
 void
 opengl33_vaogeometrybank::setup_attrib(size_t offset)
 {
-    m_vao->setup_attrib( *m_vertexbuffer, 0, 3, GL_FLOAT, sizeof( basic_vertex ), 0 * sizeof( float ) + offset * sizeof( basic_vertex ) );
+    m_vao->setup_attrib( *m_vertexbuffer, 0, 3, GL_FLOAT, sizeof( basic_vertex ), offsetof(basic_vertex, position) + offset * sizeof( basic_vertex ) );
     // NOTE: normal and color streams share the data
-    m_vao->setup_attrib( *m_vertexbuffer, 1, 3, GL_FLOAT, sizeof( basic_vertex ), 3 * sizeof( float ) + offset * sizeof( basic_vertex ) );
-    m_vao->setup_attrib( *m_vertexbuffer, 2, 2, GL_FLOAT, sizeof( basic_vertex ), 6 * sizeof( float ) + offset * sizeof( basic_vertex ) );
-    m_vao->setup_attrib( *m_vertexbuffer, 3, 4, GL_FLOAT, sizeof( basic_vertex ), 8 * sizeof( float ) + offset * sizeof( basic_vertex ) );
+    m_vao->setup_attrib( *m_vertexbuffer, 1, 3, GL_FLOAT, sizeof( basic_vertex ), offsetof(basic_vertex, normal) + offset * sizeof( basic_vertex ) );
+    m_vao->setup_attrib( *m_vertexbuffer, 2, 2, GL_FLOAT, sizeof( basic_vertex ), offsetof(basic_vertex, texture) + offset * sizeof( basic_vertex ) );
+	m_vao->setup_attrib( *m_vertexbuffer, 3, 4, GL_FLOAT, sizeof( basic_vertex ), offsetof(basic_vertex, tangent) + offset * sizeof( basic_vertex ) );
 }
+
+void opengl33_vaogeometrybank::setup_userdata(size_t offset) {
+	const size_t offset_evaluated = m_vertex_count * sizeof(basic_vertex) + offset * sizeof( vertex_userdata );
+	m_vao->setup_attrib( *m_vertexbuffer, 4, 4, GL_FLOAT, sizeof( vertex_userdata ), offsetof(vertex_userdata, data) + offset_evaluated );}
 
 // draw() subclass details
 // NOTE: units and stream parameters are unused, but they're part of (legacy) interface
@@ -122,14 +133,18 @@ opengl33_vaogeometrybank::draw_( gfx::geometry_handle const &Geometry, gfx::stre
 		return 0;
 
     auto const &chunk = gfx::geometry_bank::chunk( Geometry );
-    if( false == chunkrecord.is_good ) {
+    if( !chunkrecord.is_good ) {
         m_vao->bind();
         // we may potentially need to upload new buffer data before we can draw it
         if( chunkrecord.index_count > 0 ) {
             m_indexbuffer->upload( gl::buffer::ELEMENT_ARRAY_BUFFER, chunk.indices.data(), chunkrecord.index_offset * sizeof( gfx::basic_index ), chunkrecord.index_count * sizeof( gfx::basic_index ) );
         }
         m_vertexbuffer->upload( gl::buffer::ARRAY_BUFFER, chunk.vertices.data(), chunkrecord.vertex_offset * sizeof( gfx::basic_vertex ), chunkrecord.vertex_count * sizeof( gfx::basic_vertex ) );
-        chunkrecord.is_good = true;
+		if(chunkrecord.has_userdata)
+			m_vertexbuffer->upload(gl::buffer::ARRAY_BUFFER, chunk.userdata.data(),
+			                       static_cast<int>(m_vertex_count * sizeof(gfx::basic_vertex) + chunkrecord.vertex_offset * sizeof(gfx::vertex_userdata)),
+			                       static_cast<int>(chunkrecord.vertex_count * sizeof(gfx::vertex_userdata)));
+		chunkrecord.is_good = true;
     }
     // render
     if( chunkrecord.index_count > 0 ) {
