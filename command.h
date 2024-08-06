@@ -113,6 +113,8 @@ enum class user_command {
     universalrelayreset3,
     notchingrelaytoggle,
     epbrakecontroltoggle,
+    epbrakecontrolenable,
+    epbrakecontroldisable,
 	trainbrakeoperationmodeincrease,
 	trainbrakeoperationmodedecrease,
     brakeactingspeedincrease,

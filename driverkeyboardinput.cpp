@@ -122,6 +122,8 @@ driverkeyboard_input::default_bindings() {
         // universalrelayreset3,
         { user_command::notchingrelaytoggle, {GLFW_KEY_G, ""} },
         { user_command::epbrakecontroltoggle, {GLFW_KEY_Z | keymodifier::control, ""} },
+        // epbrakecontrolenable
+        // epbrakecontroldisable
         { user_command::trainbrakeoperationmodeincrease, {GLFW_KEY_KP_2 | keymodifier::control, ""} },
         { user_command::trainbrakeoperationmodedecrease, {GLFW_KEY_KP_8 | keymodifier::control, ""} },
         { user_command::brakeactingspeedincrease, {GLFW_KEY_B | keymodifier::shift, ""} },

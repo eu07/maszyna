@@ -277,6 +277,8 @@ class TTrain {
 	static void OnCommand_autosandboxactivate(TTrain *Train, command_data const &Command);
 	static void OnCommand_autosandboxdeactivate(TTrain *Train, command_data const &Command);
     static void OnCommand_epbrakecontroltoggle( TTrain *Train, command_data const &Command );
+    static void OnCommand_epbrakecontrolenable( TTrain *Train, command_data const &Command );
+    static void OnCommand_epbrakecontroldisable( TTrain *Train, command_data const &Command );
 	static void OnCommand_trainbrakeoperationmodeincrease(TTrain *Train, command_data const &Command);
 	static void OnCommand_trainbrakeoperationmodedecrease(TTrain *Train, command_data const &Command);
     static void OnCommand_brakeactingspeedincrease( TTrain *Train, command_data const &Command );
