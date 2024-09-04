@@ -342,7 +342,9 @@ TTraction::create_geometry( gfx::geometrybank_handle const &Bank ) {
     }
 
     auto const elementcount = vertices.size() / 2;
-    m_geometry = GfxRenderer->Insert( vertices, Bank, GL_LINES );
+
+	gfx::userdata_array empty_userdata{};
+    m_geometry = GfxRenderer->Insert( vertices, empty_userdata, Bank, GL_LINES );
 
     return elementcount;
 }

@@ -26,7 +26,7 @@ namespace scene {
 
 std::string const EU07_FILEEXTENSION_REGION { ".sbt" };
 std::uint32_t const EU07_FILEHEADER { MAKE_ID4( 'E','U','0','7' ) };
-std::uint32_t const EU07_FILEVERSION_REGION { MAKE_ID4( 'S', 'B', 'T', 1 ) };
+std::uint32_t const EU07_FILEVERSION_REGION { MAKE_ID4( 'S', 'B', 'T', '2' ) };
 
 // potentially activates event handler with the same name as provided node, and within handler activation range
 void
@@ -962,10 +962,11 @@ basic_section::create_geometry() {
 void basic_section::create_map_geometry(const gfx::geometrybank_handle handle)
 {
     std::vector<gfx::basic_vertex> lines;
+	gfx::userdata_array userdata{};
     for (auto &cell : m_cells)
 		cell.create_map_geometry(lines, handle);
 
-    m_map_geometryhandle = GfxRenderer->Insert(lines, handle, GL_LINES);
+    m_map_geometryhandle = GfxRenderer->Insert(lines, userdata, handle, GL_LINES);
 }
 
 void basic_section::get_map_active_paths(map_colored_paths &handles)
@@ -1726,15 +1727,16 @@ void basic_region::create_map_geometry()
 void basic_region::update_poi_geometry()
 {
 	std::vector<gfx::basic_vertex> vertices;
+	gfx::userdata_array userdata;
 	for (const auto sem : map::Objects.entries)
 		vertices.push_back(std::move(sem->vertex()));
 
 	if (!m_map_poipoints) {
         gfx::geometrybank_handle poibank = GfxRenderer->Create_Bank();
-        m_map_poipoints = GfxRenderer->Insert(vertices, poibank, GL_POINTS);
+        m_map_poipoints = GfxRenderer->Insert(vertices, userdata, poibank, GL_POINTS);
 	}
 	else {
-        GfxRenderer->Replace(vertices, m_map_poipoints, GL_POINTS);
+		GfxRenderer->Replace(vertices, userdata, m_map_poipoints, GL_POINTS);
 	}
 }
 
