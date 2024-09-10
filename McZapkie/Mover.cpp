@@ -11100,7 +11100,6 @@ void TMoverParameters::LoadFIZ_Switches( std::string const &Input ) {
             std::remove( std::begin( presets ), std::end( presets ), '|' ),
             std::end( presets ) );
     }
-    extract_value( PantsPresetDefault, "PantographPresetDefault", Input, "" );
 }
 
 void TMoverParameters::LoadFIZ_MotorParamTable( std::string const &Input ) {

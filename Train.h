@@ -211,14 +211,12 @@ class TTrain {
     void update_sounds( double const Deltatime );
     void update_sounds_runningnoise( sound_source &Sound );
     void update_sounds_radio();
-    // Translates the given cab to an end ID: cab `1` and engine compartment (`0`) translate to `end::front`, cab `2` translates to `end::rear`
     inline
     end cab_to_end( int const End ) const {
         return (
             End == 2 ?
                 end::rear :
                 end::front ); }
-    // Translates the currently occupied cab to an end ID: cab `1` and engine compartment (`0`) translate to `end::front`, cab `2` translates to `end::rear`
     inline
     end cab_to_end() const {
         return cab_to_end( iCabn ); }
@@ -817,7 +815,7 @@ public: // reszta może by?publiczna
 */
     // McZapkie: opis kabiny - obszar poruszania sie mechanika oraz zajetosc
     std::array<TCab, 3> Cabine; // przedzial maszynowy, kabina 1 (A), kabina 2 (B)
-    int iCabn { 0 }; // the cab number the player is currently inside of; 0: mid, 1: front, 2: rear
+    int iCabn { 0 }; // 0: mid, 1: front, 2: rear
     bool is_cab_initialized { false };
     // McZapkie: do poruszania sie po kabinie
     Math3D::vector3 pMechSittingPosition; // ABu 180404
