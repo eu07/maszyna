@@ -120,6 +120,8 @@ commanddescription_sequence Commands_descriptions = {
 	{ "universalrelayreset3", command_target::vehicle, command_mode::oneoff },
 	{ "notchingrelaytoggle", command_target::vehicle, command_mode::oneoff },
 	{ "epbrakecontroltoggle", command_target::vehicle, command_mode::oneoff },
+	{ "epbrakecontrolenable", command_target::vehicle, command_mode::oneoff },
+	{ "epbrakecontroldisable", command_target::vehicle, command_mode::oneoff },
 	{ "trainbrakeoperationmodeincrease", command_target::vehicle, command_mode::oneoff },
 	{ "trainbrakeoperationmodedecrease", command_target::vehicle, command_mode::oneoff },
 	{ "brakeactingspeedincrease", command_target::vehicle, command_mode::oneoff },

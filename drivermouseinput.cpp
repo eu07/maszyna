@@ -638,6 +638,12 @@ drivermouse_input::default_bindings() {
 		{ "epbrake_bt:",{
 			user_command::epbrakecontroltoggle,
 			user_command::none } },
+		{ "epbrakeon_bt:",{
+			user_command::epbrakecontrolenable,
+			user_command::none } },
+		{ "epbrakeoff_bt:",{
+			user_command::epbrakecontroldisable,
+			user_command::none } },
         { "sand_bt:", {
             user_command::sandboxactivate,
             user_command::none } },

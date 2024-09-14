@@ -254,6 +254,8 @@ TTrain::commandhandler_map const TTrain::m_commandhandlers = {
     { user_command::autosandboxactivate, &TTrain::OnCommand_autosandboxactivate },
     { user_command::autosandboxdeactivate, &TTrain::OnCommand_autosandboxdeactivate },
     { user_command::epbrakecontroltoggle, &TTrain::OnCommand_epbrakecontroltoggle },
+    { user_command::epbrakecontrolenable, &TTrain::OnCommand_epbrakecontrolenable },
+    { user_command::epbrakecontroldisable, &TTrain::OnCommand_epbrakecontroldisable },
 	{ user_command::trainbrakeoperationmodeincrease, &TTrain::OnCommand_trainbrakeoperationmodeincrease },
 	{ user_command::trainbrakeoperationmodedecrease, &TTrain::OnCommand_trainbrakeoperationmodedecrease },
     { user_command::brakeactingspeedincrease, &TTrain::OnCommand_brakeactingspeedincrease },
@@ -1962,6 +1964,34 @@ void TTrain::OnCommand_autosandboxdeactivate(TTrain *Train, command_data const &
 		Train->ggAutoSandButton.UpdateValue(0.0, Train->dsbSwitch);
 	}
 };
+
+void TTrain::OnCommand_epbrakecontrolenable( TTrain *Train, command_data const &Command ) {
+    auto const istoggle{ ( static_cast<int>( Train->ggEPFuseButton.type() ) & static_cast<int>( TGaugeType::toggle ) ) != 0 };
+    if( Command.action == GLFW_PRESS ) {
+        // command only works for bistable switch
+        if(istoggle) {
+            if( Train->mvOccupied->EpFuseSwitch( true ) ) {
+                // audio feedback
+                if( Train->dsbPneumaticSwitch ) {
+                    Train->dsbPneumaticSwitch->play();
+                }
+                Train->ggEPFuseButton.UpdateValue(1.0f, Train->dsbSwitch);
+            };
+        }
+    }
+}
+
+void TTrain::OnCommand_epbrakecontroldisable( TTrain *Train, command_data const &Command ) {
+    auto const istoggle{ ( static_cast<int>( Train->ggEPFuseButton.type() ) & static_cast<int>( TGaugeType::toggle ) ) != 0 };
+    if( Command.action == GLFW_PRESS ) {
+        // command only works for bistable switch
+        if(istoggle) {
+            if( Train->mvOccupied->EpFuseSwitch( false ) ) {
+                Train->ggEPFuseButton.UpdateValue(0.0f, Train->dsbSwitch);
+            };
+        }
+    }
+}
 
 void TTrain::OnCommand_epbrakecontroltoggle( TTrain *Train, command_data const &Command ) {
 
