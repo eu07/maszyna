@@ -741,6 +741,9 @@ std::shared_ptr<dictionary_source> TTrain::GetTrainState( dictionary_source cons
     dict->insert( "im", std::abs(  mvControlled->Im ) );
     dict->insert( "fuse", mvControlled->FuseFlag );
     dict->insert( "epfuse", mvOccupied->EpFuse );
+	dict->insert( "power_drawn", mvOccupied->EnergyMeter.first);
+	dict->insert( "power_returned", mvOccupied->EnergyMeter.second);
+
     // induction motor state data
     char const *TXTT[ 10 ] = { "fd", "fdt", "fdb", "pd", "pdt", "pdb", "itothv", "1", "2", "3" };
     char const *TXTC[ 10 ] = { "fr", "frt", "frb", "pr", "prt", "prb", "im", "vm", "ihv", "uhv" };
