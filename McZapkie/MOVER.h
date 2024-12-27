@@ -1196,6 +1196,7 @@ public:
 	bool ReleaseParkingBySpringBrakeWhenDoorIsOpen{ false };
 	bool SpringBrakeCutsOffDrive { true };
 	double SpringBrakeDriveEmergencyVel { -1 };
+	bool HideDirStatusWhenMoving { false };
 	TSecuritySystem SecuritySystem;
     int EmergencyBrakeWarningSignal{ 0 }; // combined with basic WarningSignal when manual emergency brake is active
 	TUniversalCtrlTable UniCtrlList;     /*lista pozycji uniwersalnego nastawnika*/

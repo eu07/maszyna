@@ -7507,8 +7507,16 @@ bool TTrain::Update( double const Deltatime )
         btLampkaDoorLockOff.Turn( false == mvOccupied->Doors.lock_enabled );
         btLampkaDepartureSignal.Turn( mvControlled->DepartureSignal );
         btLampkaNapNastHam.Turn((mvControlled->DirActive != 0) && (mvOccupied->EpFuse)); // napiecie na nastawniku hamulcowym
-        btLampkaForward.Turn(mvControlled->DirActive > 0); // jazda do przodu
-        btLampkaBackward.Turn(mvControlled->DirActive < 0); // jazda do tyłu
+        // Wylaczanie lampek kierunku gdy jedziemy
+        // Feature uruchamiany z fiz z sekcji Ctrl. wpisem HideDirStatusWhenMoving=Yes (domyslnie No)
+        if (mvOccupied->HideDirStatusWhenMoving && mvOccupied->Vel > 1) {   
+            btLampkaForward.Turn(false);
+			btLampkaBackward.Turn(false);
+        }
+        else {
+			btLampkaForward.Turn(mvControlled->DirActive > 0); // jazda do przodu
+			btLampkaBackward.Turn(mvControlled->DirActive < 0); // jazda do tyłu
+        }
         btLampkaED.Turn(mvControlled->DynamicBrakeFlag); // hamulec ED
         btLampkaBrakeProfileG.Turn( TestFlag( mvOccupied->BrakeDelayFlag, bdelay_G ) );
         btLampkaBrakeProfileP.Turn( TestFlag( mvOccupied->BrakeDelayFlag, bdelay_P ) );
