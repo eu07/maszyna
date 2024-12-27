@@ -7509,7 +7509,9 @@ bool TTrain::Update( double const Deltatime )
         btLampkaNapNastHam.Turn((mvControlled->DirActive != 0) && (mvOccupied->EpFuse)); // napiecie na nastawniku hamulcowym
         // Wylaczanie lampek kierunku gdy jedziemy
         // Feature uruchamiany z fiz z sekcji Ctrl. wpisem HideDirStatusWhenMoving=Yes (domyslnie No)
-        if (mvOccupied->HideDirStatusWhenMoving && mvOccupied->Vel > 1) {   
+		if (mvOccupied->HideDirStatusWhenMoving && // Czy ta funkcja jest w ogole wlaczona
+            mvOccupied->Vel > mvOccupied->HideDirStatusSpeed) // Uzaleznienie od predkosci
+		{   
             btLampkaForward.Turn(false);
 			btLampkaBackward.Turn(false);
         }
