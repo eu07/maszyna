@@ -1196,7 +1196,8 @@ public:
 	bool ReleaseParkingBySpringBrakeWhenDoorIsOpen{ false };
 	bool SpringBrakeCutsOffDrive { true };
 	double SpringBrakeDriveEmergencyVel { -1 };
-	bool HideDirStatusWhenMoving { false };
+	bool HideDirStatusWhenMoving { false }; // Czy gasic lampki kierunku powyzej predkosci zdefiniowanej przez HideDirStatusSpeed
+	int HideDirStatusSpeed{ 1 };	// Predkosc od ktorej lampki kierunku sa wylaczane
 	TSecuritySystem SecuritySystem;
     int EmergencyBrakeWarningSignal{ 0 }; // combined with basic WarningSignal when manual emergency brake is active
 	TUniversalCtrlTable UniCtrlList;     /*lista pozycji uniwersalnego nastawnika*/
