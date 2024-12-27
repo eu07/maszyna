@@ -7545,10 +7545,12 @@ bool TTrain::Update( double const Deltatime )
 		{   
             btLampkaForward.Turn(false);
 			btLampkaBackward.Turn(false);
+			btLampkaNeutral.Turn(false);
         }
         else {
 			btLampkaForward.Turn(mvControlled->DirActive > 0); // jazda do przodu
 			btLampkaBackward.Turn(mvControlled->DirActive < 0); // jazda do tyłu
+			btLampkaNeutral.Turn(mvControlled->DirActive == 0); // kierunek neutral
         }
 
         btLampkaED.Turn(mvControlled->DynamicBrakeFlag); // hamulec ED
@@ -7625,6 +7627,7 @@ bool TTrain::Update( double const Deltatime )
         btLampkaNapNastHam.Turn( false );
         btLampkaForward.Turn( false );
         btLampkaBackward.Turn( false );
+		btLampkaNeutral.Turn(false);
         btLampkaED.Turn( false );
         // light indicators
         btLampkaUpperLight.Turn( false );
@@ -9495,6 +9498,7 @@ void TTrain::clear_cab_controls()
     btLampkaHVoltageB.Clear();
     btLampkaForward.Clear();
     btLampkaBackward.Clear();
+	btLampkaNeutral.Clear();
     // light indicators
     btLampkaUpperLight.Clear();
     btLampkaLeftLight.Clear();
@@ -9965,6 +9969,7 @@ bool TTrain::initialize_button(cParser &Parser, std::string const &Label, int co
         { "i-malfunctionb:", btLampkaMalfunctionB },
         { "i-forward:", btLampkaForward },
         { "i-backward:", btLampkaBackward },
+	    { "i-neutral:", btLampkaNeutral },
         { "i-upperlight:", btLampkaUpperLight },
         { "i-leftlight:", btLampkaLeftLight },
         { "i-rightlight:", btLampkaRightLight },
