@@ -755,6 +755,7 @@ public: // reszta może by?publiczna
     TButton btLampkaDoorLockOff;
     TButton btLampkaHamulecReczny;
     TButton btLampkaForward; // Ra: lampki w przód i w ty?dla komputerowych kabin
+	TButton btLampkaNeutral; // Kierunek neutralny
     TButton btLampkaBackward;
     // light indicators
     TButton btLampkaUpperLight;
