@@ -785,7 +785,7 @@ public: // reszta może by?publiczna
         dsbNastawnikJazdy,
         dsbNastawnikBocz,
         dsbReverserKey,
-        dsbBuzzer,
+        dsbBuzzer, dsbBuzzerShp,
         m_radiostop,
         dsbSlipAlarm,
         m_distancecounterclear,
