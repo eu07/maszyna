@@ -10576,6 +10576,9 @@ void TMoverParameters::LoadFIZ_Cntrl( std::string const &line ) {
 	extract_value( SpringBrakeCutsOffDrive, "SpringBrakeCutsOffDrive", line, "");
 	extract_value( SpringBrakeDriveEmergencyVel, "SpringBrakeDriveEmergencyVel", line, "");
 
+    extract_value(HideDirStatusWhenMoving, "HideDirStatusWhenMoving", line, "");
+	extract_value(HideDirStatusSpeed, "HideDirStatusSpeed", line, "");
+
     std::map<std::string, start_t> starts {
         { "Disabled", start_t::disabled },
         { "Manual", start_t::manual },
