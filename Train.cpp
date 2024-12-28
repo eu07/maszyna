@@ -8380,6 +8380,21 @@ TTrain::update_sounds( double const Deltatime ) {
 
     // power-reliant sounds
     if( mvOccupied->Power24vIsAvailable || mvOccupied->Power110vIsAvailable ) {
+
+        // buzzer shp
+        if (mvOccupied->SecuritySystem.is_cabsignal_beeping()) {
+            if (dsbBuzzerShp && false == dsbBuzzerShp->is_playing()) {
+				dsbBuzzerShp->pitch(dsbBuzzerShp->m_frequencyoffset + dsbBuzzerShp->m_frequencyfactor);
+				dsbBuzzerShp->gain(dsbBuzzerShp->m_amplitudeoffset + dsbBuzzerShp->m_amplitudefactor);
+				dsbBuzzerShp->play(sound_flags::looping);
+            }
+        }
+        else {
+            if (dsbBuzzerShp && true == dsbBuzzerShp->is_playing()) {
+				dsbBuzzerShp->stop();
+            }
+        }
+
         // McZapkie-141102: SHP i czuwak, TODO: sygnalizacja kabinowa
             // hunter-091012: rozdzielenie alarmow
         if( mvOccupied->SecuritySystem.is_beeping() ) {
@@ -8426,6 +8441,13 @@ TTrain::update_sounds( double const Deltatime ) {
 #endif
             }
         }
+
+        if (dsbBuzzerShp && dsbBuzzerShp->is_playing()) {
+			dsbBuzzerShp->stop();
+        }
+		{
+		}
+
         if( m_distancecounterclear ) {
             m_distancecounterclear->stop();
         }
@@ -8596,6 +8618,7 @@ bool TTrain::LoadMMediaFile(std::string const &asFileName)
             {"ctrlscnd:", {dsbNastawnikBocz, sound_placement::internal, EU07_SOUND_CABCONTROLSCUTOFFRANGE, sound_type::single, 0, 100.0}},
             {"reverserkey:", {dsbReverserKey, sound_placement::internal, EU07_SOUND_CABCONTROLSCUTOFFRANGE, sound_type::single, 0, 100.0}},
             {"buzzer:", {dsbBuzzer, sound_placement::internal, EU07_SOUND_CABCONTROLSCUTOFFRANGE, sound_type::single, 0, 100.0}},
+	        {"buzzershp:", {dsbBuzzerShp, sound_placement::internal, EU07_SOUND_CABCONTROLSCUTOFFRANGE, sound_type::single, 0, 100.0}},
             {"radiostop:", {m_radiostop, sound_placement::internal, EU07_SOUND_CABCONTROLSCUTOFFRANGE, sound_type::single, 0, 100.0}},
             {"slipalarm:", {dsbSlipAlarm, sound_placement::internal, EU07_SOUND_CABCONTROLSCUTOFFRANGE, sound_type::single, 0, 100.0}},
             {"distancecounter:", {m_distancecounterclear, sound_placement::internal, EU07_SOUND_CABCONTROLSCUTOFFRANGE, sound_type::single, 0, 100.0}},
@@ -8688,7 +8711,7 @@ bool TTrain::LoadMMediaFile(std::string const &asFileName)
 		dsbSwitch, dsbPneumaticSwitch,
 		rsHiss, rsHissU, rsHissE, rsHissX, rsHissT, rsSBHiss, rsSBHissU,
 		rsFadeSound, rsRunningNoise, rsHuntingNoise,
-		dsbHasler, dsbBuzzer, dsbSlipAlarm, m_distancecounterclear, m_rainsound, m_radiostop
+		dsbHasler, dsbBuzzer,dsbBuzzerShp, dsbSlipAlarm, m_distancecounterclear, m_rainsound, m_radiostop
 	};
 	for (auto &sound : sounds) {
 		if (sound.get()) {
@@ -8711,7 +8734,7 @@ bool TTrain::InitializeCab(int NewCabNo, std::string const &asFileName)
         dsbSwitch, dsbPneumaticSwitch,
         rsHiss, rsHissU, rsHissE, rsHissX, rsHissT, rsSBHiss, rsSBHissU,
         rsFadeSound, rsRunningNoise, rsHuntingNoise,
-        dsbHasler, dsbBuzzer, dsbSlipAlarm, m_distancecounterclear, m_rainsound, m_radiostop
+        dsbHasler, dsbBuzzer, dsbBuzzerShp, dsbSlipAlarm, m_distancecounterclear, m_rainsound, m_radiostop
     };
     for( auto &sound : sounds ) {
         if( sound.get() ) {
@@ -9005,6 +9028,7 @@ bool TTrain::InitializeCab(int NewCabNo, std::string const &asFileName)
                 {rsHuntingNoise, caboffset},
                 {dsbHasler, caboffset},
                 {dsbBuzzer, btLampkaCzuwaka.model_offset()},
+	            {dsbBuzzerShp, btLampkaCzuwaka.model_offset()},
                 {dsbSlipAlarm, caboffset},
                 {m_distancecounterclear, btLampkaCzuwaka.model_offset()},
                 {m_rainsound, caboffset},
