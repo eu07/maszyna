@@ -711,6 +711,7 @@ std::shared_ptr<dictionary_source> TTrain::GetTrainState( dictionary_source cons
 	dict->insert( "emergency_brake", mvOccupied->AlarmChainFlag );
 	dict->insert( "brake_delay_flag", mvOccupied->BrakeDelayFlag );
 	dict->insert( "brake_op_mode_flag", mvOccupied->BrakeOpModeFlag );
+	dict->insert( "pipelock", mvOccupied->LockPipe);
     // other controls
     dict->insert( "ca", mvOccupied->SecuritySystem.is_vigilance_blinking());
     dict->insert( "shp", mvOccupied->SecuritySystem.is_cabsignal_blinking());
