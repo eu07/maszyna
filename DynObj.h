@@ -486,6 +486,7 @@ private:
     // engine sounds
     powertrain_sounds m_powertrainsounds;
     sound_source sConverter { sound_placement::engine };
+	sound_source sBRVent {sound_placement::engine};
     sound_source sCompressor { sound_placement::engine }; // NBMX wrzesien 2003
     sound_source sCompressorIdle { sound_placement::engine };
     sound_source sSmallCompressor { sound_placement::engine };

@@ -4184,6 +4184,21 @@ void TDynamicObject::RenderSounds() {
         sConverter.stop();
     }
 
+    // Odtworzenie dzwieku wentylatora rezystora hamowania
+
+	if (MoverParameters->BRVentilators)
+	{
+		sBRVent.play(sound_flags::exclusive | sound_flags::looping);
+	}
+	else
+	{
+		sBRVent.stop();
+	}
+
+
+
+
+
     if( MoverParameters->CompressorSpeed > 0.0 ) {
         // McZapkie! - dzwiek compressor.wav tylko gdy dziala sprezarka
         if( MoverParameters->CompressorFlag ) {
@@ -5976,6 +5991,13 @@ void TDynamicObject::LoadMMediaFile( std::string const &TypeName, std::string co
                     sConverter.deserialize( parser, sound_type::multipart, sound_parameters::range );
                     sConverter.owner( this );
                 }
+                
+                // Dzwiek wentylatora rezystora hamowania
+				else if (token == "brakingresistorventilator:")
+				{
+					sBRVent.deserialize(parser, sound_type::multipart, sound_parameters::range);
+					sBRVent.owner(this);
+				}
 
                 else if( token == "heater:" ) {
                     // train heating device
@@ -6740,7 +6762,7 @@ void TDynamicObject::LoadMMediaFile( std::string const &TypeName, std::string co
     // other engine compartment sounds
     auto const nullvector { glm::vec3() };
     std::vector<sound_source *> enginesounds = {
-        &sConverter, &sCompressor, &sCompressorIdle, &sSmallCompressor, &sHeater, &m_batterysound
+        &sConverter, &sBRVent, &sCompressor, &sCompressorIdle, &sSmallCompressor, &sHeater, &m_batterysound
     };
     for( auto sound : enginesounds ) {
         if( sound->offset() == nullvector ) {

@@ -1597,6 +1597,26 @@ void TMoverParameters::compute_movement_( double const Deltatime ) {
         }
     }
 
+    // Uproszczona symulacja wentylatorow rezystora hamowania
+    
+	// Prad oddawany na rezystor
+	double Irh = abs(eimv[eimv_Pe]) - abs(eimv[eimv_Ipoj]);
+
+	// Wlacz wentylator jesli prad rekuperacji przekroczy maksymalny dla pasywnego chlodzenia rezystora
+	if (Irh > Imaxrpc && eimv[eimv_Ipoj] < 0)
+	{
+		BRVtimer = 0;
+		BRVentilators = true;
+    }
+    else {
+		BRVtimer += Deltatime;
+		if (BRVtimer > BRVto)
+			BRVentilators = false;
+    }
+
+
+
+
     // automatyczny rozruch
     if( EngineType == TEngineType::ElectricSeriesMotor ) {
         if( AutoRelayCheck() ) {
@@ -6408,6 +6428,7 @@ double TMoverParameters::TractionForce( double dt ) {
                         0.007 * (std::abs(EngineVoltage) - (EnginePowerSource.CollectorParameters.MaxV - 100)));
                 Itot = eimv[eimv_Ipoj] * (0.01 + std::min(0.99, 0.99 - Vadd));
 
+
                 EnginePower = abs(eimv[eimv_Ic] * eimv[eimv_U] * NPoweredAxles) / 1000;
                 // power inverters
                 auto const tmpV { std::abs( eimv[ eimv_fp ] ) };
@@ -11019,7 +11040,8 @@ void TMoverParameters::LoadFIZ_Engine( std::string const &Input ) {
 			extract_value( EIMCLogForce, "eimclf", Input, "" );
 			extract_value( InvertersNo, "InvNo", Input, "" );
 			extract_value( InverterControlCouplerFlag, "InvCtrCplFlag", Input, "" );
-
+		    extract_value(Imaxrpc, "Imaxrpc", Input, "");
+		    extract_value(BRVto, "BRVto", Input, "");
 			extract_value( Flat, "Flat", Input, "");
 
 			if (eimc[eimc_p_Pmax] > 0 && Power > 0 && InvertersNo == 0) {
