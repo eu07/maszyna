@@ -743,6 +743,9 @@ dictionary_source *TTrain::GetTrainState( dictionary_source const &Extraparamete
     dict->insert( "im", std::abs(  mvControlled->Im ) );
     dict->insert( "fuse", mvControlled->FuseFlag );
     dict->insert( "epfuse", mvOccupied->EpFuse );
+	dict->insert( "power_drawn", mvOccupied->EnergyMeter.first);
+	dict->insert( "power_returned", mvOccupied->EnergyMeter.second);
+
     // induction motor state data
     char const *TXTT[ 10 ] = { "fd", "fdt", "fdb", "pd", "pdt", "pdb", "itothv", "1", "2", "3" };
     char const *TXTC[ 10 ] = { "fr", "frt", "frb", "pr", "prt", "prb", "im", "vm", "ihv", "uhv" };
@@ -7534,8 +7537,20 @@ bool TTrain::Update( double const Deltatime )
         btLampkaDoorLockOff.Turn( false == mvOccupied->Doors.lock_enabled );
         btLampkaDepartureSignal.Turn( mvControlled->DepartureSignal );
         btLampkaNapNastHam.Turn((mvControlled->DirActive != 0) && (mvOccupied->EpFuse)); // napiecie na nastawniku hamulcowym
-        btLampkaForward.Turn(mvControlled->DirActive > 0); // jazda do przodu
-        btLampkaBackward.Turn(mvControlled->DirActive < 0); // jazda do tyłu
+        
+        // Wylaczanie lampek kierunku gdy jedziemy
+        // Feature uruchamiany z fiz z sekcji Ctrl. wpisem HideDirStatusWhenMoving=Yes (domyslnie No)
+		if (mvOccupied->HideDirStatusWhenMoving && // Czy ta funkcja jest w ogole wlaczona
+            mvOccupied->Vel > mvOccupied->HideDirStatusSpeed) // Uzaleznienie od predkosci
+		{   
+            btLampkaForward.Turn(false);
+			btLampkaBackward.Turn(false);
+        }
+        else {
+			btLampkaForward.Turn(mvControlled->DirActive > 0); // jazda do przodu
+			btLampkaBackward.Turn(mvControlled->DirActive < 0); // jazda do tyłu
+        }
+
         btLampkaED.Turn(mvControlled->DynamicBrakeFlag); // hamulec ED
         btLampkaBrakeProfileG.Turn( TestFlag( mvOccupied->BrakeDelayFlag, bdelay_G ) );
         btLampkaBrakeProfileP.Turn( TestFlag( mvOccupied->BrakeDelayFlag, bdelay_P ) );
