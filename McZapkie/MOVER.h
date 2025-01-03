@@ -1341,6 +1341,7 @@ public:
 	double InvertersRatio = 0.0;
 	std::vector<inverter> Inverters; //all inverters
 	int InverterControlCouplerFlag = 4; //which coupling flag is necessary to controll inverters
+	int Imaxrpc = 0;	// Maksymalny prad rezystora hamowania chlodzonego pasywnie
 	std::map<double, double> EIM_Pmax_Table; /*tablica mocy maksymalnej od predkosci*/
 	/* -dla pojazdów z blendingiem EP/ED (MED) */
 	double MED_Vmax = 0; // predkosc maksymalna dla obliczen chwilowej sily hamowania EP w MED
@@ -1471,6 +1472,7 @@ public:
 	bool ConverterAllow = false;             /*zezwolenie na prace przetwornicy NBMX*/
     bool ConverterAllowLocal{ true }; // local device state override (most units don't have this fitted so it's set to true not to intefere)
     bool ConverterFlag = false;              /*!  czy wlaczona przetwornica NBMX*/
+	bool BRVentilators = false; /* Czy rezystor hamowania pracuje */
     start_t ConverterOverloadRelayStart { start_t::manual }; // whether overload relay reset responds to dedicated button
     bool ConverterOverloadRelayOffWhenMainIsOff { false };
     fuel_pump FuelPump;
