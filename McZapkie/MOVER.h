@@ -1342,6 +1342,8 @@ public:
 	std::vector<inverter> Inverters; //all inverters
 	int InverterControlCouplerFlag = 4; //which coupling flag is necessary to controll inverters
 	int Imaxrpc = 0;	// Maksymalny prad rezystora hamowania chlodzonego pasywnie
+	int BRVto = 0;		// Czas jaki wentylatory jeszcze dodatkowo schladzaja rezystor
+	double BRVtimer = 0;	// Timer dla podtrzymania wentylatora
 	std::map<double, double> EIM_Pmax_Table; /*tablica mocy maksymalnej od predkosci*/
 	/* -dla pojazdów z blendingiem EP/ED (MED) */
 	double MED_Vmax = 0; // predkosc maksymalna dla obliczen chwilowej sily hamowania EP w MED
