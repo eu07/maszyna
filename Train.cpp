@@ -8311,6 +8311,30 @@ TTrain::update_sounds( double const Deltatime ) {
             dsbSlipAlarm->stop();
         }
     }
+
+    // dzwiek wiatru rozbijajacego sie o szyby w kabinie
+    if (rsWindSound) 
+    {
+		if (!FreeFlyModeFlag && !Global.CabWindowOpen && DynamicObject->GetVelocity() > 0.5)
+            update_sounds_resonancenoise(*rsWindSound);
+        else
+			rsWindSound->stop(FreeFlyModeFlag);
+    }
+
+
+    // dzwiek rezonansu (taki drugi runningnoise w sumie)
+	if (rsResonanceNoise)
+    {
+		if (!FreeFlyModeFlag && !Global.CabWindowOpen && DynamicObject->GetVelocity() > 0.5)
+		{
+
+			update_sounds_resonancenoise(*rsResonanceNoise);
+		}
+		else
+			rsResonanceNoise->stop(FreeFlyModeFlag);
+    }
+
+
     // szum w czasie jazdy
     if( rsRunningNoise ) {
         if( ( false == FreeFlyModeFlag )
@@ -8454,6 +8478,25 @@ TTrain::update_sounds( double const Deltatime ) {
     }
 
     update_sounds_radio();
+}
+
+void TTrain::update_sounds_resonancenoise(sound_source &Sound)
+{
+	// frequency calculation
+	auto const normalizer{mvOccupied->Vmax * 0.01f};
+	auto const frequency{Sound.m_frequencyoffset + Sound.m_frequencyfactor * mvOccupied->Vel * normalizer};
+
+	// volume calculation
+	auto volume = Sound.m_amplitudeoffset + Sound.m_amplitudefactor * interpolate(mvOccupied->Vel / (1 + mvOccupied->Vmax), 1.0, 0.5); // scale base volume between 0.5-1.0
+
+	if (volume > 0.05)
+	{
+		Sound.pitch(frequency).gain(volume).play(sound_flags::exclusive | sound_flags::looping);
+	}
+	else
+	{
+		Sound.stop();
+	}
 }
 
 void TTrain::update_sounds_runningnoise( sound_source &Sound ) {
@@ -8635,6 +8678,8 @@ bool TTrain::LoadMMediaFile(std::string const &asFileName)
             {"brakesound:", {rsBrake, sound_placement::internal, -1, sound_type::single, sound_parameters::amplitude | sound_parameters::frequency, 100.0}},
             {"fadesound:", {rsFadeSound, sound_placement::internal, EU07_SOUND_CABCONTROLSCUTOFFRANGE, sound_type::single, 0, 100.0}},
             {"runningnoise:", {rsRunningNoise, sound_placement::internal, EU07_SOUND_GLOBALRANGE, sound_type::single, sound_parameters::amplitude | sound_parameters::frequency, mvOccupied->Vmax }},
+            {"resonancenoise:", {rsResonanceNoise, sound_placement::internal, EU07_SOUND_GLOBALRANGE, sound_type::single, sound_parameters::amplitude | sound_parameters::frequency, mvOccupied->Vmax }},
+            {"windsound:", {rsWindSound, sound_placement::internal, EU07_SOUND_GLOBALRANGE, sound_type::single, sound_parameters::amplitude | sound_parameters::frequency, mvOccupied->Vmax }},
             {"huntingnoise:", {rsHuntingNoise, sound_placement::internal, EU07_SOUND_GLOBALRANGE, sound_type::single, sound_parameters::amplitude | sound_parameters::frequency, mvOccupied->Vmax }},
             {"rainsound:", {m_rainsound, sound_placement::internal, -1, sound_type::single, 0, 100.0}},
         };
@@ -8698,6 +8743,12 @@ bool TTrain::LoadMMediaFile(std::string const &asFileName)
         if (rsBrake) {
             rsBrake->m_frequencyfactor /= (1 + mvOccupied->Vmax);
         }
+        if (rsResonanceNoise) {
+			rsResonanceNoise->m_frequencyfactor /= (1 + mvOccupied->Vmax);
+        }
+        if (rsWindSound) {
+			rsWindSound->m_frequencyfactor /= (1 + mvOccupied->Vmax);
+        }
         if (rsRunningNoise) {
             rsRunningNoise->m_frequencyfactor /= (1 + mvOccupied->Vmax);
         }
@@ -8710,7 +8761,7 @@ bool TTrain::LoadMMediaFile(std::string const &asFileName)
 		dsbReverserKey, dsbNastawnikJazdy, dsbNastawnikBocz,
 		dsbSwitch, dsbPneumaticSwitch,
 		rsHiss, rsHissU, rsHissE, rsHissX, rsHissT, rsSBHiss, rsSBHissU,
-		rsFadeSound, rsRunningNoise, rsHuntingNoise,
+		rsFadeSound, rsRunningNoise, rsResonanceNoise,rsWindSound, rsHuntingNoise,
 		dsbHasler, dsbBuzzer,dsbBuzzerShp, dsbSlipAlarm, m_distancecounterclear, m_rainsound, m_radiostop
 	};
 	for (auto &sound : sounds) {
@@ -8733,7 +8784,7 @@ bool TTrain::InitializeCab(int NewCabNo, std::string const &asFileName)
         dsbReverserKey, dsbNastawnikJazdy, dsbNastawnikBocz,
         dsbSwitch, dsbPneumaticSwitch,
         rsHiss, rsHissU, rsHissE, rsHissX, rsHissT, rsSBHiss, rsSBHissU,
-        rsFadeSound, rsRunningNoise, rsHuntingNoise,
+        rsFadeSound, rsRunningNoise, rsResonanceNoise, rsWindSound, rsHuntingNoise,
         dsbHasler, dsbBuzzer, dsbBuzzerShp, dsbSlipAlarm, m_distancecounterclear, m_rainsound, m_radiostop
     };
     for( auto &sound : sounds ) {
@@ -9025,6 +9076,8 @@ bool TTrain::InitializeCab(int NewCabNo, std::string const &asFileName)
                 {rsSBHissU, ggBrakeCtrl.model_offset()}, // NOTE: fallback if the local brake model can't be located
                 {rsFadeSound, caboffset},
                 {rsRunningNoise, caboffset},
+                {rsResonanceNoise, caboffset},
+	            {rsWindSound, caboffset},
                 {rsHuntingNoise, caboffset},
                 {dsbHasler, caboffset},
                 {dsbBuzzer, btLampkaCzuwaka.model_offset()},
