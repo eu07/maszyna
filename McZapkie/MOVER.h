@@ -1421,7 +1421,7 @@ public:
     double AccSVBased {}; // tangential acceleration calculated from velocity change
 	double AccN = 0.0; // przyspieszenie normalne w [m/s^2]
 	double AccVert = 0.0; // vertical acceleration
-	double nrot = 0.0;
+	double nrot = 0.0;	// predkosc obrotowa kol (obrotow na sekunde)
 	double nrot_eps = 0.0; //przyspieszenie kątowe kół (bez kierunku)
 	double WheelFlat = 0.0;
     bool TruckHunting { true }; // enable/disable truck hunting calculation
