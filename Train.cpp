@@ -8312,6 +8312,16 @@ TTrain::update_sounds( double const Deltatime ) {
         }
     }
 
+    // dzwiek wiatru rozbijajacego sie o szyby w kabinie
+    if (rsWindSound) 
+    {
+		if (!FreeFlyModeFlag && !Global.CabWindowOpen && DynamicObject->GetVelocity() > 0.5)
+            update_sounds_resonancenoise(*rsWindSound);
+        else
+			rsWindSound->stop(FreeFlyModeFlag);
+    }
+
+
     // dzwiek rezonansu (taki drugi runningnoise w sumie)
 	if (rsResonanceNoise)
     {
