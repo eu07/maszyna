@@ -210,6 +210,7 @@ class TTrain {
     // update function subroutines
     void update_sounds( double const Deltatime );
     void update_sounds_runningnoise( sound_source &Sound );
+    void update_sounds_resonancenoise( sound_source &Sound );
     void update_sounds_radio();
     inline
     end cab_to_end( int const End ) const {
@@ -802,6 +803,7 @@ public: // reszta może by?publiczna
         rsBrake,
         rsFadeSound,
         rsRunningNoise,
+        rsResonanceNoise,
         rsHuntingNoise,
         m_rainsound;
     sound_source m_radiosound { sound_placement::internal, 2 * EU07_SOUND_CABCONTROLSCUTOFFRANGE }; // cached template for radio messages
