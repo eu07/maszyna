@@ -3535,23 +3535,30 @@ bool TDynamicObject::Update(double dt, double dt1)
 								   clamp(-1.0, 1.0, (MoverParameters->Vel / ( 1 + MoverParameters->Vmax )) * MyTrack->iDamageFlag * ((axleindex % 2) != 0 ? 1 : -1));
                                      
 								if (MyTrack->eType == tt_Switch){
-									MoverParameters->AccSVBased += clamp(
-									    -1.0, 1.0,
-									    (MoverParameters->Vel / (1 + MoverParameters->Vmax)) *
-									        MyTrack->iDamageFlag * ((axleindex % 2) != 0 ? 1 : -1));
-									MoverParameters->AccS += clamp(
-									    -1.0, 1.0,
-									    (MoverParameters->Vel / (1 + MoverParameters->Vmax)) *
-									        MyTrack->iDamageFlag * ((axleindex % 2) != 0 ? 1 : -1));
-									MoverParameters->AccN += clamp(
-									    -1.0, 1.0,
-									    (MoverParameters->Vel / (1 + MoverParameters->Vmax)) *
-									        MyTrack->iDamageFlag * ((axleindex % 2) != 0 ? 1 : -1));
-									MoverParameters->AccVert += clamp(
-									    -1.0, 1.0,
-									    (MoverParameters->Vel / (1 + MoverParameters->Vmax)) *
-									        MyTrack->iDamageFlag * ((axleindex % 2) != 0 ? 1 : -1));
-                                    }
+								    MoverParameters->AccS +=
+								        clamp(0.0, 1.0,
+								              (clamp(0.0, MoverParameters->Vmax,
+								                     MoverParameters->Vmax -
+								                         (MoverParameters->Vel +
+								                          MoverParameters->Vmax * 0.32f))) *
+								                  .05f * (MyTrack->iDamageFlag * 0.25f)) *
+								        ((axleindex % 2) != 0 ? 1 : -1);
+								    MoverParameters->AccN +=
+								        clamp(0.0, 1.0,
+								              (clamp(0.0, MoverParameters->Vmax,
+								                     MoverParameters->Vmax -
+								                         (MoverParameters->Vel +
+								                          MoverParameters->Vmax * 0.32f))) *
+								                  .05f * (MyTrack->iDamageFlag * 0.25f)) *
+								        ((axleindex % 2) != 0 ? 1 : -1);
+									MoverParameters->AccVert +=
+									    clamp(0.0, 2.0,
+									          (clamp(0.0, MoverParameters->Vmax,
+									                 MoverParameters->Vmax -
+									                     (MoverParameters->Vel +
+									                      MoverParameters->Vmax * 0.32f))) *
+									              .05f * (MyTrack->iDamageFlag * 0.25f));
+								    }
                             }
                         }
                         ++axleindex;
