@@ -3529,11 +3529,19 @@ bool TDynamicObject::Update(double dt, double dt1)
                                     .pitch( frequency )
                                     .gain( volume )
                                     .play();
-                                // crude bump simulation, drop down on even axles, move back up on the odd ones
-								//MoverParameters->AccVert += (MoverParameters->Vel*0.1f) *
-								MoverParameters->AccVert +=
-								   clamp(-1.0, 1.0, (MoverParameters->Vel / ( 1 + MoverParameters->Vmax )) * MyTrack->iDamageFlag * ((axleindex % 2) != 0 ? 1 : -1));
-                                     
+								// crude bump simulation, drop down on even axles, move back up on
+								// the odd ones
+								// MoverParameters->AccVert += (MoverParameters->Vel*0.1f) *
+								if(MyTrack->eType == tt_Normal)
+								{
+									MoverParameters->AccVert +=
+									    clamp(0.0, 4.0,
+									          (clamp(0.0, MoverParameters->Vmax,
+									                 MoverParameters->Vmax -
+									                     (MoverParameters->Vel +
+									                      MoverParameters->Vmax * 0.32f))) *
+									              .05f * (MyTrack->iDamageFlag * 0.25f));
+								}
 								if (MyTrack->eType == tt_Switch){
 								    MoverParameters->AccS +=
 								        clamp(0.0, 1.0,
