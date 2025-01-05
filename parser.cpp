@@ -253,7 +253,7 @@ std::string cParser::readToken( bool ToLower, const char *Break ) {
 			if (false == contains(includefile, "_ter.scm"))
 			{
 			if (Global.ParserLogIncludes)
-            WriteLog("including: " + includefile);
+            //WriteLog("including: " + includefile);
             mIncludeParser = std::make_shared<cParser>( includefile, buffer_FILE, mPath, LoadTraction, readParameters( *this ) );
 			mIncludeParser->allowRandomIncludes = allowRandomIncludes;
             mIncludeParser->autoclear( m_autoclear );
@@ -302,7 +302,7 @@ std::string cParser::readToken( bool ToLower, const char *Break ) {
 			if (false == contains(includefile, "_ter.scm"))
 			{
 				if (Global.ParserLogIncludes)
-					WriteLog("including: " + includefile);
+					//WriteLog("including: " + includefile);
 				mIncludeParser = std::make_shared<cParser>(
 				    includefile, buffer_FILE, mPath, LoadTraction, readParameters(includeparser));
 				mIncludeParser->allowRandomIncludes = allowRandomIncludes;
