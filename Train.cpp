@@ -7367,6 +7367,14 @@ bool TTrain::Update( double const Deltatime )
         btLampkaPoslizg.Turn( false );
     }
 
+    // Lampka aktywowanej kabiny
+    if (mvControlled->CabActive != 0) {
+		btCabActived.Turn(true);
+    }
+    else {
+		btCabActived.Turn(false);
+    }
+
     if( true == lowvoltagepower ) {
         // McZapkie-141102: SHP i czuwak, TODO: sygnalizacja kabinowa
         if( mvOccupied->SecuritySystem.is_vigilance_blinking() ) {
@@ -10069,7 +10077,8 @@ bool TTrain::initialize_button(cParser &Parser, std::string const &Label, int co
         { "i-universal6:", btUniversals[ 6 ] },
         { "i-universal7:", btUniversals[ 7 ] },
         { "i-universal8:", btUniversals[ 8 ] },
-        { "i-universal9:", btUniversals[ 9 ] }
+        { "i-universal9:", btUniversals[ 9 ] },
+        { "i-cabactived", btCabActived }
     };
     {
         auto lookup = lights.find( Label );
