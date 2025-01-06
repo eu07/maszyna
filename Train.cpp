@@ -7337,6 +7337,12 @@ bool TTrain::Update( double const Deltatime )
         btLampkaPoslizg.Turn( false );
     }
 
+    // Lampka pracujacej sprezacki
+	if (mvControlled->CompressorFlag || mvOccupied->CompressorFlag)
+		btCompressors.Turn(true);
+	else
+		btCompressors.Turn(false);
+
     // Lampka aktywowanej kabiny
     if (mvControlled->CabActive != 0) {
 		btCabActived.Turn(true);
@@ -10038,7 +10044,7 @@ bool TTrain::initialize_button(cParser &Parser, std::string const &Label, int co
         { "i-universal8:", btUniversals[ 8 ] },
         { "i-universal9:", btUniversals[ 9 ] },
         { "i-cabactived:", btCabActived },
-
+	    {"i-compressor:", btCompressors }
     };
     {
         auto lookup = lights.find( Label );
