@@ -6943,7 +6943,13 @@ bool TTrain::Update( double const Deltatime )
 
     // McZapkie: predkosc wyswietlana na tachometrze brana jest z obrotow kol
     auto const maxtacho { 3.0 };
-    fTachoVelocity = static_cast<float>( std::min( std::abs(11.31 * mvControlled->WheelDiameter * mvControlled->nrot), mvControlled->Vmax * 1.05) );
+
+    double maxSpeed = mvControlled->Vmax * 1.05; // zachowanie starej logiki jak nie ma definicji max tarczki
+	if (mvOccupied->maxTachoSpeed != 0)
+	{
+		maxSpeed = mvOccupied->maxTachoSpeed;
+    }
+    fTachoVelocity = static_cast<float>(std::min(std::abs(11.31 * mvControlled->WheelDiameter * mvControlled->nrot), maxSpeed));
     { // skacze osobna zmienna
         float ff = simulation::Time.data().wSecond; // skacze co sekunde - pol sekundy
         // pomiar, pol sekundy ustawienie
