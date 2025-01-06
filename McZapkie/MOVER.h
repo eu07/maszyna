@@ -959,6 +959,7 @@ private:
         std::array<basic_door, 2> instances; // door on the right and left side of the vehicle
         // ld outputs
         bool is_locked { false };
+		double doorLockSpeed = 10.0; // predkosc przy ktorej wyzwalana jest blokada drzwi
     };
 
     struct water_heater {
