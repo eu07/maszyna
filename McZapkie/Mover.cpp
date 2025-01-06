@@ -8617,7 +8617,7 @@ TMoverParameters::update_doors( double const Deltatime ) {
 
     Doors.is_locked =
         ( true == Doors.has_lock )
-     && ( true == Doors.lock_enabled ) && (Vel >= doorLockSpeed);
+     && ( true == Doors.lock_enabled ) && (Vel >= Doors.doorLockSpeed);
 
     for( auto &door : Doors.instances ) {
         // revoke permit if...
