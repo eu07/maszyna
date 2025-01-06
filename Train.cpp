@@ -6921,7 +6921,7 @@ bool TTrain::Update( double const Deltatime )
         {
 			if (fTachoVelocity >= 5) // jedzie
 				fTachoVelocityJump = fTachoVelocity + (2.0 - LocalRandom(3) + LocalRandom(3)) * 0.5;
-			else if (1 <= fTachoVelocity < 5)
+			else if (fTachoVelocity < 5 && fTachoVelocity > 1)
 				fTachoVelocityJump = Random(0, 4); // tu ma sie bujac jak wariat i zatrzymac na jakiejs predkosci
                 // fTachoVelocityJump = 0; // stoi
             fTachoTimer = ff; // juz zmienil
