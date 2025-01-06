@@ -10078,7 +10078,8 @@ bool TTrain::initialize_button(cParser &Parser, std::string const &Label, int co
         { "i-universal7:", btUniversals[ 7 ] },
         { "i-universal8:", btUniversals[ 8 ] },
         { "i-universal9:", btUniversals[ 9 ] },
-        { "i-cabactived", btCabActived }
+        { "i-cabactived:", btCabActived },
+
     };
     {
         auto lookup = lights.find( Label );
