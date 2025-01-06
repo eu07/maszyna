@@ -10540,6 +10540,10 @@ void TMoverParameters::LoadFIZ_Cntrl( std::string const &line ) {
     }
     // mbrake
     extract_value( MBrake, "ManualBrake", line, "" );
+
+    // maksymalna predkosc dostepna na tarczce predkosciomierza
+	extract_value(maxTachoSpeed, "MaxTachoSpeed", line, "");
+
     // dynamicbrake
     {
         std::map<std::string, int> dynamicbrakes{
