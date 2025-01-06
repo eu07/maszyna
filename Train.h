@@ -769,6 +769,7 @@ public: // reszta może by?publiczna
     TButton btLampkaRearRightLight;
     TButton btLampkaRearLeftEndLight;
     TButton btLampkaRearRightEndLight;
+	TButton btCabActived;
     // other
     TButton btLampkaMalfunction;
     TButton btLampkaMalfunctionB;
