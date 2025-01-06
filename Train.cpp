@@ -6949,10 +6949,11 @@ bool TTrain::Update( double const Deltatime )
         // pomiar, pol sekundy ustawienie
         if (ff != fTachoTimer) // jesli w tej sekundzie nie zmienial
         {
-            if (fTachoVelocity > 1) // jedzie
-                fTachoVelocityJump = fTachoVelocity + (2.0 - LocalRandom(3) + LocalRandom(3)) * 0.5;
-            else
-                fTachoVelocityJump = 0; // stoi
+			if (fTachoVelocity >= 5) // jedzie
+				fTachoVelocityJump = fTachoVelocity + (2.0 - LocalRandom(3) + LocalRandom(3)) * 0.5;
+			else if (2 < fTachoVelocity < 5)
+				fTachoVelocityJump = Random(0, 4); // tu ma sie bujac jak wariat i zatrzymac na jakiejs predkosci
+                // fTachoVelocityJump = 0; // stoi
             fTachoTimer = ff; // juz zmienil
         }
     }
@@ -10085,7 +10086,7 @@ bool TTrain::initialize_button(cParser &Parser, std::string const &Label, int co
         { "i-universal8:", btUniversals[ 8 ] },
         { "i-universal9:", btUniversals[ 9 ] },
         { "i-cabactived:", btCabActived },
-	    {"i-compressor:", btCompressors }
+	    {"i-compressorany:", btCompressors }
     };
     {
         auto lookup = lights.find( Label );
