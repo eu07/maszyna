@@ -9309,7 +9309,6 @@ bool TMoverParameters::readWWList( std::string const &line ) {
         SST[ idx ].Pmin = std::sqrt( std::pow( SST[ idx ].Umin, 2 ) / 47.6 );
         SST[ idx ].Pmax = std::min( SST[ idx ].Pmax, std::pow( SST[ idx ].Umax, 2 ) / 47.6 );
     }
-
     return true;
 }
 
