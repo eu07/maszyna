@@ -65,17 +65,42 @@ light_array::update() {
             light.count = 0
                 + ( ( lights & light::headlight_left  ) ? 1 : 0 )
                 + ( ( lights & light::headlight_right ) ? 1 : 0 )
-                + ( ( lights & light::headlight_upper ) ? 1 : 0 );
+                + ( ( lights & light::headlight_upper ) ? 1 : 0 )
+                + ( ( lights & light::highbeamlight_left ) ? 1: 0)
+                + ( ( lights & light::highbeamlight_right ) ? 1 : 0);
 
             if( light.count > 0 ) {
-                light.intensity = std::max( 0.0f, std::log( (float)light.count  + 1.0f ) );
-                light.intensity *= ( light.owner->DimHeadlights ? 0.6f : 1.0f );
+				light.intensity = std::max(0.0f, std::log((float)light.count + 1.0f));
+				if (light.owner->DimHeadlights && !light.owner->HighBeamLights) // tylko przyciemnione
+					light.intensity *= light.owner->MoverParameters->dimMultiplier;
+				else if (!light.owner->DimHeadlights && !light.owner->HighBeamLights) // normalne
+					light.intensity *= light.owner->MoverParameters->normMultiplier;
+				else if (light.owner->DimHeadlights && light.owner->HighBeamLights) // przyciemnione dlugie
+					light.intensity *= light.owner->MoverParameters->highDimMultiplier;
+				else if (!light.owner->DimHeadlights && light.owner->HighBeamLights) // dlugie zwykle
+					light.intensity *= light.owner->MoverParameters->highMultiplier;
+
                 // TBD, TODO: intensity can be affected further by other factors
                 light.state = {
-                    ( ( lights & light::headlight_left  ) ? 1.f : 0.f ),
-                    ( ( lights & light::headlight_upper ) ? 1.f : 0.f ),
-                    ( ( lights & light::headlight_right ) ? 1.f : 0.f ) };
-                light.state *= ( light.owner->DimHeadlights ? 0.6f : 1.0f );
+                    ( ( lights & light::headlight_left | light::highbeamlight_left ) ? 1.f : 0.f ),
+                    ( ( lights & light::headlight_upper ) ? 1.f : 0.f ), 
+                    ( ( lights & light::headlight_right | light::highbeamlight_right) ? 1.f : 0.f ) };
+
+                light.color = {
+                    light.owner->MoverParameters->refR / 255,
+                    light.owner->MoverParameters->refG / 255,
+                    light.owner->MoverParameters->refB / 255
+                };
+
+				if (light.owner->DimHeadlights && !light.owner->HighBeamLights) // tylko przyciemnione
+					light.state *= light.owner->MoverParameters->dimMultiplier;
+				else if (!light.owner->DimHeadlights && !light.owner->HighBeamLights)
+					light.state *= light.owner->MoverParameters->normMultiplier;
+				else if (light.owner->DimHeadlights && light.owner->HighBeamLights) // przyciemnione dlugie
+					light.state *= light.owner->MoverParameters->highDimMultiplier;
+				else if (!light.owner->DimHeadlights && light.owner->HighBeamLights) // dlugie zwykle
+					light.state *= light.owner->MoverParameters->highMultiplier;
+                
             }
             else {
                 light.intensity = 0.0f;

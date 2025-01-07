@@ -469,9 +469,13 @@ private:
     AirCoupler m_headlamp11; // oswietlenie czolowe - przod
     AirCoupler m_headlamp12;
     AirCoupler m_headlamp13;
+	AirCoupler m_highbeam12;    // dlugie
+	AirCoupler m_highbeam13;    
     AirCoupler m_headlamp21; // oswietlenie czolowe - tyl
     AirCoupler m_headlamp22;
     AirCoupler m_headlamp23;
+	AirCoupler m_highbeam22;
+	AirCoupler m_highbeam23;
     AirCoupler m_headsignal12;
     AirCoupler m_headsignal13;
     AirCoupler m_headsignal22;
@@ -571,6 +575,7 @@ private:
 
   public:
     bool DimHeadlights{ false }; // status of the headlight dimming toggle. NOTE: single toggle for all lights is a simplification. TODO: separate per-light switches
+	bool HighBeamLights { false }; // status of the highbeam toggle
     // checks whether there's unbroken connection of specified type to specified vehicle
     bool is_connected( TDynamicObject const *Vehicle, coupling const Coupling = coupling::coupler ) const;
 	TDynamicObject * PrevAny() const;

@@ -145,6 +145,9 @@ enum class user_command {
     cabchangeforward,
     cabchangebackward,
 
+	modernlightdimmerdecrease,
+	modernlightdimmerincrease,
+
     viewturn,
     movehorizontal,
     movehorizontalfast,

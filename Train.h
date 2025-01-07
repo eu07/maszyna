@@ -399,6 +399,8 @@ class TTrain {
     static void OnCommand_headlighttogglerearupper( TTrain *Train, command_data const &Command );
     static void OnCommand_headlightenablerearupper( TTrain *Train, command_data const &Command );
     static void OnCommand_headlightdisablerearupper( TTrain *Train, command_data const &Command );
+	static void OnCommand_modernlightdimmerincrease(TTrain *Train, command_data const &Command);
+	static void OnCommand_modernlightdimmerdecrease(TTrain *Train, command_data const &Command);
     static void OnCommand_redmarkertogglerearleft( TTrain *Train, command_data const &Command );
     static void OnCommand_redmarkerenablerearleft( TTrain *Train, command_data const &Command );
     static void OnCommand_redmarkerdisablerearleft( TTrain *Train, command_data const &Command );
@@ -578,6 +580,7 @@ public: // reszta może by?publiczna
     TGauge ggRightEndLightButton;
     TGauge ggLightsButton; // przelacznik reflektorow (wszystkich)
     TGauge ggDimHeadlightsButton; // headlights dimming switch
+	TGauge ggModernLightDimSw; // modern lights dimmer
 
     // hunter-230112: przelacznik swiatel tylnich
     TGauge ggRearUpperLightButton;

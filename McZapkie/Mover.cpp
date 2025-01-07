@@ -9666,6 +9666,14 @@ bool TMoverParameters::LoadFIZ(std::string chkpath)
             continue;
         }
 
+        if (issection("Headlights:", inputline))
+        {
+            startBPT = false;
+			fizlines.emplace("Headlights", inputline);
+			LoadFIZ_Headlights(inputline);
+			continue;
+        }
+
 		if (issection("Blending:", inputline)) {
 
 			startBPT = false; LISTLINE = 0;
@@ -10024,6 +10032,18 @@ void TMoverParameters::LoadFIZ_Load( std::string const &line ) {
     extract_value( OverLoadFactor, "OverLoadFactor", line, "" );
     extract_value( LoadSpeed, "LoadSpeed", line, "" );
     extract_value( UnLoadSpeed, "UnLoadSpeed", line, "" );
+}
+
+void TMoverParameters::LoadFIZ_Headlights(std::string const &line)
+{
+	extract_value(refR, "LampRed", line, "");
+	extract_value(refG, "LampGreen", line, "");
+	extract_value(refB, "LampBlue", line, "");
+
+    extract_value(dimMultiplier, "DimmedMultiplier", line, "");
+    extract_value(normMultiplier, "NormalMultiplier", line, "");
+    extract_value(highDimMultiplier, "HighbeamDimmedMultiplier", line, "");
+    extract_value(highMultiplier, "HighBeamMultiplier", line, "");
 }
 
 void TMoverParameters::LoadFIZ_Dimensions( std::string const &line ) {
@@ -11120,6 +11140,12 @@ void TMoverParameters::LoadFIZ_Switches( std::string const &Input ) {
     extract_value( UniversalResetButtonFlag[ 0 ], "RelayResetButton1", Input, "" );
     extract_value( UniversalResetButtonFlag[ 1 ], "RelayResetButton2", Input, "" );
     extract_value( UniversalResetButtonFlag[ 2 ], "RelayResetButton3", Input, "" );
+	extract_value(enableModernDimmer, "ModernDimmer", Input, "");
+	extract_value(modernContainOffPos, "ModernDimmerOffPosition", Input, "");
+	if (!modernContainOffPos)
+		modernDimmerState = 1;
+	if (!enableModernDimmer)
+		modernDimmerState = 2;
     // pantograph presets
     {
         auto &presets { PantsPreset.first };
