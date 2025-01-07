@@ -87,9 +87,9 @@ light_array::update() {
                     ( ( lights & light::headlight_right | light::highbeamlight_right) ? 1.f : 0.f ) };
 
                 light.color = {
-                    light.owner->MoverParameters->refR / 255,
-                    light.owner->MoverParameters->refG / 255,
-                    light.owner->MoverParameters->refB / 255
+                    static_cast<float>(light.owner->MoverParameters->refR) / 255.0f,
+                    static_cast<float>(light.owner->MoverParameters->refG) / 255.0f,
+                    static_cast<float>(light.owner->MoverParameters->refB) / 255.0f
                 };
 
 				if (light.owner->DimHeadlights && !light.owner->HighBeamLights) // tylko przyciemnione
