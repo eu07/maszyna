@@ -9944,7 +9944,7 @@ bool TMoverParameters::LoadFIZ(std::string chkpath)
         result = false;
 
     if (!modernContainOffPos)
-		modernDimmerState = 1;
+		modernDimmerState = 2;  // jak nie ma opcji wylaczonej to niech sie odpali normalnie
 	if (!enableModernDimmer)
 	{
 		modernDimmerState = 2;

@@ -9683,9 +9683,10 @@ void TTrain::set_cab_controls( int const Cab ) {
     }
 
     if (ggModernLightDimSw.SubModel != nullptr) {
-		ggModernLightDimSw.PutValue(
-            mvOccupied->modernDimmerState
-		);
+		if (mvOccupied->modernContainOffPos)
+		    ggModernLightDimSw.PutValue(mvOccupied->modernDimmerState);
+        else 
+            ggModernLightDimSw.PutValue(mvOccupied->modernDimmerState - 1);
     }
 
     // motor connectors
