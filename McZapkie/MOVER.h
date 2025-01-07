@@ -814,36 +814,245 @@ struct inverter {
 
 class TMoverParameters
 { // Ra: wrapper na kod pascalowy, przejmujący jego funkcje  Q: 20160824 - juz nie wrapper a klasa bazowa :)
-  private:
-	// types
-	/* TODO: implement
-	    // communication cable, exchanging control signals with adjacent vehicle
-	    struct jumper_cable {
-	    // types
-	        using flag_pair = std::pair<bool, bool>;
-	    // members
-	        // booleans
-	        // std::array<bool, 1> flags {};
-	        // boolean pairs, exchanged data is swapped when connected to a matching end (front to front or back to back)
-	        // TBD, TODO: convert to regular bool array for efficiency once it's working?
-	        std::array<flag_pair, 1> flag_pairs {};
-	        // integers
-	        // std::array<int, 1> values {};
-	    };
-	*/
-	// basic approximation of a generic device
-	// TBD: inheritance or composition?
-	struct basic_device
-	{
-		// config
-		start_t start_type{start_t::manual};
-		// ld inputs
-		bool is_enabled{false}; // device is allowed/requested to operate
-		bool is_disabled{false}; // device is requested to stop
-		// TODO: add remaining inputs; start conditions and potential breakers
-		// ld outputs
-		bool is_active{false}; // device is working
-	};
+private:
+// types
+/* TODO: implement
+    // communication cable, exchanging control signals with adjacent vehicle
+    struct jumper_cable {
+    // types
+        using flag_pair = std::pair<bool, bool>;
+    // members
+        // booleans
+        // std::array<bool, 1> flags {};
+        // boolean pairs, exchanged data is swapped when connected to a matching end (front to front or back to back)
+        // TBD, TODO: convert to regular bool array for efficiency once it's working?
+        std::array<flag_pair, 1> flag_pairs {};
+        // integers
+        // std::array<int, 1> values {};
+    };
+*/
+    // basic approximation of a generic device
+    // TBD: inheritance or composition?
+    struct basic_device {
+        // config
+        start_t start_type { start_t::manual };
+        // ld inputs
+        bool is_enabled { false }; // device is allowed/requested to operate
+        bool is_disabled { false }; // device is requested to stop
+        // TODO: add remaining inputs; start conditions and potential breakers
+        // ld outputs
+        bool is_active { false }; // device is working
+    };
+
+    struct basic_light : public basic_device {
+        // config
+        float dimming { 1.0f }; // light strength multiplier
+        // ld outputs
+        float intensity { 0.0f }; // current light strength
+    };
+
+    struct cooling_fan : public basic_device {
+        // config
+        float speed { 0.f }; // cooling fan rpm; either fraction of parent rpm, or absolute value if negative
+		float sustain_time { 0.f }; // time of sustaining work of cooling fans after stop
+		float min_start_velocity { -1.f }; // minimal velocity of vehicle, when cooling fans activate
+        // ld outputs
+        float revolutions { 0.f }; // current fan rpm
+		float stop_timer { 0.f }; // current time, when shut off condition is active
+    };
+
+    // basic approximation of a fuel pump
+    struct fuel_pump : public basic_device {
+        // TODO: fuel consumption, optional automatic engine start after activation
+    };
+
+    // basic approximation of an oil pump
+    struct oil_pump : public basic_device {
+        // config
+        float pressure_minimum { 0.f }; // lowest acceptable working pressure
+        float pressure_maximum { 0.65f }; // oil pressure at maximum engine revolutions
+        // ld inputs
+        float resource_amount { 1.f }; // amount of affected resource, compared to nominal value
+        // internal data
+        float pressure_target { 0.f };
+        // ld outputs
+        float pressure { 0.f }; // current pressure
+    };
+
+    // basic approximation of a water pump
+    struct water_pump : public basic_device {
+        // ld inputs
+        // TODO: move to breaker list in the basic device once implemented
+        bool breaker { false }; // device is allowed to operate
+    };
+
+    // basic approximation of a solenoid valve
+    struct basic_valve : basic_device {
+        // config
+        bool solenoid { true }; // requires electric power to operate
+        bool spring { true }; // spring return or double acting actuator
+    };
+
+    // basic approximation of a pantograph
+    struct basic_pantograph {
+        // ld inputs
+        basic_valve valve; // associated pneumatic valve
+        // ld outputs
+        bool is_active { false }; // device is working
+        bool sound_event { false }; // indicates last state which generated sound event
+        double voltage { 0.0 };
+    };
+
+    // basic approximation of doors
+    struct basic_door {
+        // config
+        // ld inputs
+        bool open_permit { false }; // door can be opened
+        bool local_open { false }; // local attempt to open the door
+        bool local_close { false }; // local attempt to close the door
+        bool remote_open { false }; // received remote signal to open the door
+        bool remote_close { false }; // received remote signal to close the door
+        // internal data
+        float auto_timer { -1.f }; // delay between activation of open state and closing state for automatic doors
+        float close_delay { 0.f }; // delay between activation of closing state and actual closing
+        float open_delay { 0.f }; // delay between activation of opening state and actual opening
+        float position { 0.f }; // current shift of the door from the closed position
+        float step_position { 0.f }; // current shift of the movable step from the retracted position
+        // ld outputs
+        bool is_closed { true }; // the door is fully closed
+		bool is_door_closed { true }; // the door is fully closed, step doesn't matter
+        bool is_closing { false }; // the door is currently closing
+        bool is_opening { false }; // the door is currently opening
+        bool is_open { false }; // the door is fully open
+        bool step_folding { false }; // the doorstep is currently closing
+        bool step_unfolding { false }; // the doorstep is currently opening
+    };
+
+    struct door_data {
+        // config
+        control_t open_control { control_t::passenger };
+        float open_rate { 1.f };
+        float open_delay { 0.f };
+        control_t close_control { control_t::passenger };
+        float close_rate { 1.f };
+        float close_delay { 0.f };
+        int type { 2 };
+        float range { 0.f }; // extent of primary move/rotation
+        float range_out { 0.f }; // extent of shift outward, applicable for plug doors
+        int step_type { 2 };
+        float step_rate { 0.5f };
+        float step_range { 0.f };
+        bool has_lock { false };
+        bool has_warning { false };
+        bool has_autowarning { false };
+        float auto_duration { -1.f }; // automatic door closure delay period
+        float auto_velocity { -1.f }; // automatic door closure velocity threshold
+        bool auto_include_remote { false }; // automatic door closure applies also to remote control
+        bool permit_needed { false };
+        std::vector<int> permit_presets; // permit presets selectable with preset switch
+        float voltage { 0.f }; // power type required for door movement
+        // ld inputs
+        bool lock_enabled { true };
+        bool step_enabled { true };
+        bool remote_only { false }; // door ignores local control signals
+        // internal data
+        int permit_preset { -1 }; // curent position of preset selection switch
+        // vehicle parts
+        std::array<basic_door, 2> instances; // door on the right and left side of the vehicle
+        // ld outputs
+        bool is_locked { false };
+		double doorLockSpeed = 10.0; // predkosc przy ktorej wyzwalana jest blokada drzwi
+    };
+
+    struct water_heater {
+        // config
+        struct heater_config_t {
+            float temp_min { -1 }; // lowest accepted temperature
+            float temp_max { -1 }; // highest accepted temperature
+        } config;
+        // ld inputs
+        bool breaker { false }; // device is allowed to operate
+        bool is_enabled { false }; // device is requested to operate
+        // ld outputs
+        bool is_active { false }; // device is working
+        bool is_damaged { false }; // device is damaged
+    };
+
+    struct heat_data {
+        // input, state of relevant devices
+        bool cooling { false }; // TODO: user controlled device, implement
+    //    bool okienko { true }; // window in the engine compartment
+        // system configuration
+        bool auxiliary_water_circuit { false }; // cooling system has an extra water circuit
+        double fan_speed { 0.075 }; // cooling fan rpm; either fraction of engine rpm, or absolute value if negative
+        // heat exchange factors
+        double kw { 0.35 };
+        double kv { 0.6 };
+        double kfe { 1.0 };
+        double kfs { 80.0 };
+        double kfo { 25.0 };
+        double kfo2 { 25.0 };
+        // system parts
+        struct fluid_circuit_t {
+
+            struct circuit_config_t {
+                float temp_min { -1 }; // lowest accepted temperature
+                float temp_max { -1 }; // highest accepted temperature
+                float temp_cooling { -1 }; // active cooling activation point
+                float temp_flow { -1 }; // fluid flow activation point
+                bool shutters { false }; // the radiator has shutters to assist the cooling
+            } config;
+            bool is_cold { false }; // fluid is too cold
+            bool is_warm { false }; // fluid is too hot
+            bool is_hot { false }; // fluid temperature crossed cooling threshold
+            bool is_flowing { false }; // fluid is being pushed through the circuit
+        }   water,
+            water_aux,
+            oil;
+        // output, state of affected devices
+        bool PA { false }; // malfunction flag
+        float rpmw { 0.0 }; // current main circuit fan revolutions
+        float rpmwz { 0.0 }; // desired main circuit fan revolutions
+        bool zaluzje1 { false };
+        float rpmw2 { 0.0 }; // current auxiliary circuit fan revolutions
+        float rpmwz2 { 0.0 }; // desired auxiliary circuit fan revolutions
+        bool zaluzje2 { false };
+        // output, temperatures
+        float Te { 15.0 }; // ambient temperature TODO: get it from environment data
+        // NOTE: by default the engine is initialized in warm, startup-ready state
+        float Ts { 50.0 }; // engine temperature
+        float To { 45.0 }; // oil temperature
+        float Tsr { 50.0 }; // main circuit radiator temperature (?)
+        float Twy { 50.0 }; // main circuit water temperature
+        float Tsr2 { 40.0 }; // secondary circuit radiator temperature (?)
+        float Twy2 { 40.0 }; // secondary circuit water temperature
+        float temperatura1 { 50.0 };
+        float temperatura2 { 40.0 };
+		float powerfactor { 1.0 }; // coefficient of heat generation for engines other than su45
+    };
+
+	struct spring_brake {
+		std::shared_ptr<TReservoir> Cylinder;
+		bool Activate { false }; //Input: switching brake on/off in exploitation - main valve/switch
+		bool ShuttOff { true }; //Input: shutting brake off during failure - valve in pneumatic container
+		bool Release { false }; //Input: emergency releasing rod
+
+		bool IsReady{ false }; //Output: readyness to braking - cylinder is armed, spring is tentioned
+		bool IsActive{ false }; //Output: brake is working
+		double SBP{ 0.0 }; //Output: pressure in spring brake cylinder
+
+		bool PNBrakeConnection{ false }; //Conf: connection to pneumatic brake cylinders
+		double MaxSetPressure { 0.0 }; //Conf: Maximal pressure for switched off brake
+		double ResetPressure{ 0.0 }; //Conf: Pressure for arming brake cylinder
+		double MinForcePressure{ 0.1 }; //Conf: Minimal pressure for zero force
+		double MaxBrakeForce{ 0.0 }; //Conf: Maximal tension for brake pads/shoes
+		double PressureOn{ -2.0 }; //Conf: Pressure changing ActiveFlag to "On"
+		double PressureOff{ -1.0 }; //Conf: Pressure changing ActiveFlag to "Off"
+		double ValveOffArea{ 0.0 }; //Conf: Area of filling valve
+		double ValveOnArea{ 0.0 }; //Conf: Area of dumping valve
+		double ValvePNBrakeArea{ 0.0 }; //Conf: Area of bypass to brake cylinders
+
+		int MultiTractionCoupler{ 127 }; //Conf: Coupling flag necessary for transmitting the command
 
 	struct basic_light : public basic_device
 	{
@@ -1204,8 +1413,9 @@ class TMoverParameters
 	int LightsDefPos = 1;
 	bool LightsWrap = false;
 	int Lights[2][17]; // pozycje świateł, przód - tył, 1 .. 16
-	int ScndInMain{0}; /*zaleznosc bocznika od nastawnika*/
-	bool MBrake = false; /*Czy jest hamulec reczny*/
+    int ScndInMain{ 0 };     /*zaleznosc bocznika od nastawnika*/
+	bool MBrake = false;     /*Czy jest hamulec reczny*/
+	double maxTachoSpeed = 0.0;	// maksymalna predkosc na tarczce predkosciomierza analogowego
 	double StopBrakeDecc = 0.0;
 	bool ReleaseParkingBySpringBrake{false};
 	bool ReleaseParkingBySpringBrakeWhenDoorIsOpen{false};
