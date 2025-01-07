@@ -9944,6 +9944,13 @@ bool TMoverParameters::LoadFIZ(std::string chkpath)
     else
         result = false;
 
+    if (!modernContainOffPos)
+		modernDimmerState = 1;
+	if (!enableModernDimmer)
+	{
+		modernDimmerState = 2;
+	}
+
     WriteLog("CERROR: " + to_string(ConversionError) + ", SUCCES: " + to_string(result));
     return result;
 }
@@ -11139,10 +11146,6 @@ void TMoverParameters::LoadFIZ_Switches( std::string const &Input ) {
     extract_value( UniversalResetButtonFlag[ 2 ], "RelayResetButton3", Input, "" );
 	extract_value(enableModernDimmer, "ModernDimmer", Input, "");
 	extract_value(modernContainOffPos, "ModernDimmerOffPosition", Input, "");
-	if (!modernContainOffPos)
-		modernDimmerState = 1;
-	if (!enableModernDimmer)
-		modernDimmerState = 2;
     // pantograph presets
     {
         auto &presets { PantsPreset.first };
