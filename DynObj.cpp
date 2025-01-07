@@ -1168,6 +1168,28 @@ void TDynamicObject::ABuLittleUpdate(double ObjSqrDist)
             }
             btnOn = true;
         }
+
+        // logika dlugich
+		if (TestFlag(MoverParameters->iLights[end::front], light::highbeamlight_left))
+			m_highbeam13.TurnxOnWithOnAsFallback();
+		else
+			m_highbeam13.TurnOff();
+
+        if (TestFlag(MoverParameters->iLights[end::front], light::highbeamlight_right))
+			m_highbeam12.TurnxOnWithOnAsFallback();
+		else
+			m_highbeam12.TurnOff();
+        
+        // i to samo od dupy strony
+        if (TestFlag(MoverParameters->iLights[end::rear], light::highbeamlight_left))
+			m_highbeam23.TurnxOnWithOnAsFallback();
+		else
+			m_highbeam23.TurnOff();
+
+        if (TestFlag(MoverParameters->iLights[end::rear], light::highbeamlight_right))
+			m_highbeam22.TurnxOnWithOnAsFallback();
+		else
+			m_highbeam22.TurnOff();
     }
     // interior light levels
     auto sectionlightcolor { glm::vec4( 1.f ) };
@@ -2197,9 +2219,13 @@ TDynamicObject::Init(std::string Name, // nazwa pojazdu, np. "EU07-424"
     m_headlamp11.Init( "headlamp11", mdModel ); // górne
     m_headlamp12.Init( "headlamp12", mdModel ); // prawe
     m_headlamp13.Init( "headlamp13", mdModel ); // lewe
+	m_highbeam12.Init("highbeam12", mdModel);   // prawe dlugie
+	m_highbeam13.Init("highbeam13", mdModel);   // lewe dlugie
     m_headlamp21.Init( "headlamp21", mdModel );
     m_headlamp22.Init( "headlamp22", mdModel );
     m_headlamp23.Init( "headlamp23", mdModel );
+	m_highbeam22.Init("highbeam22", mdModel); 
+	m_highbeam23.Init("highbeam23", mdModel); 
     m_headsignal12.Init( "headsignal12", mdModel );
     m_headsignal13.Init( "headsignal13", mdModel );
     m_headsignal22.Init( "headsignal22", mdModel );
@@ -2216,6 +2242,10 @@ TDynamicObject::Init(std::string Name, // nazwa pojazdu, np. "EU07-424"
     iInventory[ end::front ] |= m_headlamp11.Active() ? light::headlight_upper : 0;
     iInventory[ end::front ] |= m_headlamp12.Active() ? light::headlight_right : 0;
     iInventory[ end::front ] |= m_headlamp13.Active() ? light::headlight_left : 0;
+
+    iInventory[end::front] |= m_highbeam12.Active() ? light::highbeamlight_right : 0;
+	iInventory[end::front] |= m_highbeam13.Active() ? light::highbeamlight_left : 0;
+
     iInventory[ end::rear ]  |= m_headlamp21.Active() ? light::headlight_upper : 0;
     iInventory[ end::rear ]  |= m_headlamp22.Active() ? light::headlight_right : 0;
     iInventory[ end::rear ]  |= m_headlamp23.Active() ? light::headlight_left : 0;
@@ -2223,6 +2253,11 @@ TDynamicObject::Init(std::string Name, // nazwa pojazdu, np. "EU07-424"
     iInventory[ end::front ] |= m_headsignal13.Active() ? light::auxiliary_left : 0;
     iInventory[ end::rear ]  |= m_headsignal22.Active() ? light::auxiliary_right : 0;
     iInventory[ end::rear ]  |= m_headsignal23.Active() ? light::auxiliary_left : 0;
+
+    iInventory[end::rear] |= m_highbeam22.Active() ? light::highbeamlight_right : 0;
+	iInventory[end::rear] |= m_highbeam23.Active() ? light::highbeamlight_left : 0;
+
+
     btMechanik1.Init( "mechanik1", mdLowPolyInt, false);
 	btMechanik2.Init( "mechanik2", mdLowPolyInt, false);
     if( MoverParameters->dizel_heat.water.config.shutters ) {
@@ -4162,6 +4197,10 @@ void TDynamicObject::TurnOff()
     m_headlamp21.TurnOff();
     m_headlamp22.TurnOff();
     m_headlamp23.TurnOff();
+    m_highbeam12.TurnOff();
+    m_highbeam13.TurnOff();
+	m_highbeam22.TurnOff();
+    m_highbeam23.TurnOff();
     m_headsignal12.TurnOff();
     m_headsignal13.TurnOff();
     m_headsignal22.TurnOff();
@@ -7001,7 +7040,6 @@ void TDynamicObject::Damage(char flag)
 };
 
 void TDynamicObject::SetLights() {
-
     auto const isfrontcaboccupied { MoverParameters->CabOccupied * DirectionGet() >= 0 };
 	int const automaticmarkers { MoverParameters->CabActive == 0 && ( MoverParameters->InactiveCabFlag & activation::redmarkers )
 								? light::redmarker_left + light::redmarker_right : 0 };
@@ -7055,6 +7093,43 @@ void TDynamicObject::RaLightsSet(int head, int rear)
     if( head >= 0 ) {
         auto const vehicleend { iDirection > 0 ? end::front : end::rear };
         MoverParameters->iLights[ vehicleend ] = ( head & iInventory[ vehicleend ] );
+		bool tLeft = MoverParameters->iLights[vehicleend] & (light::auxiliary_left | light::headlight_left); // roboczo czy jakiekolwiek swiatlo z lewej jest zapalone
+		bool tRight = MoverParameters->iLights[vehicleend] & (light::auxiliary_right | light::headlight_right); // a tu z prawej
+        switch (MoverParameters->modernDimmerState)
+        {
+		case 0:
+            // wylaczone
+			MoverParameters->iLights[vehicleend] &= 0 | light::rearendsignals; // zostawiamy tylko tabliczki jesli sa
+			HighBeamLights = false;
+			DimHeadlights = false;
+            break;
+		case 1:
+            // przyciemnione normalne
+			DimHeadlights = true; // odpalamy przyciemnienie normalnych reflektorow
+			HighBeamLights = false;
+			break;
+		case 3:
+            // dlugie przyciemnione
+			DimHeadlights = true;
+			HighBeamLights = true;
+			MoverParameters->iLights[vehicleend] &= light::headlight_upper | light::rearendsignals | light::redmarker_left | light::redmarker_right | light::rearendsignals; // nie ruszamy gornych i koncowek
+			MoverParameters->iLights[vehicleend] |= tLeft ? light::highbeamlight_left : 0; // jesli swiatlo z lewej zapalone to odpal dlugie
+			MoverParameters->iLights[vehicleend] |= tRight ? light::highbeamlight_right : 0; // a tu z prawej
+			break;
+        case 4: 
+            // zwykle dlugie
+			DimHeadlights = false;
+			HighBeamLights = true;
+			MoverParameters->iLights[vehicleend] &= light::headlight_upper | light::rearendsignals | light::redmarker_left | light::redmarker_right | light::rearendsignals; // nie ruszamy gornych i koncowek
+			MoverParameters->iLights[vehicleend] |= tLeft ? light::highbeamlight_left : 0; // jesli swiatlo z lewej zapalone to odpal dlugie
+			MoverParameters->iLights[vehicleend] |= tRight ? light::highbeamlight_right : 0; // a tu z prawej
+			break;
+		default: // to case 2 - zwykle
+			DimHeadlights = false;
+			HighBeamLights = false;
+			break;
+        }
+
     }
     if( rear >= 0 ) {
         auto const vehicleend{ iDirection > 0 ? end::rear : end::front };

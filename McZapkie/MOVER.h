@@ -205,6 +205,8 @@ enum light {
     rearendsignals  = ( 1 << 6 ),
     auxiliary_left  = ( 1 << 7 ),
     auxiliary_right = ( 1 << 8 ),
+	highbeamlight_left = ( 1 << 9 ),
+	highbeamlight_right = ( 1 << 10 )
 };
 
 // door operation methods; exclusive
@@ -1703,6 +1705,26 @@ public:
 	int iProblem = 0; // flagi problemów z taborem, aby AI nie musiało porównywać; 0=może jechać
 	int iLights[2]; // bity zapalonych świateł tutaj, żeby dało się liczyć pobór prądu
 
+	// Status nowszego hebelka od przyciemniania swiatel/swiatel dlugich
+	// 0 - swiatla wylaczone (opcja dziala tylko gdy w fiz zdefiniowano OffState w sekcji Switches; w przeciwnym wypadku pstryk startuje z wartoscia == 1
+	// 1 - swiatla normalne przyciemnione
+	// 2 - swiatla normalne
+	// 3 - swiatla dlugie przyciemnione
+	// 4 - swiatla dlugie normalne
+	int modernDimmerState{0};
+	bool modernContainOffPos = true;
+	bool enableModernDimmer = false;
+
+	// Barwa reflektora
+	int refR{255}; // Czerwony
+	int refG{255}; // Zielony
+	int refB{255}; // Niebieski
+
+	double dimMultiplier{0.6f}; // mnoznik swiatel przyciemnionych
+	double normMultiplier{1.0f}; // mnoznik swiatel zwyklych
+	double highDimMultiplier{2.5f}; // mnoznik dlugich przyciemnionych
+	double highMultiplier{2.8f}; // mnoznik dlugich 
+
     plc::basic_controller m_plc;
 
     int AIHintPantstate{ 0 }; // suggested pantograph setup
@@ -1967,6 +1989,7 @@ private:
 	void LoadFIZ_DCEMUED(std::string const &line);
 	void LoadFIZ_SpringBrake(std::string const &line);
     void LoadFIZ_Light( std::string const &line );
+	void LoadFIZ_Headlights(std::string const &Line);
     void LoadFIZ_Clima( std::string const &line );
     void LoadFIZ_Power( std::string const &Line );
 	void LoadFIZ_SpeedControl( std::string const &Line );
