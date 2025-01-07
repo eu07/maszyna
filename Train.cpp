@@ -4888,10 +4888,12 @@ void TTrain::OnCommand_endsignalstoggle( TTrain *Train, command_data const &Comm
 }
 
 void TTrain::OnCommand_headlightsdimtoggle( TTrain *Train, command_data const &Command ) {
-
+	if (Train->DynamicObject->MoverParameters->enableModernDimmer)
+		return;
     if( Command.action == GLFW_PRESS ) {
         // only reacting to press, so the switch doesn't flip back and forth if key is held down
-        if( false == Train->DynamicObject->DimHeadlights ) {
+		if (Train->DynamicObject->MoverParameters->modernDimmerState == 2)
+		{
             // turn on
             OnCommand_headlightsdimenable( Train, Command );
         }
@@ -4904,6 +4906,8 @@ void TTrain::OnCommand_headlightsdimtoggle( TTrain *Train, command_data const &C
 
 void TTrain::OnCommand_headlightsdimenable( TTrain *Train, command_data const &Command ) {
 
+    if (Train->DynamicObject->MoverParameters->enableModernDimmer)
+		return;
     if( Command.action == GLFW_PRESS ) {
         // only reacting to press, so the switch doesn't flip back and forth if key is held down
         if( Train->ggDimHeadlightsButton.SubModel != nullptr ) {
@@ -4920,13 +4924,18 @@ void TTrain::OnCommand_headlightsdimenable( TTrain *Train, command_data const &C
 
         Train->DynamicObject->DimHeadlights = true;
         */
-
-        Train->mvOccupied->modernDimmerState = 1;   // ustawiamy modern dimmer na flage przyciemnienia
+		WriteLog("Switch do 1");
+        Train->DynamicObject->MoverParameters->modernDimmerState = 1;   // ustawiamy modern dimmer na flage przyciemnienia
+		Train->DynamicObject->RaLightsSet(Train->DynamicObject->MoverParameters->iLights[0],
+		    Train->DynamicObject->MoverParameters->iLights[1]
+            ); // aktualizacja swiatelek
     }
 }
 
 void TTrain::OnCommand_headlightsdimdisable( TTrain *Train, command_data const &Command ) {
 
+    if (Train->DynamicObject->MoverParameters->enableModernDimmer) // nie wiem dlaczego to tak dziala ze jest odwrocona logika
+		return;
     if( Command.action == GLFW_PRESS ) {
         // only reacting to press, so the switch doesn't flip back and forth if key is held down
         if( Train->ggDimHeadlightsButton.SubModel != nullptr ) {
@@ -4942,7 +4951,12 @@ void TTrain::OnCommand_headlightsdimdisable( TTrain *Train, command_data const &
         Train->DynamicObject->DimHeadlights = false;
 
         */
-        Train->mvOccupied->modernDimmerState = 2; // ustawiamy modern dimmer na flage rozjasnienia
+		WriteLog("Switch do 2");
+		Train->DynamicObject->MoverParameters->modernDimmerState = 2; // ustawiamy modern dimmer na flage rozjasnienia
+		Train->DynamicObject->RaLightsSet(
+            Train->DynamicObject->MoverParameters->iLights[0],
+            Train->DynamicObject->MoverParameters->iLights[1]
+            ); // aktualizacja swiatelek
     }
 }
 
@@ -9796,7 +9810,7 @@ void TTrain::set_cab_controls( int const Cab ) {
             ggRightLightButton.PutValue( -1.f );
         }
     }
-    if( true == DynamicObject->DimHeadlights ) {
+    if( 1 == DynamicObject->MoverParameters->modernDimmerState ) {
         ggDimHeadlightsButton.PutValue( 1.f );
     }
     // cab lights
