@@ -134,7 +134,8 @@ private:
     auto fetch_renderer( std::string const Renderer ) -> PyObject *;
 	void run(GLFWwindow *Context, rendertask_sequence &Tasks, uploadtask_sequence &Upload_Tasks, threading::condition_variable &Condition, std::atomic<bool> &Exit );
     void error();
-// members
+
+	// members
     PyObject *m_main { nullptr };
     PyObject *m_stderr { nullptr };
     PyThreadState *m_mainthread{ nullptr };
@@ -145,6 +146,13 @@ private:
     rendertask_sequence m_tasks;
 	uploadtask_sequence m_uploadtasks;
     bool m_initialized { false };
+};
+
+class python_external_utils
+{
+public: 
+    static std::vector<std::string> PyObjectToStringArray(PyObject *pyList);
+
 };
 
 #endif

@@ -483,6 +483,7 @@ extern command_queue Commands;
 // TODO: add name to command map, and wrap these two into helper object
 extern commanddescription_sequence Commands_descriptions;
 
+extern std::unordered_map<std::string, user_command> commandMap;
 }
 
 // command_relay: composite class component, passes specified command to appropriate command stack
