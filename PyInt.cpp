@@ -504,11 +504,11 @@ python_taskqueue::error() {
 std::vector<std::string> python_external_utils::PyObjectToStringArray(PyObject *pyList)
 {
 	std::vector<std::string> result;
-
+	std::vector<std::string> emptyIfError = {};
 	if (!PySequence_Check(pyList))
 	{
-		ErrorLog("Provided PyObject is not a sequence.");
-		return result;
+		ErrorLog("Python: Failed to convert PyObject -> vector<string>");
+		return emptyIfError;
 	}
 
 	Py_ssize_t size = PySequence_Size(pyList);
@@ -517,16 +517,16 @@ std::vector<std::string> python_external_utils::PyObjectToStringArray(PyObject *
 		PyObject *item = PySequence_GetItem(pyList, i); // Increments reference count
 		if (item == nullptr)
 		{
-			ErrorLog("Failed to get item from sequence.");
-			return result;
+			ErrorLog("Python: Failed to get item from sequence.");
+			return emptyIfError;
 		}
 
 		const char *str = PyString_AsString(item);
 		if (str == nullptr)
 		{
 			Py_DECREF(item);
-			ErrorLog("Failed to convert item to string.");
-			return result;
+			ErrorLog("Python: Failed to convert item to string.");
+			return emptyIfError;
 		}
 
 		result.push_back(std::string(str));
