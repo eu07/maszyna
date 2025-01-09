@@ -6943,16 +6943,23 @@ bool TTrain::Update( double const Deltatime )
 
     // McZapkie: predkosc wyswietlana na tachometrze brana jest z obrotow kol
     auto const maxtacho { 3.0 };
-    fTachoVelocity = static_cast<float>( std::min( std::abs(11.31 * mvControlled->WheelDiameter * mvControlled->nrot), mvControlled->Vmax * 1.05) );
+
+    double maxSpeed = mvControlled->Vmax * 1.05; // zachowanie starej logiki jak nie ma definicji max tarczki
+	if (mvOccupied->maxTachoSpeed != 0)
+	{
+		maxSpeed = mvOccupied->maxTachoSpeed;
+    }
+    fTachoVelocity = static_cast<float>(std::min(std::abs(11.31 * mvControlled->WheelDiameter * mvControlled->nrot), maxSpeed));
     { // skacze osobna zmienna
         float ff = simulation::Time.data().wSecond; // skacze co sekunde - pol sekundy
         // pomiar, pol sekundy ustawienie
         if (ff != fTachoTimer) // jesli w tej sekundzie nie zmienial
         {
-            if (fTachoVelocity > 1) // jedzie
-                fTachoVelocityJump = fTachoVelocity + (2.0 - LocalRandom(3) + LocalRandom(3)) * 0.5;
-            else
-                fTachoVelocityJump = 0; // stoi
+			if (fTachoVelocity >= 5) // jedzie
+				fTachoVelocityJump = fTachoVelocity + (2.0 - LocalRandom(3) + LocalRandom(3)) * 0.5;
+			else if (fTachoVelocity < 5 && fTachoVelocity > 1)
+				fTachoVelocityJump = Random(0, 4); // tu ma sie bujac jak wariat i zatrzymac na jakiejs predkosci
+                // fTachoVelocityJump = 0; // stoi
             fTachoTimer = ff; // juz zmienil
         }
     }
@@ -7366,6 +7373,25 @@ bool TTrain::Update( double const Deltatime )
     else {
         btLampkaPoslizg.Turn( false );
     }
+
+    // Lampka pracujacej sprezacki
+	if (mvControlled->CompressorFlag || mvOccupied->CompressorFlag)
+		btCompressors.Turn(true);
+	else
+		btCompressors.Turn(false);
+
+    // Lampka aktywowanej kabiny
+    if (mvControlled->CabActive != 0) {
+		btCabActived.Turn(true);
+    }
+    else {
+		btCabActived.Turn(false);
+    }
+
+    if (mvControlled->Battery && mvControlled->CabActive == 0)
+		btAKLVents.Turn(true);
+	else
+		btAKLVents.Turn(true);
 
     if( true == lowvoltagepower ) {
         // McZapkie-141102: SHP i czuwak, TODO: sygnalizacja kabinowa
@@ -10069,7 +10095,10 @@ bool TTrain::initialize_button(cParser &Parser, std::string const &Label, int co
         { "i-universal6:", btUniversals[ 6 ] },
         { "i-universal7:", btUniversals[ 7 ] },
         { "i-universal8:", btUniversals[ 8 ] },
-        { "i-universal9:", btUniversals[ 9 ] }
+        { "i-universal9:", btUniversals[ 9 ] },
+        { "i-cabactived:", btCabActived },
+	    {"i-aklvents:", btAKLVents},
+	    {"i-compressorany:", btCompressors }
     };
     {
         auto lookup = lights.find( Label );

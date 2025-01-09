@@ -771,6 +771,9 @@ public: // reszta może by?publiczna
     TButton btLampkaRearRightLight;
     TButton btLampkaRearLeftEndLight;
     TButton btLampkaRearRightEndLight;
+	TButton btCabActived;
+	TButton btAKLVents;
+	TButton btCompressors;  // lampka pracy jakiejkolwiek sprezarki
     // other
     TButton btLampkaMalfunction;
     TButton btLampkaMalfunctionB;
