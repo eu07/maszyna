@@ -108,27 +108,33 @@ void render_task::run() {
 
     // get commands from renderer
 	auto *commandsPO = PyObject_CallMethod(m_renderer, "getCommands", nullptr);
-	std::vector<std::string> commands = python_external_utils::PyObjectToStringArray(commandsPO);
-	Py_DECREF(commandsPO);
+	if (commandsPO != nullptr)
+    {
+		std::vector<std::string> commands = python_external_utils::PyObjectToStringArray(commandsPO);
 
-    // we perform any actions ONLY when there are any commands in buffer
-	if (!commands.empty())
-	{
-		for (const auto &command : commands)
+		Py_DECREF(commandsPO);
+		// we perform any actions ONLY when there are any commands in buffer
+		if (!commands.empty())
 		{
-			auto it = simulation::commandMap.find(command);
-			if (it != simulation::commandMap.end())
+			for (const auto &command : commands)
 			{
-				// command found
-				command_data cd;
-				cd.command = it->second;
-				cd.action = GLFW_PRESS;
-				simulation::Commands.push(cd, static_cast<std::size_t>(command_target::vehicle) | 1); // player train is always 1
+				auto it = simulation::commandMap.find(command);
+				if (it != simulation::commandMap.end())
+				{
+					// command found
+					command_data cd;
+					cd.command = it->second;
+					cd.action = GLFW_PRESS;
+					simulation::Commands.push(cd, static_cast<std::size_t>(command_target::vehicle) | 1); // player train is always 1
+				}
+				else
+					ErrorLog("Python: Command [" + command + "] not found!");
 			}
-			else
-				ErrorLog("Python: Command [" + command + "] not found!");
-        }
-	}
+		}
+
+    }
+
+
 
 
 }
