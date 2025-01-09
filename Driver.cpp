@@ -5704,6 +5704,7 @@ void TController::TakeControl( bool const Aidriver, bool const Forcevehiclecheck
     { // teraz AI prowadzi
         AIControllFlag = AIdriver;
         pVehicle->Controller = AIdriver;
+		control_lights();   // reinicjalizacja swiatel
 		mvOccupied->CabActivisation(true);
         iDirection = 0; // kierunek jazdy trzeba dopiero zgadnąć
         TableClear(); // ponowne utworzenie tabelki, bo człowiek mógł pojechać niezgodnie z sygnałami
@@ -5740,6 +5741,8 @@ void TController::TakeControl( bool const Aidriver, bool const Forcevehiclecheck
     }
     else
     { // a teraz użytkownik
+		if (!is_train() || !is_car()) // gasimy swiatla jesli przejmujemy odstawione
+			pVehicle->RaLightsSet(0, 0);
         AIControllFlag = Humandriver;
         pVehicle->Controller = Humandriver;
         if( eAction == TAction::actSleep ) {
