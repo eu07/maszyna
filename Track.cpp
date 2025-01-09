@@ -447,6 +447,10 @@ void TTrack::Load(cParser *parser, glm::dvec3 const &pOrigin)
         >> fTrackWidth
         >> fFriction
         >> fSoundDistance;
+	if (eType == tt_Switch)
+	{
+		fSoundDistance = 10.0f;
+	}
     fTrackWidth2 = fTrackWidth; // rozstaw/szerokość w punkcie 2, na razie taka sama
     parser->getTokens(2);
     *parser
@@ -2604,7 +2608,9 @@ void
 TTrack::create_track_rail_profile( gfx::vertex_array &Right, gfx::vertex_array &Left ) {
 
     auto const fHTW { 0.5f * std::abs( fTrackWidth ) };
-
+	float const fHTW2{((iTrapezoid & 2) != 0 ? // ten bit oznacza, że istnieje odpowiednie pNext
+	                       0.5f * std::fabs(trNext->fTrackWidth) : // połowa rozstawu/nawierzchni
+	                       fHTW)};
     float
         roll1{ 0.f },
         roll2{ 0.f };
@@ -2660,8 +2666,8 @@ TTrack::create_track_rail_profile( gfx::vertex_array &Right, gfx::vertex_array &
         // trapez albo przechyłki, to oddzielne punkty na końcu
         Right[ pointcount + i ] = {
             // position
-            {( fHTW + szyna[ i ].position.x ) * cos2 + szyna[ i ].position.y * sin2,
-            -( fHTW + szyna[ i ].position.x ) * sin2 + szyna[ i ].position.y * cos2,
+            {( fHTW2 + szyna[ i ].position.x ) * cos2 + szyna[ i ].position.y * sin2,
+            -( fHTW2 + szyna[ i ].position.x ) * sin2 + szyna[ i ].position.y * cos2,
                       szyna[ i ].position.z},
             // normal
             { szyna[ i ].normal.x * cos2 + szyna[ i ].normal.y * sin2,
@@ -2673,8 +2679,8 @@ TTrack::create_track_rail_profile( gfx::vertex_array &Right, gfx::vertex_array &
 
         Left[ pointcount * 2 - 1 - i ] = {
             // position
-            {(-fHTW - szyna[ i ].position.x ) * cos2 + szyna[ i ].position.y * sin2,
-            -(-fHTW - szyna[ i ].position.x ) * sin2 + szyna[ i ].position.y * cos2,
+            {(-fHTW2 - szyna[ i ].position.x ) * cos2 + szyna[ i ].position.y * sin2,
+            -(-fHTW2 - szyna[ i ].position.x ) * sin2 + szyna[ i ].position.y * cos2,
                       szyna[ i ].position.z},
             // normal
             {-szyna[ i ].normal.x * cos2 + szyna[ i ].normal.y * sin2,

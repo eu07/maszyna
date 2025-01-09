@@ -73,7 +73,11 @@ private:
     bool
         mode_translation_vertical() const;
     bool
-        mode_rotation() const;
+        mode_rotationY() const;
+    bool 
+        mode_rotationX() const;
+    bool 
+        mode_rotationZ() const;
     bool
         mode_snap() const;
 // members

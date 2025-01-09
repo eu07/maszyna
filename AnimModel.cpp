@@ -659,8 +659,9 @@ TAnimModel::export_as_text_( std::ostream &Output ) const {
     Output
         << location().x << ' '
         << location().y << ' '
-        << location().z << ' '
-        << vAngle.y << ' ';
+        << location().z << ' ';
+    Output
+       << "0 " ;
     // 3d shape
     auto modelfile { (
         pModel ?
@@ -697,6 +698,11 @@ TAnimModel::export_as_text_( std::ostream &Output ) const {
     if( false == m_transition ) {
         Output << "notransition" << ' ';
     }
+    // footer
+    Output  << "angles "
+        << vAngle.x << ' ' 
+        << vAngle.y << ' ' 
+        << vAngle.z << ' ';
     // footer
     Output
         << "endmodel"

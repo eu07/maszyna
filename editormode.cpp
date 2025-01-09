@@ -246,16 +246,34 @@ editor_mode::on_cursor_pos( double const Horizontal, double const Vertical ) {
             m_editor.translate( m_node, mouseworldposition, mode_snap() );
         }
     }
-    else {
-        // rotate selected node
-        auto const rotation { glm::vec3 { mousemove.y, mousemove.x, 0 } * 0.25f };
-        auto const quantization { (
-            mode_snap() ?
-                15.f : // TODO: put quantization value in a variable
-                0.f ) };
-        m_editor.rotate( m_node, rotation, quantization );
-    }
+	else if (mode_rotationY())
+	{
+		// rotate selected node
+		// auto const rotation{glm::vec3{mousemove.y, mousemove.x, 0} * 0.25f};
+		auto const rotation{glm::vec3{0, mousemove.x, 0} * 0.25f};
+		auto const quantization{(mode_snap() ? 5.f : // TODO: put quantization value in a variable
+		                             0.f)};
+		m_editor.rotate(m_node, rotation, quantization);
+	}
+	else if (mode_rotationZ())
+	{
+		// rotate selected node
 
+		// auto const rotation{glm::vec3{mousemove.y, mousemove.x, 0} * 0.25f};
+		auto const rotation{glm::vec3{0, 0, mousemove.x} * 0.25f};
+		auto const quantization{(mode_snap() ? 5.f : // TODO: put quantization value in a variable
+		                             0.f)};
+		m_editor.rotate(m_node, rotation, quantization);
+	}
+	else if (mode_rotationX())
+	{
+		// rotate selected node
+		// auto const rotation{glm::vec3{mousemove.y, mousemove.x, 0} * 0.25f};
+		auto const rotation{glm::vec3{mousemove.y, 0, 0} * 0.25f};
+		auto const quantization{(mode_snap() ? 5.f : // TODO: put quantization value in a variable
+		                             0.f)};
+		m_editor.rotate(m_node, rotation, quantization);
+	}
 }
 
 /*
@@ -303,9 +321,8 @@ editor_mode::on_mouse_button( int const Button, int const Action, int const Mods
 
 			m_node = nullptr;
 
-			GfxRenderer->Pick_Node_Callback([this, mode](scene::basic_node *node)
-			{
-				editor_ui *ui = static_cast<editor_ui*>( m_userinterface.get() );
+			GfxRenderer->Pick_Node_Callback([this, mode,Action,Button](scene::basic_node *node) {
+				editor_ui *ui = static_cast<editor_ui *>(m_userinterface.get());
 
 				if (mode == nodebank_panel::MODIFY) {
 					if (!m_dragging)
@@ -316,7 +333,7 @@ editor_mode::on_mouse_button( int const Button, int const Action, int const Mods
 						Application.set_cursor( GLFW_CURSOR_DISABLED );
 					else
 						m_dragging = false;
-					ui->set_node( m_node );
+					ui->set_node(m_node);
 				}
 				else if (mode == nodebank_panel::COPY) {
 					if (node && typeid(*node) == typeid(TAnimModel)) {
@@ -360,6 +377,45 @@ editor_mode::on_mouse_button( int const Button, int const Action, int const Mods
             m_takesnapshot = true;
         }
     }
+	if (Button == GLFW_MOUSE_BUTTON_RIGHT)
+	{
+
+		/*if (Action == GLFW_PRESS)
+		{
+			// left button press
+			auto const mode = static_cast<editor_ui *>(m_userinterface.get())->mode();
+
+			m_node = nullptr;
+
+			GfxRenderer->Pick_Node_Callback([this, mode](scene::basic_node *node) {
+				editor_ui *ui = static_cast<editor_ui *>(m_userinterface.get());
+
+				if (mode == nodebank_panel::MODIFY)
+				{
+					if (!m_dragging)
+						return;
+
+					m_node = node;
+					if (m_node)
+						Application.set_cursor(GLFW_CURSOR_DISABLED);
+					else
+						m_dragging = false;
+					ui->set_node(m_node);
+				}
+			});
+
+			m_dragging = true;
+		}
+		else
+		{
+			// left button release
+			if (m_node)
+				Application.set_cursor(GLFW_CURSOR_NORMAL);
+			m_dragging = false;
+			// prime history stack for another snapshot
+			m_takesnapshot = true;
+		}*/
+	}
 
     m_input.mouse.button( Button, Action );
 }
@@ -388,14 +444,24 @@ editor_mode::mode_translation_vertical() const {
     return ( true == Global.shiftState );
 }
 
-bool
-editor_mode::mode_rotation() const {
+bool editor_mode::mode_rotationY() const
+{
 
-    return ( true == Global.altState );
+	return ((true == Global.altState) && (false == Global.ctrlState) && (false == Global.shiftState));
+}
+bool editor_mode::mode_rotationX() const
+{
+
+	return ((true == Global.altState) && (true == Global.ctrlState) && (false == Global.shiftState));
+}
+bool editor_mode::mode_rotationZ() const
+{
+
+	return ((true == Global.altState) && (true == Global.ctrlState) && (true == Global.shiftState));
 }
 
 bool
 editor_mode::mode_snap() const {
 
-    return ( true == Global.ctrlState );
+    return ((false == Global.altState) && (true == Global.ctrlState) && (false == Global.shiftState));
 }

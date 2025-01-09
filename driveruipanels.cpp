@@ -659,15 +659,29 @@ debug_panel::render_section_scenario() {
     {
         auto fogrange = std::log( Global.fFogEnd );
         if( ImGui::SliderFloat(
-            ( to_string( std::exp( fogrange ), 0, 5 ) + " m###fogend" ).c_str(), &fogrange, std::log( 10.0f ), std::log( 25000.0f ), "Fog distance" ) ) {
+            ( to_string( std::exp( fogrange ), 0, 5 ) + " m###fogend" ).c_str(), &fogrange, std::log( 10.0f ), std::log( 50000.0f ), "Fog distance" ) ) {
             command_relay relay;
             relay.post(
                 user_command::setweather,
-                clamp( std::exp( fogrange ), 10.0f, 25000.0f ),
+                clamp( std::exp( fogrange ), 10.0f, 50000.0f ),
                 Global.Overcast,
                 GLFW_PRESS, 0 );
         }
     }
+	{
+		auto Airtemperature = Global.AirTemperature;
+		if (ImGui::SliderFloat(
+		        (to_string(Airtemperature, 1) + " deg C###Airtemperature").c_str(),
+		        &Airtemperature, -35.0f, 40.0f, "Air Temperature"))
+		{
+			command_relay relay;
+            relay.post(
+                user_command::settemperature, 
+                clamp(Airtemperature, -35.0f, 40.0f),
+			           Global.Overcast,
+                GLFW_PRESS, 0 );
+		}
+	}
     // cloud cover slider
     {
         if( ImGui::SliderFloat(
@@ -1288,7 +1302,7 @@ debug_panel::update_section_scenario( std::vector<text_line> &Output ) {
 
     Output.emplace_back( textline, Global.UITextColor );
     // current luminance level
-    textline = "Light level: " + to_string( Global.fLuminance, 3 ) + ( Global.FakeLight ? "(*)" : "" );
+	textline = "Light level: " + to_string( Global.fLuminance, 3 ) + ( Global.FakeLight ? "(*)" : "" )+ to_string(Global.SunAngle,2);
     textline +=
         "\nWind: azimuth "
         + to_string( simulation::Environment.wind_azimuth(), 0 ) // ma być azymut, czyli 0 na północy i rośnie na wschód
