@@ -7094,39 +7094,43 @@ void TDynamicObject::RaLightsSet(int head, int rear)
         MoverParameters->iLights[ vehicleend ] = ( head & iInventory[ vehicleend ] );
 		bool tLeft = MoverParameters->iLights[vehicleend] & (light::auxiliary_left | light::headlight_left); // roboczo czy jakiekolwiek swiatlo z lewej jest zapalone
 		bool tRight = MoverParameters->iLights[vehicleend] & (light::auxiliary_right | light::headlight_right); // a tu z prawej
-        switch (MoverParameters->modernDimmerState)
-        {
-		case 0:
-            // wylaczone
-			MoverParameters->iLights[vehicleend] &= 0 | light::rearendsignals; // zostawiamy tylko tabliczki jesli sa
-			HighBeamLights = false;
-			DimHeadlights = false;
-            break;
-		case 1:
-            // przyciemnione normalne
-			DimHeadlights = true; // odpalamy przyciemnienie normalnych reflektorow
-			HighBeamLights = false;
-			break;
-		case 3:
-            // dlugie przyciemnione
-			DimHeadlights = true;
-			HighBeamLights = true;
-			MoverParameters->iLights[vehicleend] &= light::headlight_upper | light::rearendsignals | light::redmarker_left | light::redmarker_right | light::rearendsignals; // nie ruszamy gornych i koncowek
-			MoverParameters->iLights[vehicleend] |= tLeft ? light::highbeamlight_left : 0; // jesli swiatlo z lewej zapalone to odpal dlugie
-			MoverParameters->iLights[vehicleend] |= tRight ? light::highbeamlight_right : 0; // a tu z prawej
-			break;
-        case 4: 
-            // zwykle dlugie
-			DimHeadlights = false;
-			HighBeamLights = true;
-			MoverParameters->iLights[vehicleend] &= light::headlight_upper | light::rearendsignals | light::redmarker_left | light::redmarker_right | light::rearendsignals; // nie ruszamy gornych i koncowek
-			MoverParameters->iLights[vehicleend] |= tLeft ? light::highbeamlight_left : 0; // jesli swiatlo z lewej zapalone to odpal dlugie
-			MoverParameters->iLights[vehicleend] |= tRight ? light::highbeamlight_right : 0; // a tu z prawej
-			break;
-		default: // to case 2 - zwykle
-			DimHeadlights = false;
-			HighBeamLights = false;
-			break;
+        if (Controller == Humandriver) {
+			switch (MoverParameters->modernDimmerState)
+			{
+			case 0:
+				// wylaczone
+				MoverParameters->iLights[vehicleend] &= 0 | light::rearendsignals; // zostawiamy tylko tabliczki jesli sa
+				HighBeamLights = false;
+				DimHeadlights = false;
+				break;
+			case 1:
+				// przyciemnione normalne
+				DimHeadlights = true; // odpalamy przyciemnienie normalnych reflektorow
+				HighBeamLights = false;
+				break;
+			case 3:
+				// dlugie przyciemnione
+				DimHeadlights = true;
+				HighBeamLights = true;
+				MoverParameters->iLights[vehicleend] &=
+				    light::headlight_upper | light::rearendsignals | light::redmarker_left | light::redmarker_right | light::rearendsignals; // nie ruszamy gornych i koncowek
+				MoverParameters->iLights[vehicleend] |= tLeft ? light::highbeamlight_left : 0; // jesli swiatlo z lewej zapalone to odpal dlugie
+				MoverParameters->iLights[vehicleend] |= tRight ? light::highbeamlight_right : 0; // a tu z prawej
+				break;
+			case 4:
+				// zwykle dlugie
+				DimHeadlights = false;
+				HighBeamLights = true;
+				MoverParameters->iLights[vehicleend] &=
+				    light::headlight_upper | light::rearendsignals | light::redmarker_left | light::redmarker_right | light::rearendsignals; // nie ruszamy gornych i koncowek
+				MoverParameters->iLights[vehicleend] |= tLeft ? light::highbeamlight_left : 0; // jesli swiatlo z lewej zapalone to odpal dlugie
+				MoverParameters->iLights[vehicleend] |= tRight ? light::highbeamlight_right : 0; // a tu z prawej
+				break;
+			default: // to case 2 - zwykle
+				DimHeadlights = false;
+				HighBeamLights = false;
+				break;
+			}
         }
 
     }
