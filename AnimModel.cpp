@@ -318,6 +318,10 @@ bool TAnimModel::Load(cParser *parser, bool ter)
         LightsOff[5] = pModel->GetFromName("Light_Off05");
         LightsOff[6] = pModel->GetFromName("Light_Off06");
         LightsOff[7] = pModel->GetFromName("Light_Off07");
+		sm_winter_variant = pModel->GetFromName("winter_variant");
+		sm_spring_variant = pModel->GetFromName("spring_variant");
+		sm_summer_variant = pModel->GetFromName("summer_variant");
+		sm_autumn_variant = pModel->GetFromName("autumn_variant");
     }
     for (int i = 0; i < iMaxNumLights; ++i)
         if (LightsOn[i] || LightsOff[i]) // Ra: zlikwidowałem wymóg istnienia obu
@@ -494,9 +498,59 @@ void TAnimModel::RaAnimate( unsigned int const Framestamp ) {
     m_framestamp = Framestamp;
 }
 
+// aktualizujemy submodele w zaleznosci od aktualnej porty roku
+void TAnimModel::on_season_update() {
+    if (Global.Season == "winter:") // pokazujemy wariant zimowy
+    {
+		if (this->sm_winter_variant != nullptr)
+			this->sm_winter_variant->SetVisibilityLevel(1.f, true, false);
+		if (this->sm_spring_variant != nullptr)
+			this->sm_spring_variant->SetVisibilityLevel(0.f, true, false);
+		if (this->sm_summer_variant != nullptr)
+			this->sm_summer_variant->SetVisibilityLevel(0.f, true, false);
+		if (this->sm_autumn_variant != nullptr)
+			this->sm_autumn_variant->SetVisibilityLevel(0.f, true, false);
+    }
+	else if (Global.Season == "spring:") // pokazujemy wariant wiosenny
+	{
+		if (this->sm_winter_variant != nullptr)
+			this->sm_winter_variant->SetVisibilityLevel(0.f, true, false);
+		if (this->sm_spring_variant != nullptr)
+			this->sm_spring_variant->SetVisibilityLevel(1.f, true, false);
+		if (this->sm_summer_variant != nullptr)
+			this->sm_summer_variant->SetVisibilityLevel(0.f, true, false);
+		if (this->sm_autumn_variant != nullptr)
+			this->sm_autumn_variant->SetVisibilityLevel(0.f, true, false);
+    }
+    else if (Global.Season == "summer:") // pokazujemy wariant letni
+	{
+		if (this->sm_winter_variant != nullptr)
+			this->sm_winter_variant->SetVisibilityLevel(0.f, true, false);
+		if (this->sm_spring_variant != nullptr)
+			this->sm_spring_variant->SetVisibilityLevel(0.f, true, false);
+		if (this->sm_summer_variant != nullptr)
+			this->sm_summer_variant->SetVisibilityLevel(1.f, true, false);
+		if (this->sm_autumn_variant != nullptr)
+			this->sm_autumn_variant->SetVisibilityLevel(0.f, true, false);
+    }
+	else if (Global.Season == "autumn:") // pokazujemy wariant jesienny
+    {
+		if (this->sm_winter_variant != nullptr) 
+            this->sm_winter_variant->SetVisibilityLevel(0.f, true, false);
+		if (this->sm_spring_variant != nullptr) 
+		    this->sm_spring_variant->SetVisibilityLevel(0.f, true, false);
+		if (this->sm_summer_variant != nullptr) 
+		    this->sm_summer_variant->SetVisibilityLevel(0.f, true, false);
+		if (this->sm_autumn_variant != nullptr) 
+		    this->sm_autumn_variant->SetVisibilityLevel(1.f, true, false);
+    }
+}
+
 void TAnimModel::RaPrepare()
 { // ustawia światła i animacje we wzorcu modelu przed renderowaniem egzemplarza
     bool state; // stan światła
+	if (Global.UpdateMaterials)
+	    on_season_update();
     for (int i = 0; i < iNumLights; ++i)
     {
         auto const lightmode { static_cast<int>( std::abs( lsLights[ i ] ) ) };
