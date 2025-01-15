@@ -104,6 +104,9 @@ class TAnimPant
     float fHeightExtra[5]; //łamana symulująca kształt nabieżnika
     // double fHorizontal; //Ra 2015-01: położenie drutu względem osi pantografu
     void AKP_4E();
+	void WBL85();
+	void DSAx();
+	void EC160_200();
 };
 
 class TAnim

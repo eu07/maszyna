@@ -11338,6 +11338,17 @@ void TMoverParameters::LoadFIZ_PowerParamsDecode( TPowerParameters &Powerparamet
             auto &collectorparameters = Powerparameters.CollectorParameters;
 
             collectorparameters = TCurrentCollector { 0, 0, 0, 0, 0, 0, false, 0, 0, 0, false, 0 };
+		    
+            std::string PantType = "";
+		    extract_value(PantType, "PantType", Line, "");
+            if (PantType == "AKP_4E")
+			    collectorparameters.PantographType = TPantType::AKP_4E;
+		    if (PantType._Starts_with("DSA")) // zakladam ze wszystkie pantografy DSA sa takie same
+			    collectorparameters.PantographType = TPantType::DSAx;
+		    if (PantType == "EC160" || PantType == "EC200")
+			    collectorparameters.PantographType = TPantType::EC160_200;
+		    if (PantType == "WBL85")
+			    collectorparameters.PantographType = TPantType::WBL85;
 
             extract_value( collectorparameters.CollectorsNo, "CollectorsNo", Line, "" );
             extract_value( collectorparameters.MinH, "MinH", Line, "" );
