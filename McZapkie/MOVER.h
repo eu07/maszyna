@@ -469,6 +469,13 @@ struct TBoilerType {
     //}
 };
 /*rodzaj odbieraka pradu*/
+enum TPantType
+{
+	AKP_4E,
+	DSAx,
+	EC160_200,
+	WBL85
+};
 struct TCurrentCollector {
     long CollectorsNo; //musi być tu, bo inaczej się kopie
     double MinH; double MaxH; //zakres ruchu pantografu, nigdzie nie używany
