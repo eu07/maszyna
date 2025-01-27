@@ -710,9 +710,9 @@ TAnimModel::export_as_text_( std::ostream &Output ) const {
     // header
     Output << "model ";
     // location and rotation
-    Output
-        << location().x << ' '
-        << location().y << ' '
+	Output << std::fixed << std::setprecision(3) // ustawienie dokładnie 3 cyfr po przecinku
+	    << location().x << ' ' 
+        << location().y << ' ' 
         << location().z << ' ';
     Output
        << "0 " ;
