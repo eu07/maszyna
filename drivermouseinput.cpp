@@ -506,7 +506,7 @@ drivermouse_input::bindings( std::string const &Control ) const {
 
 void
 drivermouse_input::default_bindings() {
-
+    // pierwsza komenda jest od zwiekszania a druga od zmniejszania - ewentualnie kolejno lewy i prawy przycisk
     m_buttonbindings = {
         { "jointctrl:", {
             user_command::jointcontrollerset,
@@ -737,6 +737,9 @@ drivermouse_input::default_bindings() {
         { "dimheadlights_sw:", {
             user_command::headlightsdimtoggle,
             user_command::none } },
+	    {"moderndimmer_sw:", {
+            user_command::modernlightdimmerincrease, 
+            user_command::modernlightdimmerdecrease } },
         { "leftend_sw:", {
             user_command::redmarkertoggleleft,
             user_command::none } },

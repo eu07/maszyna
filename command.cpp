@@ -153,6 +153,8 @@ commanddescription_sequence Commands_descriptions = {
 	{ "radiovolumeset", command_target::vehicle, command_mode::oneoff },
 	{ "cabchangeforward", command_target::vehicle, command_mode::oneoff },
 	{ "cabchangebackward", command_target::vehicle, command_mode::oneoff },
+    {"modernlightdimmerdecrease", command_target::vehicle, command_mode::oneoff},
+    {"modernlightdimmerincrease", command_target::vehicle, command_mode::oneoff},
 	{ "viewturn", command_target::entity, command_mode::oneoff },
 	{ "movehorizontal", command_target::entity, command_mode::oneoff },
 	{ "movehorizontalfast", command_target::entity, command_mode::oneoff },

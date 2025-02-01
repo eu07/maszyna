@@ -249,6 +249,7 @@ std::string locale::label_cab_control(std::string const &Label)
 	    { "leftlight_sw:", STRN("left headlight") },
 	    { "rightlight_sw:", STRN("right headlight") },
 	    { "dimheadlights_sw:", STRN("headlights dimmer") },
+	    { "moderndimmer_sw:", STRN("headlights dimmer") },
 	    { "leftend_sw:", STRN("left marker light") },
 	    { "rightend_sw:", STRN("right marker light") },
 	    { "lights_sw:", STRN("light pattern") },
@@ -319,7 +320,7 @@ std::string locale::label_cab_control(std::string const &Label)
 	    { "universal6:", STRN("interactive part") },
 	    { "universal7:", STRN("interactive part") },
 	    { "universal8:", STRN("interactive part") },
-	    { "universal9:", STRN("interactive part") }
+	    { "universal9:", STRN("interactive part") },
 	};
 
 	auto const it = cabcontrols_labels.find( Label );
