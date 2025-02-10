@@ -206,7 +206,7 @@ editor_mode::on_key( int const Key, int const Scancode, int const Action, int co
 
 			m_node = nullptr;
 			m_dragging = false;
-			Application.set_cursor( GLFW_CURSOR_NORMAL );
+			//Application.set_cursor( GLFW_CURSOR_NORMAL );
 			static_cast<editor_ui*>( m_userinterface.get() )->set_node(nullptr);
 
 			simulation::State.delete_model(model);
@@ -318,10 +318,14 @@ editor_mode::on_mouse_button( int const Button, int const Action, int const Mods
         if( Action == GLFW_PRESS ) {
 			// left button press
 			auto const mode = static_cast<editor_ui*>( m_userinterface.get() )->mode();
+			auto const rotation_mode = static_cast<editor_ui*>( m_userinterface.get() )->rot_mode();
+			auto const fixed_rotation_value =
+			    static_cast<editor_ui *>(m_userinterface.get())->rot_val();
 
 			m_node = nullptr;
 
-			GfxRenderer->Pick_Node_Callback([this, mode,Action,Button](scene::basic_node *node) {
+			GfxRenderer->Pick_Node_Callback([this, mode, rotation_mode, fixed_rotation_value,
+			                                 Action, Button](scene::basic_node *node) {
 				editor_ui *ui = static_cast<editor_ui *>(m_userinterface.get());
 
 				if (mode == nodebank_panel::MODIFY) {
@@ -329,10 +333,10 @@ editor_mode::on_mouse_button( int const Button, int const Action, int const Mods
 						return;
 
 					m_node = node;
-					if( m_node )
-						Application.set_cursor( GLFW_CURSOR_DISABLED );
-					else
-						m_dragging = false;
+					//if( m_node )
+						//Application.set_cursor( GLFW_CURSOR_DISABLED );
+					//else
+						//m_dragging = false;
 					ui->set_node(m_node);
 				}
 				else if (mode == nodebank_panel::COPY) {
@@ -360,8 +364,24 @@ editor_mode::on_mouse_button( int const Button, int const Action, int const Mods
 					if (!m_dragging)
 						return;
 
-					m_node = cloned;
-					Application.set_cursor( GLFW_CURSOR_DISABLED );
+					
+                    m_node = cloned;
+
+                    if (rotation_mode == functions_panel::RANDOM)
+					{
+						auto const rotation{glm::vec3{0, LocalRandom(0.0, 360.0), 0}};
+						
+						m_editor.rotate(m_node, rotation, 1);
+                    }
+					else if (rotation_mode == functions_panel::FIXED)
+					{
+
+						auto const rotation{glm::vec3{0, fixed_rotation_value, 0}};
+						
+						m_editor.rotate(m_node, rotation, 0);
+                    
+                    }
+					//Application.set_cursor( GLFW_CURSOR_DISABLED );
 					ui->set_node( m_node );
 				}
 			});
@@ -370,8 +390,8 @@ editor_mode::on_mouse_button( int const Button, int const Action, int const Mods
         }
         else {
             // left button release
-            if( m_node )
-                Application.set_cursor( GLFW_CURSOR_NORMAL );
+            //if( m_node )
+                //Application.set_cursor( GLFW_CURSOR_NORMAL );
             m_dragging = false;
             // prime history stack for another snapshot
             m_takesnapshot = true;
