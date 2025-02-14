@@ -7454,8 +7454,6 @@ bool TTrain::Update( double const Deltatime )
 	else
 		btAKLVents.Turn(false);
 
-    if ()
-
 
     if( true == lowvoltagepower ) {
         // McZapkie-141102: SHP i czuwak, TODO: sygnalizacja kabinowa
