@@ -777,6 +777,7 @@ public: // reszta może by?publiczna
 	  TButton btCabActived;
 	  TButton btAKLVents;
 	  TButton btCompressors;  // lampka pracy jakiejkolwiek sprezarki
+	  TButton btEDenabled; // czy wlaczony jest hamulec ED (czy dostepny)
     // other
     TButton btLampkaMalfunction;
     TButton btLampkaMalfunctionB;

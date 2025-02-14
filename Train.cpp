@@ -7435,6 +7435,12 @@ bool TTrain::Update( double const Deltatime )
 	else
 		btCompressors.Turn(false);
 
+    // Lampka zezwolenia na hamowanie ED
+    if (mvControlled->EpFuse)
+		btEDenabled.Turn(true);
+	else
+		btEDenabled.Turn(false);
+
     // Lampka aktywowanej kabiny
     if (mvControlled->CabActive != 0) {
 		btCabActived.Turn(true);
@@ -7447,6 +7453,9 @@ bool TTrain::Update( double const Deltatime )
 		btAKLVents.Turn(true);
 	else
 		btAKLVents.Turn(false);
+
+    if ()
+
 
     if( true == lowvoltagepower ) {
         // McZapkie-141102: SHP i czuwak, TODO: sygnalizacja kabinowa
@@ -10164,7 +10173,8 @@ bool TTrain::initialize_button(cParser &Parser, std::string const &Label, int co
         { "i-universal9:", btUniversals[ 9 ] },
         { "i-cabactived:", btCabActived },
 	      {"i-aklvents:", btAKLVents},
-	      {"i-compressorany:", btCompressors }
+	      {"i-compressorany:", btCompressors },
+	      {"i-edenabled", btEDenabled }
     };
     {
         auto lookup = lights.find( Label );
