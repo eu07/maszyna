@@ -283,6 +283,8 @@ std::string locale::label_cab_control(std::string const &Label)
 	    { "pantselectedoff_sw:", STRN("selected pantograph") },
 	    { "pantselect_sw:", STRN("selected pantograph") },
 	    { "pantvalves_sw:", STRN("selected pantograph") },
+	    { "pantvalvesoff_bt:", STRN("all pantographs down") },
+	    { "pantvalvesupdate_bt:", STRN("selected pantographs up") },
 	    { "pantcompressor_sw:", STRN("pantograph compressor") },
 	    { "pantcompressorvalve_sw:", STRN("pantograph 3 way valve") },
 	    { "trainheating_sw:", STRN("heating") },

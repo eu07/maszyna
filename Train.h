@@ -661,6 +661,8 @@ public: // reszta może by?publiczna
     TGauge ggPantValvesButton;
     TGauge ggPantCompressorButton;
     TGauge ggPantCompressorValve;
+	TGauge ggPantValvesUpdate;
+	TGauge ggPantValvesOff;
     // Winger 020304 - wlacznik ogrzewania
     TGauge ggTrainHeatingButton;
     TGauge ggSignallingButton;
