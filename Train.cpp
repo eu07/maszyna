@@ -2848,22 +2848,42 @@ void TTrain::change_pantograph_selection( int const Change ) {
 
 void TTrain::OnCommand_pantographvalvesupdate( TTrain *Train, command_data const &Command ) {
 
+    bool hasSeparateSwitches = Train->m_controlmapper.contains("pantvalvesupdate_bt:") &&
+        Train->m_controlmapper.contains("pantvalvesoff_bt:");
+
     if( Command.action == GLFW_REPEAT ) { return; }
 
     if( Command.action == GLFW_PRESS ) {
-        // implement action
-        Train->update_pantograph_valves();
-        // visual feedback
-        Train->ggPantValvesButton.UpdateValue( 1.0, Train->dsbSwitch );
+		if (hasSeparateSwitches)
+		{
+			// implement action
+			Train->update_pantograph_valves();
+			// visual feedback
+			Train->ggPantValvesUpdate.UpdateValue(1.0, Train->dsbSwitch);
+		}
+
+		// Old logic to maintain compatibility
+        else 
+        {
+			Train->update_pantograph_valves();
+			Train->ggPantValvesButton.UpdateValue(1.0, Train->dsbSwitch);
+        }
     }
     else if( Command.action == GLFW_RELEASE ) {
         // visual feedback
         // NOTE: pantvalves_sw: is a specialized button, with no toggle behavior support
-        Train->ggPantValvesButton.UpdateValue( 0.5, Train->dsbSwitch );
+		if (hasSeparateSwitches)
+			Train->ggPantValvesUpdate.UpdateValue(0.5, Train->dsbSwitch);
+
+		// Old logic to maintain compatibility
+        else
+			Train->ggPantValvesButton.UpdateValue(0.5, Train->dsbSwitch);
     }
 }
 
 void TTrain::OnCommand_pantographvalvesoff( TTrain *Train, command_data const &Command ) {
+
+        bool hasSeparateSwitches = Train->m_controlmapper.contains("pantvalvesupdate_bt:") && Train->m_controlmapper.contains("pantvalvesoff_bt:");
 
     if( Command.action == GLFW_REPEAT ) { return; }
 
@@ -2872,12 +2892,18 @@ void TTrain::OnCommand_pantographvalvesoff( TTrain *Train, command_data const &C
         Train->mvOccupied->OperatePantographValve( end::front, operation_t::disable );
         Train->mvOccupied->OperatePantographValve( end::rear, operation_t::disable );
         // visual feedback
-        Train->ggPantValvesButton.UpdateValue( 0.0, Train->dsbSwitch );
+		if (hasSeparateSwitches)
+			Train->ggPantValvesOff.UpdateValue(1.0, Train->dsbSwitch);
+		else
+            Train->ggPantValvesButton.UpdateValue( 0.0, Train->dsbSwitch );
     }
     else if( Command.action == GLFW_RELEASE ) {
         // visual feedback
         // NOTE: pantvalves_sw: is a specialized button, with no toggle behavior support
-        Train->ggPantValvesButton.UpdateValue( 0.5, Train->dsbSwitch );
+		if (hasSeparateSwitches)
+			Train->ggPantValvesOff.UpdateValue(0.f, Train->dsbSwitch);
+		else
+            Train->ggPantValvesButton.UpdateValue( 0.5, Train->dsbSwitch );
     }
 }
 
@@ -8086,6 +8112,9 @@ bool TTrain::Update( double const Deltatime )
     ggPantCompressorButton.Update();
     ggPantCompressorValve.Update();
 
+    ggPantValvesOff.Update();
+	ggPantValvesUpdate.Update();
+
     ggLightsButton.Update();
     ggUpperLightButton.Update();
     ggLeftLightButton.Update();
@@ -9579,6 +9608,10 @@ void TTrain::clear_cab_controls()
     ggPantValvesButton.Clear();
     ggPantCompressorButton.Clear();
     ggPantCompressorValve.Clear();
+
+    ggPantValvesOff.Clear();
+	ggPantValvesUpdate.Clear();
+
     ggI1B.Clear();
     ggI2B.Clear();
     ggI3B.Clear();
@@ -9730,6 +9763,16 @@ void TTrain::set_cab_controls( int const Cab ) {
             ggModernLightDimSw.PutValue(mvOccupied->modernDimmerState - 1);
     }
 
+    // Init separate buttons
+    if (ggPantValvesUpdate.SubModel != nullptr)
+	{
+		ggPantValvesUpdate.PutValue(0.f);
+	}   
+    if (ggPantValvesOff.SubModel != nullptr)
+    {
+		ggPantValvesOff.PutValue(0.f);
+    }
+
     // motor connectors
     ggStLinOffButton.PutValue(
         ( mvControlled->StLinSwitchOff ?
@@ -9788,6 +9831,7 @@ void TTrain::set_cab_controls( int const Cab ) {
                 0.f ) );
     }
     ggPantValvesButton.PutValue( 0.5f );
+
     // auxiliary compressor
     ggPantCompressorValve.PutValue(
         mvControlled->bPantKurek3 ?
@@ -10172,7 +10216,7 @@ bool TTrain::initialize_button(cParser &Parser, std::string const &Label, int co
         { "i-cabactived:", btCabActived },
 	      {"i-aklvents:", btAKLVents},
 	      {"i-compressorany:", btCompressors },
-	      {"i-edenabled", btEDenabled }
+	      {"i-edenabled", btEDenabled },
     };
     {
         auto lookup = lights.find( Label );
@@ -10404,6 +10448,8 @@ bool TTrain::initialize_gauge(cParser &Parser, std::string const &Label, int con
 		{ "invertertoggle10_bt:", ggInverterToggleButtons[9] },
 		{ "invertertoggle11_bt:", ggInverterToggleButtons[10] },
 		{ "invertertoggle12_bt:", ggInverterToggleButtons[11] },
+	    {"pantvalvesupdate_bt:", ggPantValvesUpdate},
+	    {"pantvalvesoff_bt:", ggPantValvesOff}
     };
     {
         auto const lookup { gauges.find( Label ) };
