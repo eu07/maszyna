@@ -1139,6 +1139,9 @@ class TMoverParameters
 	int UniversalBrakeButtonFlag[3] = {0, 0, 0}; /* mozliwe działania przycisków hamulcowych */
 	int UniversalResetButtonFlag[3] = {0, 0, 0}; // customizable reset buttons assignments
 	int TurboTest = 0;
+	bool isBatteryButtonImpulse = false; // czy przelacznik baterii traktowac jako pojedynczy przycisk
+	bool shouldHoldBatteryButton = false; // czy nalezy przytrzymac przycisk baterii aby wlaczyc/wylaczyc baterie
+	float BatteryButtonHoldTime = 1.f; // minimalny czas przytrzymania przycisku baterii
 	double MaxBrakeForce = 0.0; /*maksymalna sila nacisku hamulca*/
 	double MaxBrakePress[5]; // pomocniczy, proz, sred, lad, pp
 	double P2FTrans = 0.0;
