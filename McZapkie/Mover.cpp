@@ -10628,6 +10628,9 @@ void TMoverParameters::LoadFIZ_Cntrl( std::string const &line ) {
 	extract_value(isDoubleClickForMeasureNeeded, "DCMB", line, "");
 	extract_value(DistanceCounterDoublePressPeriod, "DCDPP", line, "");
 
+    extract_value(isBatteryButtonImpulse, "IBTB", line, "");
+	extract_value(shouldHoldBatteryButton, "SBBBH", line, "");
+	extract_value(BatteryButtonHoldTime, "BBHT", line, "");
 
     std::map<std::string, start_t> starts {
         { "Disabled", start_t::disabled },
