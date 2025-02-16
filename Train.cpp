@@ -1317,7 +1317,17 @@ void TTrain::OnCommand_distancecounteractivate( TTrain *Train, command_data cons
         // visual feedback
         Train->ggDistanceCounterButton.UpdateValue( 1.0, Train->dsbSwitch );
         // activate or start anew
-        Train->m_distancecounter = 0.f;
+        if (Train->mvOccupied->isDoubleClickForMeasureNeeded) {
+            // handler tempomatu dla podwojnego kliku
+			if (Train->trainLenghtMeasureTimer >= 0.f) // jesli zdazylismy w czasie sekundy
+				Train->m_distancecounter = 0.f; // rozpoczynamy pomiar
+			else
+			    Train->trainLenghtMeasureTimer = Train->mvOccupied->DistanceCounterDoublePressPeriod; // odpalamy zegarek od nowa
+        }
+        else {
+            // dla pojedynczego kliku
+			Train->m_distancecounter = 0.f;
+        }
     }
     else if( Command.action == GLFW_RELEASE ) {
         // visual feedback
@@ -2899,7 +2909,7 @@ void TTrain::OnCommand_pantographvalvesoff( TTrain *Train, command_data const &C
     }
     else if( Command.action == GLFW_RELEASE ) {
         // visual feedback
-        // NOTE: pantvalves_sw: is a specialized button, with no toggle behavior support
+        // NOTE: pantvalves_sw: is a speciali   zed button, with no toggle behavior support
 		if (hasSeparateSwitches)
 			Train->ggPantValvesOff.UpdateValue(0.f, Train->dsbSwitch);
 		else
@@ -6952,6 +6962,16 @@ bool TTrain::Update( double const Deltatime )
             mvOccupied->OperateDoors( static_cast<side>( idx ), true );
         }
     }
+
+    // train measurement timer
+    if (trainLenghtMeasureTimer >= 0.f) {
+		trainLenghtMeasureTimer -= Deltatime;
+		if (trainLenghtMeasureTimer < 0.f)
+		{
+			trainLenghtMeasureTimer = -1.f;
+        }
+    }
+
     // helper variables
     if( DynamicObject->Mechanik != nullptr ) {
         m_doors = (
