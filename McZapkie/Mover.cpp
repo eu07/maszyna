@@ -10628,6 +10628,9 @@ void TMoverParameters::LoadFIZ_Cntrl( std::string const &line ) {
 
     extract_value(HideDirStatusWhenMoving, "HideDirStatusWhenMoving", line, "");
 	extract_value(HideDirStatusSpeed, "HideDirStatusSpeed", line, "");
+	extract_value(isDoubleClickForMeasureNeeded, "DCMB", line, "");
+	extract_value(DistanceCounterDoublePressPeriod, "DCDPP", line, "");
+
 
     std::map<std::string, start_t> starts {
         { "Disabled", start_t::disabled },

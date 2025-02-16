@@ -882,6 +882,7 @@ private:
     bool m_dirbackward{ false }; // helper, true if direction set to backward
     bool m_doorpermits{ false }; // helper, true if any door permit is active
     float m_doorpermittimers[2] = { -1.f, -1.f };
+	float trainLenghtMeasureTimer = { -1.f };
     // ld substitute
     bool m_couplingdisconnect { false };
 	bool m_couplingdisconnectback { false };

@@ -1205,16 +1205,17 @@ class TMoverParameters
 	int LightsDefPos = 1;
 	bool LightsWrap = false;
 	int Lights[2][17]; // pozycje świateł, przód - tył, 1 .. 16
-    int ScndInMain{ 0 };     /*zaleznosc bocznika od nastawnika*/
-	bool MBrake = false;     /*Czy jest hamulec reczny*/
-	double maxTachoSpeed = { 0.0 }; // maksymalna predkosc na tarczce predkosciomierza analogowego
-	double StopBrakeDecc = { 0.0 };
-    bool ReleaseParkingBySpringBrake { false };
-	bool ReleaseParkingBySpringBrakeWhenDoorIsOpen{ false };
-	bool SpringBrakeCutsOffDrive { true };
-	double SpringBrakeDriveEmergencyVel { -1 };
-	bool HideDirStatusWhenMoving { false }; // Czy gasic lampki kierunku powyzej predkosci zdefiniowanej przez HideDirStatusSpeed
-	int HideDirStatusSpeed{ 1 };	// Predkosc od ktorej lampki kierunku sa wylaczane
+	int ScndInMain{0}; /*zaleznosc bocznika od nastawnika*/
+	bool MBrake = false; /*Czy jest hamulec reczny*/
+	double StopBrakeDecc = 0.0;
+	bool ReleaseParkingBySpringBrake{false};
+	bool ReleaseParkingBySpringBrakeWhenDoorIsOpen{false};
+	bool SpringBrakeCutsOffDrive{true};
+	double SpringBrakeDriveEmergencyVel{-1};
+	bool HideDirStatusWhenMoving{false}; // Czy gasic lampki kierunku powyzej predkosci zdefiniowanej przez HideDirStatusSpeed
+	int HideDirStatusSpeed{1}; // Predkosc od ktorej lampki kierunku sa wylaczane
+	bool isDoubleClickForMeasureNeeded = {false}; // czy rozpoczecie pomiaru odleglosci odbywa sie po podwojnym wcisnienciu przycisku?
+	float DistanceCounterDoublePressPeriod = {1.f}; // czas w jakim nalezy podwojnie wcisnac przycisk, aby rozpoczac pomiar odleglosci
 	TSecuritySystem SecuritySystem;
 	int EmergencyBrakeWarningSignal{0}; // combined with basic WarningSignal when manual emergency brake is active
 	TUniversalCtrlTable UniCtrlList; /*lista pozycji uniwersalnego nastawnika*/
