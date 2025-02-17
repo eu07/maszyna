@@ -118,7 +118,9 @@ struct global_settings {
     glm::ivec2 window_size; // main window size in platform-specific virtual pixels
     glm::ivec2 cursor_pos; // cursor position in platform-specific virtual pixels
     glm::ivec2 fb_size; // main window framebuffer size
-
+	float ShakingMultiplierBF {1.f}; // mnożnik bujania kamera przod/tyl
+	float ShakingMultiplierRL {1.f}; // mnożnik bujania kamera lewo/prawo
+	float ShakingMultiplierUD {1.f}; // mnożnik bujania kamera gora/dol
     float fDistanceFactor{ 1.f }; // baza do przeliczania odległości dla LoD
     float targetfps{ 0.0f };
     bool bFullScreen{ false };

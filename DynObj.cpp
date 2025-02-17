@@ -7857,9 +7857,9 @@ TDynamicObject::update_shake( double const Timedelta ) {
         if( iVel > 0.5 ) {
             // acceleration-driven base shake
             shakevector += Math3D::vector3(
-                -MoverParameters->AccN * Timedelta * 5.0, // highlight side sway
-                -MoverParameters->AccVert * Timedelta,
-                -MoverParameters->AccSVBased * Timedelta * 1.5); // accent acceleration/deceleration
+                -MoverParameters->AccN * Timedelta * 5.0 * Global.ShakingMultiplierRL, // highlight side sway
+                -MoverParameters->AccVert * Timedelta * Global.ShakingMultiplierUD,
+                -MoverParameters->AccSVBased * Timedelta * 1.5 * Global.ShakingMultiplierBF); // accent acceleration/deceleration
         }
 
         auto shake { 1.25 * ShakeSpring.ComputateForces( shakevector, ShakeState.offset ) };
