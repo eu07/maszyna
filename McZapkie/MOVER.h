@@ -487,6 +487,7 @@ struct TCurrentCollector {
     double MaxPress;  //maksymalne ciśnienie za reduktorem
     bool FakePower;
     int PhysicalLayout;
+	TPantType PantographType;
     //inline TCurrentCollector() {
     //    CollectorsNo = 0;
     //    MinH, MaxH, CSW, MinV, MaxV = 0.0;

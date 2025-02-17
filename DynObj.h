@@ -103,6 +103,13 @@ class TAnimPant
     float fWidthExtra; // dodatkowy rozmiar poziomy poza część roboczą (fWidth)
     float fHeightExtra[5]; //łamana symulująca kształt nabieżnika
     // double fHorizontal; //Ra 2015-01: położenie drutu względem osi pantografu
+
+    // factory ktore mozna nadpisac z fiza
+	float rd1rf{1.f}; // mnoznik obrotu ramienia dolnego 1
+	float rd2rf{1.f}; // mnoznik obrotu ramienia dolnego 2
+	float rg1rf{1.f}; // mnoznik obrotu ramienia gornego 1
+	float rg2rf{1.f}; // mnoznik obrotu ramienia gornego 2
+	float slizgrf{1.f}; // mnoznik obrotu slizgacza
     void AKP_4E();
 	void WBL85();
 	void DSAx();
@@ -118,8 +125,8 @@ public:
 // destructor
     ~TAnim();
 // methods
-    int TypeSet( int i, int fl = 0 ); // ustawienie typu
-// members
+	int TypeSet(int i, TMoverParameters currentMover, int fl = 0); // ustawienie typu
+	    // members
     union
     {
         TSubModel *smAnimated; // animowany submodel (jeśli tylko jeden, np. oś)
