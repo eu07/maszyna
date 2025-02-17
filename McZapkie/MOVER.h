@@ -1069,6 +1069,8 @@ class TMoverParameters
 	};
 
   public:
+	std::string chkPath;
+	bool reload_FIZ();
 	double dMoveLen = 0.0;
 	/*---opis lokomotywy, wagonu itp*/
 	/*--opis serii--*/

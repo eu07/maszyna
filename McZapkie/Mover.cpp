@@ -9444,6 +9444,7 @@ void TMoverParameters::BrakeSubsystemDecode()
 // *************************************************************************************************
 bool TMoverParameters::LoadFIZ(std::string chkpath)
 {
+	chkPath = chkpath; // assign class path for reloading
     const int param_ok = 1;
     const int wheels_ok = 2;
     const int dimensions_ok = 4;
@@ -12471,6 +12472,24 @@ double TMoverParameters::ShowCurrentP(int AmpN) const
                     current = static_cast<int>(Couplers[b].Connected->ShowCurrent(AmpN));
         return current;
     }
+}
+
+bool TMoverParameters::reload_FIZ() {
+	WriteLog("[DEV] Reloading FIZ for " + Name);
+    // pause simulation
+	Global.iPause |= 0b1000;
+	bool result = LoadFIZ(chkPath);
+    if (result == true)
+    {
+		// jesli sie udalo przeladowac FIZ
+		Global.iPause &= 0b0111;
+		WriteLog("[DEV] FIZ reloaded for " + Name);
+    }
+    else {
+        // failed to reload - exit simulator
+		ErrorLog("[DEV] Failed to reload fiz for vehicle " + Name);
+    }
+
 }
 
 namespace simulation {

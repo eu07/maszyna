@@ -5041,7 +5041,8 @@ TDynamicObject::radius() const {
 // McZapkie-250202
 // wczytywanie pliku z danymi multimedialnymi (dzwieki)
 void TDynamicObject::LoadMMediaFile( std::string const &TypeName, std::string const &ReplacableSkin ) {
-
+	rTypeName = TypeName;
+	rReplacableSkin = ReplacableSkin;
     Global.asCurrentDynamicPath = asBaseDir;
     std::string asFileName = asBaseDir + TypeName + ".mmd";
     std::string asAnimName;

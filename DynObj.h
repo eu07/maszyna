@@ -209,7 +209,11 @@ public:
     inline TDynamicObject *PrevConnected() const { return MoverParameters->Neighbours[ end::front ].vehicle; }; // pojazd podłączony od strony sprzęgu 0 (kabina 1)
     inline int NextConnectedNo() const { return MoverParameters->Neighbours[ end::rear ].vehicle_end; }
     inline int PrevConnectedNo() const { return MoverParameters->Neighbours[ end::front ].vehicle_end; }
-//    double fTrackBlock; // odległość do przeszkody do dalszego ruchu (wykrywanie kolizji z innym pojazdem)
+
+    // Dev tools
+	void Reload();
+
+	//    double fTrackBlock; // odległość do przeszkody do dalszego ruchu (wykrywanie kolizji z innym pojazdem)
 
     // modele składowe pojazdu
     TModel3d *mdModel; // model pudła
@@ -572,6 +576,9 @@ private:
   private:
     TDynamicObject *ABuFindObject( int &Foundcoupler, double &Distance, TTrack const *Track, int const Direction, int const Mycoupler ) const;
     void ABuCheckMyTrack();
+
+    std::string rTypeName; // nazwa typu pojazdu
+	std::string rReplacableSkin; // nazwa tekstury pojazdu
 
   public:
     bool DimHeadlights{ false }; // status of the headlight dimming toggle. NOTE: single toggle for all lights is a simplification. TODO: separate per-light switches
