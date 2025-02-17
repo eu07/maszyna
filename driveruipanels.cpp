@@ -619,6 +619,7 @@ debug_panel::render() {
         render_section( "Camera", m_cameralines );
         render_section( "Gfx Renderer", m_rendererlines );
         render_section_settings();
+		render_section_developer(); // Developer tools
 #ifdef WITH_UART
         if(true == render_section( "UART", m_uartlines)) {
             int ports_num = UartStatus.available_ports.size();
@@ -1473,6 +1474,19 @@ debug_panel::render_section( std::vector<text_line> const &Lines ) {
 //        ImGui::TextColored( ImVec4( line.color.r, line.color.g, line.color.b, line.color.a ), line.data.c_str() );
 	}
 	return true;
+}
+
+bool debug_panel::render_section_developer()
+{
+	if (false == ImGui::CollapsingHeader("Developer tools"))
+		return false;
+	ImGui::PushStyleColor(ImGuiCol_Text, {Global.UITextColor.r, Global.UITextColor.g, Global.UITextColor.b, Global.UITextColor.a});
+	ImGui::TextUnformatted("Warning! These tools are only for developers.\nDo not use them if you are NOT sure what they do!");
+	ImGui::TextColored(ImVec4(1.0f, 0.0f, 0.0f, 1.0f), "These settings may crash your simulator!");
+	if (ImGui::Button("Reload current vehicle .fiz") == true)
+	{
+		m_input.vehicle->MoverParameters->reload_FIZ(); // reload fiz
+	}
 }
 
 bool
