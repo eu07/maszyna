@@ -200,7 +200,7 @@ void TAnimPant::DSAx()
 	fHeightExtra[4] = -0.15f; //+0.3810
 };
 //---------------------------------------------------------------------------
-int TAnim::TypeSet(int i, int fl)
+int TAnim::TypeSet(int i, TMoverParameters currentMover, int fl)
 { // ustawienie typu animacji i zależnej od niego ilości animowanych submodeli
     fMaxDist = -1.0; // normalnie nie pokazywać
     switch (i)
@@ -239,8 +239,8 @@ int TAnim::TypeSet(int i, int fl)
             case(TPantType::EC160_200):
                 fParamPants->EC160_200();
 			    break;
-            case(TPantType::WBL88):
-                fParamPants->WBL88();
+            case(TPantType::WBL85):
+                fParamPants->WBL85();
 			    break;
         }
 
@@ -5258,8 +5258,8 @@ void TDynamicObject::LoadMMediaFile( std::string const &TypeName, std::string co
                                         if (iAnimType[ANIM_PANTS]) // o ile jakieś pantografy są (a domyślnie są)
                                             pants = &pAnimations[k]; // zapamiętanie na potrzeby wyszukania submodeli
                                 pAnimations[k].iShift = sm; // przesunięcie do przydzielenia wskaźnika
-                                sm += pAnimations[k++].TypeSet(j); // ustawienie typu animacji i zliczanie tablicowanych submodeli
-                            }
+								sm += pAnimations[k++].TypeSet(j, *MoverParameters); // ustawienie typu animacji i zliczanie tablicowanych submodeli
+							}
                         if (sm) // o ile są bardziej złożone animacje
                         {
                             pAnimated = new TSubModel *[sm]; // tabela na animowane submodele
