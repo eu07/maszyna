@@ -8120,11 +8120,12 @@ TDynamicObject::powertrain_sounds::render( TMoverParameters const &Vehicle, doub
     // youBy - przenioslem, bo diesel tez moze miec turbo
     if( Vehicle.TurboTest > 0 ) {
         // udawanie turbo:
-		auto const pitch_diesel{(Vehicle.EngineType == TEngineType::DieselEngine || Vehicle.EngineType == TEngineType::DieselElectric) ? std::pow(Vehicle.enrot / Vehicle.dizel_nmax, 2.0) * Vehicle.dizel_fill : 1};
+		auto const pitch_diesel{(Vehicle.EngineType == TEngineType::DieselEngine || Vehicle.EngineType == TEngineType::DieselElectric) ? Vehicle.enrot / Vehicle.dizel_nmax * Vehicle.dizel_fill : 1};
         auto const goalpitch { std::max( 0.025, ( /*engine_volume **/ pitch_diesel + engine_turbo.m_frequencyoffset ) * engine_turbo.m_frequencyfactor ) };
-		auto const goalvolume{
-		    ((Vehicle.MainCtrlPos >= Vehicle.TurboTest) && (Vehicle.enrot > 0.1)) ? std::max(0.0, (engine_turbo_pitch + engine_turbo.m_amplitudeoffset) * engine_turbo.m_amplitudefactor) : 0.0};
-
+        auto const goalvolume { (
+            ( ( Vehicle.MainCtrlPos >= Vehicle.TurboTest ) && ( Vehicle.enrot > 0.1 ) ) ?
+                std::max( 0.0, ( engine_turbo_pitch + engine_turbo.m_amplitudeoffset ) * engine_turbo.m_amplitudefactor ) :
+                0.0 ) };
         auto const currentvolume { engine_turbo.gain() };
         auto const changerate { 0.4 * Deltatime };
 
