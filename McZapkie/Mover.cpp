@@ -12503,7 +12503,7 @@ bool TMoverParameters::reload_FIZ() {
         // failed to reload - exit simulator
 		ErrorLog("[DEV] Failed to reload fiz for vehicle " + Name);
     }
-
+	return true;
 }
 
 namespace simulation {
