@@ -1,3 +1,7 @@
 [submodule "ref/asio"]
 	path = ref/asio
 	url = https://github.com/chriskohlhoff/asio.git
+[submodule "ref/discord-rpc"]
+	path = ref/discord-rpc
+	url = https://github.com/discord/discord-rpc.git
+	branch = v3.4.0

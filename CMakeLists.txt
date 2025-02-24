@@ -429,6 +429,12 @@ target_link_libraries(${PROJECT_NAME} Threads::Threads)
 find_package(GLM REQUIRED)
 include_directories(${GLM_INCLUDE_DIR})
 
+# add ref/discord-rpc to the project in the same way other dependencies are added
+add_subdirectory(ref/discord-rpc)
+target_link_libraries(${PROJECT_NAME} discord-rpc)
+
+
+
 find_package(OpenAL REQUIRED)
 if (TARGET OpenAL::OpenAL)
 	target_link_libraries(${PROJECT_NAME} OpenAL::OpenAL)
