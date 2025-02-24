@@ -29,6 +29,8 @@ http://mozilla.org/MPL/2.0/.
 #include "Timer.h"
 #include "dictionary.h"
 #include "version_info.h"
+#include "ref/discord-rpc/include/discord_rpc.h"
+#include <chrono>
 
 #ifdef _WIN32
 #pragma comment (lib, "dsound.lib")
@@ -239,6 +241,43 @@ eu07_application::init( int Argc, char *Argv[] ) {
 	if (!init_network())
 		return -1;
 
+    // initialize discord-rpc
+	WriteLog("Initializing Discord Rich Presence...");
+	static const char *discord_app_id = "1343662664504840222";
+	DiscordEventHandlers handlers;
+	memset(&handlers, 0, sizeof(handlers));
+	Discord_Initialize(discord_app_id, &handlers, 1, nullptr);
+
+	std::string rpcScnName = Global.SceneryFile;
+	if (rpcScnName[0] == '$')
+		rpcScnName.erase(0, 1);
+	rpcScnName.erase(rpcScnName.size() - 4, 4);
+	if (rpcScnName.find('_') != std::string::npos)
+	{
+		std::replace(rpcScnName.begin(), rpcScnName.end(), '_', ' ');
+	}
+
+    // calculate startup timestamp
+	auto now = std::chrono::system_clock::now();
+	auto now_c = std::chrono::system_clock::to_time_t(now);
+
+    // Init RPC object
+	static DiscordRichPresence discord_rpc;
+	memset(&discord_rpc, 0, sizeof(discord_rpc));
+    // realworld timestamp from datetime
+	discord_rpc.startTimestamp = static_cast<int64_t>(now_c);
+	static std::string state = "Sceneria: " + rpcScnName;
+	discord_rpc.state = state.c_str();
+	discord_rpc.details = "Ładowanie scenerii";
+	discord_rpc.largeImageKey = "logo";
+	discord_rpc.largeImageText = "MaSzyna";
+	Global.dcData.dcRcp = discord_rpc;
+
+    // First RPC upload
+	Discord_UpdatePresence(&Global.dcData.dcRcp);
+
+
+
     return result;
 }
 
@@ -282,6 +321,19 @@ eu07_application::run() {
     // main application loop
     while (!glfwWindowShouldClose( m_windows.front() ) && !m_modestack.empty())
     {
+        // Discord RPC updater
+        if (simulation::is_ready)
+        {
+			std::string PlayerVehicle = simulation::Train->name();
+            // make to upper
+			for (auto &c : PlayerVehicle) c = toupper(c);
+
+            PlayerVehicle = "Prowadzi: " + PlayerVehicle;
+            Global.dcData.dcRcp.details = PlayerVehicle.c_str();
+			Discord_UpdatePresence(&Global.dcData.dcRcp);
+        }
+
+
         Timer::subsystem.mainloop_total.start();
         glfwPollEvents();
 

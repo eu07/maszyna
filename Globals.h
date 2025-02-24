@@ -16,6 +16,7 @@ http://mozilla.org/MPL/2.0/.
 #include "light.h"
 #include "utilities.h"
 #include "motiontelemetry.h"
+#include "ref/discord-rpc/include/discord_rpc.h"
 #ifdef WITH_UART
 #include "uart.h"
 #endif
@@ -23,10 +24,17 @@ http://mozilla.org/MPL/2.0/.
 #include "zmq_input.h"
 #endif
 
+struct DiscordData
+{
+	DiscordRichPresence dcRcp;
+	char *scnName = "";
+};
+
 struct global_settings {
 // members
     // data items
     // TODO: take these out of the settings
+	DiscordData dcData;
     bool shiftState{ false }; //m7todo: brzydko
     bool ctrlState{ false };
     bool altState{ false };
