@@ -5,8 +5,8 @@ init:
   - git submodule update --init --recursive
 build_script:
 - ps: >-
-  cd ref
-  
+    cd ref
+    
     curl -o crashpad86.zip "http://get.backtrace.io/crashpad/builds/release/x86/crashpad-2020-07-01-release-x86-558c9614e3819179f30b92541450f5ac643afce5.zip"
     
     7z x crashpad86.zip
