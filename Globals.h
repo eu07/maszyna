@@ -17,6 +17,8 @@ http://mozilla.org/MPL/2.0/.
 #include "utilities.h"
 #include "motiontelemetry.h"
 #include "ref/discord-rpc/include/discord_rpc.h"
+#include <map>
+
 #ifdef WITH_UART
 #include "uart.h"
 #endif
@@ -24,17 +26,15 @@ http://mozilla.org/MPL/2.0/.
 #include "zmq_input.h"
 #endif
 
-struct DiscordData
-{
-	DiscordRichPresence dcRcp;
-	char *scnName = "";
-};
-
 struct global_settings {
 // members
     // data items
     // TODO: take these out of the settings
-	DiscordData dcData;
+
+	/// <summary>
+	/// Mapa z watkami w formacie <std::string nazwa, std::thread watek>
+	/// </summary>
+	std::map<std::string, std::thread> threads = {};
     bool shiftState{ false }; //m7todo: brzydko
     bool ctrlState{ false };
     bool altState{ false };
