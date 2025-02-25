@@ -31,6 +31,7 @@ http://mozilla.org/MPL/2.0/.
 #include "version_info.h"
 #include "ref/discord-rpc/include/discord_rpc.h"
 #include <chrono>
+#include "translation.h"
 
 #ifdef _WIN32
 #pragma comment (lib, "dsound.lib")
@@ -203,9 +204,9 @@ void eu07_application::DiscordRPCService()
 	memset(&discord_rpc, 0, sizeof(discord_rpc));
 	// realworld timestamp from datetime
 	discord_rpc.startTimestamp = static_cast<int64_t>(now_c);
-	static std::string state = "Sceneria: " + rpcScnName;
+	static std::string state = Translations.lookup_s("Scenery: ") + rpcScnName;
 	discord_rpc.state = state.c_str();
-	discord_rpc.details = "Ładowanie scenerii";
+	discord_rpc.details = Translations.lookup_c("Loading scenery...");
 	discord_rpc.largeImageKey = "logo";
 	discord_rpc.largeImageText = "MaSzyna";
 
@@ -223,8 +224,24 @@ void eu07_application::DiscordRPCService()
 			for (auto &c : PlayerVehicle)
 				c = toupper(c);
 
-			PlayerVehicle = "Prowadzi: " + PlayerVehicle;
+			PlayerVehicle = Translations.lookup_s("Driving: ") + PlayerVehicle;
 			discord_rpc.details = PlayerVehicle.c_str();
+
+            uint16_t playerTrainVelocity = simulation::Train->Dynamic()->GetVelocity(); 
+            if (playerTrainVelocity > 1)
+			{
+				// ikonka ze jedziemy i nie spimy
+				discord_rpc.smallImageKey = "driving";
+				std::string smallText = Translations.lookup_s("Speed: ") + std::to_string(playerTrainVelocity) + " km/h";
+				discord_rpc.smallImageText = smallText.c_str();
+			}
+			else
+			{
+				// krecimy postoj
+				discord_rpc.smallImageKey = "halt";
+				discord_rpc.smallImageText = Translations.lookup_c("Stopped");
+			}
+
 			Discord_UpdatePresence(&discord_rpc);
 		}
 		std::this_thread::sleep_for(std::chrono::milliseconds(5000)); // update RPC every 5 secs
