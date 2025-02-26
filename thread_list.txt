@@ -1,0 +1,2 @@
+- DiscordRPC - Thread for refreshing discord rich presence
+- LogService - Service that logs data to files and console
