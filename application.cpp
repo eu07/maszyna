@@ -259,6 +259,10 @@ eu07_application::init( int Argc, char *Argv[] ) {
         return result;
     }
 
+    // start logging service
+	std::thread sLoggingService(LogService);
+	Global.threads.emplace("LogService", std::move(sLoggingService));
+
 	WriteLog( "Starting MaSzyna rail vehicle simulator (release: " + Global.asVersion + ")" );
 	WriteLog( "For online documentation and additional files refer to: http://eu07.pl" );
 	WriteLog( "Authors: Marcin_EU, McZapkie, ABu, Winger, Tolaris, nbmx, OLO_EU, Bart, Quark-t, "
@@ -512,7 +516,8 @@ eu07_application::run() {
             std::this_thread::sleep_for( Global.minframetime - frametime );
         }
     }
-
+	Global.threads["LogService"].~thread(); // kill log service
+	Global.threads["DiscordRPC"].~thread(); // kill DiscordRPC service
 	return 0;
 }
 

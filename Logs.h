@@ -23,7 +23,7 @@ enum class logtype : unsigned int {
     traction = ( 1 << 9 ),
     powergrid = ( 1 << 10 ),
 };
-
+void LogService();
 void WriteLog( const char *str, logtype const Type = logtype::generic );
 void Error( const std::string &asMessage, bool box = false );
 void Error( const char* &asMessage, bool box = false );
