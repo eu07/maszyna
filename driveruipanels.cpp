@@ -617,7 +617,7 @@ debug_panel::render() {
             ImGui::Checkbox( "Debug Traction", &DebugTractionFlag );
         }
         render_section( "Camera", m_cameralines );
-        render_section( "Gfx Renderer", m_rendererlines );
+        render_section( "Gfx Renderer / Statistics", m_rendererlines );
         render_section_settings();
 		render_section_developer(); // Developer tools
 #ifdef WITH_UART
@@ -1453,6 +1453,14 @@ debug_panel::update_section_renderer( std::vector<text_line> &Output ) {
             // renderer stats
             Output.emplace_back( GfxRenderer->info_times(), Global.UITextColor );
             Output.emplace_back( GfxRenderer->info_stats(), Global.UITextColor );
+
+            // CPU related
+            Output.emplace_back("CPU:", Global.UITextColor);
+
+            // thread counter
+	        textline = "Running threads: " + std::to_string(Global.threads.size() + 1);
+	        Output.emplace_back(textline, Global.UITextColor);
+
 }
 
 bool
