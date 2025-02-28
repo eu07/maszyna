@@ -29,6 +29,8 @@ Copyright (C) 2001-2004  Marcin Wozniak, Maciej Czapkiewicz and others
 
 using namespace Mtable;
 
+std::mutex materialLoadLock;
+
 float TSubModel::fSquareDist = 0.f;
 std::uintptr_t TSubModel::iInstance; // numer renderowanego egzemplarza obiektu
 texture_handle const *TSubModel::ReplacableSkinId = NULL;
@@ -377,52 +379,56 @@ std::pair<int, int> TSubModel::Load( cParser &parser, bool dynamic )
 
         if (!parser.expectToken("map:"))
             Error("Model map parse failure!");
-        std::string material = parser.getToken<std::string>();
-		std::replace(material.begin(), material.end(), '\\', '/');
-        if (material == "none")
-        { // rysowanie podanym kolorem
-            Name_Material( "colored" );
-            m_material = GfxRenderer->Fetch_Material( m_materialname );
-            iFlags |= 0x10; // rysowane w cyklu nieprzezroczystych
-        }
-        else if (material.find("replacableskin") != material.npos)
-        { // McZapkie-060702: zmienialne skory modelu
-            m_material = -1;
-			iFlags |= (Opacity < 0.999) ? 1 : 0x10; // zmienna tekstura 1
-        }
-        else if (material == "-1")
-        {
-			m_material = -1;
-			iFlags |= (Opacity < 0.999) ? 1 : 0x10; // zmienna tekstura 1
-        }
-        else if (material == "-2")
-        {
-            m_material = -2;
-			iFlags |= (Opacity < 0.999) ? 2 : 0x10; // zmienna tekstura 2
-        }
-        else if (material == "-3")
-        {
-            m_material = -3;
-			iFlags |= (Opacity < 0.999) ? 4 : 0x10; // zmienna tekstura 3
-        }
-        else if (material == "-4")
-        {
-            m_material = -4;
-			iFlags |= (Opacity < 0.999) ? 8 : 0x10; // zmienna tekstura 4
-        }
-        else {
-            Name_Material(material);
-/*
-            if( material.find_first_of( "/" ) == material.npos ) {
-                // jeśli tylko nazwa pliku, to dawać bieżącą ścieżkę do tekstur
-                material.insert( 0, Global.asCurrentTexturePath );
+		    materialLoadLock.lock();
+
+            std::string material = parser.getToken<std::string>();
+		    std::replace(material.begin(), material.end(), '\\', '/');
+            if (material == "none")
+            { // rysowanie podanym kolorem
+                Name_Material( "colored" );
+                m_material = GfxRenderer->Fetch_Material( m_materialname );
+                iFlags |= 0x10; // rysowane w cyklu nieprzezroczystych
             }
-*/
-            m_material = GfxRenderer->Fetch_Material( material );
-            // renderowanie w cyklu przezroczystych tylko jeśli:
-            // 1. Opacity=0 (przejściowo <1, czy tam <100)
-			iFlags |= Opacity < 0.999f ? 0x20 : 0x10 ; // 0x20-przezroczysta, 0x10-nieprzezroczysta
-        };
+            else if (material.find("replacableskin") != material.npos)
+            { // McZapkie-060702: zmienialne skory modelu
+                m_material = -1;
+			    iFlags |= (Opacity < 0.999) ? 1 : 0x10; // zmienna tekstura 1
+            }
+            else if (material == "-1")
+            {
+			    m_material = -1;
+			    iFlags |= (Opacity < 0.999) ? 1 : 0x10; // zmienna tekstura 1
+            }
+            else if (material == "-2")
+            {
+                m_material = -2;
+			    iFlags |= (Opacity < 0.999) ? 2 : 0x10; // zmienna tekstura 2
+            }
+            else if (material == "-3")
+            {
+                m_material = -3;
+			    iFlags |= (Opacity < 0.999) ? 4 : 0x10; // zmienna tekstura 3
+            }
+            else if (material == "-4")
+            {
+                m_material = -4;
+			    iFlags |= (Opacity < 0.999) ? 8 : 0x10; // zmienna tekstura 4
+            }
+            else {
+                Name_Material(material);
+    /*
+                if( material.find_first_of( "/" ) == material.npos ) {
+                    // jeśli tylko nazwa pliku, to dawać bieżącą ścieżkę do tekstur
+                    material.insert( 0, Global.asCurrentTexturePath );
+                }
+    */
+                m_material = GfxRenderer->Fetch_Material( material );
+                // renderowanie w cyklu przezroczystych tylko jeśli:
+                // 1. Opacity=0 (przejściowo <1, czy tam <100)
+			    iFlags |= Opacity < 0.999f ? 0x20 : 0x10 ; // 0x20-przezroczysta, 0x10-nieprzezroczysta
+            };
+
+            materialLoadLock.unlock();
     }
     else if (eType == TP_STARS)
     {
