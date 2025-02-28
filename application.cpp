@@ -219,28 +219,35 @@ void eu07_application::DiscordRPCService()
 		// Discord RPC updater
 		if (simulation::is_ready)
 		{
-			std::string PlayerVehicle = simulation::Train->name();
-			// make to upper
-			for (auto &c : PlayerVehicle)
-				c = toupper(c);
+			std::string PlayerVehicle;
+            if (simulation::Train != nullptr)
+            {
+				PlayerVehicle = simulation::Train->name();
+				// make to upper
+				for (auto &c : PlayerVehicle)
+					c = toupper(c);
 
-			PlayerVehicle = Translations.lookup_s("Driving: ") + PlayerVehicle;
-			discord_rpc.details = PlayerVehicle.c_str();
+				PlayerVehicle = Translations.lookup_s("Driving: ") + PlayerVehicle;
+				discord_rpc.details = PlayerVehicle.c_str();
 
-            uint16_t playerTrainVelocity = simulation::Train->Dynamic()->GetVelocity(); 
-            if (playerTrainVelocity > 1)
-			{
-				// ikonka ze jedziemy i nie spimy
-				discord_rpc.smallImageKey = "driving";
-				std::string smallText = Translations.lookup_s("Speed: ") + std::to_string(playerTrainVelocity) + " km/h";
-				discord_rpc.smallImageText = smallText.c_str();
-			}
-			else
-			{
-				// krecimy postoj
-				discord_rpc.smallImageKey = "halt";
-				discord_rpc.smallImageText = Translations.lookup_c("Stopped");
-			}
+				uint16_t playerTrainVelocity = simulation::Train->Dynamic()->GetVelocity();
+				if (playerTrainVelocity > 1)
+				{
+					// ikonka ze jedziemy i nie spimy
+					discord_rpc.smallImageKey = "driving";
+					std::string smallText = Translations.lookup_s("Speed: ") + std::to_string(playerTrainVelocity) + " km/h";
+					discord_rpc.smallImageText = smallText.c_str();
+				}
+				else
+				{
+					// krecimy postoj
+					discord_rpc.smallImageKey = "halt";
+					discord_rpc.smallImageText = Translations.lookup_c("Stopped");
+				}
+            }
+
+
+
 
 			Discord_UpdatePresence(&discord_rpc);
 		}
