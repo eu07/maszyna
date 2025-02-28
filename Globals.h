@@ -18,7 +18,6 @@ http://mozilla.org/MPL/2.0/.
 #include "motiontelemetry.h"
 #include "ref/discord-rpc/include/discord_rpc.h"
 #include <map>
-#include <thread>
 
 #ifdef WITH_UART
 #include "uart.h"
@@ -36,7 +35,6 @@ struct global_settings {
 	/// Mapa z watkami w formacie <std::string nazwa, std::thread watek>
 	/// </summary>
 	std::map<std::string, std::thread> threads = {};
-    std::thread::id mainThreadId = std::this_thread::get_id();
     bool shiftState{ false }; //m7todo: brzydko
     bool ctrlState{ false };
     bool altState{ false };
