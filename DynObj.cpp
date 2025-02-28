@@ -32,8 +32,6 @@ http://mozilla.org/MPL/2.0/.
 #include "uitranscripts.h"
 #include "messaging.h"
 #include "Driver.h"
-#include <thread>
-#include <future>
 
 // Ra: taki zapis funkcjonuje lepiej, ale może nie jest optymalny
 #define vWorldFront Math3D::vector3(0, 0, 1)
@@ -5216,20 +5214,7 @@ void TDynamicObject::LoadMMediaFile( std::string const &TypeName, std::string co
             */
             asModel = asBaseDir + asModel; // McZapkie 2002-07-20: dynamics maja swoje modele w dynamics/basedir
             Global.asCurrentTexturePath = asBaseDir; // biezaca sciezka do tekstur to dynamic/...
-
-            // Load model asynchronously
-			std::future<TModel3d *> ModelLoadingThread = std::async(std::launch::async,
-			                                                        TModelsManager::GetModel, // Function
-			                                                        asModel, // std::string const&
-			                                                        true, // bool dynamic
-			                                                        true, // bool Logerrors
-			                                                        0 // int uid
-			);
-            //mdModel = TModelsManager::GetModel(asModel, true);
-
-            std::future<TModel3d *> LowpolyLoaderThread;
-			bool promiseLowpolyModel = false;
-
+            mdModel = TModelsManager::GetModel(asModel, true);
             if (ReplacableSkin != "none") {
                 m_materialdata.assign( ReplacableSkin );
             }
@@ -5294,16 +5279,7 @@ void TDynamicObject::LoadMMediaFile( std::string const &TypeName, std::string co
                     erase_leading_slashes( asModel );
                     asModel = asBaseDir + asModel; // McZapkie-200702 - dynamics maja swoje modele w dynamic/basedir
                     Global.asCurrentTexturePath = asBaseDir; // biezaca sciezka do tekstur to dynamic/...
-
-                    LowpolyLoaderThread = std::async(std::launch::async,
-					                                                         TModelsManager::GetModel, // Function
-					                                                         asModel, // std::string const&
-					                                                         true, // bool dynamic
-					                                                         true, // bool Logerrors
-					                                                         0 // int uid
-					);
-					promiseLowpolyModel = true;
-                    //mdLowPolyInt = TModelsManager::GetModel(asModel, true);
+                    mdLowPolyInt = TModelsManager::GetModel(asModel, true);
                 }
 
                 else if(token == "coupleradapter:") {
@@ -5856,11 +5832,6 @@ void TDynamicObject::LoadMMediaFile( std::string const &TypeName, std::string co
 
 			} while( ( token != "" )
 	              && ( token != "endmodels" ) );
-			
-            // Wait for models
-			if (promiseLowpolyModel)
-				mdLowPolyInt = LowpolyLoaderThread.get();
-			mdModel = ModelLoadingThread.get();
 
             if( false == MoverParameters->LoadAttributes.empty() ) {
                 // Ra: tu wczytywanie modelu ładunku jest w porządku
