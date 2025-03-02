@@ -494,6 +494,7 @@ private:
     AirCoupler m_headsignal13;
     AirCoupler m_headsignal22;
     AirCoupler m_headsignal23;
+    TButton btExteriorOnly;
     TButton btMechanik1;
 	TButton btMechanik2;
     TButton btShutters1; // cooling shutters for primary water circuit

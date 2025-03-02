@@ -1164,12 +1164,15 @@ void TDynamicObject::ABuLittleUpdate(double ObjSqrDist)
             btnOn = true;
         }
 
+        // only external models ( external_only_on / external_only_off )
+		btExteriorOnly.Turn(!bDisplayCab); // display only when cab is not rendered
+
 		if( ( false == bDisplayCab ) // edge case, lowpoly may act as a stand-in for the hi-fi cab, so make sure not to show the driver when inside
          && ( Mechanik != nullptr )
          && ( ( Mechanik->action() != TAction::actSleep )
            /* || ( MoverParameters->Battery ) */ ) ) {
             // rysowanie figurki mechanika
-            btMechanik1.Turn( MoverParameters->CabOccupied > 0 );
+			btMechanik1.Turn(MoverParameters->CabOccupied > 0);
             btMechanik2.Turn( MoverParameters->CabOccupied < 0 );
             if( MoverParameters->CabOccupied != 0 ) {
                 btnOn = true;
@@ -2373,9 +2376,11 @@ TDynamicObject::Init(std::string Name, // nazwa pojazdu, np. "EU07-424"
     iInventory[end::rear] |= m_highbeam22.Active() ? light::highbeamlight_right : 0;
 	iInventory[end::rear] |= m_highbeam23.Active() ? light::highbeamlight_left : 0;
 
+    btExteriorOnly.Init("external_only", mdModel, false);
 
     btMechanik1.Init( "mechanik1", mdLowPolyInt, false);
 	btMechanik2.Init( "mechanik2", mdLowPolyInt, false);
+
     if( MoverParameters->dizel_heat.water.config.shutters ) {
         btShutters1.Init( "shutters1", mdModel, false );
     }
