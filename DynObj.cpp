@@ -4163,19 +4163,11 @@ bool TDynamicObject::Update(double dt, double dt1)
 					if (dWiperPos[i] < 1.0 && !wiperDirection[i] && wiperParkTimer[i] > currentWiperParams.interval)
 					// go out
 					{
-						if (!sWiperToPark.is_playing())
-						{
-							wiper_playSoundFromStart[i] = true;
-						}
 						dWiperPos[i] = std::min(1.0, dWiperPos[i] + (1.f / currentWiperParams.WiperSpeed) * dt1);
 					}
 					if (dWiperPos[i] > 0.0 && wiperDirection[i] && wiperOutTimer[i] > currentWiperParams.outBackDelay)
 					// return back
 					{
-						if (!sWiperToPark.is_playing())
-						{
-							wiper_playSoundToStart[i] = true;
-						}
 						dWiperPos[i] = std::max(0.0, dWiperPos[i] - (1.f / currentWiperParams.WiperSpeed) * dt1);
 					}
 					if (dWiperPos[i] == 1.0) // we reached end
@@ -4193,27 +4185,6 @@ bool TDynamicObject::Update(double dt, double dt1)
 
                 }
 			}
-
-            // sound
-			if (wiper_playSoundFromStart[i] && dWiperPos[i] == 1.0)
-			{
-				sWiperFromPark.play(sound_flags::exclusive);
-				wiper_playSoundFromStart[i] = false;
-			}
-			else
-			{
-				sWiperToPark.stop();
-			}
-			if (wiper_playSoundToStart[i] && dWiperPos[i] == 0.0)
-			{
-				sWiperToPark.play(sound_flags::exclusive);
-				wiper_playSoundToStart[i] = false;
-			}
-			else
-			{
-				sWiperToPark.stop();
-			}
-
 		}
     }
 
