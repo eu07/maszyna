@@ -609,6 +609,17 @@ struct TDEScheme
 	double Umax = 0.0; /*napiecie maksymalne*/
 	double Imax = 0.0; /*prad maksymalny*/
 };
+
+struct TWiperScheme
+{
+	uint8_t byteSum = 0; // suma bitowa pracujacych wycieraczek
+	double WiperSpeed = 0.0; // predkosc wycieraczki
+	double interval = 0.0; // interwal pracy wycieraczki
+	double outBackDelay = 0.0; // czas po jakim wycieraczka zacznie wracac z konca do poczatku
+};
+typedef TWiperScheme TWiperSchemeTable[16];
+
+
 typedef TDEScheme TDESchemeTable[33]; /*tablica rezystorow rozr.*/
 struct TShuntScheme
 {
@@ -1135,6 +1146,9 @@ class TMoverParameters
 	bool LocHandleTimeTraxx = false; /*hamulec dodatkowy typu traxx*/
 	double MBPM = 1.0; /*masa najwiekszego cisnienia*/
 
+	int wiperSwitchPos = 0; // pozycja przelacznika wycieraczek
+	double WiperAngle = {45.0}; // kat pracy wycieraczek
+
 	std::shared_ptr<TBrake> Hamulec;
 	std::shared_ptr<TDriverHandle> Handle;
 	std::shared_ptr<TDriverHandle> LocHandle;
@@ -1361,6 +1375,9 @@ class TMoverParameters
 	bool Flat = false;
 	double Vhyp = 1.0;
 	TDESchemeTable DElist;
+	TWiperSchemeTable WiperList;
+	int WiperListSize;
+	
 	double Vadd = 1.0;
 	TMPTRelayTable MPTRelay;
 	int RelayType = 0;
@@ -2048,6 +2065,7 @@ private:
 	void LoadFIZ_UCList(std::string const &Input);
     void LoadFIZ_DList( std::string const &Input );
     void LoadFIZ_FFList( std::string const &Input );
+	void LoadFIZ_WiperList(std::string const &Input);
     void LoadFIZ_LightsList( std::string const &Input );
 	void LoadFIZ_CompressorList(std::string const &Input);
     void LoadFIZ_PowerParamsDecode( TPowerParameters &Powerparameters, std::string const Prefix, std::string const &Input );
@@ -2069,6 +2087,7 @@ private:
 	bool readPmaxList(std::string const &line);
     bool readFFList( std::string const &line );
     bool readWWList( std::string const &line );
+    bool readWiperList( std::string const &line );
     bool readLightsList( std::string const &Input );
 	bool readCompressorList(std::string const &Input);
     void BrakeValveDecode( std::string const &s );                                                            //Q 20160719

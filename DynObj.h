@@ -22,6 +22,8 @@ http://mozilla.org/MPL/2.0/.
 #include "sound.h"
 #include "Spring.h"
 
+#include <vector>
+
 #define EU07_SOUND_BOGIESOUNDS
 
 //---------------------------------------------------------------------------
@@ -36,7 +38,8 @@ int const ANIM_PANTS = 5; // pantografy
 int const ANIM_STEAMS = 6; // napęd parowozu
 int const ANIM_DOORSTEPS = 7;
 int const ANIM_MIRRORS = 8;
-int const ANIM_TYPES = 9; // Ra: ilość typów animacji
+int const ANIM_WIPERS = 9;
+int const ANIM_TYPES = 10; // Ra: ilość typów animacji
 
 class TAnim;
 //typedef void(__closure *TUpdate)(TAnim *pAnim); // typ funkcji aktualizującej położenie submodeli
@@ -291,7 +294,8 @@ private:
     void UpdatePlatformTranslate(TAnim *pAnim); // doorstep animation, shift
     void UpdatePlatformRotate(TAnim *pAnim); // doorstep animation, rotate
     void UpdateMirror(TAnim *pAnim); // mirror animation
-/*
+	void UpdateWiper(TAnim *pAnim); // wiper animation
+	/*
     void UpdateLeverDouble(TAnim *pAnim); // animacja gałki zależna od double
     void UpdateLeverFloat(TAnim *pAnim); // animacja gałki zależna od float
     void UpdateLeverInt(TAnim *pAnim); // animacja gałki zależna od int (wartość)
@@ -315,6 +319,14 @@ private:
     Math3D::vector3 vFloor; // podłoga dla ładunku
   public:
     TAnim *pants; // indeks obiektu animującego dla pantografu 0
+    TAnim *wipers; // wycieraczki
+	std::vector<double> wiperOutTimer = std::vector<double>(8, 0.0);
+	std::vector<double> wiperParkTimer = std::vector<double>(8, 0.0);
+	std::vector<int> workingSwitchPos = std::vector<int>(8, 0); // working switch position (to not break wipers when switching modes)
+	std::vector<double> dWiperPos; // timing na osi czasu animacji wycieraczki
+	std::vector<bool> wiperDirection = std::vector<bool>(8, false); // false - return direction; true - out direction
+	std::vector<bool> wiper_playSoundFromStart = std::vector<bool>(8, false);
+	std::vector<bool> wiper_playSoundToStart = std::vector<bool>(8, false); 
     double NoVoltTime; // czas od utraty zasilania
     double dMirrorMoveL{ 0.0 };
     double dMirrorMoveR{ 0.0 };
@@ -534,6 +546,8 @@ private:
     springbrake_sounds m_springbrakesounds;
     sound_source rsSlippery { sound_placement::external, EU07_SOUND_BRAKINGCUTOFFRANGE }; // moved from cab
     sound_source sSand { sound_placement::external };
+    sound_source sWiperToPark { sound_placement::internal };
+    sound_source sWiperFromPark { sound_placement::internal };
     // moving part and other external sounds
     sound_source m_startjolt { sound_placement::general }; // movement start jolt, played once on initial acceleration at slow enough speed
     bool m_startjoltplayed { false };

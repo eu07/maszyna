@@ -254,6 +254,9 @@ int TAnim::TypeSet(int i, TMoverParameters currentMover, int fl)
     case 8:
         iFlags = 0x080;
         break; // mirror
+    case 9:
+		iFlags = 0x023; // 2: Rotating/Motion-based, 8: Uses 3 submodels
+		break;
     default:
         iFlags = 0;
     }
@@ -759,6 +762,24 @@ void TDynamicObject::UpdateMirror( TAnim *pAnim ) {
         pAnim->smAnimated->SetRotate(
             float3( 0, 1, 0 ),
             interpolate( 0.0, MoverParameters->MirrorMaxShift, dMirrorMoveL * isactive ) );
+}
+
+// wipers
+void TDynamicObject::UpdateWiper(TAnim* pAnim)
+{
+	if (!pAnim || !pAnim->smElement)
+		return;
+
+	int i = pAnim->iNumber; 
+    // odwaramy animacje dla parzystych indexow
+	const double rotateAngle = (i + 1) % 2 == 0 ? -MoverParameters->WiperAngle : MoverParameters->WiperAngle;
+
+	if (pAnim->smElement[0]) // ramie 1
+		pAnim->smElement[0]->SetRotate(float3(0, 1, 0), smoothInterpolate(0.0, rotateAngle, dWiperPos[i]));
+	if (pAnim->smElement[1]) // ramie 2
+		pAnim->smElement[1]->SetRotate(float3(0, 1, 0), smoothInterpolate(0.0, rotateAngle, dWiperPos[i]));
+	if (pAnim->smElement[2]) // pioro
+		pAnim->smElement[2]->SetRotate(float3(0, 1, 0), smoothInterpolate(0.0, -rotateAngle, dWiperPos[i]));
 }
 
 /*
@@ -4105,6 +4126,99 @@ bool TDynamicObject::Update(double dt, double dt1)
 		MoverParameters->PantFrontVolt = 0.95 * MoverParameters->EnginePowerSource.MaxVoltage;
 	}
 
+    // wipers
+	if (dWiperPos.size() > 0) // tylko dla wozow ze zdefiniowanymi wycierakami
+    {
+		for (int i = 0; i < dWiperPos.size(); i++) // iteracja po kazdej wycieraczce
+		{
+			bool wipersActive;
+			auto const bytesum = MoverParameters->WiperList[MoverParameters->wiperSwitchPos].byteSum;
+            // rozroznienie kabinowe
+            if (MoverParameters->CabActive == 1)
+            {
+				wipersActive = ((bytesum & (1 << i)) != 0) && MoverParameters->Battery;
+            }
+			else if (MoverParameters->CabActive == -1)
+            {
+                // odwroconie indexow wycieraczek
+				wipersActive = ((bytesum & (1 << dWiperPos.size() - 1 - i)) != 0) && MoverParameters->Battery;
+            }
+            else {
+				wipersActive = false;
+            }
+
+			auto const currentWiperParams = MoverParameters->WiperList[workingSwitchPos[i]];
+
+            wiperOutTimer[i] += dt1; // aktualizujemy zegarek
+			wiperParkTimer[i] += dt1; // aktualizujemy zegarek
+
+			if (wipersActive || dWiperPos[i] > 0.0) // zeby wrocily do trybu park
+			{
+                if (dWiperPos[i] > 0.0 && !wipersActive) // bezwzgledny powrot do zera
+                {
+					dWiperPos[i] = std::max(0.0, dWiperPos[i] - (1.f / currentWiperParams.WiperSpeed) * dt1);
+                }
+                else {
+
+					if (dWiperPos[i] < 1.0 && !wiperDirection[i] && wiperParkTimer[i] > currentWiperParams.interval)
+					// go out
+					{
+						if (!sWiperToPark.is_playing())
+						{
+							wiper_playSoundFromStart[i] = true;
+						}
+						dWiperPos[i] = std::min(1.0, dWiperPos[i] + (1.f / currentWiperParams.WiperSpeed) * dt1);
+					}
+					if (dWiperPos[i] > 0.0 && wiperDirection[i] && wiperOutTimer[i] > currentWiperParams.outBackDelay)
+					// return back
+					{
+						if (!sWiperToPark.is_playing())
+						{
+							wiper_playSoundToStart[i] = true;
+						}
+						dWiperPos[i] = std::max(0.0, dWiperPos[i] - (1.f / currentWiperParams.WiperSpeed) * dt1);
+					}
+					if (dWiperPos[i] == 1.0) // we reached end
+					{
+						wiperParkTimer[i] = 0.0;
+						wiperDirection[i] = true; // switch direction
+					}
+					if (dWiperPos[i] == 0.0)
+					{
+						// when in park position
+						wiperOutTimer[i] = 0.0;
+						wiperDirection[i] = false;
+						workingSwitchPos[i] = MoverParameters->wiperSwitchPos; // update configuration
+					}
+
+                }
+			}
+
+            // sound
+			if (wiper_playSoundFromStart[i] && dWiperPos[i] == 1.0)
+			{
+				sWiperFromPark.play(sound_flags::exclusive);
+				wiper_playSoundFromStart[i] = false;
+			}
+			else
+			{
+				sWiperToPark.stop();
+			}
+			if (wiper_playSoundToStart[i] && dWiperPos[i] == 0.0)
+			{
+				sWiperToPark.play(sound_flags::exclusive);
+				wiper_playSoundToStart[i] = false;
+			}
+			else
+			{
+				sWiperToPark.stop();
+			}
+
+		}
+    }
+
+
+
     // mirrors
     if( (MoverParameters->Vel > MoverParameters->MirrorVelClose)
 		|| (MoverParameters->CabActive == 0) && (activation::mirrors)
@@ -5169,6 +5283,7 @@ void TDynamicObject::LoadMMediaFile( std::string const &TypeName, std::string co
     std::string asAnimName;
     bool Stop_InternalData = false;
     pants = NULL; // wskaźnik pierwszego obiektu animującego dla pantografów
+	wipers = NULL; // wskaznik pierwszego obiektu animujacego dla wycieraczek
     {
         // preliminary check whether the file exists
         cParser parser( TypeName + ".mmd", cParser::buffer_FILE, asBaseDir );
@@ -5255,13 +5370,17 @@ void TDynamicObject::LoadMMediaFile( std::string const &TypeName, std::string co
 
                         pAnimations.resize( iAnimations );
                         int i, j, k = 0, sm = 0;
-                        for (j = 0; j < ANIM_TYPES; ++j)
-                            for (i = 0; i < iAnimType[j]; ++i)
+                        for (j = 0; j < ANIM_TYPES; ++j) // petla po wszystkich wpisach w animations
+                            for (i = 0; i < iAnimType[j]; ++i) // petla iteruje sie tyle razy ile mamy wpisane w animations
                             {
                                 if (j == ANIM_PANTS) // zliczamy poprzednie animacje
                                     if (!pants)
                                         if (iAnimType[ANIM_PANTS]) // o ile jakieś pantografy są (a domyślnie są)
                                             pants = &pAnimations[k]; // zapamiętanie na potrzeby wyszukania submodeli
+								if (j == ANIM_WIPERS)
+									if (!wipers)
+										if (iAnimType[ANIM_WIPERS])
+											wipers = &pAnimations[k];
                                 pAnimations[k].iShift = sm; // przesunięcie do przydzielenia wskaźnika
 								sm += pAnimations[k++].TypeSet(j, *MoverParameters); // ustawienie typu animacji i zliczanie tablicowanych submodeli
 							}
@@ -5831,6 +5950,52 @@ void TDynamicObject::LoadMMediaFile( std::string const &TypeName, std::string co
                             pAnimations[i + j].fSpeed = (pAnimations[i + j].fSpeed + 100) / 100;
 */
                         }
+                    }
+                }
+
+                else if (token == "animwiperprefix:")
+                {
+					parser.getTokens(1, false);
+					parser >> token;
+					TSubModel *sm;
+                    if (wipers)
+                    {
+
+						for (int i = 0; i < iAnimType[ANIM_WIPERS]; i++) // zebranie wszystkich submodeli wycieraczek
+						{
+							dWiperPos.emplace_back(0.0); // dodajemy na koniec zeby sie miejsce tam zrobilo i nie bylo invalid addressow potem
+
+							asAnimName = token + std::to_string(i + 1);
+                            // element wycieraczki nr 1
+							sm = GetSubmodelFromName(mdModel, asAnimName + "_p1");
+							wipers[i].smElement[0] = sm;
+							if (sm)
+							{
+								wipers[i].smElement[0]->WillBeAnimated();
+								// auto const offset{wipers[i].smElement[0]->offset()};
+							}
+
+                            // element wycieraczki nr 2
+							sm = GetSubmodelFromName(mdModel, asAnimName + "_p2");
+							wipers[i].smElement[1] = sm;
+							if (sm)
+							{
+								wipers[i].smElement[1]->WillBeAnimated();
+								// auto const offset{wipers[i].smElement[0]->offset()};
+							}
+
+                            // element wycieraczki nr 3
+							sm = GetSubmodelFromName(mdModel, asAnimName + "_p3");
+							wipers[i].smElement[2] = sm;
+							if (sm)
+							{
+								wipers[i].smElement[2]->WillBeAnimated();
+								// auto const offset{wipers[i].smElement[0]->offset()};
+							}
+							wipers[i].yUpdate = std::bind(&TDynamicObject::UpdateWiper, this, std::placeholders::_1);
+							wipers[i].fMaxDist = 150 * 150;
+							wipers[i].iNumber = i;
+						}
                     }
                 }
 
@@ -6585,6 +6750,19 @@ void TDynamicObject::LoadMMediaFile( std::string const &TypeName, std::string co
 
                     m_powertrainsounds.rsEngageSlippery.m_frequencyfactor /= ( 1 + MoverParameters->nmax );
                 }
+
+                // dzwieki wycieraczkuf
+                else if (token == "wiperFromPark:")
+                {
+					sWiperFromPark.deserialize(parser, sound_type::single);
+					sWiperFromPark.owner(this);  
+                }
+				else if (token == "wiperToPark:")
+				{
+					sWiperToPark.deserialize(parser, sound_type::single);
+					sWiperToPark.owner(this);  
+				}
+
 				else if (token == "retarder:") {
 					m_powertrainsounds.retarder.deserialize(parser, sound_type::single, sound_parameters::amplitude | sound_parameters::frequency);
 					m_powertrainsounds.retarder.owner(this);

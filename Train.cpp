@@ -288,6 +288,10 @@ TTrain::commandhandler_map const TTrain::m_commandhandlers = {
     { user_command::pantographraiserear, &TTrain::OnCommand_pantographraiserear },
     { user_command::pantographlowerfront, &TTrain::OnCommand_pantographlowerfront },
     { user_command::pantographlowerrear, &TTrain::OnCommand_pantographlowerrear },
+
+    {user_command::wiperswitchincrease, &TTrain::OnCommand_wiperswitchincrease},
+    {user_command::wiperswitchdecrease, &TTrain::OnCommand_wiperswitchdecrease},
+
     { user_command::pantographlowerall, &TTrain::OnCommand_pantographlowerall },
     { user_command::pantographselectnext, &TTrain::OnCommand_pantographselectnext },
     { user_command::pantographselectprevious, &TTrain::OnCommand_pantographselectprevious },
@@ -2181,6 +2185,31 @@ void TTrain::OnCommand_mubrakingindicatortoggle( TTrain *Train, command_data con
             Train->ggSignallingButton.UpdateValue( 0.0, Train->dsbSwitch );
         }
     }
+}
+
+void TTrain::OnCommand_wiperswitchincrease(TTrain *Train, command_data const &Command)
+{
+	if (Command.action == GLFW_PRESS)
+	{
+		Train->mvOccupied->wiperSwitchPos++;
+		if (Train->mvOccupied->wiperSwitchPos > Train->mvOccupied->WiperListSize)
+			Train->mvOccupied->wiperSwitchPos = Train->mvOccupied->WiperListSize - 1;
+
+        // Visual feedback
+		Train->ggWiperSw.UpdateValue(Train->mvOccupied->wiperSwitchPos, Train->dsbSwitch);
+	}
+}
+void TTrain::OnCommand_wiperswitchdecrease(TTrain *Train, command_data const &Command)
+{
+	if (Command.action == GLFW_PRESS)
+	{
+		Train->mvOccupied->wiperSwitchPos--;
+		if (Train->mvOccupied->wiperSwitchPos < 0)
+			Train->mvOccupied->wiperSwitchPos = 0;
+
+        // visual feedback
+        Train->ggWiperSw.UpdateValue(Train->mvOccupied->wiperSwitchPos, Train->dsbSwitch);
+	}
 }
 
 void TTrain::OnCommand_reverserincrease( TTrain *Train, command_data const &Command ) {
@@ -6963,6 +6992,7 @@ void TTrain::OnCommand_vehicleboost(TTrain *Train, const command_data &Command) 
 	}
 }
 
+
 // cab movement update, fixed step part
 void TTrain::UpdateCab() {
 
@@ -8134,6 +8164,7 @@ bool TTrain::Update( double const Deltatime )
     ggBrakeProfileG.Update();
     ggBrakeProfileR.Update();
 	ggBrakeOperationModeCtrl.Update();
+	ggWiperSw.Update();
     ggMaxCurrentCtrl.UpdateValue(
         ( true == mvControlled->ShuntModeAllow ?
             ( true == mvControlled->ShuntMode ?
@@ -9613,6 +9644,7 @@ void TTrain::clear_cab_controls()
     ggBrakeProfileG.Clear();
     ggBrakeProfileR.Clear();
 	ggBrakeOperationModeCtrl.Clear();
+	ggWiperSw.Clear();
     ggMaxCurrentCtrl.Clear();
     ggMainOffButton.Clear();
     ggMainOnButton.Clear();
@@ -10082,6 +10114,12 @@ void TTrain::set_cab_controls( int const Cab ) {
                 1.f :
                 0.f );
     }
+
+    if (ggWiperSw.SubModel != nullptr)
+	{
+		ggWiperSw.PutValue(mvOccupied->wiperSwitchPos);
+	}
+
 	if (ggBrakeOperationModeCtrl.SubModel != nullptr) {
 		ggBrakeOperationModeCtrl.PutValue(
 			(mvOccupied->BrakeOpModeFlag > 0 ?
@@ -10556,7 +10594,8 @@ bool TTrain::initialize_gauge(cParser &Parser, std::string const &Label, int con
 		{ "invertertoggle11_bt:", ggInverterToggleButtons[10] },
 		{ "invertertoggle12_bt:", ggInverterToggleButtons[11] },
 	    {"pantvalvesupdate_bt:", ggPantValvesUpdate},
-	    {"pantvalvesoff_bt:", ggPantValvesOff}
+	    {"pantvalvesoff_bt:", ggPantValvesOff},
+	    {"wipers_sw:", ggWiperSw}
     };
     {
         auto const lookup { gauges.find( Label ) };

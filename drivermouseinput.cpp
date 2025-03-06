@@ -1109,6 +1109,10 @@ drivermouse_input::default_bindings() {
 		{ "invertertoggle12_bt:",{
 			user_command::invertertoggle12,
 			user_command::none } },
+        { "wipers_sw:",{
+			user_command::wiperswitchincrease,
+			user_command::wiperswitchdecrease
+         } },
 
     };
 }
