@@ -371,6 +371,8 @@ enum class user_command {
     spawntrainset,
     destroytrainset,
     quitsimulation,
+	wiperswitchincrease,
+	wiperswitchdecrease,
 
     none = -1
 };

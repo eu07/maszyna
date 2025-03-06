@@ -8928,7 +8928,7 @@ bool startBPT;
 bool startMPT, startMPT0;
 bool startRLIST, startUCLIST;
 bool startDIZELMOMENTUMLIST, startDIZELV2NMAXLIST, startHYDROTCLIST, startPMAXLIST;
-bool startDLIST, startFFLIST, startWWLIST;
+bool startDLIST, startFFLIST, startWWLIST, startWiperList;
 bool startLIGHTSLIST;
 bool startCOMPRESSORLIST;
 int LISTLINE;
@@ -9280,6 +9280,25 @@ bool TMoverParameters::readFFList( std::string const &line ) {
     return true;
 }
 
+// parsowanie wiperList
+bool TMoverParameters::readWiperList(std::string const& line)
+{
+	cParser parser(line);
+	if (false == parser.getTokens(4, false))
+	{
+		WriteLog("Read WiperList: arguments missing in line " + std::to_string(LISTLINE + 1));
+		return false;
+	}
+	int idx = LISTLINE++;
+	if (idx >= sizeof(WiperList) / sizeof(TWiperScheme))
+	{
+		WriteLog("Read WiperList: number of entries exceeded capacity of the data table");
+		return false;
+	}
+	parser >> WiperList[idx].byteSum >> WiperList[idx].WiperSpeed >> WiperList[idx].interval >> WiperList[idx].outBackDelay;
+	return true;
+}
+
 // parsowanie WWList
 bool TMoverParameters::readWWList( std::string const &line ) {
 
@@ -9463,6 +9482,7 @@ bool TMoverParameters::LoadFIZ(std::string chkpath)
 	startPMAXLIST = false;
 	startFFLIST = false;
     startWWLIST = false;
+	startWiperList = false;
     startLIGHTSLIST = false;
 	startCOMPRESSORLIST = false;
     std::string file = TypeName + ".fiz";
@@ -9562,6 +9582,13 @@ bool TMoverParameters::LoadFIZ(std::string chkpath)
             startBPT = false;
             startFFLIST = false;
             continue;
+        }
+        if (issection("endwl", inputline))
+        {
+            // skonczylismy czytac liste konfiguracji wycieraczek
+			startBPT = false;
+            startWiperList = false;
+			continue;
         }
         if( issection( "END-WWL", inputline ) ) {
             startBPT = false;
@@ -9854,8 +9881,21 @@ bool TMoverParameters::LoadFIZ(std::string chkpath)
         {
 			startBPT = false;
             startWWLIST = true; LISTLINE = 0;
+            
 			continue;
         }
+
+        if (issection("WiperList:", inputline))
+		{
+			startBPT = false;
+			fizlines.emplace("WiperList", inputline);
+			startWiperList = true;
+			LISTLINE = 0;    
+            LoadFIZ_WiperList(inputline);
+
+            continue;
+        }
+
 
         if( issection( "LightsList:", inputline ) ) {
             startBPT = false;
@@ -9923,6 +9963,11 @@ bool TMoverParameters::LoadFIZ(std::string chkpath)
             readWWList( inputline );
 			continue;
 		}
+		if (true == startWiperList)
+        {
+			readWiperList(inputline);
+			continue;
+        }
         if( true == startLIGHTSLIST ) {
             readLightsList( inputline );
             continue;
@@ -11272,6 +11317,13 @@ void TMoverParameters::LoadFIZ_DList( std::string const &Input ) {
 void TMoverParameters::LoadFIZ_FFList( std::string const &Input ) {
 
     extract_value( RlistSize, "Size", Input, "" );
+}
+
+
+void TMoverParameters::LoadFIZ_WiperList(std::string const &Input) 
+{
+	extract_value(WiperListSize, "Size", Input, "");
+	extract_value(WiperAngle, "Angle", Input, "");
 }
 
 void TMoverParameters::LoadFIZ_LightsList( std::string const &Input ) {
