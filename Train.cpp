@@ -2222,7 +2222,7 @@ void TTrain::OnCommand_wiperswitchincrease(TTrain *Train, command_data const &Co
 	if (Command.action == GLFW_PRESS)
 	{
 		Train->mvOccupied->wiperSwitchPos++;
-		if (Train->mvOccupied->wiperSwitchPos > Train->mvOccupied->WiperListSize)
+		if (Train->mvOccupied->wiperSwitchPos > Train->mvOccupied->WiperListSize - 1)
 			Train->mvOccupied->wiperSwitchPos = Train->mvOccupied->WiperListSize - 1;
 
         // Visual feedback
