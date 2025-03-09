@@ -9,6 +9,7 @@
 #include <parser.h>
 #include <utilities.h>
 #include <yaml-cpp/yaml.h>
+#include <string>
 
 std::string_view MaterialAdapter::GetTexturePathForEntry(
     std::string_view key) const {

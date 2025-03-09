@@ -6,6 +6,7 @@
 #include <unordered_map>
 
 #include <glm/glm.hpp>
+#include <string>
 
 struct MaterialAdapterInternal {
   virtual ~MaterialAdapterInternal() = default;
