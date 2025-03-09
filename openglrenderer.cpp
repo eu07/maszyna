@@ -25,6 +25,8 @@ http://mozilla.org/MPL/2.0/.
 #include "utilities.h"
 #include "openglgeometrybank.h"
 #include "openglcolor.h"
+#include "screenshot.h"
+#include <imgui/imgui_impl_opengl2.h>
 
 int const EU07_PICKBUFFERSIZE { 1024 }; // size of (square) textures bound with the pick framebuffer
 int const EU07_ENVIRONMENTBUFFERSIZE { 256 }; // size of (square) environmental cube map texture
@@ -1766,17 +1768,17 @@ opengl_renderer::Bind_Material( material_handle const Material, TSubModel const 
     }
 }
 
-opengl_material const &
+IMaterial const *
 opengl_renderer::Material( material_handle const Material ) const {
 
-    return m_materials.material( Material );
+    return &m_materials.material( Material );
 }
 
 opengl_material const &
 opengl_renderer::Material( TSubModel const * Submodel ) const {
 
     auto const material { Submodel->m_material >= 0 ? Submodel->m_material : Submodel->ReplacableSkinId[ -Submodel->m_material ] };
-    return Material( material );
+    return m_materials.material( material );
 }
 
 // shader methods
@@ -1811,13 +1813,13 @@ opengl_renderer::Bind_Texture( std::size_t const Unit, texture_handle const Text
     m_textures.bind( Unit, Texture );
 }
 
-opengl_texture &
+ITexture &
 opengl_renderer::Texture( texture_handle const Texture ) {
 
     return m_textures.texture( Texture );
 }
 
-opengl_texture const &
+ITexture const &
 opengl_renderer::Texture( texture_handle const Texture ) const {
 
     return m_textures.texture( Texture );
@@ -2309,7 +2311,7 @@ opengl_renderer::Render( scene::shape_node const &Shape, bool const Ignorerange 
         // pick modes are painted with custom colours, and shadow pass doesn't use any
         case rendermode::shadows: {
             // skip if the shadow caster rank is too low for currently set threshold
-            if( Material( data.material ).shadow_rank > Global.gfx_shadow_rank_cutoff ) {
+            if( Material( data.material )->GetShadowRank() > Global.gfx_shadow_rank_cutoff ) {
                 return;
             }
         }
@@ -2757,7 +2759,7 @@ opengl_renderer::Render( TSubModel *Submodel ) {
                         // textures...
                         Bind_Material( material );
                         // ...colors and opacity...
-                        auto const opacity { clamp( Material( material ).get_or_guess_opacity(), 0.f, 1.f ) };
+                        auto const opacity { clamp( Material( material )->get_or_guess_opacity(), 0.f, 1.f ) };
                         if( Submodel->fVisible < 1.f ) {
                             // setup
                             ::glAlphaFunc( GL_GREATER, 0.f );
@@ -3139,7 +3141,7 @@ opengl_renderer::Render( scene::basic_cell::path_sequence::const_iterator First,
                     // shadows are only calculated for high enough roads, typically meaning track platforms
                     continue;
                 }
-                if( Material( track->m_material1 ).shadow_rank > Global.gfx_shadow_rank_cutoff )
+                if( Material( track->m_material1 )->GetShadowRank() > Global.gfx_shadow_rank_cutoff )
                 {
                     // skip if the shadow caster rank is too low for currently set threshold
                     continue;
@@ -3189,7 +3191,7 @@ opengl_renderer::Render( scene::basic_cell::path_sequence::const_iterator First,
                     // shadows are only calculated for high enough trackbeds
                     continue;
                 }
-                if( Material( track->m_material2 ).shadow_rank > Global.gfx_shadow_rank_cutoff )
+                if( Material( track->m_material2 )->GetShadowRank() > Global.gfx_shadow_rank_cutoff )
                 {
                     // skip if the shadow caster rank is too low for currently set threshold
                     continue;
@@ -3242,7 +3244,7 @@ opengl_renderer::Render( scene::basic_cell::path_sequence::const_iterator First,
                     // shadows are only calculated for high enough trackbeds
                     continue;
                 }
-                if( Material( track->SwitchExtension->m_material3 ).shadow_rank > Global.gfx_shadow_rank_cutoff )
+                if( Material( track->SwitchExtension->m_material3 )->GetShadowRank() > Global.gfx_shadow_rank_cutoff )
                 {
                     // skip if the shadow caster rank is too low for currently set threshold
                     continue;
@@ -3831,7 +3833,7 @@ opengl_renderer::Render_Alpha( TSubModel *Submodel ) {
                         // textures...
                         Bind_Material( material );
                         // ...colors and opacity...
-                        auto const opacity { clamp( Material( material ).get_or_guess_opacity(), 0.f, 1.f ) };
+                        auto const opacity { clamp( Material( material )->get_or_guess_opacity(), 0.f, 1.f ) };
                         if( Submodel->fVisible < 1.f ) {
                             ::glColor4f(
                                 Submodel->f4Diffuse.r,
@@ -4298,6 +4300,11 @@ opengl_renderer::info_stats() const {
     return m_debugstatstext;
 }
 
+void opengl_renderer::MakeScreenshot()
+{
+	screenshot_manager::make_screenshot();
+}
+
 void
 opengl_renderer::Update_Lights( light_array &Lights ) {
     // arrange the light array from closest to farthest from current position of the camera
@@ -4510,3 +4517,25 @@ std::unique_ptr<gfx_renderer> opengl_renderer::create_func()
 }
 
 bool opengl_renderer::renderer_register = gfx_renderer_factory::get_instance()->register_backend("legacy", opengl_renderer::create_func);
+
+bool opengl_renderer::opengl_imgui_renderer::Init()
+{
+	crashreport_add_info("imgui_ver", "gl2");
+	return ImGui_ImplOpenGL2_Init();
+}
+
+void opengl_renderer::opengl_imgui_renderer::Shutdown() 
+{
+	ImGui_ImplOpenGL2_Shutdown();
+}
+
+void opengl_renderer::opengl_imgui_renderer::BeginFrame()
+{
+	ImGui_ImplOpenGL2_NewFrame();
+}
+
+void opengl_renderer::opengl_imgui_renderer::Render()
+{
+	gl::buffer::unbind(gl::buffer::ARRAY_BUFFER);
+	ImGui_ImplOpenGL2_RenderDrawData(ImGui::GetDrawData());
+}

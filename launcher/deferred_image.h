@@ -23,11 +23,11 @@ public:
 		}
 
 		if (image != null_handle) {
-            opengl_texture &tex = GfxRenderer->Texture(image);
+            auto &tex = GfxRenderer->Texture(image);
 			tex.create();
 
-			if (tex.is_ready)
-				return tex.id;
+			if (tex.get_is_ready())
+				return tex.get_id();
 		}
 
 		return -1;
@@ -36,8 +36,8 @@ public:
 	glm::ivec2 size() const
 	{
 		if (image != null_handle) {
-            opengl_texture &tex = GfxRenderer->Texture(image);
-			return glm::ivec2(tex.width(), tex.height());
+            auto &tex = GfxRenderer->Texture(image);
+			return glm::ivec2(tex.get_width(), tex.get_height());
 		}
 		return glm::ivec2();
 	}

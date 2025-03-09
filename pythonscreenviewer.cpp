@@ -90,7 +90,7 @@ void python_screen_viewer::threadfunc()
 		glActiveTexture(GL_TEXTURE0);
 
 		if (Global.python_sharectx) {
-			glBindTexture(GL_TEXTURE_2D, m_rt->shared_tex);
+			glBindTexture(GL_TEXTURE_2D, m_rt->shared_tex->get_id());
 		}
 		else {
 			GLuint tex;
@@ -128,7 +128,7 @@ void python_screen_viewer::threadfunc()
 
 				window->timestamp = m_rt->timestamp;
 
-				if (!m_rt->image)
+				if (m_rt->image.empty())
 					continue;
 
 				format = m_rt->format;
@@ -139,7 +139,7 @@ void python_screen_viewer::threadfunc()
 				size_t size = width * height * (components == GL_RGB ? 3 : 4);
 
 				image = new unsigned char[size];
-				memcpy(image, m_rt->image, size);
+				memcpy(image, m_rt->image.data(), size);
 			}
 
 			glfwMakeContextCurrent(window->window);

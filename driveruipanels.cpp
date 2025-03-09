@@ -513,8 +513,8 @@ timetable_panel::render() {
 	ImGui::PopFont();
 }
 
-void
-debug_panel::update() {
+void debug_panel::update()
+{
 
 	if( false == is_open ) { return; }
 
@@ -572,7 +572,6 @@ debug_panel::update() {
 
 void
 debug_panel::render() {
-
     if( false == is_open ) { return; }
 
 	ImGui::PushFont(ui_layer::font_mono);

@@ -640,12 +640,12 @@ bool TTrain::Init(TDynamicObject *NewDynamicObject, bool e3d)
     return true;
 }
 
-dictionary_source *TTrain::GetTrainState( dictionary_source const &Extraparameters ) {
+std::shared_ptr<dictionary_source> TTrain::GetTrainState( dictionary_source const &Extraparameters ) {
 
     if( ( mvOccupied   == nullptr )
      || ( mvControlled == nullptr ) ) { return nullptr; }
 
-    auto *dict { new dictionary_source( Extraparameters ) };
+    auto dict = std::make_shared<dictionary_source>( Extraparameters );
     if( dict == nullptr ) { return nullptr; }
 
     dict->insert( "name", DynamicObject->asName );
@@ -836,7 +836,7 @@ dictionary_source *TTrain::GetTrainState( dictionary_source const &Extraparamete
     dict->insert( "velnext", driver->VelNext );
     dict->insert( "actualproximitydist", driver->ActualProximityDist );
     // train data
-    driver->TrainTimetable().serialize( dict );
+    driver->TrainTimetable().serialize( dict.get() );
     dict->insert( "train_atpassengerstop", driver->IsAtPassengerStop );
     dict->insert( "train_length", driver->fLength );
     // world state data
@@ -8842,7 +8842,7 @@ bool TTrain::InitializeCab(int NewCabNo, std::string const &asFileName)
                     screen.script = DynamicObject->asBaseDir + screen.script;
                 }
 
-                opengl_texture *tex = nullptr;
+                ITexture *tex = nullptr;
                 TSubModel *submodel = nullptr;
                 if (screen.target != "none")
                 {
@@ -8866,12 +8866,12 @@ bool TTrain::InitializeCab(int NewCabNo, std::string const &asFileName)
                         continue;
                     }
 
-                    tex = &GfxRenderer->Texture(GfxRenderer->Material(material).textures[0]);
+                    tex = &GfxRenderer->Texture(GfxRenderer->Material(material)->GetTexture(0));
                 }
                 else
                 {
                     // TODO: fix leak
-                    tex = new opengl_texture();
+                    tex = ITexture::null_texture();
                     tex->make_stub();
                 }
 
@@ -8880,7 +8880,7 @@ bool TTrain::InitializeCab(int NewCabNo, std::string const &asFileName)
                 // TBD, TODO: keep texture handles around, so we can undo the static switch when the
                 // user changes cabs?
                 auto rt = std::make_shared<python_rt>();
-                rt->shared_tex = tex->id;
+                rt->shared_tex = tex;
 
                 // record renderer and material binding for future update requests
                 m_screens.emplace_back(screen);

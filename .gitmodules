@@ -1,0 +1,15 @@
+[submodule "ref/glm"]
+	path = ref/glm
+	url = https://github.com/g-truc/glm.git
+[submodule "manul/thirdparty/nvrhi"]
+	path = manul/thirdparty/nvrhi
+	url = https://github.com/WLs50/nvrhi.git
+[submodule "manul/thirdparty/yaml-cpp"]
+	path = manul/thirdparty/yaml-cpp
+	url = https://github.com/jbeder/yaml-cpp.git
+[submodule "manul/thirdparty/fmt"]
+	path = manul/thirdparty/fmt
+	url = https://github.com/fmtlib/fmt.git
+[submodule "manul/thirdparty/entt"]
+	path = manul/thirdparty/entt
+	url = https://github.com/skypjack/entt.git

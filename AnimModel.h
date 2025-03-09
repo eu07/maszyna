@@ -61,7 +61,10 @@ class TAnimContainer : std::enable_shared_from_this<TAnimContainer>
     float4 qDesired; // pozycja końcowa (1 dla interpolacji)
     float fAngleCurrent; // parametr interpolacyjny: 0=start, 1=docelowy
     float fAngleSpeed; // zmiana parametru interpolacji w sekundach
+  public:
     TSubModel *pSubModel;
+
+  private:
 	std::shared_ptr<float4x4> mAnim; // macierz do animacji kwaternionowych
     // dla kinematyki odwróconej używane są kwaterniony
     float fLength; // długość kości dla IK
@@ -144,7 +147,7 @@ public:
 	// lista animacji z eventem, które muszą być przeliczane również bez wyświetlania
 	static std::list<std::weak_ptr<TAnimContainer>> acAnimList;
 
-private:
+public:
 // methods
     void RaPrepare(); // ustawienie animacji egzemplarza na wzorcu
     void RaAnimate( unsigned int const Framestamp ); // przeliczenie animacji egzemplarza

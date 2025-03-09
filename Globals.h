@@ -128,6 +128,7 @@ struct global_settings {
     bool ScaleSpecularValues{ true };
     std::string GfxRenderer{ "default" };
     bool LegacyRenderer{ false };
+    bool NvRenderer{ false };
     bool BasicRenderer{ false };
     bool RenderShadows{ true };
     int RenderCabShadowsRange{ 0 };
@@ -216,7 +217,7 @@ struct global_settings {
     int iMultiplayer{ 0 }; // blokada działania niektórych eventów na rzecz kominikacji
 	bool bIsolatedTrainName{ false }; //wysyłanie zajęcia odcinka izolowanego z nazwą pociągu
     // other
-    std::string AppName{ "EU07" };
+    std::string AppName{ "Wls50" };
     std::string asVersion; // z opisem
 	motiontelemetry::conf_t motiontelemetry_conf;
 	std::string screenshot_dir;
@@ -353,4 +354,6 @@ template <>
 void
 global_settings::export_as_text( std::ostream &Output, std::string const Key, bool const &Value ) const;
 
-extern global_settings Global;
+extern global_settings& GetGlobalSettings();
+
+#define Global (GetGlobalSettings())

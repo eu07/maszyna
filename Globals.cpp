@@ -23,8 +23,6 @@ http://mozilla.org/MPL/2.0/.
 #include "Timer.h"
 #include "vao.h"
 
-global_settings Global;
-
 void
 global_settings::LoadIniFile(std::string asFileName) {
 
@@ -410,7 +408,8 @@ global_settings::ConfigParse(cParser &Parser) {
                 GfxRenderer = "default";
             }
             BasicRenderer = (GfxRenderer == "simple");
-            LegacyRenderer = (GfxRenderer != "default");
+			      NvRenderer = !GfxRenderer.compare(0, 5, "manul");
+            LegacyRenderer = !NvRenderer && (GfxRenderer != "default");
         }
         else if (token == "shadows")
         {
@@ -1083,6 +1082,16 @@ global_settings::ConfigParse_gfx( cParser &Parser, std::string_view const Token 
         Parser >> reflectiontune.fidelity;
         reflectiontune.fidelity = clamp(reflectiontune.fidelity, 0, 2);
     }
+    else if (Token == "gfx.reflections.range_instances")
+    {
+        Parser.getTokens(1, false);
+        Parser >> reflectiontune.range_instances;
+    }
+    else if (Token == "gfx.reflections.range_vehicles")
+    {
+        Parser.getTokens(1, false);
+        Parser >> reflectiontune.range_vehicles;
+    }
     else if (Token == "gfx.framebuffer.width")
     {
         Parser.getTokens(1, false);
@@ -1469,9 +1478,14 @@ global_settings::export_as_text( std::ostream &Output, std::string const Key, st
     }
 }
 
-template <>
-void
-global_settings::export_as_text( std::ostream &Output, std::string const Key, bool const &Value ) const {
+template <> void global_settings::export_as_text(std::ostream &Output, std::string const Key, bool const &Value) const
+{
 
-    Output << Key << " " << ( Value ? "yes" : "no" ) << "\n";
+	Output << Key << " " << (Value ? "yes" : "no") << "\n";
+}
+
+global_settings &GetGlobalSettings()
+{
+	static global_settings global{};
+	return global;
 }

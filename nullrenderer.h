@@ -104,8 +104,8 @@ public:
             }
     void
         Bind_Material( material_handle const Material, TSubModel const *sm = nullptr, lighting_data const *lighting = nullptr ) override {}
-    opengl_material const &
-        Material( material_handle const Material ) const override { return *m_materials.at(Material - 1); }
+    IMaterial const *
+        Material( material_handle const Material ) const override { return m_materials.at(Material - 1).get(); }
     // shader methods
     auto Fetch_Shader( std::string const &name ) -> std::shared_ptr<gl::program> override { throw std::runtime_error("not impl"); }
     // texture methods
@@ -144,12 +144,18 @@ public:
         info_times() const override { return empty_str; }
     std::string const &
         info_stats() const override { return empty_str; }
+	  void MakeScreenshot() override {}
 
     static std::unique_ptr<gfx_renderer> create_func();
 
     static bool renderer_register;
 
-private:
+    virtual imgui_renderer *GetImguiRenderer()
+	{
+		return nullptr;
+	}
+
+  private:
     std::string empty_str;
     gfx::geometrybank_manager m_geometry;
     std::vector<std::shared_ptr<opengl_material>> m_materials;

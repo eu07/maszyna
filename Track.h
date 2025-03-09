@@ -152,7 +152,7 @@ class TTrack : public scene::basic_node
     // NOTE: temporary arrangement
     friend itemproperties_panel;
 
-private:
+public:
     std::vector<TIsolated*> Isolated; // obwód izolowany obsługujący zajęcia/zwolnienia grupy torów
 	std::shared_ptr<TSwitchExtension> SwitchExtension; // dodatkowe dane do toru, który jest zwrotnicą
     std::shared_ptr<TSegment> Segment;

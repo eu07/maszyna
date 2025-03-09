@@ -220,9 +220,9 @@ component_done:
                 TSubModel *sm = controllers[i]->pending_textures[t].first;
                 const vr::TextureID_t texture_id = controllers[i]->pending_textures[t].second;
 
-                if (GfxRenderer->Material(sm->GetMaterial()).textures[0] == null_handle)
+                if (GfxRenderer->Material(sm->GetMaterial())->GetTexture(0) == null_handle)
                     sm->ReplaceMaterial("internal_src:OPENVR" + std::to_string(texture_id));
-                opengl_texture &tex = GfxRenderer->Texture(GfxRenderer->Material(sm->GetMaterial()).textures[0]);
+                auto &tex = GfxRenderer->Texture(GfxRenderer->Material(sm->GetMaterial())->GetTexture(0));
 
                 if (tex.is_stub()) {
                     vr::RenderModel_TextureMap_t *texturemap;

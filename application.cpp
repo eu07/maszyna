@@ -206,10 +206,7 @@ eu07_application::init( int Argc, char *Argv[] ) {
     if( ( result = init_glfw() ) != 0 ) {
         return result;
     }
-    if( ( result = init_ogl() ) != 0 ) {
-        return result;
-    }
-    if( ( result = init_ui() ) != 0 ) {
+    if( needs_ogl() && ( result = init_ogl() ) != 0 ) {
         return result;
     }
     if (crashreport_is_pending()) { // run crashgui as early as possible
@@ -220,6 +217,9 @@ eu07_application::init( int Argc, char *Argv[] ) {
         return result;
     }
     if( ( result = init_gfx() ) != 0 ) {
+        return result;
+    }
+    if( ( result = init_ui() ) != 0 ) { // ui now depends on activated renderer
         return result;
     }
     if( ( result = init_audio() ) != 0 ) {
@@ -422,7 +422,7 @@ eu07_application::run() {
 
         if (m_screenshot_queued) {
             m_screenshot_queued = false;
-            screenshot_man.make_screenshot();
+			      GfxRenderer->MakeScreenshot();
         }
 
 		if (m_network)
@@ -445,7 +445,6 @@ eu07_application::request( python_taskqueue::task_request const &Task ) {
     if( ( false == result )
      && ( Task.input != nullptr ) ) {
         // clean up allocated resources since the worker won't
-        delete Task.input;
     }
     return result;
 }
@@ -695,8 +694,12 @@ std::string eu07_application::describe_monitor(GLFWmonitor *monitor) const {
 
 // private:
 
-void
-eu07_application::init_debug() {
+bool eu07_application::needs_ogl() const
+{
+	return !Global.NvRenderer;
+}
+
+void eu07_application::init_debug() {
 
 #if defined(_MSC_VER) && defined (_DEBUG)
     // memory leaks
@@ -827,6 +830,11 @@ eu07_application::init_glfw() {
 
     crashreport_add_info("gfxrenderer", Global.GfxRenderer);
 
+    if (!needs_ogl())
+	  {
+		  glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
+	  }
+    else {
     if( !Global.LegacyRenderer ) {
         Global.bUseVBO = true;
         // activate core profile for opengl 3.3 renderer
@@ -858,6 +866,7 @@ eu07_application::init_glfw() {
 
     if (Global.gfx_gldebug)
         glfwWindowHint( GLFW_OPENGL_DEBUG_CONTEXT, GLFW_TRUE );
+    }
 
     glfwWindowHint(GLFW_SRGB_CAPABLE, !Global.gfx_shadergamma);
 
@@ -952,6 +961,10 @@ eu07_application::init_gfx() {
         // default render path
         GfxRenderer = gfx_renderer_factory::get_instance()->create("modern");
     }
+	  else if (!Global.GfxRenderer.compare(0, 5, "manul"))
+	  {
+		    GfxRenderer = gfx_renderer_factory::get_instance()->create(Global.GfxRenderer);
+	  }
     else {
         // legacy render path
         GfxRenderer = gfx_renderer_factory::get_instance()->create("legacy");

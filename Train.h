@@ -167,7 +167,7 @@ class TTrain {
     void add_distance( double const Distance );
     // McZapkie-310302: ladowanie parametrow z pliku
     bool LoadMMediaFile(std::string const &asFileName);
-    dictionary_source *GetTrainState( dictionary_source const &Extraparameters );
+    std::shared_ptr<dictionary_source> GetTrainState( dictionary_source const &Extraparameters );
     state_t get_state() const;
 	inline float get_radiovolume() const { return m_radiovolume; }
     // basic_table interface

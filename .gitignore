@@ -1,5 +1,19 @@
 builds/
 CMakeLists.txt.user
+CMakeSettings.json
 ci_shadervalidator/validateshaders
+
+# CMake build output
 build/
+bin/
+
+#Visual Studio [Code] folders
 .vscode/
+.vs/
+
+# JetBrains CLion folders
+cmake-build-*/
+.idea/
+
+# Vcpkg manifest
+vcpkg.json

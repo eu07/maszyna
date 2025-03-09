@@ -167,7 +167,7 @@ public:
     bounding_area const &
         area() const {
             return m_area; }
-private:
+//private:
 // types
     using path_sequence = std::vector<TTrack *>;
     using shapenode_sequence = std::vector<shape_node>;
@@ -300,7 +300,7 @@ public:
 	    { return m_map_geometryhandle;}
 	glm::vec3 find_nearest_track_point(const glm::dvec3 &point);
 
-private:
+//private:
 // types
     using cell_array = std::array<basic_cell, (EU07_SECTIONSIZE / EU07_CELLSIZE) * (EU07_SECTIONSIZE / EU07_CELLSIZE)>;
     using shapenode_sequence = std::vector<shape_node>;
@@ -422,7 +422,7 @@ public:
 	glm::vec3 find_nearest_track_point(const glm::dvec3 &pos)
 	    { return section(pos).find_nearest_track_point(pos); }
 
-private:
+//private:
 // types
     using section_array = std::array<basic_section *, EU07_REGIONSIDESECTIONCOUNT * EU07_REGIONSIDESECTIONCOUNT>;
 

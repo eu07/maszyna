@@ -209,18 +209,18 @@ material_data::assign( std::string const &Replacableskin ) {
     // BUGS! it's not entierly designed whether opacity is property of material or submodel,
     // and code does confusing things with this in various places
     textures_alpha = (
-        GfxRenderer->Material( replacable_skins[ 1 ] ).is_translucent() ?
+        GfxRenderer->Material( replacable_skins[ 1 ] )->is_translucent() ?
             0x31310031 :  // tekstura -1 z kanałem alfa - nie renderować w cyklu nieprzezroczystych
             0x30300030 ); // wszystkie tekstury nieprzezroczyste - nie renderować w cyklu przezroczystych
-    if( GfxRenderer->Material( replacable_skins[ 2 ] ).is_translucent() ) {
+    if( GfxRenderer->Material( replacable_skins[ 2 ] )->is_translucent() ) {
         // tekstura -2 z kanałem alfa - nie renderować w cyklu nieprzezroczystych
         textures_alpha |= 0x02020002;
     }
-    if( GfxRenderer->Material( replacable_skins[ 3 ] ).is_translucent() ) {
+    if( GfxRenderer->Material( replacable_skins[ 3 ] )->is_translucent() ) {
         // tekstura -3 z kanałem alfa - nie renderować w cyklu nieprzezroczystych
         textures_alpha |= 0x04040004;
     }
-    if( GfxRenderer->Material( replacable_skins[ 4 ] ).is_translucent() ) {
+    if( GfxRenderer->Material( replacable_skins[ 4 ] )->is_translucent() ) {
         // tekstura -4 z kanałem alfa - nie renderować w cyklu nieprzezroczystych
         textures_alpha |= 0x08080008;
     }

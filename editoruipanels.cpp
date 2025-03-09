@@ -97,7 +97,7 @@ itemproperties_panel::update( scene::basic_node const *Node ) {
         // texture
         auto texturefile { (
             ( subnode->Material()->replacable_skins[ 1 ] != null_handle ) ?
-                GfxRenderer->Material( subnode->Material()->replacable_skins[ 1 ] ).name :
+                GfxRenderer->Material( subnode->Material()->replacable_skins[ 1 ] )->GetName() :
                 "(none)" ) };
         if( texturefile.find( szTexturePath ) == 0 ) {
             // don't include 'textures/' in the path
@@ -128,14 +128,14 @@ itemproperties_panel::update( scene::basic_node const *Node ) {
         // textures
         auto texturefile { (
             ( subnode->m_material1 != null_handle ) ?
-                GfxRenderer->Material( subnode->m_material1 ).name :
+                GfxRenderer->Material( subnode->m_material1 )->GetName() :
                 "(none)" ) };
         if( texturefile.find( szTexturePath ) == 0 ) {
             texturefile.erase( 0, std::string{ szTexturePath }.size() );
         }
         auto texturefile2{ (
             ( subnode->m_material2 != null_handle ) ?
-                GfxRenderer->Material( subnode->m_material2 ).name :
+                GfxRenderer->Material( subnode->m_material2 )->GetName() :
                 "(none)" ) };
         if( texturefile2.find( szTexturePath ) == 0 ) {
             texturefile2.erase( 0, std::string{ szTexturePath }.size() );
