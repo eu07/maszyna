@@ -265,7 +265,7 @@ if (WITH_OPENGL_LEGACY)
 		set(DEFINITIONS ${DEFINITIONS} "WITH_OPENGL_LEGACY")
 endif()
 
-find_package(glfw3 3.4 REQUIRED)
+add_subdirectory("${DEPS_DIR}/glfw/" EXCLUDE_FROM_ALL)
 
 set(SOURCES ${SOURCES} "extras/piped_proc.cpp" "widgets/cameraview_extcam.cpp")
 
