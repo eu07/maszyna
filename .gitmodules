@@ -13,3 +13,6 @@
 [submodule "manul/thirdparty/entt"]
 	path = manul/thirdparty/entt
 	url = https://github.com/skypjack/entt.git
+[submodule "ref/glfw"]
+	path = ref/glfw
+	url = https://github.com/glfw/glfw
