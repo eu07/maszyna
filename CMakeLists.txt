@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.0)
+cmake_minimum_required(VERSION 3.26)
 if(POLICY CMP0058)
 	cmake_policy(SET CMP0058 NEW)
 endif()
@@ -307,7 +307,7 @@ set(OPENVR_INCLUDE_DIR "")
 
 if (WIN32)
 	set(DEFINITIONS ${DEFINITIONS} "HAVE_ROUND") # to make pymath to not redefine round
-	set(DEFINITIONS ${DEFINITIONS} "GLFW_DLL")
+	# set(DEFINITIONS ${DEFINITIONS} "GLFW_DLL")
 
 	set(SOURCES ${SOURCES} "windows.cpp" "Console.cpp" "Console/LPT.cpp" "Console/PoKeys55.cpp")
 	#set(GLFW3_INCLUDE_DIR ${GLFW3_INCLUDE_DIR} "${DEPS_DIR}/glfw/include/")
@@ -482,7 +482,7 @@ endif()
 
 if (WIN32)
 	add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
-			COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_RUNTIME_DLLS:${PROJECT_NAME}> $<TARGET_FILE_DIR:${PROJECT_NAME}>
+			COMMAND ${CMAKE_COMMAND} -E copy -t $<TARGET_RUNTIME_DLLS:${PROJECT_NAME}> $<TARGET_FILE_DIR:${PROJECT_NAME}>
 			COMMAND_EXPAND_LISTS
 	)
 endif ()
