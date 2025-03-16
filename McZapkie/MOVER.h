@@ -1192,8 +1192,8 @@ public:
 	int Lights[2][17]; // pozycje świateł, przód - tył, 1 .. 16
     int ScndInMain{ 0 };     /*zaleznosc bocznika od nastawnika*/
 	bool MBrake = false;     /*Czy jest hamulec reczny*/
-	double maxTachoSpeed = 0.0;	// maksymalna predkosc na tarczce predkosciomierza analogowego
-	double StopBrakeDecc = 0.0;
+	double maxTachoSpeed = { 0.0 }; // maksymalna predkosc na tarczce predkosciomierza analogowego
+	double StopBrakeDecc = { 0.0 };
     bool ReleaseParkingBySpringBrake { false };
 	bool ReleaseParkingBySpringBrakeWhenDoorIsOpen{ false };
 	bool SpringBrakeCutsOffDrive { true };
