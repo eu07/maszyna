@@ -803,7 +803,7 @@ public: // reszta może by?publiczna
         rsBrake,
         rsFadeSound,
         rsRunningNoise,
-        rsResonanceNoise,
+        rsResonanceNoise, rsWindSound,
         rsHuntingNoise,
         m_rainsound;
     sound_source m_radiosound { sound_placement::internal, 2 * EU07_SOUND_CABCONTROLSCUTOFFRANGE }; // cached template for radio messages
