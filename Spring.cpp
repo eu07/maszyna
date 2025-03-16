@@ -40,7 +40,7 @@ Math3D::vector3 TSpring::ComputateForces( Math3D::vector3 const &pPosition1, Mat
 
         //		ScaleVector(&deltaP,1.0f / dist, &springForce);	// Normalize Distance Vector
         //		ScaleVector(&springForce,-(Hterm + Dterm),&springForce);	// Calc Force
-        springForce = deltaP / dist * ( -( Hterm + Dterm ) );
+        springForce = deltaP / dist * ( -( Hterm + Dterm ));
         //		VectorSum(&p1->f,&springForce,&p1->f);			// Apply to Particle 1
         //		VectorDifference(&p2->f,&springForce,&p2->f);	// - Force on Particle 2
     }

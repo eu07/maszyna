@@ -104,7 +104,8 @@ private:
     bool render_section_uart();
 #endif
     bool render_section_settings();
-// members
+	bool render_section_developer();
+	    // members
     std::array<char, 1024> m_buffer;
     std::array<char, 128> m_eventsearch;
     input_data m_input;

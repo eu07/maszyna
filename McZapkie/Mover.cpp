@@ -9444,6 +9444,7 @@ void TMoverParameters::BrakeSubsystemDecode()
 // *************************************************************************************************
 bool TMoverParameters::LoadFIZ(std::string chkpath)
 {
+	chkPath = chkpath; // assign class path for reloading
     const int param_ok = 1;
     const int wheels_ok = 2;
     const int dimensions_ok = 4;
@@ -10625,6 +10626,12 @@ void TMoverParameters::LoadFIZ_Cntrl( std::string const &line ) {
 
     extract_value(HideDirStatusWhenMoving, "HideDirStatusWhenMoving", line, "");
 	extract_value(HideDirStatusSpeed, "HideDirStatusSpeed", line, "");
+	extract_value(isDoubleClickForMeasureNeeded, "DCMB", line, "");
+	extract_value(DistanceCounterDoublePressPeriod, "DCDPP", line, "");
+
+    extract_value(isBatteryButtonImpulse, "IBTB", line, "");
+	extract_value(shouldHoldBatteryButton, "SBBBH", line, "");
+	extract_value(BatteryButtonHoldTime, "BBHT", line, "");
 
     std::map<std::string, start_t> starts {
         { "Disabled", start_t::disabled },
@@ -11331,6 +11338,17 @@ void TMoverParameters::LoadFIZ_PowerParamsDecode( TPowerParameters &Powerparamet
             auto &collectorparameters = Powerparameters.CollectorParameters;
 
             collectorparameters = TCurrentCollector { 0, 0, 0, 0, 0, 0, false, 0, 0, 0, false, 0 };
+		    
+            std::string PantType = "";
+		    extract_value(PantType, "PantType", Line, "");
+            if (PantType == "AKP_4E")
+			    collectorparameters.PantographType = TPantType::AKP_4E;
+		    if (PantType._Starts_with("DSA")) // zakladam ze wszystkie pantografy DSA sa takie same
+			    collectorparameters.PantographType = TPantType::DSAx;
+		    if (PantType == "EC160" || PantType == "EC200")
+			    collectorparameters.PantographType = TPantType::EC160_200;
+		    if (PantType == "WBL85")
+			    collectorparameters.PantographType = TPantType::WBL85;
 
             extract_value( collectorparameters.CollectorsNo, "CollectorsNo", Line, "" );
             extract_value( collectorparameters.MinH, "MinH", Line, "" );
@@ -12465,6 +12483,24 @@ double TMoverParameters::ShowCurrentP(int AmpN) const
                     current = static_cast<int>(Couplers[b].Connected->ShowCurrent(AmpN));
         return current;
     }
+}
+
+bool TMoverParameters::reload_FIZ() {
+	WriteLog("[DEV] Reloading FIZ for " + Name);
+    // pause simulation
+	Global.iPause |= 0b1000;
+	bool result = LoadFIZ(chkPath);
+    if (result == true)
+    {
+		// jesli sie udalo przeladowac FIZ
+		Global.iPause &= 0b0111;
+		WriteLog("[DEV] FIZ reloaded for " + Name);
+    }
+    else {
+        // failed to reload - exit simulator
+		ErrorLog("[DEV] Failed to reload fiz for vehicle " + Name);
+    }
+	return true;
 }
 
 namespace simulation {

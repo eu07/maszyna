@@ -214,6 +214,15 @@ global_settings::ConfigParse(cParser &Parser) {
             Parser.getTokens();
             Parser >> MultipleLogs;
         }
+		else if (token == "shakefactor")
+		{
+			Parser.getTokens();
+			Parser >> ShakingMultiplierBF;
+			Parser.getTokens();
+			Parser >> ShakingMultiplierRL;
+			Parser.getTokens();
+			Parser >> ShakingMultiplierUD;
+        }
         else if (token == "logs.filter")
         {
             Parser.getTokens();

@@ -14,6 +14,7 @@ http://mozilla.org/MPL/2.0/.
 #include "winheaders.h"
 #include "utilities.h"
 #include "uilayer.h"
+#include <deque>
 
 std::ofstream output; // standardowy "log.txt", można go wyłączyć
 std::ofstream errors; // lista błędów "errors.txt", zawsze działa
@@ -68,61 +69,88 @@ std::string filename_scenery() {
     }
 }
 
+// log service stacks
+std::deque<char *> InfoStack;
+std::deque<char *> ErrorStack;
+
+
+void LogService()
+{
+    while (true)
+    {
+        // loop for logging
+
+        // write logs and log.txt
+        while (!InfoStack.empty())
+        {
+			char *msg = InfoStack.front(); // get first element of stack
+			InfoStack.pop_front();
+			if (Global.iWriteLogEnabled & 1)
+			{
+				if (!output.is_open())
+				{
+
+					std::string const filename = (Global.MultipleLogs ? "logs/log (" + filename_scenery() + ") " + filename_date() + ".txt" : "log.txt");
+					output.open(filename, std::ios::trunc);
+				}
+				output << msg << "\n";
+				output.flush();
+			}
+
+			log_scrollback.emplace_back(std::string(msg));
+			if (log_scrollback.size() > 200)
+				log_scrollback.pop_front();
+
+			if (Global.iWriteLogEnabled & 2)
+			{
+#ifdef _WIN32
+				// hunter-271211: pisanie do konsoli tylko, gdy nie jest ukrywana
+				SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), FOREGROUND_GREEN | FOREGROUND_INTENSITY);
+				DWORD wr = 0;
+				WriteConsole(GetStdHandle(STD_OUTPUT_HANDLE), msg, (DWORD)strlen(msg), &wr, NULL);
+				WriteConsole(GetStdHandle(STD_OUTPUT_HANDLE), endstring, (DWORD)strlen(endstring), &wr, NULL);
+#else
+				printf("%s\n", msg);
+#endif
+			}
+        } 
+        
+        // write to errors.txt
+        while (!ErrorStack.empty())
+        {
+			char *msg = ErrorStack.front();
+			ErrorStack.pop_front();
+
+			if (!(Global.iWriteLogEnabled & 1))
+				return;
+
+			if (!errors.is_open())
+			{
+
+				std::string const filename = (Global.MultipleLogs ? "logs/errors (" + filename_scenery() + ") " + filename_date() + ".txt" : "errors.txt");
+				errors.open(filename, std::ios::trunc);
+				errors << "EU07.EXE " + Global.asVersion << "\n";
+			}
+
+			errors << msg << "\n";
+			errors.flush();
+        }
+		std::this_thread::sleep_for(std::chrono::milliseconds(5)); // dont burn cpu so much
+    }
+}
+
 void WriteLog( const char *str, logtype const Type ) {
 
     if( str == nullptr ) { return; }
     if( true == TestFlag( Global.DisabledLogTypes, static_cast<unsigned int>( Type ) ) ) { return; }
-
-    if (Global.iWriteLogEnabled & 1) {
-        if( !output.is_open() ) {
-
-            std::string const filename =
-                ( Global.MultipleLogs ?
-                    "logs/log (" + filename_scenery() + ") " + filename_date() + ".txt" :
-                    "log.txt" );
-            output.open( filename, std::ios::trunc );
-        }
-        output << str << "\n";
-        output.flush();
-    }
-
-    log_scrollback.emplace_back(std::string(str));
-    if (log_scrollback.size() > 200)
-        log_scrollback.pop_front();
-
-    if( Global.iWriteLogEnabled & 2 ) {
-#ifdef _WIN32
-        // hunter-271211: pisanie do konsoli tylko, gdy nie jest ukrywana
-        SetConsoleTextAttribute( GetStdHandle( STD_OUTPUT_HANDLE ), FOREGROUND_GREEN | FOREGROUND_INTENSITY );
-        DWORD wr = 0;
-        WriteConsole( GetStdHandle( STD_OUTPUT_HANDLE ), str, (DWORD)strlen( str ), &wr, NULL );
-        WriteConsole( GetStdHandle( STD_OUTPUT_HANDLE ), endstring, (DWORD)strlen( endstring ), &wr, NULL );
-#else
-    printf("%s\n", str);
-#endif
-    }
+	InfoStack.emplace_back(strdup(str));
 }
 
 void ErrorLog( const char *str, logtype const Type ) {
 
     if( str == nullptr ) { return; }
     if( true == TestFlag( Global.DisabledLogTypes, static_cast<unsigned int>( Type ) ) ) { return; }
-
-    if (!(Global.iWriteLogEnabled & 1))
-        return;
-
-    if (!errors.is_open()) {
-
-        std::string const filename =
-            ( Global.MultipleLogs ?
-                "logs/errors (" + filename_scenery() + ") " + filename_date() + ".txt" :
-                "errors.txt" );
-        errors.open( filename, std::ios::trunc );
-        errors << "EU07.EXE " + Global.asVersion << "\n";
-    }
-
-    errors << str << "\n";
-    errors.flush();
+	ErrorStack.emplace_back(strdup(str));
 };
 
 void Error(const std::string &asMessage, bool box)

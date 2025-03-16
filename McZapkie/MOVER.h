@@ -469,6 +469,13 @@ struct TBoilerType {
     //}
 };
 /*rodzaj odbieraka pradu*/
+enum TPantType
+{
+	AKP_4E,
+	DSAx,
+	EC160_200,
+	WBL85
+};
 struct TCurrentCollector {
     long CollectorsNo; //musi być tu, bo inaczej się kopie
     double MinH; double MaxH; //zakres ruchu pantografu, nigdzie nie używany
@@ -480,6 +487,7 @@ struct TCurrentCollector {
     double MaxPress;  //maksymalne ciśnienie za reduktorem
     bool FakePower;
     int PhysicalLayout;
+	TPantType PantographType;
     //inline TCurrentCollector() {
     //    CollectorsNo = 0;
     //    MinH, MaxH, CSW, MinV, MaxV = 0.0;
@@ -1069,6 +1077,8 @@ class TMoverParameters
 	};
 
   public:
+	std::string chkPath;
+	bool reload_FIZ();
 	double dMoveLen = 0.0;
 	/*---opis lokomotywy, wagonu itp*/
 	/*--opis serii--*/
@@ -1138,6 +1148,9 @@ class TMoverParameters
 	int UniversalBrakeButtonFlag[3] = {0, 0, 0}; /* mozliwe działania przycisków hamulcowych */
 	int UniversalResetButtonFlag[3] = {0, 0, 0}; // customizable reset buttons assignments
 	int TurboTest = 0;
+	bool isBatteryButtonImpulse = false; // czy przelacznik baterii traktowac jako pojedynczy przycisk
+	bool shouldHoldBatteryButton = false; // czy nalezy przytrzymac przycisk baterii aby wlaczyc/wylaczyc baterie
+	float BatteryButtonHoldTime = 1.f; // minimalny czas przytrzymania przycisku baterii
 	double MaxBrakeForce = 0.0; /*maksymalna sila nacisku hamulca*/
 	double MaxBrakePress[5]; // pomocniczy, proz, sred, lad, pp
 	double P2FTrans = 0.0;
@@ -1213,6 +1226,8 @@ class TMoverParameters
 	double SpringBrakeDriveEmergencyVel{-1};
 	bool HideDirStatusWhenMoving{false}; // Czy gasic lampki kierunku powyzej predkosci zdefiniowanej przez HideDirStatusSpeed
 	int HideDirStatusSpeed{1}; // Predkosc od ktorej lampki kierunku sa wylaczane
+	bool isDoubleClickForMeasureNeeded = {false}; // czy rozpoczecie pomiaru odleglosci odbywa sie po podwojnym wcisnienciu przycisku?
+	float DistanceCounterDoublePressPeriod = {1.f}; // czas w jakim nalezy podwojnie wcisnac przycisk, aby rozpoczac pomiar odleglosci
 	TSecuritySystem SecuritySystem;
 	int EmergencyBrakeWarningSignal{0}; // combined with basic WarningSignal when manual emergency brake is active
 	TUniversalCtrlTable UniCtrlList; /*lista pozycji uniwersalnego nastawnika*/

@@ -1317,7 +1317,17 @@ void TTrain::OnCommand_distancecounteractivate( TTrain *Train, command_data cons
         // visual feedback
         Train->ggDistanceCounterButton.UpdateValue( 1.0, Train->dsbSwitch );
         // activate or start anew
-        Train->m_distancecounter = 0.f;
+        if (Train->mvOccupied->isDoubleClickForMeasureNeeded) {
+            // handler tempomatu dla podwojnego kliku
+			if (Train->trainLenghtMeasureTimer >= 0.f) // jesli zdazylismy w czasie sekundy
+				Train->m_distancecounter = 0.f; // rozpoczynamy pomiar
+			else
+			    Train->trainLenghtMeasureTimer = Train->mvOccupied->DistanceCounterDoublePressPeriod; // odpalamy zegarek od nowa
+        }
+        else {
+            // dla pojedynczego kliku
+			Train->m_distancecounter = 0.f;
+        }
     }
     else if( Command.action == GLFW_RELEASE ) {
         // visual feedback
@@ -2388,7 +2398,8 @@ void TTrain::OnCommand_cabsignalacknowledge( TTrain *Train, command_data const &
 
 void TTrain::OnCommand_batterytoggle( TTrain *Train, command_data const &Command )
 {
-    if( Command.action != GLFW_REPEAT ) {
+	if (Train->allowBatteryToggle || Command.action != GLFW_REPEAT)
+	{
         // keep the switch from flipping back and forth if key is held down
         if( false == Train->mvOccupied->Power24vIsAvailable ) {
             // turn on
@@ -2402,44 +2413,160 @@ void TTrain::OnCommand_batterytoggle( TTrain *Train, command_data const &Command
 }
 
 void TTrain::OnCommand_batteryenable( TTrain *Train, command_data const &Command ) {
+	if (!Train->mvOccupied->isBatteryButtonImpulse)
+	{ // regular button behavior
+		if (Command.action == GLFW_PRESS)
+		{
+			// visual feedback
+			Train->ggBatteryButton.UpdateValue(1.0f, Train->dsbSwitch);
+			Train->ggBatteryOnButton.UpdateValue(1.0f, Train->dsbSwitch);
 
-    if( Command.action == GLFW_PRESS ) {
-        // visual feedback
-        Train->ggBatteryButton.UpdateValue( 1.0f, Train->dsbSwitch );
-        Train->ggBatteryOnButton.UpdateValue( 1.0f, Train->dsbSwitch );
-
-        Train->mvOccupied->BatterySwitch( true );
-
-        // side-effects
-        if( Train->mvOccupied->LightsPosNo > 0 ) {
-            Train->Dynamic()->SetLights();
-        }
+			Train->mvOccupied->BatterySwitch(true);
+			Train->allowBatteryToggle = false;
+			// side-effects
+			if (Train->mvOccupied->LightsPosNo > 0)
+			{
+				Train->Dynamic()->SetLights();
+			}
+		}
+		else if (Command.action == GLFW_RELEASE)
+		{
+			if (Train->ggBatteryButton.type() == TGaugeType::push)
+			{
+				// return the switch to neutral position
+				Train->ggBatteryButton.UpdateValue(0.5f);
+			}
+			Train->ggBatteryOnButton.UpdateValue(0.0f, Train->dsbSwitch);
+			Train->allowBatteryToggle = true;
+		}
     }
-    else if( Command.action == GLFW_RELEASE ) {
-        if( Train->ggBatteryButton.type() == TGaugeType::push ) {
-            // return the switch to neutral position
-            Train->ggBatteryButton.UpdateValue( 0.5f );
+	else // impulse button behavior
+	{ 
+        if (Command.action == GLFW_PRESS)
+        {
+			if (Train->mvOccupied->shouldHoldBatteryButton)
+			{
+                // jesli przycisk trzeba przytrzymac
+				Train->ggBatteryButton.UpdateValue(1.0f, Train->dsbSwitch);
+				Train->ggBatteryOnButton.UpdateValue(1.0f, Train->dsbSwitch);  
+				Train->fBatteryTimer = Train->mvOccupied->BatteryButtonHoldTime; // start timer
+            }
+            else
+            {
+                // jesli przycisk dziala od razu
+				Train->mvOccupied->BatterySwitch(true);
+				Train->allowBatteryToggle = false;
+                // side-effects
+				if (Train->mvOccupied->LightsPosNo > 0)
+				{
+					Train->Dynamic()->SetLights();
+				}
+
+                // visual feedback
+				Train->ggBatteryButton.UpdateValue(1.0f, Train->dsbSwitch);
+				Train->ggBatteryOnButton.UpdateValue(1.0f, Train->dsbSwitch);  
+            }
         }
-        Train->ggBatteryOnButton.UpdateValue( 0.0f, Train->dsbSwitch );
+		else if (Command.action == GLFW_RELEASE)
+		{
+            // visual feedback
+			Train->ggBatteryButton.UpdateValue(0.0f, Train->dsbSwitch);
+			Train->ggBatteryOnButton.UpdateValue(0.0f, Train->dsbSwitch);  
+            Train->fBatteryTimer = -1.f; // 
+            Train->allowBatteryToggle = true;
+		}
+		else if (Command.action == GLFW_REPEAT && Train->mvOccupied->shouldHoldBatteryButton)
+		{
+            // trzymamy przycisk
+            if (Train->fBatteryTimer <= 0.0 && Train->mvOccupied->Battery == false) {
+				Train->mvOccupied->BatterySwitch(true);
+				// side-effects
+				if (Train->mvOccupied->LightsPosNo > 0)
+				{
+					Train->Dynamic()->SetLights();
+				}
+				Train->allowBatteryToggle = false;
+            }
+
+		}
     }
 }
 
 void TTrain::OnCommand_batterydisable( TTrain *Train, command_data const &Command ) {
-    // TBD, TODO: ewentualnie zablokować z FIZ, np. w samochodach się nie odłącza akumulatora
-    if( Command.action == GLFW_PRESS ) {
-        // visual feedback
-        Train->ggBatteryButton.UpdateValue( 0.0f, Train->dsbSwitch );
-        Train->ggBatteryOffButton.UpdateValue( 1.0f, Train->dsbSwitch );
+	if (!Train->mvOccupied->isBatteryButtonImpulse)
+	{ // regular button behavior
+		if (Command.action == GLFW_PRESS)
+		{
+			// visual feedback
+			Train->ggBatteryButton.UpdateValue(0.0f, Train->dsbSwitch);
+			Train->ggBatteryOffButton.UpdateValue(1.0f, Train->dsbSwitch);
 
-        Train->mvOccupied->BatterySwitch( false );
-    }
-    else if( Command.action == GLFW_RELEASE ) {
-        if( Train->ggBatteryButton.type() == TGaugeType::push ) {
-            // return the switch to neutral position
-            Train->ggBatteryButton.UpdateValue( 0.5f );
-        }
-        Train->ggBatteryOffButton.UpdateValue( 0.0f, Train->dsbSwitch );
-    }
+			Train->mvOccupied->BatterySwitch(false);
+
+			// side-effects
+			if (Train->mvOccupied->LightsPosNo > 0)
+			{
+				Train->Dynamic()->SetLights();
+			}
+		}
+		else if (Command.action == GLFW_RELEASE)
+		{
+			if (Train->ggBatteryButton.type() == TGaugeType::push)
+			{
+				// return the switch to neutral position
+				Train->ggBatteryButton.UpdateValue(0.5f);
+			}
+			Train->ggBatteryOffButton.UpdateValue(0.0f, Train->dsbSwitch);
+		}
+	}
+	else // impulse button behavior
+	{
+		if (Command.action == GLFW_PRESS)
+		{
+			if (Train->mvOccupied->shouldHoldBatteryButton)
+			{
+				// jesli przycisk trzeba przytrzymac
+				Train->ggBatteryButton.UpdateValue(1.0f, Train->dsbSwitch);
+				Train->ggBatteryOffButton.UpdateValue(1.0f, Train->dsbSwitch); 
+				Train->fBatteryTimer = Train->mvOccupied->BatteryButtonHoldTime; // start timer
+			}
+			else
+			{
+				// jesli przycisk dziala od razu
+				Train->mvOccupied->BatterySwitch(false);
+				Train->allowBatteryToggle = false;
+
+				// side-effects
+				if (Train->mvOccupied->LightsPosNo > 0)
+				{
+					Train->Dynamic()->SetLights();
+				}
+				// visual feedback
+				Train->ggBatteryButton.UpdateValue(1.0f, Train->dsbSwitch);
+				Train->ggBatteryOffButton.UpdateValue(1.0f, Train->dsbSwitch); 
+			}
+		}
+		else if (Command.action == GLFW_RELEASE)
+		{
+			// visual feedback
+			Train->ggBatteryButton.UpdateValue(0.0f, Train->dsbSwitch);
+			Train->ggBatteryOffButton.UpdateValue(0.0f, Train->dsbSwitch); 
+            Train->allowBatteryToggle = true;
+		}
+		else if (Command.action == GLFW_REPEAT && Train->mvOccupied->shouldHoldBatteryButton)
+		{
+			// trzymamy przycisk
+            if (Train->fBatteryTimer <= 0.0 && Train->mvOccupied->Battery == true) {
+				Train->mvOccupied->BatterySwitch(false);
+				Train->allowBatteryToggle = false;
+				// side-effects
+				if (Train->mvOccupied->LightsPosNo > 0)
+				{
+					Train->Dynamic()->SetLights();
+				}
+            }
+		}
+	}
 }
 
 void TTrain::OnCommand_cabactivationtoggle(TTrain *Train, command_data const &Command) {
@@ -2848,22 +2975,42 @@ void TTrain::change_pantograph_selection( int const Change ) {
 
 void TTrain::OnCommand_pantographvalvesupdate( TTrain *Train, command_data const &Command ) {
 
+    bool hasSeparateSwitches = Train->m_controlmapper.contains("pantvalvesupdate_bt:") &&
+        Train->m_controlmapper.contains("pantvalvesoff_bt:");
+
     if( Command.action == GLFW_REPEAT ) { return; }
 
     if( Command.action == GLFW_PRESS ) {
-        // implement action
-        Train->update_pantograph_valves();
-        // visual feedback
-        Train->ggPantValvesButton.UpdateValue( 1.0, Train->dsbSwitch );
+		if (hasSeparateSwitches)
+		{
+			// implement action
+			Train->update_pantograph_valves();
+			// visual feedback
+			Train->ggPantValvesUpdate.UpdateValue(1.0, Train->dsbSwitch);
+		}
+
+		// Old logic to maintain compatibility
+        else 
+        {
+			Train->update_pantograph_valves();
+			Train->ggPantValvesButton.UpdateValue(1.0, Train->dsbSwitch);
+        }
     }
     else if( Command.action == GLFW_RELEASE ) {
         // visual feedback
         // NOTE: pantvalves_sw: is a specialized button, with no toggle behavior support
-        Train->ggPantValvesButton.UpdateValue( 0.5, Train->dsbSwitch );
+		if (hasSeparateSwitches)
+			Train->ggPantValvesUpdate.UpdateValue(0.5, Train->dsbSwitch);
+
+		// Old logic to maintain compatibility
+        else
+			Train->ggPantValvesButton.UpdateValue(0.5, Train->dsbSwitch);
     }
 }
 
 void TTrain::OnCommand_pantographvalvesoff( TTrain *Train, command_data const &Command ) {
+
+        bool hasSeparateSwitches = Train->m_controlmapper.contains("pantvalvesupdate_bt:") && Train->m_controlmapper.contains("pantvalvesoff_bt:");
 
     if( Command.action == GLFW_REPEAT ) { return; }
 
@@ -2872,12 +3019,18 @@ void TTrain::OnCommand_pantographvalvesoff( TTrain *Train, command_data const &C
         Train->mvOccupied->OperatePantographValve( end::front, operation_t::disable );
         Train->mvOccupied->OperatePantographValve( end::rear, operation_t::disable );
         // visual feedback
-        Train->ggPantValvesButton.UpdateValue( 0.0, Train->dsbSwitch );
+		if (hasSeparateSwitches)
+			Train->ggPantValvesOff.UpdateValue(1.0, Train->dsbSwitch);
+		else
+            Train->ggPantValvesButton.UpdateValue( 0.0, Train->dsbSwitch );
     }
     else if( Command.action == GLFW_RELEASE ) {
         // visual feedback
-        // NOTE: pantvalves_sw: is a specialized button, with no toggle behavior support
-        Train->ggPantValvesButton.UpdateValue( 0.5, Train->dsbSwitch );
+        // NOTE: pantvalves_sw: is a speciali   zed button, with no toggle behavior support
+		if (hasSeparateSwitches)
+			Train->ggPantValvesOff.UpdateValue(0.f, Train->dsbSwitch);
+		else
+            Train->ggPantValvesButton.UpdateValue( 0.5, Train->dsbSwitch );
     }
 }
 
@@ -6926,6 +7079,21 @@ bool TTrain::Update( double const Deltatime )
             mvOccupied->OperateDoors( static_cast<side>( idx ), true );
         }
     }
+
+    // train measurement timer
+    if (trainLenghtMeasureTimer >= 0.f) {
+		trainLenghtMeasureTimer -= Deltatime;
+		if (trainLenghtMeasureTimer < 0.f)
+			trainLenghtMeasureTimer = -1.f;
+    }
+
+    // battery timer
+    if (fBatteryTimer >= 0.f) {
+		fBatteryTimer -= Deltatime;
+		if (fBatteryTimer < 0.f)
+			fBatteryTimer = -1.f;
+    }
+
     // helper variables
     if( DynamicObject->Mechanik != nullptr ) {
         m_doors = (
@@ -7435,6 +7603,12 @@ bool TTrain::Update( double const Deltatime )
 	else
 		btCompressors.Turn(false);
 
+    // Lampka zezwolenia na hamowanie ED
+    if (mvControlled->EpFuse)
+		btEDenabled.Turn(true);
+	else
+		btEDenabled.Turn(false);
+
     // Lampka aktywowanej kabiny
     if (mvControlled->CabActive != 0) {
 		btCabActived.Turn(true);
@@ -7447,6 +7621,7 @@ bool TTrain::Update( double const Deltatime )
 		btAKLVents.Turn(true);
 	else
 		btAKLVents.Turn(false);
+
 
     if( true == lowvoltagepower ) {
         // McZapkie-141102: SHP i czuwak, TODO: sygnalizacja kabinowa
@@ -8078,6 +8253,9 @@ bool TTrain::Update( double const Deltatime )
     ggPantValvesButton.Update();
     ggPantCompressorButton.Update();
     ggPantCompressorValve.Update();
+
+    ggPantValvesOff.Update();
+	ggPantValvesUpdate.Update();
 
     ggLightsButton.Update();
     ggUpperLightButton.Update();
@@ -9572,6 +9750,10 @@ void TTrain::clear_cab_controls()
     ggPantValvesButton.Clear();
     ggPantCompressorButton.Clear();
     ggPantCompressorValve.Clear();
+
+    ggPantValvesOff.Clear();
+	ggPantValvesUpdate.Clear();
+
     ggI1B.Clear();
     ggI2B.Clear();
     ggI3B.Clear();
@@ -9723,6 +9905,16 @@ void TTrain::set_cab_controls( int const Cab ) {
             ggModernLightDimSw.PutValue(mvOccupied->modernDimmerState - 1);
     }
 
+    // Init separate buttons
+    if (ggPantValvesUpdate.SubModel != nullptr)
+	{
+		ggPantValvesUpdate.PutValue(0.f);
+	}   
+    if (ggPantValvesOff.SubModel != nullptr)
+    {
+		ggPantValvesOff.PutValue(0.f);
+    }
+
     // motor connectors
     ggStLinOffButton.PutValue(
         ( mvControlled->StLinSwitchOff ?
@@ -9781,6 +9973,7 @@ void TTrain::set_cab_controls( int const Cab ) {
                 0.f ) );
     }
     ggPantValvesButton.PutValue( 0.5f );
+
     // auxiliary compressor
     ggPantCompressorValve.PutValue(
         mvControlled->bPantKurek3 ?
@@ -10164,7 +10357,8 @@ bool TTrain::initialize_button(cParser &Parser, std::string const &Label, int co
         { "i-universal9:", btUniversals[ 9 ] },
         { "i-cabactived:", btCabActived },
 	      {"i-aklvents:", btAKLVents},
-	      {"i-compressorany:", btCompressors }
+	      {"i-compressorany:", btCompressors },
+	      {"i-edenabled", btEDenabled },
     };
     {
         auto lookup = lights.find( Label );
@@ -10396,6 +10590,8 @@ bool TTrain::initialize_gauge(cParser &Parser, std::string const &Label, int con
 		{ "invertertoggle10_bt:", ggInverterToggleButtons[9] },
 		{ "invertertoggle11_bt:", ggInverterToggleButtons[10] },
 		{ "invertertoggle12_bt:", ggInverterToggleButtons[11] },
+	    {"pantvalvesupdate_bt:", ggPantValvesUpdate},
+	    {"pantvalvesoff_bt:", ggPantValvesOff}
     };
     {
         auto const lookup { gauges.find( Label ) };

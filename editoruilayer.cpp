@@ -21,6 +21,7 @@ editor_ui::editor_ui() {
 
     add_external_panel( &m_itempropertiespanel );
     add_external_panel( &m_nodebankpanel );
+    add_external_panel( &m_functionspanel );
 }
 
 // updates state of UI elements
@@ -41,6 +42,7 @@ editor_ui::update() {
 
     ui_layer::update();
     m_itempropertiespanel.update( m_node );
+    m_functionspanel.update( m_node );
 }
 
 void
@@ -62,4 +64,18 @@ editor_ui::get_active_node_template() {
 nodebank_panel::edit_mode
 editor_ui::mode() {
 	return m_nodebankpanel.mode;
+}
+
+functions_panel::rotation_mode
+editor_ui::rot_mode() {
+	return m_functionspanel.rot_mode;
+}
+float 
+editor_ui::rot_val() {
+	return m_functionspanel.rot_value;
+}
+bool 
+editor_ui::rot_from_last()
+{
+	return m_functionspanel.rot_from_last;
 }

@@ -37,6 +37,8 @@ public:
     int
         run();
     // issues request for a worker thread to perform specified task. returns: true if task was scheduled
+
+    void eu07_application::DiscordRPCService(); // discord rich presence service function (runs as separate thread)
     bool
         request( python_taskqueue::task_request const &Task );
     // ensures the main thread holds the python gil and can safely execute python calls

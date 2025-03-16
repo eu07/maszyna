@@ -663,6 +663,8 @@ public: // reszta może by?publiczna
     TGauge ggPantValvesButton;
     TGauge ggPantCompressorButton;
     TGauge ggPantCompressorValve;
+	TGauge ggPantValvesUpdate;
+	TGauge ggPantValvesOff;
     // Winger 020304 - wlacznik ogrzewania
     TGauge ggTrainHeatingButton;
     TGauge ggSignallingButton;
@@ -777,6 +779,7 @@ public: // reszta może by?publiczna
 	  TButton btCabActived;
 	  TButton btAKLVents;
 	  TButton btCompressors;  // lampka pracy jakiejkolwiek sprezarki
+	  TButton btEDenabled; // czy wlaczony jest hamulec ED (czy dostepny)
     // other
     TButton btLampkaMalfunction;
     TButton btLampkaMalfunctionB;
@@ -840,6 +843,8 @@ private:
     float fHaslerTimer;
     float fConverterTimer; // hunter-261211: dla przekaznika
     float fMainRelayTimer; // hunter-141211: zalaczanie WSa z opoznieniem
+	float fBatteryTimer = {-1.f}; // Hirek: zalaczanie baterii z opoznieniem (tylko gdy zdefiniowano takie zachowanie w fiz)
+	bool allowBatteryToggle = true; // Hirek: zabezpieczenie przed przelaczaniem bateri on/off
     int ScreenUpdateRate { 0 }; // vehicle specific python screen update rate override
 
     // McZapkie-240302 - przyda sie do tachometru
@@ -882,6 +887,7 @@ private:
     bool m_dirbackward{ false }; // helper, true if direction set to backward
     bool m_doorpermits{ false }; // helper, true if any door permit is active
     float m_doorpermittimers[2] = { -1.f, -1.f };
+	float trainLenghtMeasureTimer = { -1.f };
     // ld substitute
     bool m_couplingdisconnect { false };
 	bool m_couplingdisconnectback { false };
