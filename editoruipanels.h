@@ -73,3 +73,35 @@ private:
     char m_nodesearch[ 128 ];
     std::shared_ptr<std::string> m_selectedtemplate;
 };
+
+class functions_panel : public ui_panel
+{
+
+  public:
+	enum rotation_mode
+	{
+		RANDOM,
+		FIXED,
+		DEFAULT
+	};
+	rotation_mode rot_mode = DEFAULT;
+
+	float rot_value = 0.0f;
+	bool rot_from_last = false; 
+
+	functions_panel(std::string const &Name, bool const Isopen) : ui_panel(Name, Isopen) {}
+
+	void update(scene::basic_node const *Node);
+	void render() override;
+
+
+  private:
+	// methods
+
+
+	// members
+	scene::basic_node const *m_node{nullptr}; // scene node bound to the panel
+	scene::group_handle m_grouphandle{null_handle}; // scene group bound to the panel
+	std::string m_groupprefix;
+	std::vector<text_line> m_grouplines;
+};

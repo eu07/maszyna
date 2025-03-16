@@ -249,6 +249,7 @@ std::string locale::label_cab_control(std::string const &Label)
 	    { "leftlight_sw:", STRN("left headlight") },
 	    { "rightlight_sw:", STRN("right headlight") },
 	    { "dimheadlights_sw:", STRN("headlights dimmer") },
+	    { "moderndimmer_sw:", STRN("headlights dimmer") },
 	    { "leftend_sw:", STRN("left marker light") },
 	    { "rightend_sw:", STRN("right marker light") },
 	    { "lights_sw:", STRN("light pattern") },
@@ -282,6 +283,8 @@ std::string locale::label_cab_control(std::string const &Label)
 	    { "pantselectedoff_sw:", STRN("selected pantograph") },
 	    { "pantselect_sw:", STRN("selected pantograph") },
 	    { "pantvalves_sw:", STRN("selected pantograph") },
+	    { "pantvalvesoff_bt:", STRN("all pantographs down") },
+	    { "pantvalvesupdate_bt:", STRN("selected pantographs up") },
 	    { "pantcompressor_sw:", STRN("pantograph compressor") },
 	    { "pantcompressorvalve_sw:", STRN("pantograph 3 way valve") },
 	    { "trainheating_sw:", STRN("heating") },
@@ -319,7 +322,8 @@ std::string locale::label_cab_control(std::string const &Label)
 	    { "universal6:", STRN("interactive part") },
 	    { "universal7:", STRN("interactive part") },
 	    { "universal8:", STRN("interactive part") },
-	    { "universal9:", STRN("interactive part") }
+	    { "universal9:", STRN("interactive part") },
+	    { "wipers_sw:", STRN("wipers mode selector") },
 	};
 
 	auto const it = cabcontrols_labels.find( Label );

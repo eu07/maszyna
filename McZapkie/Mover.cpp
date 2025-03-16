@@ -8927,7 +8927,7 @@ bool startBPT;
 bool startMPT, startMPT0;
 bool startRLIST, startUCLIST;
 bool startDIZELMOMENTUMLIST, startDIZELV2NMAXLIST, startHYDROTCLIST, startPMAXLIST;
-bool startDLIST, startFFLIST, startWWLIST;
+bool startDLIST, startFFLIST, startWWLIST, startWiperList;
 bool startLIGHTSLIST;
 bool startCOMPRESSORLIST;
 int LISTLINE;
@@ -9279,6 +9279,25 @@ bool TMoverParameters::readFFList( std::string const &line ) {
     return true;
 }
 
+// parsowanie wiperList
+bool TMoverParameters::readWiperList(std::string const& line)
+{
+	cParser parser(line);
+	if (false == parser.getTokens(4, false))
+	{
+		WriteLog("Read WiperList: arguments missing in line " + std::to_string(LISTLINE + 1));
+		return false;
+	}
+	int idx = LISTLINE++;
+	if (idx >= sizeof(WiperList) / sizeof(TWiperScheme))
+	{
+		WriteLog("Read WiperList: number of entries exceeded capacity of the data table");
+		return false;
+	}
+	parser >> WiperList[idx].byteSum >> WiperList[idx].WiperSpeed >> WiperList[idx].interval >> WiperList[idx].outBackDelay;
+	return true;
+}
+
 // parsowanie WWList
 bool TMoverParameters::readWWList( std::string const &line ) {
 
@@ -9308,7 +9327,6 @@ bool TMoverParameters::readWWList( std::string const &line ) {
         SST[ idx ].Pmin = std::sqrt( std::pow( SST[ idx ].Umin, 2 ) / 47.6 );
         SST[ idx ].Pmax = std::min( SST[ idx ].Pmax, std::pow( SST[ idx ].Umax, 2 ) / 47.6 );
     }
-
     return true;
 }
 
@@ -9444,6 +9462,7 @@ void TMoverParameters::BrakeSubsystemDecode()
 // *************************************************************************************************
 bool TMoverParameters::LoadFIZ(std::string chkpath)
 {
+	chkPath = chkpath; // assign class path for reloading
     const int param_ok = 1;
     const int wheels_ok = 2;
     const int dimensions_ok = 4;
@@ -9462,6 +9481,7 @@ bool TMoverParameters::LoadFIZ(std::string chkpath)
 	startPMAXLIST = false;
 	startFFLIST = false;
     startWWLIST = false;
+	startWiperList = false;
     startLIGHTSLIST = false;
 	startCOMPRESSORLIST = false;
     std::string file = TypeName + ".fiz";
@@ -9561,6 +9581,13 @@ bool TMoverParameters::LoadFIZ(std::string chkpath)
             startBPT = false;
             startFFLIST = false;
             continue;
+        }
+        if (issection("endwl", inputline))
+        {
+            // skonczylismy czytac liste konfiguracji wycieraczek
+			startBPT = false;
+            startWiperList = false;
+			continue;
         }
         if( issection( "END-WWL", inputline ) ) {
             startBPT = false;
@@ -9664,6 +9691,14 @@ bool TMoverParameters::LoadFIZ(std::string chkpath)
             fizlines.emplace( "Cntrl", inputline );
             LoadFIZ_Cntrl( inputline );
             continue;
+        }
+
+        if (issection("Headlights:", inputline))
+        {
+            startBPT = false;
+			fizlines.emplace("Headlights", inputline);
+			LoadFIZ_Headlights(inputline);
+			continue;
         }
 
 		if (issection("Blending:", inputline)) {
@@ -9845,8 +9880,21 @@ bool TMoverParameters::LoadFIZ(std::string chkpath)
         {
 			startBPT = false;
             startWWLIST = true; LISTLINE = 0;
+            
 			continue;
         }
+
+        if (issection("WiperList:", inputline))
+		{
+			startBPT = false;
+			fizlines.emplace("WiperList", inputline);
+			startWiperList = true;
+			LISTLINE = 0;    
+            LoadFIZ_WiperList(inputline);
+
+            continue;
+        }
+
 
         if( issection( "LightsList:", inputline ) ) {
             startBPT = false;
@@ -9914,6 +9962,11 @@ bool TMoverParameters::LoadFIZ(std::string chkpath)
             readWWList( inputline );
 			continue;
 		}
+		if (true == startWiperList)
+        {
+			readWiperList(inputline);
+			continue;
+        }
         if( true == startLIGHTSLIST ) {
             readLightsList( inputline );
             continue;
@@ -9934,6 +9987,13 @@ bool TMoverParameters::LoadFIZ(std::string chkpath)
         result = true;
     else
         result = false;
+
+    if (!modernContainOffPos)
+		modernDimmerState = 2;  // jak nie ma opcji wylaczonej to niech sie odpali normalnie
+	if (!enableModernDimmer)
+	{
+		modernDimmerState = 2;
+	}
 
     WriteLog("CERROR: " + to_string(ConversionError) + ", SUCCES: " + to_string(result));
     return result;
@@ -10024,6 +10084,18 @@ void TMoverParameters::LoadFIZ_Load( std::string const &line ) {
     extract_value( OverLoadFactor, "OverLoadFactor", line, "" );
     extract_value( LoadSpeed, "LoadSpeed", line, "" );
     extract_value( UnLoadSpeed, "UnLoadSpeed", line, "" );
+}
+
+void TMoverParameters::LoadFIZ_Headlights(std::string const &line)
+{
+	extract_value(refR, "LampRed", line, "");
+	extract_value(refG, "LampGreen", line, "");
+	extract_value(refB, "LampBlue", line, "");
+
+    extract_value(dimMultiplier, "DimmedMultiplier", line, "");
+    extract_value(normMultiplier, "NormalMultiplier", line, "");
+    extract_value(highDimMultiplier, "HighbeamDimmedMultiplier", line, "");
+    extract_value(highMultiplier, "HighBeamMultiplier", line, "");
 }
 
 void TMoverParameters::LoadFIZ_Dimensions( std::string const &line ) {
@@ -10602,6 +10674,12 @@ void TMoverParameters::LoadFIZ_Cntrl( std::string const &line ) {
 
     extract_value(HideDirStatusWhenMoving, "HideDirStatusWhenMoving", line, "");
 	extract_value(HideDirStatusSpeed, "HideDirStatusSpeed", line, "");
+	extract_value(isDoubleClickForMeasureNeeded, "DCMB", line, "");
+	extract_value(DistanceCounterDoublePressPeriod, "DCDPP", line, "");
+
+    extract_value(isBatteryButtonImpulse, "IBTB", line, "");
+	extract_value(shouldHoldBatteryButton, "SBBBH", line, "");
+	extract_value(BatteryButtonHoldTime, "BBHT", line, "");
 
     std::map<std::string, start_t> starts {
         { "Disabled", start_t::disabled },
@@ -11120,6 +11198,8 @@ void TMoverParameters::LoadFIZ_Switches( std::string const &Input ) {
     extract_value( UniversalResetButtonFlag[ 0 ], "RelayResetButton1", Input, "" );
     extract_value( UniversalResetButtonFlag[ 1 ], "RelayResetButton2", Input, "" );
     extract_value( UniversalResetButtonFlag[ 2 ], "RelayResetButton3", Input, "" );
+	extract_value(enableModernDimmer, "ModernDimmer", Input, "");
+	extract_value(modernContainOffPos, "ModernDimmerOffPosition", Input, "");
     // pantograph presets
     {
         auto &presets { PantsPreset.first };
@@ -11242,6 +11322,13 @@ void TMoverParameters::LoadFIZ_FFList( std::string const &Input ) {
     extract_value( RlistSize, "Size", Input, "" );
 }
 
+
+void TMoverParameters::LoadFIZ_WiperList(std::string const &Input) 
+{
+	extract_value(WiperListSize, "Size", Input, "");
+	extract_value(WiperAngle, "Angle", Input, "");
+}
+
 void TMoverParameters::LoadFIZ_LightsList( std::string const &Input ) {
 
     extract_value( LightsPosNo, "Size", Input, "" );
@@ -11306,6 +11393,17 @@ void TMoverParameters::LoadFIZ_PowerParamsDecode( TPowerParameters &Powerparamet
             auto &collectorparameters = Powerparameters.CollectorParameters;
 
             collectorparameters = TCurrentCollector { 0, 0, 0, 0, 0, 0, false, 0, 0, 0, false, 0 };
+		    
+            std::string PantType = "";
+		    extract_value(PantType, "PantType", Line, "");
+            if (PantType == "AKP_4E")
+			    collectorparameters.PantographType = TPantType::AKP_4E;
+		    if (PantType._Starts_with("DSA")) // zakladam ze wszystkie pantografy DSA sa takie same
+			    collectorparameters.PantographType = TPantType::DSAx;
+		    if (PantType == "EC160" || PantType == "EC200")
+			    collectorparameters.PantographType = TPantType::EC160_200;
+		    if (PantType == "WBL85")
+			    collectorparameters.PantographType = TPantType::WBL85;
 
             extract_value( collectorparameters.CollectorsNo, "CollectorsNo", Line, "" );
             extract_value( collectorparameters.MinH, "MinH", Line, "" );
@@ -12440,6 +12538,24 @@ double TMoverParameters::ShowCurrentP(int AmpN) const
                     current = static_cast<int>(Couplers[b].Connected->ShowCurrent(AmpN));
         return current;
     }
+}
+
+bool TMoverParameters::reload_FIZ() {
+	WriteLog("[DEV] Reloading FIZ for " + Name);
+    // pause simulation
+	Global.iPause |= 0b1000;
+	bool result = LoadFIZ(chkPath);
+    if (result == true)
+    {
+		// jesli sie udalo przeladowac FIZ
+		Global.iPause &= 0b0111;
+		WriteLog("[DEV] FIZ reloaded for " + Name);
+    }
+    else {
+        // failed to reload - exit simulator
+		ErrorLog("[DEV] Failed to reload fiz for vehicle " + Name);
+    }
+	return true;
 }
 
 namespace simulation {

@@ -29,6 +29,9 @@ http://mozilla.org/MPL/2.0/.
 #include "Timer.h"
 #include "dictionary.h"
 #include "version_info.h"
+#include "ref/discord-rpc/include/discord_rpc.h"
+#include <chrono>
+#include "translation.h"
 
 #ifdef _WIN32
 #pragma comment (lib, "dsound.lib")
@@ -174,6 +177,83 @@ int eu07_application::run_crashgui()
     }
     return -1;
 }
+void eu07_application::DiscordRPCService()
+{
+	// initialize discord-rpc
+	WriteLog("Initializing Discord Rich Presence...");
+	static const char *discord_app_id = "1343662664504840222";
+	DiscordEventHandlers handlers;
+	memset(&handlers, 0, sizeof(handlers));
+	Discord_Initialize(discord_app_id, &handlers, 1, nullptr);
+
+	std::string rpcScnName = Global.SceneryFile;
+	if (rpcScnName[0] == '$')
+		rpcScnName.erase(0, 1);
+	rpcScnName.erase(rpcScnName.size() - 4, 4);
+	if (rpcScnName.find('_') != std::string::npos)
+	{
+		std::replace(rpcScnName.begin(), rpcScnName.end(), '_', ' ');
+	}
+
+	// calculate startup timestamp
+	auto now = std::chrono::system_clock::now();
+	auto now_c = std::chrono::system_clock::to_time_t(now);
+
+	// Init RPC object
+	static DiscordRichPresence discord_rpc;
+	memset(&discord_rpc, 0, sizeof(discord_rpc));
+	// realworld timestamp from datetime
+	discord_rpc.startTimestamp = static_cast<int64_t>(now_c);
+	static std::string state = Translations.lookup_s("Scenery: ") + rpcScnName;
+	discord_rpc.state = state.c_str();
+	discord_rpc.details = Translations.lookup_c("Loading scenery...");
+	discord_rpc.largeImageKey = "logo";
+	discord_rpc.largeImageText = "MaSzyna";
+
+	// First RPC upload
+	Discord_UpdatePresence(&discord_rpc);
+
+    // run loop
+    while (!glfwWindowShouldClose(m_windows.front()) && !m_modestack.empty())
+	{
+		// Discord RPC updater
+		if (simulation::is_ready)
+		{
+			std::string PlayerVehicle;
+            if (simulation::Train != nullptr)
+            {
+				PlayerVehicle = simulation::Train->name();
+				// make to upper
+				for (auto &c : PlayerVehicle)
+					c = toupper(c);
+
+				PlayerVehicle = Translations.lookup_s("Driving: ") + PlayerVehicle;
+				discord_rpc.details = PlayerVehicle.c_str();
+
+				uint16_t playerTrainVelocity = simulation::Train->Dynamic()->GetVelocity();
+				if (playerTrainVelocity > 1)
+				{
+					// ikonka ze jedziemy i nie spimy
+					discord_rpc.smallImageKey = "driving";
+					std::string smallText = Translations.lookup_s("Speed: ") + std::to_string(playerTrainVelocity) + " km/h";
+					discord_rpc.smallImageText = smallText.c_str();
+				}
+				else
+				{
+					// krecimy postoj
+					discord_rpc.smallImageKey = "halt";
+					discord_rpc.smallImageText = Translations.lookup_c("Stopped");
+				}
+            }
+
+
+
+
+			Discord_UpdatePresence(&discord_rpc);
+		}
+		std::this_thread::sleep_for(std::chrono::milliseconds(5000)); // update RPC every 5 secs
+    }
+}
 
 int
 eu07_application::init( int Argc, char *Argv[] ) {
@@ -185,6 +265,10 @@ eu07_application::init( int Argc, char *Argv[] ) {
     if( ( result = init_settings( Argc, Argv ) ) != 0 ) {
         return result;
     }
+
+    // start logging service
+	std::thread sLoggingService(LogService);
+	Global.threads.emplace("LogService", std::move(sLoggingService));
 
 	WriteLog( "Starting MaSzyna rail vehicle simulator (release: " + Global.asVersion + ")" );
 	WriteLog( "For online documentation and additional files refer to: http://eu07.pl" );
@@ -239,8 +323,14 @@ eu07_application::init( int Argc, char *Argv[] ) {
 	if (!init_network())
 		return -1;
 
+    // Run DiscordRPC service
+    std::thread sDiscordRPC(&eu07_application::DiscordRPCService, this);
+    Global.threads.emplace("DiscordRPC", std::move(sDiscordRPC));
+
     return result;
 }
+
+
 
 double eu07_application::generate_sync() {
 	if (Timer::GetDeltaTime() == 0.0)
@@ -433,7 +523,8 @@ eu07_application::run() {
             std::this_thread::sleep_for( Global.minframetime - frametime );
         }
     }
-
+	Global.threads["LogService"].~thread(); // kill log service
+	Global.threads["DiscordRPC"].~thread(); // kill DiscordRPC service
 	return 0;
 }
 

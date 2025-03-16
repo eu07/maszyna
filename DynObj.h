@@ -22,6 +22,8 @@ http://mozilla.org/MPL/2.0/.
 #include "sound.h"
 #include "Spring.h"
 
+#include <vector>
+
 #define EU07_SOUND_BOGIESOUNDS
 
 //---------------------------------------------------------------------------
@@ -36,7 +38,8 @@ int const ANIM_PANTS = 5; // pantografy
 int const ANIM_STEAMS = 6; // napęd parowozu
 int const ANIM_DOORSTEPS = 7;
 int const ANIM_MIRRORS = 8;
-int const ANIM_TYPES = 9; // Ra: ilość typów animacji
+int const ANIM_WIPERS = 9;
+int const ANIM_TYPES = 10; // Ra: ilość typów animacji
 
 class TAnim;
 //typedef void(__closure *TUpdate)(TAnim *pAnim); // typ funkcji aktualizującej położenie submodeli
@@ -103,7 +106,17 @@ class TAnimPant
     float fWidthExtra; // dodatkowy rozmiar poziomy poza część roboczą (fWidth)
     float fHeightExtra[5]; //łamana symulująca kształt nabieżnika
     // double fHorizontal; //Ra 2015-01: położenie drutu względem osi pantografu
+
+    // factory ktore mozna nadpisac z fiza
+	float rd1rf{1.f}; // mnoznik obrotu ramienia dolnego 1
+	float rd2rf{1.f}; // mnoznik obrotu ramienia dolnego 2
+	float rg1rf{1.f}; // mnoznik obrotu ramienia gornego 1
+	float rg2rf{1.f}; // mnoznik obrotu ramienia gornego 2
+	float slizgrf{1.f}; // mnoznik obrotu slizgacza
     void AKP_4E();
+	void WBL85();
+	void DSAx();
+	void EC160_200();
 };
 
 class TAnim
@@ -115,8 +128,8 @@ public:
 // destructor
     ~TAnim();
 // methods
-    int TypeSet( int i, int fl = 0 ); // ustawienie typu
-// members
+	int TypeSet(int i, TMoverParameters currentMover, int fl = 0); // ustawienie typu
+	    // members
     union
     {
         TSubModel *smAnimated; // animowany submodel (jeśli tylko jeden, np. oś)
@@ -209,7 +222,11 @@ public:
     inline TDynamicObject *PrevConnected() const { return MoverParameters->Neighbours[ end::front ].vehicle; }; // pojazd podłączony od strony sprzęgu 0 (kabina 1)
     inline int NextConnectedNo() const { return MoverParameters->Neighbours[ end::rear ].vehicle_end; }
     inline int PrevConnectedNo() const { return MoverParameters->Neighbours[ end::front ].vehicle_end; }
-//    double fTrackBlock; // odległość do przeszkody do dalszego ruchu (wykrywanie kolizji z innym pojazdem)
+
+    // Dev tools
+	void Reload();
+
+	//    double fTrackBlock; // odległość do przeszkody do dalszego ruchu (wykrywanie kolizji z innym pojazdem)
 
     // modele składowe pojazdu
     TModel3d *mdModel; // model pudła
@@ -277,7 +294,8 @@ private:
     void UpdatePlatformTranslate(TAnim *pAnim); // doorstep animation, shift
     void UpdatePlatformRotate(TAnim *pAnim); // doorstep animation, rotate
     void UpdateMirror(TAnim *pAnim); // mirror animation
-/*
+	void UpdateWiper(TAnim *pAnim); // wiper animation
+	/*
     void UpdateLeverDouble(TAnim *pAnim); // animacja gałki zależna od double
     void UpdateLeverFloat(TAnim *pAnim); // animacja gałki zależna od float
     void UpdateLeverInt(TAnim *pAnim); // animacja gałki zależna od int (wartość)
@@ -301,6 +319,14 @@ private:
     Math3D::vector3 vFloor; // podłoga dla ładunku
   public:
     TAnim *pants; // indeks obiektu animującego dla pantografu 0
+    TAnim *wipers; // wycieraczki
+	std::vector<double> wiperOutTimer = std::vector<double>(8, 0.0);
+	std::vector<double> wiperParkTimer = std::vector<double>(8, 0.0);
+	std::vector<int> workingSwitchPos = std::vector<int>(8, 0); // working switch position (to not break wipers when switching modes)
+	std::vector<double> dWiperPos; // timing na osi czasu animacji wycieraczki
+	std::vector<bool> wiperDirection = std::vector<bool>(8, false); // false - return direction; true - out direction
+	std::vector<bool> wiper_playSoundFromStart = std::vector<bool>(8, false);
+	std::vector<bool> wiper_playSoundToStart = std::vector<bool>(8, false); 
     double NoVoltTime; // czas od utraty zasilania
     double dMirrorMoveL{ 0.0 };
     double dMirrorMoveR{ 0.0 };
@@ -469,13 +495,18 @@ private:
     AirCoupler m_headlamp11; // oswietlenie czolowe - przod
     AirCoupler m_headlamp12;
     AirCoupler m_headlamp13;
+	AirCoupler m_highbeam12;    // dlugie
+	AirCoupler m_highbeam13;    
     AirCoupler m_headlamp21; // oswietlenie czolowe - tyl
     AirCoupler m_headlamp22;
     AirCoupler m_headlamp23;
+	AirCoupler m_highbeam22;
+	AirCoupler m_highbeam23;
     AirCoupler m_headsignal12;
     AirCoupler m_headsignal13;
     AirCoupler m_headsignal22;
     AirCoupler m_headsignal23;
+    TButton btExteriorOnly;
     TButton btMechanik1;
 	TButton btMechanik2;
     TButton btShutters1; // cooling shutters for primary water circuit
@@ -515,6 +546,8 @@ private:
     springbrake_sounds m_springbrakesounds;
     sound_source rsSlippery { sound_placement::external, EU07_SOUND_BRAKINGCUTOFFRANGE }; // moved from cab
     sound_source sSand { sound_placement::external };
+    sound_source sWiperToPark { sound_placement::internal };
+    sound_source sWiperFromPark { sound_placement::internal };
     // moving part and other external sounds
     sound_source m_startjolt { sound_placement::general }; // movement start jolt, played once on initial acceleration at slow enough speed
     bool m_startjoltplayed { false };
@@ -569,8 +602,12 @@ private:
     TDynamicObject *ABuFindObject( int &Foundcoupler, double &Distance, TTrack const *Track, int const Direction, int const Mycoupler ) const;
     void ABuCheckMyTrack();
 
+    std::string rTypeName; // nazwa typu pojazdu
+	std::string rReplacableSkin; // nazwa tekstury pojazdu
+
   public:
     bool DimHeadlights{ false }; // status of the headlight dimming toggle. NOTE: single toggle for all lights is a simplification. TODO: separate per-light switches
+	bool HighBeamLights { false }; // status of the highbeam toggle
     // checks whether there's unbroken connection of specified type to specified vehicle
     bool is_connected( TDynamicObject const *Vehicle, coupling const Coupling = coupling::coupler ) const;
 	TDynamicObject * PrevAny() const;

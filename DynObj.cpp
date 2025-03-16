@@ -97,8 +97,110 @@ void TAnimPant::AKP_4E()
     fHeightExtra[3] = -0.07f; //+0.3048
     fHeightExtra[4] = -0.15f; //+0.3810
 };
+void TAnimPant::WBL85()
+{ // ustawienie wymiarów dla pantografu WBL88
+	vPos = Math3D::vector3(0, 0, 0); // przypisanie domyśnych współczynników do pantografów
+
+    // mnozniki animacji ramion dla pantografu WBL88
+	rd1rf = 1.f;
+	rd2rf = 1.2;
+	rg1rf = 0.875;
+	rg2rf = 1.0;
+	slizgrf = 1.f;
+
+	fLenL1 = 1.98374;
+	fLenU1 = 2.14199;
+	fHoriz = 0.142; // 0.54555075 przesunięcie ślizgu w długości pojazdu względem
+	                // osi obrotu dolnego ramienia
+	fHeight = 0.09353; // wysokość ślizgu ponad oś obrotu
+	fWidth = 0.4969; // połowa szerokości ślizgu
+	fAngleL0 = DegToRad(2.8547285515689267247882521833308);
+	fAngleL = fAngleL0; // początkowy kąt dolnego ramienia
+	// fAngleU0=acos((1.22*cos(fAngleL)+0.535)/1.755); //górne ramię
+	fAngleU0 = acos((fLenL1 * cos(fAngleL) + fHoriz) / fLenU1); // górne ramię
+	fAngleU = fAngleU0; // początkowy kąt
+	// PantWys=1.22*sin(fAngleL)+1.755*sin(fAngleU); //wysokość początkowa
+	PantWys = fLenL1 * sin(fAngleL) + fLenU1 * sin(fAngleU) + fHeight; // wysokość początkowa
+	PantTraction = PantWys;
+	hvPowerWire = NULL;
+	fWidthExtra = 0.381f; //(2.032m-1.027)/2
+	// poza obszarem roboczym jest aproksymacja łamaną o 5 odcinkach
+	fHeightExtra[0] = 0.0f; //+0.0762
+	fHeightExtra[1] = -0.01f; //+0.1524
+	fHeightExtra[2] = -0.03f; //+0.2286
+	fHeightExtra[3] = -0.07f; //+0.3048
+	fHeightExtra[4] = -0.15f; //+0.3810
+};
+void TAnimPant::EC160_200()
+{ // ustawienie wymiarów dla pantografow EC160 lub EC200
+	vPos = Math3D::vector3(0, 0, 0); // przypisanie domyśnych współczynników do pantografów
+
+	// mnozniki animacji ramion dla pantografow EC160 lub EC200
+	rd1rf = 1.f;
+	rd2rf = 0.85;
+	rg1rf = 1.f;
+	rg2rf = 1.f; // 0.833
+	slizgrf = 1.f;
+
+	fLenL1 = 1.98374;
+	fLenU1 = 2.14199;
+	fHoriz = 0.142; // 0.54555075 przesunięcie ślizgu w długości pojazdu względem
+	                // osi obrotu dolnego ramienia
+	fHeight = 0.09353; // wysokość ślizgu ponad oś obrotu
+	fWidth = 0.4969; // połowa szerokości ślizgu
+	fAngleL0 = DegToRad(2.8547285515689267247882521833308);
+	fAngleL = fAngleL0; // początkowy kąt dolnego ramienia
+	// fAngleU0=acos((1.22*cos(fAngleL)+0.535)/1.755); //górne ramię
+	fAngleU0 = acos((fLenL1 * cos(fAngleL) + fHoriz) / fLenU1); // górne ramię
+	fAngleU = fAngleU0; // początkowy kąt
+	// PantWys=1.22*sin(fAngleL)+1.755*sin(fAngleU); //wysokość początkowa
+	PantWys = fLenL1 * sin(fAngleL) + fLenU1 * sin(fAngleU) + fHeight; // wysokość początkowa
+	PantTraction = PantWys;
+	hvPowerWire = NULL;
+	fWidthExtra = 0.381f; //(2.032m-1.027)/2
+	// poza obszarem roboczym jest aproksymacja łamaną o 5 odcinkach
+	fHeightExtra[0] = 0.0f; //+0.0762
+	fHeightExtra[1] = -0.01f; //+0.1524
+	fHeightExtra[2] = -0.03f; //+0.2286
+	fHeightExtra[3] = -0.07f; //+0.3048
+	fHeightExtra[4] = -0.15f; //+0.3810
+};
+void TAnimPant::DSAx()
+{ // ustawienie wymiarów dla pantografow z rodziny DSA
+	vPos = Math3D::vector3(0, 0, 0); // przypisanie domyśnych współczynników do pantografów
+
+	// mnozniki animacji ramion dla pantografow z rodziny DSA
+	rd1rf = 1.f;
+	rd2rf = 1.025;
+	rg1rf = 0.875;
+	rg2rf = 1.f;
+	slizgrf = 1.f;
+
+	fLenL1 = 1.98374;
+	fLenU1 = 2.14199;
+	fHoriz = 0.142; // 0.54555075 przesunięcie ślizgu w długości pojazdu względem
+	                // osi obrotu dolnego ramienia
+	fHeight = 0.09353; // wysokość ślizgu ponad oś obrotu
+	fWidth = 0.4969; // połowa szerokości ślizgu
+	fAngleL0 = DegToRad(2.8547285515689267247882521833308);
+	fAngleL = fAngleL0; // początkowy kąt dolnego ramienia
+	// fAngleU0=acos((1.22*cos(fAngleL)+0.535)/1.755); //górne ramię
+	fAngleU0 = acos((fLenL1 * cos(fAngleL) + fHoriz) / fLenU1); // górne ramię
+	fAngleU = fAngleU0; // początkowy kąt
+	// PantWys=1.22*sin(fAngleL)+1.755*sin(fAngleU); //wysokość początkowa
+	PantWys = fLenL1 * sin(fAngleL) + fLenU1 * sin(fAngleU) + fHeight; // wysokość początkowa
+	PantTraction = PantWys;
+	hvPowerWire = NULL;
+	fWidthExtra = 0.381f; //(2.032m-1.027)/2
+	// poza obszarem roboczym jest aproksymacja łamaną o 5 odcinkach
+	fHeightExtra[0] = 0.0f; //+0.0762
+	fHeightExtra[1] = -0.01f; //+0.1524
+	fHeightExtra[2] = -0.03f; //+0.2286
+	fHeightExtra[3] = -0.07f; //+0.3048
+	fHeightExtra[4] = -0.15f; //+0.3810
+};
 //---------------------------------------------------------------------------
-int TAnim::TypeSet(int i, int fl)
+int TAnim::TypeSet(int i, TMoverParameters currentMover, int fl)
 { // ustawienie typu animacji i zależnej od niego ilości animowanych submodeli
     fMaxDist = -1.0; // normalnie nie pokazywać
     switch (i)
@@ -127,7 +229,21 @@ int TAnim::TypeSet(int i, int fl)
     case 5: // 5-pantograf - 5 submodeli
         iFlags = 0x055;
         fParamPants = new TAnimPant();
-        fParamPants->AKP_4E();
+        switch (currentMover.EnginePowerSource.CollectorParameters.PantographType) {
+		    case (TPantType::AKP_4E):
+			    fParamPants->AKP_4E();
+                break;
+		    case(TPantType::DSAx):
+                fParamPants->DSAx();
+			    break;
+            case(TPantType::EC160_200):
+                fParamPants->EC160_200();
+			    break;
+            case(TPantType::WBL85):
+                fParamPants->WBL85();
+			    break;
+        }
+
         break;
     case 6:
         iFlags = 0x068;
@@ -138,6 +254,9 @@ int TAnim::TypeSet(int i, int fl)
     case 8:
         iFlags = 0x080;
         break; // mirror
+    case 9:
+		iFlags = 0x023; // 2: Rotating/Motion-based, 8: Uses 3 submodels
+		break;
     default:
         iFlags = 0;
     }
@@ -576,20 +695,20 @@ void TDynamicObject::UpdateDoorPlug(TAnim *pAnim) {
 
 void TDynamicObject::UpdatePant(TAnim *pAnim)
 { // animacja pantografu - 4 obracane ramiona, ślizg piąty
-    float a, b, c;
-    a = RadToDeg(pAnim->fParamPants->fAngleL - pAnim->fParamPants->fAngleL0);
-    b = RadToDeg(pAnim->fParamPants->fAngleU - pAnim->fParamPants->fAngleU0);
-    c = a + b;
-    if (pAnim->smElement[0])
-        pAnim->smElement[0]->SetRotate(float3(-1, 0, 0), a); // dolne ramię
-    if (pAnim->smElement[1])
-        pAnim->smElement[1]->SetRotate(float3(1, 0, 0), a);
-    if (pAnim->smElement[2])
-        pAnim->smElement[2]->SetRotate(float3(1, 0, 0), c); // górne ramię
-    if (pAnim->smElement[3])
-        pAnim->smElement[3]->SetRotate(float3(-1, 0, 0), c);
-    if (pAnim->smElement[4])
-        pAnim->smElement[4]->SetRotate(float3(-1, 0, 0), b); //ślizg
+	float a, b, c;
+	a = RadToDeg(pAnim->fParamPants->fAngleL - pAnim->fParamPants->fAngleL0);
+	b = RadToDeg(pAnim->fParamPants->fAngleU - pAnim->fParamPants->fAngleU0);
+	c = a + b;
+	if (pAnim->smElement[0])
+		pAnim->smElement[0]->SetRotate(float3(-1, 0, 0), a); // dolne ramie 1
+	if (pAnim->smElement[1])
+		pAnim->smElement[1]->SetRotate(float3(1, 0, 0), a * pAnim->fParamPants->rd2rf); // dolne ramie 2
+	if (pAnim->smElement[2])
+		pAnim->smElement[2]->SetRotate(float3(1, 0, 0), c); // górne ramie 1
+	if (pAnim->smElement[3])
+		pAnim->smElement[3]->SetRotate(float3(-1, 0, 0), c * pAnim->fParamPants->rg2rf); // gorne ramie 2
+	if (pAnim->smElement[4])
+		pAnim->smElement[4]->SetRotate(float3(-1, 0, 0), b * pAnim->fParamPants->slizgrf); // ślizg
 }
 
 // doorstep animation, shift
@@ -643,6 +762,24 @@ void TDynamicObject::UpdateMirror( TAnim *pAnim ) {
         pAnim->smAnimated->SetRotate(
             float3( 0, 1, 0 ),
             interpolate( 0.0, MoverParameters->MirrorMaxShift, dMirrorMoveL * isactive ) );
+}
+
+// wipers
+void TDynamicObject::UpdateWiper(TAnim* pAnim)
+{
+	if (!pAnim || !pAnim->smElement)
+		return;
+
+	int i = pAnim->iNumber; 
+    // odwaramy animacje dla parzystych indexow
+	const double rotateAngle = (i + 1) % 2 == 0 ? -MoverParameters->WiperAngle : MoverParameters->WiperAngle;
+
+	if (pAnim->smElement[0]) // ramie 1
+		pAnim->smElement[0]->SetRotate(float3(0, 1, 0), smoothInterpolate(0.0, rotateAngle, dWiperPos[i]));
+	if (pAnim->smElement[1]) // ramie 2
+		pAnim->smElement[1]->SetRotate(float3(0, 1, 0), smoothInterpolate(0.0, rotateAngle, dWiperPos[i]));
+	if (pAnim->smElement[2]) // pioro
+		pAnim->smElement[2]->SetRotate(float3(0, 1, 0), smoothInterpolate(0.0, -rotateAngle, dWiperPos[i]));
 }
 
 /*
@@ -1048,12 +1185,15 @@ void TDynamicObject::ABuLittleUpdate(double ObjSqrDist)
             btnOn = true;
         }
 
+        // only external models ( external_only_on / external_only_off )
+		btExteriorOnly.Turn(!bDisplayCab); // display only when cab is not rendered
+
 		if( ( false == bDisplayCab ) // edge case, lowpoly may act as a stand-in for the hi-fi cab, so make sure not to show the driver when inside
          && ( Mechanik != nullptr )
          && ( ( Mechanik->action() != TAction::actSleep )
            /* || ( MoverParameters->Battery ) */ ) ) {
             // rysowanie figurki mechanika
-            btMechanik1.Turn( MoverParameters->CabOccupied > 0 );
+			btMechanik1.Turn(MoverParameters->CabOccupied > 0);
             btMechanik2.Turn( MoverParameters->CabOccupied < 0 );
             if( MoverParameters->CabOccupied != 0 ) {
                 btnOn = true;
@@ -1168,6 +1308,28 @@ void TDynamicObject::ABuLittleUpdate(double ObjSqrDist)
             }
             btnOn = true;
         }
+
+        // logika dlugich
+		if (TestFlag(MoverParameters->iLights[end::front], light::highbeamlight_left))
+			m_highbeam13.TurnxOnWithOnAsFallback();
+		else
+			m_highbeam13.TurnOff();
+
+        if (TestFlag(MoverParameters->iLights[end::front], light::highbeamlight_right))
+			m_highbeam12.TurnxOnWithOnAsFallback();
+		else
+			m_highbeam12.TurnOff();
+        
+        // i to samo od dupy strony
+        if (TestFlag(MoverParameters->iLights[end::rear], light::highbeamlight_left))
+			m_highbeam23.TurnxOnWithOnAsFallback();
+		else
+			m_highbeam23.TurnOff();
+
+        if (TestFlag(MoverParameters->iLights[end::rear], light::highbeamlight_right))
+			m_highbeam22.TurnxOnWithOnAsFallback();
+		else
+			m_highbeam22.TurnOff();
     }
     // interior light levels
     auto sectionlightcolor { glm::vec4( 1.f ) };
@@ -2197,9 +2359,13 @@ TDynamicObject::Init(std::string Name, // nazwa pojazdu, np. "EU07-424"
     m_headlamp11.Init( "headlamp11", mdModel ); // górne
     m_headlamp12.Init( "headlamp12", mdModel ); // prawe
     m_headlamp13.Init( "headlamp13", mdModel ); // lewe
+	m_highbeam12.Init("highbeam12", mdModel);   // prawe dlugie
+	m_highbeam13.Init("highbeam13", mdModel);   // lewe dlugie
     m_headlamp21.Init( "headlamp21", mdModel );
     m_headlamp22.Init( "headlamp22", mdModel );
     m_headlamp23.Init( "headlamp23", mdModel );
+	m_highbeam22.Init("highbeam22", mdModel); 
+	m_highbeam23.Init("highbeam23", mdModel); 
     m_headsignal12.Init( "headsignal12", mdModel );
     m_headsignal13.Init( "headsignal13", mdModel );
     m_headsignal22.Init( "headsignal22", mdModel );
@@ -2216,6 +2382,10 @@ TDynamicObject::Init(std::string Name, // nazwa pojazdu, np. "EU07-424"
     iInventory[ end::front ] |= m_headlamp11.Active() ? light::headlight_upper : 0;
     iInventory[ end::front ] |= m_headlamp12.Active() ? light::headlight_right : 0;
     iInventory[ end::front ] |= m_headlamp13.Active() ? light::headlight_left : 0;
+
+    iInventory[end::front] |= m_highbeam12.Active() ? light::highbeamlight_right : 0;
+	iInventory[end::front] |= m_highbeam13.Active() ? light::highbeamlight_left : 0;
+
     iInventory[ end::rear ]  |= m_headlamp21.Active() ? light::headlight_upper : 0;
     iInventory[ end::rear ]  |= m_headlamp22.Active() ? light::headlight_right : 0;
     iInventory[ end::rear ]  |= m_headlamp23.Active() ? light::headlight_left : 0;
@@ -2223,8 +2393,15 @@ TDynamicObject::Init(std::string Name, // nazwa pojazdu, np. "EU07-424"
     iInventory[ end::front ] |= m_headsignal13.Active() ? light::auxiliary_left : 0;
     iInventory[ end::rear ]  |= m_headsignal22.Active() ? light::auxiliary_right : 0;
     iInventory[ end::rear ]  |= m_headsignal23.Active() ? light::auxiliary_left : 0;
+
+    iInventory[end::rear] |= m_highbeam22.Active() ? light::highbeamlight_right : 0;
+	iInventory[end::rear] |= m_highbeam23.Active() ? light::highbeamlight_left : 0;
+
+    btExteriorOnly.Init("external_only", mdModel, false);
+
     btMechanik1.Init( "mechanik1", mdLowPolyInt, false);
 	btMechanik2.Init( "mechanik2", mdLowPolyInt, false);
+
     if( MoverParameters->dizel_heat.water.config.shutters ) {
         btShutters1.Init( "shutters1", mdModel, false );
     }
@@ -3949,6 +4126,70 @@ bool TDynamicObject::Update(double dt, double dt1)
 		MoverParameters->PantFrontVolt = 0.95 * MoverParameters->EnginePowerSource.MaxVoltage;
 	}
 
+    // wipers
+	if (dWiperPos.size() > 0) // tylko dla wozow ze zdefiniowanymi wycierakami
+    {
+		for (int i = 0; i < dWiperPos.size(); i++) // iteracja po kazdej wycieraczce
+		{
+			bool wipersActive;
+			auto const bytesum = MoverParameters->WiperList[MoverParameters->wiperSwitchPos].byteSum;
+            // rozroznienie kabinowe
+            if (MoverParameters->CabActive == 1)
+            {
+				wipersActive = ((bytesum & (1 << i)) != 0) && MoverParameters->Battery;
+            }
+			else if (MoverParameters->CabActive == -1)
+            {
+                // odwroconie indexow wycieraczek
+				wipersActive = ((bytesum & (1 << dWiperPos.size() - 1 - i)) != 0) && MoverParameters->Battery;
+            }
+            else {
+				wipersActive = false;
+            }
+
+			auto const currentWiperParams = MoverParameters->WiperList[workingSwitchPos[i]];
+
+            wiperOutTimer[i] += dt1; // aktualizujemy zegarek
+			wiperParkTimer[i] += dt1; // aktualizujemy zegarek
+
+			if (wipersActive || dWiperPos[i] > 0.0) // zeby wrocily do trybu park
+			{
+                if (dWiperPos[i] > 0.0 && !wipersActive) // bezwzgledny powrot do zera
+                {
+					dWiperPos[i] = std::max(0.0, dWiperPos[i] - (1.f / currentWiperParams.WiperSpeed) * dt1);
+                }
+                else {
+
+					if (dWiperPos[i] < 1.0 && !wiperDirection[i] && wiperParkTimer[i] > currentWiperParams.interval)
+					// go out
+					{
+						dWiperPos[i] = std::min(1.0, dWiperPos[i] + (1.f / currentWiperParams.WiperSpeed) * dt1);
+					}
+					if (dWiperPos[i] > 0.0 && wiperDirection[i] && wiperOutTimer[i] > currentWiperParams.outBackDelay)
+					// return back
+					{
+						dWiperPos[i] = std::max(0.0, dWiperPos[i] - (1.f / currentWiperParams.WiperSpeed) * dt1);
+					}
+					if (dWiperPos[i] == 1.0) // we reached end
+					{
+						wiperParkTimer[i] = 0.0;
+						wiperDirection[i] = true; // switch direction
+					}
+					if (dWiperPos[i] == 0.0)
+					{
+						// when in park position
+						wiperOutTimer[i] = 0.0;
+						wiperDirection[i] = false;
+						workingSwitchPos[i] = MoverParameters->wiperSwitchPos; // update configuration
+					}
+
+                }
+			}
+		}
+    }
+
+
+
     // mirrors
     if( (MoverParameters->Vel > MoverParameters->MirrorVelClose)
 		|| (MoverParameters->CabActive == 0) && (activation::mirrors)
@@ -4162,6 +4403,10 @@ void TDynamicObject::TurnOff()
     m_headlamp21.TurnOff();
     m_headlamp22.TurnOff();
     m_headlamp23.TurnOff();
+    m_highbeam12.TurnOff();
+    m_highbeam13.TurnOff();
+	m_highbeam22.TurnOff();
+    m_highbeam23.TurnOff();
     m_headsignal12.TurnOff();
     m_headsignal13.TurnOff();
     m_headsignal22.TurnOff();
@@ -5002,12 +5247,14 @@ TDynamicObject::radius() const {
 // McZapkie-250202
 // wczytywanie pliku z danymi multimedialnymi (dzwieki)
 void TDynamicObject::LoadMMediaFile( std::string const &TypeName, std::string const &ReplacableSkin ) {
-
+	rTypeName = TypeName;
+	rReplacableSkin = ReplacableSkin;
     Global.asCurrentDynamicPath = asBaseDir;
     std::string asFileName = asBaseDir + TypeName + ".mmd";
     std::string asAnimName;
     bool Stop_InternalData = false;
     pants = NULL; // wskaźnik pierwszego obiektu animującego dla pantografów
+	wipers = NULL; // wskaznik pierwszego obiektu animujacego dla wycieraczek
     {
         // preliminary check whether the file exists
         cParser parser( TypeName + ".mmd", cParser::buffer_FILE, asBaseDir );
@@ -5094,16 +5341,20 @@ void TDynamicObject::LoadMMediaFile( std::string const &TypeName, std::string co
 
                         pAnimations.resize( iAnimations );
                         int i, j, k = 0, sm = 0;
-                        for (j = 0; j < ANIM_TYPES; ++j)
-                            for (i = 0; i < iAnimType[j]; ++i)
+                        for (j = 0; j < ANIM_TYPES; ++j) // petla po wszystkich wpisach w animations
+                            for (i = 0; i < iAnimType[j]; ++i) // petla iteruje sie tyle razy ile mamy wpisane w animations
                             {
                                 if (j == ANIM_PANTS) // zliczamy poprzednie animacje
                                     if (!pants)
                                         if (iAnimType[ANIM_PANTS]) // o ile jakieś pantografy są (a domyślnie są)
                                             pants = &pAnimations[k]; // zapamiętanie na potrzeby wyszukania submodeli
+								if (j == ANIM_WIPERS)
+									if (!wipers)
+										if (iAnimType[ANIM_WIPERS])
+											wipers = &pAnimations[k];
                                 pAnimations[k].iShift = sm; // przesunięcie do przydzielenia wskaźnika
-                                sm += pAnimations[k++].TypeSet(j); // ustawienie typu animacji i zliczanie tablicowanych submodeli
-                            }
+								sm += pAnimations[k++].TypeSet(j, *MoverParameters); // ustawienie typu animacji i zliczanie tablicowanych submodeli
+							}
                         if (sm) // o ile są bardziej złożone animacje
                         {
                             pAnimated = new TSubModel *[sm]; // tabela na animowane submodele
@@ -5670,6 +5921,52 @@ void TDynamicObject::LoadMMediaFile( std::string const &TypeName, std::string co
                             pAnimations[i + j].fSpeed = (pAnimations[i + j].fSpeed + 100) / 100;
 */
                         }
+                    }
+                }
+
+                else if (token == "animwiperprefix:")
+                {
+					parser.getTokens(1, false);
+					parser >> token;
+					TSubModel *sm;
+                    if (wipers)
+                    {
+
+						for (int i = 0; i < iAnimType[ANIM_WIPERS]; i++) // zebranie wszystkich submodeli wycieraczek
+						{
+							dWiperPos.emplace_back(0.0); // dodajemy na koniec zeby sie miejsce tam zrobilo i nie bylo invalid addressow potem
+
+							asAnimName = token + std::to_string(i + 1);
+                            // element wycieraczki nr 1
+							sm = GetSubmodelFromName(mdModel, asAnimName + "_p1");
+							wipers[i].smElement[0] = sm;
+							if (sm)
+							{
+								wipers[i].smElement[0]->WillBeAnimated();
+								// auto const offset{wipers[i].smElement[0]->offset()};
+							}
+
+                            // element wycieraczki nr 2
+							sm = GetSubmodelFromName(mdModel, asAnimName + "_p2");
+							wipers[i].smElement[1] = sm;
+							if (sm)
+							{
+								wipers[i].smElement[1]->WillBeAnimated();
+								// auto const offset{wipers[i].smElement[0]->offset()};
+							}
+
+                            // element wycieraczki nr 3
+							sm = GetSubmodelFromName(mdModel, asAnimName + "_p3");
+							wipers[i].smElement[2] = sm;
+							if (sm)
+							{
+								wipers[i].smElement[2]->WillBeAnimated();
+								// auto const offset{wipers[i].smElement[0]->offset()};
+							}
+							wipers[i].yUpdate = std::bind(&TDynamicObject::UpdateWiper, this, std::placeholders::_1);
+							wipers[i].fMaxDist = 150 * 150;
+							wipers[i].iNumber = i;
+						}
                     }
                 }
 
@@ -6424,6 +6721,19 @@ void TDynamicObject::LoadMMediaFile( std::string const &TypeName, std::string co
 
                     m_powertrainsounds.rsEngageSlippery.m_frequencyfactor /= ( 1 + MoverParameters->nmax );
                 }
+
+                // dzwieki wycieraczkuf
+                else if (token == "wiperFromPark:")
+                {
+					sWiperFromPark.deserialize(parser, sound_type::single);
+					sWiperFromPark.owner(this);  
+                }
+				else if (token == "wiperToPark:")
+				{
+					sWiperToPark.deserialize(parser, sound_type::single);
+					sWiperToPark.owner(this);  
+				}
+
 				else if (token == "retarder:") {
 					m_powertrainsounds.retarder.deserialize(parser, sound_type::single, sound_parameters::amplitude | sound_parameters::frequency);
 					m_powertrainsounds.retarder.owner(this);
@@ -7000,7 +7310,6 @@ void TDynamicObject::Damage(char flag)
 };
 
 void TDynamicObject::SetLights() {
-
     auto const isfrontcaboccupied { MoverParameters->CabOccupied * DirectionGet() >= 0 };
 	int const automaticmarkers { MoverParameters->CabActive == 0 && ( MoverParameters->InactiveCabFlag & activation::redmarkers )
 								? light::redmarker_left + light::redmarker_right : 0 };
@@ -7054,6 +7363,47 @@ void TDynamicObject::RaLightsSet(int head, int rear)
     if( head >= 0 ) {
         auto const vehicleend { iDirection > 0 ? end::front : end::rear };
         MoverParameters->iLights[ vehicleend ] = ( head & iInventory[ vehicleend ] );
+		bool tLeft = MoverParameters->iLights[vehicleend] & (light::auxiliary_left | light::headlight_left); // roboczo czy jakiekolwiek swiatlo z lewej jest zapalone
+		bool tRight = MoverParameters->iLights[vehicleend] & (light::auxiliary_right | light::headlight_right); // a tu z prawej
+        if (Controller == Humandriver) {
+			switch (MoverParameters->modernDimmerState)
+			{
+			case 0:
+				// wylaczone
+				MoverParameters->iLights[vehicleend] &= 0 | light::rearendsignals; // zostawiamy tylko tabliczki jesli sa
+				HighBeamLights = false;
+				DimHeadlights = false;
+				break;
+			case 1:
+				// przyciemnione normalne
+				DimHeadlights = true; // odpalamy przyciemnienie normalnych reflektorow
+				HighBeamLights = false;
+				break;
+			case 3:
+				// dlugie przyciemnione
+				DimHeadlights = true;
+				HighBeamLights = true;
+				MoverParameters->iLights[vehicleend] &=
+				    light::headlight_upper | light::rearendsignals | light::redmarker_left | light::redmarker_right | light::rearendsignals; // nie ruszamy gornych i koncowek
+				MoverParameters->iLights[vehicleend] |= tLeft ? light::highbeamlight_left : 0; // jesli swiatlo z lewej zapalone to odpal dlugie
+				MoverParameters->iLights[vehicleend] |= tRight ? light::highbeamlight_right : 0; // a tu z prawej
+				break;
+			case 4:
+				// zwykle dlugie
+				DimHeadlights = false;
+				HighBeamLights = true;
+				MoverParameters->iLights[vehicleend] &=
+				    light::headlight_upper | light::rearendsignals | light::redmarker_left | light::redmarker_right | light::rearendsignals; // nie ruszamy gornych i koncowek
+				MoverParameters->iLights[vehicleend] |= tLeft ? light::highbeamlight_left : 0; // jesli swiatlo z lewej zapalone to odpal dlugie
+				MoverParameters->iLights[vehicleend] |= tRight ? light::highbeamlight_right : 0; // a tu z prawej
+				break;
+			default: // to case 2 - zwykle
+				DimHeadlights = false;
+				HighBeamLights = false;
+				break;
+			}
+        }
+
     }
     if( rear >= 0 ) {
         auto const vehicleend{ iDirection > 0 ? end::rear : end::front };
@@ -7660,9 +8010,9 @@ TDynamicObject::update_shake( double const Timedelta ) {
         if( iVel > 0.5 ) {
             // acceleration-driven base shake
             shakevector += Math3D::vector3(
-                -MoverParameters->AccN * Timedelta * 5.0, // highlight side sway
-                -MoverParameters->AccVert * Timedelta,
-                -MoverParameters->AccSVBased * Timedelta * 1.5); // accent acceleration/deceleration
+                -MoverParameters->AccN * Timedelta * 5.0 * Global.ShakingMultiplierRL, // highlight side sway
+                -MoverParameters->AccVert * Timedelta * Global.ShakingMultiplierUD,
+                -MoverParameters->AccSVBased * Timedelta * 1.5 * Global.ShakingMultiplierBF); // accent acceleration/deceleration
         }
 
         auto shake { 1.25 * ShakeSpring.ComputateForces( shakevector, ShakeState.offset ) };
@@ -7923,7 +8273,7 @@ TDynamicObject::powertrain_sounds::render( TMoverParameters const &Vehicle, doub
     // youBy - przenioslem, bo diesel tez moze miec turbo
     if( Vehicle.TurboTest > 0 ) {
         // udawanie turbo:
-		auto const pitch_diesel { Vehicle.EngineType == TEngineType::DieselEngine ? Vehicle.enrot / Vehicle.dizel_nmax * Vehicle.dizel_fill : 1 };
+		auto const pitch_diesel{(Vehicle.EngineType == TEngineType::DieselEngine || Vehicle.EngineType == TEngineType::DieselElectric) ? Vehicle.enrot / Vehicle.dizel_nmax * Vehicle.dizel_fill : 1};
         auto const goalpitch { std::max( 0.025, ( /*engine_volume **/ pitch_diesel + engine_turbo.m_frequencyoffset ) * engine_turbo.m_frequencyfactor ) };
         auto const goalvolume { (
             ( ( Vehicle.MainCtrlPos >= Vehicle.TurboTest ) && ( Vehicle.enrot > 0.1 ) ) ?

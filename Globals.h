@@ -16,6 +16,9 @@ http://mozilla.org/MPL/2.0/.
 #include "light.h"
 #include "utilities.h"
 #include "motiontelemetry.h"
+#include "ref/discord-rpc/include/discord_rpc.h"
+#include <map>
+
 #ifdef WITH_UART
 #include "uart.h"
 #endif
@@ -27,6 +30,11 @@ struct global_settings {
 // members
     // data items
     // TODO: take these out of the settings
+
+	/// <summary>
+	/// Mapa z watkami w formacie <std::string nazwa, std::thread watek>
+	/// </summary>
+	std::map<std::string, std::thread> threads = {};
     bool shiftState{ false }; //m7todo: brzydko
     bool ctrlState{ false };
     bool altState{ false };
@@ -117,7 +125,9 @@ struct global_settings {
     glm::ivec2 window_size; // main window size in platform-specific virtual pixels
     glm::ivec2 cursor_pos; // cursor position in platform-specific virtual pixels
     glm::ivec2 fb_size; // main window framebuffer size
-
+	float ShakingMultiplierBF {1.f}; // mnożnik bujania kamera przod/tyl
+	float ShakingMultiplierRL {1.f}; // mnożnik bujania kamera lewo/prawo
+	float ShakingMultiplierUD {1.f}; // mnożnik bujania kamera gora/dol
     float fDistanceFactor{ 1.f }; // baza do przeliczania odległości dla LoD
     float targetfps{ 0.0f };
     bool bFullScreen{ false };

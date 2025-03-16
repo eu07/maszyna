@@ -31,6 +31,12 @@ public:
         set_node( scene::basic_node * Node );
 	void
 	    add_node_template(const std::string &desc);
+    float
+        rot_val();
+	bool 
+        rot_from_last();
+	functions_panel::rotation_mode
+        rot_mode();
 	const std::string *
 	    get_active_node_template();
 	nodebank_panel::edit_mode
@@ -39,6 +45,7 @@ public:
 private:
 // members
     itemproperties_panel m_itempropertiespanel { "Node Properties", true };
+    functions_panel m_functionspanel { "Functions", true };
 	nodebank_panel m_nodebankpanel{ "Node Bank", true };
     scene::basic_node * m_node { nullptr }; // currently bound scene node, if any
 };

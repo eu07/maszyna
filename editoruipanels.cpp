@@ -420,8 +420,6 @@ nodebank_panel::render() {
         ImGui::SameLine();
 	    ImGui::RadioButton("Insert from bank", (int*)&mode, ADD);
 		ImGui::SameLine();
-		ImGui::RadioButton("Brush", (int*)&mode, BRUSH);
-        ImGui::SameLine();
         ImGui::RadioButton( "Copy to bank", (int*)&mode, COPY );
 		ImGui::SameLine();
 		if (ImGui::Button("Reload Nodebank"))
@@ -492,4 +490,65 @@ nodebank_panel::generate_node_label( std::string Input ) const {
         texture == "none" ?
             model :
             model + " (" + texture + ")" );
+}
+
+void functions_panel::update(scene::basic_node const *Node)
+{
+	m_node = Node;
+
+	if (false == is_open)
+	{
+		return;
+	}
+
+	text_lines.clear();
+	m_grouplines.clear();
+
+	std::string textline;
+
+	// scenario inspector
+	auto const *node{Node};
+	auto const &camera{Global.pCamera};
+
+
+
+	
+}
+
+void
+functions_panel::render() {
+
+    if( false == is_open ) { return; }
+
+    auto flags =
+        ImGuiWindowFlags_NoFocusOnAppearing
+        | ImGuiWindowFlags_NoCollapse
+        | ( size.x > 0 ? ImGuiWindowFlags_NoResize : 0 );
+
+    if( size.x > 0 ) {
+        ImGui::SetNextWindowSize( ImVec2S( size.x, size.y ) );
+    }
+    if( size_min.x > 0 ) {
+        ImGui::SetNextWindowSizeConstraints( ImVec2S( size_min.x, size_min.y ), ImVec2( size_max.x, size_max.y ) );
+    }
+    auto const panelname { (
+        title.empty() ?
+		    m_name :
+            title )
+		+ "###" + m_name };
+    if( true == ImGui::Begin( panelname.c_str(), nullptr, flags ) ) {
+        // header section
+		
+		ImGui::RadioButton("Random rotation", (int *)&rot_mode, RANDOM);
+		ImGui::RadioButton("Fixed rotation", (int *)&rot_mode, FIXED);
+		if(rot_mode == FIXED){
+			//ImGui::Checkbox("Get rotation from last object", &rot_from_last);
+			ImGui::SliderFloat("Rotation Value", &rot_value, 0.0f, 360.0f, "%.1f");
+        };
+		ImGui::RadioButton("Default rotation", (int *)&rot_mode, DEFAULT);
+        for( auto const &line : text_lines ) {
+            ImGui::TextColored( ImVec4( line.color.r, line.color.g, line.color.b, line.color.a ), line.data.c_str() );
+        }
+    }
+    ImGui::End();
 }

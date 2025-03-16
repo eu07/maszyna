@@ -25,12 +25,14 @@ const int iMaxNumLights = 8;
 float const DefaultDarkThresholdLevel { 0.325f };
 
 // typy stanu świateł
-enum TLightState {
-    ls_Off = 0, // zgaszone
-    ls_On = 1, // zapalone
-    ls_Blink = 2, // migające
-    ls_Dark = 3, // Ra: zapalajce się automatycznie, gdy zrobi się ciemno
-    ls_Home = 4 // like ls_dark but off late at night
+enum TLightState
+{
+	ls_Off = 0, // zgaszone
+	ls_On = 1, // zapalone
+	ls_Blink = 2, // migające
+	ls_Dark = 3, // Ra: zapalajce się automatycznie, gdy zrobi się ciemno
+	ls_Home = 4, // like ls_dark but off late at night
+	ls_winter = 5 // turned on when its winter
 };
 
 class TAnimVocaloidFrame
@@ -125,6 +127,7 @@ public:
     int TerrainCount();
     TSubModel * TerrainSquare(int n);
     int Flags();
+	void on_season_update();
     inline
     material_data const *
         Material() const {
@@ -174,6 +177,10 @@ public:
     int iNumLights { 0 };
     std::array<TSubModel *, iMaxNumLights> LightsOn {}; // Ra: te wskaźniki powinny być w ramach TModel3d
     std::array<TSubModel *, iMaxNumLights> LightsOff {};
+	TSubModel *sm_winter_variant {}; // submodel zimowego wariantu
+	TSubModel *sm_spring_variant {}; // submodel wiosennego wariantu
+	TSubModel *sm_summer_variant {}; // submodel letniego wariantu
+	TSubModel *sm_autumn_variant {}; // submodel jesiennego wariantu
     std::array<float, iMaxNumLights> lsLights {}; // ls_Off
     std::array<glm::vec3, iMaxNumLights> m_lightcolors; // -1 in constructor
     std::array<float, iMaxNumLights> m_lighttimers {};

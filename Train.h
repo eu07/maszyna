@@ -226,6 +226,8 @@ class TTrain {
     // command handlers
     // NOTE: we're currently using universal handlers and static handler map but it may be beneficial to have these implemented on individual class instance basis
     // TBD, TODO: consider this approach if we ever want to have customized consist behaviour to received commands, based on the consist/vehicle type or whatever
+	static void OnCommand_wiperswitchincrease(TTrain *Train, command_data const &Command);
+	static void OnCommand_wiperswitchdecrease(TTrain *Train, command_data const &Command);
     static void OnCommand_aidriverenable( TTrain *Train, command_data const &Command );
     static void OnCommand_aidriverdisable( TTrain *Train, command_data const &Command );
     static void OnCommand_jointcontrollerset( TTrain *Train, command_data const &Command );
@@ -399,6 +401,8 @@ class TTrain {
     static void OnCommand_headlighttogglerearupper( TTrain *Train, command_data const &Command );
     static void OnCommand_headlightenablerearupper( TTrain *Train, command_data const &Command );
     static void OnCommand_headlightdisablerearupper( TTrain *Train, command_data const &Command );
+	static void OnCommand_modernlightdimmerincrease(TTrain *Train, command_data const &Command);
+	static void OnCommand_modernlightdimmerdecrease(TTrain *Train, command_data const &Command);
     static void OnCommand_redmarkertogglerearleft( TTrain *Train, command_data const &Command );
     static void OnCommand_redmarkerenablerearleft( TTrain *Train, command_data const &Command );
     static void OnCommand_redmarkerdisablerearleft( TTrain *Train, command_data const &Command );
@@ -542,6 +546,8 @@ public: // reszta może by?publiczna
     TGauge ggBrakeProfileR; // nastawiacz PR - hamowanie dwustopniowe
 	TGauge ggBrakeOperationModeCtrl; //przełącznik trybu pracy PS/PN/EP/MED
 
+    TGauge ggWiperSw; // przelacznik wycieraczek
+
     TGauge ggMaxCurrentCtrl;
 
     TGauge ggMainOffButton;
@@ -578,6 +584,7 @@ public: // reszta może by?publiczna
     TGauge ggRightEndLightButton;
     TGauge ggLightsButton; // przelacznik reflektorow (wszystkich)
     TGauge ggDimHeadlightsButton; // headlights dimming switch
+	TGauge ggModernLightDimSw; // modern lights dimmer
 
     // hunter-230112: przelacznik swiatel tylnich
     TGauge ggRearUpperLightButton;
@@ -658,6 +665,8 @@ public: // reszta może by?publiczna
     TGauge ggPantValvesButton;
     TGauge ggPantCompressorButton;
     TGauge ggPantCompressorValve;
+	TGauge ggPantValvesUpdate;
+	TGauge ggPantValvesOff;
     // Winger 020304 - wlacznik ogrzewania
     TGauge ggTrainHeatingButton;
     TGauge ggSignallingButton;
@@ -769,8 +778,10 @@ public: // reszta może by?publiczna
     TButton btLampkaRearRightLight;
     TButton btLampkaRearLeftEndLight;
     TButton btLampkaRearRightEndLight;
-	TButton btCabActived;
-	TButton btCompressors;  // lampka pracy jakiejkolwiek sprezarki
+	  TButton btCabActived;
+	  TButton btAKLVents;
+	  TButton btCompressors;  // lampka pracy jakiejkolwiek sprezarki
+	  TButton btEDenabled; // czy wlaczony jest hamulec ED (czy dostepny)
     // other
     TButton btLampkaMalfunction;
     TButton btLampkaMalfunctionB;
@@ -833,6 +844,8 @@ private:
     float fHaslerTimer;
     float fConverterTimer; // hunter-261211: dla przekaznika
     float fMainRelayTimer; // hunter-141211: zalaczanie WSa z opoznieniem
+	float fBatteryTimer = {-1.f}; // Hirek: zalaczanie baterii z opoznieniem (tylko gdy zdefiniowano takie zachowanie w fiz)
+	bool allowBatteryToggle = true; // Hirek: zabezpieczenie przed przelaczaniem bateri on/off
     int ScreenUpdateRate { 0 }; // vehicle specific python screen update rate override
 
     // McZapkie-240302 - przyda sie do tachometru
@@ -875,6 +888,7 @@ private:
     bool m_dirbackward{ false }; // helper, true if direction set to backward
     bool m_doorpermits{ false }; // helper, true if any door permit is active
     float m_doorpermittimers[2] = { -1.f, -1.f };
+	float trainLenghtMeasureTimer = { -1.f };
     // ld substitute
     bool m_couplingdisconnect { false };
 	bool m_couplingdisconnectback { false };
