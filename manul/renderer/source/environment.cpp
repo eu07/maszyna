@@ -6,6 +6,7 @@
 #include "gbuffer.h"
 #include "nvrenderer/nvrenderer.h"
 #include "nvrendererbackend.h"
+#include "simulationenvironment.h"
 #include "sky.h"
 
 int MaEnvironment::GetCurrentSetIndex() {
@@ -299,6 +300,9 @@ void MaEnvironment::Init(const std::string& texture, float pre_exposure) {
           .setAllFilters(false));
   CommandListHandle command_list = m_backend->GetDevice()->createCommandList();
   command_list->open();
+
+  RegisterResource(true, "sampler_linear_clamp_v_repeat_h",
+                   m_sampler_linear_clamp_v_repeat_h, ResourceType::Sampler);
 
   {
     m_brdf_lut = m_backend->GetDevice()->createTexture(
@@ -597,10 +601,10 @@ void MaEnvironment::Filter(uint64_t sky_instance_id, NvGbuffer* gbuffer_cube) {
     //    m_backend->GetDevice()->executeCommandList(command_list_transition);
 
     if (prev_instance != -1) {
-      //m_backend->GetDevice()->queueWaitForCommandList(
-      //    nvrhi::CommandQueue::Compute, nvrhi::CommandQueue::Graphics,
-      //    prev_instance);
-      //prev_instance = -1;
+      // m_backend->GetDevice()->queueWaitForCommandList(
+      //     nvrhi::CommandQueue::Compute, nvrhi::CommandQueue::Graphics,
+      //     prev_instance);
+      // prev_instance = -1;
     }
     CommandListHandle command_list = m_backend->GetDevice()->createCommandList(
         CommandListParameters()
@@ -645,6 +649,10 @@ void MaEnvironment::Filter(uint64_t sky_instance_id, NvGbuffer* gbuffer_cube) {
         filter_constants.m_offset_z = 0;
         filter_constants.m_light_direction = -daylight.direction;
         filter_constants.m_height = Global.pCamera.Pos.y;
+
+        m_sky->CalcLighting(filter_constants.m_light_direction,
+                            filter_constants.m_light_color);
+
         filter_constants.m_light_color = glm::vec4(m_sky->CalcSunColor(), 1.f);
         command_list->setPushConstants(&filter_constants,
                                        sizeof(filter_constants));
@@ -878,7 +886,7 @@ void EnvironmentRenderPass::Init() {
             .addItem(nvrhi::BindingSetItem::Sampler(
                 0, m_environment->m_sampler_linear_clamp))
             .addItem(nvrhi::BindingSetItem::Sampler(
-                13, m_environment->m_sampler_linear_clamp))
+                13, m_environment->m_sampler_linear_clamp_v_repeat_h))
             .addItem(nvrhi::BindingSetItem::ConstantBuffer(
                 0, m_environment_constants)),
         m_binding_layout);
@@ -911,7 +919,8 @@ void EnvironmentRenderPass::UpdateConstants(
       glm::inverse(projection * view) * previous_view_projection;
   constants.m_inverse_view_projection =
       glm::inverse(jitter * projection * glm::dmat4(glm::dmat3(view)));
-  constants.m_sun_direction = -Global.DayLight.direction;
+  constants.m_sun_direction = simulation::Environment.sun().getDirection();
+  constants.m_moon_direction = simulation::Environment.moon().getDirection();
   constants.m_height = Global.pCamera.Pos.y;
 
   command_list->writeBuffer(m_environment_constants, &constants,

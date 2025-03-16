@@ -20,7 +20,7 @@ public:
     glm::vec3 getPosition();
 */
 	// returns vector pointing at the sun
-	glm::vec3 getDirection();
+	glm::vec3 getDirection() const;
 	// returns current elevation above horizon
 	float getAngle() const;
     // return current hour angle

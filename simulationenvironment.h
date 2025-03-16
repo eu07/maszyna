@@ -44,6 +44,9 @@ public:
         sun() const {
             return m_sun; }
     inline auto const &
+        moon() const {
+            return m_moon; }
+    inline auto const &
         light_intensity() const {
             return m_lightintensity; }
     inline auto const &

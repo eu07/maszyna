@@ -27,7 +27,7 @@ struct GbufferBlitPass : public FullScreenPass, public MaResourceRegistry {
     glm::mat4 m_inverse_projection;
     glm::vec3 m_light_dir;
     float m_altitude;
-    glm::vec4 m_light_color;
+    glm::vec3 m_light_color;
     float m_time;
   };
 

@@ -45,17 +45,25 @@ void GbufferBlitPass::Init() {
               .setAllFilters(true));
   const nvrhi::SamplerHandle sampler_linear =
       m_backend->GetDevice()->createSampler(
-          nvrhi::SamplerDesc().setAllFilters(true));
+      nvrhi::SamplerDesc().setAllFilters(true));
   const nvrhi::SamplerHandle sampler_linear_clamp =
       m_backend->GetDevice()->createSampler(
           nvrhi::SamplerDesc()
               .setAllAddressModes(nvrhi::SamplerAddressMode::ClampToEdge)
+              .setAllFilters(true));
+  const nvrhi::SamplerHandle sampler_linear_clamp_v_repeat_h =
+      m_backend->GetDevice()->createSampler(
+          nvrhi::SamplerDesc()
+              .setAllAddressModes(nvrhi::SamplerAddressMode::ClampToEdge)
+              .setAddressU(nvrhi::SamplerAddressMode::Repeat)
               .setAllFilters(true));
   RegisterResource(true, "shadow_sampler_comp", sampler_shadow_comp,
                    nvrhi::ResourceType::Sampler);
   RegisterResource(true, "sampler_linear_wrap", sampler_linear,
                    nvrhi::ResourceType::Sampler);
   RegisterResource(true, "sampler_linear_clamp", sampler_linear_clamp,
+                   nvrhi::ResourceType::Sampler);
+  RegisterResource(true, "sampler_linear_clamp_v_repeat_h", sampler_linear_clamp_v_repeat_h,
                    nvrhi::ResourceType::Sampler);
   m_scene_depth = m_backend->GetDevice()->createTexture(
       nvrhi::TextureDesc(m_gbuffer->m_gbuffer_depth->getDesc())
@@ -144,7 +152,7 @@ void GbufferBlitPass::Init() {
                            .m_resource)))
             .addItem(nvrhi::BindingSetItem::Sampler(8, sampler_linear))
             .addItem(nvrhi::BindingSetItem::Sampler(11, sampler_shadow_comp))
-            .addItem(nvrhi::BindingSetItem::Sampler(13, sampler_linear_clamp))
+            .addItem(nvrhi::BindingSetItem::Sampler(13, sampler_linear_clamp_v_repeat_h))
             .addItem(nvrhi::BindingSetItem::Texture_UAV(0, m_output)),
         m_binding_layout);
   }
@@ -174,8 +182,9 @@ void GbufferBlitPass::UpdateConstants(nvrhi::ICommandList* command_list,
   constants.m_inverse_projection = glm::inverse(projection);
 
   const auto& daylight = Global.DayLight;
-  constants.m_light_dir = glm::vec4(-daylight.direction, 0.f);
-  constants.m_light_color = glm::vec4(m_sky->CalcSunColor(), 1.);
+
+  m_sky->CalcLighting(constants.m_light_dir,
+                      constants.m_light_color);
   constants.m_altitude = Global.pCamera.Pos.y;
   constants.m_time = Timer::GetTime();
 

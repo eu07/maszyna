@@ -14,7 +14,7 @@ public:
     void update( bool const Includephase = false );
 	void render();
 	// returns vector pointing at the sun
-	glm::vec3 getDirection();
+	glm::vec3 getDirection() const;
 	// returns current elevation above horizon
 	float getAngle() const;
 	// returns current intensity of the sun

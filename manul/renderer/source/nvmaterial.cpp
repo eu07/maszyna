@@ -225,7 +225,7 @@ void NvRenderer::MaterialTemplate::Init(const YAML::Node &conf) {
               .Add(MaResourceMapping::StructuredBuffer_SRV(18, "forwardplus_light_buffer"))
               .Add(MaResourceMapping::Sampler(8, "sampler_linear_wrap"))
               .Add(MaResourceMapping::Sampler(11, "shadow_sampler_comp"))
-              .Add(MaResourceMapping::Sampler(13, "sampler_linear_clamp"));
+              .Add(MaResourceMapping::Sampler(13, "sampler_linear_clamp_v_repeat_h"));
           break;
         default:;
       }

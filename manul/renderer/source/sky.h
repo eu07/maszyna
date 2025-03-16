@@ -52,6 +52,8 @@ struct Sky : public MaResourceRegistry {
   glm::vec4 GetMolecularAbsorptionCoefficient(float h) const;
   glm::vec4 GetFogScatteringCoefficient(float h) const;
   glm::vec3 CalcSunColor() const;
+  glm::vec3 CalcMoonColor() const;
+  void CalcLighting(glm::vec3& direction, glm::vec3& color) const;
   static glm::vec3 LinearSrgbFromSpectralSamples(glm::vec4 L);
   static float RaySphereIntersection(glm::vec3 ro, glm::vec3 rd, float radius);
   float GetAerosolDensity(float h) const;
@@ -93,6 +95,7 @@ struct SkyAerialLut {
     glm::mat4 g_InverseProjection;
     glm::vec3 g_SunDir;
     float g_Altitude;
+    glm::vec3 g_MoonDir;
     float g_MaxDepth;
   };
   SkyAerialLut(Sky* sky) : m_sky(sky) {}

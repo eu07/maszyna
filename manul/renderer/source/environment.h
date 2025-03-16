@@ -92,7 +92,7 @@ struct MaEnvironment : public MaResourceRegistry {
     uint32_t m_unused;
     glm::vec3 m_light_direction;
     float m_height;
-    glm::vec4 m_light_color;
+    glm::vec3 m_light_color;
   };
 
   MaEnvironment(class NvRenderer* renderer);
@@ -112,6 +112,7 @@ struct EnvironmentRenderPass : public FullScreenPass {
     glm::mat4 m_reproject_matrix;
     glm::vec3 m_sun_direction;
     float m_height;
+    glm::vec3 m_moon_direction;
   };
 
   virtual void Init() override;

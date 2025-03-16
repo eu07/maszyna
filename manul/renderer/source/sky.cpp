@@ -222,11 +222,34 @@ glm::vec4 Sky::GetFogScatteringCoefficient(float h) const {
 
 glm::vec3 Sky::CalcSunColor() const {
   glm::vec4 transmittance =
-      ComputeTransmittance(-Global.DayLight.direction, 32);
-  return simulation::Environment.light_intensity() *
+      ComputeTransmittance(simulation::Environment.sun().getDirection(), 32);
+  return LinearSrgbFromSpectralSamples(sun_spectral_irradiance *
+                                       transmittance) *
+         glm::exp(EXPOSURE);
+}
+
+glm::vec3 Sky::CalcMoonColor() const {
+  float phase = glm::acos(dot(simulation::Environment.sun().getDirection(),
+                              simulation::Environment.moon().getDirection())) *
+                glm::one_over_pi<float>();
+  glm::vec4 transmittance =
+      ComputeTransmittance(simulation::Environment.moon().getDirection(), 32);
+  return .07f * phase *
          LinearSrgbFromSpectralSamples(sun_spectral_irradiance *
                                        transmittance) *
          glm::exp(EXPOSURE);
+}
+
+void Sky::CalcLighting(glm::vec3& direction, glm::vec3& color) const {
+  const glm::vec3 moon = CalcMoonColor();
+  const glm::vec3 sun = CalcSunColor();
+  if (dot(moon, moon) > dot(sun, sun)) {
+    direction = simulation::Environment.moon().getDirection();
+    color = moon;
+  } else {
+    direction = simulation::Environment.sun().getDirection();
+    color = sun;
+  }
 }
 
 glm::vec3 Sky::LinearSrgbFromSpectralSamples(glm::vec4 L) {
@@ -347,11 +370,11 @@ nvrhi::IFramebuffer* SkyTransmittancePass::GetFramebuffer() {
 }
 
 void SkyAerialLut::Init() {
-  m_sky_width = 128;
+  m_sky_width = 256;
   m_sky_height = 512;
-  m_lut_width = 64;
+  m_lut_width = 128;
   m_lut_height = 256;
-  m_lut_slices = 32;
+  m_lut_slices = 16;
   m_constant_buffer = m_sky->m_backend->GetDevice()->createBuffer(
       nvrhi::utils::CreateVolatileConstantBufferDesc(
           sizeof(DispatchConstants), "Sky Aerial LUT Dispatch Constants", 16));
@@ -424,7 +447,8 @@ void SkyAerialLut::Render(nvrhi::ICommandList* command_list,
     DispatchConstants constants{};
     constants.g_InverseView = static_cast<glm::mat3>(glm::inverse(view));
     constants.g_InverseProjection = glm::inverse(projection);
-    constants.g_SunDir = -Global.DayLight.direction;
+    constants.g_SunDir = simulation::Environment.sun().getDirection();
+    constants.g_MoonDir = simulation::Environment.moon().getDirection();
     constants.g_Altitude = Global.pCamera.Pos.y;
     constants.g_MaxDepth = Global.BaseDrawRange * Global.fDistanceFactor;
     command_list->writeBuffer(m_constant_buffer, &constants, sizeof(constants));
