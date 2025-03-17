@@ -72,7 +72,7 @@ bool NvRenderer::Init(GLFWwindow *Window) {
 
   RegisterTexture("noise_2d_ldr",
                   GetTextureManager()->FetchTexture(
-                  "manul/textures/noise/LDR_RGB1_0", GL_RGBA, 0, false));
+                      "manul/textures/noise/LDR_RGB1_0", GL_RGBA, 0, false));
 
   m_imgui_renderer = std::make_shared<NvImguiRenderer>(this);
   m_gbuffer = std::make_shared<NvGbuffer>(this);
@@ -420,64 +420,71 @@ bool NvRenderer::Render() {
       {  // Shadow render pass
         Timer::subsystem.gfx_shadows.start();
         command_list->beginMarker("Shadow render");
+
+        glm::vec3 light_color, light_direction;
+        m_sky->CalcLighting(light_direction, light_color);
         m_shadow_map->CalcCascades(
             glm::perspectiveFovRH_ZO(fov,
                                      static_cast<double>(Global.window_size.x),
                                      static_cast<double>(Global.window_size.y),
                                      .1, pass.m_draw_range),
-            transform, Global.DayLight.direction);
+            transform, -light_direction);
         m_shadow_map->UpdateConstants(command_list);
         m_gbuffer_shadow->Clear(command_list);
 
-        for (int cascade = 0; cascade < m_shadow_map->m_cascade_matrices.size();
-             ++cascade) {
-          RenderPass pass{};
+        if (dot(light_color, light_color) > 0.) {
+          for (int cascade = 0;
+               cascade < m_shadow_map->m_cascade_matrices.size(); ++cascade) {
+            RenderPass pass{};
 
-          pass.m_draw_shapes =
-              m_draw_shapes;  // && Global.shadowtune.fidelity >= 0;
-          pass.m_draw_lines =
-              m_draw_lines;  // && Global.shadowtune.fidelity >= 0;
-          pass.m_draw_tanimobj =
-              m_draw_tanimobj;  // && Global.reflectiontune.fidelity >= 1;
-          pass.m_draw_dynamic =
-              m_draw_dynamic;  // && Global.reflectiontune.fidelity >= 2;
-          pass.m_draw_track =
-              m_draw_track;  // && Global.reflectiontune.fidelity >= 0;
-          pass.m_draw_instances = m_draw_instances;
-          pass.m_sort_batches = m_sort_batches;
-          pass.m_sort_transparents = m_sort_transparents;
+            pass.m_draw_shapes =
+                m_draw_shapes;  // && Global.shadowtune.fidelity >= 0;
+            pass.m_draw_lines =
+                m_draw_lines;  // && Global.shadowtune.fidelity >= 0;
+            pass.m_draw_tanimobj =
+                m_draw_tanimobj;  // && Global.reflectiontune.fidelity >= 1;
+            pass.m_draw_dynamic =
+                m_draw_dynamic;  // && Global.reflectiontune.fidelity >= 2;
+            pass.m_draw_track =
+                m_draw_track;  // && Global.reflectiontune.fidelity >= 0;
+            pass.m_draw_instances = m_draw_instances;
+            pass.m_sort_batches = m_sort_batches;
+            pass.m_sort_transparents = m_sort_transparents;
 
-          SingleFrustumTester frustum_tester{
-              m_shadow_map->m_cascade_matrices_clamped[cascade],
-              glm::dmat4{1.}};
+            SingleFrustumTester frustum_tester{
+                m_shadow_map->m_cascade_matrices_clamped[cascade],
+                glm::dmat4{1.}};
 
-          pass.m_origin = Global.pCamera.Pos;
-          pass.m_transform = glm::dmat3{1.};
-          // pass.m_camera.position() = simulation::Train->Dynamic()->vPosition;
-          pass.m_draw_range = 150.;
-          pass.m_type = RenderPassType::ShadowMap;
-          pass.m_framebuffer = m_gbuffer_shadow->m_slice_framebuffers[cascade];
-          pass.m_command_list_draw = command_list;
-          pass.m_command_list_preparation = command_list;
-          pass.m_frustum_tester = &frustum_tester;
-          pass.m_projection = m_shadow_map->m_cascade_matrices[cascade];
+            pass.m_origin = Global.pCamera.Pos;
+            pass.m_transform = glm::dmat3{1.};
+            // pass.m_camera.position() =
+            // simulation::Train->Dynamic()->vPosition;
+            pass.m_draw_range = 150.;
+            pass.m_type = RenderPassType::ShadowMap;
+            pass.m_framebuffer =
+                m_gbuffer_shadow->m_slice_framebuffers[cascade];
+            pass.m_command_list_draw = command_list;
+            pass.m_command_list_preparation = command_list;
+            pass.m_frustum_tester = &frustum_tester;
+            pass.m_projection = m_shadow_map->m_cascade_matrices[cascade];
 
-          auto info = pass.m_framebuffer->getFramebufferInfo();
-          pass.m_viewport_state =
-              nvrhi::ViewportState().addViewportAndScissorRect(
-                  info.getViewport());
+            auto info = pass.m_framebuffer->getFramebufferInfo();
+            pass.m_viewport_state =
+                nvrhi::ViewportState().addViewportAndScissorRect(
+                    info.getViewport());
 
-          // CullBatches(pass);
-          //  for (int i = 0.; i < 6.; ++i) {
-          //    pass.m_viewport_state.addViewportAndScissorRect(
-          //        nvrhi::Viewport(i * 2048, (i + 1) * 2048, 0, 2048, 0, 1));
-          //  }
+            // CullBatches(pass);
+            //  for (int i = 0.; i < 6.; ++i) {
+            //    pass.m_viewport_state.addViewportAndScissorRect(
+            //        nvrhi::Viewport(i * 2048, (i + 1) * 2048, 0, 2048, 0, 1));
+            //  }
 
-          RenderKabina(pass);
-          RenderShapes(pass);
-          RenderBatches(pass);
-          RenderTracks(pass);
-          RenderAnimateds(pass);
+            RenderKabina(pass);
+            RenderShapes(pass);
+            RenderBatches(pass);
+            RenderTracks(pass);
+            RenderAnimateds(pass);
+          }
         }
 
         Timer::subsystem.gfx_shadows.stop();
