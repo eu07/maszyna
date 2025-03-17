@@ -75,6 +75,7 @@ struct MaterialAdapterLegacyMatFile : public MaterialAdapterInternal {
   bool HasSpecGlossMap() const;
   bool IsSpecGlossShader() const;
   bool IsNormalMapShader() const;
+  bool IsReflectionShader() const;
   std::unordered_map<std::string, TextureEntry> m_texture_mapping;
   virtual int GetShadowRank() const override { return m_shadow_rank; }
   virtual std::optional<float> GetOpacity() const override;

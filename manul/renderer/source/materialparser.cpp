@@ -108,11 +108,15 @@ std::string_view MaterialAdapterLegacyMatFile::GetTexturePathForEntry(
     if (auto it = m_texture_mapping.find("_normals:");
         it != m_texture_mapping.end()) {
       return it->second.m_path;
-    }
+        }
     if (auto it = m_texture_mapping.find("_normalmap:");
         it != m_texture_mapping.end()) {
       return it->second.m_path;
-    }
+        }
+    if (auto it = m_texture_mapping.find("_reflmap:");
+        it != m_texture_mapping.end()) {
+      return it->second.m_path;
+        }
     if (auto it = m_texture_mapping.find("2:"); it != m_texture_mapping.end()) {
       return it->second.m_path;
     }
@@ -137,6 +141,9 @@ std::string_view MaterialAdapterLegacyMatFile::GetShader() const {
   }
   if (IsNormalMapShader() && HasNormalMap()) {
     return "legacy_normalmap";
+  }
+  if (HasNormalMap()) {
+    return "legacy_reflection";
   }
   return "legacy";
 }
@@ -255,6 +262,7 @@ bool MaterialAdapterLegacyMatFile::ParseLevel(cParser& parser, int priority) {
 bool MaterialAdapterLegacyMatFile::HasNormalMap() const {
   return m_texture_mapping.find("_normals:") != m_texture_mapping.end() ||
          m_texture_mapping.find("_normalmap:") != m_texture_mapping.end() ||
+         m_texture_mapping.find("_reflmap:") != m_texture_mapping.end() ||
          m_texture_mapping.find("2:") != m_texture_mapping.end();
 }
 
@@ -265,6 +273,10 @@ bool MaterialAdapterLegacyMatFile::HasSpecGlossMap() const {
 bool MaterialAdapterLegacyMatFile::IsNormalMapShader() const {
   return m_shader.find("normalmap") != std::string::npos ||
          m_shader.find("parallax") != std::string::npos;
+}
+
+bool MaterialAdapterLegacyMatFile::IsReflectionShader() const {
+  return m_shader.find("reflmap") != std::string::npos;
 }
 
 bool MaterialAdapterLegacyMatFile::IsSpecGlossShader() const {
