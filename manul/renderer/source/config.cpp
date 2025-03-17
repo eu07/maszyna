@@ -13,6 +13,7 @@ void MaConfig::Init(const YAML::Node& node) {
   m_lighting.Init(node["lighting"]);
   m_weight_lines = node["wire_diameter_lines"].as<float>(.01f);
   m_weight_tractions = node["wire_diameter_tractions"].as<float>(.005f);
+  m_envmap_resolution = node["envmap_resolution"].as<int>(256);
 }
 
 void MaConfig::MaConfigDisplay::Init(const YAML::Node& node) {

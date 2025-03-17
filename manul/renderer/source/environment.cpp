@@ -3,6 +3,7 @@
 #include <fmt/format.h>
 #include <nvrhi/utils.h>
 
+#include "config.h"
 #include "gbuffer.h"
 #include "nvrenderer/nvrenderer.h"
 #include "nvrendererbackend.h"
@@ -234,14 +235,14 @@ void MaEnvironment::Init(const std::string& texture, float pre_exposure) {
           .addBindingLayout(m_bl_integrate_brdf)
           .setComputeShader(m_cs_integrate_brdf));
 
-  int skybox_width = 2048;
-  int dynamic_skybox_width = 512;
+  int skybox_width = NvRenderer::Config()->m_envmap_resolution;
+  int dynamic_skybox_width = NvRenderer::Config()->m_envmap_resolution;
   int skybox_mips = static_cast<int>(floor(log2(skybox_width))) + 1;
   int dynamic_skybox_mips =
       static_cast<int>(floor(log2(dynamic_skybox_width))) + 1;
   int diffuse_width = 64;
-  int specular_width = 1024;
-  int dynamic_specular_width = 256;
+  int specular_width = NvRenderer::Config()->m_envmap_resolution;
+  int dynamic_specular_width = NvRenderer::Config()->m_envmap_resolution;
   int specular_mips = 6;
 
   m_skybox = m_backend->GetDevice()->createTexture(
