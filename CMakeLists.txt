@@ -51,6 +51,7 @@ option(WITH_LUA "Compile with lua scripting support" ON)
 option(WITH_OPENVR "Compile with OpenVR" ON)
 option(WITH_ZMQ "Compile with cppzmq" OFF)
 option(WITH_CRASHPAD "Compile with crashpad" OFF)
+option(WITH_DISCORD_RPC "Compile with DISCORD RICH PRESENCE" OFF)
 option(USE_LTO "Use link-time optimization" OFF)
 
 option(WITH_LIBMANUL "Experimental multi-backend renderer" OFF)
@@ -444,9 +445,15 @@ target_link_libraries(${PROJECT_NAME} Threads::Threads)
 find_package(GLM REQUIRED)
 target_include_directories(${PROJECT_NAME} PRIVATE ${GLM_INCLUDE_DIR})
 
-# add ref/discord-rpc to the project in the same way other dependencies are added
-add_subdirectory(ref/discord-rpc)
-target_link_libraries(${PROJECT_NAME} discord-rpc)
+
+if (WITH_DISCORD_RPC)
+	# add ref/discord-rpc to the project in the same way other dependencies are added
+	add_subdirectory(ref/discord-rpc)
+	target_link_libraries(${PROJECT_NAME} discord-rpc)
+	target_compile_definitions(${PROJECT_NAME} "WITH_DISCORD_RPC=1")
+elseif ()
+	target_compile_definitions(${PROJECT_NAME} "WITH_DISCORD_RPC=0")
+endif ()
 
 
 

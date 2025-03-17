@@ -16,7 +16,6 @@ http://mozilla.org/MPL/2.0/.
 #include "light.h"
 #include "utilities.h"
 #include "motiontelemetry.h"
-#include "ref/discord-rpc/include/discord_rpc.h"
 #include <map>
 
 #ifdef WITH_UART

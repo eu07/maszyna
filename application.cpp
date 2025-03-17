@@ -29,7 +29,11 @@ http://mozilla.org/MPL/2.0/.
 #include "Timer.h"
 #include "dictionary.h"
 #include "version_info.h"
-#include "ref/discord-rpc/include/discord_rpc.h"
+
+#if WITH_DISCORD_RPC
+#include <discord_rpc.h>
+#endif
+
 #include <chrono>
 #include "translation.h"
 
@@ -179,6 +183,7 @@ int eu07_application::run_crashgui()
 }
 void eu07_application::DiscordRPCService()
 {
+#if WITH_DISCORD_RPC
 	// initialize discord-rpc
 	WriteLog("Initializing Discord Rich Presence...");
 	static const char *discord_app_id = "1343662664504840222";
@@ -253,6 +258,7 @@ void eu07_application::DiscordRPCService()
 		}
 		std::this_thread::sleep_for(std::chrono::milliseconds(5000)); // update RPC every 5 secs
     }
+#endif
 }
 
 int
