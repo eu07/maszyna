@@ -129,6 +129,12 @@ std::string_view MaterialAdapterLegacyMatFile::GetShader() const {
   if (m_shader == "water") {
     return "legacy_water";
   }
+  if (IsSpecGlossShader() && HasSpecGlossMap()) {
+    if (IsNormalMapShader() && HasNormalMap()) {
+      return "legacy_normalmap_specgloss";
+    }
+    return "legacy_specgloss";
+  }
   if (IsNormalMapShader() && HasNormalMap()) {
     return "legacy_normalmap";
   }
@@ -252,9 +258,17 @@ bool MaterialAdapterLegacyMatFile::HasNormalMap() const {
          m_texture_mapping.find("2:") != m_texture_mapping.end();
 }
 
+bool MaterialAdapterLegacyMatFile::HasSpecGlossMap() const {
+  return m_texture_mapping.find("_specgloss:") != m_texture_mapping.end();
+}
+
 bool MaterialAdapterLegacyMatFile::IsNormalMapShader() const {
   return m_shader.find("normalmap") != std::string::npos ||
          m_shader.find("parallax") != std::string::npos;
+}
+
+bool MaterialAdapterLegacyMatFile::IsSpecGlossShader() const {
+  return m_shader.find("specgloss") != std::string::npos;
 }
 
 std::optional<float> MaterialAdapterLegacyMatFile::GetOpacity() const {

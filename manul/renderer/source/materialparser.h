@@ -72,6 +72,8 @@ struct MaterialAdapterLegacyMatFile : public MaterialAdapterInternal {
   glm::dvec2 m_size{-1., -1.};
   virtual glm::dvec2 GetSize() const override { return m_size; }
   bool HasNormalMap() const;
+  bool HasSpecGlossMap() const;
+  bool IsSpecGlossShader() const;
   bool IsNormalMapShader() const;
   std::unordered_map<std::string, TextureEntry> m_texture_mapping;
   virtual int GetShadowRank() const override { return m_shadow_rank; }
