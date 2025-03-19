@@ -244,7 +244,7 @@ void NvTexture::update_from_memory(size_t width, size_t height,
   nvrhi::CommandListHandle command_list =
       backend->GetDevice()->createCommandList(
           nvrhi::CommandListParameters()
-              .setQueueType(nvrhi::CommandQueue::Copy)
+              .setQueueType(nvrhi::CommandQueue::Graphics)
               .setEnableImmediateExecution(false));
   command_list->open();
   for (int mip = 0; mip < m_data.size(); ++mip) {
@@ -253,7 +253,7 @@ void NvTexture::update_from_memory(size_t width, size_t height,
   }
   command_list->close();
   backend->GetDevice()->executeCommandList(command_list,
-                                           nvrhi::CommandQueue::Copy);
+                                           nvrhi::CommandQueue::Graphics);
 }
 
 bool NvTexture::IsLoaded() const { return false; }

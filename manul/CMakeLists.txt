@@ -55,6 +55,10 @@ target_include_directories(${LIBMANUL_NAME} PRIVATE
 target_include_directories(${LIBMANUL_NAME} PRIVATE
         "${DEPS_DIR}/glad/include")
 
+# Python.h
+target_include_directories(${LIBMANUL_NAME} PRIVATE
+        "${PYTHON_INCLUDE_DIR}")
+
 target_compile_definitions(${LIBMANUL_NAME} PRIVATE
         GLM_ENABLE_EXPERIMENTAL
         GLM_FORCE_SWIZZLE)
