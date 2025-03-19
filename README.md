@@ -51,7 +51,7 @@ MaSzyna should work and compile natively under **Linux** and **Windows**. Other 
 Commands will be written in [`Bash`](https://www.gnu.org/software/bash/). No-Linux users must do in corresponding technology.
 
 0. Clone source code.
-  You may download source code [as ZIP archive](https://github.com/eu07/maszyna/archive/master.zip), or clone it by [`Git`](https://git-scm.com/). We won't provide tutorial to second one, the only note worth mention is that, repository doesn't contain submodules, so `--recursive` is not needed. From now, it is assumed that your working directory is inside directory with unpacked source code.
+  You may download source code [as ZIP archive](https://github.com/eu07/maszyna/archive/master.zip), or clone it by [`Git`](https://git-scm.com/). We won't provide tutorial to second one, the only note worth mention is that, repository contain submodules, so `--recursive` is needed. From now, it is assumed that your working directory is inside directory with unpacked source code.
 1. Make directory, where build files will be stored, then enter inside it.
 
         $ mkdir build

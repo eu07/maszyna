@@ -323,6 +323,7 @@ std::string locale::label_cab_control(std::string const &Label)
 	    { "universal7:", STRN("interactive part") },
 	    { "universal8:", STRN("interactive part") },
 	    { "universal9:", STRN("interactive part") },
+	    { "wipers_sw:", STRN("wipers mode selector") },
 	};
 
 	auto const it = cabcontrols_labels.find( Label );
