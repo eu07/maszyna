@@ -474,7 +474,8 @@ particle_manager::find( std::string const &Template ) {
     }
     // ... and if it fails try to add the template to the database from a data file
     smoke_source source;
-    if( source.deserialize( cParser( templatepath + templatename + ".txt", cParser::buffer_FILE ) ) ) {
+    cParser sound_parser( templatepath + templatename + ".txt", cParser::buffer_FILE );
+    if( source.deserialize( sound_parser ) ) {
         // if deserialization didn't fail finish source setup...
         source.m_opacitymodifier.bind( &Global.SmokeFidelity );
         // ...then cache the source as template for future instances
