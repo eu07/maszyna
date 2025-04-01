@@ -1570,23 +1570,28 @@ bool TModel3d::LoadFromFile(std::string const &FileName, bool dynamic)
     m_filename = name;
 
     asBinary = name + ".e3d";
-	if (FileExists(asBinary))
+
+    // Hirek: Jesli mamy ustawione priorityLoadText3D na yes to wpierw ladujemy t3d
+	if (Global.priorityLoadText3D && FileExists(name + ".t3d"))
+	{
+		WriteLog("Forced loading text model \"" + name + ".t3d\"");
+		LoadFromTextFile(name + ".t3d", dynamic);
+		if (!dynamic)
+			Init();
+	}
+	else if (FileExists(asBinary))
 	{
 		LoadFromBinFile(asBinary, dynamic);
-		asBinary = ""; // wyłączenie zapisu
+		asBinary = "";
 		Init();
-    }
-	else
-	{
-		if (FileExists(name + ".t3d"))
-		{
-			LoadFromTextFile(name + ".t3d", dynamic); // wczytanie tekstowego
-            if( !dynamic ) {
-                // pojazdy dopiero po ustawieniu animacji
-                Init(); // generowanie siatek i zapis E3D
-            }
-        }
 	}
+	else if (FileExists(name + ".t3d"))
+	{
+		LoadFromTextFile(name + ".t3d", dynamic);
+		if (!dynamic)
+			Init();
+	}
+
 	bool const result =
 		Root ? (iSubModelsCount > 0) : false; // brak pliku albo problem z wczytaniem
 	if (false == result)
