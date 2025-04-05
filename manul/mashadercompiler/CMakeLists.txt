@@ -6,6 +6,8 @@ project(MaShaderCompiler)
 
 file(GLOB_RECURSE src "src/*.cpp" "src/*.hpp")
 
+# Confirmed to work with DXC distributed via VCPKG. Your mileage may vary
+# TODO Make sure that it works as well for people who do not use VCPKG
 find_package(directx-dxc CONFIG REQUIRED)
 
 add_executable(MaShaderCompiler ${src})
