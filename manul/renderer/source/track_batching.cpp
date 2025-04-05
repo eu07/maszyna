@@ -316,6 +316,7 @@ void NvRenderer::GatherTracksForBatching() {
     track_batch.m_material = batch.m_material;
     track_batch.m_geometry_origin = batch.m_geometry_origin;
     std::vector<gfx::basic_vertex> vertices{};
+    std::vector<gfx::vertex_userdata> userdatas{};
     std::vector<gfx::basic_index> indices{};
     for (int j = 0; j < batch.m_tracks.size(); ++j) {
       const auto& track = batch.m_tracks[j];
@@ -344,7 +345,8 @@ void NvRenderer::GatherTracksForBatching() {
     track_batch.m_regions_need_update.resize(
         track_batch.m_draw_commands.size());
     auto bank = Create_Bank();
-    track_batch.m_geometry = Insert(indices, vertices, bank, GL_TRIANGLES);
+    track_batch.m_geometry =
+        Insert(indices, vertices, userdatas, bank, GL_TRIANGLES);
   }
   m_track_quadtree.Build(builder);
 }

@@ -736,7 +736,8 @@ gfx::geometrybank_handle NvRenderer::Create_Bank() {
 
 gfx::geometry_handle NvRenderer::Insert(
     gfx::index_array &Indices, gfx::vertex_array &Vertices,
-    gfx::geometrybank_handle const &Geometry, int const Type) {
+    gfx::userdata_array &Userdata, gfx::geometrybank_handle const &Geometry,
+    int const Type) {
   if (!Type || Type >= TP_ROTATOR) return {};
 
   auto &bank = m_geometry_banks[Geometry.bank - 1];
@@ -765,8 +766,8 @@ gfx::geometry_handle NvRenderer::Insert(
 }
 
 gfx::geometry_handle NvRenderer::Insert(
-    gfx::vertex_array &Vertices, gfx::geometrybank_handle const &Geometry,
-    int const Type) {
+    gfx::vertex_array &Vertices, gfx::userdata_array &Userdata,
+    gfx::geometrybank_handle const &Geometry, int const Type) {
   if (!Type || Type >= TP_ROTATOR) return {};
 
   auto &bank = m_geometry_banks[Geometry.bank - 1];
@@ -834,6 +835,7 @@ gfx::geometry_handle NvRenderer::Insert(
 }
 
 bool NvRenderer::Replace(gfx::vertex_array &Vertices,
+                         gfx::userdata_array &Userdata,
                          gfx::geometry_handle const &Geometry, int const Type,
                          std::size_t const Offset) {
   if (!Type || Type >= TP_ROTATOR) return false;
@@ -879,6 +881,7 @@ bool NvRenderer::Replace(gfx::vertex_array &Vertices,
 }
 
 bool NvRenderer::Append(gfx::vertex_array &Vertices,
+                        gfx::userdata_array &Userdata,
                         gfx::geometry_handle const &Geometry, int const Type) {
   return false;
 }
@@ -901,6 +904,12 @@ gfx::vertex_array const &NvRenderer::Vertices(
   return m_geometry_banks[handle.bank - 1]
       .m_chunks[handle.chunk - 1]
       .m_vertices;
+}
+
+const gfx::userdata_array &NvRenderer::UserData(
+    const gfx::geometry_handle &Geometry) const {
+  const static gfx::userdata_array array{};
+  return array;
 }
 
 material_handle NvRenderer::Fetch_Material(std::string const &Filename,

@@ -80,21 +80,27 @@ class NvRenderer : public gfx_renderer, public MaResourceRegistry {
   virtual gfx::geometrybank_handle Create_Bank() override;
   virtual gfx::geometry_handle Insert(gfx::index_array &Indices,
                                       gfx::vertex_array &Vertices,
+                                      gfx::userdata_array &Userdata,
                                       gfx::geometrybank_handle const &Geometry,
                                       int const Type) override;
   virtual gfx::geometry_handle Insert(gfx::vertex_array &Vertices,
+                                      gfx::userdata_array &Userdata,
                                       gfx::geometrybank_handle const &Geometry,
                                       int const Type) override;
   virtual bool Replace(gfx::vertex_array &Vertices,
+                       gfx::userdata_array &Userdata,
                        gfx::geometry_handle const &Geometry, int const Type,
                        std::size_t const Offset = 0) override;
   virtual bool Append(gfx::vertex_array &Vertices,
+                      gfx::userdata_array &Userdata,
                       gfx::geometry_handle const &Geometry,
                       int const Type) override;
   virtual gfx::index_array const &Indices(
       gfx::geometry_handle const &Geometry) const override;
   virtual gfx::vertex_array const &Vertices(
       gfx::geometry_handle const &Geometry) const override;
+  const gfx::userdata_array &UserData(
+      const gfx::geometry_handle &Geometry) const override;
   virtual material_handle Fetch_Material(std::string const &Filename,
                                          bool const Loadnow = true) override;
   virtual void Bind_Material(material_handle const Material,
