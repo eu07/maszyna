@@ -456,13 +456,6 @@ elseif ()
 endif ()
 
 
-
-# add ref/discord-rpc to the project in the same way other dependencies are added
-add_subdirectory(ref/discord-rpc)
-target_link_libraries(${PROJECT_NAME} discord-rpc)
-
-
-
 find_package(OpenAL REQUIRED)
 if (TARGET OpenAL::OpenAL)
 	target_link_libraries(${PROJECT_NAME} OpenAL::OpenAL)
