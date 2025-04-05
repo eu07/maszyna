@@ -3,3 +3,4 @@
 !*.hlsl*
 !*.h
 !project.manul
+!CMakeLists.txt

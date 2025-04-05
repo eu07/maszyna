@@ -22,6 +22,9 @@ add_subdirectory("thirdparty/fmt")
 add_subdirectory("thirdparty/entt")
 add_subdirectory("thirdparty/fsr2")
 
+add_subdirectory("mashadercompiler")
+add_subdirectory("shaders")
+
 # Source code
 file(GLOB_RECURSE src
         "renderer/*.cpp"
@@ -103,3 +106,4 @@ endif ()
 target_sources(${LIBMANUL_NAME} INTERFACE "${CMAKE_CURRENT_SOURCE_DIR}/eu07_source/register.cpp")
 
 target_link_libraries(${LIBMANUL_NAME} ${LIBMANUL_NAME}_fsr2 nvrhi yaml-cpp fmt EnTT glfw)
+add_dependencies(${LIBMANUL_NAME} ${LIBMANUL_NAME}_shaders)
