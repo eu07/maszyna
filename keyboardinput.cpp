@@ -122,6 +122,7 @@ bool
 keyboard_input::recall_bindings() {
 
     cParser bindingparser( "eu07_input-keyboard.ini", cParser::buffer_FILE );
+    bindingparser.skipComments = false;
     if( false == bindingparser.ok() ) {
         return false;
     }
@@ -147,6 +148,7 @@ keyboard_input::recall_bindings() {
         std::string bindingentry;
         bindingparser >> bindingentry;
         cParser entryparser( bindingentry );
+        entryparser.skipComments = false;
         if( true == entryparser.getTokens( 1, true, "\n\r\t " ) ) {
 
             std::string commandname;
@@ -158,32 +160,47 @@ keyboard_input::recall_bindings() {
                 WriteLog( "Keyboard binding defined for unknown command, \"" + commandname + "\"" );
             }
             else {
-                int binding{ 0 };
+                int keycode = 0;
+                std::string description = "";
+                bool descriptionStarted = false;
                 while( entryparser.getTokens( 1, true, "\n\r\t " ) ) {
 
                     std::string bindingkeyname;
                     entryparser >> bindingkeyname;
 
-                         if( bindingkeyname == "shift" ) { binding |= keymodifier::shift; }
-                    else if( bindingkeyname == "ctrl" )  { binding |= keymodifier::control; }
-                    else if( bindingkeyname == "none" )  { binding = 0; }
-                    else {
-                        // regular key, convert it to glfw key code
-                        auto const keylookup = nametokeymap.find( bindingkeyname );
-                        if( keylookup == nametokeymap.end() ) {
-
-                            WriteLog( "Keyboard binding included unrecognized key, \"" + bindingkeyname + "\"" );
+                    // Parse command description, starting with "//".
+                    // TODO: At some point, rewind this and add translation keys instead for multilingual support.
+                    // This can't be done now as by default this would destroy all command descriptions,
+                    // which are used by Starter.
+                    // Do this when szczawik's Starter becomes deprecated or implements command descriptions in some other way.
+                    if (descriptionStarted) {
+                        if (description.size() > 0) {
+                            description += " ";
                         }
+                        description += bindingkeyname;
+                    } else if (bindingkeyname == "//") {
+                        descriptionStarted = true;
+                    } else {
+                            if( bindingkeyname == "shift" ) { keycode |= keymodifier::shift; }
+                        else if( bindingkeyname == "ctrl" )  { keycode |= keymodifier::control; }
+                        else if( bindingkeyname == "none" )  { keycode = 0; }
                         else {
-                            // replace any existing binding, preserve modifiers
-                            // (protection from cases where there's more than one key listed in the entry)
-                            binding = keylookup->second | ( binding & 0xffff0000 );
+                            // regular key, convert it to glfw key code
+                            auto const keylookup = nametokeymap.find( bindingkeyname );
+                            if( keylookup == nametokeymap.end() ) {
+
+                                WriteLog( "Keyboard binding included unrecognized key, \"" + bindingkeyname + "\"" );
+                            }
+                            else {
+                                // replace any existing binding, preserve modifiers
+                                // (protection from cases where there's more than one key listed in the entry)
+                                keycode = keylookup->second | ( keycode & 0xffff0000 );
+                            }
                         }
                     }
 
-                    if( ( binding & 0xffff ) != 0 ) {
-						m_bindingsetups.insert_or_assign(lookup->second, binding);
-                    }
+                    std::tuple<int, std::string> binding{keycode, description};
+                    m_bindingsetups.insert_or_assign(lookup->second, binding);
                 }
             }
         }
@@ -202,20 +219,25 @@ void keyboard_input::dump_bindings()
 		return;
 	}
 
-	for (const std::pair<user_command, int> &binding : m_bindingsetups) {
+	for (const std::pair<user_command, std::tuple<int, std::string>> &binding : m_bindingsetups) {
 		stream << simulation::Commands_descriptions[static_cast<std::size_t>(binding.first)].name << ' ';
 
-		auto it = keytonamemap.find(binding.second & 0xFFFF);
+		int keycode = std::get<int>(binding.second);
+		auto it = keytonamemap.find(keycode & 0xFFFF);
 		if (it != keytonamemap.end()) {
-			if (binding.second & keymodifier::control)
+			if (keycode & keymodifier::control)
 				stream << "ctrl ";
-			if (binding.second & keymodifier::shift)
+			if (keycode & keymodifier::shift)
 				stream << "shift ";
 
-			stream << it->second << "\r\n";
+			stream << it->second;
 		} else {
-			stream << "none\r\n";
+			stream << "none";
 		}
+
+        std::string description = std::get<std::string>(binding.second);
+        if (description.size() > 0)
+            stream << " // " << description << "\r\n";
 	}
 }
 
@@ -295,7 +317,7 @@ keyboard_input::bind() {
 
     for( auto const &bindingsetup : m_bindingsetups ) {
 
-        m_bindings[ bindingsetup.second ] = bindingsetup.first;
+        m_bindings[ std::get<int>(bindingsetup.second) ] = bindingsetup.first;
     }
 
     // cache movement key bindings

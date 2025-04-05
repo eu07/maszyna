@@ -66,7 +66,7 @@ void gl::vao::bind()
 			glEnableVertexAttribArray(param.attrib);
 		}
 
-		for (size_t i = params.size(); i < 4; i++)
+		for (size_t i = params.size(); i < 5; i++)
 			glDisableVertexAttribArray(i);
 
 		if (ebo)

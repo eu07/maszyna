@@ -339,6 +339,8 @@ void state_manager::process_commands() {
 
 		if (commanddata.command == user_command::settemperature) {
 			Global.AirTemperature = commanddata.param1;
+			Global.Overcast = commanddata.param2;
+			simulation::Environment.compute_weather();
 		}
 
 		if (commanddata.command == user_command::insertmodel) {

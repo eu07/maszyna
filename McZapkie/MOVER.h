@@ -1377,7 +1377,7 @@ class TMoverParameters
 	TDESchemeTable DElist;
 	TWiperSchemeTable WiperList;
 	int WiperListSize;
-	
+
 	double Vadd = 1.0;
 	TMPTRelayTable MPTRelay;
 	int RelayType = 0;
@@ -1786,7 +1786,7 @@ class TMoverParameters
 	double dimMultiplier{0.6f}; // mnoznik swiatel przyciemnionych
 	double normMultiplier{1.0f}; // mnoznik swiatel zwyklych
 	double highDimMultiplier{2.5f}; // mnoznik dlugich przyciemnionych
-	double highMultiplier{2.8f}; // mnoznik dlugich 
+	double highMultiplier{2.8f}; // mnoznik dlugich
 
     plc::basic_controller m_plc;
 

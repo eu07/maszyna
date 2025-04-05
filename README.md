@@ -25,14 +25,15 @@ List of requirements for compiling executable. For usage/runtime requirements [s
 
   **Note:** There's some issue in our build system. If link error occurs, use `-DGLFW3_LIBRARIES='<path>'` in CMake.
 - [GLM](https://glm.g-truc.net/) (0.9.9.0)
-- serialport (0.1.1)
+- [serialport](https://sigrok.org/wiki/Libserialport) (0.1.1)
 - [sndfile](https://github.com/erikd/libsndfile) (1.0.28)
-- [LuajIT](http://luajit.org/) (2.0.5)
-- [GLEW](http://glew.sourceforge.net/) (2.1.0)
+- [LuajIT](http://luajit.org) (2.0.5)
+- [GLEW](http://glew.sourceforge.net) (2.1.0)
 - [PNG](http://www.libpng.org/pub/png/libpng.html) (1.6.34)
-- [OpenAL](https://www.openal.org/) (1.18.2)
+- [OpenAL](https://www.openal.org) (1.18.2)
 - pthread
 - [Python 2.7](https://www.python.org)
+- [asio](https://think-async.com/Asio) (1.12)
 
 ### **3. OpenGL 3.0.**
 

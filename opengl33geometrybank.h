@@ -37,6 +37,7 @@ private:
         std::size_t vertex_count{ 0 }; // size of the chunk in the last established buffer
         std::size_t index_offset{ 0 };
         std::size_t index_count{ 0 };
+		bool has_userdata{ false };
         bool is_good{ false }; // true if local content of the chunk matches the data on the opengl end
     };
 
@@ -59,6 +60,8 @@ private:
         setup_buffer();
     void
         setup_attrib(size_t offset = 0);
+	void
+		setup_userdata(size_t offset = 0);
     void
         delete_buffer();
 
@@ -67,6 +70,7 @@ private:
     std::optional<gl::buffer> m_indexbuffer; // index buffer data on the opengl end
 	std::optional<gl::vao> m_vao;
     chunkrecord_sequence m_chunkrecords; // helper data for all stored geometry chunks, in matching order
+	int m_vertex_count;
 };
 
 } // namespace gfx

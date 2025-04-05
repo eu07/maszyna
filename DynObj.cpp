@@ -770,7 +770,7 @@ void TDynamicObject::UpdateWiper(TAnim* pAnim)
 	if (!pAnim || !pAnim->smElement)
 		return;
 
-	int i = pAnim->iNumber; 
+	int i = pAnim->iNumber;
     // odwaramy animacje dla parzystych indexow
 	const double rotateAngle = (i + 1) % 2 == 0 ? -MoverParameters->WiperAngle : MoverParameters->WiperAngle;
 
@@ -1319,7 +1319,7 @@ void TDynamicObject::ABuLittleUpdate(double ObjSqrDist)
 			m_highbeam12.TurnxOnWithOnAsFallback();
 		else
 			m_highbeam12.TurnOff();
-        
+
         // i to samo od dupy strony
         if (TestFlag(MoverParameters->iLights[end::rear], light::highbeamlight_left))
 			m_highbeam23.TurnxOnWithOnAsFallback();
@@ -2364,8 +2364,8 @@ TDynamicObject::Init(std::string Name, // nazwa pojazdu, np. "EU07-424"
     m_headlamp21.Init( "headlamp21", mdModel );
     m_headlamp22.Init( "headlamp22", mdModel );
     m_headlamp23.Init( "headlamp23", mdModel );
-	m_highbeam22.Init("highbeam22", mdModel); 
-	m_highbeam23.Init("highbeam23", mdModel); 
+	m_highbeam22.Init("highbeam22", mdModel);
+	m_highbeam23.Init("highbeam23", mdModel);
     m_headsignal12.Init( "headsignal12", mdModel );
     m_headsignal13.Init( "headsignal13", mdModel );
     m_headsignal22.Init( "headsignal22", mdModel );
@@ -3677,8 +3677,8 @@ bool TDynamicObject::Update(double dt, double dt1)
                     }
                     case  e_bridge: {
                         volume *= 1.5;
-                        break; 
-                    } 
+                        break;
+                    }
                     default: {
                         break;
                     }
@@ -4974,8 +4974,8 @@ void TDynamicObject::RenderSounds() {
                     }
                     case  e_bridge: {
                         volume *= 1.5;
-                        break; 
-                    } 
+                        break;
+                    }
                     default: {
                         break;
                     }
@@ -6328,7 +6328,7 @@ void TDynamicObject::LoadMMediaFile( std::string const &TypeName, std::string co
                     sConverter.deserialize( parser, sound_type::multipart, sound_parameters::range );
                     sConverter.owner( this );
                 }
-                
+
                 // Dzwiek wentylatora rezystora hamowania
 				else if (token == "brakingresistorventilator:")
 				{
@@ -6726,12 +6726,12 @@ void TDynamicObject::LoadMMediaFile( std::string const &TypeName, std::string co
                 else if (token == "wiperFromPark:")
                 {
 					sWiperFromPark.deserialize(parser, sound_type::single);
-					sWiperFromPark.owner(this);  
+					sWiperFromPark.owner(this);
                 }
 				else if (token == "wiperToPark:")
 				{
 					sWiperToPark.deserialize(parser, sound_type::single);
-					sWiperToPark.owner(this);  
+					sWiperToPark.owner(this);
 				}
 
 				else if (token == "retarder:") {

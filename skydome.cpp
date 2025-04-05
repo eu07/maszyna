@@ -10,8 +10,8 @@
 // by A. J. Preetham Peter Shirley Brian Smits (University of Utah)
 
 float CSkyDome::m_distributionluminance[ 5 ][ 2 ] = {	// Perez distributions
-		{  0.17872f , -1.46303f },		// a = darkening or brightening of the horizon
-		{ -0.35540f ,  0.42749f },		// b = luminance gradient near the horizon,
+		{  0.17872f , -1.66303f },		// a = darkening or brightening of the horizon
+		{ -0.35540f ,  0.42750f },		// b = luminance gradient near the horizon,
 		{ -0.02266f ,  5.32505f },		// c = relative intensity of the circumsolar region
 		{  0.12064f , -2.57705f },		// d = width of the circumsolar region
 		{ -0.06696f ,  0.37027f }		// e = relative backscattered light
@@ -48,8 +48,8 @@ CSkyDome::CSkyDome (int const Tesselation) :
                m_tesselation( Tesselation ) {
 
 //	SetSunPosition( Math3D::vector3(75.0f, 0.0f, 0.0f) );
-	SetTurbidity( 3.0f );
-	SetExposure( true, 20.0f );
+	SetTurbidity( Global.fTurbidity );
+	SetExposure( true, 10.0f );
     SetOvercastFactor( 0.05f );
     Generate();
 }
@@ -109,7 +109,7 @@ void CSkyDome::Generate() {
 }
 
 void CSkyDome::Update( glm::vec3 const &Sun ) {
-
+	SetTurbidity(Global.fTurbidity);
     if( true == SetSunPosition( Sun ) ) {
         // build colors if there's a change in sun position
         RebuildColors();
@@ -134,7 +134,7 @@ bool CSkyDome::SetSunPosition( glm::vec3 const &Direction ) {
 
 void CSkyDome::SetTurbidity( float const Turbidity ) {
 
-	m_turbidity = clamp( Turbidity, 1.f, 4.f );
+	m_turbidity = clamp( Turbidity, 1.f, 128.f );
 }
 
 void CSkyDome::SetExposure( bool const Linearexposure, float const Expfactor ) {
@@ -296,20 +296,20 @@ void CSkyDome::RebuildColors() {
             color.y = 0.65f * color.z;
         }
         // simple gradient, darkening towards the top
-        color *= clamp( ( 1.25f - vertex.y ), 0.f, 1.f );
-//        color *= ( 1.25f - vertex.y );
+        color *= clamp( ( 1.0f - vertex.y ), 0.f, 1.f );
+        //color *= ( 0.25f - vertex.y );
         // gamma correction
         color = glm::pow( color, gammacorrection );
         m_colours[ i ] = color;
         averagecolor += color;
-        if( ( m_vertices.size() - i ) <= ( m_tesselation * 3 + 3 ) ) {
+        if( ( m_vertices.size() - i ) <= ( m_tesselation * 10 + 10 ) ) {
             // calculate horizon colour from the bottom band of tris
             averagehorizoncolor += color;
         }
 	}
 
     m_averagecolour = glm::max( glm::vec3(), averagecolor / static_cast<float>( m_vertices.size() ) );
-    m_averagehorizoncolour = glm::max( glm::vec3(), averagehorizoncolor / static_cast<float>( m_tesselation * 3 + 3 ) );
+    m_averagehorizoncolour = glm::max( glm::vec3(), averagehorizoncolor / static_cast<float>( m_tesselation * 10 + 10 ) );
 
     m_dirty = true;
 }

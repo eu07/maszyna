@@ -25,12 +25,12 @@ void
 editorkeyboard_input::default_bindings() {
 
     m_bindingsetups = {
-        { user_command::moveleft, GLFW_KEY_LEFT },
-        { user_command::moveright, GLFW_KEY_RIGHT },
-        { user_command::moveforward, GLFW_KEY_UP },
-        { user_command::moveback, GLFW_KEY_DOWN },
-        { user_command::moveup, GLFW_KEY_PAGE_UP },
-        { user_command::movedown, GLFW_KEY_PAGE_DOWN },
+        { user_command::moveleft, {GLFW_KEY_LEFT, "Move left"} },
+        { user_command::moveright, {GLFW_KEY_RIGHT, "Move right"} },
+        { user_command::moveforward, {GLFW_KEY_UP, "Move forwards"} },
+        { user_command::moveback, {GLFW_KEY_DOWN, "Move backwards"} },
+        { user_command::moveup, {GLFW_KEY_PAGE_UP, "Move up"} },
+        { user_command::movedown, {GLFW_KEY_PAGE_DOWN, "Move down"} },
     };
 }
 

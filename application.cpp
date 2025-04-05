@@ -29,6 +29,9 @@ http://mozilla.org/MPL/2.0/.
 #include "Timer.h"
 #include "dictionary.h"
 #include "version_info.h"
+#include "ref/discord-rpc/include/discord_rpc.h"
+#include <chrono>
+#include "translation.h"
 
 #if WITH_DISCORD_RPC
 #include <discord_rpc.h>

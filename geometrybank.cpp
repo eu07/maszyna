@@ -9,12 +9,33 @@ http://mozilla.org/MPL/2.0/.
 
 #include "stdafx.h"
 #include "geometrybank.h"
+#include "vertex.h"
 
 #include "sn_utils.h"
 #include "Logs.h"
 #include "Globals.h"
 
 namespace gfx {
+
+basic_vertex basic_vertex::convert(world_vertex const &world, glm::dvec3 const& origin)
+{
+	basic_vertex vertex{};
+	vertex.position = static_cast<glm::vec3>(world.position - origin);
+	vertex.normal = world.normal;
+	vertex.texture = world.texture;
+	return vertex;
+}
+
+world_vertex basic_vertex::to_world(const glm::dvec3 &origin) const
+{
+	world_vertex vertex{};
+
+	vertex.position = static_cast<glm::dvec3>(position) + origin;
+	vertex.normal = normal;
+	vertex.texture = texture;
+
+	return vertex;
+}
 
 void
 basic_vertex::serialize( std::ostream &s, bool const Tangent ) const {
@@ -183,14 +204,18 @@ void calculate_tangents(vertex_array &vertices, index_array const &indices, int 
     }
 }
 
-void calculate_indices( index_array &Indices, vertex_array &Vertices, float tolerancescale ) {
+void calculate_indices( index_array &Indices, vertex_array &Vertices, userdata_array &Userdata, float tolerancescale ) {
 
     Indices.resize( Vertices.size() );
     std::iota( std::begin( Indices ), std::end( Indices ), 0 );
     // gather instances of used vertices, replace the original vertex bank with it after you're done
-    vertex_array indexedvertices;
+    vertex_array indexedvertices{};
+	userdata_array indexeduserdata{};
     indexedvertices.reserve( std::max<size_t>( 100, Vertices.size() / 3 ) ); // optimistic guesstimate, but should reduce re-allocation somewhat
-    auto const matchtolerance { 1e-5f * tolerancescale };
+	bool has_userdata = !Userdata.empty();
+	if (has_userdata)
+		indexeduserdata.reserve(std::max<size_t>(100, Userdata.size() / 3));
+	auto const matchtolerance { 1e-5f * tolerancescale };
     for( auto idx = 0; idx < Indices.size(); ++idx ) {
         if( Indices[ idx ] < idx ) {
             // this index is pointing to a vertex out of linear order, i.e. it's an already processed duplicate we can skip
@@ -200,31 +225,38 @@ void calculate_indices( index_array &Indices, vertex_array &Vertices, float tole
         Indices[ idx ] = indexedvertices.size();
         // see if there's any pointers in the remaining index subrange to similar enough vertices
         // if found, remap these to use our current vertex instead
-        auto vertex { Vertices[ idx ] };
+        const auto& vertex { Vertices[ idx ] };
+		const auto* userdata{ has_userdata ? &Userdata[idx] : nullptr };
         auto matchiter { std::cbegin( Vertices ) + idx };
+		auto matchuserdata = userdata;
         for( auto matchidx = idx + 1; matchidx < Indices.size() && matchidx < idx + Global.iConvertIndexRange; ++matchidx ) {
             ++matchiter;
+			++matchuserdata;
             if( ( glm::all( glm::epsilonEqual( vertex.position, matchiter->position, matchtolerance ) ) )
              && ( glm::all( glm::epsilonEqual( vertex.normal,   matchiter->normal, matchtolerance ) ) )
-             && ( glm::all( glm::epsilonEqual( vertex.texture,  matchiter->texture, matchtolerance ) ) ) ) {
+             && ( glm::all( glm::epsilonEqual( vertex.texture,  matchiter->texture, matchtolerance ) ) )
+			 && ( !userdata || glm::all( glm::epsilonEqual( userdata->data, matchuserdata->data, matchtolerance ) ) ) ) {
                 Indices[ matchidx ] = Indices[ idx ];
             }
         }
         indexedvertices.emplace_back( vertex );
+		if(userdata)
+			indexeduserdata.emplace_back( *userdata );
     }
     // done indexing, swap the source vertex bank with the processed one
     Vertices.swap( indexedvertices );
+	Userdata.swap( indexeduserdata );
 }
 
 // generic geometry bank class, allows storage, update and drawing of geometry chunks
 
 // creates a new geometry chunk of specified type from supplied data. returns: handle to the chunk or NULL
 gfx::geometry_handle
-geometry_bank::create( gfx::vertex_array &Vertices, unsigned int const Type ) {
+geometry_bank::create( gfx::vertex_array &Vertices, userdata_array &Userdata, unsigned int const Type ) {
 
-    if( true == Vertices.empty() ) { return { 0, 0 }; }
+    if(Vertices.empty()) { return { 0, 0 }; }
 
-    m_chunks.emplace_back( Vertices, Type );
+    m_chunks.emplace_back( Vertices, Userdata, Type );
     // NOTE: handle is effectively (index into chunk array + 1) this leaves value of 0 to serve as error/empty handle indication
     gfx::geometry_handle chunkhandle { 0, static_cast<std::uint32_t>(m_chunks.size()) };
     // template method implementation
@@ -235,11 +267,11 @@ geometry_bank::create( gfx::vertex_array &Vertices, unsigned int const Type ) {
 
 // creates a new indexed geometry chunk of specified type from supplied data. returns: handle to the chunk or NULL
 gfx::geometry_handle
-geometry_bank::create( gfx::index_array &Indices, gfx::vertex_array &Vertices, unsigned int const Type ) {
+geometry_bank::create( gfx::index_array &Indices, gfx::vertex_array &Vertices, userdata_array &Userdata, unsigned int const Type ) {
 
-    if( true == Vertices.empty() ) { return { 0, 0 }; }
+    if(Vertices.empty()) { return { 0, 0 }; }
 
-    m_chunks.emplace_back( Indices, Vertices, Type );
+    m_chunks.emplace_back( Indices, Vertices, Userdata, Type );
     // NOTE: handle is effectively (index into chunk array + 1) this leaves value of 0 to serve as error/empty handle indication
     gfx::geometry_handle chunkhandle { 0, static_cast<std::uint32_t>(m_chunks.size()) };
     // template method implementation
@@ -250,7 +282,7 @@ geometry_bank::create( gfx::index_array &Indices, gfx::vertex_array &Vertices, u
 
 // replaces data of specified chunk with the supplied vertex data, starting from specified offset
 bool
-geometry_bank::replace( gfx::vertex_array &Vertices, gfx::geometry_handle const &Geometry, std::size_t const Offset ) {
+geometry_bank::replace( gfx::vertex_array &Vertices, userdata_array &Userdata, gfx::geometry_handle const &Geometry, std::size_t const Offset ) {
 
     if( ( Geometry.chunk == 0 ) || ( Geometry.chunk > m_chunks.size() ) ) { return false; }
 
@@ -260,13 +292,16 @@ geometry_bank::replace( gfx::vertex_array &Vertices, gfx::geometry_handle const 
      && ( Vertices.size() == chunk.vertices.size() ) ) {
         // check first if we can get away with a simple swap...
         chunk.vertices.swap( Vertices );
+		chunk.userdata.swap( Userdata );
     }
     else {
         // ...otherwise we need to do some legwork
         // NOTE: if the offset is larger than existing size of the chunk, it'll bridge the gap with 'blank' vertices
         // TBD: we could bail out with an error instead if such request occurs
         chunk.vertices.resize( Offset + Vertices.size(), gfx::basic_vertex() );
+		chunk.userdata.resize( Offset + Userdata.size(), gfx::vertex_userdata() );
         chunk.vertices.insert( std::end( chunk.vertices ), std::begin( Vertices ), std::end( Vertices ) );
+		chunk.userdata.insert( std::end( chunk.userdata ), std::begin( Userdata ), std::end( Userdata ) );
     }
     // template method implementation
     replace_( Geometry );
@@ -276,11 +311,11 @@ geometry_bank::replace( gfx::vertex_array &Vertices, gfx::geometry_handle const 
 
 // adds supplied vertex data at the end of specified chunk
 bool
-geometry_bank::append( gfx::vertex_array &Vertices, gfx::geometry_handle const &Geometry ) {
+geometry_bank::append( gfx::vertex_array &Vertices, userdata_array &Userdata, gfx::geometry_handle const &Geometry ) {
 
     if( ( Geometry.chunk == 0 ) || ( Geometry.chunk > m_chunks.size() ) ) { return false; }
 
-    return replace( Vertices, Geometry, gfx::geometry_bank::chunk( Geometry ).vertices.size() );
+    return replace( Vertices, Userdata, Geometry, gfx::geometry_bank::chunk( Geometry ).vertices.size() );
 }
 
 // draws geometry stored in specified chunk
@@ -311,6 +346,13 @@ geometry_bank::vertices( gfx::geometry_handle const &Geometry ) const {
     return geometry_bank::chunk( Geometry ).vertices;
 }
 
+// provides direct access to vertex user data of specfied chunk
+userdata_array const &
+geometry_bank::userdata( gfx::geometry_handle const &Geometry ) const {
+
+	return geometry_bank::chunk( Geometry ).userdata;
+}
+
 // geometry bank manager, holds collection of geometry banks
 
 // performs a resource sweep
@@ -331,9 +373,9 @@ geometrybank_manager::register_bank(std::unique_ptr<geometry_bank> bank) {
 
 // creates a new geometry chunk of specified type from supplied data, in specified bank. returns: handle to the chunk or NULL
 gfx::geometry_handle
-geometrybank_manager::create_chunk(vertex_array &Vertices, gfx::geometrybank_handle const &Geometry, int const Type ) {
+geometrybank_manager::create_chunk(vertex_array &Vertices, userdata_array &Userdata, gfx::geometrybank_handle const &Geometry, int const Type ) {
 
-    auto const newchunkhandle = bank( Geometry ).first->create( Vertices, Type );
+    auto const newchunkhandle = bank( Geometry ).first->create( Vertices, Userdata, Type );
 
     if( newchunkhandle.chunk != 0 ) { return { Geometry.bank, newchunkhandle.chunk }; }
     else                            { return { 0, 0 }; }
@@ -341,9 +383,9 @@ geometrybank_manager::create_chunk(vertex_array &Vertices, gfx::geometrybank_han
 
 // creates a new indexed geometry chunk of specified type from supplied data, in specified bank. returns: handle to the chunk or NULL
 gfx::geometry_handle
-geometrybank_manager::create_chunk( gfx::index_array &Indices, gfx::vertex_array &Vertices, gfx::geometrybank_handle const &Geometry, unsigned int const Type ) {
+geometrybank_manager::create_chunk( gfx::index_array &Indices, gfx::vertex_array &Vertices, userdata_array &Userdata, gfx::geometrybank_handle const &Geometry, unsigned int const Type ) {
 
-    auto const newchunkhandle = bank( Geometry ).first->create( Indices, Vertices, Type );
+    auto const newchunkhandle = bank( Geometry ).first->create( Indices, Vertices, Userdata, Type );
 
     if( newchunkhandle.chunk != 0 ) { return { Geometry.bank, newchunkhandle.chunk }; }
     else                            { return { 0, 0 }; }
@@ -351,16 +393,16 @@ geometrybank_manager::create_chunk( gfx::index_array &Indices, gfx::vertex_array
 
 // replaces data of specified chunk with the supplied vertex data, starting from specified offset
 bool
-geometrybank_manager::replace( gfx::vertex_array &Vertices, gfx::geometry_handle const &Geometry, std::size_t const Offset ) {
+geometrybank_manager::replace( gfx::vertex_array &Vertices, userdata_array &Userdata, gfx::geometry_handle const &Geometry, std::size_t const Offset ) {
 
-    return bank( Geometry ).first->replace( Vertices, Geometry, Offset );
+    return bank( Geometry ).first->replace( Vertices, Userdata, Geometry, Offset );
 }
 
 // adds supplied vertex data at the end of specified chunk
 bool
-geometrybank_manager::append( gfx::vertex_array &Vertices, gfx::geometry_handle const &Geometry ) {
+geometrybank_manager::append( gfx::vertex_array &Vertices, userdata_array &Userdata, gfx::geometry_handle const &Geometry ) {
 
-    return bank( Geometry ).first->append( Vertices, Geometry );
+    return bank( Geometry ).first->append( Vertices, Userdata, Geometry );
 }
 // draws geometry stored in specified chunk
 void
@@ -386,6 +428,33 @@ gfx::vertex_array const &
 geometrybank_manager::vertices( gfx::geometry_handle const &Geometry ) const {
 
     return bank( Geometry ).first->vertices( Geometry );
+}
+
+// provides direct access to vertex user data of specfied chunk
+gfx::userdata_array const &
+geometrybank_manager::userdata( gfx::geometry_handle const &Geometry ) const {
+
+	return bank( Geometry ).first->userdata( Geometry );
+}
+
+void vertex_userdata::serialize(std::ostream &s) const
+{
+	sn_utils::s_vec4(s, data);
+}
+
+void vertex_userdata::deserialize(std::istream &s)
+{
+	data = sn_utils::d_vec4(s);
+}
+
+void vertex_userdata::serialize_packed(std::ostream &s) const
+{
+	sn_utils::ls_uint64(s, glm::packHalf4x16(data));
+}
+
+void vertex_userdata::deserialize_packed(std::istream &s)
+{
+	data = glm::unpackHalf4x16(sn_utils::ld_uint64(s));
 }
 
 } // namespace gfx

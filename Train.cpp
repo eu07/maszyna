@@ -254,6 +254,8 @@ TTrain::commandhandler_map const TTrain::m_commandhandlers = {
     { user_command::autosandboxactivate, &TTrain::OnCommand_autosandboxactivate },
     { user_command::autosandboxdeactivate, &TTrain::OnCommand_autosandboxdeactivate },
     { user_command::epbrakecontroltoggle, &TTrain::OnCommand_epbrakecontroltoggle },
+    { user_command::epbrakecontrolenable, &TTrain::OnCommand_epbrakecontrolenable },
+    { user_command::epbrakecontroldisable, &TTrain::OnCommand_epbrakecontroldisable },
 	{ user_command::trainbrakeoperationmodeincrease, &TTrain::OnCommand_trainbrakeoperationmodeincrease },
 	{ user_command::trainbrakeoperationmodedecrease, &TTrain::OnCommand_trainbrakeoperationmodedecrease },
     { user_command::brakeactingspeedincrease, &TTrain::OnCommand_brakeactingspeedincrease },
@@ -1983,6 +1985,34 @@ void TTrain::OnCommand_autosandboxdeactivate(TTrain *Train, command_data const &
 	}
 };
 
+void TTrain::OnCommand_epbrakecontrolenable( TTrain *Train, command_data const &Command ) {
+    auto const istoggle{ ( static_cast<int>( Train->ggEPFuseButton.type() ) & static_cast<int>( TGaugeType::toggle ) ) != 0 };
+    if( Command.action == GLFW_PRESS ) {
+        // command only works for bistable switch
+        if(istoggle) {
+            if( Train->mvOccupied->EpFuseSwitch( true ) ) {
+                // audio feedback
+                if( Train->dsbPneumaticSwitch ) {
+                    Train->dsbPneumaticSwitch->play();
+                }
+                Train->ggEPFuseButton.UpdateValue(1.0f, Train->dsbSwitch);
+            };
+        }
+    }
+}
+
+void TTrain::OnCommand_epbrakecontroldisable( TTrain *Train, command_data const &Command ) {
+    auto const istoggle{ ( static_cast<int>( Train->ggEPFuseButton.type() ) & static_cast<int>( TGaugeType::toggle ) ) != 0 };
+    if( Command.action == GLFW_PRESS ) {
+        // command only works for bistable switch
+        if(istoggle) {
+            if( Train->mvOccupied->EpFuseSwitch( false ) ) {
+                Train->ggEPFuseButton.UpdateValue(0.0f, Train->dsbSwitch);
+            };
+        }
+    }
+}
+
 void TTrain::OnCommand_epbrakecontroltoggle( TTrain *Train, command_data const &Command ) {
 
     if( Command.action == GLFW_REPEAT ) { return; }
@@ -2440,14 +2470,14 @@ void TTrain::OnCommand_batteryenable( TTrain *Train, command_data const &Command
 		}
     }
 	else // impulse button behavior
-	{ 
+	{
         if (Command.action == GLFW_PRESS)
         {
 			if (Train->mvOccupied->shouldHoldBatteryButton)
 			{
                 // jesli przycisk trzeba przytrzymac
 				Train->ggBatteryButton.UpdateValue(1.0f, Train->dsbSwitch);
-				Train->ggBatteryOnButton.UpdateValue(1.0f, Train->dsbSwitch);  
+				Train->ggBatteryOnButton.UpdateValue(1.0f, Train->dsbSwitch);
 				Train->fBatteryTimer = Train->mvOccupied->BatteryButtonHoldTime; // start timer
             }
             else
@@ -2463,15 +2493,15 @@ void TTrain::OnCommand_batteryenable( TTrain *Train, command_data const &Command
 
                 // visual feedback
 				Train->ggBatteryButton.UpdateValue(1.0f, Train->dsbSwitch);
-				Train->ggBatteryOnButton.UpdateValue(1.0f, Train->dsbSwitch);  
+				Train->ggBatteryOnButton.UpdateValue(1.0f, Train->dsbSwitch);
             }
         }
 		else if (Command.action == GLFW_RELEASE)
 		{
             // visual feedback
 			Train->ggBatteryButton.UpdateValue(0.0f, Train->dsbSwitch);
-			Train->ggBatteryOnButton.UpdateValue(0.0f, Train->dsbSwitch);  
-            Train->fBatteryTimer = -1.f; // 
+			Train->ggBatteryOnButton.UpdateValue(0.0f, Train->dsbSwitch);
+            Train->fBatteryTimer = -1.f; //
             Train->allowBatteryToggle = true;
 		}
 		else if (Command.action == GLFW_REPEAT && Train->mvOccupied->shouldHoldBatteryButton)
@@ -2526,7 +2556,7 @@ void TTrain::OnCommand_batterydisable( TTrain *Train, command_data const &Comman
 			{
 				// jesli przycisk trzeba przytrzymac
 				Train->ggBatteryButton.UpdateValue(1.0f, Train->dsbSwitch);
-				Train->ggBatteryOffButton.UpdateValue(1.0f, Train->dsbSwitch); 
+				Train->ggBatteryOffButton.UpdateValue(1.0f, Train->dsbSwitch);
 				Train->fBatteryTimer = Train->mvOccupied->BatteryButtonHoldTime; // start timer
 			}
 			else
@@ -2542,14 +2572,14 @@ void TTrain::OnCommand_batterydisable( TTrain *Train, command_data const &Comman
 				}
 				// visual feedback
 				Train->ggBatteryButton.UpdateValue(1.0f, Train->dsbSwitch);
-				Train->ggBatteryOffButton.UpdateValue(1.0f, Train->dsbSwitch); 
+				Train->ggBatteryOffButton.UpdateValue(1.0f, Train->dsbSwitch);
 			}
 		}
 		else if (Command.action == GLFW_RELEASE)
 		{
 			// visual feedback
 			Train->ggBatteryButton.UpdateValue(0.0f, Train->dsbSwitch);
-			Train->ggBatteryOffButton.UpdateValue(0.0f, Train->dsbSwitch); 
+			Train->ggBatteryOffButton.UpdateValue(0.0f, Train->dsbSwitch);
             Train->allowBatteryToggle = true;
 		}
 		else if (Command.action == GLFW_REPEAT && Train->mvOccupied->shouldHoldBatteryButton)
@@ -2989,7 +3019,7 @@ void TTrain::OnCommand_pantographvalvesupdate( TTrain *Train, command_data const
 		}
 
 		// Old logic to maintain compatibility
-        else 
+        else
         {
 			Train->update_pantograph_valves();
 			Train->ggPantValvesButton.UpdateValue(1.0, Train->dsbSwitch);
@@ -4853,7 +4883,7 @@ void TTrain::OnCommand_headlightdisablerearupper( TTrain *Train, command_data co
     }
 }
 
-void TTrain::OnCommand_modernlightdimmerincrease(TTrain* Train, command_data const& Command) 
+void TTrain::OnCommand_modernlightdimmerincrease(TTrain* Train, command_data const& Command)
 {
 	if (!Train->mvOccupied->enableModernDimmer)
 		return; // if modern dimmer is disabled, skip entire command
@@ -4871,7 +4901,7 @@ void TTrain::OnCommand_modernlightdimmerincrease(TTrain* Train, command_data con
 			    Train->ggModernLightDimSw.UpdateValue(Train->mvOccupied->modernDimmerState - 1, Train->dsbSwitch);
 	}
 }
-void TTrain::OnCommand_modernlightdimmerdecrease(TTrain *Train, command_data const &Command) 
+void TTrain::OnCommand_modernlightdimmerdecrease(TTrain *Train, command_data const &Command)
 {
 	if (!Train->mvOccupied->enableModernDimmer)
 		return; // if modern dimmer is disabled, skip entire command
@@ -7629,6 +7659,7 @@ bool TTrain::Update( double const Deltatime )
 	else
 		btAKLVents.Turn(false);
 
+
     if( true == lowvoltagepower ) {
         // McZapkie-141102: SHP i czuwak, TODO: sygnalizacja kabinowa
         if( mvOccupied->SecuritySystem.is_vigilance_blinking() ) {
@@ -7800,12 +7831,12 @@ bool TTrain::Update( double const Deltatime )
         btLampkaDoorLockOff.Turn( false == mvOccupied->Doors.lock_enabled );
         btLampkaDepartureSignal.Turn( mvControlled->DepartureSignal );
         btLampkaNapNastHam.Turn((mvControlled->DirActive != 0) && (mvOccupied->EpFuse)); // napiecie na nastawniku hamulcowym
-        
+
         // Wylaczanie lampek kierunku gdy jedziemy
         // Feature uruchamiany z fiz z sekcji Ctrl. wpisem HideDirStatusWhenMoving=Yes (domyslnie No)
 		if (mvOccupied->HideDirStatusWhenMoving && // Czy ta funkcja jest w ogole wlaczona
             mvOccupied->Vel > mvOccupied->HideDirStatusSpeed) // Uzaleznienie od predkosci
-		{   
+		{
             btLampkaForward.Turn(false);
 			btLampkaBackward.Turn(false);
 			btLampkaNeutral.Turn(false);
@@ -8579,6 +8610,16 @@ TTrain::update_sounds( double const Deltatime ) {
             dsbSlipAlarm->stop();
         }
     }
+
+    // dzwiek wiatru rozbijajacego sie o szyby w kabinie
+    if (rsWindSound)
+    {
+		if (!FreeFlyModeFlag && !Global.CabWindowOpen && DynamicObject->GetVelocity() > 0.5)
+            update_sounds_resonancenoise(*rsWindSound);
+        else
+			rsWindSound->stop(FreeFlyModeFlag);
+    }
+
 
     // dzwiek rezonansu (taki drugi runningnoise w sumie)
 	if (rsResonanceNoise)
@@ -9898,7 +9939,7 @@ void TTrain::set_cab_controls( int const Cab ) {
     if (ggModernLightDimSw.SubModel != nullptr) {
 		if (mvOccupied->modernContainOffPos)
 		    ggModernLightDimSw.PutValue(mvOccupied->modernDimmerState);
-        else 
+        else
             ggModernLightDimSw.PutValue(mvOccupied->modernDimmerState - 1);
     }
 
@@ -9906,7 +9947,7 @@ void TTrain::set_cab_controls( int const Cab ) {
     if (ggPantValvesUpdate.SubModel != nullptr)
 	{
 		ggPantValvesUpdate.PutValue(0.f);
-	}   
+	}
     if (ggPantValvesOff.SubModel != nullptr)
     {
 		ggPantValvesOff.PutValue(0.f);

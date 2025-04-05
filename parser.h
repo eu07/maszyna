@@ -91,6 +91,8 @@ class cParser //: public std::stringstream
 	// returns number of currently processed line in main file, -1 if inside include
 	int LineMain() const;
 	bool expandIncludes = true;
+	bool allowRandomIncludes = false;
+    bool skipComments = true;
 
   private:
     // methods:
@@ -118,7 +120,6 @@ class cParser //: public std::stringstream
     std::shared_ptr<cParser> mIncludeParser; // child class to handle include directives.
     std::vector<std::string> parameters; // parameter list for included file.
     std::deque<std::string> tokens;
-	bool allowRandomIncludes = false;
 };
 
 
