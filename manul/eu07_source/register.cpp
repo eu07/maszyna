@@ -14,7 +14,7 @@ std::unique_ptr<gfx_renderer> create_nvrenderer_default() {
 #elif LIBMANUL_WITH_VULKAN
   return std::make_unique<NvRenderer>(NvRenderer::Api::Vulkan);
 #endif
-  ErrorLog("Failed to initialize any Manul Renderer");
+  ErrorLog("Failed to initialize any NVRHI Renderer");
   return nullptr;
 }
 }  // namespace
@@ -22,10 +22,10 @@ std::unique_ptr<gfx_renderer> create_nvrenderer_default() {
 bool register_manul_d3d12 =
     LIBMANUL_WITH_D3D12 &&
     gfx_renderer_factory::get_instance()->register_backend(
-        "manul_d3d12", &create_nvrenderer_for_d3d12);
+        "advanced_d3d12", &create_nvrenderer_for_d3d12);
 bool register_manul_vulkan =
     LIBMANUL_WITH_VULKAN &&
     gfx_renderer_factory::get_instance()->register_backend(
-        "manul_vulkan", &create_nvrenderer_for_vulkan);
+        "advanced_vk", &create_nvrenderer_for_vulkan);
 bool register_manul = gfx_renderer_factory::get_instance()->register_backend(
-    "manul", &create_nvrenderer_default);
+    "advanced", &create_nvrenderer_default);

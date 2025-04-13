@@ -1059,12 +1059,18 @@ eu07_application::init_gfx() {
 
     if( Global.GfxRenderer == "default" ) {
         // default render path
-        GfxRenderer = gfx_renderer_factory::get_instance()->create("modern");
+        //GfxRenderer = gfx_renderer_factory::get_instance()->create("modern");
+		GfxRenderer = gfx_renderer_factory::get_instance()->create("advanced");
     }
-	  else if (!Global.GfxRenderer.compare(0, 5, "manul"))
-	  {
-		    GfxRenderer = gfx_renderer_factory::get_instance()->create(Global.GfxRenderer);
-	  }
+	//else if (!Global.GfxRenderer.compare(0, 5, "manul"))
+	//{
+	//	//GfxRenderer = gfx_renderer_factory::get_instance()->create(Global.GfxRenderer);
+	//}
+	else if (Global.GfxRenderer == "legacy")
+	{
+		// move old gl3.3 renderer to legacy one
+		GfxRenderer = gfx_renderer_factory::get_instance()->create("modern");
+    }
     else {
         // legacy render path
         GfxRenderer = gfx_renderer_factory::get_instance()->create("legacy");
