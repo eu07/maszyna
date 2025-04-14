@@ -42,7 +42,7 @@
 bool NvRenderer::Init(GLFWwindow *Window) {
   m_message_callback = std::make_shared<NvRendererMessageCallback>();
   m_config = std::make_shared<MaConfig>();
-  m_config->Init("config.manul");
+  m_config->Init("renderercfg.yml");
 
   switch (m_api) {
     case Api::D3D12:
@@ -72,7 +72,7 @@ bool NvRenderer::Init(GLFWwindow *Window) {
 
   RegisterTexture("noise_2d_ldr",
                   GetTextureManager()->FetchTexture(
-                      "manul/textures/noise/LDR_RGB1_0", GL_RGBA, 0, false));
+                      "textures/noise/LDR_RGB1_0", GL_RGBA, 0, false));
 
   m_imgui_renderer = std::make_shared<NvImguiRenderer>(this);
   m_gbuffer = std::make_shared<NvGbuffer>(this);
