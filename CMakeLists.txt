@@ -53,8 +53,9 @@ option(WITH_ZMQ "Compile with cppzmq" OFF)
 option(WITH_CRASHPAD "Compile with crashpad" OFF)
 option(WITH_DISCORD_RPC "Compile with DISCORD RICH PRESENCE" ON)
 option(USE_LTO "Use link-time optimization" OFF)
+option(WITH_BETTER_RENDERER "Experimental multi-backend renderer based on NVRHI" ON)
 
-option(WITH_LIBMANUL "Experimental multi-backend renderer" ON)
+set(BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)
 
 # vcpkg init
 set(VCPKG_ROOT "${CMAKE_CURRENT_SOURCE_DIR}/ref/vcpkg")
@@ -454,6 +455,7 @@ target_include_directories(${PROJECT_NAME} PRIVATE ${GLM_INCLUDE_DIR})
 
 if (WITH_DISCORD_RPC)
 	add_subdirectory(ref/discord-rpc)
+	set_target_properties(discord-rpc PROPERTIES FOLDER "libraries")
 	target_link_libraries(${PROJECT_NAME} discord-rpc)
 
 	# Add the include directory so the compiler can find discord_rpc.h
@@ -510,7 +512,10 @@ if (WIN32)
 	)
 endif ()
 
-if (WITH_LIBMANUL)
-    add_subdirectory("manul")
-	target_link_libraries(${PROJECT_NAME} "manul")
+if (WITH_BETTER_RENDERER)
+    add_subdirectory("betterRenderer")
+	set_target_properties(betterRenderer betterRenderer_fsr2 betterRenderer_shaders PROPERTIES FOLDER "renderers")
+	target_link_libraries(${PROJECT_NAME} "betterRenderer")
 endif ()
+
+

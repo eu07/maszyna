@@ -1,5 +1,5 @@
 
-set(LIBMANUL_NAME "manul")
+set(LIBMANUL_NAME "betterRenderer")
 
 set(LIBMANUL_WITH_DX12 OFF)
 set(LIBMANUL_WITH_VULKAN OFF)
@@ -104,6 +104,6 @@ endif ()
 #endif ()
 
 target_sources(${LIBMANUL_NAME} INTERFACE "${CMAKE_CURRENT_SOURCE_DIR}/eu07_source/register.cpp")
-
+set_target_properties(nvrhi yaml-cpp fmt EnTT glfw yaml-cpp-parse yaml-cpp-read yaml-cpp-sandbox PROPERTIES FOLDER "libraries")
 target_link_libraries(${LIBMANUL_NAME} ${LIBMANUL_NAME}_fsr2 nvrhi yaml-cpp fmt EnTT glfw)
 add_dependencies(${LIBMANUL_NAME} ${LIBMANUL_NAME}_shaders)
