@@ -23,3 +23,6 @@
 	path = ref/discord-rpc
 	url = https://github.com/discord/discord-rpc.git
 	branch = v3.4.0
+[submodule "ref/vcpkg"]
+	path = ref/vcpkg
+	url = https://github.com/microsoft/vcpkg.git

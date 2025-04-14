@@ -15,7 +15,7 @@ set(CMAKE_FIND_PACKAGE_PREFER_CONFIG TRUE)
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/CMake_modules/")
 
 set(DEPS_DIR ${DEPS_DIR} "${CMAKE_CURRENT_SOURCE_DIR}/ref")
-project("wls50")
+project("eu07")
 
 #set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fsanitize=address -fsanitize=undefined")
 #set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=address -fsanitize=undefined -Wformat")
@@ -48,13 +48,19 @@ option(WITH_OPENGL_LEGACY "Compile with OpenGL legacy renderer" ON)
 option(WITH_PYTHON "Compile with python2" ON)
 option(WITH_UART "Compile with libserialport" ON)
 option(WITH_LUA "Compile with lua scripting support" ON)
-option(WITH_OPENVR "Compile with OpenVR" ON)
+option(WITH_OPENVR "Compile with OpenVR" OFF)
 option(WITH_ZMQ "Compile with cppzmq" OFF)
 option(WITH_CRASHPAD "Compile with crashpad" OFF)
-option(WITH_DISCORD_RPC "Compile with DISCORD RICH PRESENCE" OFF)
+option(WITH_DISCORD_RPC "Compile with DISCORD RICH PRESENCE" ON)
 option(USE_LTO "Use link-time optimization" OFF)
 
-option(WITH_LIBMANUL "Experimental multi-backend renderer" OFF)
+option(WITH_LIBMANUL "Experimental multi-backend renderer" ON)
+
+# vcpkg init
+set(VCPKG_ROOT "${CMAKE_CURRENT_SOURCE_DIR}/ref/vcpkg")
+set(VCPKG_INSTALLED_PATH "${VCPKG_ROOT}/installed/x64-windows")
+list(APPEND CMAKE_PREFIX_PATH "${VCPKG_INSTALLED_PATH}")
+list(APPEND CMAKE_MODULE_PATH "${VCPKG_INSTALLED_PATH}/share")
 
 set(SOURCES
 "Texture.cpp"
@@ -447,13 +453,18 @@ target_include_directories(${PROJECT_NAME} PRIVATE ${GLM_INCLUDE_DIR})
 
 
 if (WITH_DISCORD_RPC)
-	# add ref/discord-rpc to the project in the same way other dependencies are added
 	add_subdirectory(ref/discord-rpc)
 	target_link_libraries(${PROJECT_NAME} discord-rpc)
-	target_compile_definitions(${PROJECT_NAME} "WITH_DISCORD_RPC=1")
-elseif ()
-	target_compile_definitions(${PROJECT_NAME} "WITH_DISCORD_RPC=0")
-endif ()
+
+	# Add the include directory so the compiler can find discord_rpc.h
+	target_include_directories(${PROJECT_NAME} PUBLIC
+		"${CMAKE_CURRENT_SOURCE_DIR}/ref/discord-rpc/include"
+	)
+
+	target_compile_definitions(${PROJECT_NAME} PUBLIC WITH_DISCORD_RPC=1)
+else()
+	target_compile_definitions(${PROJECT_NAME} PUBLIC WITH_DISCORD_RPC=0)
+endif()
 
 
 find_package(OpenAL REQUIRED)
