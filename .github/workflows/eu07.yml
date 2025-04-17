@@ -14,10 +14,19 @@ jobs:
 
     runs-on: windows-latest
 
+    
     steps:
     - uses: actions/checkout@v4
       with:
         submodules: "recursive"
+
+      # Ensure PowerShell Core is installed (just in case it's missing)
+    - name: Install PowerShell Core
+      run: |
+        if (!(Get-Command pwsh -ErrorAction SilentlyContinue)) {
+          Invoke-WebRequest -Uri https://github.com/PowerShell/PowerShell/releases/download/v7.2.1/PowerShell-7.2.1-win-x64.msi -OutFile $env:temp\pwsh_installer.msi
+          Start-Process msiexec.exe -ArgumentList "/i", "$env:temp\pwsh_installer.msi", "/quiet", "/norestart" -Wait
+        }
         
     - name: Init vcpkg
       run: ./setup.bat
