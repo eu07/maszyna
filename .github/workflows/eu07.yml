@@ -20,7 +20,7 @@ jobs:
         submodules: "recursive"
         
     - name: Init vcpkg
-      run: setup.bat
+      run: ./setup.bat
 
     - name: Configure project
       run: |
