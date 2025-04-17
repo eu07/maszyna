@@ -224,6 +224,8 @@ void eu07_application::DiscordRPCService()
     // run loop
     while (!glfwWindowShouldClose(m_windows.front()) && !m_modestack.empty())
 	{
+		if (Global.applicationQuitOrder)
+			break;
 		// Discord RPC updater
 		if (simulation::is_ready)
 		{
@@ -532,8 +534,9 @@ eu07_application::run() {
             std::this_thread::sleep_for( Global.minframetime - frametime );
         }
     }
-	Global.threads["LogService"].~thread(); // kill log service
-	Global.threads["DiscordRPC"].~thread(); // kill DiscordRPC service
+	Global.applicationQuitOrder = true;
+	Global.threads["LogService"].join(); // kill log service
+	Global.threads["DiscordRPC"].join(); // kill DiscordRPC service
 	return 0;
 }
 

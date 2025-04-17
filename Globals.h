@@ -142,6 +142,7 @@ struct global_settings {
     bool NvRenderer{ false };
     bool BasicRenderer{ false };
     bool RenderShadows{ true };
+	bool applicationQuitOrder{false};
     int RenderCabShadowsRange{ 0 };
     struct shadowtune_t {
         unsigned int map_size{ 2048 };
