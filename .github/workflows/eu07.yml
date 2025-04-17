@@ -46,7 +46,7 @@ jobs:
       uses: actions/upload-artifact@v3
       with:
         name: compiled-binaries
-        path: artifacts/
+        path: artifacts/**/*  
 
   nightly_release:
 
