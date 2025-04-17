@@ -43,10 +43,10 @@ jobs:
         move ../build/bin/Release/* .
 
     - name: Upload artifacts
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: compiled-binaries
-        path: artifacts/**/*  
+        path: artifacts/ 
 
   nightly_release:
 
