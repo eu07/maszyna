@@ -412,9 +412,10 @@ global_settings::ConfigParse(cParser &Parser) {
             if (GfxRenderer == "full")
             {
                 GfxRenderer = "default";
+				NvRenderer = true;
             }
             BasicRenderer = (GfxRenderer == "simple");
-			      NvRenderer = !GfxRenderer.compare(0, 5, "manul");
+			      //NvRenderer = !GfxRenderer.compare(0, 5, "manul");
             LegacyRenderer = !NvRenderer && (GfxRenderer != "default");
         }
         else if (token == "shadows")
