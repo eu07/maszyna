@@ -54,6 +54,8 @@ option(WITH_CRASHPAD "Compile with crashpad" OFF)
 option(WITH_DISCORD_RPC "Compile with DISCORD RICH PRESENCE" ON)
 option(USE_LTO "Use link-time optimization" OFF)
 option(WITH_BETTER_RENDERER "Experimental multi-backend renderer based on NVRHI" ON)
+option(GENERATE_PDB "Generate executable with program debugging symbols" ON)
+option(ENABLE_MCC "Enable multicore compilation" ON)
 
 set(BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)
 
@@ -519,3 +521,27 @@ if (WITH_BETTER_RENDERER)
 endif ()
 
 
+# Enable compiling with debug symbols
+if(GENERATE_PDB)
+    if (MSVC)
+        # Ensure Debug and Release configurations use appropriate runtime libraries
+        set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} /Zi /MDd")
+        set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} /Zi /MD")
+
+        # Add compile options for debugging
+        add_compile_options(/Zi)   # Always enable debug symbols
+        add_link_options(/DEBUG /MAP)
+
+        # Ensure that the PCH is built with the correct runtime library for each configuration
+        set_target_properties(${PROJECT_NAME} PROPERTIES
+            COMPILE_OPTIONS "$<$<CONFIG:Debug>:/MDd>$<$<CONFIG:Release>:/MD>")
+    else()
+        # GCC/Clang (ensure -g is set for all configurations)
+        add_compile_options(-g)
+    endif()
+endif()
+
+if(ENABLE_MCC AND MSVC)
+    message(STATUS "Enabling multi-processor compilation for MSVC.")
+	add_compile_options(/MP)
+endif()
