@@ -1,0 +1,91 @@
+name: C/C++ CI
+
+on:
+  push:
+    branches: [ "master", "nvrhi" ]
+  pull_request:
+    branches: [ "master", "nvrhi" ]
+  workflow_dispatch:
+  schedule:
+    - cron: '0 0 * * *'  # This cron expression triggers the workflow every day at midnight UTC
+
+jobs:
+  build:
+
+    runs-on: windows-latest
+
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        submodules: "recursive"
+        
+    - name: Init vcpkg
+      run: setup.bat
+
+    - name: Configure project
+      run: |
+        mkdir build
+        cd build
+        cmake .. -DCMAKE_BUILD_TYPE=Release
+
+    - name: Build executable
+      run: |
+        cd build
+        cmake --build . --config Release
+
+    - name: Create output structure
+      run: |
+        mkdir artifacts
+        cd artifacts
+        move ../staticFiles/python .
+        move ../staticFiles/textures .
+        move ../staticFiles/renderercfg.yml .
+        move ../build/bin/Release/* .
+
+    - name: Upload artifacts
+      uses: actions/upload-artifact@v3
+      with:
+        name: compiled-binaries
+        path: artifacts/
+
+  nightly_release:
+
+    runs-on: ubuntu-latest
+    needs: build  # This step depends on the "build" job
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Generate release version
+      run: |
+        DATE=$(date +'%d-%m-%y')  # Get the current date in dd-mm-yy format
+        RELEASE_NAME="eu07_nightly_${DATE}.zip"
+        echo "Release name: $RELEASE_NAME"
+        # Create zip file
+        zip -r $RELEASE_NAME artifacts/
+
+    - name: Create GitHub Release
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      run: |
+        DATE=$(date +'%d-%m-%y')
+        RELEASE_NAME="eu07_nightly_${DATE}.zip"
+        
+        # Create a GitHub release
+        response=$(curl -s -X POST \
+          -H "Authorization: token $GITHUB_TOKEN" \
+          -H "Accept: application/vnd.github.v3+json" \
+          -d '{"tag_name": "nightly-'${DATE}'", "name": "Nightly Release '"${DATE}"'", "body": "Nightly build generated on '"${DATE}"'"}' \
+          https://api.github.com/repos/${{ github.repository }}/releases)
+        
+        # Upload the release zip file
+        upload_url=$(echo $response | jq -r '.upload_url' | sed -e 's/{?name,label}//')
+        curl -X POST -H "Authorization: token $GITHUB_TOKEN" \
+          -H "Content-Type: application/zip" \
+          --data-binary @${RELEASE_NAME} \
+          "${upload_url}?name=${RELEASE_NAME}"
+
+    - name: Clean up
+      run: |
+        rm eu07_nightly_*.zip
