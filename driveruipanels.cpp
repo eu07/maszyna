@@ -1447,17 +1447,40 @@ debug_panel::update_section_renderer( std::vector<text_line> &Output ) {
 
             Output.emplace_back( textline, Global.UITextColor );
 
-            textline =
-                std::string( "Rendering mode: " )
-                + ( Global.GfxRenderer == "default" ?
-                    "Shaders" :
-                    ( Global.BasicRenderer ?
-                        "Legacy Simple" :
-                        "Legacy" ) )
-                + ( Global.bUseVBO ?
-                    ", VBO" :
-                    ", Display Lists" )
-                + " ";
+            std::string textline = "Rendering mode: ";
+
+	        if (Global.GfxRenderer == "default")
+	        {
+		        textline += "Shaders";
+	        }
+            else if (Global.GfxRenderer == "experimental")
+            {
+		        textline += "NVRHI on ";
+		        if (Global.)
+            }
+	        else
+	        {
+		        if (Global.BasicRenderer)
+		        {
+			        textline += "Legacy Simple";
+		        }
+		        else
+		        {
+			        textline += "Legacy";
+		        }
+	        }
+
+	        if (Global.bUseVBO)
+	        {
+		        textline += ", VBO";
+	        }
+	        else
+	        {
+		        textline += ", Display Lists";
+	        }
+
+	        textline += " ";
+
             if( false == Global.LastGLError.empty() ) {
                 textline +=
                     "Last openGL error: "

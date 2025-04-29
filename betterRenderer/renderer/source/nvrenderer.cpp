@@ -729,7 +729,6 @@ float NvRenderer::Framerate() {
     
     return 1000.f / (Timer::subsystem.mainloop_total.average());
     //return 0.0f; 
-
 }
 
 gfx::geometrybank_handle NvRenderer::Create_Bank() {
