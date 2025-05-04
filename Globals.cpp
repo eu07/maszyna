@@ -670,6 +670,12 @@ global_settings::ConfigParse(cParser &Parser) {
             Parser >> token;
             iPause |= (token == "yes" ? 1 : 0);
         }
+        else if (token == "priorityloadtext3d")
+        {
+			Parser.getTokens(1);
+			Parser >> token;
+			priorityLoadText3D = (token == "yes" ? true : false);
+        }
         else if (token == "lang")
         {
             // domyślny język - http://tools.ietf.org/html/bcp47
@@ -1358,6 +1364,7 @@ global_settings::export_as_text( std::ostream &Output ) const {
     export_as_text( Output, "joinduplicatedevents", bJoinEvents );
     export_as_text( Output, "hiddenevents", iHiddenEvents );
     export_as_text( Output, "pause", ( iPause & 1 ) != 0 );
+	export_as_text(Output, "priorityLoadText3D", priorityLoadText3D);
     export_as_text( Output, "lang", asLang );
     export_as_text( Output, "python.updatetime", PythonScreenUpdateRate );
     Output

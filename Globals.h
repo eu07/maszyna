@@ -82,6 +82,7 @@ struct global_settings {
     bool file_binary_terrain{ true }; // enable binary terrain (de)serialization
 	bool file_binary_terrain_state{true}; 
     // logs
+	bool priorityLoadText3D{false}; // ladowanie T3D priorytetowo
     int iWriteLogEnabled{ 3 }; // maska bitowa: 1-zapis do pliku, 2-okienko, 4-nazwy torów
     bool MultipleLogs{ false };
     unsigned int DisabledLogTypes{ 0 };
