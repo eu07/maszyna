@@ -1447,7 +1447,7 @@ debug_panel::update_section_renderer( std::vector<text_line> &Output ) {
 
             Output.emplace_back( textline, Global.UITextColor );
 
-            std::string textline = "Rendering mode: ";
+            textline += "\nRendering mode: ";
 
 	        if (Global.GfxRenderer == "default")
 	        {
@@ -1456,7 +1456,6 @@ debug_panel::update_section_renderer( std::vector<text_line> &Output ) {
             else if (Global.GfxRenderer == "experimental")
             {
 		        textline += "NVRHI on ";
-		        if (Global.)
             }
 	        else
 	        {

@@ -365,10 +365,14 @@ endif()
 set(cppzmq_INCLUDE_DIR ${cppzmq_INCLUDE_DIR} "${DEPS_DIR}/cppzmq/include")
 set(GLM_INCLUDE_DIR ${GLM_INCLUDE_DIR} "${DEPS_DIR}/glm/")
 
+# Process version.rc.in into version.rc
+configure_file(${CMAKE_SOURCE_DIR}/eu07.rc.in
+               ${CMAKE_BINARY_DIR}/eu07.rc @ONLY)
+
 if (${CMAKE_CXX_COMPILER_ID} STREQUAL MSVC)
-	set(SOURCES ${SOURCES} "eu07.rc")
-	set(SOURCES ${SOURCES} "eu07.ico")
-	add_compile_options("/utf-8")
+    set(SOURCES ${SOURCES} ${CMAKE_BINARY_DIR}/eu07.rc)
+    set(SOURCES ${SOURCES} eu07.ico)
+    add_compile_options("/utf-8")
 endif()
 
 add_executable(${PROJECT_NAME} ${SOURCES} ${HEADERS})
