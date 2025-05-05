@@ -21,6 +21,18 @@ project("eu07")
 #set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=address -fsanitize=undefined -Wformat")
 #set(CMAKE_LD_FLAGS "${CMAKE_LD_FLAGS} -fsanitize=address -fsanitize=undefined")
 
+string(TIMESTAMP VERSION_YEAR "%y")
+string(TIMESTAMP VERSION_MONTH "%m")
+string(TIMESTAMP VERSION_DAY "%d")
+
+# Use these as version numbers
+set(VERSION_MAJOR ${VERSION_YEAR})
+set(VERSION_MINOR ${VERSION_MONTH})
+set(VERSION_PATCH ${VERSION_DAY})
+
+set(VERSION_STRING "${VERSION_YEAR}.${VERSION_MONTH}.${VERSION_DAY}")
+
+
 set(CMAKE_CXX_STANDARD 17)
 
 file(GLOB HEADERS "*.h"
