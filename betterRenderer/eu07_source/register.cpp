@@ -22,10 +22,10 @@ std::unique_ptr<gfx_renderer> create_nvrenderer_default() {
 bool register_manul_d3d12 =
     LIBMANUL_WITH_D3D12 &&
     gfx_renderer_factory::get_instance()->register_backend(
-        "advanced_d3d12", &create_nvrenderer_for_d3d12);
+        "experimental_d3d12", &create_nvrenderer_for_d3d12);
 bool register_manul_vulkan =
     LIBMANUL_WITH_VULKAN &&
     gfx_renderer_factory::get_instance()->register_backend(
-        "advanced_vk", &create_nvrenderer_for_vulkan);
+        "experimental_vk", &create_nvrenderer_for_vulkan);
 bool register_manul = gfx_renderer_factory::get_instance()->register_backend(
-    "advanced", &create_nvrenderer_default);
+    "experimental", &create_nvrenderer_default);

@@ -413,8 +413,12 @@ global_settings::ConfigParse(cParser &Parser) {
             {
                 GfxRenderer = "default";
             }
+            if (GfxRenderer == "experimental")
+            {
+				NvRenderer = true;
+				GfxRenderer = "experimental";
+            }
             BasicRenderer = (GfxRenderer == "simple");
-			NvRenderer = GfxRenderer == "experimental";
             LegacyRenderer = !NvRenderer && (GfxRenderer != "default");
         }
         else if (token == "shadows")
