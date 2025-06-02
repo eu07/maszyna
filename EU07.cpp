@@ -21,6 +21,10 @@ Stele, firleju, szociu, hunter, ZiomalCl, OLI_EU and others
 #include "application.h"
 #include "Logs.h"
 #include <cstdlib>
+#ifdef WITHDUMPGEN
+#include <Windows.h>
+#include <DbgHelp.h>
+#endif
 
 #ifdef _MSC_VER
 #pragma comment(linker, "/subsystem:windows /ENTRY:mainCRTStartup")
@@ -28,8 +32,32 @@ Stele, firleju, szociu, hunter, ZiomalCl, OLI_EU and others
 
 void export_e3d_standalone(std::string in, std::string out, int flags, bool dynamic);
 
+#ifdef WITHDUMPGEN
+LONG WINAPI CrashHandler(EXCEPTION_POINTERS *ExceptionInfo)
+{
+	HANDLE hFile = CreateFileA("crash.dmp", GENERIC_WRITE, 0, nullptr, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, nullptr);
+	if (hFile != INVALID_HANDLE_VALUE)
+	{
+		MINIDUMP_EXCEPTION_INFORMATION dumpInfo;
+		dumpInfo.ThreadId = GetCurrentThreadId();
+		dumpInfo.ExceptionPointers = ExceptionInfo;
+		dumpInfo.ClientPointers = FALSE;
+
+		MiniDumpWriteDump(GetCurrentProcess(), GetCurrentProcessId(), hFile, MiniDumpWithDataSegs, &dumpInfo, nullptr, nullptr);
+		CloseHandle(hFile);
+    }
+
+	return EXCEPTION_EXECUTE_HANDLER;
+}
+#endif
+
+
 int main(int argc, char *argv[])
 {
+#ifdef WITHDUMPGEN
+	SetUnhandledExceptionFilter(CrashHandler);
+#endif
+
     // quick short-circuit for standalone e3d export
     if (argc == 6 && std::string(argv[1]) == "-e3d") {
         std::string in(argv[2]);

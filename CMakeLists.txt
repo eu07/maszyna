@@ -68,6 +68,7 @@ option(USE_LTO "Use link-time optimization" OFF)
 option(WITH_BETTER_RENDERER "Experimental multi-backend renderer based on NVRHI" ON)
 option(GENERATE_PDB "Generate executable with program debugging symbols" ON)
 option(ENABLE_MCC "Enable multicore compilation" ON)
+option(WITHDUMPGEN "Enable generating DMP files on crash" ON)
 
 set(BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)
 
@@ -263,6 +264,10 @@ endif()
 if (WITH_LUA)
 	set(DEFINITIONS ${DEFINITIONS} "WITH_LUA")
 	set(SOURCES ${SOURCES} "lua.cpp")
+endif()
+
+if (WITHDUMPGEN)
+	set(DEFINITIONS ${DEFINITIONS} "WITHDUMPGEN")
 endif()
 
 if (WITH_OPENGL_MODERN)
