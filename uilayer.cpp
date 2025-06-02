@@ -19,8 +19,6 @@ http://mozilla.org/MPL/2.0/.
 #include "application.h"
 
 #include "imgui/imgui_impl_glfw.h"
-#include "imgui/imgui_impl_opengl2.h"
-#include "imgui/imgui_impl_opengl3.h"
 
 GLFWwindow *ui_layer::m_window{nullptr};
 ImGuiIO *ui_layer::m_imguiio{nullptr};
@@ -238,16 +236,11 @@ bool ui_layer::init(GLFWwindow *Window)
 	imgui_style();
 
     ImGui_ImplGlfw_InitForOpenGL(m_window, false);
-	if (Global.LegacyRenderer) {
-		crashreport_add_info("imgui_ver", "gl2");
-		ImGui_ImplOpenGL2_Init();
-	} else {
-	    crashreport_add_info("imgui_ver", "gl3");
-	    if (Global.gfx_usegles)
-	        ImGui_ImplOpenGL3_Init("#version 300 es\nprecision highp float;");
-	    else
-	        ImGui_ImplOpenGL3_Init("#version 330 core");
-	}
+
+    if (!GfxRenderer->GetImguiRenderer() || !GfxRenderer->GetImguiRenderer()->Init())
+	  {
+		  return false;
+	  }
 
     return true;
 }
@@ -256,10 +249,7 @@ void ui_layer::shutdown()
 {
     ImGui::EndFrame();
 
-    if (Global.LegacyRenderer)
-        ImGui_ImplOpenGL2_Shutdown();
-    else
-        ImGui_ImplOpenGL3_Shutdown();
+    GfxRenderer->GetImguiRenderer()->Shutdown();
     ImGui_ImplGlfw_Shutdown();
     ImGui::DestroyContext();
 }
@@ -332,18 +322,13 @@ void ui_layer::render()
     // template method implementation
     render_();
 
-	gl::buffer::unbind(gl::buffer::ARRAY_BUFFER);
     render_internal();
 }
 
 void ui_layer::render_internal()
 {
     ImGui::Render();
-
-    if (Global.LegacyRenderer)
-        ImGui_ImplOpenGL2_RenderDrawData(ImGui::GetDrawData());
-    else
-        ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
+	  GfxRenderer->GetImguiRenderer()->Render();
 }
 
 void ui_layer::begin_ui_frame()
@@ -353,10 +338,7 @@ void ui_layer::begin_ui_frame()
 
 void ui_layer::begin_ui_frame_internal()
 {
-	if (Global.LegacyRenderer)
-		ImGui_ImplOpenGL2_NewFrame();
-	else
-		ImGui_ImplOpenGL3_NewFrame();
+	GfxRenderer->GetImguiRenderer()->BeginFrame();
 	ImGui_ImplGlfw_NewFrame();
 	ImGui::NewFrame();
 }
@@ -524,19 +506,19 @@ void ui_layer::render_background()
     ImVec2 start_position;
     ImVec2 end_position;
 
-    opengl_texture &tex = GfxRenderer->Texture(m_background);
+    ITexture &tex = GfxRenderer->Texture(m_background);
     tex.create();
 
     // Get the scaling factor based on the image aspect ratio vs. the display aspect ratio.
-    float scale_factor = (tex.width() / tex.height()) > (display_size.x / display_size.y)
-        ? display_size.y / tex.height()
-        : display_size.x / tex.width();
+    float scale_factor = (tex.get_width() / tex.get_height()) > (display_size.x / display_size.y)
+        ? display_size.y / tex.get_height()
+        : display_size.x / tex.get_width();
     
     // Resize the image to fill the display. This will zoom in on the image on ultrawide monitors.
-    image_size = ImVec2((int)(tex.width() * scale_factor), (int)(tex.height() * scale_factor));
+    image_size = ImVec2((int)(tex.get_width() * scale_factor), (int)(tex.get_height() * scale_factor));
     // Center the image on the display.
     start_position = ImVec2((display_size.x - image_size.x) / 2, (display_size.y - image_size.y) / 2);
     end_position = ImVec2(image_size.x + start_position.x, image_size.y + start_position.y);
     // The image is flipped upside-down, we'll use the UV parameters to draw it from bottom up to un-flip it.
-    ImGui::GetBackgroundDrawList()->AddImage((ImTextureID)((size_t)tex.id), start_position, end_position, ImVec2(0, 1), ImVec2(1, 0));
+    ImGui::GetBackgroundDrawList()->AddImage(reinterpret_cast<ImTextureID>(tex.get_id()), start_position, end_position, ImVec2(0, 1), ImVec2(1, 0));
 }

@@ -14,8 +14,9 @@ http://mozilla.org/MPL/2.0/.
 #include <string>
 #include "ResourceManager.h"
 #include "gl/ubo.h"
+#include "interfaces/ITexture.h"
 
-struct opengl_texture {
+struct opengl_texture : public ITexture {
     static DDSURFACEDESC2 deserialize_ddsd(std::istream&);
     static DDCOLORKEY deserialize_ddck(std::istream&);
     static DDPIXELFORMAT deserialize_ddpf(std::istream&);
@@ -30,33 +31,57 @@ struct opengl_texture {
         bind( size_t unit );
     static void
         unbind( size_t unit );
-    bool
-        create( bool const Static = false );
+    virtual bool
+        create( bool const Static = false ) override;
     // releases resources allocated on the opengl end, storing local copy if requested
     void
-        release();
+        release() override;
     void
-        make_stub();
+        make_stub() override;
     void
         alloc_rendertarget( GLint format, GLint components, int width, int height, int layers = 1, int samples = 1, GLint wrap = GL_CLAMP_TO_EDGE );
-    void
-        set_components_hint( GLint hint );
+    virtual void
+        set_components_hint( GLint hint ) override;
     static void
         reset_unit_cache();
-    inline
-    int
-        width() const {
+    virtual int
+        get_width() const override {
             return data_width; }
-    inline
+    virtual
     int
-        height() const {
+        get_height() const override {
             return data_height; }
-    inline
+    virtual
+    size_t
+        get_id() const override {
+            return id; }
+    virtual
     bool
-        is_stub() const {
+        is_stub() const override {
             return is_texstub; }
+    virtual
+    bool
+        get_has_alpha() const override {
+            return has_alpha; }
+    virtual
+    bool
+        get_is_ready() const override {
+            return is_ready; }
+    virtual
+    std::string_view
+        get_traits() const override {
+            return traits; }
+    virtual
+    std::string_view
+        get_name() const override {
+            return name; }
+	virtual
+	    std::string_view
+	    get_type() const override {
+		return type; }
 
-    void make_from_memory(size_t width, size_t height, const uint8_t *data);
+    virtual void make_from_memory(size_t width, size_t height, const uint8_t *data) override;
+	virtual void update_from_memory(size_t width, size_t height, const uint8_t *data) override;
 
 // members
     GLuint id{ (GLuint)-1 }; // associated GL resource
@@ -72,7 +97,7 @@ struct opengl_texture {
     static std::array<GLuint, gl::MAX_TEXTURES + gl::HELPER_TEXTURES> units;
     static GLint m_activeunit;
 
-private:
+public:
 // methods
     void make_request();
     void load_PNG();
@@ -110,8 +135,6 @@ private:
     static std::unordered_map<GLint, GLint> drivercompressed_formats;
     static std::unordered_map<GLint, std::unordered_map<GLint, GLint>> mapping;
 };
-
-typedef int texture_handle;
 
 class texture_manager {
 
@@ -154,9 +177,13 @@ private:
     // checks whether specified texture is in the texture bank. returns texture id, or npos.
     texture_handle
         find_in_databank( std::string const &Texturename ) const;
+
+  public:
     // checks whether specified file exists. returns name of the located file, or empty string.
-    std::pair<std::string, std::string>
-        find_on_disk( std::string const &Texturename ) const;
+    static std::pair<std::string, std::string>
+        find_on_disk( std::string const &Texturename );
+
+  private:
     void
         delete_textures();
 

@@ -81,14 +81,14 @@ void ui::scenerylist_panel::draw_scenery_image()
 	}
 
 	if (selected_scenery->image != null_handle) {
-        opengl_texture &tex = GfxRenderer->Texture(selected_scenery->image);
+        auto &tex = GfxRenderer->Texture(selected_scenery->image);
 		tex.create();
 
-		if (tex.is_ready) {
+		if (tex.get_is_ready()) {
 			float avail_width = ImGui::GetContentRegionAvailWidth();
-			float height = avail_width / tex.width() * tex.height();
+			float height = avail_width / tex.get_width() * tex.get_height();
 
-			ImGui::Image(reinterpret_cast<void *>(tex.id), ImVec2(avail_width, height), ImVec2(0, 1), ImVec2(1, 0));
+			ImGui::Image(reinterpret_cast<void *>(tex.get_id()), ImVec2(avail_width, height), ImVec2(0, 1), ImVec2(1, 0));
 		}
 	}
 }

@@ -1,0 +1,1 @@
+#define DECLARE_PUSH_CONSTANTS(sig, slot)

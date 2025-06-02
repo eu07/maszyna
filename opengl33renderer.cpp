@@ -21,6 +21,8 @@ http://mozilla.org/MPL/2.0/.
 #include "application.h"
 #include "AnimModel.h"
 #include "opengl33geometrybank.h"
+#include "screenshot.h"
+#include <imgui/imgui_impl_opengl3.h>
 
 //#define EU07_DEBUG_OPENGL
 
@@ -2202,9 +2204,9 @@ void opengl33_renderer::Bind_Material_Shadow(material_handle const Material)
     }
 }
 
-opengl_material const &opengl33_renderer::Material(material_handle const Material) const
+IMaterial const *opengl33_renderer::Material(material_handle const Material) const
 {
-	return m_materials.material(Material);
+	return &m_materials.material(Material);
 }
 
 opengl_material &opengl33_renderer::Material(material_handle const Material)
@@ -2215,7 +2217,7 @@ opengl_material &opengl33_renderer::Material(material_handle const Material)
 opengl_material const & opengl33_renderer::Material( TSubModel const * Submodel ) const {
 
     auto const material { Submodel->m_material >= 0 ? Submodel->m_material : Submodel->ReplacableSkinId[ -Submodel->m_material ] };
-    return Material( material );
+    return m_materials.material( material );
 }
 
 texture_handle opengl33_renderer::Fetch_Texture(std::string const &Filename, bool const Loadnow, GLint format_hint)
@@ -2233,13 +2235,13 @@ void opengl33_renderer::Bind_Texture(std::size_t const Unit, texture_handle cons
 	m_textures.bind(Unit, Texture);
 }
 
-opengl_texture &opengl33_renderer::Texture(texture_handle const Texture)
+ITexture &opengl33_renderer::Texture(texture_handle const Texture)
 {
 
 	return m_textures.texture(Texture);
 }
 
-opengl_texture const &opengl33_renderer::Texture(texture_handle const Texture) const
+ITexture const &opengl33_renderer::Texture(texture_handle const Texture) const
 {
 
 	return m_textures.texture(Texture);
@@ -4540,6 +4542,11 @@ std::string const &opengl33_renderer::info_stats() const
 	return m_debugstatstext;
 }
 
+void opengl33_renderer::MakeScreenshot()
+{
+	screenshot_manager::make_screenshot();
+}
+
 void opengl33_renderer::Update_Lights(light_array &Lights)
 {
 	glDebug("Update_Lights");
@@ -4839,4 +4846,29 @@ std::unique_ptr<gfx_renderer> opengl33_renderer::create_func()
 }
 
 bool opengl33_renderer::renderer_register = gfx_renderer_factory::get_instance()->register_backend("modern", opengl33_renderer::create_func);
+
+bool opengl33_renderer::opengl33_imgui_renderer::Init()
+{
+	crashreport_add_info("imgui_ver", "gl3");
+	if (Global.gfx_usegles)
+		return ImGui_ImplOpenGL3_Init("#version 300 es\nprecision highp float;");
+	else
+		return ImGui_ImplOpenGL3_Init("#version 330 core");
+}
+
+void opengl33_renderer::opengl33_imgui_renderer::Shutdown()
+{
+	ImGui_ImplOpenGL3_Shutdown();
+}
+
+void opengl33_renderer::opengl33_imgui_renderer::BeginFrame()
+{
+	ImGui_ImplOpenGL3_NewFrame();
+}
+
+void opengl33_renderer::opengl33_imgui_renderer::Render()
+{
+	gl::buffer::unbind(gl::buffer::ARRAY_BUFFER);
+	ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
+}
 

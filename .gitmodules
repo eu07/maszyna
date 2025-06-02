@@ -1,3 +1,21 @@
+[submodule "ref/glm"]
+	path = ref/glm
+	url = https://github.com/g-truc/glm.git
+[submodule "betterRenderer/thirdparty/nvrhi"]
+	path = betterRenderer/thirdparty/nvrhi
+	url = https://github.com/Unofficial-MaSzyna-Developement/nvrhi.git
+[submodule "betterRenderer/thirdparty/yaml-cpp"]
+	path = betterRenderer/thirdparty/yaml-cpp
+	url = https://github.com/jbeder/yaml-cpp.git
+[submodule "betterRenderer/thirdparty/fmt"]
+	path = betterRenderer/thirdparty/fmt
+	url = https://github.com/fmtlib/fmt.git
+[submodule "betterRenderer/thirdparty/entt"]
+	path = betterRenderer/thirdparty/entt
+	url = https://github.com/skypjack/entt.git
+[submodule "ref/glfw"]
+	path = ref/glfw
+	url = https://github.com/glfw/glfw
 [submodule "ref/asio"]
 	path = ref/asio
 	url = https://github.com/chriskohlhoff/asio.git
@@ -5,3 +23,6 @@
 	path = ref/discord-rpc
 	url = https://github.com/discord/discord-rpc.git
 	branch = v3.4.0
+[submodule "ref/vcpkg"]
+	path = ref/vcpkg
+	url = https://github.com/microsoft/vcpkg.git

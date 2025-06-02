@@ -188,7 +188,7 @@ void opengl_material::finalize(bool Loadnow)
             if( texturehandle == null_handle ) {
                 break;
             }
-            if( GfxRenderer->Texture( texturehandle ).id <= 0 ) {
+            if( GfxRenderer->Texture( texturehandle ).get_id() <= 0 ) {
                 is_good = false;
             }
         }
@@ -230,7 +230,7 @@ void opengl_material::finalize(bool Loadnow)
         // NOTE: texture validation at this stage relies on forced texture load behaviour during its create() call
         // TODO: move texture id validation to later stage if/when deferred texture loading is implemented
         if( ( handle )
-         && ( GfxRenderer->Texture( handle ).id > 0 ) ) {
+         && ( GfxRenderer->Texture( handle ).get_id() > 0 ) ) {
             GfxRenderer->Texture(handle).set_components_hint((GLint)entry.components);
         }
         else {
@@ -437,7 +437,7 @@ float opengl_material::get_or_guess_opacity() const {
     if (textures[0] != null_handle)
     {
         auto const &tex = GfxRenderer->Texture(textures[0]);
-        if (tex.has_alpha)
+        if (tex.get_has_alpha())
             return 0.0f;
         else
             return 0.5f;
@@ -451,7 +451,7 @@ opengl_material::is_translucent() const {
 
     return (
         textures[ 0 ] != null_handle ?
-            GfxRenderer->Texture( textures[ 0 ] ).has_alpha :
+            GfxRenderer->Texture( textures[ 0 ] ).get_has_alpha() :
             false );
 }
 
@@ -519,7 +519,7 @@ material_manager::create( std::string const &Filename, bool const Loadnow ) {
         auto const texturehandle { GfxRenderer->Fetch_Texture( Filename, Loadnow ) };
 		if( texturehandle != null_handle ) {
 			// use texture path and name to tell the newly created materials apart
-			material.name = GfxRenderer->Texture( texturehandle ).name;
+			material.name = GfxRenderer->Texture( texturehandle ).get_name();
 /*
             // material would attach default shader anyway, but it would spit to error log
 	        try
@@ -597,7 +597,7 @@ material_manager::find_in_databank( std::string const &Materialname ) const {
 // checks whether specified file exists.
 // NOTE: technically could be static, but we might want to switch from global texture path to instance-specific at some point
 std::pair<std::string, std::string>
-material_manager::find_on_disk( std::string const &Materialname ) const {
+material_manager::find_on_disk( std::string const &Materialname ) {
 
     auto const materialname { ToLower( Materialname ) };
     return (

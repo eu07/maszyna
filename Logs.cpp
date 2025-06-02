@@ -78,6 +78,8 @@ void LogService()
 {
     while (true)
     {
+		if (InfoStack.empty() && ErrorStack.empty() && Global.applicationQuitOrder)
+			break;
         // loop for logging
 
         // write logs and log.txt

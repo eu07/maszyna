@@ -87,7 +87,6 @@ scenarioloader_mode::enter() {
     Application.set_title( Global.AppName + " (" + Global.SceneryFile + ")" );
     m_userinterface->set_progress();
 	m_userinterface->set_progress(STR("Loading scenery"));
-    GfxRenderer->Render();
 }
 
 // maintenance method, called when the mode is deactivated

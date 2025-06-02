@@ -52,16 +52,16 @@ void ui::vehicleparams_panel::draw_mini(const TMoverParameters &mover)
 	if (vehicle_mini == null_handle)
 		return;
 
-    opengl_texture &tex = GfxRenderer->Texture(vehicle_mini);
+    auto &tex = GfxRenderer->Texture(vehicle_mini);
 	tex.create();
 
 	ImVec2 size = ImGui::GetContentRegionAvail();
 	float x = size.x;
-	float y = x * ((float)tex.height() / tex.width());
+	float y = x * ((float)tex.get_height() / tex.get_width());
 
 	if (ImGui::BeginChild("mini", ImVec2(x, y)))
 	{
-		ImGui::Image(reinterpret_cast<void*>(tex.id), ImVec2(x, y), ImVec2(0, 1), ImVec2(1, 0));
+		ImGui::Image(reinterpret_cast<void*>(tex.get_id()), ImVec2(x, y), ImVec2(0, 1), ImVec2(1, 0));
 
         if (mover.Pantographs[end::rear].is_active)
 			draw_infobutton(u8"╨╨╨", ImVec2(126, 10));

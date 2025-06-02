@@ -1,0 +1,32 @@
+display:
+  adapter: 0 # Consult Log for list of available adapters
+  output: 0
+  disable_hdr: true
+  hdr_config: # Either "hdr" or "sdr" settings will be applied based on hardware capability
+        hdr:
+            ui_nits: 300
+            scene_nits: 1000
+            scene_gamma: 1.
+            pre_tonemap_exposure: -2.4
+        sdr:
+            ui_nits: 80
+            scene_nits: 80
+            scene_gamma: 1.
+            pre_tonemap_exposure: 1.6
+shadows:
+  resolution: 4096
+  cascades: [1.5, 5., 25., 50., 150.] # Note: first cascade serves as replacement to "cab shadows"
+wire_diameter_lines: .01  # Thickness multipliers for line- and traction-type nodes
+                          # note: these may need to be changed before playing some older scenarios
+wire_diameter_tractions: .005
+lighting:
+  max_lights_per_scene: 2048  # Max. number of lights that can be visible at once
+                              # increases memory usage (2048 lights use 65KiB of VRAM)
+  selfillum_factor: 1.0 # Amplification factor of material selfillum
+                        # caution: increasing past 10 made predominantly red lights break FSR2
+  freespot_factor: 1.0  # Amplification factor of freespot diffuse color
+  luminance_threshold: .01  # Luminance threshold for which radius of influence is calculated
+                            # larger values improve performance at the cost of light spots 
+                            # possibly having a visible sharp edge
+  min_luminance_ev: -0.5  # Auto exposure clamping
+  max_luminance_ev: +5.0

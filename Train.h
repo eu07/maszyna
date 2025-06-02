@@ -167,7 +167,7 @@ class TTrain {
     void add_distance( double const Distance );
     // McZapkie-310302: ladowanie parametrow z pliku
     bool LoadMMediaFile(std::string const &asFileName);
-    dictionary_source *GetTrainState( dictionary_source const &Extraparameters );
+    std::shared_ptr<dictionary_source> GetTrainState( dictionary_source const &Extraparameters );
     state_t get_state() const;
 	inline float get_radiovolume() const { return m_radiovolume; }
     // basic_table interface
@@ -226,6 +226,8 @@ class TTrain {
     // command handlers
     // NOTE: we're currently using universal handlers and static handler map but it may be beneficial to have these implemented on individual class instance basis
     // TBD, TODO: consider this approach if we ever want to have customized consist behaviour to received commands, based on the consist/vehicle type or whatever
+	static void OnCommand_wiperswitchincrease(TTrain *Train, command_data const &Command);
+	static void OnCommand_wiperswitchdecrease(TTrain *Train, command_data const &Command);
     static void OnCommand_aidriverenable( TTrain *Train, command_data const &Command );
     static void OnCommand_aidriverdisable( TTrain *Train, command_data const &Command );
     static void OnCommand_jointcontrollerset( TTrain *Train, command_data const &Command );
@@ -546,6 +548,8 @@ public: // reszta może by?publiczna
     TGauge ggBrakeProfileR; // nastawiacz PR - hamowanie dwustopniowe
 	TGauge ggBrakeOperationModeCtrl; //przełącznik trybu pracy PS/PN/EP/MED
 
+    TGauge ggWiperSw; // przelacznik wycieraczek
+
     TGauge ggMaxCurrentCtrl;
 
     TGauge ggMainOffButton;
@@ -814,7 +818,7 @@ public: // reszta może by?publiczna
         rsBrake,
         rsFadeSound,
         rsRunningNoise,
-        rsResonanceNoise, 
+        rsResonanceNoise,
         rsWindSound,
         rsHuntingNoise,
         m_rainsound;

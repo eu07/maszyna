@@ -21,7 +21,10 @@ http://mozilla.org/MPL/2.0/.
 /*rozne takie duperele do operacji na stringach w paszczalu, pewnie w delfi sa lepsze*/
 /*konwersja zmiennych na stringi, funkcje matematyczne, logiczne, lancuchowe, I/O etc*/
 
-#define sign(x) ((x) < 0 ? -1 : ((x) > 0 ? 1 : 0))
+template <typename T> T sign(T x)
+{
+	return x < static_cast<T>(0) ? static_cast<T>(-1) : (x > static_cast<T>(0) ? static_cast<T>(1) : static_cast<T>(0));
+}
 
 #define DegToRad(a) ((M_PI / 180.0) * (a)) //(a) w nawiasie, bo może być dodawaniem
 #define RadToDeg(r) ((180.0 / M_PI) * (r))
@@ -330,6 +333,14 @@ Type_
 interpolate( Type_ const &First, Type_ const &Second, double const Factor ) {
 
     return static_cast<Type_>( ( First * ( 1.0 - Factor ) ) + ( Second * Factor ) );
+}
+
+template <typename Type_> Type_ smoothInterpolate(Type_ const &First, Type_ const &Second, double Factor)
+{
+	// Apply smoothing (ease-in-out quadratic)
+	Factor = Factor * Factor * (3 - 2 * Factor);
+
+	return static_cast<Type_>((First * (1.0 - Factor)) + (Second * Factor));
 }
 
 // tests whether provided points form a degenerate triangle

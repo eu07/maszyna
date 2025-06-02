@@ -49,6 +49,7 @@ http://mozilla.org/MPL/2.0/.
 
 #include "Classes.h"
 #include "utilities.h"
+#include "Texture.h"
 
 #define PyGetFloat(param) PyFloat_FromDouble(param)
 #define PyGetInt(param) PyInt_FromLong(param)
@@ -59,20 +60,15 @@ http://mozilla.org/MPL/2.0/.
 struct python_rt {
 	std::mutex mutex;
 
-	GLuint shared_tex;
+	ITexture* shared_tex;
 
 	int format;
 	int components;
 	int width;
 	int height;
-	unsigned char *image = nullptr;
+	std::string image;
 
 	std::chrono::high_resolution_clock::time_point timestamp;
-
-	~python_rt() {
-		if (image)
-			delete[] image;
-	}
 };
 
 // TODO: extract common base and inherit specialization from it
@@ -80,7 +76,7 @@ class render_task {
 
 public:
 // constructors
-	render_task( PyObject *Renderer, dictionary_source *Input, std::shared_ptr<python_rt> Target ) :
+	render_task( PyObject *Renderer, std::shared_ptr<dictionary_source> Input, std::shared_ptr<python_rt> Target ) :
         m_renderer( Renderer ), m_input( Input ), m_target( Target )
     {}
 // methods
@@ -92,7 +88,7 @@ public:
 private:
 // members
     PyObject *m_renderer {nullptr};
-    dictionary_source *m_input { nullptr };
+  std::shared_ptr<dictionary_source> m_input{nullptr};
 	std::shared_ptr<python_rt> m_target { nullptr };
 };
 
@@ -103,7 +99,7 @@ public:
     struct task_request {
 
         std::string const &renderer;
-        dictionary_source *input;
+        std::shared_ptr<dictionary_source> input;
 		std::shared_ptr<python_rt> target;
     };
 // constructors
@@ -128,8 +124,8 @@ private:
 // types
     static int const WORKERCOUNT { 1 };
     using worker_array = std::array<std::thread, WORKERCOUNT >;
-    using rendertask_sequence = threading::lockable< std::deque<render_task *> >;
-	using uploadtask_sequence = threading::lockable< std::deque<render_task *> >;
+    using rendertask_sequence = threading::lockable< std::deque<std::shared_ptr<render_task>> >;
+	using uploadtask_sequence = threading::lockable< std::deque<std::shared_ptr<render_task>> >;
 // methods
     auto fetch_renderer( std::string const Renderer ) -> PyObject *;
 	void run(GLFWwindow *Context, rendertask_sequence &Tasks, uploadtask_sequence &Upload_Tasks, threading::condition_variable &Condition, std::atomic<bool> &Exit );

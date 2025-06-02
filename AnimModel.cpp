@@ -729,7 +729,7 @@ TAnimModel::export_as_text_( std::ostream &Output ) const {
     // texture
     auto texturefile { (
         m_materialdata.replacable_skins[ 1 ] != null_handle ?
-            GfxRenderer->Material( m_materialdata.replacable_skins[ 1 ] ).name :
+            GfxRenderer->Material( m_materialdata.replacable_skins[ 1 ] )->GetName() :
             "none" ) };
     if( texturefile.find( szTexturePath ) == 0 ) {
         // don't include 'textures/' in the path

@@ -13,6 +13,7 @@
 #endif
 
 #define _USE_MATH_DEFINES
+#define NOMINMAX
 #include <cmath>
 #ifdef _MSC_VER
 // memory debug functions
@@ -88,6 +89,8 @@
 #define glfwFocusWindow(w)
 #endif
 
+#define GLM_FORCE_AVX2
+#define GLM_FORCE_SWIZZLE
 #define GLM_ENABLE_EXPERIMENTAL
 #define GLM_FORCE_CTOR_INIT
 #include <glm/glm.hpp>
@@ -102,7 +105,7 @@
 #include <glm/gtx/norm.hpp>
 #include <glm/gtx/string_cast.hpp>
 
-int const null_handle = 0;
+
 
 #include "openglmatrixstack.h"
 #define STRINGIZE_DETAIL(x) #x

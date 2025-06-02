@@ -435,7 +435,7 @@ std::pair<int, int> TSubModel::Load( cParser &parser, bool dynamic )
 
     if (m_material > 0)
     {
-        const opengl_material &mat = GfxRenderer->Material(m_material);
+        const IMaterial *mat = GfxRenderer->Material(m_material);
 /*
         // if material does have opacity set, replace submodel opacity with it
         if (mat.opacity)
@@ -448,8 +448,8 @@ std::pair<int, int> TSubModel::Load( cParser &parser, bool dynamic )
         }
 */
         // and same thing with selfillum
-        if (mat.selfillum)
-            fLight = *mat.selfillum;
+        if (mat->GetSelfillum())
+            fLight = *mat->GetSelfillum();
     }
 
     // visibility range
@@ -837,11 +837,10 @@ void TSubModel::InitialRotate(bool doit)
                     (*mat)(3)[0] = (*mat)(3)[1] = (*mat)(3)[2] = 0.0;
                     if( eType != TP_STARS ) {
                         // gwiazdki mają kolory zamiast normalnych, to ich wtedy nie ruszamy
-                        for( auto &vertex : Vertices ) {
-                            vertex.normal = (
-                                glm::length( vertex.normal ) > 0.0f ?
-                                    glm::normalize( ( *mat ) * vertex.normal ) :
-                                    glm::vec3() );
+						            for (auto &vertex : Vertices)
+						            {
+							              vertex.normal = (*mat) * vertex.normal;
+							              vertex.tangent.xyz = (*mat) * vertex.tangent.xyz;
                         }
                     }
                 }
@@ -854,19 +853,17 @@ void TSubModel::InitialRotate(bool doit)
         if (doit)
     { // jeśli jest jednostkowy transform, to przeliczamy
         // wierzchołki, a mnożenie podajemy dalej
-        float swapcopy;
-        for( auto &vertex : Vertices ) {
-            vertex.position.x = -vertex.position.x; // zmiana znaku X
-            swapcopy = vertex.position.y; // zamiana Y i Z
-            vertex.position.y = vertex.position.z;
-            vertex.position.z = swapcopy;
+			  for (auto &vertex : Vertices)
+			  {
+			  	  glm::mat4 vertexTransform{{-1.f, 0.f, 0.f, 0.f}, {0.f, 0.f, 1.f, 0.f}, {0.f, 1.f, 0.f, 0.f}, {0.f, 0.f, 0.f, 1.f}};
+			  	  vertex.position = vertexTransform * glm::vec4(vertex.position, 1.f);
             // wektory normalne również trzeba przekształcić, bo się źle oświetlają
-            if( eType != TP_STARS ) {
-                // gwiazdki mają kolory zamiast normalnych, to // ich wtedy nie ruszamy
-                vertex.normal.x = -vertex.normal.x; // zmiana znaku X
-                swapcopy = vertex.normal.y; // zamiana Y i Z
-                vertex.normal.y = vertex.normal.z;
-                vertex.normal.z = swapcopy;
+			  	  if (eType != TP_STARS)
+			  	  {
+			  		      glm::mat3 normalTransform{{-1.f, 0.f, 0.f}, {0.f, 0.f, 1.f}, {0.f, 1.f, 0.f}};
+                  // gwiazdki mają kolory zamiast normalnych, to // ich wtedy nie ruszamy
+			  		      vertex.normal = normalTransform * vertex.normal;
+			  		      vertex.tangent.xyz = normalTransform * vertex.tangent.xyz;
             }
         }
         if (Child)
@@ -2126,8 +2123,8 @@ void TSubModel::BinInit(TSubModel *s, float4x4 *m, std::vector<std::string> *t, 
             // if we don't have phase flags set for some reason, try to fix it
             if (!(iFlags & 0x30) && m_material != null_handle)
             {
-                const opengl_material &mat = GfxRenderer->Material(m_material);
-                float opacity = mat.get_or_guess_opacity();
+                const IMaterial *mat = GfxRenderer->Material(m_material);
+                float opacity = mat->get_or_guess_opacity();
 
                 // set phase flag based on material opacity
                 if (opacity == 0.0f)
@@ -2138,7 +2135,7 @@ void TSubModel::BinInit(TSubModel *s, float4x4 *m, std::vector<std::string> *t, 
 
             if ( m_material != null_handle )
             {
-                opengl_material const &mat = GfxRenderer->Material(m_material);
+                IMaterial const *mat = GfxRenderer->Material(m_material);
 /*
                 // if material does have opacity set, replace submodel opacity with it
                 if (mat.opacity)
@@ -2151,8 +2148,8 @@ void TSubModel::BinInit(TSubModel *s, float4x4 *m, std::vector<std::string> *t, 
                 }
 */
                 // replace submodel selfillum with material one
-                if( mat.selfillum ) {
-                    fLight = mat.selfillum.value();
+                if( mat->GetSelfillum() ) {
+                    fLight = mat->GetSelfillum().value();
                 }
             }
         }

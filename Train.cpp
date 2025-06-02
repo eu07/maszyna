@@ -290,6 +290,10 @@ TTrain::commandhandler_map const TTrain::m_commandhandlers = {
     { user_command::pantographraiserear, &TTrain::OnCommand_pantographraiserear },
     { user_command::pantographlowerfront, &TTrain::OnCommand_pantographlowerfront },
     { user_command::pantographlowerrear, &TTrain::OnCommand_pantographlowerrear },
+
+    {user_command::wiperswitchincrease, &TTrain::OnCommand_wiperswitchincrease},
+    {user_command::wiperswitchdecrease, &TTrain::OnCommand_wiperswitchdecrease},
+
     { user_command::pantographlowerall, &TTrain::OnCommand_pantographlowerall },
     { user_command::pantographselectnext, &TTrain::OnCommand_pantographselectnext },
     { user_command::pantographselectprevious, &TTrain::OnCommand_pantographselectprevious },
@@ -644,12 +648,12 @@ bool TTrain::Init(TDynamicObject *NewDynamicObject, bool e3d)
     return true;
 }
 
-dictionary_source *TTrain::GetTrainState( dictionary_source const &Extraparameters ) {
+std::shared_ptr<dictionary_source> TTrain::GetTrainState( dictionary_source const &Extraparameters ) {
 
     if( ( mvOccupied   == nullptr )
      || ( mvControlled == nullptr ) ) { return nullptr; }
 
-    auto *dict { new dictionary_source( Extraparameters ) };
+    auto dict = std::make_shared<dictionary_source>( Extraparameters );
     if( dict == nullptr ) { return nullptr; }
 
     dict->insert( "name", DynamicObject->asName );
@@ -844,7 +848,7 @@ dictionary_source *TTrain::GetTrainState( dictionary_source const &Extraparamete
     dict->insert( "velnext", driver->VelNext );
     dict->insert( "actualproximitydist", driver->ActualProximityDist );
     // train data
-    driver->TrainTimetable().serialize( dict );
+    driver->TrainTimetable().serialize( dict.get() );
     dict->insert( "train_atpassengerstop", driver->IsAtPassengerStop );
     dict->insert( "train_length", driver->fLength );
     // world state data
@@ -2213,6 +2217,31 @@ void TTrain::OnCommand_mubrakingindicatortoggle( TTrain *Train, command_data con
     }
 }
 
+void TTrain::OnCommand_wiperswitchincrease(TTrain *Train, command_data const &Command)
+{
+	if (Command.action == GLFW_PRESS)
+	{
+		Train->mvOccupied->wiperSwitchPos++;
+		if (Train->mvOccupied->wiperSwitchPos > Train->mvOccupied->WiperListSize - 1)
+			Train->mvOccupied->wiperSwitchPos = Train->mvOccupied->WiperListSize - 1;
+
+        // Visual feedback
+		Train->ggWiperSw.UpdateValue(Train->mvOccupied->wiperSwitchPos, Train->dsbSwitch);
+	}
+}
+void TTrain::OnCommand_wiperswitchdecrease(TTrain *Train, command_data const &Command)
+{
+	if (Command.action == GLFW_PRESS)
+	{
+		Train->mvOccupied->wiperSwitchPos--;
+		if (Train->mvOccupied->wiperSwitchPos < 0)
+			Train->mvOccupied->wiperSwitchPos = 0;
+
+        // visual feedback
+        Train->ggWiperSw.UpdateValue(Train->mvOccupied->wiperSwitchPos, Train->dsbSwitch);
+	}
+}
+
 void TTrain::OnCommand_reverserincrease( TTrain *Train, command_data const &Command ) {
 
     if( Command.action == GLFW_PRESS ) {
@@ -2441,14 +2470,14 @@ void TTrain::OnCommand_batteryenable( TTrain *Train, command_data const &Command
 		}
     }
 	else // impulse button behavior
-	{ 
+	{
         if (Command.action == GLFW_PRESS)
         {
 			if (Train->mvOccupied->shouldHoldBatteryButton)
 			{
                 // jesli przycisk trzeba przytrzymac
 				Train->ggBatteryButton.UpdateValue(1.0f, Train->dsbSwitch);
-				Train->ggBatteryOnButton.UpdateValue(1.0f, Train->dsbSwitch);  
+				Train->ggBatteryOnButton.UpdateValue(1.0f, Train->dsbSwitch);
 				Train->fBatteryTimer = Train->mvOccupied->BatteryButtonHoldTime; // start timer
             }
             else
@@ -2464,15 +2493,15 @@ void TTrain::OnCommand_batteryenable( TTrain *Train, command_data const &Command
 
                 // visual feedback
 				Train->ggBatteryButton.UpdateValue(1.0f, Train->dsbSwitch);
-				Train->ggBatteryOnButton.UpdateValue(1.0f, Train->dsbSwitch);  
+				Train->ggBatteryOnButton.UpdateValue(1.0f, Train->dsbSwitch);
             }
         }
 		else if (Command.action == GLFW_RELEASE)
 		{
             // visual feedback
 			Train->ggBatteryButton.UpdateValue(0.0f, Train->dsbSwitch);
-			Train->ggBatteryOnButton.UpdateValue(0.0f, Train->dsbSwitch);  
-            Train->fBatteryTimer = -1.f; // 
+			Train->ggBatteryOnButton.UpdateValue(0.0f, Train->dsbSwitch);
+            Train->fBatteryTimer = -1.f; //
             Train->allowBatteryToggle = true;
 		}
 		else if (Command.action == GLFW_REPEAT && Train->mvOccupied->shouldHoldBatteryButton)
@@ -2527,7 +2556,7 @@ void TTrain::OnCommand_batterydisable( TTrain *Train, command_data const &Comman
 			{
 				// jesli przycisk trzeba przytrzymac
 				Train->ggBatteryButton.UpdateValue(1.0f, Train->dsbSwitch);
-				Train->ggBatteryOffButton.UpdateValue(1.0f, Train->dsbSwitch); 
+				Train->ggBatteryOffButton.UpdateValue(1.0f, Train->dsbSwitch);
 				Train->fBatteryTimer = Train->mvOccupied->BatteryButtonHoldTime; // start timer
 			}
 			else
@@ -2543,14 +2572,14 @@ void TTrain::OnCommand_batterydisable( TTrain *Train, command_data const &Comman
 				}
 				// visual feedback
 				Train->ggBatteryButton.UpdateValue(1.0f, Train->dsbSwitch);
-				Train->ggBatteryOffButton.UpdateValue(1.0f, Train->dsbSwitch); 
+				Train->ggBatteryOffButton.UpdateValue(1.0f, Train->dsbSwitch);
 			}
 		}
 		else if (Command.action == GLFW_RELEASE)
 		{
 			// visual feedback
 			Train->ggBatteryButton.UpdateValue(0.0f, Train->dsbSwitch);
-			Train->ggBatteryOffButton.UpdateValue(0.0f, Train->dsbSwitch); 
+			Train->ggBatteryOffButton.UpdateValue(0.0f, Train->dsbSwitch);
             Train->allowBatteryToggle = true;
 		}
 		else if (Command.action == GLFW_REPEAT && Train->mvOccupied->shouldHoldBatteryButton)
@@ -2990,7 +3019,7 @@ void TTrain::OnCommand_pantographvalvesupdate( TTrain *Train, command_data const
 		}
 
 		// Old logic to maintain compatibility
-        else 
+        else
         {
 			Train->update_pantograph_valves();
 			Train->ggPantValvesButton.UpdateValue(1.0, Train->dsbSwitch);
@@ -4854,7 +4883,7 @@ void TTrain::OnCommand_headlightdisablerearupper( TTrain *Train, command_data co
     }
 }
 
-void TTrain::OnCommand_modernlightdimmerincrease(TTrain* Train, command_data const& Command) 
+void TTrain::OnCommand_modernlightdimmerincrease(TTrain* Train, command_data const& Command)
 {
 	if (!Train->mvOccupied->enableModernDimmer)
 		return; // if modern dimmer is disabled, skip entire command
@@ -4872,7 +4901,7 @@ void TTrain::OnCommand_modernlightdimmerincrease(TTrain* Train, command_data con
 			    Train->ggModernLightDimSw.UpdateValue(Train->mvOccupied->modernDimmerState - 1, Train->dsbSwitch);
 	}
 }
-void TTrain::OnCommand_modernlightdimmerdecrease(TTrain *Train, command_data const &Command) 
+void TTrain::OnCommand_modernlightdimmerdecrease(TTrain *Train, command_data const &Command)
 {
 	if (!Train->mvOccupied->enableModernDimmer)
 		return; // if modern dimmer is disabled, skip entire command
@@ -6993,6 +7022,7 @@ void TTrain::OnCommand_vehicleboost(TTrain *Train, const command_data &Command) 
 	}
 }
 
+
 // cab movement update, fixed step part
 void TTrain::UpdateCab() {
 
@@ -7173,16 +7203,23 @@ bool TTrain::Update( double const Deltatime )
 
     // McZapkie: predkosc wyswietlana na tachometrze brana jest z obrotow kol
     auto const maxtacho { 3.0 };
-    fTachoVelocity = static_cast<float>( std::min( std::abs(11.31 * mvControlled->WheelDiameter * mvControlled->nrot), mvControlled->Vmax * 1.05) );
+
+    double maxSpeed = mvControlled->Vmax * 1.05; // zachowanie starej logiki jak nie ma definicji max tarczki
+	if (mvOccupied->maxTachoSpeed != 0)
+	{
+		maxSpeed = mvOccupied->maxTachoSpeed;
+    }
+    fTachoVelocity = static_cast<float>(std::min(std::abs(11.31 * mvControlled->WheelDiameter * mvControlled->nrot), maxSpeed));
     { // skacze osobna zmienna
         float ff = simulation::Time.data().wSecond; // skacze co sekunde - pol sekundy
         // pomiar, pol sekundy ustawienie
         if (ff != fTachoTimer) // jesli w tej sekundzie nie zmienial
         {
-            if (fTachoVelocity > 1) // jedzie
-                fTachoVelocityJump = fTachoVelocity + (2.0 - LocalRandom(3) + LocalRandom(3)) * 0.5;
-            else
-                fTachoVelocityJump = 0; // stoi
+			if (fTachoVelocity >= 5) // jedzie
+				fTachoVelocityJump = fTachoVelocity + (2.0 - LocalRandom(3) + LocalRandom(3)) * 0.5;
+			else if (fTachoVelocity < 5 && fTachoVelocity > 1)
+				fTachoVelocityJump = Random(0, 4); // tu ma sie bujac jak wariat i zatrzymac na jakiejs predkosci
+                // fTachoVelocityJump = 0; // stoi
             fTachoTimer = ff; // juz zmienil
         }
     }
@@ -7794,12 +7831,12 @@ bool TTrain::Update( double const Deltatime )
         btLampkaDoorLockOff.Turn( false == mvOccupied->Doors.lock_enabled );
         btLampkaDepartureSignal.Turn( mvControlled->DepartureSignal );
         btLampkaNapNastHam.Turn((mvControlled->DirActive != 0) && (mvOccupied->EpFuse)); // napiecie na nastawniku hamulcowym
-        
+
         // Wylaczanie lampek kierunku gdy jedziemy
         // Feature uruchamiany z fiz z sekcji Ctrl. wpisem HideDirStatusWhenMoving=Yes (domyslnie No)
 		if (mvOccupied->HideDirStatusWhenMoving && // Czy ta funkcja jest w ogole wlaczona
             mvOccupied->Vel > mvOccupied->HideDirStatusSpeed) // Uzaleznienie od predkosci
-		{   
+		{
             btLampkaForward.Turn(false);
 			btLampkaBackward.Turn(false);
 			btLampkaNeutral.Turn(false);
@@ -8158,6 +8195,7 @@ bool TTrain::Update( double const Deltatime )
     ggBrakeProfileG.Update();
     ggBrakeProfileR.Update();
 	ggBrakeOperationModeCtrl.Update();
+	ggWiperSw.Update();
     ggMaxCurrentCtrl.UpdateValue(
         ( true == mvControlled->ShuntModeAllow ?
             ( true == mvControlled->ShuntMode ?
@@ -8574,7 +8612,7 @@ TTrain::update_sounds( double const Deltatime ) {
     }
 
     // dzwiek wiatru rozbijajacego sie o szyby w kabinie
-    if (rsWindSound) 
+    if (rsWindSound)
     {
 		if (!FreeFlyModeFlag && !Global.CabWindowOpen && DynamicObject->GetVelocity() > 0.5)
             update_sounds_resonancenoise(*rsWindSound);
@@ -8951,7 +8989,7 @@ bool TTrain::LoadMMediaFile(std::string const &asFileName)
     m_radiosound.owner( DynamicObject );
 	CabSoundLocations.clear();
 
-    cParser parser( asFileName, cParser::buffer_FILE, DynamicObject->asBaseDir );
+    cParser parser( asFileName, cParser::buffer_FILE, DynamicObject->asBaseDir, true, std::vector<std::string>(), true );
     // NOTE: yaml-style comments are disabled until conflict in use of # is resolved
     // parser.addCommentStyle( "#", "\n" );
     std::string token;
@@ -9084,8 +9122,7 @@ bool TTrain::InitializeCab(int NewCabNo, std::string const &asFileName)
 
     std::string cabstr("cab" + std::to_string(cabindex) + "definition:");
 
-    cParser parser( asFileName, cParser::buffer_FILE, DynamicObject->asBaseDir );
-	parser.allowRandomIncludes = true;
+    cParser parser( asFileName, cParser::buffer_FILE, DynamicObject->asBaseDir, true, std::vector<std::string>(), true );
     // NOTE: yaml-style comments are disabled until conflict in use of # is resolved
     // parser.addCommentStyle( "#", "\n" );
     std::string token;
@@ -9227,7 +9264,7 @@ bool TTrain::InitializeCab(int NewCabNo, std::string const &asFileName)
                     screen.script = DynamicObject->asBaseDir + screen.script;
                 }
 
-                opengl_texture *tex = nullptr;
+                ITexture *tex = nullptr;
                 TSubModel *submodel = nullptr;
                 if (screen.target != "none")
                 {
@@ -9251,12 +9288,12 @@ bool TTrain::InitializeCab(int NewCabNo, std::string const &asFileName)
                         continue;
                     }
 
-                    tex = &GfxRenderer->Texture(GfxRenderer->Material(material).textures[0]);
+                    tex = &GfxRenderer->Texture(GfxRenderer->Material(material)->GetTexture(0));
                 }
                 else
                 {
                     // TODO: fix leak
-                    tex = new opengl_texture();
+                    tex = ITexture::null_texture();
                     tex->make_stub();
                 }
 
@@ -9265,7 +9302,7 @@ bool TTrain::InitializeCab(int NewCabNo, std::string const &asFileName)
                 // TBD, TODO: keep texture handles around, so we can undo the static switch when the
                 // user changes cabs?
                 auto rt = std::make_shared<python_rt>();
-                rt->shared_tex = tex->id;
+                rt->shared_tex = tex;
 
                 // record renderer and material binding for future update requests
                 m_screens.emplace_back(screen);
@@ -9648,6 +9685,7 @@ void TTrain::clear_cab_controls()
     ggBrakeProfileG.Clear();
     ggBrakeProfileR.Clear();
 	ggBrakeOperationModeCtrl.Clear();
+	ggWiperSw.Clear();
     ggMaxCurrentCtrl.Clear();
     ggMainOffButton.Clear();
     ggMainOnButton.Clear();
@@ -9901,7 +9939,7 @@ void TTrain::set_cab_controls( int const Cab ) {
     if (ggModernLightDimSw.SubModel != nullptr) {
 		if (mvOccupied->modernContainOffPos)
 		    ggModernLightDimSw.PutValue(mvOccupied->modernDimmerState);
-        else 
+        else
             ggModernLightDimSw.PutValue(mvOccupied->modernDimmerState - 1);
     }
 
@@ -9909,7 +9947,7 @@ void TTrain::set_cab_controls( int const Cab ) {
     if (ggPantValvesUpdate.SubModel != nullptr)
 	{
 		ggPantValvesUpdate.PutValue(0.f);
-	}   
+	}
     if (ggPantValvesOff.SubModel != nullptr)
     {
 		ggPantValvesOff.PutValue(0.f);
@@ -10117,6 +10155,12 @@ void TTrain::set_cab_controls( int const Cab ) {
                 1.f :
                 0.f );
     }
+
+    if (ggWiperSw.SubModel != nullptr)
+	{
+		ggWiperSw.PutValue(mvOccupied->wiperSwitchPos);
+	}
+
 	if (ggBrakeOperationModeCtrl.SubModel != nullptr) {
 		ggBrakeOperationModeCtrl.PutValue(
 			(mvOccupied->BrakeOpModeFlag > 0 ?
@@ -10591,7 +10635,8 @@ bool TTrain::initialize_gauge(cParser &Parser, std::string const &Label, int con
 		{ "invertertoggle11_bt:", ggInverterToggleButtons[10] },
 		{ "invertertoggle12_bt:", ggInverterToggleButtons[11] },
 	    {"pantvalvesupdate_bt:", ggPantValvesUpdate},
-	    {"pantvalvesoff_bt:", ggPantValvesOff}
+	    {"pantvalvesoff_bt:", ggPantValvesOff},
+	    {"wipers_sw:", ggWiperSw}
     };
     {
         auto const lookup { gauges.find( Label ) };

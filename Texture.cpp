@@ -25,8 +25,9 @@ http://mozilla.org/MPL/2.0/.
 #include "utilities.h"
 #include "flip-s3tc.h"
 #include "stb/stb_image.h"
-#include <png.h>
+//#include <png.h>
 #include "dds-ktx/dds-ktx.h"
+#include "winheaders.h"
 
 #define EU07_DEFERRED_TEXTURE_UPLOAD
 
@@ -252,7 +253,7 @@ opengl_texture::load() {
 
              if( type == ".dds" ) { load_DDS(); }
         else if( type == ".tga" ) { load_TGA(); }
-        else if( type == ".png" ) { load_PNG(); }
+        else if( type == ".png" ) { load_STBI(); }
         else if( type == ".ktx" ) { load_KTX(); }
 		else if( type == ".bmp" ) { load_STBI(); }
 		else if( type == ".jpg" ) { load_STBI(); }
@@ -293,49 +294,49 @@ fail:
 
 void opengl_texture::load_PNG()
 {
-	png_image png;
-	memset(&png, 0, sizeof(png_image));
-	png.version = PNG_IMAGE_VERSION;
-
-	png_image_begin_read_from_file(&png, (name + type).c_str());
-	if (png.warning_or_error)
-	{
-		data_state = resource_state::failed;
-		ErrorLog(name + " error: " + std::string(png.message));
-		return;
-	}
-
-	if (png.format & PNG_FORMAT_FLAG_ALPHA)
-	{
-		data_format = GL_RGBA;
-		data_components = GL_RGBA;
-		png.format = PNG_FORMAT_RGBA;
-	}
-	else
-	{
-		data_format = GL_RGB;
-		data_components = GL_RGB;
-		png.format = PNG_FORMAT_RGB;
-	}
-	data_width = png.width;
-	data_height = png.height;
-
-	data.resize(PNG_IMAGE_SIZE(png));
-
-    png_image_finish_read(&png, nullptr,
-        (void*)&data[0], -data_width * PNG_IMAGE_PIXEL_SIZE(png.format), nullptr);
-	// we're storing texture data internally with bottom-left origin
-	// so use negative stride
-
-    if (png.warning_or_error)
-    {
-        data_state = resource_state::failed;
-        ErrorLog(name + " error: " + std::string(png.message));
-        return;
-    }
-
-    data_mapcount = 1;
-    data_state = resource_state::good;
+	//png_image png;
+	//memset(&png, 0, sizeof(png_image));
+	//png.version = PNG_IMAGE_VERSION;
+//
+	//png_image_begin_read_from_file(&png, (name + type).c_str());
+	//if (png.warning_or_error)
+	//{
+	//	data_state = resource_state::failed;
+	//	ErrorLog(name + " error: " + std::string(png.message));
+	//	return;
+	//}
+//
+	//if (png.format & PNG_FORMAT_FLAG_ALPHA)
+	//{
+	//	data_format = GL_RGBA;
+	//	data_components = GL_RGBA;
+	//	png.format = PNG_FORMAT_RGBA;
+	//}
+	//else
+	//{
+	//	data_format = GL_RGB;
+	//	data_components = GL_RGB;
+	//	png.format = PNG_FORMAT_RGB;
+	//}
+	//data_width = png.width;
+	//data_height = png.height;
+//
+	//data.resize(PNG_IMAGE_SIZE(png));
+//
+    //png_image_finish_read(&png, nullptr,
+    //    (void*)&data[0], -data_width * PNG_IMAGE_PIXEL_SIZE(png.format), nullptr);
+	//// we're storing texture data internally with bottom-left origin
+	//// so use negative stride
+//
+    //if (png.warning_or_error)
+    //{
+    //    data_state = resource_state::failed;
+    //    ErrorLog(name + " error: " + std::string(png.message));
+    //    return;
+    //}
+//
+    //data_mapcount = 1;
+    //data_state = resource_state::good;
 }
 
 void opengl_texture::load_STBI()
@@ -383,7 +384,7 @@ opengl_texture::make_from_memory(size_t width, size_t height, const uint8_t *raw
     release();
 
     data_width = width;
-    data_height = width;
+    data_height = height;
     data.resize(data_width * data_height * 4);
     memcpy(data.data(), raw, data.size());
 
@@ -395,15 +396,44 @@ opengl_texture::make_from_memory(size_t width, size_t height, const uint8_t *raw
     is_texstub = false;
 }
 
+void opengl_texture::update_from_memory(size_t width, size_t height, const uint8_t *raw)
+{
+	if (id != -1 && (width != data_width || height != data_height || GL_SRGB8_ALPHA8 != data_format || GL_RGBA != data_components))
+	{
+		glDeleteTextures(1, &id);
+		id = -1;
+	}
+	if (id == -1)
+	{
+		data_width = width;
+		data_height = height;
+		data_format = GL_SRGB8_ALPHA8;
+		data_components = GL_RGBA;
+		glGenTextures(1, &id);
+		glBindTexture(target, id);
+		set_filtering();
+		glTexParameteri(target, GL_TEXTURE_WRAP_S, wrap_mode_s);
+		glTexParameteri(target, GL_TEXTURE_WRAP_T, wrap_mode_t);
+		glTexParameteri(target, GL_GENERATE_MIPMAP, GL_TRUE);
+	}
+	else
+	{
+		glBindTexture(target, id);
+	}
+	glTexImage2D(target, 0, data_format, data_width, data_height, 0, data_components, GL_UNSIGNED_BYTE, raw);
+	glGenerateMipmap(target);
+	glFlush();
+}
+
 void
 opengl_texture::make_request() {
 
     auto const components { Split( name, '?' ) };
 
-	auto *dictionary { new dictionary_source( components.back() ) };
+	auto dictionary = std::make_shared<dictionary_source>( components.back() );
 
 	auto rt = std::make_shared<python_rt>();
-	rt->shared_tex = id;
+	rt->shared_tex = this;
 
 	Application.request( { ToLower( components.front() ), dictionary, rt } );
 }
@@ -1451,7 +1481,7 @@ texture_manager::find_in_databank( std::string const &Texturename ) const {
 
 // checks whether specified file exists.
 std::pair<std::string, std::string>
-texture_manager::find_on_disk( std::string const &Texturename ) const {
+texture_manager::find_on_disk( std::string const &Texturename ) {
 
     std::vector<std::string> const filenames {
         Global.asCurrentTexturePath + Texturename,

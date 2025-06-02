@@ -351,7 +351,7 @@ public:
 	bool
 	    dirty() const { return m_dirty; }
 
-protected:
+public:
 // members
     scene::group_handle m_group { null_handle }; // group this node belongs to, if any
     scene::bounding_area m_area;
