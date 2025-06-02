@@ -414,7 +414,7 @@ global_settings::ConfigParse(cParser &Parser) {
                 GfxRenderer = "default";
             }
             BasicRenderer = (GfxRenderer == "simple");
-			      NvRenderer = !GfxRenderer.compare(0, 5, "manul");
+			NvRenderer = GfxRenderer == "experimental";
             LegacyRenderer = !NvRenderer && (GfxRenderer != "default");
         }
         else if (token == "shadows")
