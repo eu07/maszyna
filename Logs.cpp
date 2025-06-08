@@ -23,6 +23,8 @@ char logbuffer[ 256 ];
 
 char endstring[10] = "\n";
 
+std::mutex logMutex;
+
 std::deque<std::string> log_scrollback;
 
 std::string filename_date() {
@@ -76,69 +78,74 @@ std::deque<char *> ErrorStack;
 
 void LogService()
 {
-    while (true)
-    {
-		if (InfoStack.empty() && ErrorStack.empty() && Global.applicationQuitOrder)
-			break;
-        // loop for logging
+	while (!Global.applicationQuitOrder)
+	{
+		{
+			std::lock_guard<std::mutex> lock(logMutex);
 
-        // write logs and log.txt
-        while (!InfoStack.empty())
-        {
-			char *msg = InfoStack.front(); // get first element of stack
-			InfoStack.pop_front();
-			if (Global.iWriteLogEnabled & 1)
+			// --- Obsługa InfoStack ---
+			while (!InfoStack.empty())
 			{
-				if (!output.is_open())
+				char *msg = InfoStack.front();
+				InfoStack.pop_front();
+
+				if (Global.iWriteLogEnabled & 1)
 				{
-
-					std::string const filename = (Global.MultipleLogs ? "logs/log (" + filename_scenery() + ") " + filename_date() + ".txt" : "log.txt");
-					output.open(filename, std::ios::trunc);
+					if (!output.is_open())
+					{
+						std::string filename = (Global.MultipleLogs ? "logs/log (" + filename_scenery() + ") " + filename_date() + ".txt" : "log.txt");
+						output.open(filename, std::ios::trunc);
+					}
+					output << msg << "\n";
+					output.flush();
 				}
-				output << msg << "\n";
-				output.flush();
-			}
 
-			log_scrollback.emplace_back(std::string(msg));
-			if (log_scrollback.size() > 200)
-				log_scrollback.pop_front();
+				log_scrollback.emplace_back(msg);
+				if (log_scrollback.size() > 200)
+					log_scrollback.pop_front();
 
-			if (Global.iWriteLogEnabled & 2)
-			{
+				if (Global.iWriteLogEnabled & 2)
+				{
 #ifdef _WIN32
-				// hunter-271211: pisanie do konsoli tylko, gdy nie jest ukrywana
-				SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), FOREGROUND_GREEN | FOREGROUND_INTENSITY);
-				DWORD wr = 0;
-				WriteConsole(GetStdHandle(STD_OUTPUT_HANDLE), msg, (DWORD)strlen(msg), &wr, NULL);
-				WriteConsole(GetStdHandle(STD_OUTPUT_HANDLE), endstring, (DWORD)strlen(endstring), &wr, NULL);
+					SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), FOREGROUND_GREEN | FOREGROUND_INTENSITY);
+					DWORD wr = 0;
+					WriteConsole(GetStdHandle(STD_OUTPUT_HANDLE), msg, (DWORD)strlen(msg), &wr, NULL);
+					WriteConsole(GetStdHandle(STD_OUTPUT_HANDLE), endstring, (DWORD)strlen(endstring), &wr, NULL);
 #else
-				printf("%s\n", msg);
+					printf("%s\n", msg);
 #endif
+				}
+
+				free(msg); // cleanup po strdup
 			}
-        } 
-        
-        // write to errors.txt
-        while (!ErrorStack.empty())
-        {
-			char *msg = ErrorStack.front();
-			ErrorStack.pop_front();
 
-			if (!(Global.iWriteLogEnabled & 1))
-				return;
-
-			if (!errors.is_open())
+			// --- Obsługa ErrorStack ---
+			while (!ErrorStack.empty())
 			{
+				char *msg = ErrorStack.front();
+				ErrorStack.pop_front();
 
-				std::string const filename = (Global.MultipleLogs ? "logs/errors (" + filename_scenery() + ") " + filename_date() + ".txt" : "errors.txt");
-				errors.open(filename, std::ios::trunc);
-				errors << "EU07.EXE " + Global.asVersion << "\n";
+				if (!(Global.iWriteLogEnabled & 1))
+				{
+					free(msg);
+					continue;
+				}
+
+				if (!errors.is_open())
+				{
+					std::string filename = (Global.MultipleLogs ? "logs/errors (" + filename_scenery() + ") " + filename_date() + ".txt" : "errors.txt");
+					errors.open(filename, std::ios::trunc);
+					errors << "EU07.EXE " + Global.asVersion << "\n";
+				}
+
+				errors << msg << "\n";
+				errors.flush();
+				free(msg); // cleanup po strdup
 			}
+		}
 
-			errors << msg << "\n";
-			errors.flush();
-        }
-		std::this_thread::sleep_for(std::chrono::milliseconds(5)); // dont burn cpu so much
-    }
+		std::this_thread::sleep_for(std::chrono::milliseconds(50));
+	}
 }
 
 void WriteLog( const char *str, logtype const Type ) {
