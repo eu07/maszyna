@@ -72,8 +72,8 @@ std::string filename_scenery() {
 }
 
 // log service stacks
-std::deque<char *> InfoStack;
-std::deque<char *> ErrorStack;
+std::deque<std::string> InfoStack;
+std::deque<std::string> ErrorStack;
 
 
 void LogService()
@@ -86,7 +86,7 @@ void LogService()
 			// --- Obsługa InfoStack ---
 			while (!InfoStack.empty())
 			{
-				char *msg = InfoStack.front();
+				std::string msg = InfoStack.front();
 				InfoStack.pop_front();
 
 				if (Global.iWriteLogEnabled & 1)
@@ -109,27 +109,22 @@ void LogService()
 #ifdef _WIN32
 					SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), FOREGROUND_GREEN | FOREGROUND_INTENSITY);
 					DWORD wr = 0;
-					WriteConsole(GetStdHandle(STD_OUTPUT_HANDLE), msg, (DWORD)strlen(msg), &wr, NULL);
+					WriteConsole(GetStdHandle(STD_OUTPUT_HANDLE), msg.c_str(), (DWORD)msg.size(), &wr, NULL);
 					WriteConsole(GetStdHandle(STD_OUTPUT_HANDLE), endstring, (DWORD)strlen(endstring), &wr, NULL);
 #else
-					printf("%s\n", msg);
+					printf("%s\n", msg.c_str());
 #endif
 				}
-
-				free(msg); // cleanup po strdup
 			}
 
 			// --- Obsługa ErrorStack ---
 			while (!ErrorStack.empty())
 			{
-				char *msg = ErrorStack.front();
+				std::string msg = ErrorStack.front();
 				ErrorStack.pop_front();
 
 				if (!(Global.iWriteLogEnabled & 1))
-				{
-					free(msg);
 					continue;
-				}
 
 				if (!errors.is_open())
 				{
@@ -140,7 +135,6 @@ void LogService()
 
 				errors << msg << "\n";
 				errors.flush();
-				free(msg); // cleanup po strdup
 			}
 		}
 
@@ -148,19 +142,27 @@ void LogService()
 	}
 }
 
-void WriteLog( const char *str, logtype const Type ) {
 
-    if( str == nullptr ) { return; }
-    if( true == TestFlag( Global.DisabledLogTypes, static_cast<unsigned int>( Type ) ) ) { return; }
-	InfoStack.emplace_back(strdup(str));
+void WriteLog(const char *str, logtype const Type)
+{
+	if (!str || *str == '\0')
+		return;
+	if (TestFlag(Global.DisabledLogTypes, static_cast<unsigned int>(Type)))
+		return;
+
+	InfoStack.emplace_back(str);
 }
 
-void ErrorLog( const char *str, logtype const Type ) {
+void ErrorLog(const char *str, logtype const Type)
+{
+	if (!str || *str == '\0')
+		return;
+	if (TestFlag(Global.DisabledLogTypes, static_cast<unsigned int>(Type)))
+		return;
 
-    if( str == nullptr ) { return; }
-    if( true == TestFlag( Global.DisabledLogTypes, static_cast<unsigned int>( Type ) ) ) { return; }
-	ErrorStack.emplace_back(strdup(str));
-};
+	ErrorStack.emplace_back(str);
+}
+
 
 void Error(const std::string &asMessage, bool box)
 {
