@@ -296,6 +296,10 @@ eu07_application::init( int Argc, char *Argv[] ) {
         WriteLog( settingspipe.str() );
     }
 
+    // cruel way to prevent crashes because of threaded upload from python
+	if (Global.NvRenderer)
+		Global.python_threadedupload = false;
+
     WriteLog( "// startup" );
 
     if( ( result = init_glfw() ) != 0 ) {
