@@ -8927,7 +8927,7 @@ bool startBPT;
 bool startMPT, startMPT0;
 bool startRLIST, startUCLIST;
 bool startDIZELMOMENTUMLIST, startDIZELV2NMAXLIST, startHYDROTCLIST, startPMAXLIST;
-bool startDLIST, startFFLIST, startWWLIST, startWiperList;
+bool startDLIST, startFFLIST, startWWLIST, startWiperList, startDimmerList;
 bool startLIGHTSLIST;
 bool startCOMPRESSORLIST;
 int LISTLINE;
@@ -9298,6 +9298,22 @@ bool TMoverParameters::readWiperList(std::string const& line)
 	return true;
 }
 
+bool TMoverParameters::readDimmerList(std::string const& line)
+{
+	cParser parser(line);
+	if (false == parser.getTokens(3, false))
+	{
+		WriteLog("Read DimmerList: arguments missing in line " + std::to_string(LISTLINE + 1));
+		return false;
+	}
+	int idx = LISTLINE++;
+
+    dimPosition dps;
+	parser >> dps.isHighBeam >> dps.isDimmed >> dps.isOff;
+	dimPositions.push_back(dps);
+	return true;
+}
+
 // parsowanie WWList
 bool TMoverParameters::readWWList( std::string const &line ) {
 
@@ -9482,6 +9498,7 @@ bool TMoverParameters::LoadFIZ(std::string chkpath)
 	startFFLIST = false;
     startWWLIST = false;
 	startWiperList = false;
+	startDimmerList = false;
     startLIGHTSLIST = false;
 	startCOMPRESSORLIST = false;
     std::string file = TypeName + ".fiz";
@@ -9589,6 +9606,13 @@ bool TMoverParameters::LoadFIZ(std::string chkpath)
             startWiperList = false;
 			continue;
         }
+		if (issection("endDimmerList", inputline))
+		{
+			// skonczylismy czytac liste konfiguracji pstryka od przyciemnienia
+			startBPT = false;
+			startDimmerList = false;
+			continue;
+		}
         if( issection( "END-WWL", inputline ) ) {
             startBPT = false;
             startWWLIST = false;
@@ -9895,6 +9919,16 @@ bool TMoverParameters::LoadFIZ(std::string chkpath)
             continue;
         }
 
+        if (issection("DimmerList:", inputline))
+        {
+            dimPositions.clear(); // uzywamy customowej listy
+			startBPT = false;
+			startDimmerList = true;
+			fizlines.emplace("DimmerList", inputline);
+			LoadFIZ_DimmerList(inputline);
+			continue;
+        }
+
 
         if( issection( "LightsList:", inputline ) ) {
             startBPT = false;
@@ -9967,6 +10001,10 @@ bool TMoverParameters::LoadFIZ(std::string chkpath)
 			readWiperList(inputline);
 			continue;
         }
+        if (true == startDimmerList)
+        {
+			readDimmerList(inputline);
+        }
         if( true == startLIGHTSLIST ) {
             readLightsList( inputline );
             continue;
@@ -9988,11 +10026,10 @@ bool TMoverParameters::LoadFIZ(std::string chkpath)
     else
         result = false;
 
-    if (!modernContainOffPos)
-		modernDimmerState = 2;  // jak nie ma opcji wylaczonej to niech sie odpali normalnie
+    // ustawiamy domyslna pozycje dimmera
 	if (!enableModernDimmer)
 	{
-		modernDimmerState = 2;
+		modernDimmerPosition = modernDimmerDefaultPosition;
 	}
 
     WriteLog("CERROR: " + to_string(ConversionError) + ", SUCCES: " + to_string(result));
@@ -11199,7 +11236,6 @@ void TMoverParameters::LoadFIZ_Switches( std::string const &Input ) {
     extract_value( UniversalResetButtonFlag[ 1 ], "RelayResetButton2", Input, "" );
     extract_value( UniversalResetButtonFlag[ 2 ], "RelayResetButton3", Input, "" );
 	extract_value(enableModernDimmer, "ModernDimmer", Input, "");
-	extract_value(modernContainOffPos, "ModernDimmerOffPosition", Input, "");
     // pantograph presets
     {
         auto &presets { PantsPreset.first };
@@ -11329,6 +11365,12 @@ void TMoverParameters::LoadFIZ_WiperList(std::string const &Input)
 	extract_value(WiperAngle, "Angle", Input, "");
 }
 
+void TMoverParameters::LoadFIZ_DimmerList(std::string const &Input)
+{
+	extract_value(modernWpierListSize, "Size", Input, "");
+	extract_value(modernDimmerCanCycle, "Cycle", Input, "");
+	extract_value(modernDimmerDefaultPosition, "DefaultPos", Input, "");
+}
 void TMoverParameters::LoadFIZ_LightsList( std::string const &Input ) {
 
     extract_value( LightsPosNo, "Size", Input, "" );

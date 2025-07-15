@@ -4890,35 +4890,48 @@ void TTrain::OnCommand_modernlightdimmerincrease(TTrain* Train, command_data con
     if (Command.action == GLFW_PRESS)
     {
         // update modern dimmer state
-		if (Train->mvOccupied->modernDimmerState < 4)
-			Train->mvOccupied->modernDimmerState++;
-		    Train->Dynamic()->SetLights();
+
+        auto &dimPos = Train->mvOccupied->modernDimmerPosition;
+		auto dimCount = Train->mvOccupied->dimPositions.size();
+		if (dimPos + 1 < dimCount)
+			dimPos++;
+		else if (Train->mvOccupied->modernDimmerCanCycle)
+			dimPos = 0; // return to 0
+		else
+			return; // już na minimum i nie można cyklicznie
+        // update lightning
+        Train->Dynamic()->SetLights();
+
         // visual feedback
 		if (Train->ggModernLightDimSw.SubModel != nullptr)
-		    if (Train->mvOccupied->modernContainOffPos)
-			    Train->ggModernLightDimSw.UpdateValue(Train->mvOccupied->modernDimmerState, Train->dsbSwitch);
-		    else
-			    Train->ggModernLightDimSw.UpdateValue(Train->mvOccupied->modernDimmerState - 1, Train->dsbSwitch);
+			Train->ggModernLightDimSw.UpdateValue(dimPos, Train->dsbSwitch);
 	}
 }
 void TTrain::OnCommand_modernlightdimmerdecrease(TTrain *Train, command_data const &Command)
 {
 	if (!Train->mvOccupied->enableModernDimmer)
-		return; // if modern dimmer is disabled, skip entire command
+		return; // jeśli dimmer jest wyłączony, olewamy
+
 	if (Command.action == GLFW_PRESS)
 	{
-		byte minPos = (Train->mvOccupied->modernContainOffPos) ? 0 : 1; // prevent switching to 0 if its not enabled
-		// update modern dimmer state
-		if (Train->mvOccupied->modernDimmerState > minPos)
-			Train->mvOccupied->modernDimmerState--;
-		    Train->Dynamic()->SetLights();
-        // visual feedback
+		auto &dimPos = Train->mvOccupied->modernDimmerPosition;
+		auto dimCount = Train->mvOccupied->dimPositions.size();
+
+		if (dimCount == 0)
+			return;
+
+		if (dimPos > 0)
+			dimPos--;
+		else if (Train->mvOccupied->modernDimmerCanCycle)
+			dimPos = static_cast<int>(dimCount - 1); // ostatnia pozycja
+		else
+			return; // już na minimum i nie można cyklicznie
+
+		Train->Dynamic()->SetLights();
+
 		if (Train->ggModernLightDimSw.SubModel != nullptr)
-			if (Train->mvOccupied->modernContainOffPos)
-			    Train->ggModernLightDimSw.UpdateValue(Train->mvOccupied->modernDimmerState, Train->dsbSwitch);
-			else
-				Train->ggModernLightDimSw.UpdateValue(Train->mvOccupied->modernDimmerState - 1, Train->dsbSwitch);
-    }
+			Train->ggModernLightDimSw.UpdateValue(dimPos, Train->dsbSwitch);
+	}
 }
 
 void TTrain::OnCommand_redmarkertogglerearleft( TTrain *Train, command_data const &Command ) {
@@ -5104,7 +5117,7 @@ void TTrain::OnCommand_headlightsdimtoggle( TTrain *Train, command_data const &C
 		return;
     if( Command.action == GLFW_PRESS ) {
         // only reacting to press, so the switch doesn't flip back and forth if key is held down
-		if (Train->DynamicObject->MoverParameters->modernDimmerState == 2)
+		if (Train->DynamicObject->MoverParameters->modernDimmerPosition == 0)
 		{
             // turn on
             OnCommand_headlightsdimenable( Train, Command );
@@ -5136,8 +5149,7 @@ void TTrain::OnCommand_headlightsdimenable( TTrain *Train, command_data const &C
 
         Train->DynamicObject->DimHeadlights = true;
         */
-		WriteLog("Switch do 1");
-        Train->DynamicObject->MoverParameters->modernDimmerState = 1;   // ustawiamy modern dimmer na flage przyciemnienia
+        Train->DynamicObject->MoverParameters->modernDimmerPosition = 1;   // ustawiamy modern dimmer na flage przyciemnienia
 		Train->DynamicObject->RaLightsSet(Train->DynamicObject->MoverParameters->iLights[0],
 		    Train->DynamicObject->MoverParameters->iLights[1]
             ); // aktualizacja swiatelek
@@ -5163,8 +5175,7 @@ void TTrain::OnCommand_headlightsdimdisable( TTrain *Train, command_data const &
         Train->DynamicObject->DimHeadlights = false;
 
         */
-		WriteLog("Switch do 2");
-		Train->DynamicObject->MoverParameters->modernDimmerState = 2; // ustawiamy modern dimmer na flage rozjasnienia
+		Train->DynamicObject->MoverParameters->modernDimmerPosition = 0; // ustawiamy modern dimmer na flage rozjasnienia
 		Train->DynamicObject->RaLightsSet(
             Train->DynamicObject->MoverParameters->iLights[0],
             Train->DynamicObject->MoverParameters->iLights[1]
@@ -9937,10 +9948,8 @@ void TTrain::set_cab_controls( int const Cab ) {
     }
 
     if (ggModernLightDimSw.SubModel != nullptr) {
-		if (mvOccupied->modernContainOffPos)
-		    ggModernLightDimSw.PutValue(mvOccupied->modernDimmerState);
-        else
-            ggModernLightDimSw.PutValue(mvOccupied->modernDimmerState - 1);
+		mvOccupied->modernDimmerPosition = mvOccupied->modernDimmerDefaultPosition;
+        ggModernLightDimSw.PutValue(mvOccupied->modernDimmerDefaultPosition);
     }
 
     // Init separate buttons
@@ -10081,8 +10090,8 @@ void TTrain::set_cab_controls( int const Cab ) {
             ggRightLightButton.PutValue( -1.f );
         }
     }
-    if( 1 == DynamicObject->MoverParameters->modernDimmerState ) {
-        ggDimHeadlightsButton.PutValue( 1.f );
+    if( 1 == DynamicObject->MoverParameters->modernDimmerPosition ) {
+		ggDimHeadlightsButton.PutValue(DynamicObject->MoverParameters->modernDimmerPosition);
     }
     // cab lights
     if( true == Cabine[Cab].bLightDim ) {

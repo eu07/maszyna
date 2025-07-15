@@ -1377,6 +1377,7 @@ class TMoverParameters
 	TDESchemeTable DElist;
 	TWiperSchemeTable WiperList;
 	int WiperListSize;
+	int modernWpierListSize;
 
 	double Vadd = 1.0;
 	TMPTRelayTable MPTRelay;
@@ -1774,9 +1775,23 @@ class TMoverParameters
 	// 2 - swiatla normalne
 	// 3 - swiatla dlugie przyciemnione
 	// 4 - swiatla dlugie normalne
-	int modernDimmerState{0};
-	bool modernContainOffPos{true};
+
+	struct dimPosition
+	{
+		bool isOff = false;
+		bool isDimmed = false;
+		bool isHighBeam = false;
+	};
+
+	// default positions
+	std::vector<dimPosition> dimPositions = {{false, false, false}, // 0 - Not dimmed
+	                                         {false, true, false}}; // 1 - Dimmed
+
+	int modernDimmerPosition{0};
+	int modernDimmerDefaultPosition{0};
+	//bool modernContainOffPos{true};
 	bool enableModernDimmer {false};
+	bool modernDimmerCanCycle {false};
 
 	// Barwa reflektora
 	int refR{255}; // Czerwony
@@ -2067,6 +2082,7 @@ private:
     void LoadFIZ_FFList( std::string const &Input );
 	void LoadFIZ_WiperList(std::string const &Input);
     void LoadFIZ_LightsList( std::string const &Input );
+	void LoadFIZ_DimmerList(std::string const &Input);
 	void LoadFIZ_CompressorList(std::string const &Input);
     void LoadFIZ_PowerParamsDecode( TPowerParameters &Powerparameters, std::string const Prefix, std::string const &Input );
     TPowerType LoadFIZ_PowerDecode( std::string const &Power );
@@ -2088,6 +2104,7 @@ private:
     bool readFFList( std::string const &line );
     bool readWWList( std::string const &line );
     bool readWiperList( std::string const &line );
+	bool readDimmerList(std::string const &line);
     bool readLightsList( std::string const &Input );
 	bool readCompressorList(std::string const &Input);
     void BrakeValveDecode( std::string const &s );                                                            //Q 20160719
