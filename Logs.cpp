@@ -23,8 +23,6 @@ char logbuffer[ 256 ];
 
 char endstring[10] = "\n";
 
-std::mutex logMutex;
-
 std::deque<std::string> log_scrollback;
 
 std::string filename_date() {
@@ -75,19 +73,22 @@ std::string filename_scenery() {
 std::deque<std::string> InfoStack;
 std::deque<std::string> ErrorStack;
 
+// lock for log stacks
+std::mutex logMutex;
+
 
 void LogService()
 {
 	while (!Global.applicationQuitOrder)
 	{
 		{
-			std::lock_guard<std::mutex> lock(logMutex);
-
 			// --- Obsługa InfoStack ---
 			while (!InfoStack.empty())
 			{
+				logMutex.lock();
 				std::string msg = InfoStack.front();
 				InfoStack.pop_front();
+				logMutex.unlock();
 
 				if (Global.iWriteLogEnabled & 1)
 				{
@@ -120,8 +121,10 @@ void LogService()
 			// --- Obsługa ErrorStack ---
 			while (!ErrorStack.empty())
 			{
+				logMutex.lock();
 				std::string msg = ErrorStack.front();
 				ErrorStack.pop_front();
+				logMutex.unlock();
 
 				if (!(Global.iWriteLogEnabled & 1))
 					continue;
@@ -149,8 +152,9 @@ void WriteLog(const char *str, logtype const Type)
 		return;
 	if (TestFlag(Global.DisabledLogTypes, static_cast<unsigned int>(Type)))
 		return;
-
+	logMutex.lock();
 	InfoStack.emplace_back(str);
+	logMutex.unlock();
 }
 
 void ErrorLog(const char *str, logtype const Type)
@@ -159,8 +163,9 @@ void ErrorLog(const char *str, logtype const Type)
 		return;
 	if (TestFlag(Global.DisabledLogTypes, static_cast<unsigned int>(Type)))
 		return;
-
+	logMutex.lock();
 	ErrorStack.emplace_back(str);
+	logMutex.unlock();
 }
 
 
