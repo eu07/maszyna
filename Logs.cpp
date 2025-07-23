@@ -70,7 +70,7 @@ std::string filename_scenery() {
 }
 
 // log service stacks
-std::deque<std::string> InfoStack;
+std::deque < std::pair<std::string, bool>> InfoStack;
 std::deque<std::string> ErrorStack;
 
 // lock for log stacks
@@ -86,10 +86,12 @@ void LogService()
 			while (!InfoStack.empty())
 			{
 				logMutex.lock();
-				std::string msg = InfoStack.front();
+				std::string msg = InfoStack.front().first;
+				bool isError = InfoStack.front().second;
 				InfoStack.pop_front();
 				logMutex.unlock();
 
+				// log to file
 				if (Global.iWriteLogEnabled & 1)
 				{
 					if (!output.is_open())
@@ -101,20 +103,18 @@ void LogService()
 					output.flush();
 				}
 
+				// log to scrollback imgui
 				log_scrollback.emplace_back(msg);
 				if (log_scrollback.size() > 200)
 					log_scrollback.pop_front();
 
+				// log to console
 				if (Global.iWriteLogEnabled & 2)
 				{
-#ifdef _WIN32
-					SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), FOREGROUND_GREEN | FOREGROUND_INTENSITY);
-					DWORD wr = 0;
-					WriteConsole(GetStdHandle(STD_OUTPUT_HANDLE), msg.c_str(), (DWORD)msg.size(), &wr, NULL);
-					WriteConsole(GetStdHandle(STD_OUTPUT_HANDLE), endstring, (DWORD)strlen(endstring), &wr, NULL);
-#else
-					printf("%s\n", msg.c_str());
-#endif
+					if (isError)
+						printf("\033[1;37;41m%s\033[0m\n", msg.c_str());
+					else
+						printf("\033[32m%s\033[0m\n", msg.c_str());
 				}
 			}
 
@@ -146,14 +146,14 @@ void LogService()
 }
 
 
-void WriteLog(const char *str, logtype const Type)
+void WriteLog(const char *str, logtype const Type, bool isError)
 {
 	if (!str || *str == '\0')
 		return;
 	if (TestFlag(Global.DisabledLogTypes, static_cast<unsigned int>(Type)))
 		return;
 	logMutex.lock();
-	InfoStack.emplace_back(str);
+	InfoStack.emplace_back(str, isError);
 	logMutex.unlock();
 }
 
@@ -187,7 +187,7 @@ void Error(const char *&asMessage, bool box)
 void ErrorLog(const std::string &str, logtype const Type )
 {
     ErrorLog( str.c_str(), Type );
-    WriteLog( str.c_str(), Type );
+    WriteLog( str.c_str(), Type, true );
 }
 
 void WriteLog(const std::string &str, logtype const Type )

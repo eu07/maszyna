@@ -840,12 +840,6 @@ eu07_application::init_settings( int Argc, char *Argv[] ) {
     Global.asVersion = VERSION_INFO;
 
     Global.LoadIniFile( "eu07.ini" );
-#ifdef _WIN32
-    if( ( Global.iWriteLogEnabled & 2 ) != 0 ) {
-        // show output console if requested
-        AllocConsole();
-    }
-#endif
 
     // process command line arguments
     for( int i = 1; i < Argc; ++i ) {
