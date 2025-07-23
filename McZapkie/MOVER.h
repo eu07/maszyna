@@ -1163,6 +1163,7 @@ class TMoverParameters
 	int UniversalBrakeButtonFlag[3] = {0, 0, 0}; /* mozliwe działania przycisków hamulcowych */
 	int UniversalResetButtonFlag[3] = {0, 0, 0}; // customizable reset buttons assignments
 	int TurboTest = 0;
+	bool batterySwAlreadyFired = false; // czy przycisk baterii juz zostal wcisniety
 	bool isBatteryButtonImpulse = false; // czy przelacznik baterii traktowac jako pojedynczy przycisk
 	bool shouldHoldBatteryButton = false; // czy nalezy przytrzymac przycisk baterii aby wlaczyc/wylaczyc baterie
 	float BatteryButtonHoldTime = 1.f; // minimalny czas przytrzymania przycisku baterii

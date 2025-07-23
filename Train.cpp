@@ -2503,22 +2503,26 @@ void TTrain::OnCommand_batteryenable( TTrain *Train, command_data const &Command
 			Train->ggBatteryOnButton.UpdateValue(0.0f, Train->dsbSwitch);
             Train->fBatteryTimer = -1.f; //
             Train->allowBatteryToggle = true;
+			Train->mvOccupied->batterySwAlreadyFired = false;
+
 		}
 		else if (Command.action == GLFW_REPEAT && Train->mvOccupied->shouldHoldBatteryButton)
 		{
-            // trzymamy przycisk
-            if (Train->fBatteryTimer <= 0.0 && Train->mvOccupied->Battery == false) {
+			// trzymamy przycisk
+			if (Train->fBatteryTimer <= 0.0 && Train->mvOccupied->Battery == false && !Train->mvOccupied->batterySwAlreadyFired)
+			{
 				Train->mvOccupied->BatterySwitch(true);
+				Train->mvOccupied->batterySwAlreadyFired = true;
+
 				// side-effects
 				if (Train->mvOccupied->LightsPosNo > 0)
 				{
 					Train->Dynamic()->SetLights();
 				}
 				Train->allowBatteryToggle = false;
-            }
-
+			}
 		}
-    }
+	}
 }
 
 void TTrain::OnCommand_batterydisable( TTrain *Train, command_data const &Command ) {
@@ -2581,20 +2585,25 @@ void TTrain::OnCommand_batterydisable( TTrain *Train, command_data const &Comman
 			Train->ggBatteryButton.UpdateValue(0.0f, Train->dsbSwitch);
 			Train->ggBatteryOffButton.UpdateValue(0.0f, Train->dsbSwitch);
             Train->allowBatteryToggle = true;
+			Train->mvOccupied->batterySwAlreadyFired = false;
 		}
 		else if (Command.action == GLFW_REPEAT && Train->mvOccupied->shouldHoldBatteryButton)
 		{
 			// trzymamy przycisk
-            if (Train->fBatteryTimer <= 0.0 && Train->mvOccupied->Battery == true) {
+			if (Train->fBatteryTimer <= 0.0 && Train->mvOccupied->Battery == true && !Train->mvOccupied->batterySwAlreadyFired)
+			{
 				Train->mvOccupied->BatterySwitch(false);
-				Train->allowBatteryToggle = false;
+				Train->mvOccupied->batterySwAlreadyFired = true;
+
 				// side-effects
 				if (Train->mvOccupied->LightsPosNo > 0)
 				{
 					Train->Dynamic()->SetLights();
 				}
-            }
+				Train->allowBatteryToggle = false;
+			}
 		}
+
 	}
 }
 
