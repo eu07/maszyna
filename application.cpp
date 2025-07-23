@@ -270,7 +270,6 @@ int
 eu07_application::init( int Argc, char *Argv[] ) {
 
     int result { 0 };
-
     init_debug();
     init_files();
     if( ( result = init_settings( Argc, Argv ) ) != 0 ) {

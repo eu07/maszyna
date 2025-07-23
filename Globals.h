@@ -30,6 +30,8 @@ struct global_settings {
     // data items
     // TODO: take these out of the settings
 
+    std::chrono::steady_clock::time_point startTimestamp;
+
 	/// <summary>
 	/// Mapa z watkami w formacie <std::string nazwa, std::thread watek>
 	/// </summary>

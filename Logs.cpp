@@ -152,8 +152,23 @@ void WriteLog(const char *str, logtype const Type, bool isError)
 		return;
 	if (TestFlag(Global.DisabledLogTypes, static_cast<unsigned int>(Type)))
 		return;
+
+	// time calculation
+	auto now = std::chrono::steady_clock::now();
+	auto elapsed = now - Global.startTimestamp;
+	double seconds = std::chrono::duration_cast<std::chrono::duration<double>>(elapsed).count();
+	
+	// time format
+	std::ostringstream oss;
+	oss << "[ " << std::fixed << std::setprecision(3) << seconds << " ] ";
+
+	// wyrownanie do np. 10 znaków długości + dwie tabulacje
+	std::ostringstream final;
+	final << std::setw(10) << oss.str() << "\t\t" << str;
+
+
 	logMutex.lock();
-	InfoStack.emplace_back(str, isError);
+	InfoStack.emplace_back(final.str(), isError);
 	logMutex.unlock();
 }
 
@@ -163,8 +178,22 @@ void ErrorLog(const char *str, logtype const Type)
 		return;
 	if (TestFlag(Global.DisabledLogTypes, static_cast<unsigned int>(Type)))
 		return;
+
+		// time calculation
+	auto now = std::chrono::steady_clock::now();
+	auto elapsed = now - Global.startTimestamp;
+	double seconds = std::chrono::duration_cast<std::chrono::duration<double>>(elapsed).count();
+
+	// time format
+	std::ostringstream oss;
+	oss << "[ " << std::fixed << std::setprecision(3) << seconds << " ] ";
+
+	// wyrownanie do np. 10 znaków długości + dwie tabulacje
+	std::ostringstream final;
+	final << std::setw(10) << oss.str() << "\t\t" << str;
+
 	logMutex.lock();
-	ErrorStack.emplace_back(str);
+	ErrorStack.emplace_back(final.str());
 	logMutex.unlock();
 }
 

@@ -39,7 +39,7 @@ void export_e3d_standalone(std::string in, std::string out, int flags, bool dyna
 #include <string>
 #include <sstream>
 #include <iomanip>
-
+#include <Globals.h>
 #pragma comment(lib, "Dbghelp.lib")
 
 LONG WINAPI CrashHandler(EXCEPTION_POINTERS *ExceptionInfo)
@@ -78,6 +78,8 @@ int main(int argc, char *argv[])
 #ifdef WITHDUMPGEN
 	SetUnhandledExceptionFilter(CrashHandler);
 #endif
+	// init start timestamp
+	Global.startTimestamp = std::chrono::steady_clock::now();
 
     // quick short-circuit for standalone e3d export
     if (argc == 6 && std::string(argv[1]) == "-e3d") {
