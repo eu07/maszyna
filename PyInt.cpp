@@ -30,6 +30,7 @@ void render_task::run() {
     for( auto const &datapair : m_input->floats )   { auto *value{ PyGetFloat( datapair.second ) }; PyDict_SetItemString( input, datapair.first.c_str(), value ); Py_DECREF( value ); }
     for( auto const &datapair : m_input->integers ) { auto *value{ PyGetInt( datapair.second ) }; PyDict_SetItemString( input, datapair.first.c_str(), value ); Py_DECREF( value ); }
     for( auto const &datapair : m_input->bools )    { auto *value{ PyGetBool( datapair.second ) }; PyDict_SetItemString( input, datapair.first.c_str(), value ); }
+	// FIXME should we use str or bytes here?
     for( auto const &datapair : m_input->strings )  { auto *value{ PyGetString( datapair.second.c_str() ) }; PyDict_SetItemString( input, datapair.first.c_str(), value ); Py_DECREF( value ); }
     for (auto const &datapair : m_input->vec2_lists) {
         PyObject *list = PyList_New(datapair.second.size());
@@ -62,11 +63,11 @@ void render_task::run() {
         if( ( outputwidth != nullptr )
          && ( outputheight != nullptr )
 		 && m_target) {
-			int width = PyInt_AsLong( outputwidth );
-			int height = PyInt_AsLong( outputheight );
+			int width = PyLong_AsLong( outputwidth );
+			int height = PyLong_AsLong( outputheight );
 			int components, format;
 
-            const unsigned char *image = reinterpret_cast<const unsigned char *>( PyString_AsString( output ) );
+            const unsigned char *image = reinterpret_cast<const unsigned char *>( PyBytes_AsString( output ) );
 
 			std::lock_guard<std::mutex> guard(m_target->mutex);
 			if (m_target->image)
@@ -182,29 +183,33 @@ auto python_taskqueue::init() -> bool {
 	crashreport_add_info("python.threadedupload", Global.python_threadedupload ? "yes" : "no");
 	crashreport_add_info("python.uploadmain", Global.python_uploadmain ? "yes" : "no");
 
-#ifdef _WIN32
-	if (sizeof(void*) == 8)
-		Py_SetPythonHome("python64");
-	else
-		Py_SetPythonHome("python");
-#elif __linux__
-	if (sizeof(void*) == 8)
-		Py_SetPythonHome("linuxpython64");
-	else
-		Py_SetPythonHome("linuxpython");
-#elif __APPLE__
-	if (sizeof(void*) == 8)
-		Py_SetPythonHome("macpython64");
-	else
-		Py_SetPythonHome("macpython");
-#endif
-    Py_InitializeEx(0);
+	// FIXME on Linux, if i use a virtualenv i get:
+	// ModuleNotFound Error: No module named 'encodings'
+//#ifdef _WIN32
+//	if (sizeof(void*) == 8)
+//		Py_SetPythonHome(L"python364");
+//	else
+//		Py_SetPythonHome(L"python3");
+//#elif __linux__
+//	if (sizeof(void*) == 8)
+//		Py_SetPythonHome(L"linuxpython364");
+//	else
+//		Py_SetPythonHome(L"linuxpython3");
+//#elif __APPLE__
+//	if (sizeof(void*) == 8)
+//		Py_SetPythonHome(L"macpython364");
+//	else
+//		Py_SetPythonHome(L"macpython3");
+//#endif
 
-    PyEval_InitThreads();
+    Py_InitializeEx(0);
 
 	PyObject *stringiomodule { nullptr };
 	PyObject *stringioclassname { nullptr };
 	PyObject *stringioobject { nullptr };
+
+	PyObject *syspath { nullptr };
+	int res;
 
     // do the setup work while we hold the lock
     m_main = PyImport_ImportModule("__main__");
@@ -213,7 +218,7 @@ auto python_taskqueue::init() -> bool {
         goto release_and_exit;
     }
 
-    stringiomodule = PyImport_ImportModule( "cStringIO" );
+    stringiomodule = PyImport_ImportModule( "io" );
     stringioclassname = (
         stringiomodule != nullptr ?
             PyObject_GetAttrString( stringiomodule, "StringIO" ) :
@@ -227,7 +232,17 @@ auto python_taskqueue::init() -> bool {
         PySys_SetObject( "stderr", stringioobject ) != 0 ? nullptr :
         stringioobject ) };
 
-    if( false == run_file( "abstractscreenrenderer" ) ) { goto release_and_exit; }
+	// without this, python can't find the 'scripts' module.
+	// this probably isn't the right way to fix it, but i don't feel like
+	// reading about module resolution rules right now
+	if( PyRun_SimpleString( "import os, sys; sys.path.append(os.getcwd())" ) < 0 ) {
+		ErrorLog("Python Interpreter: failed to add path");
+		goto release_and_exit;
+	}
+
+    if( false == run_file( "abstractscreenrenderer" ) ) {
+		goto release_and_exit;
+	}
 
     // release the lock, save the state for future use
     m_mainthread = PyEval_SaveThread();
@@ -252,7 +267,7 @@ auto python_taskqueue::init() -> bool {
     return true;
 
 release_and_exit:
-    PyEval_ReleaseLock();
+    PyEval_SaveThread();
     return false;
 }
 
@@ -403,9 +418,8 @@ void python_taskqueue::run( GLFWwindow *Context, rendertask_sequence &Tasks, upl
 		glfwMakeContextCurrent( Context );
 
     // create a state object for this thread
-    PyEval_AcquireLock();
+	// according to documentation "The global interpreter lock need not be held"
     auto *threadstate { PyThreadState_New( m_mainthread->interp ) };
-    PyEval_ReleaseLock();
 
     render_task *task { nullptr };
 
@@ -450,11 +464,9 @@ void python_taskqueue::run( GLFWwindow *Context, rendertask_sequence &Tasks, upl
         Condition.wait_for( std::chrono::seconds( 5 ) );
     }
     // clean up thread state data
-    PyEval_AcquireLock();
-    PyThreadState_Swap( nullptr );
+    PyEval_RestoreThread( threadstate );
     PyThreadState_Clear( threadstate );
-    PyThreadState_Delete( threadstate );
-    PyEval_ReleaseLock();
+    PyThreadState_DeleteCurrent();
 }
 
 void python_taskqueue::update()
@@ -474,7 +486,7 @@ python_taskqueue::error() {
         // std err pythona jest buforowane
         PyErr_Print();
         auto *errortext { PyObject_CallMethod( m_stderr, "getvalue", nullptr ) };
-        ErrorLog( PyString_AsString( errortext ) );
+        ErrorLog( PyUnicode_AsUTF8( errortext ) );
         // czyscimy bufor na kolejne bledy
         PyObject_CallMethod( m_stderr, "truncate", "i", 0 );
     }
@@ -491,14 +503,14 @@ python_taskqueue::error() {
         }
         auto *typetext { PyObject_Str( type ) };
         if( typetext != nullptr ) {
-            ErrorLog( PyString_AsString( typetext ) );
+            ErrorLog( PyUnicode_AsUTF8( typetext ) );
         }
         if( value != nullptr ) {
-            ErrorLog( PyString_AsString( value ) );
+            ErrorLog( PyUnicode_AsUTF8( value ) );
         }
         auto *tracebacktext { PyObject_Str( traceback ) };
         if( tracebacktext != nullptr ) {
-            ErrorLog( PyString_AsString( tracebacktext ) );
+            ErrorLog( PyUnicode_AsUTF8( tracebacktext ) );
         }
         else {
             WriteLog( "Python Interpreter: failed to retrieve the stack traceback" );
@@ -527,7 +539,7 @@ std::vector<std::string> python_external_utils::PyObjectToStringArray(PyObject *
 			return emptyIfError;
 		}
 
-		const char *str = PyString_AsString(item);
+		const char *str = PyUnicode_AsUTF8(item);
 		if (str == nullptr)
 		{
 			Py_DECREF(item);

@@ -4907,7 +4907,7 @@ void TTrain::OnCommand_modernlightdimmerdecrease(TTrain *Train, command_data con
 		return; // if modern dimmer is disabled, skip entire command
 	if (Command.action == GLFW_PRESS)
 	{
-		byte minPos = (Train->mvOccupied->modernContainOffPos) ? 0 : 1; // prevent switching to 0 if its not enabled
+		int minPos = (Train->mvOccupied->modernContainOffPos) ? 0 : 1; // prevent switching to 0 if its not enabled
 		// update modern dimmer state
 		if (Train->mvOccupied->modernDimmerState > minPos)
 			Train->mvOccupied->modernDimmerState--;
