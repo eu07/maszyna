@@ -275,6 +275,11 @@ eu07_application::init( int Argc, char *Argv[] ) {
     if( ( result = init_settings( Argc, Argv ) ) != 0 ) {
         return result;
     }
+    else
+    {
+		MessageBoxA(nullptr, "Failed to initialize settings!\nMaybe you're missing eu07.ini file?", "Error", MB_ICONERROR | MB_OK);
+		return result;
+    }
 
     // start logging service
 	std::thread sLoggingService(LogService);
@@ -304,28 +309,69 @@ eu07_application::init( int Argc, char *Argv[] ) {
     if( ( result = init_glfw() ) != 0 ) {
         return result;
     }
+    else
+    {
+		MessageBoxA(nullptr, "Failed to initialize glfw!", "Error", MB_ICONERROR | MB_OK);
+		return result;
+    }
     if( needs_ogl() && ( result = init_ogl() ) != 0 ) {
         return result;
     }
+	else
+	{
+		MessageBoxA(nullptr, "Failed to initialize ogl!", "Error", MB_ICONERROR | MB_OK);
+		return result;
+	}
     if (crashreport_is_pending()) { // run crashgui as early as possible
         if ( ( result = run_crashgui() ) != 0 )
             return result;
+		else
+		{
+			MessageBoxA(nullptr, "Failed to run crash gui!", "Error", MB_ICONERROR | MB_OK);
+			return result;
+		}
     }
+
     if( ( result = init_locale() ) != 0 ) {
         return result;
     }
+	else
+	{
+		MessageBoxA(nullptr, "Failed to initialize locales!\nMaybe you're missing lang directory?", "Error", MB_ICONERROR | MB_OK);
+		return result;
+	}
     if( ( result = init_gfx() ) != 0 ) {
         return result;
     }
+	else
+	{
+		MessageBoxA(nullptr, "Failed to initialize GFX!", "Error", MB_ICONERROR | MB_OK);
+		return result;
+	}
     if( ( result = init_ui() ) != 0 ) { // ui now depends on activated renderer
         return result;
     }
+	else
+	{
+		MessageBoxA(nullptr, "Failed to init UI!", "Error", MB_ICONERROR | MB_OK);
+		return result;
+	}
     if( ( result = init_audio() ) != 0 ) {
         return result;
     }
+	else
+	{
+		MessageBoxA(nullptr, "Failed to initialize OpenAL", "Error", MB_ICONERROR | MB_OK);
+		return result;
+	}
     if( ( result = init_data() ) != 0 ) {
         return result;
     }
+	else
+	{
+		MessageBoxA(nullptr, "Failed to load data/ contents!\nMaybe your installation is broken?", "Error", MB_ICONERROR | MB_OK);
+		return result;
+	}
     crashreport_add_info("python_enabled", Global.python_enabled ? "yes" : "no");
     if( Global.python_enabled ) {
         m_taskqueue.init();
@@ -333,13 +379,18 @@ eu07_application::init( int Argc, char *Argv[] ) {
     if( ( result = init_modes() ) != 0 ) {
         return result;
     }
+	else
+	{
+		MessageBoxA(nullptr, "Failed to initialize game modes", "Error", MB_ICONERROR | MB_OK);
+		return result;
+	}
+
+    // Run DiscordRPC service
+	std::thread sDiscordRPC(&eu07_application::DiscordRPCService, this);
+	Global.threads.emplace("DiscordRPC", std::move(sDiscordRPC));
 
 	if (!init_network())
 		return -1;
-
-    // Run DiscordRPC service
-    std::thread sDiscordRPC(&eu07_application::DiscordRPCService, this);
-    Global.threads.emplace("DiscordRPC", std::move(sDiscordRPC));
 
     return result;
 }
