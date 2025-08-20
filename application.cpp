@@ -304,25 +304,16 @@ eu07_application::init( int Argc, char *Argv[] ) {
     WriteLog( "// startup" );
 
     if( ( result = init_glfw() ) != 0 ) {
-        return result;
-    }
-    else
-    {
 		ErrorLog("Failed to initialize glfw!");
-		return result;
+        return result;
     }
     if( needs_ogl() && ( result = init_ogl() ) != 0 ) {
+		ErrorLog("Failed to initialize ogl!");
         return result;
     }
-	else
-	{
-		ErrorLog("Failed to initialize ogl!");
-		return result;
-	}
+
     if (crashreport_is_pending()) { // run crashgui as early as possible
-        if ( ( result = run_crashgui() ) != 0 )
-            return result;
-		else
+		if ((result = run_crashgui()) != 0)
 		{
 			ErrorLog("Failed to run crash gui!");
 			return result;
@@ -330,57 +321,35 @@ eu07_application::init( int Argc, char *Argv[] ) {
     }
 
     if( ( result = init_locale() ) != 0 ) {
-        return result;
-    }
-	else
-	{
 		ErrorLog("Failed to initialize locales! Maybe you're missing lang directory?");
-		return result;
-	}
+        return result;
+    }
+
     if( ( result = init_gfx() ) != 0 ) {
-        return result;
-    }
-	else
-	{
 		ErrorLog("Failed to initialize GFX!");
-		return result;
-	}
-    if( ( result = init_ui() ) != 0 ) { // ui now depends on activated renderer
         return result;
     }
-	else
-	{
+
+    if( ( result = init_ui() ) != 0 ) { // ui now depends on activated renderer
 		ErrorLog("Failed to init UI!");
 		return result;
-	}
-    if( ( result = init_audio() ) != 0 ) {
-        return result;
     }
-	else
-	{
+    if( ( result = init_audio() ) != 0 ) {
 		ErrorLog("Failed to initialize OpenAL");
 		return result;
-	}
-    if( ( result = init_data() ) != 0 ) {
-        return result;
     }
-	else
-	{
+    if( ( result = init_data() ) != 0 ) {
 		ErrorLog("Failed to load data/ contents! Maybe your installation is broken?");
 		return result;
-	}
+    }
     crashreport_add_info("python_enabled", Global.python_enabled ? "yes" : "no");
     if( Global.python_enabled ) {
         m_taskqueue.init();
     }
     if( ( result = init_modes() ) != 0 ) {
-        return result;
-    }
-	else
-	{
 		ErrorLog("Failed to initialize game modes");
 		return result;
-	}
+    }
 
     // Run DiscordRPC service
 	std::thread sDiscordRPC(&eu07_application::DiscordRPCService, this);
@@ -585,9 +554,6 @@ eu07_application::run() {
             std::this_thread::sleep_for( Global.minframetime - frametime );
         }
     }
-	Global.applicationQuitOrder = true;
-	Global.threads["LogService"].join(); // kill log service
-	Global.threads["DiscordRPC"].join(); // kill DiscordRPC service
 	return 0;
 }
 
@@ -619,6 +585,11 @@ eu07_application::release_python_lock() {
 
 void
 eu07_application::exit() {
+	Global.applicationQuitOrder = true;
+	Global.threads["LogService"].join(); // kill log service
+	Global.threads["DiscordRPC"].join(); // kill DiscordRPC service
+
+
 	for (auto &mode : m_modes)
 		mode.reset();
 
