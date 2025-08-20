@@ -270,20 +270,17 @@ int
 eu07_application::init( int Argc, char *Argv[] ) {
 
     int result { 0 };
+	// start logging service
+	std::thread sLoggingService(LogService);
+	Global.threads.emplace("LogService", std::move(sLoggingService));
+
     init_debug();
     init_files();
     if( ( result = init_settings( Argc, Argv ) ) != 0 ) {
+		ErrorLog("Failed to initialize settings!\nMaybe you're missing eu07.ini file?");
         return result;
     }
-    else
-    {
-		MessageBoxA(nullptr, "Failed to initialize settings!\nMaybe you're missing eu07.ini file?", "Error", MB_ICONERROR | MB_OK);
-		return result;
-    }
 
-    // start logging service
-	std::thread sLoggingService(LogService);
-	Global.threads.emplace("LogService", std::move(sLoggingService));
 
 	WriteLog( "Starting MaSzyna rail vehicle simulator (release: " + Global.asVersion + ")" );
 	WriteLog( "For online documentation and additional files refer to: http://eu07.pl" );
@@ -311,7 +308,7 @@ eu07_application::init( int Argc, char *Argv[] ) {
     }
     else
     {
-		MessageBoxA(nullptr, "Failed to initialize glfw!", "Error", MB_ICONERROR | MB_OK);
+		ErrorLog("Failed to initialize glfw!");
 		return result;
     }
     if( needs_ogl() && ( result = init_ogl() ) != 0 ) {
@@ -319,7 +316,7 @@ eu07_application::init( int Argc, char *Argv[] ) {
     }
 	else
 	{
-		MessageBoxA(nullptr, "Failed to initialize ogl!", "Error", MB_ICONERROR | MB_OK);
+		ErrorLog("Failed to initialize ogl!");
 		return result;
 	}
     if (crashreport_is_pending()) { // run crashgui as early as possible
@@ -327,7 +324,7 @@ eu07_application::init( int Argc, char *Argv[] ) {
             return result;
 		else
 		{
-			MessageBoxA(nullptr, "Failed to run crash gui!", "Error", MB_ICONERROR | MB_OK);
+			ErrorLog("Failed to run crash gui!");
 			return result;
 		}
     }
@@ -337,7 +334,7 @@ eu07_application::init( int Argc, char *Argv[] ) {
     }
 	else
 	{
-		MessageBoxA(nullptr, "Failed to initialize locales!\nMaybe you're missing lang directory?", "Error", MB_ICONERROR | MB_OK);
+		ErrorLog("Failed to initialize locales!\nMaybe you're missing lang directory?");
 		return result;
 	}
     if( ( result = init_gfx() ) != 0 ) {
@@ -345,7 +342,7 @@ eu07_application::init( int Argc, char *Argv[] ) {
     }
 	else
 	{
-		MessageBoxA(nullptr, "Failed to initialize GFX!", "Error", MB_ICONERROR | MB_OK);
+		ErrorLog("Failed to initialize GFX!");
 		return result;
 	}
     if( ( result = init_ui() ) != 0 ) { // ui now depends on activated renderer
@@ -353,7 +350,7 @@ eu07_application::init( int Argc, char *Argv[] ) {
     }
 	else
 	{
-		MessageBoxA(nullptr, "Failed to init UI!", "Error", MB_ICONERROR | MB_OK);
+		ErrorLog("Failed to init UI!");
 		return result;
 	}
     if( ( result = init_audio() ) != 0 ) {
@@ -361,7 +358,7 @@ eu07_application::init( int Argc, char *Argv[] ) {
     }
 	else
 	{
-		MessageBoxA(nullptr, "Failed to initialize OpenAL", "Error", MB_ICONERROR | MB_OK);
+		ErrorLog("Failed to initialize OpenAL");
 		return result;
 	}
     if( ( result = init_data() ) != 0 ) {
@@ -369,7 +366,7 @@ eu07_application::init( int Argc, char *Argv[] ) {
     }
 	else
 	{
-		MessageBoxA(nullptr, "Failed to load data/ contents!\nMaybe your installation is broken?", "Error", MB_ICONERROR | MB_OK);
+		ErrorLog("Failed to load data/ contents!\nMaybe your installation is broken?");
 		return result;
 	}
     crashreport_add_info("python_enabled", Global.python_enabled ? "yes" : "no");
@@ -381,7 +378,7 @@ eu07_application::init( int Argc, char *Argv[] ) {
     }
 	else
 	{
-		MessageBoxA(nullptr, "Failed to initialize game modes", "Error", MB_ICONERROR | MB_OK);
+		ErrorLog("Failed to initialize game modes");
 		return result;
 	}
 
