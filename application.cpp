@@ -277,7 +277,7 @@ eu07_application::init( int Argc, char *Argv[] ) {
     init_debug();
     init_files();
     if( ( result = init_settings( Argc, Argv ) ) != 0 ) {
-		ErrorLog("Failed to initialize settings!\nMaybe you're missing eu07.ini file?");
+		ErrorLog("Failed to initialize settings! Maybe you're missing eu07.ini file?");
         return result;
     }
 
@@ -334,7 +334,7 @@ eu07_application::init( int Argc, char *Argv[] ) {
     }
 	else
 	{
-		ErrorLog("Failed to initialize locales!\nMaybe you're missing lang directory?");
+		ErrorLog("Failed to initialize locales! Maybe you're missing lang directory?");
 		return result;
 	}
     if( ( result = init_gfx() ) != 0 ) {
@@ -366,7 +366,7 @@ eu07_application::init( int Argc, char *Argv[] ) {
     }
 	else
 	{
-		ErrorLog("Failed to load data/ contents!\nMaybe your installation is broken?");
+		ErrorLog("Failed to load data/ contents! Maybe your installation is broken?");
 		return result;
 	}
     crashreport_add_info("python_enabled", Global.python_enabled ? "yes" : "no");
