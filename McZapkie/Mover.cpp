@@ -11440,7 +11440,11 @@ void TMoverParameters::LoadFIZ_PowerParamsDecode( TPowerParameters &Powerparamet
 		    extract_value(PantType, "PantType", Line, "");
             if (PantType == "AKP_4E")
 			    collectorparameters.PantographType = TPantType::AKP_4E;
+#ifdef _WIN32
 		    if (PantType._Starts_with("DSA")) // zakladam ze wszystkie pantografy DSA sa takie same
+#elif __linux__
+            if (PantType.starts_with("DSA"))
+#endif
 			    collectorparameters.PantographType = TPantType::DSAx;
 		    if (PantType == "EC160" || PantType == "EC200")
 			    collectorparameters.PantographType = TPantType::EC160_200;
