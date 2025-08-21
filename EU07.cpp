@@ -22,8 +22,10 @@ Stele, firleju, szociu, hunter, ZiomalCl, OLI_EU and others
 #include "Logs.h"
 #include <cstdlib>
 #ifdef WITHDUMPGEN
+#ifdef _WIN32
 #include <Windows.h>
 #include <DbgHelp.h>
+#endif
 #endif
 
 #ifdef _MSC_VER
@@ -40,6 +42,8 @@ void export_e3d_standalone(std::string in, std::string out, int flags, bool dyna
 #include <sstream>
 #include <iomanip>
 #include <Globals.h>
+
+#ifdef _WIN32
 #pragma comment(lib, "Dbghelp.lib")
 
 LONG WINAPI CrashHandler(EXCEPTION_POINTERS *ExceptionInfo)
@@ -76,7 +80,9 @@ LONG WINAPI CrashHandler(EXCEPTION_POINTERS *ExceptionInfo)
 int main(int argc, char *argv[])
 {
 #ifdef WITHDUMPGEN
+#ifdef _WIN32
 	SetUnhandledExceptionFilter(CrashHandler);
+	#endif
 #endif
 	// init start timestamp
 	Global.startTimestamp = std::chrono::steady_clock::now();
