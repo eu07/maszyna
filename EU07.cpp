@@ -34,9 +34,6 @@ Stele, firleju, szociu, hunter, ZiomalCl, OLI_EU and others
 
 void export_e3d_standalone(std::string in, std::string out, int flags, bool dynamic);
 
-#ifdef WITHDUMPGEN
-#include <windows.h>
-#include <dbghelp.h>
 #include <ctime>
 #include <string>
 #include <sstream>
