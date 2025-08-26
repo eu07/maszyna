@@ -5,3 +5,6 @@
 	path = ref/discord-rpc
 	url = https://github.com/discord/discord-rpc.git
 	branch = v3.4.0
+[submodule "ref/python3"]
+	path = ref/python3
+	url = https://github.com/python/cpython.git
