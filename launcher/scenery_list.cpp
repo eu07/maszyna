@@ -3,7 +3,6 @@
 #include "imgui/imgui.h"
 #include "utilities.h"
 #include "renderer.h"
-#include "McZapkie/MOVER.h"
 #include "application.h"
 #include "Logs.h"
 #include <filesystem>
@@ -15,32 +14,36 @@ ui::scenerylist_panel::scenerylist_panel(scenery_scanner &scanner)
 
 void ui::scenerylist_panel::draw_scenery_list()
 {
-	std::string prev_prefix;
-	bool collapse_open = false;
-
+	// Draw all the scenarios which are not assigned to any category.
 	for (auto &desc : scanner.scenarios) {
 		std::string name = desc.path.stem().string();
-		std::string prefix = name.substr(0, name.find_first_of("-_"));
+		std::string prefix = desc.category;
 		if (prefix.empty())
-			prefix = name;
-
-		bool just_opened = false;
-		if (prefix != prev_prefix) {
-			collapse_open = ImGui::CollapsingHeader(prefix.c_str());
-			just_opened = ImGui::IsItemDeactivated();
-			prev_prefix = prefix;
-		}
-
-		if (collapse_open) {
-			if (just_opened)
-				selected_scenery = &desc;
-
-			ImGui::Indent(10.0f);
+		{
 			if (ImGui::Selectable(name.c_str(), &desc == selected_scenery)) {
 				selected_scenery = &desc;
 				selected_trainset = nullptr;
 			}
-			ImGui::Unindent(10.0f);
+		}
+	}
+
+	// Render all aggregated scenarios inside categories.
+	bool collapse_open = false;
+	for (auto category : scanner.categories)
+	{
+		collapse_open = ImGui::CollapsingHeader(category.first.c_str());
+		if (collapse_open) {
+			for (auto desc : category.second)
+			{
+				std::string name = desc->path.stem().string();
+
+				ImGui::Indent(10.0f);
+				if (ImGui::Selectable(name.c_str(), desc == selected_scenery)) {
+					selected_scenery = desc;
+					selected_trainset = nullptr;
+				}
+				ImGui::Unindent(10.0f);
+			}
 		}
 	}
 }
