@@ -770,7 +770,7 @@ void TDynamicObject::UpdateWiper(TAnim* pAnim)
 	if (!pAnim || !pAnim->smElement)
 		return;
 
-	int i = pAnim->iNumber;
+	int i = pAnim->iNumber; 
     // odwaramy animacje dla parzystych indexow
 	const double rotateAngle = (i + 1) % 2 == 0 ? -MoverParameters->WiperAngle : MoverParameters->WiperAngle;
 
@@ -6726,12 +6726,12 @@ void TDynamicObject::LoadMMediaFile( std::string const &TypeName, std::string co
                 else if (token == "wiperFromPark:")
                 {
 					sWiperFromPark.deserialize(parser, sound_type::single);
-					sWiperFromPark.owner(this);
+					sWiperFromPark.owner(this);  
                 }
 				else if (token == "wiperToPark:")
 				{
 					sWiperToPark.deserialize(parser, sound_type::single);
-					sWiperToPark.owner(this);
+					sWiperToPark.owner(this);  
 				}
 
 				else if (token == "retarder:") {
