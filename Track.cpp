@@ -2364,6 +2364,19 @@ TTrack::export_as_text_( std::ostream &Output ) const {
         << "\n";
 }
 
+// Returns the tooltip of this Track, which may contain a list of isolations if the track belongs to any.
+std::string TTrack::tooltip() const
+{
+	std::string tooltip = this->name();
+	if (!Isolated.empty())
+	{
+		tooltip += "\nIsolated:";
+		for (const auto isolation : Isolated)
+			tooltip += " " + isolation->asName;
+	}
+	return tooltip;
+}
+
 // locates specified profile in the profile database, potentially loading it from a file
 // returns: pair <profile name, profile handle>
 std::pair<std::string, int>

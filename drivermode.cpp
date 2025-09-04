@@ -341,12 +341,10 @@ driver_mode::update() {
                     set_tooltip( ( cabcontrol ? cabcontrol->pName : "" ) );
                 }
             }
-            if( ( true == Global.ControlPicking ) && ( true == FreeFlyModeFlag ) && ( true == DebugModeFlag ) ) {
-                auto const scenerynode = GfxRenderer->Pick_Node();
-                set_tooltip(
-                    ( scenerynode ?
-                        scenerynode->name() :
-                        "" ) );
+        	if( Global.ControlPicking && FreeFlyModeFlag && DebugModeFlag ) {
+        		const auto sceneryNode = GfxRenderer->Pick_Node();
+        		const std::string content = sceneryNode ? sceneryNode->tooltip() : "";
+        		set_tooltip(content);
             }
 
             runonce = true;
