@@ -431,10 +431,6 @@ driver_mode::exit() {
 void
 driver_mode::on_key( int const Key, int const Scancode, int const Action, int const Mods ) {
 
-    Global.shiftState = ( Mods & GLFW_MOD_SHIFT ) ? true : false;
-    Global.ctrlState = ( Mods & GLFW_MOD_CONTROL ) ? true : false;
-    Global.altState = ( Mods & GLFW_MOD_ALT ) ? true : false;
-
     bool anyModifier = Mods & (GLFW_MOD_SHIFT | GLFW_MOD_CONTROL | GLFW_MOD_ALT);
 
     // give the ui first shot at the input processing...

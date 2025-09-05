@@ -681,6 +681,13 @@ eu07_application::on_key( int const Key, int const Scancode, int const Action, i
 
     if( m_modestack.empty() ) { return; }
 
+	if (Key == GLFW_KEY_LEFT_SHIFT || Key == GLFW_KEY_RIGHT_SHIFT)
+		Global.shiftState = Action == GLFW_PRESS;
+	if (Key == GLFW_KEY_LEFT_CONTROL || Key == GLFW_KEY_RIGHT_CONTROL)
+		Global.ctrlState = Action == GLFW_PRESS;
+	if (Key == GLFW_KEY_LEFT_ALT || Key == GLFW_KEY_RIGHT_ALT)
+		Global.altState = Action == GLFW_PRESS;
+
     m_modes[ m_modestack.top() ]->on_key( Key, Scancode, Action, Mods );
 }
 

@@ -36,7 +36,5 @@ void launcher_mode::exit()
 
 void launcher_mode::on_key(const int Key, const int Scancode, const int Action, const int Mods)
 {
-	Global.shiftState = ( Mods & GLFW_MOD_SHIFT ) ? true : false;
-	Global.ctrlState = ( Mods & GLFW_MOD_CONTROL ) ? true : false;
 	m_userinterface->on_key(Key, Action);
 }
