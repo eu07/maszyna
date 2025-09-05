@@ -194,15 +194,6 @@ void eu07_application::DiscordRPCService()
 	memset(&handlers, 0, sizeof(handlers));
 	Discord_Initialize(discord_app_id, &handlers, 1, nullptr);
 
-	std::string rpcScnName = Global.SceneryFile;
-	if (rpcScnName[0] == '$')
-		rpcScnName.erase(0, 1);
-	rpcScnName.erase(rpcScnName.size() - 4, 4);
-	if (rpcScnName.find('_') != std::string::npos)
-	{
-		std::replace(rpcScnName.begin(), rpcScnName.end(), '_', ' ');
-	}
-
 	// calculate startup timestamp
 	auto now = std::chrono::system_clock::now();
 	auto now_c = std::chrono::system_clock::to_time_t(now);
@@ -210,20 +201,55 @@ void eu07_application::DiscordRPCService()
 	// Init RPC object
 	static DiscordRichPresence discord_rpc;
 	memset(&discord_rpc, 0, sizeof(discord_rpc));
-	// realworld timestamp from datetime
 	discord_rpc.startTimestamp = static_cast<int64_t>(now_c);
-	static std::string state = Translations.lookup_s("Scenery: ") + rpcScnName;
-	discord_rpc.state = state.c_str();
-	discord_rpc.details = Translations.lookup_c("Loading scenery...");
-	discord_rpc.largeImageKey = "logo";
 	discord_rpc.largeImageText = "MaSzyna";
-
-	// First RPC upload
-	Discord_UpdatePresence(&discord_rpc);
 
     // run loop
     while (!glfwWindowShouldClose(m_windows.front()) && !m_modestack.empty())
 	{
+		auto currentMode = m_modestack.top();
+        if (currentMode == mode::launcher)
+        {
+			// in launcher mode
+            
+            discord_rpc.state = Translations.lookup_c("In main menu");
+			discord_rpc.details = Translations.lookup_c("Browsing scenarios...");
+			discord_rpc.largeImageKey = "";
+			discord_rpc.largeImageText = "MaSzyna";
+			// RPC upload
+			Discord_UpdatePresence(&discord_rpc);
+
+			std::this_thread::sleep_for(std::chrono::milliseconds(5000)); // update RPC every 5 secs
+			continue;
+        }
+		else if (currentMode == mode::scenarioloader)
+		{
+			std::string rpcScnName = Global.SceneryFile;
+			if (rpcScnName[0] == '$')
+				rpcScnName.erase(0, 1);
+			rpcScnName.erase(rpcScnName.size() - 4, 4);
+			if (rpcScnName.find('_') != std::string::npos)
+			{
+				std::replace(rpcScnName.begin(), rpcScnName.end(), '_', ' ');
+			}
+
+            // realworld timestamp from datetime
+			static std::string state = Translations.lookup_s("Scenery: ") + rpcScnName;
+			discord_rpc.state = state.c_str();
+			discord_rpc.details = Translations.lookup_c("Loading scenery...");
+			discord_rpc.largeImageKey = "logo";
+			discord_rpc.largeImageText = "MaSzyna";
+
+			// RPC upload
+			Discord_UpdatePresence(&discord_rpc);
+
+			std::this_thread::sleep_for(std::chrono::milliseconds(5000)); // update RPC every 5 secs
+			continue;
+		}
+
+        if (currentMode != mode::driver)
+			continue;
+
 		if (Global.applicationQuitOrder)
 			break;
 		// Discord RPC updater
