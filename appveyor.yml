@@ -31,5 +31,7 @@ build_script:
 artifacts:
   - path: build\bin\%CONFIG%\*.exe
     name: binaries
-  - path: build\bin\%CONFIG%\*.pdb
+  - path: build\pdb\%CONFIG%\*.pdb
     name: symbols
+  - path: build\bin\%CONFIG%\shaders
+    name: shaders
