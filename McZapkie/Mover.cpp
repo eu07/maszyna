@@ -11358,7 +11358,6 @@ void TMoverParameters::LoadFIZ_FFList( std::string const &Input ) {
     extract_value( RlistSize, "Size", Input, "" );
 }
 
-
 void TMoverParameters::LoadFIZ_WiperList(std::string const &Input) 
 {
 	extract_value(WiperListSize, "Size", Input, "");
