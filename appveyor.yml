@@ -17,7 +17,6 @@ install:
   - cmd: |
       git submodule update --init --recursive
       call setup.bat
-      cd %APPVEYOR_BUILD_FOLDER%\maszyna
 
 before_build:
   - cmd: |
