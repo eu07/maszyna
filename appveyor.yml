@@ -1,48 +1,33 @@
-# Minimalny, powtarzalny pipeline pod MSVC + CMake
 version: '{build}'
 image: Visual Studio 2022
 
-# Użyjemy własnych skryptów zamiast automatycznego MSBuild AppVeyora
+# Używamy własnych kroków build
 build: off
 
-# Git + submoduły rekurencyjnie (odpowiednik --recursive)
-shallow_clone: false
-git:
-  submodules: true
-
-# Zmienna z konfiguracją — jak u Ciebie
+# Zmienna z konfiguracją
 environment:
   CONFIG: RelWithDebInfo
 
-# (Opcjonalnie) pokaż konfigurację środowiska na starcie
 init:
   - cmd: |
       echo Build worker: %APPVEYOR_BUILD_WORKER_IMAGE%
       ver
 
-# Instalacja zależności jeśli robi to setup.bat
-# (uruchamiane z katalogu repo — AppVeyor zrzuca tu źródła)
 install:
   - cmd: |
+      git submodule update --init --recursive
       call setup.bat
 
-# Konfiguracja CMake do osobnego katalogu build (x64, VS2022)
 before_build:
   - cmd: |
       if not exist build mkdir build
       cd build
       cmake .. -G "Visual Studio 17 2022" -A x64 -DCMAKE_BUILD_TYPE=%CONFIG%
 
-# Kompilacja (paralelnie) wybranej konfiguracji
 build_script:
   - cmd: |
       cmake --build build --config %CONFIG% --parallel
 
-# (Opcjonalnie) testy, jeśli masz dodane ctest
-# test_script:
-#   - cmd: ctest --test-dir build -C %CONFIG% --output-on-failure
-
-# Artefakty: exe + pdb z katalogu bin (dopasuj ścieżki do swojego projektu)
 artifacts:
   - path: build\bin\%CONFIG%\*.exe
     name: binaries
