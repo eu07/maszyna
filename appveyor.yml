@@ -1,71 +1,50 @@
+# Minimalny, powtarzalny pipeline pod MSVC + CMake
 version: '{build}'
-image: Visual Studio 2017
-clone_depth: 1
+image: Visual Studio 2022
+
+# Użyjemy własnych skryptów zamiast automatycznego MSBuild AppVeyora
+build: off
+
+# Git + submoduły rekurencyjnie (odpowiednik --recursive)
+shallow_clone: false
+git:
+  submodules: true
+
+# Zmienna z konfiguracją — jak u Ciebie
+environment:
+  CONFIG: RelWithDebInfo
+
+# (Opcjonalnie) pokaż konfigurację środowiska na starcie
+init:
+  - cmd: |
+      echo Build worker: %APPVEYOR_BUILD_WORKER_IMAGE%
+      ver
+
+# Instalacja zależności jeśli robi to setup.bat
+# (uruchamiane z katalogu repo — AppVeyor zrzuca tu źródła)
+install:
+  - cmd: |
+      call setup.bat
+
+# Konfiguracja CMake do osobnego katalogu build (x64, VS2022)
+before_build:
+  - cmd: |
+      if not exist build mkdir build
+      cd build
+      cmake .. -G "Visual Studio 17 2022" -A x64 -DCMAKE_BUILD_TYPE=%CONFIG%
+
+# Kompilacja (paralelnie) wybranej konfiguracji
 build_script:
-- ps: >-
-    git submodule update --init --recursive
-    
-    cd ref
-        
-    curl -o crashpad86.zip "http://get.backtrace.io/crashpad/builds/release/x86/crashpad-2020-07-01-release-x86-558c9614e3819179f30b92541450f5ac643afce5.zip"
-    
-    7z x crashpad86.zip
-    
-    move crashpad-2020-07-01-release-x86-558c9614e3819179f30b92541450f5ac643afce5 crashpad
-    
-    cd ..
-    
-    mkdir build
-    
-    cd build
-    
-    mkdir x86
-    
-    cd x86
-    
-    cmake ../.. -T v141_xp -DWITH_CRASHPAD=ON
-    
-    cmake --build . --config RelWithDebInfo
-    
-    cd ..
-    
-    cd ..
-    
-    cd ref
-    
-    move crashpad crashpad_
-    
-    curl -o crashpad64.zip "http://get.backtrace.io/crashpad/builds/release/x86-64/crashpad-2020-07-01-release-x64-558c9614e3819179f30b92541450f5ac643afce5.zip"
-    
-    7z x crashpad64.zip
-    
-    move crashpad-2020-07-01-release-x64-558c9614e3819179f30b92541450f5ac643afce5 crashpad
-    
-    cd ..
-    
-    cd build
-    
-    mkdir x64
-    
-    cd x64
-    
-    cmake ../.. -A x64
-    
-    cmake --build . --config RelWithDebInfo
-    
-    cd ..
-    
-    7z a eu07_x86_bin.zip ./x86/bin/RelWithDebInfo/*.exe
-    
-    7z a eu07_x64_bin.zip ./x64/bin/RelWithDebInfo/*.exe
-    
-test: off
-deploy: off
+  - cmd: |
+      cmake --build build --config %CONFIG% --parallel
+
+# (Opcjonalnie) testy, jeśli masz dodane ctest
+# test_script:
+#   - cmd: ctest --test-dir build -C %CONFIG% --output-on-failure
+
+# Artefakty: exe + pdb z katalogu bin (dopasuj ścieżki do swojego projektu)
 artifacts:
-- path: build/eu07_x86_bin.zip
-  name: binaries_x86
-- path: build/eu07_x64_bin.zip
-  name: binaries_x64
-- path: shaders
-  name: shaders
-  type: zip
+  - path: build\bin\%CONFIG%\*.exe
+    name: binaries
+  - path: build\bin\%CONFIG%\*.pdb
+    name: symbols
