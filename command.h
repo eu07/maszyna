@@ -374,7 +374,7 @@ enum class user_command
     quitsimulation,
 	wiperswitchincrease,
 	wiperswitchdecrease,
-
+	lightsset,
 	none = -1
 };
 

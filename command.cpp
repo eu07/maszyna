@@ -377,6 +377,7 @@ commanddescription_sequence Commands_descriptions = {
 	{ "quitsimulation", command_target::simulation, command_mode::oneoff },
     {"wiperswitchincrease", command_target::vehicle, command_mode::oneoff},
     {"wiperswitchdecrease", command_target::vehicle, command_mode::oneoff},
+    {"lightsset", command_target::vehicle, command_mode::oneoff},
 };
 
 // Maps of command and coresponding strings
@@ -733,6 +734,7 @@ std::unordered_map<std::string, user_command> commandMap = {
 	{"quitsimulation", user_command::quitsimulation},
 	{"wiperswitchincrease", user_command::wiperswitchincrease},
 	{"wiperswitchdecrease", user_command::wiperswitchdecrease},
+    {"lightsset", user_command::lightsset},
 	{"none", user_command::none}};
 
 } // namespace simulation

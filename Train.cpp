@@ -294,6 +294,8 @@ TTrain::commandhandler_map const TTrain::m_commandhandlers = {
     {user_command::wiperswitchincrease, &TTrain::OnCommand_wiperswitchincrease},
     {user_command::wiperswitchdecrease, &TTrain::OnCommand_wiperswitchdecrease},
 
+    {user_command::lightsset, &TTrain::OnCommand_lightsset},
+
     { user_command::pantographlowerall, &TTrain::OnCommand_pantographlowerall },
     { user_command::pantographselectnext, &TTrain::OnCommand_pantographselectnext },
     { user_command::pantographselectprevious, &TTrain::OnCommand_pantographselectprevious },
@@ -4400,6 +4402,12 @@ void TTrain::OnCommand_headlighttoggleleft( TTrain *Train, command_data const &C
             OnCommand_headlightdisableleft( Train, Command );
         }
     }
+}
+
+void TTrain::OnCommand_lightsset(TTrain *Train, command_data const &Command)
+{
+	Train->mvOccupied->iLights[end::front] = Command.param1;
+	Train->mvOccupied->iLights[end::rear] = Command.param2;
 }
 
 void TTrain::OnCommand_headlightenableleft( TTrain *Train, command_data const &Command ) {

@@ -226,6 +226,7 @@ class TTrain {
     // command handlers
     // NOTE: we're currently using universal handlers and static handler map but it may be beneficial to have these implemented on individual class instance basis
     // TBD, TODO: consider this approach if we ever want to have customized consist behaviour to received commands, based on the consist/vehicle type or whatever
+	static void OnCommand_lightsset(TTrain *Train, command_data const &Command);
 	static void OnCommand_wiperswitchincrease(TTrain *Train, command_data const &Command);
 	static void OnCommand_wiperswitchdecrease(TTrain *Train, command_data const &Command);
     static void OnCommand_aidriverenable( TTrain *Train, command_data const &Command );
