@@ -64,12 +64,18 @@ LONG WINAPI CrashHandler(EXCEPTION_POINTERS *ExceptionInfo)
 		dumpInfo.ExceptionPointers = ExceptionInfo;
 		dumpInfo.ClientPointers = FALSE;
 
-		MiniDumpWriteDump(GetCurrentProcess(), GetCurrentProcessId(), hFile, MiniDumpWithDataSegs, &dumpInfo, nullptr, nullptr);
+		// Wybrana kombinacja flag
+		MINIDUMP_TYPE dumpType = MINIDUMP_TYPE(MiniDumpWithFullMemory | MiniDumpWithHandleData | MiniDumpWithThreadInfo | MiniDumpWithUnloadedModules | MiniDumpWithIndirectlyReferencedMemory |
+		                                       MiniDumpWithFullMemoryInfo | MiniDumpWithTokenInformation);
+
+		MiniDumpWriteDump(GetCurrentProcess(), GetCurrentProcessId(), hFile, dumpType, &dumpInfo, nullptr, nullptr);
+
 		CloseHandle(hFile);
 	}
 
 	return EXCEPTION_EXECUTE_HANDLER;
 }
+
 
 #endif
 
