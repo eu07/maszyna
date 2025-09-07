@@ -620,7 +620,7 @@ public: // reszta może by?publiczna
 	TGauge ggSpeedControlPowerDecreaseButton;
 	std::array<TGauge, 10> ggSpeedCtrlButtons; // NOTE: temporary arrangement until we have dynamically built control table
 
-   std::array<TGauge, 10> ggUniversals; // NOTE: temporary arrangement until we have dynamically built control table
+   std::array<TGauge, 30> ggUniversals; // NOTE: temporary arrangement until we have dynamically built control table
    std::array<TGauge, 3> ggRelayResetButtons; // NOTE: temporary arrangement until we have dynamically built control table
    std::array<TGauge, 12> ggInverterEnableButtons; // NOTE: temporary arrangement until we have dynamically built control table
    std::array<TGauge, 12> ggInverterDisableButtons; // NOTE: temporary arrangement until we have dynamically built control table
