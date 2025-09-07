@@ -18,6 +18,7 @@ http://mozilla.org/MPL/2.0/.
 #ifdef __GNUC__
 #pragma GCC diagnostic ignored "-Wwrite-strings"
 #endif
+#include <simulation.h>
 
 void render_task::run() {
 
@@ -116,21 +117,52 @@ void render_task::run() {
 		// we perform any actions ONLY when there are any commands in buffer
 		if (!commands.empty())
 		{
-			for (const auto &command : commands)
+			for (const auto &cmd : commands)
 			{
-				auto it = simulation::commandMap.find(command);
+				std::string baseCmd;
+				int p1 = 0, p2 = 0;
+
+				size_t pos1 = cmd.find(';');
+				if (pos1 == std::string::npos)
+				{
+					baseCmd = cmd;
+				}
+				else
+				{
+					baseCmd = cmd.substr(0, pos1);
+
+					size_t pos2 = cmd.find(';', pos1 + 1);
+					if (pos2 == std::string::npos)
+					{
+						p1 = std::stoi(cmd.substr(pos1 + 1));
+					}
+					else
+					{
+						p1 = std::stoi(cmd.substr(pos1 + 1, pos2 - pos1 - 1));
+						p2 = std::stoi(cmd.substr(pos2 + 1));
+					}
+				}
+
+				auto it = simulation::commandMap.find(baseCmd);
 				if (it != simulation::commandMap.end())
 				{
-					// command found
 					command_data cd;
 					cd.command = it->second;
 					cd.action = GLFW_PRESS;
-					simulation::Commands.push(cd, static_cast<std::size_t>(command_target::vehicle) | 1); // player train is always 1
+					cd.param1 = p1;
+					cd.param2 = p2;
+
+                    WriteLog("Python: Executing command [" + baseCmd + "] with params: P1=" + std::to_string(p1) + " P2=" + std::to_string(p2) + " Target ID=" + std::to_string(simulation::Train->id()));
+
+					simulation::Commands.push(cd, simulation::Train->id());
 				}
 				else
-					ErrorLog("Python: Command [" + command + "] not found!");
+				{
+					ErrorLog("Python: Command [" + baseCmd + "] not found!");
+				}
 			}
 		}
+
 
     }
 
