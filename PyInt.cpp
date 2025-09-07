@@ -154,7 +154,7 @@ void render_task::run() {
 
                     WriteLog("Python: Executing command [" + baseCmd + "] with params: P1=" + std::to_string(p1) + " P2=" + std::to_string(p2) + " Target ID=" + std::to_string(simulation::Train->id()));
 
-					simulation::Commands.push(cd, simulation::Train->id());
+					simulation::Commands.push(cd, static_cast<size_t>(command_target::vehicle) | simulation::Train->id());
 				}
 				else
 				{
