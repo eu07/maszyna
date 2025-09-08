@@ -10,6 +10,9 @@ http://mozilla.org/MPL/2.0/.
 #include "stdafx.h"
 #include "uilayer.h"
 
+#include "TGUI/TGUI.hpp"
+#include <TGUI/Backend/GLFW-OpenGL3.hpp>
+
 #include "Globals.h"
 #include "renderer.h"
 #include "Logs.h"
