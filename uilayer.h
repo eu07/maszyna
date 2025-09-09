@@ -23,7 +23,8 @@ public:
     ui_panel( std::string Identifier, bool Isopen );
 	virtual ~ui_panel() = default;
 // methods
-    virtual void update() {};
+    virtual void update() {}
+	virtual void on_window_resize(int w, int h) {}
 	virtual void render();
 	virtual void render_contents();
     // temporary  access
@@ -88,6 +89,8 @@ public:
     virtual bool on_cursor_pos( double Horizontal, double Vertical );
     // potentially processes provided mouse button. returns: true if the input was processed, false otherwise
     virtual bool on_mouse_button( int Button, int Action );
+    // processes window resize.
+	virtual void on_window_resize(int w, int h);
     // updates state of UI elements
     virtual void update();
 	// draws requested UI elements

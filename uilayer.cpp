@@ -314,6 +314,13 @@ bool ui_layer::on_mouse_button(int const Button, int const Action)
     return false;
 }
 
+void ui_layer::on_window_resize(int w, int h)
+{
+	for (auto *panel : m_panels)
+		panel->on_window_resize(w, h);
+}
+
+
 void ui_layer::update()
 {
     for (auto *panel : m_panels)

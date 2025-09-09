@@ -38,3 +38,8 @@ void launcher_mode::on_key(const int Key, const int Scancode, const int Action, 
 {
 	m_userinterface->on_key(Key, Action);
 }
+
+void launcher_mode::on_window_resize(const int w, const int h)
+{
+	m_userinterface->on_window_resize(w, h);
+}

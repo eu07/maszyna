@@ -3,8 +3,7 @@
 #include "application.h"
 #include "translation.h"
 
-launcher_ui::launcher_ui()
-    : m_scenery_scanner(m_vehicles_bank), m_scenerylist_panel(m_scenery_scanner)
+launcher_ui::launcher_ui() : m_scenery_scanner(m_vehicles_bank), m_scenerylist_panel(m_scenery_scanner)
 {
 	m_vehicles_bank.scan_textures();
 	m_scenery_scanner.scan();
@@ -27,6 +26,11 @@ bool launcher_ui::on_key(const int Key, const int Action)
 		return true;
 
 	return ui_layer::on_key(Key, Action);
+}
+
+void launcher_ui::on_window_resize(int w, int h)
+{
+	open_panel(m_current_panel);
 }
 
 void launcher_ui::render_()
@@ -68,4 +72,6 @@ void launcher_ui::open_panel(ui_panel* panel)
 	panel->size = glm::vec2(Global.window_size.x, Global.window_size.y - topbar_height);
 	panel->no_title_bar = true;
 	panel->is_open = true;
+
+	m_current_panel = panel;
 }

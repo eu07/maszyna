@@ -20,6 +20,7 @@ class launcher_ui : public ui_layer {
 public:
 	launcher_ui();
 	bool on_key(const int Key, const int Action) override;
+	void on_window_resize(int w, int h) override;
 
 private:
 	void render_() override;
@@ -32,4 +33,6 @@ private:
 	ui::scenerylist_panel m_scenerylist_panel;
 	ui::keymapper_panel m_keymapper_panel;
 	ui::vehiclepicker_panel m_vehiclepicker_panel;
+
+	ui_panel *m_current_panel;
 };

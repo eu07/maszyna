@@ -30,16 +30,11 @@ public:
 	void
 	    exit() override;
 	// input handlers
-	void
-	    on_key( int const Key, int const Scancode, int const Action, int const Mods );
-	void
-	    on_cursor_pos( double const Horizontal, double const Vertical ) override { ; }
-	void
-	    on_mouse_button( int const Button, int const Action, int const Mods ) override { ; }
-	void
-	    on_scroll( double const Xoffset, double const Yoffset ) override { ; }
-	void
-	    on_event_poll() override { ; }
-	bool
-        is_command_processor() const override { return false; }
+	void on_key( int Key, int Scancode, int Action, int Mods ) override;
+	void on_cursor_pos( double const Horizontal, double const Vertical ) override { ; }
+	void on_mouse_button( int const Button, int const Action, int const Mods ) override { ; }
+	void on_scroll( double const Xoffset, double const Yoffset ) override { ; }
+	void on_window_resize( int w, int h ) override;
+	void on_event_poll() override { ; }
+	bool is_command_processor() const override { return false; }
 };
