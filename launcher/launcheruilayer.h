@@ -23,6 +23,8 @@ public:
 
 private:
 	void render_() override;
+	void close_panels();
+	void open_panel(ui_panel *panel);
 
 	ui::vehicles_bank m_vehicles_bank;
 	scenery_scanner m_scenery_scanner;

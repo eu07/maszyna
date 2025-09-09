@@ -10,10 +10,11 @@ http://mozilla.org/MPL/2.0/.
 #include "stdafx.h"
 #include "uilayer.h"
 
+#include <utility>
+
 #include "Globals.h"
 #include "renderer.h"
 #include "Logs.h"
-#include "Timer.h"
 #include "simulation.h"
 #include "translation.h"
 #include "application.h"
@@ -29,7 +30,7 @@ bool ui_layer::m_cursorvisible;
 ImFont *ui_layer::font_default{nullptr};
 ImFont *ui_layer::font_mono{nullptr};
 
-ui_panel::ui_panel(std::string const &Identifier, bool const Isopen) : m_name(Identifier), is_open(Isopen) {}
+ui_panel::ui_panel(std::string Identifier, bool const Isopen) : is_open(Isopen), m_name(std::move(Identifier)) {}
 
 void ui_panel::render()
 {
@@ -38,11 +39,16 @@ void ui_panel::render()
 
 	int flags = window_flags;
 	if (flags == -1)
-		flags = ImGuiWindowFlags_NoFocusOnAppearing | ImGuiWindowFlags_NoCollapse |
-		        ((size.x > 0) ? ImGuiWindowFlags_NoResize : 0);
+		flags = ImGuiWindowFlags_NoFocusOnAppearing | ImGuiWindowFlags_NoCollapse;
+	if (size.x > 0)
+		flags |= ImGuiWindowFlags_NoResize;
+	if (no_title_bar)
+		flags |= ImGuiWindowFlags_NoTitleBar;
 
-    if (size.x > 0)
-        ImGui::SetNextWindowSize(ImVec2S(size.x, size.y));
+	if (pos.x != -1 && pos.y != -1)
+		ImGui::SetNextWindowPos(ImVec2(pos.x, pos.y), ImGuiCond_Always);
+	if (size.x > 0)
+        ImGui::SetNextWindowSize(ImVec2S(size.x, size.y), ImGuiCond_Always);
 	else if (size_min.x == -1)
         ImGui::SetNextWindowSize(ImVec2(0, 0), ImGuiCond_FirstUseEver);
 
@@ -53,7 +59,7 @@ void ui_panel::render()
 	if (ImGui::Begin(panelname.c_str(), &is_open, flags)) {
         render_contents();
 
-		popups.remove_if([](std::unique_ptr<ui::popup> &popup)
+		popups.remove_if([](const std::unique_ptr<ui::popup> &popup)
 		{
 			return popup->render();
 		});
@@ -93,6 +99,13 @@ void ui_log_panel::render_contents()
 	ImGui::PopFont();
 }
 
+ui_layer::ui_layer()
+{
+	if (Global.loading_log)
+		add_external_panel(&m_logpanel);
+	m_logpanel.size = { 700, 400 };
+}
+
 ui_layer::~ui_layer() {}
 
 bool ui_layer::key_callback(int key, int scancode, int action, int mods)
@@ -117,13 +130,6 @@ bool ui_layer::mouse_button_callback(int button, int action, int mods)
 {
     ImGui_ImplGlfw_MouseButtonCallback(m_window, button, action, mods);
     return m_imguiio->WantCaptureMouse;
-}
-
-ui_layer::ui_layer()
-{
-    if (Global.loading_log)
-		add_external_panel(&m_logpanel);
-    m_logpanel.size = { 700, 400 };
 }
 
 void::ui_layer::load_random_background()
@@ -504,7 +510,7 @@ void ui_layer::render_menu()
 {
     glm::dvec2 mousepos = Global.cursor_pos;
 
-    if (!((Global.ControlPicking && mousepos.y < 50.0f) || m_imguiio->WantCaptureMouse) || m_progress != 0.0f)
+    if (!((Global.ControlPicking && mousepos.y < 50.0f) || m_imguiio->WantCaptureMouse) || m_progress != 0.0f || m_suppress_menu)
         return;
 
     if (ImGui::BeginMainMenuBar())

@@ -36,69 +36,60 @@ bool ui::keymapper_panel::key(int key)
 	return true;
 }
 
-void ui::keymapper_panel::render()
+void ui::keymapper_panel::render_contents()
 {
-	if (!is_open)
-		return;
+	if (ImGui::Button(STR_C("Load")))
+		keyboard.init();
 
-	auto const panelname{(title.empty() ? m_name : title) + "###" + m_name};
+	ImGui::SameLine();
 
-	if (ImGui::Begin(panelname.c_str(), &is_open)) {
-		if (ImGui::Button(STR_C("Load")))
-			keyboard.init();
+	if (ImGui::Button(STR_C("Save")))
+		keyboard.dump_bindings();
 
-		ImGui::SameLine();
+	for (const std::pair<user_command, std::tuple<int, std::string>> &binding : keyboard.bindings()) {
+		// Binding ID
+		ImGui::AlignTextToFramePadding();
+		ImGui::Text(simulation::Commands_descriptions[static_cast<std::size_t>(binding.first)].name.c_str());
 
-		if (ImGui::Button(STR_C("Save")))
-			keyboard.dump_bindings();
+		// Binding description
+		std::string description = std::get<std::string>(binding.second);
+		ImGui::SameLine(260);
+		ImGui::Text((description.size() > 0 ? description : "(No description)").c_str());
 
-		for (const std::pair<user_command, std::tuple<int, std::string>> &binding : keyboard.bindings()) {
-			// Binding ID
-			ImGui::AlignTextToFramePadding();
-			ImGui::Text(simulation::Commands_descriptions[static_cast<std::size_t>(binding.first)].name.c_str());
+		// Binding key button
+		int keycode = std::get<int>(binding.second);
+		std::string label;
 
-			// Binding description
-			std::string description = std::get<std::string>(binding.second);
-			ImGui::SameLine(260);
-			ImGui::Text((description.size() > 0 ? description : "(No description)").c_str());
+		if (keycode & keyboard_input::keymodifier::control)
+			label += "ctrl + ";
+		if (keycode & keyboard_input::keymodifier::shift)
+			label += "shift + ";
 
-			// Binding key button
-			int keycode = std::get<int>(binding.second);
-			std::string label;
+		auto it = keyboard.keytonamemap.find(keycode & 0xFFFF);
+		if (it != keyboard.keytonamemap.end())
+			label += it->second;
 
-			if (keycode & keyboard_input::keymodifier::control)
-				label += "ctrl + ";
-			if (keycode & keyboard_input::keymodifier::shift)
-				label += "shift + ";
+		label = ToUpper(label);
 
-			auto it = keyboard.keytonamemap.find(keycode & 0xFFFF);
-			if (it != keyboard.keytonamemap.end())
-				label += it->second;
-
-			label = ToUpper(label);
-
-			bool styles_pushed = false;
-			if (bind_active == binding.first) {
-				label = "Press key (F10 to unbind)";
-				ImVec4 active_col = ImGui::GetStyleColorVec4(ImGuiCol_ButtonActive);
-				ImGui::PushStyleColor(ImGuiCol_Button, active_col);
-				styles_pushed = true;
-			}
-
-			label += "##" + std::to_string((int)binding.first);
-
-			ImGui::SameLine(ImGui::GetContentRegionAvailWidth() - 150);
-			if (ImGui::Button(label.c_str(), ImVec2(150, 0))) {
-				if (bind_active == binding.first)
-					bind_active = user_command::none;
-				else
-					bind_active = binding.first;
-			}
-
-			if (styles_pushed)
-				ImGui::PopStyleColor();
+		bool styles_pushed = false;
+		if (bind_active == binding.first) {
+			label = "Press key (F10 to unbind)";
+			ImVec4 active_col = ImGui::GetStyleColorVec4(ImGuiCol_ButtonActive);
+			ImGui::PushStyleColor(ImGuiCol_Button, active_col);
+			styles_pushed = true;
 		}
-	}
 
-	ImGui::End();
+		label += "##" + std::to_string((int)binding.first);
+
+		ImGui::SameLine(ImGui::GetContentRegionAvailWidth() - 150);
+		if (ImGui::Button(label.c_str(), ImVec2(150, 0))) {
+			if (bind_active == binding.first)
+				bind_active = user_command::none;
+			else
+				bind_active = binding.first;
+		}
+
+		if (styles_pushed)
+			ImGui::PopStyleColor();
+	}
 }

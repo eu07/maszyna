@@ -1,5 +1,6 @@
 #pragma once
 
+#include "driverkeyboardinput.h"
 #include "uilayer.h"
 #include "scenery_scanner.h"
 #include "widgets/popup.h"
@@ -35,8 +36,11 @@ class scenerylist_panel : public ui_panel
 	scenerylist_panel(scenery_scanner &scanner);
 
 	void render_contents() override;
+	bool on_key(int key, int action);
 
 private:
+	driverkeyboard_input keyboard;
+
 	struct vehicle_moved {
 		trainset_desc &source;
 		dynamic_desc &dynamic;
@@ -63,5 +67,6 @@ private:
 	void open_link(const std::string &link);
 	void draw_trainset(trainset_desc &trainset);
 	void draw_droptarget(trainset_desc &trainset, int position);
+	void purge_selected_trainset();
 };
 } // namespace ui

@@ -5,11 +5,28 @@
 #include "renderer.h"
 #include "application.h"
 #include "Logs.h"
+#include "translation.h"
+
 #include <filesystem>
 
 ui::scenerylist_panel::scenerylist_panel(scenery_scanner &scanner)
     : ui_panel(STR("Scenario list"), false), scanner(scanner), placeholder_mini("textures/mini/other")
 {
+}
+
+bool ui::scenerylist_panel::on_key(int key, int action)
+{
+	if (!is_open)
+		return false;
+
+	auto it = keyboard.keytonamemap.find(key);
+	if (it == keyboard.keytonamemap.end())
+		return false;
+
+	if (Global.ctrlState && it->second == "delete")
+		purge_selected_trainset();
+
+	return true;
 }
 
 void ui::scenerylist_panel::draw_scenery_list()
@@ -353,6 +370,11 @@ void ui::scenerylist_panel::draw_droptarget(trainset_desc &trainset, int positio
 		}
 		ImGui::EndDragDropTarget();
 	}
+}
+
+void ui::scenerylist_panel::purge_selected_trainset()
+{
+	selected_trainset->vehicles.clear();
 }
 
 ui::dynamic_edit_popup::dynamic_edit_popup(ui_panel &panel, dynamic_desc &dynamic)
