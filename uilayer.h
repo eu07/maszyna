@@ -10,7 +10,6 @@ http://mozilla.org/MPL/2.0/.
 #pragma once
 
 #include <string>
-#include <utility>
 #include "Texture.h"
 #include "widgets/popup.h"
 
@@ -101,10 +100,10 @@ public:
 	void begin_ui_frame();
     static void begin_ui_frame_internal();
     //
-    static void set_cursor( int Mode );
-	// stores operation progress
-	void set_progress( float Progress = 0.0f, float Subtaskprogress = 0.0f );
-    void set_progress( std::string const &Text ) { m_progresstext = Text; }
+	static void set_cursor( int Mode );
+	// loading
+	void set_progress(std::string const &Text);
+	void set_progress(float progress, float subtaskprogress);
 	// sets the ui background texture, if any
 	void set_background( std::string const &Filename = "" );
     void set_tooltip( std::string const &Tooltip ) { m_tooltip = Tooltip; }
@@ -121,6 +120,7 @@ public:
 
 	static ImFont *font_default;
 	static ImFont *font_mono;
+	static ImFont *font_loading;
 
 protected:
 // members
@@ -132,15 +132,17 @@ protected:
    virtual void render_menu_contents();
    ui_log_panel m_logpanel { "Log", true };
 	bool m_suppress_menu = false; // if `true`, the menu at the top of the window will not be present
+	// progress bar config
+	float m_progress { 0.0f }; // percentage of filled progres bar, to indicate lengthy operations.
+	float m_subtaskprogress{ 0.0f }; // percentage of filled progres bar, to indicate lengthy operations.
+	std::string m_progresstext; // label placed over the progress bar
 
  private:
 // methods
 	// render() subclass details
-    virtual void render_() {};
+   virtual void render_() {}
     // draws background quad with specified earlier texture
     void render_background();
-    // draws a progress bar in defined earlier state
-    void render_progress();
     void render_tooltip();
 	void render_panels();
 	void render_menu();
@@ -149,11 +151,6 @@ protected:
     void quad( glm::vec4 const &Coordinates, glm::vec4 const &Color );
 // members
     static GLint m_textureunit;
-
-    // progress bar config. TODO: put these together into an object
-    float m_progress { 0.0f }; // percentage of filled progres bar, to indicate lengthy operations.
-    float m_subtaskprogress{ 0.0f }; // percentage of filled progres bar, to indicate lengthy operations.
-    std::string m_progresstext; // label placed over the progress bar
 
     texture_handle m_background { null_handle }; // path to texture used as the background. size depends on mAspect.
     std::vector<ui_panel *> m_panels;

@@ -29,6 +29,7 @@ GLint ui_layer::m_textureunit { GL_TEXTURE0 };
 bool ui_layer::m_cursorvisible;
 ImFont *ui_layer::font_default{nullptr};
 ImFont *ui_layer::font_mono{nullptr};
+ImFont *ui_layer::font_loading{nullptr};
 
 ui_panel::ui_panel(std::string Identifier, bool const Isopen) : is_open(Isopen), m_name(std::move(Identifier)) {}
 
@@ -132,7 +133,7 @@ bool ui_layer::mouse_button_callback(int button, int action, int mods)
     return m_imguiio->WantCaptureMouse;
 }
 
-void::ui_layer::load_random_background()
+void ui_layer::load_random_background()
 {
 	std::vector<std::string> images;
 	for (auto &f : std::filesystem::directory_iterator("textures/logo"))
@@ -230,9 +231,11 @@ bool ui_layer::init(GLFWwindow *Window)
     };
 
 	if (FileExists("fonts/dejavusans.ttf"))
-        font_default = m_imguiio->Fonts->AddFontFromFileTTF("fonts/dejavusans.ttf", Global.ui_fontsize, nullptr, &ranges[0]);
+		font_default = m_imguiio->Fonts->AddFontFromFileTTF("fonts/dejavusans.ttf", Global.ui_fontsize, nullptr, &ranges[0]);
 	if (FileExists("fonts/dejavusansmono.ttf"))
-        font_mono = m_imguiio->Fonts->AddFontFromFileTTF("fonts/dejavusansmono.ttf", Global.ui_fontsize, nullptr, &ranges[0]);
+		font_mono = m_imguiio->Fonts->AddFontFromFileTTF("fonts/dejavusansmono.ttf", Global.ui_fontsize, nullptr, &ranges[0]);
+	if (FileExists("fonts/bahnschrift.ttf"))
+		font_loading = m_imguiio->Fonts->AddFontFromFileTTF("fonts/bahnschrift.ttf", 48, nullptr, &ranges[0]);
 
 	if (!font_default && !font_mono)
 		font_default = font_mono = m_imguiio->Fonts->AddFontDefault();
@@ -240,6 +243,8 @@ bool ui_layer::init(GLFWwindow *Window)
 		font_default = font_mono;
 	else if (!font_mono)
 		font_mono = font_default;
+	if (!font_loading)
+		font_loading = font_default;
 
 	imgui_style();
 
@@ -336,7 +341,6 @@ void ui_layer::update()
 void ui_layer::render()
 {
     render_background();
-    render_progress();
     render_panels();
     render_tooltip();
     render_menu();
@@ -397,26 +401,20 @@ void ui_layer::set_cursor(int const Mode)
     m_cursorvisible = (Mode != GLFW_CURSOR_DISABLED);
 }
 
-void ui_layer::set_progress(float const Progress, float const Subtaskprogress)
+void ui_layer::set_progress(std::string const &Text)
 {
-    m_progress = Progress * 0.01f;
-    m_subtaskprogress = Subtaskprogress * 0.01f;
+	m_progresstext = Text;
+}
+
+void ui_layer::set_progress(float const progress, float const subtaskprogress)
+{
+	m_progress = progress * 0.01f;
+	m_subtaskprogress = subtaskprogress * 0.01f;
 }
 
 void ui_layer::set_background(std::string const &Filename)
 {
-    if (false == Filename.empty())
-    {
-        m_background = GfxRenderer->Fetch_Texture(Filename);
-    }
-    else
-    {
-        m_background = null_handle;
-    }
-    if (m_background != null_handle)
-    {
-        auto const &texture = GfxRenderer->Texture(m_background);
-    }
+	m_background = Filename.empty() ? null_handle : GfxRenderer->Fetch_Texture(Filename);
 }
 
 void ui_layer::clear_panels()
@@ -435,22 +433,6 @@ void ui_layer::add_owned_panel(ui_panel *Panel)
 
 	Panel->is_open = true;
 	m_ownedpanels.emplace_back( Panel );
-}
-
-void ui_layer::render_progress()
-{
-    if ((m_progress == 0.0f) && (m_subtaskprogress == 0.0f))
-        return;
-
-    ImGui::SetNextWindowPos(ImVec2(50, 50));
-    ImGui::SetNextWindowSize(ImVec2(0, 0));
-    ImGui::Begin(STR_C("Loading"), nullptr, ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoCollapse);
-    if (!m_progresstext.empty())
-        ImGui::ProgressBar(m_progress, ImVec2(300, 0), m_progresstext.c_str());
-    else
-        ImGui::ProgressBar(m_progress, ImVec2(300, 0));
-    ImGui::ProgressBar(m_subtaskprogress, ImVec2(300, 0));
-    ImGui::End();
 }
 
 void ui_layer::render_panels()
@@ -517,7 +499,7 @@ void ui_layer::render_menu()
 {
     glm::dvec2 mousepos = Global.cursor_pos;
 
-    if (!((Global.ControlPicking && mousepos.y < 50.0f) || m_imguiio->WantCaptureMouse) || m_progress != 0.0f || m_suppress_menu)
+    if (!((Global.ControlPicking && mousepos.y < 50.0f) || m_imguiio->WantCaptureMouse) || m_suppress_menu)
         return;
 
     if (ImGui::BeginMainMenuBar())

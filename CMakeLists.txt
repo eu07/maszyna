@@ -136,6 +136,7 @@ set(SOURCES
 "editoruilayer.cpp"
 "editoruipanels.cpp"
 "scenarioloadermode.cpp"
+"scenarioloaderuilayer.cpp"
 "scenenodegroups.cpp"
 "simulationenvironment.cpp"
 "simulationstateserializer.cpp"

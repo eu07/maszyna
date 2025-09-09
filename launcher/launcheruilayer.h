@@ -19,7 +19,7 @@ http://mozilla.org/MPL/2.0/.
 class launcher_ui : public ui_layer {
 public:
 	launcher_ui();
-	bool on_key(const int Key, const int Action) override;
+	bool on_key(int Key, int Action) override;
 	void on_window_resize(int w, int h) override;
 
 private:

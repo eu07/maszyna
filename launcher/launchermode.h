@@ -18,17 +18,13 @@ public:
 	launcher_mode();
 // methods
 	// initializes internal data structures of the mode. returns: true on success, false otherwise
-	bool
-	    init() override;
+	bool init() override;
 	// mode-specific update of simulation data. returns: false on error, true otherwise
-	bool
-	    update() override;
+	bool update() override;
 	// maintenance method, called when the mode is activated
-	void
-	    enter() override;
+	void enter() override;
 	// maintenance method, called when the mode is deactivated
-	void
-	    exit() override;
+	void exit() override;
 	// input handlers
 	void on_key( int Key, int Scancode, int Action, int Mods ) override;
 	void on_cursor_pos( double const Horizontal, double const Vertical ) override { ; }

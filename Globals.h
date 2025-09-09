@@ -233,7 +233,7 @@ struct global_settings {
     std::string asVersion; // z opisem
 	motiontelemetry::conf_t motiontelemetry_conf;
 	std::string screenshot_dir;
-	bool loading_log = true;
+	bool loading_log = false;
 	bool dds_upper_origin = false;
     bool captureonstart = true;
 	bool render_cab = true;

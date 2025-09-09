@@ -23,9 +23,7 @@ bool launcher_mode::update()
 void launcher_mode::enter()
 {
 	Application.set_cursor( GLFW_CURSOR_NORMAL );
-
 	simulation::is_ready = false;
-
 	Application.set_title(Global.AppName);
 }
 
