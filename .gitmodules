@@ -26,6 +26,3 @@
 [submodule "ref/vcpkg"]
 	path = ref/vcpkg
 	url = https://github.com/microsoft/vcpkg.git
-[submodule "ref/tgui"]
-	path = ref/tgui
-	url = https://github.com/texus/TGUI

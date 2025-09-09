@@ -69,7 +69,6 @@ option(WITH_BETTER_RENDERER "Experimental multi-backend renderer based on NVRHI"
 option(GENERATE_PDB "Generate executable with program debugging symbols" ON)
 option(ENABLE_MCC "Enable multicore compilation" ON)
 option(WITHDUMPGEN "Enable generating DMP files on crash" ON)
-option(WITH_TGUI "Enable TGUI interface" ON)
 
 set(BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)
 
@@ -491,27 +490,6 @@ if (WITH_DISCORD_RPC)
 else()
 	target_compile_definitions(${PROJECT_NAME} PUBLIC WITH_DISCORD_RPC=0)
 endif()
-
-if (WITH_TGUI)
-    find_package(Freetype REQUIRED)
-    target_link_libraries(${PROJECT_NAME} Freetype::Freetype)
-
-    set(TGUI_SHARED_LIBS OFF CACHE BOOL "Build static libs" FORCE)
-    set(TGUI_BACKEND "GLFW_OPENGL3" CACHE STRING "TGUI backend")
-
-    add_subdirectory(ref/tgui)
-    set_target_properties(tgui PROPERTIES FOLDER "libraries")
-
-    target_link_libraries(${PROJECT_NAME} tgui)
-    target_include_directories(${PROJECT_NAME} PUBLIC
-        "${CMAKE_CURRENT_SOURCE_DIR}/ref/tgui/include"
-    )
-
-    target_compile_definitions(${PROJECT_NAME} PUBLIC WITH_TGUI=1)
-else()
-    target_compile_definitions(${PROJECT_NAME} PUBLIC WITH_TGUI=0)
-endif()
-
 
 
 find_package(OpenAL REQUIRED)
