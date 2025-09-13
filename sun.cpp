@@ -52,7 +52,7 @@ cSun::getPosition() {
 }
 */
 glm::vec3
-cSun::getDirection() {
+cSun::getDirection() const {
 
 	return m_position;
 }

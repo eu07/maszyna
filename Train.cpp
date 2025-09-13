@@ -294,6 +294,8 @@ TTrain::commandhandler_map const TTrain::m_commandhandlers = {
     {user_command::wiperswitchincrease, &TTrain::OnCommand_wiperswitchincrease},
     {user_command::wiperswitchdecrease, &TTrain::OnCommand_wiperswitchdecrease},
 
+    {user_command::lightsset, &TTrain::OnCommand_lightsset},
+
     { user_command::pantographlowerall, &TTrain::OnCommand_pantographlowerall },
     { user_command::pantographselectnext, &TTrain::OnCommand_pantographselectnext },
     { user_command::pantographselectprevious, &TTrain::OnCommand_pantographselectprevious },
@@ -453,16 +455,36 @@ TTrain::commandhandler_map const TTrain::m_commandhandlers = {
 	{ user_command::radiovolumeset, &TTrain::OnCommand_radiovolumeset },
     { user_command::cabchangeforward, &TTrain::OnCommand_cabchangeforward },
     { user_command::cabchangebackward, &TTrain::OnCommand_cabchangebackward },
-    { user_command::generictoggle0, &TTrain::OnCommand_generictoggle },
-    { user_command::generictoggle1, &TTrain::OnCommand_generictoggle },
-    { user_command::generictoggle2, &TTrain::OnCommand_generictoggle },
-    { user_command::generictoggle3, &TTrain::OnCommand_generictoggle },
-    { user_command::generictoggle4, &TTrain::OnCommand_generictoggle },
-    { user_command::generictoggle5, &TTrain::OnCommand_generictoggle },
-    { user_command::generictoggle6, &TTrain::OnCommand_generictoggle },
-    { user_command::generictoggle7, &TTrain::OnCommand_generictoggle },
-    { user_command::generictoggle8, &TTrain::OnCommand_generictoggle },
-    { user_command::generictoggle9, &TTrain::OnCommand_generictoggle },
+    {user_command::generictoggle0, &TTrain::OnCommand_generictoggle},
+    {user_command::generictoggle1, &TTrain::OnCommand_generictoggle},
+    {user_command::generictoggle2, &TTrain::OnCommand_generictoggle},
+    {user_command::generictoggle3, &TTrain::OnCommand_generictoggle},
+    {user_command::generictoggle4, &TTrain::OnCommand_generictoggle},
+    {user_command::generictoggle5, &TTrain::OnCommand_generictoggle},
+    {user_command::generictoggle6, &TTrain::OnCommand_generictoggle},
+    {user_command::generictoggle7, &TTrain::OnCommand_generictoggle},
+    {user_command::generictoggle8, &TTrain::OnCommand_generictoggle},
+    {user_command::generictoggle9, &TTrain::OnCommand_generictoggle},
+    {user_command::generictoggle10, &TTrain::OnCommand_generictoggle},
+    {user_command::generictoggle11, &TTrain::OnCommand_generictoggle},
+    {user_command::generictoggle12, &TTrain::OnCommand_generictoggle},
+    {user_command::generictoggle13, &TTrain::OnCommand_generictoggle},
+    {user_command::generictoggle14, &TTrain::OnCommand_generictoggle},
+    {user_command::generictoggle15, &TTrain::OnCommand_generictoggle},
+    {user_command::generictoggle16, &TTrain::OnCommand_generictoggle},
+    {user_command::generictoggle17, &TTrain::OnCommand_generictoggle},
+    {user_command::generictoggle18, &TTrain::OnCommand_generictoggle},
+    {user_command::generictoggle19, &TTrain::OnCommand_generictoggle},
+    {user_command::generictoggle20, &TTrain::OnCommand_generictoggle},
+    {user_command::generictoggle21, &TTrain::OnCommand_generictoggle},
+    {user_command::generictoggle22, &TTrain::OnCommand_generictoggle},
+    {user_command::generictoggle23, &TTrain::OnCommand_generictoggle},
+    {user_command::generictoggle24, &TTrain::OnCommand_generictoggle},
+    {user_command::generictoggle25, &TTrain::OnCommand_generictoggle},
+    {user_command::generictoggle26, &TTrain::OnCommand_generictoggle},
+    {user_command::generictoggle27, &TTrain::OnCommand_generictoggle},
+    {user_command::generictoggle28, &TTrain::OnCommand_generictoggle},
+    {user_command::generictoggle29, &TTrain::OnCommand_generictoggle},
     { user_command::vehiclemoveforwards, &TTrain::OnCommand_vehiclemoveforwards },
     { user_command::vehiclemovebackwards, &TTrain::OnCommand_vehiclemovebackwards },
     { user_command::vehicleboost, &TTrain::OnCommand_vehicleboost },
@@ -648,12 +670,12 @@ bool TTrain::Init(TDynamicObject *NewDynamicObject, bool e3d)
     return true;
 }
 
-dictionary_source *TTrain::GetTrainState( dictionary_source const &Extraparameters ) {
+std::shared_ptr<dictionary_source> TTrain::GetTrainState( dictionary_source const &Extraparameters ) {
 
     if( ( mvOccupied   == nullptr )
      || ( mvControlled == nullptr ) ) { return nullptr; }
 
-    auto *dict { new dictionary_source( Extraparameters ) };
+    auto dict = std::make_shared<dictionary_source>( Extraparameters );
     if( dict == nullptr ) { return nullptr; }
 
     dict->insert( "name", DynamicObject->asName );
@@ -848,7 +870,7 @@ dictionary_source *TTrain::GetTrainState( dictionary_source const &Extraparamete
     dict->insert( "velnext", driver->VelNext );
     dict->insert( "actualproximitydist", driver->ActualProximityDist );
     // train data
-    driver->TrainTimetable().serialize( dict );
+    driver->TrainTimetable().serialize( dict.get() );
     dict->insert( "train_atpassengerstop", driver->IsAtPassengerStop );
     dict->insert( "train_length", driver->fLength );
     // world state data
@@ -2470,14 +2492,14 @@ void TTrain::OnCommand_batteryenable( TTrain *Train, command_data const &Command
 		}
     }
 	else // impulse button behavior
-	{ 
+	{
         if (Command.action == GLFW_PRESS)
         {
 			if (Train->mvOccupied->shouldHoldBatteryButton)
 			{
                 // jesli przycisk trzeba przytrzymac
 				Train->ggBatteryButton.UpdateValue(1.0f, Train->dsbSwitch);
-				Train->ggBatteryOnButton.UpdateValue(1.0f, Train->dsbSwitch);  
+				Train->ggBatteryOnButton.UpdateValue(1.0f, Train->dsbSwitch);
 				Train->fBatteryTimer = Train->mvOccupied->BatteryButtonHoldTime; // start timer
             }
             else
@@ -2493,32 +2515,36 @@ void TTrain::OnCommand_batteryenable( TTrain *Train, command_data const &Command
 
                 // visual feedback
 				Train->ggBatteryButton.UpdateValue(1.0f, Train->dsbSwitch);
-				Train->ggBatteryOnButton.UpdateValue(1.0f, Train->dsbSwitch);  
+				Train->ggBatteryOnButton.UpdateValue(1.0f, Train->dsbSwitch);
             }
         }
 		else if (Command.action == GLFW_RELEASE)
 		{
             // visual feedback
 			Train->ggBatteryButton.UpdateValue(0.0f, Train->dsbSwitch);
-			Train->ggBatteryOnButton.UpdateValue(0.0f, Train->dsbSwitch);  
-            Train->fBatteryTimer = -1.f; // 
+			Train->ggBatteryOnButton.UpdateValue(0.0f, Train->dsbSwitch);
+            Train->fBatteryTimer = -1.f; //
             Train->allowBatteryToggle = true;
+			Train->mvOccupied->batterySwAlreadyFired = false;
+
 		}
 		else if (Command.action == GLFW_REPEAT && Train->mvOccupied->shouldHoldBatteryButton)
 		{
-            // trzymamy przycisk
-            if (Train->fBatteryTimer <= 0.0 && Train->mvOccupied->Battery == false) {
+			// trzymamy przycisk
+			if (Train->fBatteryTimer <= 0.0 && Train->mvOccupied->Battery == false && !Train->mvOccupied->batterySwAlreadyFired)
+			{
 				Train->mvOccupied->BatterySwitch(true);
+				Train->mvOccupied->batterySwAlreadyFired = true;
+
 				// side-effects
 				if (Train->mvOccupied->LightsPosNo > 0)
 				{
 					Train->Dynamic()->SetLights();
 				}
 				Train->allowBatteryToggle = false;
-            }
-
+			}
 		}
-    }
+	}
 }
 
 void TTrain::OnCommand_batterydisable( TTrain *Train, command_data const &Command ) {
@@ -2556,7 +2582,7 @@ void TTrain::OnCommand_batterydisable( TTrain *Train, command_data const &Comman
 			{
 				// jesli przycisk trzeba przytrzymac
 				Train->ggBatteryButton.UpdateValue(1.0f, Train->dsbSwitch);
-				Train->ggBatteryOffButton.UpdateValue(1.0f, Train->dsbSwitch); 
+				Train->ggBatteryOffButton.UpdateValue(1.0f, Train->dsbSwitch);
 				Train->fBatteryTimer = Train->mvOccupied->BatteryButtonHoldTime; // start timer
 			}
 			else
@@ -2572,29 +2598,34 @@ void TTrain::OnCommand_batterydisable( TTrain *Train, command_data const &Comman
 				}
 				// visual feedback
 				Train->ggBatteryButton.UpdateValue(1.0f, Train->dsbSwitch);
-				Train->ggBatteryOffButton.UpdateValue(1.0f, Train->dsbSwitch); 
+				Train->ggBatteryOffButton.UpdateValue(1.0f, Train->dsbSwitch);
 			}
 		}
 		else if (Command.action == GLFW_RELEASE)
 		{
 			// visual feedback
 			Train->ggBatteryButton.UpdateValue(0.0f, Train->dsbSwitch);
-			Train->ggBatteryOffButton.UpdateValue(0.0f, Train->dsbSwitch); 
+			Train->ggBatteryOffButton.UpdateValue(0.0f, Train->dsbSwitch);
             Train->allowBatteryToggle = true;
+			Train->mvOccupied->batterySwAlreadyFired = false;
 		}
 		else if (Command.action == GLFW_REPEAT && Train->mvOccupied->shouldHoldBatteryButton)
 		{
 			// trzymamy przycisk
-            if (Train->fBatteryTimer <= 0.0 && Train->mvOccupied->Battery == true) {
+			if (Train->fBatteryTimer <= 0.0 && Train->mvOccupied->Battery == true && !Train->mvOccupied->batterySwAlreadyFired)
+			{
 				Train->mvOccupied->BatterySwitch(false);
-				Train->allowBatteryToggle = false;
+				Train->mvOccupied->batterySwAlreadyFired = true;
+
 				// side-effects
 				if (Train->mvOccupied->LightsPosNo > 0)
 				{
 					Train->Dynamic()->SetLights();
 				}
-            }
+				Train->allowBatteryToggle = false;
+			}
 		}
+
 	}
 }
 
@@ -3019,7 +3050,7 @@ void TTrain::OnCommand_pantographvalvesupdate( TTrain *Train, command_data const
 		}
 
 		// Old logic to maintain compatibility
-        else 
+        else
         {
 			Train->update_pantograph_valves();
 			Train->ggPantValvesButton.UpdateValue(1.0, Train->dsbSwitch);
@@ -4393,6 +4424,12 @@ void TTrain::OnCommand_headlighttoggleleft( TTrain *Train, command_data const &C
     }
 }
 
+void TTrain::OnCommand_lightsset(TTrain *Train, command_data const &Command)
+{
+	Train->mvOccupied->iLights[end::front] = Command.param1;
+	Train->mvOccupied->iLights[end::rear] = Command.param2;
+}
+
 void TTrain::OnCommand_headlightenableleft( TTrain *Train, command_data const &Command ) {
 
     if( Train->mvOccupied->LightsPosNo > 0 ) {
@@ -4883,42 +4920,55 @@ void TTrain::OnCommand_headlightdisablerearupper( TTrain *Train, command_data co
     }
 }
 
-void TTrain::OnCommand_modernlightdimmerincrease(TTrain* Train, command_data const& Command) 
+void TTrain::OnCommand_modernlightdimmerincrease(TTrain* Train, command_data const& Command)
 {
 	if (!Train->mvOccupied->enableModernDimmer)
 		return; // if modern dimmer is disabled, skip entire command
     if (Command.action == GLFW_PRESS)
     {
         // update modern dimmer state
-		if (Train->mvOccupied->modernDimmerState < 4)
-			Train->mvOccupied->modernDimmerState++;
-		    Train->Dynamic()->SetLights();
+
+        auto &dimPos = Train->mvOccupied->modernDimmerPosition;
+		auto dimCount = Train->mvOccupied->dimPositions.size();
+		if (dimPos + 1 < dimCount)
+			dimPos++;
+		else if (Train->mvOccupied->modernDimmerCanCycle)
+			dimPos = 0; // return to 0
+		else
+			return; // już na minimum i nie można cyklicznie
+        // update lightning
+        Train->Dynamic()->SetLights();
+
         // visual feedback
 		if (Train->ggModernLightDimSw.SubModel != nullptr)
-		    if (Train->mvOccupied->modernContainOffPos)
-			    Train->ggModernLightDimSw.UpdateValue(Train->mvOccupied->modernDimmerState, Train->dsbSwitch);
-		    else
-			    Train->ggModernLightDimSw.UpdateValue(Train->mvOccupied->modernDimmerState - 1, Train->dsbSwitch);
+			Train->ggModernLightDimSw.UpdateValue(dimPos, Train->dsbSwitch);
 	}
 }
-void TTrain::OnCommand_modernlightdimmerdecrease(TTrain *Train, command_data const &Command) 
+void TTrain::OnCommand_modernlightdimmerdecrease(TTrain *Train, command_data const &Command)
 {
 	if (!Train->mvOccupied->enableModernDimmer)
-		return; // if modern dimmer is disabled, skip entire command
+		return; // jeśli dimmer jest wyłączony, olewamy
+
 	if (Command.action == GLFW_PRESS)
 	{
-		byte minPos = (Train->mvOccupied->modernContainOffPos) ? 0 : 1; // prevent switching to 0 if its not enabled
-		// update modern dimmer state
-		if (Train->mvOccupied->modernDimmerState > minPos)
-			Train->mvOccupied->modernDimmerState--;
-		    Train->Dynamic()->SetLights();
-        // visual feedback
+		auto &dimPos = Train->mvOccupied->modernDimmerPosition;
+		auto dimCount = Train->mvOccupied->dimPositions.size();
+
+		if (dimCount == 0)
+			return;
+
+		if (dimPos > 0)
+			dimPos--;
+		else if (Train->mvOccupied->modernDimmerCanCycle)
+			dimPos = static_cast<int>(dimCount - 1); // ostatnia pozycja
+		else
+			return; // już na minimum i nie można cyklicznie
+
+		Train->Dynamic()->SetLights();
+
 		if (Train->ggModernLightDimSw.SubModel != nullptr)
-			if (Train->mvOccupied->modernContainOffPos)
-			    Train->ggModernLightDimSw.UpdateValue(Train->mvOccupied->modernDimmerState, Train->dsbSwitch);
-			else
-				Train->ggModernLightDimSw.UpdateValue(Train->mvOccupied->modernDimmerState - 1, Train->dsbSwitch);
-    }
+			Train->ggModernLightDimSw.UpdateValue(dimPos, Train->dsbSwitch);
+	}
 }
 
 void TTrain::OnCommand_redmarkertogglerearleft( TTrain *Train, command_data const &Command ) {
@@ -5104,7 +5154,7 @@ void TTrain::OnCommand_headlightsdimtoggle( TTrain *Train, command_data const &C
 		return;
     if( Command.action == GLFW_PRESS ) {
         // only reacting to press, so the switch doesn't flip back and forth if key is held down
-		if (Train->DynamicObject->MoverParameters->modernDimmerState == 2)
+		if (Train->DynamicObject->MoverParameters->modernDimmerPosition == 0)
 		{
             // turn on
             OnCommand_headlightsdimenable( Train, Command );
@@ -5136,8 +5186,7 @@ void TTrain::OnCommand_headlightsdimenable( TTrain *Train, command_data const &C
 
         Train->DynamicObject->DimHeadlights = true;
         */
-		WriteLog("Switch do 1");
-        Train->DynamicObject->MoverParameters->modernDimmerState = 1;   // ustawiamy modern dimmer na flage przyciemnienia
+        Train->DynamicObject->MoverParameters->modernDimmerPosition = 1;   // ustawiamy modern dimmer na flage przyciemnienia
 		Train->DynamicObject->RaLightsSet(Train->DynamicObject->MoverParameters->iLights[0],
 		    Train->DynamicObject->MoverParameters->iLights[1]
             ); // aktualizacja swiatelek
@@ -5163,8 +5212,7 @@ void TTrain::OnCommand_headlightsdimdisable( TTrain *Train, command_data const &
         Train->DynamicObject->DimHeadlights = false;
 
         */
-		WriteLog("Switch do 2");
-		Train->DynamicObject->MoverParameters->modernDimmerState = 2; // ustawiamy modern dimmer na flage rozjasnienia
+		Train->DynamicObject->MoverParameters->modernDimmerPosition = 0; // ustawiamy modern dimmer na flage rozjasnienia
 		Train->DynamicObject->RaLightsSet(
             Train->DynamicObject->MoverParameters->iLights[0],
             Train->DynamicObject->MoverParameters->iLights[1]
@@ -7203,16 +7251,23 @@ bool TTrain::Update( double const Deltatime )
 
     // McZapkie: predkosc wyswietlana na tachometrze brana jest z obrotow kol
     auto const maxtacho { 3.0 };
-    fTachoVelocity = static_cast<float>( std::min( std::abs(11.31 * mvControlled->WheelDiameter * mvControlled->nrot), mvControlled->Vmax * 1.05) );
+
+    double maxSpeed = mvControlled->Vmax * 1.05; // zachowanie starej logiki jak nie ma definicji max tarczki
+	if (mvOccupied->maxTachoSpeed != 0)
+	{
+		maxSpeed = mvOccupied->maxTachoSpeed;
+    }
+    fTachoVelocity = static_cast<float>(std::min(std::abs(11.31 * mvControlled->WheelDiameter * mvControlled->nrot), maxSpeed));
     { // skacze osobna zmienna
         float ff = simulation::Time.data().wSecond; // skacze co sekunde - pol sekundy
         // pomiar, pol sekundy ustawienie
         if (ff != fTachoTimer) // jesli w tej sekundzie nie zmienial
         {
-            if (fTachoVelocity > 1) // jedzie
-                fTachoVelocityJump = fTachoVelocity + (2.0 - LocalRandom(3) + LocalRandom(3)) * 0.5;
-            else
-                fTachoVelocityJump = 0; // stoi
+			if (fTachoVelocity >= 5) // jedzie
+				fTachoVelocityJump = fTachoVelocity + (2.0 - LocalRandom(3) + LocalRandom(3)) * 0.5;
+			else if (fTachoVelocity < 5 && fTachoVelocity > 1)
+				fTachoVelocityJump = Random(0, 4); // tu ma sie bujac jak wariat i zatrzymac na jakiejs predkosci
+                // fTachoVelocityJump = 0; // stoi
             fTachoTimer = ff; // juz zmienil
         }
     }
@@ -7824,12 +7879,12 @@ bool TTrain::Update( double const Deltatime )
         btLampkaDoorLockOff.Turn( false == mvOccupied->Doors.lock_enabled );
         btLampkaDepartureSignal.Turn( mvControlled->DepartureSignal );
         btLampkaNapNastHam.Turn((mvControlled->DirActive != 0) && (mvOccupied->EpFuse)); // napiecie na nastawniku hamulcowym
-        
+
         // Wylaczanie lampek kierunku gdy jedziemy
         // Feature uruchamiany z fiz z sekcji Ctrl. wpisem HideDirStatusWhenMoving=Yes (domyslnie No)
 		if (mvOccupied->HideDirStatusWhenMoving && // Czy ta funkcja jest w ogole wlaczona
             mvOccupied->Vel > mvOccupied->HideDirStatusSpeed) // Uzaleznienie od predkosci
-		{   
+		{
             btLampkaForward.Turn(false);
 			btLampkaBackward.Turn(false);
 			btLampkaNeutral.Turn(false);
@@ -8605,7 +8660,7 @@ TTrain::update_sounds( double const Deltatime ) {
     }
 
     // dzwiek wiatru rozbijajacego sie o szyby w kabinie
-    if (rsWindSound) 
+    if (rsWindSound)
     {
 		if (!FreeFlyModeFlag && !Global.CabWindowOpen && DynamicObject->GetVelocity() > 0.5)
             update_sounds_resonancenoise(*rsWindSound);
@@ -8982,7 +9037,7 @@ bool TTrain::LoadMMediaFile(std::string const &asFileName)
     m_radiosound.owner( DynamicObject );
 	CabSoundLocations.clear();
 
-    cParser parser( asFileName, cParser::buffer_FILE, DynamicObject->asBaseDir );
+    cParser parser( asFileName, cParser::buffer_FILE, DynamicObject->asBaseDir, true, std::vector<std::string>(), true );
     // NOTE: yaml-style comments are disabled until conflict in use of # is resolved
     // parser.addCommentStyle( "#", "\n" );
     std::string token;
@@ -9115,8 +9170,7 @@ bool TTrain::InitializeCab(int NewCabNo, std::string const &asFileName)
 
     std::string cabstr("cab" + std::to_string(cabindex) + "definition:");
 
-    cParser parser( asFileName, cParser::buffer_FILE, DynamicObject->asBaseDir );
-	parser.allowRandomIncludes = true;
+    cParser parser( asFileName, cParser::buffer_FILE, DynamicObject->asBaseDir, true, std::vector<std::string>(), true );
     // NOTE: yaml-style comments are disabled until conflict in use of # is resolved
     // parser.addCommentStyle( "#", "\n" );
     std::string token;
@@ -9258,7 +9312,7 @@ bool TTrain::InitializeCab(int NewCabNo, std::string const &asFileName)
                     screen.script = DynamicObject->asBaseDir + screen.script;
                 }
 
-                opengl_texture *tex = nullptr;
+                ITexture *tex = nullptr;
                 TSubModel *submodel = nullptr;
                 if (screen.target != "none")
                 {
@@ -9282,12 +9336,12 @@ bool TTrain::InitializeCab(int NewCabNo, std::string const &asFileName)
                         continue;
                     }
 
-                    tex = &GfxRenderer->Texture(GfxRenderer->Material(material).textures[0]);
+                    tex = &GfxRenderer->Texture(GfxRenderer->Material(material)->GetTexture(0));
                 }
                 else
                 {
                     // TODO: fix leak
-                    tex = new opengl_texture();
+                    tex = ITexture::null_texture();
                     tex->make_stub();
                 }
 
@@ -9296,7 +9350,7 @@ bool TTrain::InitializeCab(int NewCabNo, std::string const &asFileName)
                 // TBD, TODO: keep texture handles around, so we can undo the static switch when the
                 // user changes cabs?
                 auto rt = std::make_shared<python_rt>();
-                rt->shared_tex = tex->id;
+                rt->shared_tex = tex;
 
                 // record renderer and material binding for future update requests
                 m_screens.emplace_back(screen);
@@ -9931,17 +9985,15 @@ void TTrain::set_cab_controls( int const Cab ) {
     }
 
     if (ggModernLightDimSw.SubModel != nullptr) {
-		if (mvOccupied->modernContainOffPos)
-		    ggModernLightDimSw.PutValue(mvOccupied->modernDimmerState);
-        else 
-            ggModernLightDimSw.PutValue(mvOccupied->modernDimmerState - 1);
+		mvOccupied->modernDimmerPosition = mvOccupied->modernDimmerDefaultPosition;
+        ggModernLightDimSw.PutValue(mvOccupied->modernDimmerDefaultPosition);
     }
 
     // Init separate buttons
     if (ggPantValvesUpdate.SubModel != nullptr)
 	{
 		ggPantValvesUpdate.PutValue(0.f);
-	}   
+	}
     if (ggPantValvesOff.SubModel != nullptr)
     {
 		ggPantValvesOff.PutValue(0.f);
@@ -10075,8 +10127,8 @@ void TTrain::set_cab_controls( int const Cab ) {
             ggRightLightButton.PutValue( -1.f );
         }
     }
-    if( 1 == DynamicObject->MoverParameters->modernDimmerState ) {
-        ggDimHeadlightsButton.PutValue( 1.f );
+    if( 1 == DynamicObject->MoverParameters->modernDimmerPosition ) {
+		ggDimHeadlightsButton.PutValue(DynamicObject->MoverParameters->modernDimmerPosition);
     }
     // cab lights
     if( true == Cabine[Cab].bLightDim ) {
@@ -10582,16 +10634,36 @@ bool TTrain::initialize_gauge(cParser &Parser, std::string const &Label, int con
         { "relayreset1_bt:", ggRelayResetButtons[ 0 ] },
         { "relayreset2_bt:", ggRelayResetButtons[ 1 ] },
         { "relayreset3_bt:", ggRelayResetButtons[ 2 ] },
-        { "universal0:", ggUniversals[ 0 ] },
-        { "universal1:", ggUniversals[ 1 ] },
-        { "universal2:", ggUniversals[ 2 ] },
-        { "universal3:", ggUniversals[ 3 ] },
-        { "universal4:", ggUniversals[ 4 ] },
-        { "universal5:", ggUniversals[ 5 ] },
-        { "universal6:", ggUniversals[ 6 ] },
-        { "universal7:", ggUniversals[ 7 ] },
-        { "universal8:", ggUniversals[ 8 ] },
-        { "universal9:", ggUniversals[ 9 ] },
+	    {"universal0:", ggUniversals[0]},
+	    {"universal1:", ggUniversals[1]},
+	    {"universal2:", ggUniversals[2]},
+	    {"universal3:", ggUniversals[3]},
+	    {"universal4:", ggUniversals[4]},
+	    {"universal5:", ggUniversals[5]},
+	    {"universal6:", ggUniversals[6]},
+	    {"universal7:", ggUniversals[7]},
+	    {"universal8:", ggUniversals[8]},
+	    {"universal9:", ggUniversals[9]},
+	    {"universal10:", ggUniversals[10]},
+	    {"universal11:", ggUniversals[11]},
+	    {"universal12:", ggUniversals[12]},
+	    {"universal13:", ggUniversals[13]},
+	    {"universal14:", ggUniversals[14]},
+	    {"universal15:", ggUniversals[15]},
+	    {"universal16:", ggUniversals[16]},
+	    {"universal17:", ggUniversals[17]},
+	    {"universal18:", ggUniversals[18]},
+	    {"universal19:", ggUniversals[19]},
+	    {"universal20:", ggUniversals[20]},
+	    {"universal21:", ggUniversals[21]},
+	    {"universal22:", ggUniversals[22]},
+	    {"universal23:", ggUniversals[23]},
+	    {"universal24:", ggUniversals[24]},
+	    {"universal25:", ggUniversals[25]},
+	    {"universal26:", ggUniversals[26]},
+	    {"universal27:", ggUniversals[27]},
+	    {"universal28:", ggUniversals[28]},
+	    {"universal29:", ggUniversals[29]},
 		{ "inverterenable1_bt:", ggInverterEnableButtons[0] },
 		{ "inverterenable2_bt:", ggInverterEnableButtons[1] },
 		{ "inverterenable3_bt:", ggInverterEnableButtons[2] },

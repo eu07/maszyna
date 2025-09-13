@@ -24,7 +24,7 @@ enum class logtype : unsigned int {
     powergrid = ( 1 << 10 ),
 };
 void LogService();
-void WriteLog( const char *str, logtype const Type = logtype::generic );
+void WriteLog( const char *str, logtype const Type = logtype::generic, bool isError = false );
 void Error( const std::string &asMessage, bool box = false );
 void Error( const char* &asMessage, bool box = false );
 void ErrorLog( const std::string &str, logtype const Type = logtype::generic );

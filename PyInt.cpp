@@ -18,6 +18,7 @@ http://mozilla.org/MPL/2.0/.
 #ifdef __GNUC__
 #pragma GCC diagnostic ignored "-Wwrite-strings"
 #endif
+#include <simulation.h>
 
 void render_task::run() {
 
@@ -48,7 +49,6 @@ void render_task::run() {
         PyDict_SetItemString(input, datapair.first.c_str(), list);
         Py_DECREF(list);
     }
-	delete m_input;
 	m_input = nullptr;
 
     // call the renderer
@@ -69,32 +69,30 @@ void render_task::run() {
             const unsigned char *image = reinterpret_cast<const unsigned char *>( PyString_AsString( output ) );
 
 			std::lock_guard<std::mutex> guard(m_target->mutex);
-			if (m_target->image)
-				delete[] m_target->image;
 
-			if (!Global.gfx_usegles)
+			if (false && !Global.gfx_usegles)
 			{
 				int size = width * height * 3;
 				format = GL_SRGB8;
 				components = GL_RGB;
-				m_target->image = new unsigned char[size];
-				memcpy(m_target->image, image, size);
+				m_target->image.resize(size);
+				memcpy(m_target->image.data(), image, size);
 			}
 			else
 			{
 				format = GL_SRGB8_ALPHA8;
 				components = GL_RGBA;
-				m_target->image = new unsigned char[width * height * 4];
+				m_target->image.resize(width * height * 4);
 
 				int w = width;
 				int h = height;
 				for (int y = 0; y < h; y++)
 					for (int x = 0; x < w; x++)
 					{
-						m_target->image[(y * w + x) * 4 + 0] = image[(y * w + x) * 3 + 0];
-						m_target->image[(y * w + x) * 4 + 1] = image[(y * w + x) * 3 + 1];
-						m_target->image[(y * w + x) * 4 + 2] = image[(y * w + x) * 3 + 2];
-						m_target->image[(y * w + x) * 4 + 3] = 0xFF;
+						m_target->image[(y * w + x) * 4 + 0] = image[(y * w + x) * 4 + 0];
+						m_target->image[(y * w + x) * 4 + 1] = image[(y * w + x) * 4 + 1];
+						m_target->image[(y * w + x) * 4 + 2] = image[(y * w + x) * 4 + 2];
+						m_target->image[(y * w + x) * 4 + 3] = image[(y * w + x) * 4 + 3];
 					}
 			}
 
@@ -119,21 +117,52 @@ void render_task::run() {
 		// we perform any actions ONLY when there are any commands in buffer
 		if (!commands.empty())
 		{
-			for (const auto &command : commands)
+			for (const auto &cmd : commands)
 			{
-				auto it = simulation::commandMap.find(command);
+				std::string baseCmd;
+				int p1 = 0, p2 = 0;
+
+				size_t pos1 = cmd.find(';');
+				if (pos1 == std::string::npos)
+				{
+					baseCmd = cmd;
+				}
+				else
+				{
+					baseCmd = cmd.substr(0, pos1);
+
+					size_t pos2 = cmd.find(';', pos1 + 1);
+					if (pos2 == std::string::npos)
+					{
+						p1 = std::stoi(cmd.substr(pos1 + 1));
+					}
+					else
+					{
+						p1 = std::stoi(cmd.substr(pos1 + 1, pos2 - pos1 - 1));
+						p2 = std::stoi(cmd.substr(pos2 + 1));
+					}
+				}
+
+				auto it = simulation::commandMap.find(baseCmd);
 				if (it != simulation::commandMap.end())
 				{
-					// command found
 					command_data cd;
 					cd.command = it->second;
 					cd.action = GLFW_PRESS;
-					simulation::Commands.push(cd, static_cast<std::size_t>(command_target::vehicle) | 1); // player train is always 1
+					cd.param1 = p1;
+					cd.param2 = p2;
+
+                    WriteLog("Python: Executing command [" + baseCmd + "] with params: P1=" + std::to_string(p1) + " P2=" + std::to_string(p2) + " Target ID=" + std::to_string(simulation::Train->id()));
+
+					simulation::Commands.push(cd, static_cast<size_t>(command_target::vehicle) | simulation::Train->id());
 				}
 				else
-					ErrorLog("Python: Command [" + command + "] not found!");
+				{
+					ErrorLog("Python: Command [" + baseCmd + "] not found!");
+				}
 			}
 		}
+
 
     }
 
@@ -144,36 +173,33 @@ void render_task::run() {
 
 void render_task::upload()
 {
-	if (Global.python_uploadmain && m_target->image)
+	if (Global.python_uploadmain && m_target && m_target->shared_tex)
 	{
-		glBindTexture(GL_TEXTURE_2D, m_target->shared_tex);
-		glTexImage2D(
-		    GL_TEXTURE_2D, 0,
-		    m_target->format,
-		    m_target->width, m_target->height, 0,
-		    m_target->components, GL_UNSIGNED_BYTE, m_target->image);
-
-		if (Global.python_mipmaps)
-		{
-			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
-			glGenerateMipmap(GL_TEXTURE_2D);
-		}
-		else
-		{
-			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-		}
-
-		if (Global.python_threadedupload)
-			glFlush();
+		m_target->shared_tex->update_from_memory(m_target->width, m_target->height, reinterpret_cast<const uint8_t*>(m_target->image.data()));
+		//glBindTexture(GL_TEXTURE_2D, m_target->shared_tex->get_id());
+		//glTexImage2D(
+		//    GL_TEXTURE_2D, 0,
+		//    m_target->format,
+		//    m_target->width, m_target->height, 0,
+		//    m_target->components, GL_UNSIGNED_BYTE, m_target->image);
+    //
+		//if (Global.python_mipmaps)
+		//{
+		//	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+		//	glGenerateMipmap(GL_TEXTURE_2D);
+		//}
+		//else
+		//{
+		//	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+		//}
+    //
+		//if (Global.python_threadedupload)
+		//	glFlush();
 	}
-
-	delete this;
 }
 
 void render_task::cancel() {
 
-    delete m_input;
-    delete this;
 }
 
 // initializes the module. returns true on success
@@ -271,7 +297,7 @@ void python_taskqueue::exit() {
     }
     // get rid of the leftover tasks
     // with the workers dead we don't have to worry about concurrent access anymore
-    for( auto *task : m_tasks.data ) {
+    for( auto task : m_tasks.data ) {
         task->cancel();
     }
     // take a bow
@@ -291,7 +317,7 @@ auto python_taskqueue::insert( task_request const &Task ) -> bool {
     auto *renderer { fetch_renderer( Task.renderer ) };
     if( renderer == nullptr ) { return false; }
 
-    auto *newtask { new render_task( renderer, Task.input, Task.target ) };
+    auto newtask = std::make_shared<render_task>( renderer, Task.input, Task.target );
     bool newtaskinserted { false };
     // acquire a lock on the task queue and add the new task
     {
@@ -373,12 +399,14 @@ auto python_taskqueue::fetch_renderer( std::string const Renderer ) ->PyObject *
             ErrorLog( "Python Renderer: class \"" + file + "\" not defined" );
             goto cache_and_return;
         }
-        rendererarguments = Py_BuildValue( "(s)", path.c_str() );
+		    rendererarguments = Py_BuildValue("(s)", path.c_str());
         if( rendererarguments == nullptr ) {
             ErrorLog( "Python Renderer: failed to create initialization arguments" );
             goto cache_and_return;
         }
         renderer = PyObject_CallObject( renderername, rendererarguments );
+
+        PyObject_CallMethod(renderer, "manul_set_format", "(s)", "RGBA");
 
         if( PyErr_Occurred() != nullptr ) {
             error();
@@ -407,7 +435,7 @@ void python_taskqueue::run( GLFWwindow *Context, rendertask_sequence &Tasks, upl
     auto *threadstate { PyThreadState_New( m_mainthread->interp ) };
     PyEval_ReleaseLock();
 
-    render_task *task { nullptr };
+    std::shared_ptr<render_task> task { nullptr };
 
     while( false == Exit.load() ) {
         // regardless of the reason we woke up prime the spurious wakeup flag for the next time

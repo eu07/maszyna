@@ -1,71 +1,44 @@
 version: '{build}'
-image: Visual Studio 2017
-clone_depth: 1
+image: Visual Studio 2022
+
+# Używamy własnych kroków build
+build: off
+
+# Zmienna z konfiguracją
+environment:
+  CONFIG: RelWithDebInfo
+
+init:
+  - cmd: |
+      echo Build worker: %APPVEYOR_BUILD_WORKER_IMAGE%
+      ver
+
+install:
+  - cmd: |
+      git submodule update --init --recursive
+      call setup.bat
+
+before_build:
+  - cmd: |
+      if not exist build mkdir build
+      cd build
+      cmake .. -G "Visual Studio 17 2022" -A x64 -DCMAKE_BUILD_TYPE=%CONFIG%
+
 build_script:
-- ps: >-
-    git submodule update --init --recursive
-    
-    cd ref
-        
-    curl -o crashpad86.zip "http://get.backtrace.io/crashpad/builds/release/x86/crashpad-2020-07-01-release-x86-558c9614e3819179f30b92541450f5ac643afce5.zip"
-    
-    7z x crashpad86.zip
-    
-    move crashpad-2020-07-01-release-x86-558c9614e3819179f30b92541450f5ac643afce5 crashpad
-    
-    cd ..
-    
-    mkdir build
-    
-    cd build
-    
-    mkdir x86
-    
-    cd x86
-    
-    cmake ../.. -T v141_xp -DWITH_CRASHPAD=ON
-    
-    cmake --build . --config RelWithDebInfo
-    
-    cd ..
-    
-    cd ..
-    
-    cd ref
-    
-    move crashpad crashpad_
-    
-    curl -o crashpad64.zip "http://get.backtrace.io/crashpad/builds/release/x86-64/crashpad-2020-07-01-release-x64-558c9614e3819179f30b92541450f5ac643afce5.zip"
-    
-    7z x crashpad64.zip
-    
-    move crashpad-2020-07-01-release-x64-558c9614e3819179f30b92541450f5ac643afce5 crashpad
-    
-    cd ..
-    
-    cd build
-    
-    mkdir x64
-    
-    cd x64
-    
-    cmake ../.. -A x64
-    
-    cmake --build . --config RelWithDebInfo
-    
-    cd ..
-    
-    7z a eu07_x86_bin.zip ./x86/bin/RelWithDebInfo/*.exe
-    
-    7z a eu07_x64_bin.zip ./x64/bin/RelWithDebInfo/*.exe
-    
-test: off
-deploy: off
+  - cmd: |
+      cmake --build . --config %CONFIG% --parallel
+      cd ..
+
+after_build:
+  - cmd: |
+      echo Copying shaders...
+      if not exist build\bin\%CONFIG%\shaders mkdir build\bin\%CONFIG%\shaders
+      xcopy /E /Y shaders build\bin\%CONFIG%\shaders\
+
 artifacts:
-- path: build/eu07_x86_bin.zip
-  name: binaries_x86
-- path: build/eu07_x64_bin.zip
-  name: binaries_x64
-- path: shaders
-  name: shaders
-  type: zip
+  - path: build\bin\%CONFIG%\*.exe
+    name: binaries
+  - path: build\pdb\%CONFIG%\*.pdb
+    name: symbols
+  - path: build\bin\%CONFIG%\shaders
+    name: shaders

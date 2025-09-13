@@ -1,0 +1,1 @@
+src/ffx-fsr2-api/shaders/vk/ffx_fsr2_tcr_autogen_pass_permutations.h:

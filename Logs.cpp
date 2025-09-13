@@ -70,88 +70,133 @@ std::string filename_scenery() {
 }
 
 // log service stacks
-std::deque<char *> InfoStack;
-std::deque<char *> ErrorStack;
+std::deque < std::pair<std::string, bool>> InfoStack;
+std::deque<std::string> ErrorStack;
+
+// lock for log stacks
+std::mutex logMutex;
 
 
 void LogService()
 {
-    while (true)
-    {
-        // loop for logging
-
-        // write logs and log.txt
-        while (!InfoStack.empty())
-        {
-			char *msg = InfoStack.front(); // get first element of stack
-			InfoStack.pop_front();
-			if (Global.iWriteLogEnabled & 1)
+	while (!Global.applicationQuitOrder)
+	{
+		{
+			// --- Obsługa InfoStack ---
+			while (!InfoStack.empty())
 			{
-				if (!output.is_open())
+				logMutex.lock();
+				std::string msg = InfoStack.front().first;
+				bool isError = InfoStack.front().second;
+				InfoStack.pop_front();
+				logMutex.unlock();
+
+				// log to file
+				if (Global.iWriteLogEnabled & 1)
 				{
-
-					std::string const filename = (Global.MultipleLogs ? "logs/log (" + filename_scenery() + ") " + filename_date() + ".txt" : "log.txt");
-					output.open(filename, std::ios::trunc);
+					if (!output.is_open())
+					{
+						std::string filename = (Global.MultipleLogs ? "logs/log (" + filename_scenery() + ") " + filename_date() + ".txt" : "log.txt");
+						output.open(filename, std::ios::trunc);
+					}
+					output << msg << "\n";
+					output.flush();
 				}
-				output << msg << "\n";
-				output.flush();
+
+				// log to scrollback imgui
+				log_scrollback.emplace_back(msg);
+				if (log_scrollback.size() > 200)
+					log_scrollback.pop_front();
+
+				// log to console
+				if (Global.iWriteLogEnabled & 2)
+				{
+					if (isError)
+						printf("\033[1;37;41m%s\033[0m\n", msg.c_str());
+					else
+						printf("\033[32m%s\033[0m\n", msg.c_str());
+				}
 			}
 
-			log_scrollback.emplace_back(std::string(msg));
-			if (log_scrollback.size() > 200)
-				log_scrollback.pop_front();
-
-			if (Global.iWriteLogEnabled & 2)
+			// --- Obsługa ErrorStack ---
+			while (!ErrorStack.empty())
 			{
-#ifdef _WIN32
-				// hunter-271211: pisanie do konsoli tylko, gdy nie jest ukrywana
-				SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), FOREGROUND_GREEN | FOREGROUND_INTENSITY);
-				DWORD wr = 0;
-				WriteConsole(GetStdHandle(STD_OUTPUT_HANDLE), msg, (DWORD)strlen(msg), &wr, NULL);
-				WriteConsole(GetStdHandle(STD_OUTPUT_HANDLE), endstring, (DWORD)strlen(endstring), &wr, NULL);
-#else
-				printf("%s\n", msg);
-#endif
+				logMutex.lock();
+				std::string msg = ErrorStack.front();
+				ErrorStack.pop_front();
+				logMutex.unlock();
+
+				if (!(Global.iWriteLogEnabled & 1))
+					continue;
+
+				if (!errors.is_open())
+				{
+					std::string filename = (Global.MultipleLogs ? "logs/errors (" + filename_scenery() + ") " + filename_date() + ".txt" : "errors.txt");
+					errors.open(filename, std::ios::trunc);
+					errors << "EU07.EXE " + Global.asVersion << "\n";
+				}
+
+				errors << msg << "\n";
+				errors.flush();
 			}
-        } 
-        
-        // write to errors.txt
-        while (!ErrorStack.empty())
-        {
-			char *msg = ErrorStack.front();
-			ErrorStack.pop_front();
+		}
 
-			if (!(Global.iWriteLogEnabled & 1))
-				return;
-
-			if (!errors.is_open())
-			{
-
-				std::string const filename = (Global.MultipleLogs ? "logs/errors (" + filename_scenery() + ") " + filename_date() + ".txt" : "errors.txt");
-				errors.open(filename, std::ios::trunc);
-				errors << "EU07.EXE " + Global.asVersion << "\n";
-			}
-
-			errors << msg << "\n";
-			errors.flush();
-        }
-		std::this_thread::sleep_for(std::chrono::milliseconds(5)); // dont burn cpu so much
-    }
+		std::this_thread::sleep_for(std::chrono::milliseconds(50));
+	}
 }
 
-void WriteLog( const char *str, logtype const Type ) {
 
-    if( str == nullptr ) { return; }
-    if( true == TestFlag( Global.DisabledLogTypes, static_cast<unsigned int>( Type ) ) ) { return; }
-	InfoStack.emplace_back(strdup(str));
+void WriteLog(const char *str, logtype const Type, bool isError)
+{
+	if (!str || *str == '\0')
+		return;
+	if (TestFlag(Global.DisabledLogTypes, static_cast<unsigned int>(Type)))
+		return;
+
+	// time calculation
+	auto now = std::chrono::steady_clock::now();
+	auto elapsed = now - Global.startTimestamp;
+	double seconds = std::chrono::duration_cast<std::chrono::duration<double>>(elapsed).count();
+	
+	// time format
+	std::ostringstream oss;
+	oss << "[ " << std::fixed << std::setprecision(3) << seconds << " ] ";
+
+	// wyrownanie do np. 10 znaków długości + dwie tabulacje
+	std::ostringstream final;
+	final << std::setw(10) << oss.str() << "\t\t" << str;
+
+
+	logMutex.lock();
+	InfoStack.emplace_back(final.str(), isError);
+	logMutex.unlock();
 }
 
-void ErrorLog( const char *str, logtype const Type ) {
+void ErrorLog(const char *str, logtype const Type)
+{
+	if (!str || *str == '\0')
+		return;
+	if (TestFlag(Global.DisabledLogTypes, static_cast<unsigned int>(Type)))
+		return;
 
-    if( str == nullptr ) { return; }
-    if( true == TestFlag( Global.DisabledLogTypes, static_cast<unsigned int>( Type ) ) ) { return; }
-	ErrorStack.emplace_back(strdup(str));
-};
+		// time calculation
+	auto now = std::chrono::steady_clock::now();
+	auto elapsed = now - Global.startTimestamp;
+	double seconds = std::chrono::duration_cast<std::chrono::duration<double>>(elapsed).count();
+
+	// time format
+	std::ostringstream oss;
+	oss << "[ " << std::fixed << std::setprecision(3) << seconds << " ] ";
+
+	// wyrownanie do np. 10 znaków długości + dwie tabulacje
+	std::ostringstream final;
+	final << std::setw(10) << oss.str() << "\t\t" << str;
+
+	logMutex.lock();
+	ErrorStack.emplace_back(final.str());
+	logMutex.unlock();
+}
+
 
 void Error(const std::string &asMessage, bool box)
 {
@@ -171,7 +216,7 @@ void Error(const char *&asMessage, bool box)
 void ErrorLog(const std::string &str, logtype const Type )
 {
     ErrorLog( str.c_str(), Type );
-    WriteLog( str.c_str(), Type );
+    WriteLog( str.c_str(), Type, true );
 }
 
 void WriteLog(const std::string &str, logtype const Type )

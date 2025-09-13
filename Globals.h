@@ -16,7 +16,6 @@ http://mozilla.org/MPL/2.0/.
 #include "light.h"
 #include "utilities.h"
 #include "motiontelemetry.h"
-#include "ref/discord-rpc/include/discord_rpc.h"
 #include <map>
 
 #ifdef WITH_UART
@@ -30,6 +29,8 @@ struct global_settings {
 // members
     // data items
     // TODO: take these out of the settings
+
+    std::chrono::steady_clock::time_point startTimestamp;
 
 	/// <summary>
 	/// Mapa z watkami w formacie <std::string nazwa, std::thread watek>
@@ -80,7 +81,7 @@ struct global_settings {
     int iConvertModels{ 0 }; // tworzenie plików binarnych
     int iConvertIndexRange{ 1000 }; // range of duplicate vertex scan
     bool file_binary_terrain{ true }; // enable binary terrain (de)serialization
-	bool file_binary_terrain_state{true}; 
+	bool file_binary_terrain_state{true};
     // logs
 	bool priorityLoadText3D{false}; // ladowanie T3D priorytetowo
     int iWriteLogEnabled{ 3 }; // maska bitowa: 1-zapis do pliku, 2-okienko, 4-nazwy torów
@@ -141,8 +142,10 @@ struct global_settings {
     bool ScaleSpecularValues{ true };
     std::string GfxRenderer{ "default" };
     bool LegacyRenderer{ false };
+    bool NvRenderer{ false };
     bool BasicRenderer{ false };
     bool RenderShadows{ true };
+	bool applicationQuitOrder{false};
     int RenderCabShadowsRange{ 0 };
     struct shadowtune_t {
         unsigned int map_size{ 2048 };
@@ -229,7 +232,7 @@ struct global_settings {
     int iMultiplayer{ 0 }; // blokada działania niektórych eventów na rzecz kominikacji
 	bool bIsolatedTrainName{ false }; //wysyłanie zajęcia odcinka izolowanego z nazwą pociągu
     // other
-    std::string AppName{ "EU07" };
+    std::string AppName{ "Wls50" };
     std::string asVersion; // z opisem
 	motiontelemetry::conf_t motiontelemetry_conf;
 	std::string screenshot_dir;
@@ -366,4 +369,6 @@ template <>
 void
 global_settings::export_as_text( std::ostream &Output, std::string const Key, bool const &Value ) const;
 
-extern global_settings Global;
+extern global_settings& GetGlobalSettings();
+
+#define Global (GetGlobalSettings())

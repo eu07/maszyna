@@ -402,8 +402,7 @@ extract_value( bool &Variable, std::string const &Key, std::string const &Input,
 }
 
 bool FileExists( std::string const &Filename ) {
-	std::ifstream file( Filename );
-    return( true == file.is_open() );
+	return std::filesystem::exists(Filename);
 }
 
 std::pair<std::string, std::string>

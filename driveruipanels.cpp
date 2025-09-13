@@ -515,8 +515,8 @@ timetable_panel::render() {
 	ImGui::PopFont();
 }
 
-void
-debug_panel::update() {
+void debug_panel::update()
+{
 
 	if( false == is_open ) { return; }
 
@@ -574,7 +574,6 @@ debug_panel::update() {
 
 void
 debug_panel::render() {
-
     if( false == is_open ) { return; }
 
 	ImGui::PushFont(ui_layer::font_mono);
@@ -1448,17 +1447,39 @@ debug_panel::update_section_renderer( std::vector<text_line> &Output ) {
 
             Output.emplace_back( textline, Global.UITextColor );
 
-            textline =
-                std::string( "Rendering mode: " )
-                + ( Global.GfxRenderer == "default" ?
-                    "Shaders" :
-                    ( Global.BasicRenderer ?
-                        "Legacy Simple" :
-                        "Legacy" ) )
-                + ( Global.bUseVBO ?
-                    ", VBO" :
-                    ", Display Lists" )
-                + " ";
+            textline += "\nRendering mode: ";
+
+	        if (Global.GfxRenderer == "default")
+	        {
+		        textline += "Shaders";
+	        }
+            else if (Global.GfxRenderer == "experimental")
+            {
+		        textline += "NVRHI on ";
+            }
+	        else
+	        {
+		        if (Global.BasicRenderer)
+		        {
+			        textline += "Legacy Simple";
+		        }
+		        else
+		        {
+			        textline += "Legacy";
+		        }
+	        }
+
+	        if (Global.bUseVBO)
+	        {
+		        textline += ", VBO";
+	        }
+	        else
+	        {
+		        textline += ", Display Lists";
+	        }
+
+	        textline += " ";
+
             if( false == Global.LastGLError.empty() ) {
                 textline +=
                     "Last openGL error: "

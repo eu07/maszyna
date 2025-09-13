@@ -9,16 +9,15 @@ http://mozilla.org/MPL/2.0/.
 
 #pragma once
 
+#include "interfaces/IMaterial.h"
 #include "Classes.h"
 #include "Texture.h"
 #include "gl/shader.h"
 #include "gl/ubo.h"
 
-typedef int material_handle;
-
 // a collection of parameters for the rendering setup.
 // for modern opengl this translates to set of attributes for shaders
-struct opengl_material {
+struct opengl_material : public IMaterial {
     std::array<texture_handle, gl::MAX_TEXTURES> textures = { null_handle };
     std::array<glm::vec4, gl::MAX_PARAMS> params;
     std::vector<gl::shader::param_entry> params_state;
@@ -36,13 +35,32 @@ struct opengl_material {
     opengl_material();
 
 // methods
-    bool
-        deserialize( cParser &Input, bool const Loadnow );
-    void finalize(bool Loadnow);
-    bool update();
-    float get_or_guess_opacity() const;
-    bool is_translucent() const;
-// members
+    bool deserialize(cParser &Input, bool const Loadnow);
+	  virtual void finalize(bool Loadnow) override;
+	  virtual bool update() override;
+	  virtual float get_or_guess_opacity() const override;
+	  virtual bool is_translucent() const override;
+	  virtual glm::vec2 GetSize() const override
+	  {
+		  return size;
+	  }
+	  virtual std::string GetName() const override
+	  {
+		  return name;
+	  }
+	  virtual std::optional<float> GetSelfillum() const override
+	  {
+		  return selfillum;
+	  }
+	  virtual int GetShadowRank() const override
+	  {
+		  return shadow_rank;
+	  }
+	  virtual texture_handle GetTexture(int slot) const override
+	  {
+		  return textures[slot];
+	  }
+	// members
     static struct path_data {
         std::unordered_map<std::string, int> index_map;
         std::vector<std::string> data;
@@ -110,10 +128,13 @@ private:
     // checks whether specified texture is in the texture bank. returns texture id, or npos.
     material_handle
         find_in_databank( std::string const &Materialname ) const;
+    public:
     // checks whether specified file exists. returns name of the located file, or empty string.
-    std::pair<std::string, std::string>
-        find_on_disk( std::string const &Materialname ) const;
-// members:
+    static std::pair<std::string, std::string>
+        find_on_disk( std::string const &Materialname );
+
+	private:
+	  // members:
     material_sequence m_materials;
     index_map m_materialmappings;
 };

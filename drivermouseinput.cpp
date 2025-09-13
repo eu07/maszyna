@@ -935,36 +935,36 @@ drivermouse_input::default_bindings() {
 		{ "couplingdisconnectback_sw:",{
 			user_command::occupiedcarcouplingdisconnectback,
 			user_command::none } },
-        { "universal0:", {
-            user_command::generictoggle0,
-            user_command::none } },
-        { "universal1:", {
-            user_command::generictoggle1,
-            user_command::none } },
-        { "universal2:", {
-            user_command::generictoggle2,
-            user_command::none } },
-        { "universal3:", {
-            user_command::generictoggle3,
-            user_command::none } },
-        { "universal4:", {
-            user_command::generictoggle4,
-            user_command::none } },
-        { "universal5:", {
-            user_command::generictoggle5,
-            user_command::none } },
-        { "universal6:", {
-            user_command::generictoggle6,
-            user_command::none } },
-        { "universal7:", {
-            user_command::generictoggle7,
-            user_command::none } },
-        { "universal8:", {
-            user_command::generictoggle8,
-            user_command::none } },
-        { "universal9:", {
-            user_command::generictoggle9,
-            user_command::none } },
+	    {"universal0:", {user_command::generictoggle0, user_command::none}},
+	    {"universal1:", {user_command::generictoggle1, user_command::none}},
+	    {"universal2:", {user_command::generictoggle2, user_command::none}},
+	    {"universal3:", {user_command::generictoggle3, user_command::none}},
+	    {"universal4:", {user_command::generictoggle4, user_command::none}},
+	    {"universal5:", {user_command::generictoggle5, user_command::none}},
+	    {"universal6:", {user_command::generictoggle6, user_command::none}},
+	    {"universal7:", {user_command::generictoggle7, user_command::none}},
+	    {"universal8:", {user_command::generictoggle8, user_command::none}},
+	    {"universal9:", {user_command::generictoggle9, user_command::none}},
+	    {"universal10:", {user_command::generictoggle10, user_command::none}},
+	    {"universal11:", {user_command::generictoggle11, user_command::none}},
+	    {"universal12:", {user_command::generictoggle12, user_command::none}},
+	    {"universal13:", {user_command::generictoggle13, user_command::none}},
+	    {"universal14:", {user_command::generictoggle14, user_command::none}},
+	    {"universal15:", {user_command::generictoggle15, user_command::none}},
+	    {"universal16:", {user_command::generictoggle16, user_command::none}},
+	    {"universal17:", {user_command::generictoggle17, user_command::none}},
+	    {"universal18:", {user_command::generictoggle18, user_command::none}},
+	    {"universal19:", {user_command::generictoggle19, user_command::none}},
+	    {"universal20:", {user_command::generictoggle20, user_command::none}},
+	    {"universal21:", {user_command::generictoggle21, user_command::none}},
+	    {"universal22:", {user_command::generictoggle22, user_command::none}},
+	    {"universal23:", {user_command::generictoggle23, user_command::none}},
+	    {"universal24:", {user_command::generictoggle24, user_command::none}},
+	    {"universal25:", {user_command::generictoggle25, user_command::none}},
+	    {"universal26:", {user_command::generictoggle26, user_command::none}},
+	    {"universal27:", {user_command::generictoggle27, user_command::none}},
+	    {"universal28:", {user_command::generictoggle28, user_command::none}},
+	    {"universal29:", {user_command::generictoggle29, user_command::none}},
 		{ "speedinc_bt:",{
 			user_command::speedcontrolincrease,
 			user_command::none } },

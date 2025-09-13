@@ -49,7 +49,7 @@ cMoon::render() {
 }
 
 glm::vec3
-cMoon::getDirection() {
+cMoon::getDirection() const {
 
     return m_position;
 }

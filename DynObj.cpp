@@ -328,18 +328,18 @@ material_data::assign( std::string const &Replacableskin ) {
     // BUGS! it's not entierly designed whether opacity is property of material or submodel,
     // and code does confusing things with this in various places
     textures_alpha = (
-        GfxRenderer->Material( replacable_skins[ 1 ] ).is_translucent() ?
+        GfxRenderer->Material( replacable_skins[ 1 ] )->is_translucent() ?
             0x31310031 :  // tekstura -1 z kanałem alfa - nie renderować w cyklu nieprzezroczystych
             0x30300030 ); // wszystkie tekstury nieprzezroczyste - nie renderować w cyklu przezroczystych
-    if( GfxRenderer->Material( replacable_skins[ 2 ] ).is_translucent() ) {
+    if( GfxRenderer->Material( replacable_skins[ 2 ] )->is_translucent() ) {
         // tekstura -2 z kanałem alfa - nie renderować w cyklu nieprzezroczystych
         textures_alpha |= 0x02020002;
     }
-    if( GfxRenderer->Material( replacable_skins[ 3 ] ).is_translucent() ) {
+    if( GfxRenderer->Material( replacable_skins[ 3 ] )->is_translucent() ) {
         // tekstura -3 z kanałem alfa - nie renderować w cyklu nieprzezroczystych
         textures_alpha |= 0x04040004;
     }
-    if( GfxRenderer->Material( replacable_skins[ 4 ] ).is_translucent() ) {
+    if( GfxRenderer->Material( replacable_skins[ 4 ] )->is_translucent() ) {
         // tekstura -4 z kanałem alfa - nie renderować w cyklu nieprzezroczystych
         textures_alpha |= 0x08080008;
     }
@@ -1319,7 +1319,7 @@ void TDynamicObject::ABuLittleUpdate(double ObjSqrDist)
 			m_highbeam12.TurnxOnWithOnAsFallback();
 		else
 			m_highbeam12.TurnOff();
-        
+
         // i to samo od dupy strony
         if (TestFlag(MoverParameters->iLights[end::rear], light::highbeamlight_left))
 			m_highbeam23.TurnxOnWithOnAsFallback();
@@ -2364,8 +2364,8 @@ TDynamicObject::Init(std::string Name, // nazwa pojazdu, np. "EU07-424"
     m_headlamp21.Init( "headlamp21", mdModel );
     m_headlamp22.Init( "headlamp22", mdModel );
     m_headlamp23.Init( "headlamp23", mdModel );
-	m_highbeam22.Init("highbeam22", mdModel); 
-	m_highbeam23.Init("highbeam23", mdModel); 
+	m_highbeam22.Init("highbeam22", mdModel);
+	m_highbeam23.Init("highbeam23", mdModel);
     m_headsignal12.Init( "headsignal12", mdModel );
     m_headsignal13.Init( "headsignal13", mdModel );
     m_headsignal22.Init( "headsignal22", mdModel );
@@ -3677,8 +3677,8 @@ bool TDynamicObject::Update(double dt, double dt1)
                     }
                     case  e_bridge: {
                         volume *= 1.5;
-                        break; 
-                    } 
+                        break;
+                    }
                     default: {
                         break;
                     }
@@ -4974,8 +4974,8 @@ void TDynamicObject::RenderSounds() {
                     }
                     case  e_bridge: {
                         volume *= 1.5;
-                        break; 
-                    } 
+                        break;
+                    }
                     default: {
                         break;
                     }
@@ -5272,8 +5272,7 @@ void TDynamicObject::LoadMMediaFile( std::string const &TypeName, std::string co
         + " " + ReplacableSkin // (p3)
         + " end",
         cParser::buffer_TEXT,
-        asBaseDir );
-	parser.allowRandomIncludes = true;
+        asBaseDir, true, std::vector<std::string>(), true );
 	std::string token;
     do {
 		token = "";
@@ -6329,7 +6328,7 @@ void TDynamicObject::LoadMMediaFile( std::string const &TypeName, std::string co
                     sConverter.deserialize( parser, sound_type::multipart, sound_parameters::range );
                     sConverter.owner( this );
                 }
-                
+
                 // Dzwiek wentylatora rezystora hamowania
 				else if (token == "brakingresistorventilator:")
 				{
@@ -7367,42 +7366,36 @@ void TDynamicObject::RaLightsSet(int head, int rear)
 		bool tLeft = MoverParameters->iLights[vehicleend] & (light::auxiliary_left | light::headlight_left); // roboczo czy jakiekolwiek swiatlo z lewej jest zapalone
 		bool tRight = MoverParameters->iLights[vehicleend] & (light::auxiliary_right | light::headlight_right); // a tu z prawej
         if (Controller == Humandriver) {
-			switch (MoverParameters->modernDimmerState)
+
+            int &currentDimPos = MoverParameters->modernDimmerPosition;
+			auto &dimmerPositions = MoverParameters->dimPositions;
+			TMoverParameters::dimPosition dps = dimmerPositions[currentDimPos];
+
+            // domyślnie
+			HighBeamLights = false;
+			DimHeadlights = false;
+
+            // obsługa OFF
+			if (dps.isOff)
 			{
-			case 0:
-				// wylaczone
 				MoverParameters->iLights[vehicleend] &= 0 | light::rearendsignals; // zostawiamy tylko tabliczki jesli sa
 				HighBeamLights = false;
 				DimHeadlights = false;
-				break;
-			case 1:
-				// przyciemnione normalne
-				DimHeadlights = true; // odpalamy przyciemnienie normalnych reflektorow
-				HighBeamLights = false;
-				break;
-			case 3:
-				// dlugie przyciemnione
-				DimHeadlights = true;
-				HighBeamLights = true;
-				MoverParameters->iLights[vehicleend] &=
-				    light::headlight_upper | light::rearendsignals | light::redmarker_left | light::redmarker_right | light::rearendsignals; // nie ruszamy gornych i koncowek
-				MoverParameters->iLights[vehicleend] |= tLeft ? light::highbeamlight_left : 0; // jesli swiatlo z lewej zapalone to odpal dlugie
-				MoverParameters->iLights[vehicleend] |= tRight ? light::highbeamlight_right : 0; // a tu z prawej
-				break;
-			case 4:
-				// zwykle dlugie
-				DimHeadlights = false;
-				HighBeamLights = true;
-				MoverParameters->iLights[vehicleend] &=
-				    light::headlight_upper | light::rearendsignals | light::redmarker_left | light::redmarker_right | light::rearendsignals; // nie ruszamy gornych i koncowek
-				MoverParameters->iLights[vehicleend] |= tLeft ? light::highbeamlight_left : 0; // jesli swiatlo z lewej zapalone to odpal dlugie
-				MoverParameters->iLights[vehicleend] |= tRight ? light::highbeamlight_right : 0; // a tu z prawej
-				break;
-			default: // to case 2 - zwykle
-				DimHeadlights = false;
-				HighBeamLights = false;
-				break;
 			}
+
+			// obsługa przyciemnionych
+			DimHeadlights = dps.isDimmed;
+
+			// obsługa długich
+			if (dps.isHighBeam)
+			{
+				HighBeamLights = true;
+
+                MoverParameters->iLights[vehicleend] &=
+				    light::headlight_upper | light::rearendsignals | light::redmarker_left | light::redmarker_right | light::rearendsignals; // nie ruszamy gornych i koncowek
+				MoverParameters->iLights[vehicleend] |= tLeft ? light::highbeamlight_left : 0; // jesli swiatlo z lewej zapalone to odpal dlugie
+				MoverParameters->iLights[vehicleend] |= tRight ? light::highbeamlight_right : 0; // a tu z prawej			
+            }
         }
 
     }

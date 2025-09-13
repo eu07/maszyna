@@ -77,7 +77,7 @@ public:
         int index_count;
     };
 
-private:
+public:
     int iNext{ 0 };
     int iChild{ 0 };
     int eType{ TP_ROTATOR }; // Ra: modele binarne dają więcej możliwości niż mesh złożony z trójkątów
@@ -87,7 +87,7 @@ public: // chwilowo
 
 	bool HasAnyVertexUserData() const;
 
-private:
+public:
     uint32_t iFlags{ 0x0200 }; // bit 9=1: submodel został utworzony a nie ustawiony na wczytany plik
                 // flagi informacyjne:
 				// bit  0: =1 faza rysowania zależy od wymiennej tekstury 0
@@ -132,9 +132,10 @@ private:
 
 	bool m_rotation_init_done = false;
 
+  public:
     TSubModel *Next { nullptr };
     TSubModel *Child { nullptr };
-private:
+public:
     material_handle m_material { null_handle }; // numer tekstury, -1 wymienna, 0 brak
     bool bWire { false }; // nie używane, ale wczytywane
     float Opacity { 1.0f };
@@ -158,7 +159,7 @@ public: // chwilowo
     float fVisible { 1.f }; // visibility level
 	std::string m_materialname; // robocza nazwa tekstury do zapisania w pliku binarnym
 	std::string pName; // robocza nazwa
-private:
+public:
 	int SeekFaceNormal( std::vector<unsigned int> const &Masks, int const Startface, unsigned int const Mask, glm::vec3 const &Position, gfx::vertex_array const &Vertices );
 	void RaAnimation(TAnimType a);
 	void RaAnimation(glm::mat4 &m, TAnimType a);
@@ -257,7 +258,7 @@ class TModel3d
     friend opengl_renderer;
     friend opengl33_renderer;
 
-private:
+public:
     TSubModel *Root { nullptr }; // drzewo submodeli
     uint32_t iFlags { 0 }; // Ra: czy submodele mają przezroczyste tekstury
 public: // Ra: tymczasowo

@@ -484,6 +484,7 @@ void TTrack::Load(cParser *parser, glm::dvec3 const &pOrigin)
     {
         parser->getTokens();
         *parser >> str; // railtex
+        replace_slashes(str);
         m_material1 = (
             str == "none" ?
                 null_handle :
@@ -494,6 +495,7 @@ void TTrack::Load(cParser *parser, glm::dvec3 const &pOrigin)
             fTexLength = 4; // Ra: zabezpiecznie przed zawieszeniem
         parser->getTokens();
         *parser >> str; // sub || railtex
+        replace_slashes(str);
         m_material2 = (
             str == "none" ?
                 null_handle :
@@ -609,13 +611,13 @@ void TTrack::Load(cParser *parser, glm::dvec3 const &pOrigin)
         else if (iCategoryFlag & 2)
             if (m_material1 && fTexLength)
             { // dla drogi trzeba ustalić proporcje boków nawierzchni
-                auto const &texture1 { GfxRenderer->Texture( GfxRenderer->Material( m_material1 ).textures[0] ) };
-                if( texture1.height() > 0 ) {
-                    fTexRatio1 = static_cast<float>( texture1.width() ) / static_cast<float>( texture1.height() ); // proporcja boków
+                auto const &texture1 { GfxRenderer->Texture( GfxRenderer->Material( m_material1 )->GetTexture(0) ) };
+                if( texture1.get_height() > 0 ) {
+                    fTexRatio1 = static_cast<float>( texture1.get_width() ) / static_cast<float>( texture1.get_height() ); // proporcja boków
                 }
-                auto const &texture2 { GfxRenderer->Texture( GfxRenderer->Material( m_material2 ).textures[0] ) };
-                if( texture2.height() > 0 ) {
-                    fTexRatio2 = static_cast<float>( texture2.width() ) / static_cast<float>( texture2.height() ); // proporcja boków
+                auto const &texture2 { GfxRenderer->Texture( GfxRenderer->Material( m_material2 )->GetTexture(0) ) };
+                if( texture2.get_height() > 0 ) {
+                    fTexRatio2 = static_cast<float>( texture2.get_width() ) / static_cast<float>( texture2.get_height() ); // proporcja boków
                 }
             }
         break;
@@ -2262,7 +2264,7 @@ TTrack::export_as_text_( std::ostream &Output ) const {
         // texture parameters are supplied only if the path is set as visible
         auto texturefile { (
             m_material1 != null_handle ?
-                GfxRenderer->Material( m_material1 ).name :
+                GfxRenderer->Material( m_material1 )->GetName() :
                 "none" ) };
         if( texturefile.find( szTexturePath ) == 0 ) {
             // don't include 'textures/' in the path
@@ -2274,7 +2276,7 @@ TTrack::export_as_text_( std::ostream &Output ) const {
 
         texturefile = (
             m_material2 != null_handle ?
-                GfxRenderer->Material( m_material2 ).name :
+                GfxRenderer->Material( m_material2 )->GetName() :
                 "none" );
         if( texturefile.find( szTexturePath ) == 0 ) {
             // don't include 'textures/' in the path
@@ -2348,7 +2350,7 @@ TTrack::export_as_text_( std::ostream &Output ) const {
     }
     if( ( eType == tt_Switch )
      && ( SwitchExtension->m_material3 != null_handle ) ) {
-        auto texturefile { GfxRenderer->Material( m_material2 ).name };
+        auto texturefile { GfxRenderer->Material( m_material2 )->GetName() };
         if( texturefile.find( szTexturePath ) == 0 ) {
             // don't include 'textures/' in the path
             texturefile.erase( 0, std::string{ szTexturePath }.size() );
@@ -2484,7 +2486,7 @@ TTrack::texture_length( material_handle const Material ) {
     if( Material == null_handle ) {
         return fTexLength;
     }
-    auto const texturelength { GfxRenderer->Material( Material ).size.y };
+    auto const texturelength { GfxRenderer->Material( Material )->GetSize().y };
     return (
         texturelength < 0.f ?
             fTexLength :

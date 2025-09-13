@@ -13,12 +13,12 @@ http://mozilla.org/MPL/2.0/.
 #include <functional>
 
 #include "Classes.h"
-#include "material.h"
+#include "interfaces/IMaterial.h"
 #include "MOVER.h"
 #include "TrkFoll.h"
 #include "Button.h"
 #include "AirCoupler.h"
-#include "Texture.h"
+#include "interfaces/ITexture.h"
 #include "sound.h"
 #include "Spring.h"
 
@@ -193,7 +193,7 @@ class TDynamicObject { // klasa pojazdu
 public:
     static bool bDynamicRemove; // moved from ground
 
-private: // położenie pojazdu w świecie oraz parametry ruchu
+//private: // położenie pojazdu w świecie oraz parametry ruchu
     Math3D::vector3 vPosition; // Ra: pozycja pojazdu liczona zaraz po przesunięciu
     Math3D::vector3 vCoulpler[ 2 ]; // współrzędne sprzęgów do liczenia zderzeń czołowych
     Math3D::vector3 vUp, vFront, vLeft; // wektory jednostkowe ustawienia pojazdu
@@ -335,7 +335,7 @@ private:
     TSubModel *smWiper; // wycieraczka (poniekąd też wajcha)
     // Ra: koneic animacji do ogarnięcia
 
-private:
+//private:
 // types
     struct exchange_data {
         float unload_count { 0.f }; // amount to unload

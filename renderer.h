@@ -10,10 +10,16 @@ http://mozilla.org/MPL/2.0/.
 #pragma once
 
 #include "geometrybank.h"
-#include "material.h"
+#include "interfaces/IMaterial.h"
+#include "interfaces/ITexture.h"
 #include "Globals.h"
 
 struct lighting_data;
+
+namespace gl
+{
+class program;
+}
 
 class gfx_renderer {
 
@@ -51,15 +57,15 @@ public:
     // material methods
     virtual auto Fetch_Material( std::string const &Filename, bool const Loadnow = true ) -> material_handle = 0;
     virtual void Bind_Material( material_handle const Material, TSubModel const *sm = nullptr, lighting_data const *lighting = nullptr ) = 0;
-    virtual auto Material( material_handle const Material ) const -> opengl_material const & = 0;
+    virtual auto Material( material_handle const Material ) const -> IMaterial const * = 0;
     // shader methods
     virtual auto Fetch_Shader( std::string const &name ) -> std::shared_ptr<gl::program> = 0;
     // texture methods
     virtual auto Fetch_Texture( std::string const &Filename, bool const Loadnow = true, GLint format_hint = GL_SRGB_ALPHA ) -> texture_handle = 0;
     virtual void Bind_Texture( texture_handle const Texture ) = 0;
     virtual void Bind_Texture( std::size_t const Unit, texture_handle const Texture ) = 0;
-    virtual auto Texture( texture_handle const Texture ) -> opengl_texture & = 0;
-    virtual auto Texture( texture_handle const Texture ) const -> opengl_texture const & = 0;
+    virtual auto Texture( texture_handle const Texture ) -> ITexture & = 0;
+    virtual auto Texture( texture_handle const Texture ) const -> ITexture const & = 0;
     // utility methods
     virtual void Pick_Control_Callback( std::function<void( TSubModel const *, const glm::vec2 )> Callback ) = 0;
     virtual void Pick_Node_Callback( std::function<void( scene::basic_node * )> Callback ) = 0;
@@ -76,6 +82,9 @@ public:
     // debug methods
     virtual auto info_times() const -> std::string const & = 0;
     virtual auto info_stats() const -> std::string const & = 0;
+    // imgui renderer
+	  virtual class imgui_renderer *GetImguiRenderer() = 0;
+	  virtual void MakeScreenshot() = 0;
 };
 
 class gfx_renderer_factory
@@ -93,6 +102,14 @@ private:
     static gfx_renderer_factory *instance;
 };
 
+class imgui_renderer
+{
+  public:
+	virtual bool Init() = 0;
+	virtual void Shutdown() = 0;
+	virtual void BeginFrame() = 0;
+	virtual void Render() = 0;
+};
 
 extern std::unique_ptr<gfx_renderer> GfxRenderer;
 

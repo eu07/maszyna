@@ -995,6 +995,7 @@ class TMoverParameters
 		std::array<basic_door, 2> instances; // door on the right and left side of the vehicle
 		// ld outputs
 		bool is_locked{false};
+		double doorLockSpeed = 10.0; // predkosc przy ktorej wyzwalana jest blokada drzwi
 	};
 
 	struct water_heater
@@ -1167,6 +1168,7 @@ class TMoverParameters
 	int UniversalBrakeButtonFlag[3] = {0, 0, 0}; /* mozliwe działania przycisków hamulcowych */
 	int UniversalResetButtonFlag[3] = {0, 0, 0}; // customizable reset buttons assignments
 	int TurboTest = 0;
+	bool batterySwAlreadyFired = false; // czy przycisk baterii juz zostal wcisniety
 	bool isBatteryButtonImpulse = false; // czy przelacznik baterii traktowac jako pojedynczy przycisk
 	bool shouldHoldBatteryButton = false; // czy nalezy przytrzymac przycisk baterii aby wlaczyc/wylaczyc baterie
 	float BatteryButtonHoldTime = 1.f; // minimalny czas przytrzymania przycisku baterii
@@ -1238,6 +1240,7 @@ class TMoverParameters
 	int Lights[2][17]; // pozycje świateł, przód - tył, 1 .. 16
 	int ScndInMain{0}; /*zaleznosc bocznika od nastawnika*/
 	bool MBrake = false; /*Czy jest hamulec reczny*/
+	double maxTachoSpeed = {0.0}; // maksymalna predkosc na tarczce predkosciomierza analogowego
 	double StopBrakeDecc = 0.0;
 	bool ReleaseParkingBySpringBrake{false};
 	bool ReleaseParkingBySpringBrakeWhenDoorIsOpen{false};
@@ -1384,7 +1387,8 @@ class TMoverParameters
 	int FFEDListSize = 0;
 	TWiperSchemeTable WiperList;
 	int WiperListSize;
-	
+	int modernWpierListSize;
+
 	double Vadd = 1.0;
 	TMPTRelayTable MPTRelay;
 	int RelayType = 0;
@@ -1781,9 +1785,23 @@ class TMoverParameters
 	// 2 - swiatla normalne
 	// 3 - swiatla dlugie przyciemnione
 	// 4 - swiatla dlugie normalne
-	int modernDimmerState{0};
-	bool modernContainOffPos{true};
+
+	struct dimPosition
+	{
+		bool isOff = false;
+		bool isDimmed = false;
+		bool isHighBeam = false;
+	};
+
+	// default positions
+	std::vector<dimPosition> dimPositions = {{false, false, false}, // 0 - Not dimmed
+	                                         {false, true, false}}; // 1 - Dimmed
+
+	int modernDimmerPosition{0};
+	int modernDimmerDefaultPosition{0};
+	//bool modernContainOffPos{true};
 	bool enableModernDimmer {false};
+	bool modernDimmerCanCycle {false};
 
 	// Barwa reflektora
 	int refR{255}; // Czerwony
@@ -1793,7 +1811,7 @@ class TMoverParameters
 	double dimMultiplier{0.6f}; // mnoznik swiatel przyciemnionych
 	double normMultiplier{1.0f}; // mnoznik swiatel zwyklych
 	double highDimMultiplier{2.5f}; // mnoznik dlugich przyciemnionych
-	double highMultiplier{2.8f}; // mnoznik dlugich 
+	double highMultiplier{2.8f}; // mnoznik dlugich
 
     plc::basic_controller m_plc;
 
@@ -2075,6 +2093,7 @@ private:
     void LoadFIZ_FFEDList( std::string const &Input );
 	void LoadFIZ_WiperList(std::string const &Input);
     void LoadFIZ_LightsList( std::string const &Input );
+	void LoadFIZ_DimmerList(std::string const &Input);
 	void LoadFIZ_CompressorList(std::string const &Input);
     void LoadFIZ_PowerParamsDecode( TPowerParameters &Powerparameters, std::string const Prefix, std::string const &Input );
     TPowerType LoadFIZ_PowerDecode( std::string const &Power );
@@ -2097,6 +2116,7 @@ private:
     bool readFFEDList( std::string const &line );
     bool readWWList( std::string const &line );
     bool readWiperList( std::string const &line );
+	bool readDimmerList(std::string const &line);
     bool readLightsList( std::string const &Input );
 	bool readCompressorList(std::string const &Input);
     void BrakeValveDecode( std::string const &s );                                                            //Q 20160719

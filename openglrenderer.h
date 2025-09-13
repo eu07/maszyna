@@ -79,7 +79,7 @@ public:
         Fetch_Material( std::string const &Filename, bool const Loadnow = true ) override;
     void
         Bind_Material( material_handle const Material, TSubModel const *sm = nullptr, lighting_data const *lighting = nullptr ) override;
-    opengl_material const &
+    IMaterial const *
         Material( material_handle const Material ) const override;
     // shader methods
     auto Fetch_Shader( std::string const &name ) -> std::shared_ptr<gl::program> override;
@@ -90,9 +90,9 @@ public:
         Bind_Texture( texture_handle const Texture ) override;
     void
         Bind_Texture( std::size_t const Unit, texture_handle const Texture ) override;
-    opengl_texture &
+    ITexture &
         Texture( texture_handle const Texture ) override;
-    opengl_texture const &
+    ITexture const &
         Texture( texture_handle const Texture ) const override;
     // utility methods
     void
@@ -119,6 +119,7 @@ public:
         info_times() const override;
     std::string const &
         info_stats() const override;
+	  void MakeScreenshot() override;
 
     opengl_material const & Material( TSubModel const * Submodel ) const;
 
@@ -368,6 +369,19 @@ private:
     bool m_isATI;
 
     static bool renderer_register;
+
+	class opengl_imgui_renderer : public imgui_renderer
+	{
+		virtual bool Init() override;
+		virtual void Shutdown() override;
+		virtual void BeginFrame() override;
+		virtual void Render() override;
+	} m_imgui_renderer;
+
+	virtual imgui_renderer *GetImguiRenderer() override
+	{
+		return &m_imgui_renderer;
+	}
 };
 
 //---------------------------------------------------------------------------

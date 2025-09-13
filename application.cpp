@@ -33,6 +33,13 @@ http://mozilla.org/MPL/2.0/.
 #include <chrono>
 #include "translation.h"
 
+#if WITH_DISCORD_RPC
+#include <discord_rpc.h>
+#endif
+
+#include <chrono>
+#include "translation.h"
+
 #ifdef _WIN32
 #pragma comment (lib, "dsound.lib")
 #pragma comment (lib, "winmm.lib")
@@ -180,21 +187,13 @@ int eu07_application::run_crashgui()
 }
 void eu07_application::DiscordRPCService()
 {
+#if WITH_DISCORD_RPC
 	// initialize discord-rpc
 	WriteLog("Initializing Discord Rich Presence...");
 	static const char *discord_app_id = "1343662664504840222";
 	DiscordEventHandlers handlers;
 	memset(&handlers, 0, sizeof(handlers));
 	Discord_Initialize(discord_app_id, &handlers, 1, nullptr);
-
-	std::string rpcScnName = Global.SceneryFile;
-	if (rpcScnName[0] == '$')
-		rpcScnName.erase(0, 1);
-	rpcScnName.erase(rpcScnName.size() - 4, 4);
-	if (rpcScnName.find('_') != std::string::npos)
-	{
-		std::replace(rpcScnName.begin(), rpcScnName.end(), '_', ' ');
-	}
 
 	// calculate startup timestamp
 	auto now = std::chrono::system_clock::now();
@@ -203,20 +202,57 @@ void eu07_application::DiscordRPCService()
 	// Init RPC object
 	static DiscordRichPresence discord_rpc;
 	memset(&discord_rpc, 0, sizeof(discord_rpc));
-	// realworld timestamp from datetime
 	discord_rpc.startTimestamp = static_cast<int64_t>(now_c);
-	static std::string state = Translations.lookup_s("Scenery: ") + rpcScnName;
-	discord_rpc.state = state.c_str();
-	discord_rpc.details = Translations.lookup_c("Loading scenery...");
-	discord_rpc.largeImageKey = "logo";
 	discord_rpc.largeImageText = "MaSzyna";
-
-	// First RPC upload
-	Discord_UpdatePresence(&discord_rpc);
 
     // run loop
     while (!glfwWindowShouldClose(m_windows.front()) && !m_modestack.empty())
 	{
+		auto currentMode = m_modestack.top();
+        if (currentMode == mode::launcher)
+        {
+			// in launcher mode
+            
+            discord_rpc.state = Translations.lookup_c("In main menu");
+			discord_rpc.details = Translations.lookup_c("Browsing scenarios...");
+			discord_rpc.largeImageKey = "";
+			discord_rpc.largeImageText = "MaSzyna";
+			// RPC upload
+			Discord_UpdatePresence(&discord_rpc);
+
+			std::this_thread::sleep_for(std::chrono::milliseconds(5000)); // update RPC every 5 secs
+			continue;
+        }
+		else if (currentMode == mode::scenarioloader)
+		{
+			std::string rpcScnName = Global.SceneryFile;
+			if (rpcScnName[0] == '$')
+				rpcScnName.erase(0, 1);
+			rpcScnName.erase(rpcScnName.size() - 4, 4);
+			if (rpcScnName.find('_') != std::string::npos)
+			{
+				std::replace(rpcScnName.begin(), rpcScnName.end(), '_', ' ');
+			}
+
+            // realworld timestamp from datetime
+			static std::string state = Translations.lookup_s("Scenery: ") + rpcScnName;
+			discord_rpc.state = state.c_str();
+			discord_rpc.details = Translations.lookup_c("Loading scenery...");
+			discord_rpc.largeImageKey = "logo";
+			discord_rpc.largeImageText = "MaSzyna";
+
+			// RPC upload
+			Discord_UpdatePresence(&discord_rpc);
+
+			std::this_thread::sleep_for(std::chrono::milliseconds(5000)); // update RPC every 5 secs
+			continue;
+		}
+
+        if (currentMode != mode::driver)
+			continue;
+
+		if (Global.applicationQuitOrder)
+			break;
 		// Discord RPC updater
 		if (simulation::is_ready)
 		{
@@ -254,22 +290,24 @@ void eu07_application::DiscordRPCService()
 		}
 		std::this_thread::sleep_for(std::chrono::milliseconds(5000)); // update RPC every 5 secs
     }
+#endif
 }
 
 int
 eu07_application::init( int Argc, char *Argv[] ) {
 
     int result { 0 };
+	// start logging service
+	std::thread sLoggingService(LogService);
+	Global.threads.emplace("LogService", std::move(sLoggingService));
 
     init_debug();
     init_files();
     if( ( result = init_settings( Argc, Argv ) ) != 0 ) {
+		ErrorLog("Failed to initialize settings! Maybe you're missing eu07.ini file?");
         return result;
     }
 
-    // start logging service
-	std::thread sLoggingService(LogService);
-	Global.threads.emplace("LogService", std::move(sLoggingService));
 
 	WriteLog( "Starting MaSzyna rail vehicle simulator (release: " + Global.asVersion + ")" );
 	WriteLog( "For online documentation and additional files refer to: http://eu07.pl" );
@@ -286,47 +324,66 @@ eu07_application::init( int Argc, char *Argv[] ) {
         WriteLog( settingspipe.str() );
     }
 
+    // cruel way to prevent crashes because of threaded upload from python
+	if (Global.NvRenderer)
+		Global.python_threadedupload = false;
+
     WriteLog( "// startup" );
 
     if( ( result = init_glfw() ) != 0 ) {
+		ErrorLog("Failed to initialize glfw!");
         return result;
     }
-    if( ( result = init_ogl() ) != 0 ) {
+    if( needs_ogl() && ( result = init_ogl() ) != 0 ) {
+		ErrorLog("Failed to initialize ogl!");
         return result;
     }
-    if( ( result = init_ui() ) != 0 ) {
-        return result;
-    }
+
     if (crashreport_is_pending()) { // run crashgui as early as possible
-        if ( ( result = run_crashgui() ) != 0 )
-            return result;
+		if ((result = run_crashgui()) != 0)
+		{
+			ErrorLog("Failed to run crash gui!");
+			return result;
+		}
     }
+
     if( ( result = init_locale() ) != 0 ) {
+		ErrorLog("Failed to initialize locales! Maybe you're missing lang directory?");
         return result;
     }
+
     if( ( result = init_gfx() ) != 0 ) {
+		ErrorLog("Failed to initialize GFX!");
         return result;
+    }
+
+    if( ( result = init_ui() ) != 0 ) { // ui now depends on activated renderer
+		ErrorLog("Failed to init UI!");
+		return result;
     }
     if( ( result = init_audio() ) != 0 ) {
-        return result;
+		ErrorLog("Failed to initialize OpenAL");
+		return result;
     }
     if( ( result = init_data() ) != 0 ) {
-        return result;
+		ErrorLog("Failed to load data/ contents! Maybe your installation is broken?");
+		return result;
     }
     crashreport_add_info("python_enabled", Global.python_enabled ? "yes" : "no");
     if( Global.python_enabled ) {
         m_taskqueue.init();
     }
     if( ( result = init_modes() ) != 0 ) {
-        return result;
+		ErrorLog("Failed to initialize game modes");
+		return result;
     }
+
+    // Run DiscordRPC service
+	std::thread sDiscordRPC(&eu07_application::DiscordRPCService, this);
+	Global.threads.emplace("DiscordRPC", std::move(sDiscordRPC));
 
 	if (!init_network())
 		return -1;
-
-    // Run DiscordRPC service
-    std::thread sDiscordRPC(&eu07_application::DiscordRPCService, this);
-    Global.threads.emplace("DiscordRPC", std::move(sDiscordRPC));
 
     return result;
 }
@@ -513,7 +570,7 @@ eu07_application::run() {
 
         if (m_screenshot_queued) {
             m_screenshot_queued = false;
-            screenshot_man.make_screenshot();
+			      GfxRenderer->MakeScreenshot();
         }
 
 		if (m_network)
@@ -524,8 +581,6 @@ eu07_application::run() {
             std::this_thread::sleep_for( Global.minframetime - frametime );
         }
     }
-	Global.threads["LogService"].~thread(); // kill log service
-	Global.threads["DiscordRPC"].~thread(); // kill DiscordRPC service
 	return 0;
 }
 
@@ -537,7 +592,6 @@ eu07_application::request( python_taskqueue::task_request const &Task ) {
     if( ( false == result )
      && ( Task.input != nullptr ) ) {
         // clean up allocated resources since the worker won't
-        delete Task.input;
     }
     return result;
 }
@@ -558,6 +612,11 @@ eu07_application::release_python_lock() {
 
 void
 eu07_application::exit() {
+	Global.applicationQuitOrder = true;
+	Global.threads["LogService"].join(); // kill log service
+	Global.threads["DiscordRPC"].join(); // kill DiscordRPC service
+
+
 	for (auto &mode : m_modes)
 		mode.reset();
 
@@ -802,8 +861,12 @@ std::string eu07_application::describe_monitor(GLFWmonitor *monitor) const {
 
 // private:
 
-void
-eu07_application::init_debug() {
+bool eu07_application::needs_ogl() const
+{
+	return !Global.NvRenderer;
+}
+
+void eu07_application::init_debug() {
 
 #if defined(_MSC_VER) && defined (_DEBUG)
     // memory leaks
@@ -837,12 +900,6 @@ eu07_application::init_settings( int Argc, char *Argv[] ) {
     Global.asVersion = VERSION_INFO;
 
     Global.LoadIniFile( "eu07.ini" );
-#ifdef _WIN32
-    if( ( Global.iWriteLogEnabled & 2 ) != 0 ) {
-        // show output console if requested
-        AllocConsole();
-    }
-#endif
 
     // process command line arguments
     for( int i = 1; i < Argc; ++i ) {
@@ -934,6 +991,11 @@ eu07_application::init_glfw() {
 
     crashreport_add_info("gfxrenderer", Global.GfxRenderer);
 
+    if (!needs_ogl())
+	  {
+		  glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
+	  }
+    else {
     if( !Global.LegacyRenderer ) {
         Global.bUseVBO = true;
         // activate core profile for opengl 3.3 renderer
@@ -965,6 +1027,7 @@ eu07_application::init_glfw() {
 
     if (Global.gfx_gldebug)
         glfwWindowHint( GLFW_OPENGL_DEBUG_CONTEXT, GLFW_TRUE );
+    }
 
     glfwWindowHint(GLFW_SRGB_CAPABLE, !Global.gfx_shadergamma);
 
@@ -1059,6 +1122,10 @@ eu07_application::init_gfx() {
         // default render path
         GfxRenderer = gfx_renderer_factory::get_instance()->create("modern");
     }
+	else if (Global.GfxRenderer == "experimental")
+	{
+		GfxRenderer = gfx_renderer_factory::get_instance()->create(Global.GfxRenderer);
+	}
     else {
         // legacy render path
         GfxRenderer = gfx_renderer_factory::get_instance()->create("legacy");

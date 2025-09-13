@@ -1,0 +1,312 @@
+templates:
+# Partially pre-filled containers to avoid excessive copypasta
+  XeGTAO:
+    # TODO Depth conversion is broken since converting to reversed depth buffer
+    # after attempting to fix it, it is still broken but with hardcoded values
+    source: XeGTAO/GTAO
+    target: compute
+    definitions: # TODO (mostly) move to shader file I guess
+      VA_COMPILED_AS_SHADER_CODE: 1
+      VA_DIRECTX: 12
+      VA_DXC: 1
+      XE_GTAO_USE_DEFAULT_CONSTANTS: 1
+      XE_GTAO_FP32_DEPTHS: 1
+      XE_GTAO_USE_HALF_FLOAT_PRECISION: 0
+      VA_COMPILED_AS_SHADER_CODE: 1
+      VA_SATURATE: saturate
+  envmap:
+    source: envmap
+    target: compute
+  precomputed_sky:
+    source: manul/sky_aerial_lut
+    target: compute
+  bloom:
+    source: manul/bloom
+    target: compute
+  gbuffer_lights:
+    source: manul/gbuffer_lights
+    target: compute
+shaders:
+  materials:
+# Material shaders
+# are compiled for all the rendering passes at once
+# Binding layout will also be defined here (though ignored by compiler for now)
+    default_lit:
+      textures:
+        albedo:
+          binding: 0
+          hint: linear # so that texture will be marked as sRGB
+          default: white
+        # We split the normal map into two textures to drastically improve compression quality when compressed using standard of "Paczka całościowa" 
+        # (so that we use the best of two 5.6.5 RGB compression blocks for hopefully less gradient-like parameters and two interpolated alphas for normal) 
+        params: # Metalness.Roughness.Occlusion.Specular
+          binding: 1
+          hint: linear
+          default: legacy_params
+        normal:
+          binding: 2
+          hint: normalmap
+          default: normalmap
+        # paramx: # Metalness.Roughness.[UNUSED].Normal[X]
+        #   binding: 1
+        #   hint: linear
+        #   default: legacy_params
+        # paramy: # Specular.Occlusion.[UNUSED].Normal[Y]
+        #   binding: 2
+        #   hint: linear
+        #   default: legacy_params
+        # selfillum:
+        #   binding: 3
+        #   hint: color
+        #   default: black
+      masked_shadow_texture: albedo
+      source: ps_default_lit
+    legacy:
+      textures:
+        diffuse:
+          binding: 0
+          hint: color # so that texture will be marked as sRGB
+          default: white
+      masked_shadow_texture: diffuse
+      source: ps_legacy
+    legacy_reflection:
+      textures:
+        diffuse:
+          binding: 0
+          hint: color # so that texture will be marked as sRGB
+          default: white
+        normal:
+          binding: 1
+          hint: normalmap
+          default: normalmap
+      masked_shadow_texture: diffuse
+      source: ps_legacy_reflection
+    legacy_normalmap:
+      textures:
+        diffuse:
+          binding: 0
+          hint: color # so that texture will be marked as sRGB
+          default: white
+        normal:
+          binding: 1
+          hint: normalmap
+          default: normalmap
+      masked_shadow_texture: diffuse
+      source: ps_legacy_normalmap
+    legacy_specgloss:
+      textures:
+        diffuse:
+          binding: 0
+          hint: color # so that texture will be marked as sRGB
+          default: white
+        specgloss:
+          binding: 1
+          hint: linear
+          default: white
+      masked_shadow_texture: diffuse
+      source: ps_legacy_specgloss
+    legacy_normalmap_specgloss:
+      textures:
+        diffuse:
+          binding: 0
+          hint: color # so that texture will be marked as sRGB
+          default: white
+        specgloss:
+          binding: 1
+          hint: linear
+          default: white
+        normal:
+          binding: 2
+          hint: normalmap
+          default: normalmap
+      masked_shadow_texture: diffuse
+      source: ps_legacy_normalmap_specgloss
+    legacy_water:
+      textures:
+        diffuse:
+          binding: 0
+          hint: color # so that texture will be marked as sRGB
+          default: white
+        normal:
+          binding: 1
+          hint: normalmap
+          default: normalmap
+        dudvmap:
+          binding: 2
+          hint: normalmap
+          default: normalmap
+      masked_shadow_texture: diffuse
+      source: ps_legacy_water
+  utility:
+# Everything that does not belong to scene graph rendering
+# ImGui shaders
+    imgui_pixel:
+      source: imgui_pixel
+      target: pixel
+      entrypoint: main
+    imgui_vertex:
+      source: imgui_vertex
+      target: vertex
+      entrypoint: main
+# Shadow material
+    shadow_masked:
+      source: ps_shadow_masked
+      target: pixel
+      entrypoint: main
+# Contact shadows
+# TODO Depth conversion is broken since converting to reversed depth buffer
+    contact_shadows:
+      source: contact_shadows
+      target: compute
+      entrypoint: main
+# Gbuffer lighting
+    gbuffer_lighting:
+      source: gbufferblit
+      target: compute
+      entrypoint: main
+# Vertex shaders
+    default_vertex:
+      source: default_vertex
+      target: vertex
+      entrypoint: main
+    shadow_vertex:
+      source: shadow_vertex
+      target: vertex
+      entrypoint: main
+    cubemap_vertex:
+      source: cubemap_vertex
+      target: vertex
+      entrypoint: main
+    instanced_vertex:
+      source: instanced_vertex
+      target: vertex
+      entrypoint: main
+    instanced_shadow_vertex:
+      source: instanced_shadow_vertex
+      target: vertex
+      entrypoint: main
+    instanced_cubemap_vertex:
+      source: instanced_cubemap_vertex
+      target: vertex
+      entrypoint: main
+# Fullscreen Fx shaders
+    fx_vertex:
+      source: fx_vertex
+      target: vertex
+      entrypoint: main
+    copy:
+      source: copy
+      target: pixel
+      entrypoint: main
+    skybox:
+      source: skybox
+      target: pixel
+      entrypoint: main
+    tonemap:
+      source: tonemap
+      target: pixel
+      entrypoint: main
+# Envmap compute shaders
+    gbuffer_cube_lighting:
+      source: gbuffer_cube_lighting
+      target: compute
+      entrypoint: main
+    envmap_CSSampleEquirectangular:
+      use_template: envmap
+      entrypoint: CSSampleEquirectangular
+    envmap_CSDiffuseIBL:
+      use_template: envmap
+      entrypoint: CSDiffuseIBL
+    envmap_CSSpecularIBL:
+      use_template: envmap
+      entrypoint: CSSpecularIBL
+    envmap_CSGenerateCubeMip:
+      use_template: envmap
+      entrypoint: CSGenerateCubeMip
+    envmap_CSIntegrateBRDF:
+      use_template: envmap
+      entrypoint: CSIntegrateBRDF
+# XeGTAO
+    gtao_CSPrefilterDepths16x16:
+      use_template: XeGTAO
+      entrypoint: CSPrefilterDepths16x16
+    gtao_CSGTAOLow:
+      use_template: XeGTAO
+      entrypoint: CSGTAOLow
+    gtao_CSGTAOMedium:
+      use_template: XeGTAO
+      entrypoint: CSGTAOMedium
+    gtao_CSGTAOHigh:
+      use_template: XeGTAO
+      entrypoint: CSGTAOHigh
+    gtao_CSGTAOUltra:
+      use_template: XeGTAO
+      entrypoint: CSGTAOUltra
+    gtao_CSDenoisePass:
+      use_template: XeGTAO
+      entrypoint: CSDenoisePass
+    gtao_CSDenoiseLastPass:
+      use_template: XeGTAO
+      entrypoint: CSDenoiseLastPass
+# Atmospheric transmitance LUT
+    sky_transmittance:
+      source: manul/sky_transmittance
+      target: pixel
+      entrypoint: main
+    sky_aerial_lut:
+      use_template: precomputed_sky
+      entrypoint: CS_AerialLUT
+    sky:
+      use_template: precomputed_sky
+      entrypoint: CS_Sky
+# Blóm
+    bloom_prefilter:
+      use_template: bloom
+      entrypoint: CS_BloomPrefilter
+    bloom_downsample:
+      use_template: bloom
+      entrypoint: CS_BloomDownsample
+    bloom_upsample:
+      use_template: bloom
+      entrypoint: CS_BloomUpsample
+    bloom_apply:
+      use_template: bloom
+      entrypoint: CS_BloomApply
+# Wire geometry shader
+    vtx_line:
+      source: manul/line
+      target: vertex
+      entrypoint: vtx_main
+    geo_line:
+      source: manul/line
+      target: geometry
+      entrypoint: geo_main
+    pix_line:
+      source: manul/line
+      target: pixel
+      entrypoint: pix_main
+# Deferred light primitives
+    gbuffer_light_clear:
+      use_template: gbuffer_lights
+      entrypoint: CS_Clear
+    gbuffer_light_spot:
+      use_template: gbuffer_lights
+      entrypoint: CS_Spotlight
+# Forward+ light culling
+    forwardplus_compute_frustums:
+      source: manul/forward_plus/forward_plus
+      target: compute
+      entrypoint: CS_ComputeFrustums
+    forwardplus_cull_lights:
+      source: manul/forward_plus/forward_plus
+      target: compute
+      entrypoint: CS_CullLights
+# Auto exposure
+    autoexp_compute_avg_luminance:
+      source: manul/comp_luminance
+      target: compute
+      entrypoint: CS_ComputeAvgLuminance
+    autoexp_apply:
+      source: manul/apply_auto_exposure
+      target: compute
+      entrypoint: CS_ApplyAutoExposure
