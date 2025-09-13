@@ -609,6 +609,13 @@ struct TDEScheme
 	double Umax = 0.0; /*napiecie maksymalne*/
 	double Imax = 0.0; /*prad maksymalny*/
 };
+typedef TDEScheme TDESchemeTable[33]; /*tablica WWList dla silnikow spalinowych*/
+struct TFFScheme
+{
+	double v = 0.0; // parametr wejsciowy
+	double freq = 0.0; // wyjscie: czestotliwosc falownika
+};
+typedef TFFScheme TFFSchemeTable[33];
 
 struct TWiperScheme
 {
@@ -619,8 +626,6 @@ struct TWiperScheme
 };
 typedef TWiperScheme TWiperSchemeTable[16];
 
-
-typedef TDEScheme TDESchemeTable[33]; /*tablica rezystorow rozr.*/
 struct TShuntScheme
 {
 	double Umin = 0.0;
@@ -1376,6 +1381,10 @@ class TMoverParameters
 	bool Flat = false;
 	double Vhyp = 1.0;
 	TDESchemeTable DElist;
+	TFFSchemeTable FFlist;
+	int FFListSize = 0;
+	TFFSchemeTable FFEDlist;
+	int FFEDListSize = 0;
 	TWiperSchemeTable WiperList;
 	int WiperListSize;
 	int modernWpierListSize;
@@ -2081,6 +2090,7 @@ private:
 	void LoadFIZ_UCList(std::string const &Input);
     void LoadFIZ_DList( std::string const &Input );
     void LoadFIZ_FFList( std::string const &Input );
+    void LoadFIZ_FFEDList( std::string const &Input );
 	void LoadFIZ_WiperList(std::string const &Input);
     void LoadFIZ_LightsList( std::string const &Input );
 	void LoadFIZ_DimmerList(std::string const &Input);
@@ -2103,6 +2113,7 @@ private:
 	bool readHTCList(std::string const &line);
 	bool readPmaxList(std::string const &line);
     bool readFFList( std::string const &line );
+    bool readFFEDList( std::string const &line );
     bool readWWList( std::string const &line );
     bool readWiperList( std::string const &line );
 	bool readDimmerList(std::string const &line);

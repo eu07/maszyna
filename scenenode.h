@@ -330,6 +330,7 @@ public:
         export_as_text( std::string &Output ) const;
     std::string const &
         name() const;
+	virtual std::string tooltip() const;
     void
         location( glm::dvec3 const Location );
     glm::dvec3 const &
@@ -377,6 +378,13 @@ inline
 std::string const &
 basic_node::name() const {
     return m_name;
+}
+
+// Returns the tooltip of this Node when hovered with the mouse cursor.
+inline
+std::string basic_node::tooltip() const
+{
+	return m_name;
 }
 
 inline

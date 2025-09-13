@@ -22,6 +22,8 @@ void scenery_scanner::scan()
 
 	std::sort(scenarios.begin(), scenarios.end(),
 	          [](const scenery_desc &a, const scenery_desc &b) { return a.path < b.path; });
+
+	build_categories();
 }
 
 void scenery_scanner::scan_scn(std::filesystem::path path)
@@ -57,6 +59,8 @@ void scenery_scanner::scan_scn(std::filesystem::path path)
 			desc.name = win1250_to_utf8(line.substr(5));
 		else if (line[3] == 'd')
 			desc.description += win1250_to_utf8(line.substr(5)) + '\n';
+		else if (line[3] == 'l')
+			desc.category = win1250_to_utf8(line.substr(5));
 		else if (line[3] == 'f') {
 			std::string lang;
 			std::string file;
@@ -153,4 +157,15 @@ void scenery_scanner::parse_trainset(cParser &parser)
 	}
 
 	trainset.file_bounds.second = parser.Line();
+}
+
+void scenery_scanner::build_categories()
+{
+	for (auto &desc : scenarios) {
+		std::string name = desc.path.stem().string();
+		std::string prefix = desc.category;
+		// If the scenario does have a category, add it to the list so we can render it later in a group.
+		if (!prefix.empty())
+			categories[prefix].push_back(&desc);
+	}
 }

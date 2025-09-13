@@ -6432,21 +6432,24 @@ double TMoverParameters::TractionForce( double dt ) {
                 EnginePower = abs(eimv[eimv_Ic] * eimv[eimv_U] * NPoweredAxles) / 1000;
                 // power inverters
                 auto const tmpV { std::abs( eimv[ eimv_fp ] ) };
+            	auto const useFFEDList = FFEDListSize > 0 && DynamicBrakeFlag;
+            	auto const list = useFFEDList ? FFEDlist : FFlist;
+            	auto const listSize = useFFEDList ? FFEDListSize : FFListSize;
 
-                if( ( RlistSize > 0 )
+                if( ( listSize > 0 )
                  && ( ( std::abs( eimv[ eimv_If ] ) > 1.0 )
                    && ( tmpV > 0.0001 ) ) ) {
 
                     int i = 0;
-                    while( ( i < RlistSize - 1 )
-                        && ( DElist[ i + 1 ].RPM < tmpV ) ) {
+                    while( ( i < listSize - 1 )
+                        && ( list[ i + 1 ].v < tmpV ) ) {
                         ++i;
                     }
                     InverterFrequency =
-                        ( tmpV - DElist[ i ].RPM )
-                        / std::max( 1.0, ( DElist[ i + 1 ].RPM - DElist[ i ].RPM ) )
-                        * ( DElist[ i + 1 ].GenPower - DElist[ i ].GenPower )
-                        + DElist[ i ].GenPower;
+                        ( tmpV - list[ i ].v )
+                        / std::max( 1.0, ( list[ i + 1 ].v - list[ i ].v ) )
+                        * ( list[ i + 1 ].freq - list[ i ].freq )
+                        + list[ i ].freq;
                 }
                 else {
                     InverterFrequency = 0.0;
@@ -8927,7 +8930,7 @@ bool startBPT;
 bool startMPT, startMPT0;
 bool startRLIST, startUCLIST;
 bool startDIZELMOMENTUMLIST, startDIZELV2NMAXLIST, startHYDROTCLIST, startPMAXLIST;
-bool startDLIST, startFFLIST, startWWLIST, startWiperList, startDimmerList;
+bool startDLIST, startFFLIST, startWWLIST, startWiperList, startDimmerList, startFFEDLIST;
 bool startLIGHTSLIST;
 bool startCOMPRESSORLIST;
 int LISTLINE;
@@ -9262,21 +9265,40 @@ bool TMoverParameters::readPmaxList(std::string const &line) {
 
 bool TMoverParameters::readFFList( std::string const &line ) {
 
-    cParser parser( line );
-    if( false == parser.getTokens( 2, false ) ) {
-    WriteLog( "Read FList: arguments missing in line " + std::to_string( LISTLINE + 1 ) );
-    return false;
-    }
-    int idx = LISTLINE++;
-    if( idx >= sizeof( DElist ) / sizeof( TDEScheme ) ) {
-        WriteLog( "Read FList: number of entries exceeded capacity of the data table" );
-        return false;
-    }
-    parser
-        >> DElist[ idx ].RPM
-        >> DElist[ idx ].GenPower;
+	cParser parser( line );
+	if( false == parser.getTokens( 2, false ) ) {
+		WriteLog( "Read FList: arguments missing in line " + std::to_string( LISTLINE + 1 ) );
+		return false;
+	}
+	int idx = LISTLINE++;
+	if( idx >= sizeof( FFlist ) / sizeof( TFFScheme ) ) {
+		WriteLog( "Read FList: number of entries exceeded capacity of the data table" );
+		return false;
+	}
+	parser
+		>> FFlist[ idx ].v
+		>> FFlist[ idx ].freq;
 
-    return true;
+	return true;
+}
+
+bool TMoverParameters::readFFEDList( std::string const &line ) {
+
+	cParser parser( line );
+	if( false == parser.getTokens( 2, false ) ) {
+		WriteLog( "Read FList: arguments missing in line " + std::to_string( LISTLINE + 1 ) );
+		return false;
+	}
+	int idx = LISTLINE++;
+	if( idx >= sizeof( FFEDlist ) / sizeof( TFFScheme ) ) {
+		WriteLog( "Read FList: number of entries exceeded capacity of the data table" );
+		return false;
+	}
+	parser
+		>> FFEDlist[ idx ].v
+		>> FFEDlist[ idx ].freq;
+
+	return true;
 }
 
 // parsowanie wiperList
@@ -9496,6 +9518,7 @@ bool TMoverParameters::LoadFIZ(std::string chkpath)
 	startHYDROTCLIST = false;
 	startPMAXLIST = false;
 	startFFLIST = false;
+	startFFEDLIST = false;
     startWWLIST = false;
 	startWiperList = false;
 	startDimmerList = false;
@@ -9597,6 +9620,7 @@ bool TMoverParameters::LoadFIZ(std::string chkpath)
         if( issection( "endff", inputline ) ) {
             startBPT = false;
             startFFLIST = false;
+        	startFFEDLIST = false;
             continue;
         }
         if (issection("endwl", inputline))
@@ -9893,12 +9917,19 @@ bool TMoverParameters::LoadFIZ(std::string chkpath)
 			continue;
 		}
 
-        if( issection( "ffList:", inputline ) ) {
-			startBPT = false;
-            startFFLIST = true; LISTLINE = 0;
-            LoadFIZ_FFList( inputline );
-            continue;
-        }
+    	if( issection( "ffList:", inputline ) ) {
+    		startBPT = false;
+    		startFFLIST = true; LISTLINE = 0;
+    		LoadFIZ_FFList( inputline );
+    		continue;
+    	}
+
+    	if( issection( "ffBrakeList:", inputline ) ) {
+    		startBPT = false;
+    		startFFEDLIST = true; LISTLINE = 0;
+    		LoadFIZ_FFEDList( inputline );
+    		continue;
+    	}
 
         if( issection( "WWList:", inputline ) )
         {
@@ -9988,10 +10019,14 @@ bool TMoverParameters::LoadFIZ(std::string chkpath)
 			readPmaxList(inputline);
 			continue;
 		}
-        if( true == startFFLIST ) {
-            readFFList( inputline );
-            continue;
-		}
+    	if( true == startFFLIST ) {
+    		readFFList( inputline );
+    		continue;
+    	}
+    	if( true == startFFEDLIST ) {
+    		readFFEDList( inputline );
+    		continue;
+    	}
         if( true == startWWLIST ) {
             readWWList( inputline );
 			continue;
@@ -11354,8 +11389,11 @@ void TMoverParameters::LoadFIZ_DList( std::string const &Input ) {
 }
 
 void TMoverParameters::LoadFIZ_FFList( std::string const &Input ) {
+	extract_value( FFListSize, "Size", Input, "" );
+}
 
-    extract_value( RlistSize, "Size", Input, "" );
+void TMoverParameters::LoadFIZ_FFEDList( std::string const &Input ) {
+	extract_value( FFEDListSize, "Size", Input, "" );
 }
 
 void TMoverParameters::LoadFIZ_WiperList(std::string const &Input) 

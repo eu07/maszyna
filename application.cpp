@@ -81,6 +81,7 @@ void framebuffer_resize_callback( GLFWwindow *, int w, int h ) {
 
 void window_resize_callback( GLFWwindow *, int w, int h ) {
     Global.window_size = glm::ivec2(w, h);
+	Application.on_window_resize(w, h);
 }
 
 void cursor_pos_callback( GLFWwindow *window, double x, double y ) {
@@ -662,19 +663,19 @@ eu07_application::pop_mode() {
 }
 
 bool
-eu07_application::push_mode( eu07_application::mode const Mode ) {
+eu07_application::push_mode( mode const Mode ) {
 
-	if( Mode >= mode::count_ )
+	if( Mode >= count_ )
 		return false;
 
 	if (!m_modes[Mode]) {
-		if (Mode == mode::launcher)
+		if (Mode == launcher)
 			m_modes[Mode] = std::make_shared<launcher_mode>();
-		if (Mode == mode::scenarioloader)
+		if (Mode == scenarioloader)
 			m_modes[Mode] = std::make_shared<scenarioloader_mode>();
-		if (Mode == mode::driver)
+		if (Mode == driver)
 			m_modes[Mode] = std::make_shared<driver_mode>();
-		if (Mode == mode::editor)
+		if (Mode == editor)
 			m_modes[Mode] = std::make_shared<editor_mode>();
 
 		if (!m_modes[Mode]->init())
@@ -740,6 +741,13 @@ eu07_application::on_key( int const Key, int const Scancode, int const Action, i
 
     if( m_modestack.empty() ) { return; }
 
+	if (Key == GLFW_KEY_LEFT_SHIFT || Key == GLFW_KEY_RIGHT_SHIFT)
+		Global.shiftState = Action == GLFW_PRESS;
+	if (Key == GLFW_KEY_LEFT_CONTROL || Key == GLFW_KEY_RIGHT_CONTROL)
+		Global.ctrlState = Action == GLFW_PRESS;
+	if (Key == GLFW_KEY_LEFT_ALT || Key == GLFW_KEY_RIGHT_ALT)
+		Global.altState = Action == GLFW_PRESS;
+
     m_modes[ m_modestack.top() ]->on_key( Key, Scancode, Action, Mods );
 }
 
@@ -779,11 +787,19 @@ void eu07_application::on_char(unsigned int c) {
 }
 
 void eu07_application::on_focus_change(bool focus) {
-	if( Global.bInactivePause && !m_network->client) {// jeśli ma być pauzowanie okna w tle
+	if( Global.bInactivePause && m_network.has_value() && !m_network->client) {// jeśli ma być pauzowanie okna w tle
 		command_relay relay;
 		relay.post(user_command::focuspauseset, focus ? 1.0 : 0.0, 0.0, GLFW_PRESS, 0);
 	}
 }
+
+void eu07_application::on_window_resize(int w, int h)
+{
+    if (m_modestack.empty())
+    	return;
+    m_modes[m_modestack.top()]->on_window_resize(w, h);
+}
+
 
 GLFWwindow *
 eu07_application::window(int const Windowindex, bool visible, int width, int height, GLFWmonitor *monitor, bool keep_ownership , bool share_ctx) {
