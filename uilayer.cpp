@@ -10,10 +10,11 @@ http://mozilla.org/MPL/2.0/.
 #include "stdafx.h"
 #include "uilayer.h"
 
+#include <utility>
+
 #include "Globals.h"
 #include "renderer.h"
 #include "Logs.h"
-#include "Timer.h"
 #include "simulation.h"
 #include "translation.h"
 #include "application.h"
@@ -28,8 +29,9 @@ GLint ui_layer::m_textureunit { GL_TEXTURE0 };
 bool ui_layer::m_cursorvisible;
 ImFont *ui_layer::font_default{nullptr};
 ImFont *ui_layer::font_mono{nullptr};
+ImFont *ui_layer::font_loading{nullptr};
 
-ui_panel::ui_panel(std::string const &Identifier, bool const Isopen) : m_name(Identifier), is_open(Isopen) {}
+ui_panel::ui_panel(std::string Identifier, bool const Isopen) : is_open(Isopen), m_name(std::move(Identifier)) {}
 
 void ui_panel::render()
 {
@@ -38,11 +40,16 @@ void ui_panel::render()
 
 	int flags = window_flags;
 	if (flags == -1)
-		flags = ImGuiWindowFlags_NoFocusOnAppearing | ImGuiWindowFlags_NoCollapse |
-		        ((size.x > 0) ? ImGuiWindowFlags_NoResize : 0);
+		flags = ImGuiWindowFlags_NoFocusOnAppearing | ImGuiWindowFlags_NoCollapse;
+	if (size.x > 0)
+		flags |= ImGuiWindowFlags_NoResize;
+	if (no_title_bar)
+		flags |= ImGuiWindowFlags_NoTitleBar;
 
-    if (size.x > 0)
-        ImGui::SetNextWindowSize(ImVec2S(size.x, size.y));
+	if (pos.x != -1 && pos.y != -1)
+		ImGui::SetNextWindowPos(ImVec2(pos.x, pos.y), ImGuiCond_Always);
+	if (size.x > 0)
+        ImGui::SetNextWindowSize(ImVec2S(size.x, size.y), ImGuiCond_Always);
 	else if (size_min.x == -1)
         ImGui::SetNextWindowSize(ImVec2(0, 0), ImGuiCond_FirstUseEver);
 
@@ -53,7 +60,7 @@ void ui_panel::render()
 	if (ImGui::Begin(panelname.c_str(), &is_open, flags)) {
         render_contents();
 
-		popups.remove_if([](std::unique_ptr<ui::popup> &popup)
+		popups.remove_if([](const std::unique_ptr<ui::popup> &popup)
 		{
 			return popup->render();
 		});
@@ -93,6 +100,13 @@ void ui_log_panel::render_contents()
 	ImGui::PopFont();
 }
 
+ui_layer::ui_layer()
+{
+	if (Global.loading_log)
+		add_external_panel(&m_logpanel);
+	m_logpanel.size = { 700, 400 };
+}
+
 ui_layer::~ui_layer() {}
 
 bool ui_layer::key_callback(int key, int scancode, int action, int mods)
@@ -119,14 +133,7 @@ bool ui_layer::mouse_button_callback(int button, int action, int mods)
     return m_imguiio->WantCaptureMouse;
 }
 
-ui_layer::ui_layer()
-{
-    if (Global.loading_log)
-		add_external_panel(&m_logpanel);
-    m_logpanel.size = { 700, 400 };
-}
-
-void::ui_layer::load_random_background()
+void ui_layer::load_random_background()
 {
 	std::vector<std::string> images;
 	for (auto &f : std::filesystem::directory_iterator("textures/logo"))
@@ -224,9 +231,11 @@ bool ui_layer::init(GLFWwindow *Window)
     };
 
 	if (FileExists("fonts/dejavusans.ttf"))
-        font_default = m_imguiio->Fonts->AddFontFromFileTTF("fonts/dejavusans.ttf", Global.ui_fontsize, nullptr, &ranges[0]);
+		font_default = m_imguiio->Fonts->AddFontFromFileTTF("fonts/dejavusans.ttf", Global.ui_fontsize, nullptr, &ranges[0]);
 	if (FileExists("fonts/dejavusansmono.ttf"))
-        font_mono = m_imguiio->Fonts->AddFontFromFileTTF("fonts/dejavusansmono.ttf", Global.ui_fontsize, nullptr, &ranges[0]);
+		font_mono = m_imguiio->Fonts->AddFontFromFileTTF("fonts/dejavusansmono.ttf", Global.ui_fontsize, nullptr, &ranges[0]);
+	if (FileExists("fonts/bahnschrift.ttf"))
+		font_loading = m_imguiio->Fonts->AddFontFromFileTTF("fonts/bahnschrift.ttf", 48, nullptr, &ranges[0]);
 
 	if (!font_default && !font_mono)
 		font_default = font_mono = m_imguiio->Fonts->AddFontDefault();
@@ -234,6 +243,8 @@ bool ui_layer::init(GLFWwindow *Window)
 		font_default = font_mono;
 	else if (!font_mono)
 		font_mono = font_default;
+	if (!font_loading)
+		font_loading = font_default;
 
 	imgui_style();
 
@@ -308,6 +319,13 @@ bool ui_layer::on_mouse_button(int const Button, int const Action)
     return false;
 }
 
+void ui_layer::on_window_resize(int w, int h)
+{
+	for (auto *panel : m_panels)
+		panel->on_window_resize(w, h);
+}
+
+
 void ui_layer::update()
 {
     for (auto *panel : m_panels)
@@ -323,7 +341,6 @@ void ui_layer::update()
 void ui_layer::render()
 {
     render_background();
-    render_progress();
     render_panels();
     render_tooltip();
     render_menu();
@@ -384,26 +401,20 @@ void ui_layer::set_cursor(int const Mode)
     m_cursorvisible = (Mode != GLFW_CURSOR_DISABLED);
 }
 
-void ui_layer::set_progress(float const Progress, float const Subtaskprogress)
+void ui_layer::set_progress(std::string const &Text)
 {
-    m_progress = Progress * 0.01f;
-    m_subtaskprogress = Subtaskprogress * 0.01f;
+	m_progresstext = Text;
+}
+
+void ui_layer::set_progress(float const progress, float const subtaskprogress)
+{
+	m_progress = progress * 0.01f;
+	m_subtaskprogress = subtaskprogress * 0.01f;
 }
 
 void ui_layer::set_background(std::string const &Filename)
 {
-    if (false == Filename.empty())
-    {
-        m_background = GfxRenderer->Fetch_Texture(Filename);
-    }
-    else
-    {
-        m_background = null_handle;
-    }
-    if (m_background != null_handle)
-    {
-        auto const &texture = GfxRenderer->Texture(m_background);
-    }
+	m_background = Filename.empty() ? null_handle : GfxRenderer->Fetch_Texture(Filename);
 }
 
 void ui_layer::clear_panels()
@@ -422,22 +433,6 @@ void ui_layer::add_owned_panel(ui_panel *Panel)
 
 	Panel->is_open = true;
 	m_ownedpanels.emplace_back( Panel );
-}
-
-void ui_layer::render_progress()
-{
-    if ((m_progress == 0.0f) && (m_subtaskprogress == 0.0f))
-        return;
-
-    ImGui::SetNextWindowPos(ImVec2(50, 50));
-    ImGui::SetNextWindowSize(ImVec2(0, 0));
-    ImGui::Begin(STR_C("Loading"), nullptr, ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoCollapse);
-    if (!m_progresstext.empty())
-        ImGui::ProgressBar(m_progress, ImVec2(300, 0), m_progresstext.c_str());
-    else
-        ImGui::ProgressBar(m_progress, ImVec2(300, 0));
-    ImGui::ProgressBar(m_subtaskprogress, ImVec2(300, 0));
-    ImGui::End();
 }
 
 void ui_layer::render_panels()
@@ -504,7 +499,7 @@ void ui_layer::render_menu()
 {
     glm::dvec2 mousepos = Global.cursor_pos;
 
-    if (!((Global.ControlPicking && mousepos.y < 50.0f) || m_imguiio->WantCaptureMouse) || m_progress != 0.0f)
+    if (!((Global.ControlPicking && mousepos.y < 50.0f) || m_imguiio->WantCaptureMouse) || m_suppress_menu)
         return;
 
     if (ImGui::BeginMainMenuBar())

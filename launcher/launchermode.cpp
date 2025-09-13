@@ -23,9 +23,7 @@ bool launcher_mode::update()
 void launcher_mode::enter()
 {
 	Application.set_cursor( GLFW_CURSOR_NORMAL );
-
 	simulation::is_ready = false;
-
 	Application.set_title(Global.AppName);
 }
 
@@ -36,7 +34,10 @@ void launcher_mode::exit()
 
 void launcher_mode::on_key(const int Key, const int Scancode, const int Action, const int Mods)
 {
-	Global.shiftState = ( Mods & GLFW_MOD_SHIFT ) ? true : false;
-	Global.ctrlState = ( Mods & GLFW_MOD_CONTROL ) ? true : false;
 	m_userinterface->on_key(Key, Action);
+}
+
+void launcher_mode::on_window_resize(const int w, const int h)
+{
+	m_userinterface->on_window_resize(w, h);
 }

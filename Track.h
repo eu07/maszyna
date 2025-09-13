@@ -316,6 +316,7 @@ public:
     void ConnectionsLog();
     bool DoubleSlip() const;
     static void fetch_default_profiles();
+	std::string tooltip() const override;
 
 private:
 // types

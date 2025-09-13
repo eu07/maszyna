@@ -14,7 +14,6 @@ http://mozilla.org/MPL/2.0/.
 #include "simulation.h"
 #include "simulationtime.h"
 #include "simulationenvironment.h"
-#include "Timer.h"
 #include "application.h"
 #include "scenarioloaderuilayer.h"
 #include "renderer.h"
@@ -22,20 +21,17 @@ http://mozilla.org/MPL/2.0/.
 #include "translation.h"
 
 scenarioloader_mode::scenarioloader_mode() {
-
     m_userinterface = std::make_shared<scenarioloader_ui>();
 }
 
 // initializes internal data structures of the mode. returns: true on success, false otherwise
-bool
-scenarioloader_mode::init() {
+bool scenarioloader_mode::init() {
     // nothing to do here
     return true;
 }
 
 // mode-specific update of simulation data. returns: false on error, true otherwise
-bool
-scenarioloader_mode::update() {
+bool scenarioloader_mode::update() {
 	if (!Global.ready_to_load)
 		// waiting for network connection
 		return true;
@@ -69,31 +65,24 @@ scenarioloader_mode::update() {
     return true;
 }
 
-bool
-scenarioloader_mode::is_command_processor() const {
+bool scenarioloader_mode::is_command_processor() const {
 	return false;
 }
 
 // maintenance method, called when the mode is activated
-void
-scenarioloader_mode::enter() {
-
+void scenarioloader_mode::enter() {
     // TBD: hide cursor in fullscreen mode?
     Application.set_cursor( GLFW_CURSOR_NORMAL );
 
     simulation::is_ready = false;
 
-    m_userinterface->set_background( "logo" );
     Application.set_title( Global.AppName + " (" + Global.SceneryFile + ")" );
-    m_userinterface->set_progress();
 	m_userinterface->set_progress(STR("Loading scenery"));
     GfxRenderer->Render();
 }
 
 // maintenance method, called when the mode is deactivated
-void
-scenarioloader_mode::exit() {
-
+void scenarioloader_mode::exit() {
     simulation::Time.init( Global.starting_timestamp );
     simulation::Environment.init();
 }

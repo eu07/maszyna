@@ -136,7 +136,7 @@ void network::tcp::connection::send_message(const message &msg)
 network::tcp::server::server(std::shared_ptr<std::istream> buf, asio::io_context &io_ctx, const std::string &host, uint32_t port)
     : network::server(buf), m_acceptor(io_ctx), m_io_ctx(io_ctx)
 {
-	auto endpoint = asio::ip::tcp::endpoint(asio::ip::address::from_string(host), port);
+	auto endpoint = asio::ip::tcp::endpoint(asio::ip::make_address(host), port);
 	m_acceptor.open(endpoint.protocol());
 	m_acceptor.set_option(asio::socket_base::reuse_address(true));
 	m_acceptor.set_option(asio::ip::tcp::no_delay(true));
@@ -186,7 +186,7 @@ void network::tcp::client::connect()
 	conn->set_handler(std::bind(&client::handle_message, this, conn, std::placeholders::_1));
 
 	asio::ip::tcp::endpoint endpoint(
-	            asio::ip::address::from_string(host), port);
+	            asio::ip::make_address(host), port);
 	conn->m_socket.open(endpoint.protocol());
 	conn->m_socket.set_option(asio::ip::tcp::no_delay(true));
 	conn->m_socket.async_connect(endpoint,

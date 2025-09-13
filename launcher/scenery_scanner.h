@@ -39,6 +39,7 @@ struct scenery_desc {
 	std::filesystem::path path;
 	std::string name;
 	std::string description;
+	std::string category;
 	std::string image_path;
 	texture_handle image = 0;
 
@@ -58,12 +59,14 @@ public:
 	scenery_scanner(ui::vehicles_bank &bank);
 
 	std::vector<scenery_desc> scenarios;
+	std::map<std::string, std::vector<scenery_desc*>> categories;
 
 	void scan();
 
 private:
 	void scan_scn(std::filesystem::path path);
 	void parse_trainset(cParser &parser);
+	void build_categories();
 
 	ui::vehicles_bank &bank;
 };

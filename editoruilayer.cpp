@@ -30,14 +30,10 @@ editor_ui::update() {
 
     set_tooltip( "" );
 
-    if( ( true == Global.ControlPicking )
-     && ( true == DebugModeFlag ) ) {
-
-        auto const scenerynode = GfxRenderer->Pick_Node();
-        set_tooltip(
-            ( scenerynode ?
-                scenerynode->name() :
-                "" ) );
+    if( Global.ControlPicking && DebugModeFlag ) {
+        const auto sceneryNode = GfxRenderer->Pick_Node();
+		const std::string content = sceneryNode ? sceneryNode->tooltip() : "";
+        set_tooltip(content);
     }
 
     ui_layer::update();

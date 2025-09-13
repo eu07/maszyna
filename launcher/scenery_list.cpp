@@ -3,9 +3,10 @@
 #include "imgui/imgui.h"
 #include "utilities.h"
 #include "renderer.h"
-#include "McZapkie/MOVER.h"
 #include "application.h"
 #include "Logs.h"
+#include "translation.h"
+
 #include <filesystem>
 
 ui::scenerylist_panel::scenerylist_panel(scenery_scanner &scanner)
@@ -13,34 +14,53 @@ ui::scenerylist_panel::scenerylist_panel(scenery_scanner &scanner)
 {
 }
 
+bool ui::scenerylist_panel::on_key(int key, int action)
+{
+	if (!is_open)
+		return false;
+
+	auto it = keyboard.keytonamemap.find(key);
+	if (it == keyboard.keytonamemap.end())
+		return false;
+
+	if (Global.ctrlState && it->second == "delete")
+		purge_selected_trainset();
+
+	return true;
+}
+
 void ui::scenerylist_panel::draw_scenery_list()
 {
-	std::string prev_prefix;
-	bool collapse_open = false;
-
+	// Draw all the scenarios which are not assigned to any category.
 	for (auto &desc : scanner.scenarios) {
 		std::string name = desc.path.stem().string();
-		std::string prefix = name.substr(0, name.find_first_of("-_"));
+		std::string prefix = desc.category;
 		if (prefix.empty())
-			prefix = name;
-
-		bool just_opened = false;
-		if (prefix != prev_prefix) {
-			collapse_open = ImGui::CollapsingHeader(prefix.c_str());
-			just_opened = ImGui::IsItemDeactivated();
-			prev_prefix = prefix;
-		}
-
-		if (collapse_open) {
-			if (just_opened)
-				selected_scenery = &desc;
-
-			ImGui::Indent(10.0f);
+		{
 			if (ImGui::Selectable(name.c_str(), &desc == selected_scenery)) {
 				selected_scenery = &desc;
 				selected_trainset = nullptr;
 			}
-			ImGui::Unindent(10.0f);
+		}
+	}
+
+	// Render all aggregated scenarios inside categories.
+	bool collapse_open = false;
+	for (auto category : scanner.categories)
+	{
+		collapse_open = ImGui::CollapsingHeader(category.first.c_str());
+		if (collapse_open) {
+			for (auto desc : category.second)
+			{
+				std::string name = desc->path.stem().string();
+
+				ImGui::Indent(10.0f);
+				if (ImGui::Selectable(name.c_str(), desc == selected_scenery)) {
+					selected_scenery = desc;
+					selected_trainset = nullptr;
+				}
+				ImGui::Unindent(10.0f);
+			}
 		}
 	}
 }
@@ -350,6 +370,11 @@ void ui::scenerylist_panel::draw_droptarget(trainset_desc &trainset, int positio
 		}
 		ImGui::EndDragDropTarget();
 	}
+}
+
+void ui::scenerylist_panel::purge_selected_trainset()
+{
+	selected_trainset->vehicles.clear();
 }
 
 ui::dynamic_edit_popup::dynamic_edit_popup(ui_panel &panel, dynamic_desc &dynamic)

@@ -19,10 +19,13 @@ http://mozilla.org/MPL/2.0/.
 class launcher_ui : public ui_layer {
 public:
 	launcher_ui();
-	bool on_key(const int Key, const int Action) override;
+	bool on_key(int Key, int Action) override;
+	void on_window_resize(int w, int h) override;
 
 private:
 	void render_() override;
+	void close_panels();
+	void open_panel(ui_panel *panel);
 
 	ui::vehicles_bank m_vehicles_bank;
 	scenery_scanner m_scenery_scanner;
@@ -30,4 +33,6 @@ private:
 	ui::scenerylist_panel m_scenerylist_panel;
 	ui::keymapper_panel m_keymapper_panel;
 	ui::vehiclepicker_panel m_vehiclepicker_panel;
+
+	ui_panel *m_current_panel;
 };

@@ -1,12 +1,9 @@
 #include "stdafx.h"
 #include "widgets/perfgraphs.h"
 #include "Timer.h"
+#include "translation.h"
 
-perfgraph_panel::perfgraph_panel()
-    : ui_panel(STR("Performance"), false)
-{
-
-}
+perfgraph_panel::perfgraph_panel() : ui_panel(STR("Performance"), false) {}
 
 void perfgraph_panel::render_contents() {
 	if (ImGui::BeginCombo(STR_C("Timer"), timer_label[current_timer].c_str())) // The second parameter is the label previewed before opening the combo.

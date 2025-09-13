@@ -21,28 +21,19 @@ public:
     scenarioloader_mode();
 // methods
     // initializes internal data structures of the mode. returns: true on success, false otherwise
-    bool
-        init() override;
+    bool init() override;
     // mode-specific update of simulation data. returns: false on error, true otherwise
-    bool
-        update() override;
+    bool update() override;
     // maintenance method, called when the mode is activated
-    void
-        enter() override;
+    void enter() override;
     // maintenance method, called when the mode is deactivated
-    void
-        exit() override;
+    void exit() override;
     // input handlers
-    void
-        on_key( int const Key, int const Scancode, int const Action, int const Mods ) override { ; }
-    void
-        on_cursor_pos( double const Horizontal, double const Vertical ) override { ; }
-    void
-        on_mouse_button( int const Button, int const Action, int const Mods ) override { ; }
-    void
-        on_scroll( double const Xoffset, double const Yoffset ) override { ; }
-    void
-        on_event_poll() override { ; }
-    bool
-        is_command_processor() const override;
+    void on_key( int const Key, int const Scancode, int const Action, int const Mods ) override { ; }
+    void on_cursor_pos( double const Horizontal, double const Vertical ) override { ; }
+    void on_mouse_button( int const Button, int const Action, int const Mods ) override { ; }
+	void on_scroll( double const Xoffset, double const Yoffset ) override { ; }
+	void on_window_resize( int w, int h ) override { ; }
+    void on_event_poll() override { ; }
+    bool is_command_processor() const override;
 };

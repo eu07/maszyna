@@ -70,18 +70,13 @@ public:
         set_cursor_pos( double const Horizontal, double const Vertical );
     void queue_screenshot();
     // input handlers
-    void
-        on_key( int const Key, int const Scancode, int const Action, int const Mods );
-    void
-        on_char( unsigned int const Char );
-    void
-        on_cursor_pos( double const Horizontal, double const Vertical );
-    void
-        on_mouse_button( int const Button, int const Action, int const Mods );
-    void
-        on_scroll( double const Xoffset, double const Yoffset );
-	void
-	    on_focus_change(bool focus);
+    void on_key( int const Key, int const Scancode, int const Action, int const Mods );
+    void on_char( unsigned int const Char );
+    void on_cursor_pos( double const Horizontal, double const Vertical );
+    void on_mouse_button( int const Button, int const Action, int const Mods );
+    void on_scroll( double const Xoffset, double const Yoffset );
+	void on_focus_change(bool focus);
+	void on_window_resize(int w, int h);
     // gives access to specified window, creates a new window if index == -1
     GLFWwindow *
         window( int const Windowindex = 0, bool visible = false, int width = 1, int height = 1, GLFWmonitor *monitor = nullptr, bool keep_ownership = true, bool share_ctx = true );
