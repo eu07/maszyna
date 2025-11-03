@@ -123,7 +123,7 @@ struct global_settings {
     int PythonScreenUpdateRate{ 200 }; // delay between python-based screen updates, in milliseconds
     int iTextMode{ 0 }; // tryb pracy wyświetlacza tekstowego
     glm::vec4 UITextColor{ glm::vec4( 225.f / 255.f, 225.f / 255.f, 225.f / 255.f, 1.f ) }; // base color of UI text
-    float UIBgOpacity{ 0.65f }; // opacity of ui windows
+    float UIBgOpacity{ 0.94f }; // opacity of ui windows
     std::string asLang{ "pl" }; // domyślny język - http://tools.ietf.org/html/bcp47
     // gfx
     glm::ivec2 window_size; // main window size in platform-specific virtual pixels
