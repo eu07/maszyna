@@ -1,3 +1,13 @@
+# 🚚 Repository Moved
+
+This repository is no longer actively maintained.
+
+👉 **The project has been moved to:**  
+https://github.com/MaSzyna-EU07/maszyna
+
+Please update your bookmarks and follow the new repository for ongoing development.
+
+
 
 
 [![Build status](https://ci.appveyor.com/api/projects/status/ouns27vystoasiwx?svg=true)](https://ci.appveyor.com/project/Milek7/maszyna-8kwj6/branch/master)
