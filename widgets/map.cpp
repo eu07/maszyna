@@ -38,7 +38,8 @@ ui::map_panel::map_panel() : ui_panel(STR_C("Map"), false)
 	}
 
 	m_tex = std::make_unique<opengl_texture>();
-    m_tex->alloc_rendertarget(GL_RGB8, GL_RGB, fb_size, fb_size);
+	// Use RGBA render target to support transparency in ImGui
+	m_tex->alloc_rendertarget(GL_RGBA8, GL_RGBA, fb_size, fb_size);
 
 	m_fb = std::make_unique<gl::framebuffer>();
 	m_fb->attach(*m_tex, GL_COLOR_ATTACHMENT0);
@@ -299,7 +300,22 @@ void ui::map_panel::render_contents()
 
 	ImVec2 window_origin = ImGui::GetCursorPos();
 	ImVec2 screen_origin = ImGui::GetCursorScreenPos();
-	ImGui::ImageButton((ImTextureID)(intptr_t)(m_tex->id), surface_size_im, ImVec2(0, surface_size.y / fb_size), ImVec2(surface_size.x / fb_size, 0), 0);
+
+	ImVec4 bg_col   = ImVec4(0.0f, 0.0f, 0.0f, 0.0f); // keep button bg transparent
+	ImVec4 tint_col = ImVec4(1.0f, 1.0f, 1.0f, Global.UIBgOpacity); // alpha multiplier
+	ImGui::PushStyleVar(ImGuiStyleVar_Alpha, Global.UIBgOpacity);
+	ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0,0,0,0));
+	ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0,0,0,0));
+	ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(0,0,0,0));
+	ImGui::ImageButton((ImTextureID)(intptr_t)(m_tex->id),
+	                   surface_size_im,
+	                   ImVec2(0, surface_size.y / fb_size),
+	                   ImVec2(surface_size.x / fb_size, 0),
+	                   0,         // frame_padding
+	                   bg_col,    // background color
+	                   tint_col); // tint color (alpha applied here)
+	ImGui::PopStyleColor(3);
+	ImGui::PopStyleVar();
 
 	if (ImGui::IsItemHovered())
 	{
